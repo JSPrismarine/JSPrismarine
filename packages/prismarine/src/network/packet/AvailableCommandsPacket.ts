@@ -7,25 +7,44 @@ import { CommandParameterTypeFlag } from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 
 /**
- * The name 1.26.50 carries a command's permission level under.
+ * The name protocol 2193 writes a command's `Permission Level` under.
  *
- * The level itself is still a small integer everywhere else; only the wire spells it out.
- * Anything unrecognized is `unknown`, which is what the client's own table falls back to.
- *
- * Lower case, where the docs page prints the enum member names as `Any` and `GameDirectors`.
- * The docs render every stringly typed enum in CamelCase - `CommandOriginData`'s `Type` is
- * `Player` there and `player` on the wire - and gophertunnel writes and matches lower case.
- * @param {number} level - The permission level.
+ * The docs type `CommandPermissionLevel` is a `uint8` where it carries `Enum-as-Value`
+ * (`AddPlayerPacket`, `UpdateAbilitiesPacket`) and a string here, where it does not. The names
+ * are lower case on the wire; gophertunnel's `commandPermissionToString` at 2193 writes them
+ * that way and the docs page prints the member names in CamelCase. A level outside the table
+ * is `unknown`, which the client's own table also falls back to.
+ * @param {number} level - The permission level, 0 (`Any`) to 5 (`Internal`).
  * @returns {string} The name the client reads.
  */
 const commandPermissionToString = (level: number): string =>
     ['any', 'gamedirectors', 'admin', 'host', 'owner', 'internal'][level] ?? 'unknown';
 
 /**
- * AvailableCommandsPacket is sent by the server to the client to provide information about available commands.
+ * Tells the client which commands exist, how each one is spelled, and what it takes.
  *
- * Parameter type ids and flag bits come from `CommandParameter.ts`, the one place they are
- * defined, so the words this packet writes cannot drift from the ones the parameters carry.
+ * Wire order at protocol 2193, each list a varuint count then its items:
+ * - `Enum Values`: strings, one shared table every hard enum indexes into.
+ * - `Chained Subcommand Values`: strings. This server has none.
+ * - `Post Fixes`: strings, the suffixes a `Postfix` parameter points at.
+ * - `Enum Data`: `Name` (string) then `Values`, a list of `uint32` indices into `Enum Values`.
+ *   Fixed four bytes each; the width no longer depends on how many values there are.
+ * - `Chained Subcommand Data`: none.
+ * - `Commands`: `Name`, `Description`, `Flags` (uint16), `Permission Level` (string, see
+ *   {@link commandPermissionToString}), `Alias Enum` (int32 index into `Enum Data`, -1 when
+ *   the command has no aliases), `CommandData Chained Subcommand Indexes` (uint32 list, none),
+ *   then `Overloads`: `isChaining` (bool) and `Parameter Data`: `Name`, `Parse Symbol`
+ *   (uint32), `Is Optional?` (bool), `Options` (uint8).
+ * - `Soft Enums`: `Enum Name` then `Enum Options`, strings.
+ * - `Constraints`: `Enum Value Symbol` (uint32), `Enum Symbol` (uint32), `Constraint Indices`
+ *   (uint8 list).
+ *
+ * A `Parse Symbol` is a {@link CommandParameterType} word for a plain parameter. An enum
+ * parameter gets `Enum` or `SoftEnum` ORed with `Valid` and the enum's index in its own table
+ * (hard and soft enums are numbered separately); a postfixed one gets `Postfix` and the index
+ * into `Post Fixes`. The flag bits and type ids live in `CommandParameter.ts`.
+ *
+ * **Bound To:** Client
  */
 export default class AvailableCommandsPacket extends DataPacket {
     public static NetID = Identifiers.AvailableCommandsPacket;
@@ -88,12 +107,16 @@ export default class AvailableCommandsPacket extends DataPacket {
             });
         });
 
+        // A constraint names an enum and one of its values; both get an index here so the
+        // symbols written below always point at something in the packet.
+        this.enumConstraints.forEach((constraint) => appendEnum(constraint.getEnum()));
+
         this.writeUnsignedVarInt(enumValueIndexes.size);
         enumValueIndexes.forEach((_index: number, enumValue: string) => {
             NetworkUtil.writeString(this, enumValue);
         });
 
-        this.writeUnsignedVarInt(0); // chainedSubCommandValueNameIndexes
+        this.writeUnsignedVarInt(0); // Chained Subcommand Values.
 
         this.writeUnsignedVarInt(postfixIndexes.size);
         postfixIndexes.forEach((_index: number, postfix: string) => {
@@ -105,7 +128,7 @@ export default class AvailableCommandsPacket extends DataPacket {
             this.writeEnum(_enum, enumValueIndexes);
         });
 
-        this.writeUnsignedVarInt(0); // allChainedSubCommandData
+        this.writeUnsignedVarInt(0); // Chained Subcommand Data.
 
         this.writeUnsignedVarInt(this.commandData.length);
         this.commandData.forEach((data: CommandData) => {
@@ -125,31 +148,24 @@ export default class AvailableCommandsPacket extends DataPacket {
         });
     }
 
-    private writeEnum({ name, values }: CommandEnum, enumValueMap: Map<string, number>): void {
-        NetworkUtil.writeString(this, name);
-        this.writeUnsignedVarInt(values.length);
-
-        values.forEach((value: string) => {
-            const index = enumValueMap.get(value) ?? -1;
-            if (index === -1) return;
-            this.writeEnumValueIndex(index);
-        });
-    }
-
     /**
-     * An enum's value index, which is a fixed 32 bit little endian integer.
+     * One `Enum Data` entry: the name, then each value's index in `Enum Values` as a uint32.
      *
-     * It used to be written at whatever width the number of enum values needed - one byte under
-     * 256, two under 65536, four beyond - which is how it worked for years. 1.26.50 does not:
-     * `CommandEnumContext.Marshal` reads the indices with `FuncSlice(..., Uint32)`, four bytes
-     * each, unconditionally. Writing one byte where the client reads four makes it run off the
-     * end of the packet, and a packet that ends early is a *malformed* packet to a real client:
-     * it drops the connection with `initialconnection-90`, which says only "bad packet" and
-     * names nothing. This server's own client never read the packet at all, so nothing caught it.
-     * @param {number} index - The position of the value in the shared enum value table.
+     * Four bytes per index regardless of the table's size. Before 1.21.130 the width followed
+     * the number of enum values (one byte under 256, two under 65536); the docs for 2193 list
+     * the field as `array<uint32>` and gophertunnel has read it as `Uint32` since that release.
+     * The count written is the number of indices that follow, so a value missing from the
+     * table cannot leave the client reading the next field as an index.
      */
-    private writeEnumValueIndex(index: number): void {
-        this.writeUnsignedIntLE(index);
+    private writeEnum({ name, values }: CommandEnum, enumValueMap: Map<string, number>): void {
+        const indices = values.flatMap((value) => {
+            const index = enumValueMap.get(value);
+            return index === undefined ? [] : [index];
+        });
+
+        NetworkUtil.writeString(this, name);
+        this.writeUnsignedVarInt(indices.length);
+        indices.forEach((index) => this.writeUnsignedIntLE(index));
     }
 
     private writeCommandData(
@@ -160,39 +176,22 @@ export default class AvailableCommandsPacket extends DataPacket {
     ): void {
         NetworkUtil.writeString(this, data.commandName);
         NetworkUtil.writeString(this, data.commandDescription);
-        this.writeShortLE(data.flags);
-
-        // A string, not the byte the permission level is held as. `Command.Marshal` turns the
-        // level into one of a fixed set of names and writes that; a client reading a length
-        // prefixed string where a bare byte was written takes the next bytes as the string's
-        // contents and every field after it is lost.
+        this.writeUnsignedShortLE(data.flags);
         NetworkUtil.writeString(this, commandPermissionToString(data.permission));
 
-        if (data.aliases !== null) {
-            this.writeIntLE(enumIndexes.get(data.aliases.name) ?? -1);
-        } else {
-            this.writeIntLE(-1);
-        }
+        // `Alias Enum` is a signed index; -1 says the command has none.
+        this.writeIntLE(data.aliases === null ? -1 : (enumIndexes.get(data.aliases.name) ?? -1));
 
-        this.writeUnsignedVarInt(0); // chainedSubCommandData
+        this.writeUnsignedVarInt(0); // CommandData Chained Subcommand Indexes.
 
-        // The overloads - a command's argument signatures - were stubbed out as a hard zero,
-        // with the real writer commented out beneath it. A command with no overloads is one the
-        // client will list but cannot call: it has nothing to parse `1` in `/gamemode 1`
-        // against, so it never sends the command at all and typing it does nothing. The server
-        // has been building these all along (`PlayerSession.sendAvailableCommands`); only this
-        // threw them away. Each overload is a chaining flag and then its parameters.
         this.writeUnsignedVarInt(data.overloads.length);
         data.overloads.forEach((overload) => {
-            this.writeBoolean(false); // Chaining.
+            this.writeBoolean(false); // isChaining.
             this.writeUnsignedVarInt(overload.length);
 
             overload.forEach((parameter) => {
                 NetworkUtil.writeString(this, parameter.paramName);
 
-                // An enum parameter's word is the enum's index in its own table: soft enums are
-                // numbered separately from the hard ones, so a soft enum looked up in the hard
-                // table pointed the client at whichever hard enum shared its position.
                 let type: number = parameter.paramType;
                 if (parameter.enum !== null) {
                     type = parameter.enum.soft
@@ -226,8 +225,8 @@ export default class AvailableCommandsPacket extends DataPacket {
         enumIndexes: Map<string, number>,
         enumValueIndexes: Map<string, number>
     ): void {
-        this.writeIntLE(enumValueIndexes.get(constraint.getAffectedValue()) ?? 0);
-        this.writeIntLE(enumIndexes.get(constraint.getEnum().name) ?? 0);
+        this.writeUnsignedIntLE(enumValueIndexes.get(constraint.getAffectedValue()) ?? 0);
+        this.writeUnsignedIntLE(enumIndexes.get(constraint.getEnum().name) ?? 0);
         this.writeUnsignedVarInt(constraint.getConstraints().length);
         constraint.getConstraints().forEach((v) => {
             this.writeByte(v);

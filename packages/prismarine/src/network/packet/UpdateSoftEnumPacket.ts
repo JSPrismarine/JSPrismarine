@@ -16,8 +16,8 @@ export enum SoftEnumUpdateType {
  * Changes one soft enum without resending every command.
  *
  * A soft enum is the one kind of command enum whose options may change while a client is
- * connected - player names and tags, mostly - so this exists to avoid sending the whole of
- * `AvailableCommandsPacket` again for each change.
+ * connected, player names and tags mostly. This packet changes one of them without sending the
+ * whole of `AvailableCommandsPacket` again.
  *
  * Wire order at protocol 2193: `Enum Name` (string), `Values` (a varuint count then that many
  * strings), `Update Type` (uint8, a {@link SoftEnumUpdateType}).
