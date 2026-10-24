@@ -36,8 +36,8 @@
     },
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
-        "build": "vite build",
-        "typecheck": "tsc -noEmit"
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "typecheck": "tsc-ts --noEmit"
     },
     "repository": {
         "type": "git",
@@ -53,7 +53,7 @@
     "devDependencies": {
         "@types/node": "24.13.6",
         "glob": "13.0.6",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "vite": "8.3.0",
         "vitest": "5.0.1"
     },

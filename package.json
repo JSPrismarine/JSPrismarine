@@ -18,11 +18,11 @@
         "dev": "pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
         "build": "turbo run build --env-mode=loose",
-        "build:docs": "typedoc",
+        "build:docs": "pnpm --filter @jsprismarine/docs run docs",
         "build:watch": "turbo run build:watch --concurrency 32",
         "server:build": "turbo run build --filter=@jsprismarine/server --env-mode=loose",
         "test": "vitest run --coverage",
-        "typecheck": "turbo run typecheck && tsc -p tsconfig.scripts.json",
+        "typecheck": "turbo run typecheck && tsc-ts -p tsconfig.scripts.json",
         "lint": "concurrently pnpm:lint:*",
         "lint:prettier": "prettier --check .",
         "format": "concurrently pnpm:format:*",
@@ -53,7 +53,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandström",
+            "name": "Filiph Sandstr\u00f6m",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
@@ -90,17 +90,11 @@
         "prettier": "3.9.10",
         "scriptc": "0.4.3",
         "ts-mockito": "2.6.1",
+        "tsc-ts": "0.0.9",
         "turbo": "2.11.10",
         "turbo-ignore": "2.11.10",
-        "typedoc": "0.28.20",
-        "typedoc-material-theme": "1.4.1",
-        "typedoc-plugin-extras": "4.0.1",
-        "typedoc-plugin-merge-modules": "7.0.0",
-        "typedoc-plugin-rename-defaults": "0.7.3",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "vite": "8.3.0",
-        "vite-plugin-dts": "5.1.2",
-        "vite-tsconfig-paths": "6.1.1",
         "vitest": "5.0.1"
     },
     "dependencies": {

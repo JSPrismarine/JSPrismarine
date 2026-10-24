@@ -3,8 +3,6 @@ import { defineConfig } from 'vite';
 import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import dts from 'vite-plugin-dts';
-
 import pkg from './package.json' with { type: 'json' };
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -69,14 +67,5 @@ export default defineConfig({
             }
         }
     },
-    plugins: [
-        dts({
-            root: process.cwd(),
-            clearPureImport: false,
-            copyDtsFiles: true,
-            entryRoot: `./src`,
-            insertTypesEntry: true,
-            tsconfigPath: `./tsconfig.json`
-        })
-    ]
+    plugins: []
 });

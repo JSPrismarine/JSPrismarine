@@ -38,9 +38,9 @@
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
-        "build": "pnpm run generate && vite build",
+        "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "pnpm run build",
-        "typecheck": "tsc -noEmit"
+        "typecheck": "tsc-ts --noEmit"
     },
     "repository": {
         "type": "git",
@@ -57,7 +57,7 @@
         "@types/node": "24.13.6",
         "glob": "13.0.6",
         "rimraf": "6.1.3",
-        "typescript": "6.0.3",
+        "typescript": "7.0.2",
         "vite": "8.3.0",
         "vitest": "5.0.1"
     }
