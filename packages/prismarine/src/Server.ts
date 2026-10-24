@@ -22,6 +22,7 @@ import PacketRegistry from './network/PacketRegistry';
 import type { DataPacket } from './network/Packets';
 import BatchPacket from './network/packet/BatchPacket';
 import { readPacketId } from './network/packet/DataPacket';
+import { isPreLoginHandler } from './network/handler/PreLoginPacketHandler';
 import { PermissionManager } from './permission/PermissionManager';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
@@ -59,10 +60,11 @@ export default class Server extends EventEmitter {
     private readonly chunkScheduler: ChunkScheduler = new ChunkScheduler(undefined, (error, coord) => {
         // Reported rather than thrown: see the comment on the scheduler's own catch. The
         // logger is read when the failure happens, not when this closure is built.
+        const reason = error instanceof Error ? error.message : String(error);
         this.logger.warn(
             coord
-                ? `Failed to send chunk §b${coord.x}, ${coord.z}§r: ${(error as Error)?.message ?? String(error)}`
-                : `Failed to flush a chunk batch: ${(error as Error)?.message ?? String(error)}`
+                ? `Failed to send chunk §b${coord.x}, ${coord.z}§r: ${reason}`
+                : `Failed to flush a chunk batch: ${reason}`
         );
         this.logger.error(error);
     });
@@ -326,7 +328,23 @@ export default class Server extends EventEmitter {
                         const handler = this.packetRegistry.getHandler(pid);
                         if (this.getPacketLogFilter().shouldLog(packet))
                             this.logger.silly(`Received §b${packet.constructor.name}§r packet`);
-                        await (handler as any).handle(packet, this, connection.getPlayerSession() ?? connection);
+
+                        // A pre-login handler takes the bare connection; every other handler
+                        // needs the player session that login creates. A packet that reaches
+                        // the wrong side of that line is dropped rather than handed an object
+                        // of the wrong shape.
+                        const session = connection.getPlayerSession();
+                        if (isPreLoginHandler(handler)) {
+                            if (session === null) await handler.handle(packet, this, connection);
+                            else
+                                this.logger.debug(
+                                    `Dropped §b${packet.constructor.name}§r: pre-login packet received after login`
+                                );
+                        } else if (session !== null) await handler.handle(packet, this, session);
+                        else
+                            this.logger.debug(
+                                `Dropped §b${packet.constructor.name}§r: received before login completed`
+                            );
                     } catch (error: unknown) {
                         this.logger.error(`Handler error ${packet.constructor.name}-handler: (${error})`);
                         this.logger.error(error);
