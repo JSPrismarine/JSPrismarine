@@ -1,5 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type Player from '../Player';
+import type Server from '../Server';
+import type { Config } from '../config/Config';
+import { stub } from '../testing/stub.test.helper';
+import type { ChunkScheduler } from '../world/ChunkScheduler';
+import type { Position } from '../world/Position';
+import type ClientConnection from './ClientConnection';
 import PlayerSession from './PlayerSession';
 
 /**
@@ -15,37 +22,42 @@ describe('network', () => {
         /**
          * A player at a block position, which is all `needNewChunks` reads.
          *
-         * `position` stays a plain field so a test can walk the player by assigning to it;
-         * `getPosition` is what the session actually calls, now that a player has a position
-         * rather than being one.
+         * `position` is a plain field a test walks the player by assigning to; `getPosition`,
+         * which is what the session actually calls, reads it on every call.
          */
-        const playerAt = (x: number, z: number, viewDistance = 2) => ({
-            position: { x, z },
-            viewDistance,
-            getPosition() {
-                return {
-                    getX: () => this.position.x,
-                    getZ: () => this.position.z
-                };
-            }
-        });
+        const playerAt = (x: number, z: number, viewDistance = 2) => {
+            const walkable: { position: { x: number; z: number }; player: Player } = {
+                position: { x, z },
+                player: stub<Player>({
+                    viewDistance,
+                    getPosition: () =>
+                        stub<Position>({
+                            getX: () => walkable.position.x,
+                            getZ: () => walkable.position.z
+                        })
+                })
+            };
 
-        const server = {
-            getChunkScheduler: () => ({ add: () => {}, remove: () => {} }),
+            return walkable;
+        };
+
+        const server = stub<Server>({
+            getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
             // Read once in the constructor, to build the session's entity tracker.
-            getConfig: () => ({
-                getProximityBroadcast: () => true,
-                getEntityTrackingHysteresis: () => 2,
-                getEntityTrackingInterval: () => 4
-            })
-        } as any;
+            getConfig: () =>
+                stub<Config>({
+                    getProximityBroadcast: () => true,
+                    getEntityTrackingHysteresis: () => 2,
+                    getEntityTrackingInterval: () => 4
+                })
+        });
 
         let player: ReturnType<typeof playerAt>;
         let session: PlayerSession;
 
         beforeEach(() => {
             player = playerAt(0, 0);
-            session = new PlayerSession(server, {} as any, player as any);
+            session = new PlayerSession(server, stub<ClientConnection>(), player.player);
         });
 
         it('queues the chunks around the player', async () => {

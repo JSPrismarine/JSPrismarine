@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import type { Entity } from '../entity/Entity';
+import { stub } from '../testing/stub.test.helper';
+import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
 import PlayerSession from './PlayerSession';
 
@@ -12,8 +14,12 @@ import PlayerSession from './PlayerSession';
  * spawn reached the wire is one nobody will ever send again.
  */
 
-/** A session with the connection replaced, so what goes on the wire can be counted. */
-const trackingSession = ({ viewDistance = 10, spawnFails = false } = {}) => {
+/**
+ * A session with the connection replaced, so what goes on the wire can be counted.
+ *
+ * `reconciling` seeds the flag a pass sets while it runs, for tests that start mid-pass.
+ */
+const trackingSession = ({ viewDistance = 10, spawnFails = false, reconciling = false } = {}) => {
     const sent: any[] = [];
     const spawned: bigint[] = [];
 
@@ -32,20 +38,20 @@ const trackingSession = ({ viewDistance = 10, spawnFails = false } = {}) => {
         connection,
         player,
         entityTracker: new EntityTracker({ hysteresis: 2, enabled: true }),
-        reconciling: false
+        reconciling
     });
 
     /** An entity that records the spawn instead of building a packet for it. */
     const entityAt = (id: bigint, chunksEast: number, range = 8): Entity =>
-        ({
+        stub<Entity>({
             getRuntimeId: () => id,
-            getPosition: () => ({ getX: () => chunksEast * 16 + 8, getY: () => 64, getZ: () => 8 }),
+            getPosition: () => stub<Position>({ getX: () => chunksEast * 16 + 8, getY: () => 64, getZ: () => 8 }),
             getTrackingRange: () => range,
             spawnTo: async () => {
                 if (spawnFails) throw new Error('the wire went away');
                 spawned.push(id);
             }
-        }) as unknown as Entity;
+        });
 
     return { session, sent, spawned, entityAt };
 };
@@ -149,8 +155,7 @@ describe('network', () => {
             });
 
             it('does not run while another pass is running', async () => {
-                const { session, spawned, entityAt } = trackingSession();
-                (session as any).reconciling = true;
+                const { session, spawned, entityAt } = trackingSession({ reconciling: true });
 
                 await session.reconcileTrackedEntities([entityAt(2n, 1)]);
 
@@ -162,7 +167,9 @@ describe('network', () => {
 
                 await expect(session.reconcileTrackedEntities([entityAt(2n, 1)])).rejects.toThrow();
 
-                expect((session as any).reconciling).toBe(false);
+                // A pass left flagged would be skipped silently; one that runs and throws again
+                // shows the flag was cleared.
+                await expect(session.reconcileTrackedEntities([entityAt(2n, 1)])).rejects.toThrow();
             });
         });
 
