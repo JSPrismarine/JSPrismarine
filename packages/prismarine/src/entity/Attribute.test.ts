@@ -5,11 +5,12 @@ import { Attribute, AttributeIds, Attributes } from './Attribute';
 
 describe('entity', () => {
     describe('Attribute', () => {
-        // Protocol 748 (Minecraft 1.21.42) serialises an attribute as
-        //   min, max, current, default_min, default_max, default : lf32 each
-        //   name : string
-        //   modifiers : varint count
-        // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json
+        // Protocol 2193 serialises an `AttributeData` as
+        //   Min Value, Max Value, Current Value, Default Min Value, Default Max Value,
+        //   Default Value : float each
+        //   Name : hashed_string
+        //   Modifiers : varuint32 count, then that many AttributeModifier
+        // https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
         const health = () => new Attribute({ name: AttributeIds.Health, min: 0, max: 20, def: 20, value: 15 });
 
         it('writes six floats before the name', () => {
@@ -49,10 +50,41 @@ describe('entity', () => {
             expect(parsed.getDefault()).toBe(20);
         });
 
-        // `AddActor` carries the other layout the protocol has for an attribute:
-        //   name : string
-        //   min, current, max : lf32 each
-        // https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json
+        it('reads past an attribute that carries modifiers, leaving the stream at the next field', () => {
+            // One modifier, built by hand in docs order, between the attribute and a sentinel.
+            const stream = new BinaryStream();
+            health().networkSerialize(stream);
+
+            const buffer = stream.getBuffer();
+
+            // The writer ends with a zero modifier count; replace that byte with a list of one.
+            const tail = new BinaryStream();
+            tail.writeUnsignedVarInt(1);
+            tail.writeUnsignedVarInt(2);
+            tail.write(Buffer.from('id'));
+            tail.writeUnsignedVarInt(4);
+            tail.write(Buffer.from('name'));
+            tail.writeFloatLE(2.5);
+            tail.writeIntLE(1); // Operation
+            tail.writeIntLE(2); // Operand
+            tail.writeBoolean(true); // Is Serializable?
+            tail.writeUnsignedVarLong(99n); // The packet's Tick, standing in as a sentinel.
+
+            const reading = new BinaryStream(
+                Buffer.concat([buffer.subarray(0, buffer.byteLength - 1), tail.getBuffer()])
+            );
+            const parsed = Attribute.networkDeserialize(reading);
+
+            expect(parsed.getName()).toBe(AttributeIds.Health);
+            expect(parsed.getValue()).toBe(15);
+            expect(reading.readUnsignedVarLong()).toBe(99n);
+            expect(reading.feof()).toBe(true);
+        });
+
+        // `AddActor` carries the other layout the protocol has for an attribute, `SyncedAttribute`:
+        //   Attribute Name : string
+        //   Min Value, Current Value, Max Value : float each
+        // https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-actor-packet/
         describe('the short AddActor layout', () => {
             it('writes the name first, then min, current, max', () => {
                 const stream = new BinaryStream();

@@ -3,29 +3,46 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../network/NetworkUtil';
 
-// TODO: Still missing flags
+/**
+ * The data item ids and flag bits this server sets, in the protocol 2193 numbering.
+ *
+ * Two different enumerations live here. Everything down to `BOUNDINGBOX_HEIGHT` is an
+ * `ActorDataID`, the key of a `DataItemEntry`; everything after it is an `ActorFlags` bit
+ * inside the long stored at `INDEX`. `@jsprismarine/minecraft` generates both from the
+ * published docs under those names, and the entries here are the handful the server uses,
+ * under the names the rest of this package already calls them by. Four of them the docs name
+ * differently: `INDEX` is `Flags`, `HEALTH` is `StructuralIntegrity`, `EXPERIENCE_VALUE` is
+ * `Value`, and the bounding box pair is `Width` and `Height`.
+ *
+ * The run from `HURT_TIME` to `EXPERIENCE_VALUE` used to be numbered one lower apiece,
+ * because id 10 (`JumpDuration`, which nothing here sets) was missing from the list. A player
+ * respawning cleared `JumpDuration` and `Hurt` rather than `Hurt` and `HurtDirection`, so the
+ * red flash stayed on the fresh body.
+ */
 export enum MetadataFlag {
-    INDEX,
-    HEALTH,
-    VARIANT,
-    COLOR,
-    NAMETAG,
-    OWNER_ENTITY_ID,
-    TARGET_ENTITY_ID,
-    AIR,
-    POTION_COLOR,
-    AMBIENT,
-    HURT_TIME,
-    HURT_DIRECTION,
-    PADDLE_TIME_LEFT,
-    PADDLE_TIME_RIGHT,
-    EXPERIENCE_VALUE,
+    INDEX = 0,
+    HEALTH = 1,
+    VARIANT = 2,
+    COLOR = 3,
+    NAMETAG = 4,
+    OWNER_ENTITY_ID = 5,
+    TARGET_ENTITY_ID = 6,
+    AIR = 7,
+    POTION_COLOR = 8,
+    AMBIENT = 9,
+    HURT_TIME = 11,
+    HURT_DIRECTION = 12,
+    PADDLE_TIME_LEFT = 13,
+    PADDLE_TIME_RIGHT = 14,
+    EXPERIENCE_VALUE = 15,
     PLAYER_INDEX = 27,
     ENTITY_LEAD_HOLDER_ID = 37,
-    SCALE,
+    SCALE = 38,
     MAX_AIR = 42,
+    BOUNDINGBOX_WIDTH = 53,
+    BOUNDINGBOX_HEIGHT = 54,
 
-    // flags
+    // Flag bits inside the long stored at INDEX, not ids of their own.
     ONFIRE = 0,
     SPRINTING = 3,
     /** Holding an item down: drawing a bow, raising a shield, eating. Drives the client's pose. */
@@ -38,9 +55,7 @@ export enum MetadataFlag {
     CAN_FLY = 21,
     BREATHING = 35,
     HAS_COLLISION = 48,
-    AFFECTED_BY_GRAVITY = 49,
-    BOUNDINGBOX_WIDTH = 53,
-    BOUNDINGBOX_HEIGHT
+    AFFECTED_BY_GRAVITY = 49
 }
 
 export enum FlagType {
@@ -59,6 +74,14 @@ export enum FlagType {
  * How long an entity can stay underwater, in ticks - fifteen seconds, as in vanilla.
  */
 export const MAX_AIR_TICKS = 300;
+
+/**
+ * The data item id holding flag bits 64 and above, `FlagsTwo` in the docs' `ActorDataID`.
+ *
+ * Not a member of {@link MetadataFlag}, because nothing names a flag that high yet and an id
+ * sitting among the flag bits is what made it 94 - `LayingAmountPrevious` - for a while.
+ */
+const FLAGS_TWO = 92;
 
 /**
  * One stored metadata property: the wire type it is sent as, paired with the value that type carries.
@@ -212,7 +235,7 @@ export class MetadataWriter {
      * @param {boolean} [value=true] - The flag value.
      */
     public setGenericFlag(flagId: number, value = true): void {
-        this.setDataFlag(flagId >= 64 ? 94 : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
+        this.setDataFlag(flagId >= 64 ? FLAGS_TWO : MetadataFlag.INDEX, flagId % 64, value, FlagType.LONG);
     }
 
     /**
@@ -223,9 +246,24 @@ export class MetadataWriter {
         return this.metadata;
     }
 
+    /**
+     * Writes the properties as a `SynchedActorDataList`.
+     *
+     * A varuint32 count, then one `DataItemEntry` per property: the `ID` as a varuint32, the
+     * payload's `Type` as a varuint32 selector, the same type again as the alternative's own
+     * uint8 first field, and the value.
+     *
+     * The entries go out in ascending id order rather than in the order they were set. The
+     * client reads some properties as a group and expects them to arrive in order - an NPC
+     * shows neither its text nor its buttons when they do not - and ascending is also what a
+     * Bedrock Dedicated Server writes, since it walks its own map.
+     * @param stream - The network stream.
+     */
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeUnsignedVarInt(this.getData().size);
-        for (const [index, value] of this.getData()) {
+        const entries = Array.from(this.getData()).sort(([left], [right]) => left - right);
+
+        stream.writeUnsignedVarInt(entries.length);
+        for (const [index, value] of entries) {
             stream.writeUnsignedVarInt(index);
 
             // The type twice. An entry is now a tagged variant - a varint selector, then the
@@ -248,7 +286,9 @@ export class MetadataWriter {
                     NetworkUtil.writeString(stream, value[1]);
                     break;
                 case FlagType.SHORT:
-                    stream.writeUnsignedShortLE(value[1]);
+                    // Signed: `DataItemShortPayload` carries an int16, and the unsigned writer
+                    // this used throws rather than wrapping when a property goes negative.
+                    stream.writeShortLE(value[1]);
                     break;
                 case FlagType.INT:
                     // A varint, not four bytes. Missing entirely, and it is what a falling
@@ -303,8 +343,11 @@ export class Metadata extends MetadataWriter {
 
     /**
      * Set the default metadata values.
+     *
+     * Only the properties every entity needs on screen. Everything else in `ActorDataID` is
+     * left unset, which is the same as a vanilla default, and the entity classes add what
+     * their own kind needs.
      * @remarks This method is called when the metadata object is created.
-     * @TODO: Add missing functions.
      */
     protected setDefaults(): void {
         this.setLong(MetadataFlag.INDEX, 0n);

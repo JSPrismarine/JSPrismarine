@@ -193,6 +193,31 @@ describe('Metadata.networkSerialize', () => {
         expect(stream.feof()).toBe(true);
     });
 
+    it('writes the entries by ascending id, not in the order they were set', () => {
+        const metadata = new Metadata(false);
+        metadata.setFloat(MetadataFlag.SCALE, 1);
+        metadata.setShort(MetadataFlag.AIR, 7);
+        metadata.setString(MetadataFlag.NAMETAG, 'x');
+
+        const written = new BinaryStream();
+        metadata.networkSerialize(written);
+        const stream = new BinaryStream(written.getBuffer());
+
+        const ids: number[] = [];
+        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+            ids.push(stream.readUnsignedVarInt());
+
+            const type = stream.readUnsignedVarInt();
+            expect(stream.readSignedByte()).toBe(type);
+            if (type === FlagType.FLOAT) stream.readFloatLE();
+            else if (type === FlagType.SHORT) stream.readShortLE();
+            else stream.read(stream.readUnsignedVarInt());
+        }
+
+        expect(ids).toEqual([MetadataFlag.NAMETAG, MetadataFlag.AIR, MetadataFlag.SCALE]);
+        expect(stream.feof()).toBe(true);
+    });
+
     it('names the type it cannot write, rather than only numbering it', () => {
         const metadata = new Metadata();
         metadata.setPropertyValue(1, FlagType.ITEM, new NBTTagCompound());
