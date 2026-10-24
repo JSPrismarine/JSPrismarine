@@ -29,6 +29,7 @@ import MultiplayerSettingsHandler from './handler/MultiplayerSettingsHandler';
 import NetworkStackLatencyHandler from './handler/NetworkStackLatencyHandler';
 import NpcRequestHandler from './handler/NpcRequestHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
+import PartyChangedHandler from './handler/PartyChangedHandler';
 import PhotoTransferHandler from './handler/PhotoTransferHandler';
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
@@ -43,6 +44,7 @@ import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandl
 import RequestPermissionsHandler from './handler/RequestPermissionsHandler';
 import ResourcePackChunkRequestHandler from './handler/ResourcePackChunkRequestHandler';
 import ResourcePackClientResponseHandler from './handler/ResourcePackClientResponseHandler';
+import ResourcePacksReadyForValidationHandler from './handler/ResourcePacksReadyForValidationHandler';
 import RespawnHandler from './handler/RespawnHandler';
 import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler';
 import ServerboundDiagnosticsHandler from './handler/ServerboundDiagnosticsHandler';
@@ -52,6 +54,7 @@ import SetActorLinkHandler from './handler/SetActorLinkHandler';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
+import SetPlayerFurnaceOptionsHandler from './handler/SetPlayerFurnaceOptionsHandler';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import SettingsCommandHandler from './handler/SettingsCommandHandler';
@@ -97,6 +100,7 @@ export {
     NetworkStackLatencyHandler,
     NpcRequestHandler,
     PacketViolationWarningHandler,
+    PartyChangedHandler,
     PhotoTransferHandler,
     PlayerActionHandler,
     PlayerAuthInputHandler,
@@ -111,6 +115,7 @@ export {
     RequestPermissionsHandler,
     ResourcePackChunkRequestHandler,
     ResourcePackClientResponseHandler,
+    ResourcePacksReadyForValidationHandler,
     RespawnHandler,
     ServerSettingsRequestHandler,
     ServerboundDiagnosticsHandler,
@@ -120,6 +125,7 @@ export {
     SetDefaultGameTypeHandler,
     SetDifficultyHandler,
     SetLocalPlayerAsInitializedHandler,
+    SetPlayerFurnaceOptionsHandler,
     SetPlayerGameTypeHandler,
     SetPlayerInventoryOptionsHandler,
     SettingsCommandHandler,

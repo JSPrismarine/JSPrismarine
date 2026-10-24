@@ -82,6 +82,7 @@ import NetworkStackLatencyPacket from './packet/NetworkStackLatencyPacket';
 import NpcRequestPacket from './packet/NpcRequestPacket';
 import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
+import PartyChangedPacket from './packet/PartyChangedPacket';
 import PhotoTransferPacket from './packet/PhotoTransferPacket';
 import PlaySoundPacket from './packet/PlaySoundPacket';
 import PlayStatusPacket from './packet/PlayStatusPacket';
@@ -110,6 +111,7 @@ import ResourcePackClientResponsePacket from './packet/ResourcePackClientRespons
 import ResourcePackDataInfoPacket from './packet/ResourcePackDataInfoPacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
+import ResourcePacksReadyForValidationPacket from './packet/ResourcePacksReadyForValidationPacket';
 import RespawnPacket from './packet/RespawnPacket';
 import ServerPlayerPostMovePositionPacket from './packet/ServerPlayerPostMovePositionPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
@@ -127,6 +129,7 @@ import SetDisplayObjectivePacket from './packet/SetDisplayObjectivePacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLastHurtByPacket from './packet/SetLastHurtByPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
+import SetPlayerFurnaceOptionsPacket from './packet/SetPlayerFurnaceOptionsPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetScorePacket from './packet/SetScorePacket';
@@ -255,6 +258,7 @@ export {
     NpcRequestPacket,
     OnScreenTextureAnimationPacket,
     PacketViolationWarningPacket,
+    PartyChangedPacket,
     PhotoTransferPacket,
     PlaySoundPacket,
     PlayStatusPacket,
@@ -283,6 +287,7 @@ export {
     ResourcePackDataInfoPacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
+    ResourcePacksReadyForValidationPacket,
     RespawnPacket,
     ServerPlayerPostMovePositionPacket,
     ServerSettingsRequestPacket,
@@ -300,6 +305,7 @@ export {
     SetHealthPacket,
     SetLastHurtByPacket,
     SetLocalPlayerAsInitializedPacket,
+    SetPlayerFurnaceOptionsPacket,
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetScorePacket,
