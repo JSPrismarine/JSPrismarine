@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -67,6 +67,34 @@ describe('config', () => {
 
         it('should have the default packet compression level', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
+        });
+
+        it('should write every key with a comment explaining it', () => {
+            const text = readFileSync(path.join(configDirectory, 'config.yaml'), 'utf8');
+
+            expect(text).toContain(
+                '# The UDP port the server listens on. Bedrock clients look for 19132.\nport: 19132\n'
+            );
+            expect(text).toContain('# How far players see, in chunks.\nview-distance: 10\n');
+            // Every key has a comment above it: as many comment lines as top-level keys.
+            const keys = text.match(/^[a-z-]+:/gm) ?? [];
+            const comments = text.match(/^# /gm) ?? [];
+            expect(keys.length).toBeGreaterThan(20);
+            expect(comments).toHaveLength(keys.length);
+        });
+
+        it('should add a new key to an older file without touching what is there', async () => {
+            const file = path.join(configDirectory, 'config.yaml');
+            writeFileSync(file, '# My server.\nport: 25565 # forwarded\nmotd: Hi there\n');
+
+            const reread = new Config();
+            await reread.enable();
+
+            const text = readFileSync(file, 'utf8');
+            expect(reread.getServerPort()).toBe(25565);
+            expect(reread.getMotd()).toBe('Hi there');
+            expect(text.startsWith('# My server.\nport: 25565 # forwarded\nmotd: Hi there\n')).toBe(true);
+            expect(text).toContain('# How far players see, in chunks.\nview-distance: 10\n');
         });
 
         it('should set the gamemode', () => {

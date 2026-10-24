@@ -72,7 +72,7 @@
     },
     "homepage": "https://jsprismarine.github.io/JSPrismarine/",
     "devDependencies": {
-        "@biomejs/biome": "2.6.2",
+        "@biomejs/biome": "2.6.3",
         "@changesets/changelog-github": "1.0.1",
         "@changesets/cli": "3.0.3",
         "@changesets/types": "7.0.0",
@@ -82,8 +82,8 @@
         "@commitlint/types": "21.2.3",
         "@nordcom/prettier": "0.1.1",
         "@turbo/gen": "2.11.10",
-        "@types/node": "24.13.6",
-        "@vitest/coverage-v8": "5.0.1",
+        "@types/node": "24.19.2",
+        "@vitest/coverage-v8": "5.0.5",
         "concurrently": "10.0.6",
         "cross-env": "10.1.0",
         "glob": "13.0.6",
@@ -97,8 +97,8 @@
         "turbo": "2.11.10",
         "turbo-ignore": "2.11.10",
         "typescript": "7.0.2",
-        "vite": "8.3.3",
-        "vitest": "5.0.1"
+        "vite": "8.3.5",
+        "vitest": "5.0.5"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
