@@ -5,6 +5,13 @@ export {
     type BedrockBlockState,
     type BlockMappingResult
 } from './blockMapping';
+export {
+    BEDROCK_ONLY_BLOCKS,
+    BLOCK_PROPERTY_CONFLICTS,
+    BLOCK_PROPERTY_VERSIONS,
+    bedrockBlockPropertiesOf,
+    type BedrockBlockProperties
+} from './blockProperties';
 export { javaEntityTypeToBedrock, type EntityMappingResult } from './entityMapping';
 export { javaItemToBedrock, type BedrockItem, type ItemMappingResult } from './itemMapping';
 export {

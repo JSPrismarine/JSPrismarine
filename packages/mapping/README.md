@@ -56,6 +56,24 @@ reports are missing from the cache, which needs a JDK of at least version 25 (`J
 `JSP_JAVA_HOME`). It refuses to emit when any Java identifier has neither a mapping nor a loss
 entry, or when any produced Bedrock state is missing from the pinned palette.
 
+## The block property table
+
+`bedrockBlockPropertiesOf(name, states?)` answers the Java-sourced per-state block properties -
+hardness, blast resistance, friction, light emission and dampening, correct-tool requirement,
+random tick, push reaction, and fire odds - keyed by Bedrock block state, the server's identity.
+The table is flattened from the Java 26.3 jar dump golden in `@jsprismarine/bedrock-data` through
+the block mapping; regenerate it with:
+
+```sh
+pnpm --filter @jsprismarine/mapping run generate:block-properties
+```
+
+It needs only committed inputs, no fetched sources. Bedrock-only blocks with no Java source
+(the chemistry set, `allow`, `deny`, the deprecated palette entries) are listed in
+`BEDROCK_ONLY_BLOCKS` and return `undefined`, so callers keep their own values rather than a
+silent default. Where collapsed Java states disagreed on a value, the kept rows are listed in
+`BLOCK_PROPERTY_CONFLICTS` for review.
+
 ## The property tests
 
 `src/mappingProperties.test.ts` adopts Chunker's five property tests, run one way: every Java
