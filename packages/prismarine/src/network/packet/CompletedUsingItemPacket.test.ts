@@ -24,4 +24,13 @@ describe('CompletedUsingItemPacket', () => {
         expect(packet.itemUseMethod).toBe(ItemUseMethod.Interact);
         expect(packet.feof()).toBe(true);
     });
+
+    it('reads the Unknown method, which the snapshot numbers -1', () => {
+        const packet = new CompletedUsingItemPacket();
+        packet.setReadBuffer(Buffer.from([...HEADER, 0x75, 0x01, 0xff, 0xff, 0xff, 0xff]));
+        packet.decode();
+
+        expect(packet.itemUseMethod).toBe(ItemUseMethod.Unknown);
+        expect(packet.feof()).toBe(true);
+    });
 });

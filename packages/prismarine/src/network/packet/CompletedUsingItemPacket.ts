@@ -4,10 +4,12 @@ import DataPacket from './DataPacket';
 /**
  * How an item was used, as the Item Use Method int32 numbers it.
  *
- * Mojang's page for protocol 2193 leaves the field a bare int32 and lists no members. These
- * are the values gophertunnel reads at the same protocol.
+ * Mojang's page for protocol 2193 leaves the field a bare int32 and lists no members. The
+ * values are those of `ItemUseMethod` in Mojang's enum snapshot at
+ * `packages/minecraft/datagen/snapshot/enums.html`, which gophertunnel reads the same way.
  */
 export enum ItemUseMethod {
+    Unknown = -1,
     EquipArmor = 0,
     Eat = 1,
     Attack = 2,
