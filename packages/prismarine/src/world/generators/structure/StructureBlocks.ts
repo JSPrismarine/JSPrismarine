@@ -55,7 +55,32 @@ export const facingStep = (facing: Facing): readonly [number, number] => {
 };
 
 /** The facing that points back the way the given one came. */
-export const opposite = (facing: Facing): Facing => ((facing + 2) % 4) as Facing;
+export const opposite = (facing: Facing): Facing => {
+    switch (facing) {
+        case Facing.South:
+            return Facing.North;
+        case Facing.West:
+            return Facing.East;
+        case Facing.North:
+            return Facing.South;
+        default:
+            return Facing.West;
+    }
+};
+
+/** The facing a quarter turn clockwise from the given one, seen from above: south, west, north, east. */
+export const clockwise = (facing: Facing): Facing => {
+    switch (facing) {
+        case Facing.South:
+            return Facing.West;
+        case Facing.West:
+            return Facing.North;
+        case Facing.North:
+            return Facing.East;
+        default:
+            return Facing.South;
+    }
+};
 
 /**
  * Stairs, facing the given way.

@@ -10,7 +10,7 @@ import type {
 } from './Structure';
 import { overlapsHorizontally } from './Structure';
 import StructurePlacement from './StructurePlacement';
-import { Facing, facingStep } from './StructureBlocks';
+import { Facing, clockwise, facingStep, opposite } from './StructureBlocks';
 import type { PieceContext, VillageMaterials, VillagePiece } from './VillagePieces';
 import { FarmPiece, HousePiece, LampPiece, RoadPiece, WellPiece, villageMaterials } from './VillagePieces';
 
@@ -203,7 +203,7 @@ export class VillageStructure implements Structure {
             const [alongX, alongZ] = facingStep(arm);
 
             // The side of the street a building stands on is the arm's perpendicular.
-            const across: Facing = ((arm + 1) % 4) as Facing;
+            const across = clockwise(arm);
             const [acrossX, acrossZ] = facingStep(across);
 
             for (const spacing of BUILDING_DISTANCES) {
@@ -228,7 +228,7 @@ export class VillageStructure implements Structure {
                     const corner = { x: centerX - Math.floor(width / 2), z: centerZ - Math.floor(depth / 2) };
 
                     // The building faces back across the street it was offset from.
-                    const facing = side === 1 ? (((across + 2) % 4) as Facing) : across;
+                    const facing = side === 1 ? opposite(across) : across;
                     const platformY = this.platformFor(corner, width, depth, villageY, terrain);
                     if (platformY === null) continue;
 
