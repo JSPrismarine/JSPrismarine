@@ -41,6 +41,9 @@ interface LockOwner {
     hostname: string;
 }
 
+const errnoCode = (e: unknown): string | undefined =>
+    e instanceof Error && 'code' in e && typeof e.code === 'string' ? e.code : undefined;
+
 export class DirectoryLock {
     /**
      * The directories this process holds.
@@ -72,7 +75,7 @@ export class DirectoryLock {
         try {
             return DirectoryLock.create(resolved, file);
         } catch (error) {
-            const code = (error as NodeJS.ErrnoException).code;
+            const code = errnoCode(error);
 
             if (code !== 'EEXIST') {
                 // EBUSY, EPERM or EACCES: something has the file open at the OS level and will not
@@ -113,7 +116,7 @@ export class DirectoryLock {
         try {
             fs.unlinkSync(file);
         } catch (error) {
-            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+            if (errnoCode(error) !== 'ENOENT') {
                 throw new DatabaseLockedError(directory, error);
             }
         }
@@ -162,7 +165,7 @@ export class DirectoryLock {
             process.kill(pid, 0);
             return true;
         } catch (error) {
-            return (error as NodeJS.ErrnoException).code === 'EPERM';
+            return errnoCode(error) === 'EPERM';
         }
     }
 
