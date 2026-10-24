@@ -1,16 +1,36 @@
 import fs from 'node:fs';
 
-import JSON5 from 'json5';
-
 import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
 import type { Player, Server, Service } from '../';
+import { parseConfigDocument } from '../config/ConfigDocument';
+import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 
-interface OpType {
+/** One line of `ops.json`. The `level` is written for the reader's sake; only the name is read. */
+interface OpEntry {
     name: string;
+    level?: number;
 }
+
+/** One `players` line of `permissions.json`. */
+interface PlayerPermissions {
+    name: string;
+    permissions: string[];
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
+const isStringList = (value: unknown): value is string[] =>
+    Array.isArray(value) && value.every((item) => typeof item === 'string');
+const isOpEntry = (value: unknown): value is OpEntry => isRecord(value) && typeof value.name === 'string';
+const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
+    isRecord(value) && typeof value.name === 'string' && isStringList(value.permissions);
+
+/**
+ * The parts of the server the permission manager uses. A test can hand in these alone.
+ */
+export type PermissionManagerServer = Pick<Server, 'getLogger' | 'getSessionManager' | 'post'>;
 
 const PERMISSION_FILE_NAME = 'permissions.json';
 const OPS_FILE_NAME = 'ops.json';
@@ -67,7 +87,7 @@ export function canExecute(executer?: PermissionSubject) {
  * Permission manager.
  */
 export class PermissionManager implements Service {
-    private readonly server: Server;
+    private readonly server: PermissionManagerServer;
     private readonly ops: Set<string> = new Set();
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
@@ -75,9 +95,9 @@ export class PermissionManager implements Service {
 
     /**
      * Create a new permission manager.
-     * @param {Server} server - The server instance.
+     * @param {PermissionManagerServer} server - The server instance.
      */
-    public constructor(server: Server) {
+    public constructor(server: PermissionManagerServer) {
         this.server = server;
     }
 
@@ -137,69 +157,96 @@ export class PermissionManager implements Service {
     }
 
     private async parsePermissions(): Promise<void> {
+        const file = withCwd(PERMISSION_FILE_NAME);
         try {
-            if (!fs.existsSync(withCwd(PERMISSION_FILE_NAME))) {
+            if (!fs.existsSync(file)) {
                 this.server.getLogger().warn(`Failed to load permissions list!`);
-                fs.writeFileSync(
-                    // FIXME: This overwrites comments in the file.
-                    withCwd(PERMISSION_FILE_NAME),
-                    JSON.stringify(
-                        {
-                            defaultPermissions: [
-                                'minecraft.command.help',
-                                'minecraft.command.list',
-                                'minecraft.command.me',
-                                'jsprismarine.command.plugins',
-                                'jsprismarine.command.version',
-                                'jsprismarine.command.tps'
-                            ],
-                            defaultOperatorPermissions: ['*'],
-                            players: [
-                                {
-                                    name: 'filfat',
-                                    permissions: ['*']
-                                }
-                            ]
-                        },
-                        null,
-                        4
-                    )
-                );
+                await writeJsonFile(file, PermissionManager.defaultPermissionsFile());
             }
 
-            const permissionsObject: Partial<{
-                defaultPermissions: string[];
-                defaultOperatorPermissions: string[];
-                players: Array<{
-                    name: string;
-                    permissions: string[];
-                }>;
-            }> = JSON5.parse((await fs.promises.readFile(withCwd(PERMISSION_FILE_NAME))).toString());
+            const document = await readJsonFile(file, '{}');
+            const permissions = document.get([]);
+            if (!isRecord(permissions)) throw new Error(`${PERMISSION_FILE_NAME} must hold an object`);
 
-            this.defaultPermissions = permissionsObject.defaultPermissions || [];
-            this.defaultOperatorPermissions = permissionsObject.defaultOperatorPermissions || ['*'];
-            permissionsObject.players?.map((player) =>
-                this.permissions.set(player.name, player.permissions.length <= 0 ? [] : player.permissions)
-            );
+            this.defaultPermissions = isStringList(permissions.defaultPermissions)
+                ? permissions.defaultPermissions
+                : [];
+            this.defaultOperatorPermissions = isStringList(permissions.defaultOperatorPermissions)
+                ? permissions.defaultOperatorPermissions
+                : ['*'];
+            if (Array.isArray(permissions.players)) {
+                for (const player of permissions.players) {
+                    if (isPlayerPermissions(player)) this.permissions.set(player.name, player.permissions);
+                }
+            }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new Error(`Invalid ${PERMISSION_FILE_NAME} file.`);
         }
     }
 
-    private async parseOps(): Promise<void> {
-        try {
-            if (!fs.existsSync(withCwd(OPS_FILE_NAME))) {
-                this.server.getLogger().warn(`Failed to load operators list!`);
-                fs.writeFileSync(withCwd(OPS_FILE_NAME), '[]');
-            }
-            const ops: OpType[] = JSON5.parse((await fs.promises.readFile(withCwd(OPS_FILE_NAME))).toString());
+    /**
+     * What a server without a `permissions.json` starts with, each key explained in the file.
+     */
+    private static defaultPermissionsFile() {
+        const document = parseConfigDocument('json', '{}');
+        document.set(
+            ['defaultPermissions'],
+            [
+                'minecraft.command.help',
+                'minecraft.command.list',
+                'minecraft.command.me',
+                'jsprismarine.command.plugins',
+                'jsprismarine.command.version',
+                'jsprismarine.command.tps'
+            ],
+            'Permissions every player has. A permission names a command, and `namespace.scope.*` grants a whole scope.'
+        );
+        document.set(
+            ['defaultOperatorPermissions'],
+            ['*'],
+            'Permissions every operator has on top of the defaults. `*` is all of them.'
+        );
+        document.set(
+            ['players'],
+            [{ name: 'filfat', permissions: ['*'] }],
+            'Permissions granted to one player, by name, on top of the defaults.'
+        );
+        return document;
+    }
 
-            ops.map((op) => this.ops.add(op.name));
+    private async parseOps(): Promise<void> {
+        const file = withCwd(OPS_FILE_NAME);
+        try {
+            if (!fs.existsSync(file)) {
+                this.server.getLogger().warn(`Failed to load operators list!`);
+                fs.writeFileSync(file, '[]');
+            }
+
+            const ops = (await readJsonFile(file, '[]')).get([]);
+            if (!Array.isArray(ops)) throw new Error(`${OPS_FILE_NAME} must hold a list of operators`);
+            for (const op of ops) {
+                if (isOpEntry(op)) this.ops.add(op.name);
+            }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
             throw new Error(`Invalid ${OPS_FILE_NAME} file.`);
         }
+    }
+
+    /**
+     * Adds or removes one player's line in `ops.json`, leaving the other lines and any comments
+     * as they are.
+     */
+    private async writeOp(username: string, op: boolean): Promise<void> {
+        const file = withCwd(OPS_FILE_NAME);
+        const document = await readJsonFile(file, '[]');
+        const sameName = (entry: unknown) => isOpEntry(entry) && entry.name === username;
+
+        if (op) upsertListEntry(document, sameName, { name: username, level: 4 });
+        else removeListEntries(document, sameName);
+
+        await writeJsonFile(file, document);
     }
 
     /**
@@ -222,18 +269,7 @@ export class PermissionManager implements Service {
         else this.ops.delete(username);
 
         try {
-            await fs.promises.writeFile(
-                // FIXME: This overwrites comments in the file.
-                withCwd(OPS_FILE_NAME),
-                JSON.stringify(
-                    Array.from(this.ops.values()).map((name) => ({
-                        name,
-                        level: 4
-                    })),
-                    null,
-                    4
-                )
-            );
+            await this.writeOp(username, op);
 
             await target.sendSettings();
             return true;
