@@ -10,7 +10,7 @@ import UUID from './UUID';
  *
  * That is `Writer.UUID` in gophertunnel: it moves the low half in front of the high one and
  * then reverses all sixteen bytes, which leaves `reverse(most)` followed by `reverse(least)`.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/mce__UUID.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/mce-uuid/}
  * {@link https://raw.githubusercontent.com/Sandertv/gophertunnel/master/minecraft/protocol/writer.go}
  */
 

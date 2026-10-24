@@ -5,7 +5,7 @@ import NetworkStructure from '../NetworkStructure';
  * An `mce::UUID`: `Most Significant Bits` then `Least Significant Bits`, each a uint64 little
  * endian. Both halves are unsigned, so a half with its top bit set (half of all random UUIDs)
  * must go through the unsigned writers; the signed ones throw a RangeError at 2^63.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/mce__UUID.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/mce-uuid/}
  */
 export default class UUID extends NetworkStructure {
     /**

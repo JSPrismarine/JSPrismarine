@@ -90,7 +90,7 @@ export default class UUID {
      *
      * Each half goes out as its two halves in little-endian order, which is the same sixteen
      * bytes a uint64 writer would produce and keeps the parts as the int32s they are read as.
-     * {@link https://mojang.github.io/bedrock-protocol-docs/html/mce__UUID.html}
+     * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/mce-uuid/}
      * @param stream - The network stream.
      */
     public networkSerialize(stream: BinaryStream): void {
