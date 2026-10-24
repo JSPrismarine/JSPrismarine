@@ -39,7 +39,7 @@ describe('StructureBlockUpdatePacket', () => {
         Buffer.from([0x00, 0x00, 0x00, 0x3f]), // Rotation Pivot: x, float LE 0.5
         Buffer.from([0x00, 0x00, 0x00, 0x00]), // Rotation Pivot: y
         Buffer.from([0x00, 0x00, 0x80, 0xbf]), // Rotation Pivot: z, float LE -1
-        Buffer.from([0x01]), // Redstone Save Mode: SavesToDisk
+        Buffer.from([0x02]), // Redstone Save Mode: varint32 1 (SavesToDisk) zigzags to 2
         Buffer.from([0x01]), // Trigger?
         Buffer.from([0x00]) // IsWaterlogged
     ]);

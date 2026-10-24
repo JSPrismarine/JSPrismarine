@@ -131,10 +131,17 @@ export interface StructureEditorData {
  * `Structure Data` is the structure name as a {@link RedactableString}, `Data Field` as a
  * string, the `Should include players?` and `Should show bounding box?` bytes,
  * `Structure Block Type` as a ZigZag varint32, the {@link StructureSettings}, then
- * `Redstone Save Mode` as a byte. The settings are the palette name, three flag bytes, the
- * size and offset as block positions, the last editor as a ZigZag varint64, the rotation,
- * mirror and animation mode bytes, the animation seconds and integrity as floats LE, the
- * integrity seed as a uint32 LE, and the pivot as three floats LE.
+ * `Redstone Save Mode` as a ZigZag varint32. The settings are the palette name, three flag
+ * bytes, the size and offset as block positions, the last editor as a ZigZag varint64, the
+ * rotation, mirror and animation mode bytes, the animation seconds and integrity as floats
+ * LE, the integrity seed as a uint32 LE, and the pivot as three floats LE.
+ *
+ * The docs mark `Redstone Save Mode` as a compressed `uint8`, which is a varint; PocketMine
+ * reads it as a signed one, so `SavesToDisk` is the byte 0x02, not 0x01. `Structure Name` is
+ * a `RedactableString` whose `Redacted` half the docs mark optional, so it carries a presence
+ * byte like the optional filtered message of `TextPacket`. gophertunnel reads it as a second
+ * plain string; the two agree whenever no redacted name is present, which is every packet
+ * seen so far.
  *
  * **Bound To:** Server
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/structure-block-update-packet/
@@ -208,7 +215,7 @@ export default class StructureBlockUpdatePacket extends DataPacket {
                 integritySeed: this.readUnsignedIntLE(),
                 rotationPivot: NetworkUtil.readVector3(this)
             },
-            redstoneSaveMode: this.readByte()
+            redstoneSaveMode: this.readVarInt()
         };
 
         this.trigger = this.readBoolean();
@@ -244,7 +251,7 @@ export default class StructureBlockUpdatePacket extends DataPacket {
         this.writeUnsignedIntLE(structureSettings.integritySeed);
         NetworkUtil.writeVector3(this, structureSettings.rotationPivot);
 
-        this.writeByte(this.structureData.redstoneSaveMode);
+        this.writeVarInt(this.structureData.redstoneSaveMode);
         this.writeBoolean(this.trigger);
         this.writeBoolean(this.isWaterlogged);
     }
