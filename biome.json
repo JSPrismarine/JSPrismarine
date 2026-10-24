@@ -1,0 +1,119 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.6.2/schema.json",
+    "vcs": {
+        "enabled": true,
+        "clientKind": "git",
+        "useIgnoreFile": true
+    },
+    "files": {
+        "includes": [
+            "packages/*/src/**",
+            "scripts/**",
+            "packages/*/scripts/**",
+            "*.ts",
+            "*.mts",
+            "packages/*/*.ts",
+            "!**/node_modules",
+            "!**/dist",
+            "!**/coverage",
+            "!**/.turbo",
+            "!packages/bedrock-data/src/resources",
+            "!packages/bedrock-data/src/generated",
+            "!packages/bedrock-data/src/jsp",
+            "!packages/minecraft/src/generated",
+            "!**/*.json",
+            "!**/*.lock",
+            "!**/*.log",
+            "!**/*.bak",
+            "!**/*.dat",
+            "!**/*.nbt"
+        ]
+    },
+    "formatter": {
+        "enabled": false
+    },
+    "assist": {
+        "enabled": false
+    },
+    "linter": {
+        "enabled": true,
+        "rules": {
+            "preset": "recommended",
+            "complexity": {
+                "noBannedTypes": "off",
+                "noUselessConstructor": "off",
+                "noUselessThisAlias": "off",
+                "noThisInStatic": "off",
+                "noUselessEmptyExport": "off",
+                "useLiteralKeys": "off",
+                "noStaticOnlyClass": "off",
+                "useOptionalChain": "off",
+                "useMathMinMax": "off",
+                "useFlatMap": "off",
+                "useArrowFunction": "off",
+                "noUselessTernary": "off",
+                "noUselessSwitchCase": "off",
+                "noArguments": "off"
+            },
+            "correctness": {
+                "noSwitchDeclarations": "off",
+                "noUnusedImports": "error",
+                "noUnusedVariables": "warn",
+                "noUnusedFunctionParameters": "warn",
+                "noVoidTypeReturn": "off",
+                "noUnusedPrivateClassMembers": "off"
+            },
+            "style": {
+                "noCommonJs": "error",
+                "useConst": "off",
+                "useExportType": "error",
+                "useImportType": {
+                    "level": "error",
+                    "options": {
+                        "style": "separatedType"
+                    }
+                },
+                "noNonNullAssertion": "off",
+                "useShorthandFunctionType": "off",
+                "useNodejsImportProtocol": "off",
+                "useTemplate": "off"
+            },
+            "suspicious": {
+                "noAsyncPromiseExecutor": "off",
+                "noConsole": {
+                    "level": "error",
+                    "options": {
+                        "allow": ["debug", "warn", "error"]
+                    }
+                },
+                "noExplicitAny": "off",
+                "noFallthroughSwitchClause": "off",
+                "noPrototypeBuiltins": "off",
+                "noAssignInExpressions": "off",
+                "useIterableCallbackReturn": "off",
+                "noImplicitAnyLet": "off",
+                "noDoubleEquals": "off",
+                "noGlobalIsNan": "off",
+                "useIsArray": "off",
+                "noThenProperty": "off",
+                "noEmptyInterface": "off",
+                "noShadowRestrictedNames": "off",
+                "noDuplicateEnumValues": "off",
+                "noConstEnum": "off"
+            }
+        }
+    },
+    "overrides": [
+        {
+            "includes": ["scripts/**", "packages/*/scripts/**"],
+            "linter": {
+                "rules": {
+                    "suspicious": {
+                        "noConsole": "off"
+                    }
+                }
+            }
+        }
+    ],
+    "plugins": ["./.biome/no-barrel-imports.grit"]
+}

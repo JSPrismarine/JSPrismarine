@@ -1,5 +1,6 @@
 import { randomBytes } from 'node:crypto';
-import Dgram, { type RemoteInfo } from 'node:dgram';
+import Dgram from 'node:dgram';
+import type { RemoteInfo } from 'node:dgram';
 import { EventEmitter } from 'node:events';
 import {
     CONNECTED_PING_INTERVAL_MS,

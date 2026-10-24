@@ -14,7 +14,6 @@ export abstract class CommandArgument {
     public getReadableType(): string {
         return '';
     }
-    // eslint-disable-next-line unused-imports/no-unused-vars
     public getParameters(server: Server): Set<CommandParameter> | undefined {
         return new Set();
     }

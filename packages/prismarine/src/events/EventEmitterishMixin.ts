@@ -1,4 +1,5 @@
-import { type Ctx, Evt, to } from 'evt';
+import type { Ctx } from 'evt';
+import { Evt, to } from 'evt';
 
 /**
  * @private

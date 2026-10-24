@@ -89,7 +89,7 @@ const displayNameOf = (entity: Entity): string => {
  * Whether an entity is a person rather than a mob, without importing `Player`.
  *
  * By identifier and not by `instanceof`, because `Player` imports this module and importing it
- * back would close a runtime cycle - the very thing the barrel rules in `eslint.config.js` are
+ * back would close a runtime cycle - the very thing the barrel rules in `biome.json.js` are
  * there to prevent.
  * @param {Entity} entity - The entity to test.
  * @returns {boolean} `true` for a player.

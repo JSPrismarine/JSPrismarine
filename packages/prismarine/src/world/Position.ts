@@ -27,7 +27,6 @@ export class Position extends Vector3 {
         // `getWorld()` - which meant one could be built, stored and passed around freely,
         // and only failed at whichever unrelated read happened to touch it first. Refusing
         // to construct one names the caller that got it wrong.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
         if (!world) throw new Error('A Position requires the world it is in');
     }
 

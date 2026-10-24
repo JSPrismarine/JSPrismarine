@@ -14,16 +14,15 @@
         "markdown": "true"
     },
     "editor.formatOnSave": true,
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.codeActionsOnSave": {
-        "source.fixAll": "explicit",
+        "quickfix.biome": "explicit",
         "source.organizeImports": "explicit",
         "source.sortMembers": "explicit"
     },
     "files.associations": {
         "**/*.hbs": "plaintext",
         "LICENSE": "plaintext",
-        ".eslintrc": "json",
         ".renovaterc": "json"
     },
     "files.autoSave": "off",
@@ -88,6 +87,6 @@
         "editor.defaultFormatter": "vscode.json-language-features"
     },
     "[typescript]": {
-        "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+        "editor.defaultFormatter": "esbenp.prettier-vscode"
     }
 }

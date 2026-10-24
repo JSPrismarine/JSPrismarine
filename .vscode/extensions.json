@@ -2,9 +2,9 @@
     "recommendations": [
         "aaron-bond.better-comments",
         "bierner.markdown-preview-github-styles",
-        "dbaeumer.vscode-eslint",
+        "biomejs.biome",
+        "esbenp.prettier-vscode",
         "jgclark.vscode-todo-highlight",
-        "mikestead.dotenv",
-        "rvest.vs-code-prettier-eslint"
+        "mikestead.dotenv"
     ]
 }

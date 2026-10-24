@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { EntityTracker, type TrackableEntity } from './EntityTracker';
+import type { TrackableEntity } from './EntityTracker';
+import { EntityTracker } from './EntityTracker';
 import { VIEW_MARGIN_CHUNKS } from '../world/Proximity';
 
 const VIEW_DISTANCE = 10;

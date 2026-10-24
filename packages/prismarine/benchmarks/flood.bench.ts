@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 /**
  * Benchmark: an ocean draining into a large cave.
  *

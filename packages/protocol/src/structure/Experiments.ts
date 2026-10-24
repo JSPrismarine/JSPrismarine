@@ -1,6 +1,6 @@
 import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
-import { type Experiment } from '@jsprismarine/minecraft';
+import type { Experiment } from '@jsprismarine/minecraft';
 
 /**
  * Represents the network structure for experiments.

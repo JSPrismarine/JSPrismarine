@@ -1,6 +1,7 @@
 import { ClientSocket, ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import { EventEmitter } from 'node:events';
-import { SendPriority, type ITransport, type TransportEvents, type TransportStats } from './ITransport';
+import type { ITransport, TransportEvents, TransportStats } from './ITransport';
+import { SendPriority } from './ITransport';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { RakNetSession } from '@jsprismarine/raknet';

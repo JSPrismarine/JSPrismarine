@@ -1,3 +1,0 @@
-{
-    "*!(tsup.config|*.test|*.d).(js|ts)": ["eslint --fix", "prettier --write"]
-}

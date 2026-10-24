@@ -4,7 +4,7 @@
  *
  * Its own file rather than a member of `Entity`, because `DamageSource` has to name both this
  * and `Entity`, and `Entity` has to name `DamageSource` - which is the runtime cycle the import
- * rules in `eslint.config.js` exist to prevent. `Entity` re-exports it, so the older
+ * rules in `biome.json` exist to prevent. `Entity` re-exports it, so the older
  * `import { DamageCause } from './entity/Entity'` still resolves and nothing had to be rewritten.
  */
 export enum DamageCause {

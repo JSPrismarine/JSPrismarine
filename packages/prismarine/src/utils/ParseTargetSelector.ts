@@ -45,16 +45,13 @@ const ParseTargetSelector = ({
 
     // Parse comma-separated arguments in the following format:
     // [arg=val,arg2=val2,arg3=val3]
+    const argumentList = str.split('[')[1]?.split(']')[0];
     const args =
-        str
-            .split('[')[1]
-            ?.split(']')[0]!
-            .split(',')
-            .map((arg) => ({
-                argument: arg.split('=')[0],
-                value: arg.split('=')[1]!.replace('!', ''),
-                reverse: arg.split('=')[1]!.startsWith('!')
-            })) || [];
+        argumentList?.split(',').map((arg) => ({
+            argument: arg.split('=')[0],
+            value: arg.split('=')[1]!.replace('!', ''),
+            reverse: arg.split('=')[1]!.startsWith('!')
+        })) ?? [];
 
     // Filters
     let limit = Number.MAX_SAFE_INTEGER,

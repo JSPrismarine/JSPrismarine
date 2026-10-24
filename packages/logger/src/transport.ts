@@ -56,7 +56,7 @@ export class PrismarineTransport implements LogTransport {
 
 const LEVEL_WEIGHT: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 };
 
-// eslint-disable-next-line no-control-regex -- matches the ANSI escapes being stripped
+// biome-ignore lint/suspicious/noControlCharactersInRegex: the escapes are what gets stripped
 const ANSI_PATTERN = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
 /**

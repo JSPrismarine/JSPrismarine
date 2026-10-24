@@ -1,4 +1,5 @@
-import { isInView, VIEW_MARGIN_CHUNKS, type Point3 } from '../world/Proximity';
+import type { Point3 } from '../world/Proximity';
+import { isInView, VIEW_MARGIN_CHUNKS } from '../world/Proximity';
 
 /**
  * The parts of an entity a tracker reads.
