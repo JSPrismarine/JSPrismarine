@@ -392,33 +392,34 @@ export default class Chunk {
             (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }
 
-        // One biome sub chunk per sub chunk of the column, each a single-value palette of plains.
+        // One biome section per sub chunk of the client's column, which is the dimension's full
+        // height rather than the sub chunk count written above - 24 for the Overworld, the same
+        // range the padding loop pads to. Each is a paletted store in the same format a block
+        // storage uses: a header of `(bitsPerBlock << 1) | networkFlag`, then the word data, then
+        // the palette.
         //
-        // The header is `(bitsPerBlock << 1) | 1`, and the `| 1` is the whole point: it is the
-        // *network* runtime flag. With `bitsPerBlock` zero it comes out as 1 - one value, no
-        // word data, the value straight after. Writing 0 instead, as this did, clears the flag
-        // and tells the client the palette is the *persistent* on-disk kind, whose entries are
-        // NBT compounds; it then reads the varint that follows as the start of a tag and the
-        // whole chunk decodes to nonsense. A real client rejects that and drops the join at the
-        // world-generation screen, which is exactly where it sat - the server's own client never
-        // parsed the terrain, so nothing here was ever checked against one that does.
+        // The network flag says the palette holds runtime ids; cleared, it names the persistent
+        // on-disk form whose entries are NBT compounds, and the client reads the next varint as
+        // the start of a tag. With `bitsPerBlock` zero the header is 1, there is no word data and
+        // no palette count, and the single value follows as a ZigZag varint. Written unsigned,
+        // plains (1) goes out as `01`, which ZigZag decodes to -1 and names no biome at all.
         //
-        // TODO: real 3D biomes. Plains everywhere is what a flat world looks like anyway.
-        // The value is a *signed* varint, exactly like a block palette entry - the whole paletted
-        // store is one format and biomes are not an exception to it. Written unsigned, as this did,
-        // plains (1) goes out as the byte `01`, which zig-zag decodes to **-1**: no such biome, so
-        // the client throws the chunk away and drops the connection. It only bites once the client
-        // actually parses terrain, which it does not do until it has asked for a chunk radius and
-        // been answered - which is why this looked like a chunk-ordering problem first. Bedrock
-        // Dedicated Server 1.26.51 puts 12, 30 and 182-190 on the wire here, all zig-zagged.
+        // Known gap: the biome is plains in every section. Real 3D biomes need the generator to
+        // decide a biome per column, which it does not do. A Bedrock Dedicated Server 1.26.51
+        // puts 12, 30 and 182 to 190 on the wire here.
         for (let i = 0; i < subChunkCount(Dimensions.Overworld); i++) {
-            stream.writeByte(1); // bitsPerBlock 0, network runtime flag set
-            stream.writeVarInt(1); // The single value (plains); no palette count for bitsPerBlock 0.
+            stream.writeByte(1);
+            stream.writeVarInt(1);
         }
 
-        stream.writeByte(0); // border ?
+        // Border Blocks: a byte count, then one packed position per border block. Only Education
+        // Edition sets any, so the count is always zero.
+        stream.writeByte(0);
 
-        // TODO: tiles
+        // Known gap: block entities. The client reads network NBT compounds from here to the end
+        // of the payload, so writing none is a well formed empty list, but it also means the
+        // chests, signs and furnaces this chunk is holding never reach the client with the chunk
+        // they stand in.
         this.serialized = stream.getBuffer();
         this.serializedAt = mutations;
         return this.serialized;
