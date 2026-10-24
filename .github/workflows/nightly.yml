@@ -32,7 +32,6 @@ jobs:
 
             - name: 🗃️ Package Executable
               id: package
-              continue-on-error: true
               run: pnpm run package
 
             - name: 🚚 Publish Artifact

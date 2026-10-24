@@ -27,16 +27,17 @@
         "lint:prettier": "prettier --check .",
         "format": "concurrently pnpm:format:*",
         "format:prettier": "prettier --write .",
-        "package": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine",
+        "package": "node scripts/package-sea.mts",
         "version": "changeset version",
         "postversion": "pnpm install",
         "version:unstable": "changeset version --snapshot unstable",
         "release": "changeset publish",
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset",
-        "package:coverage": "scriptc coverage ./packages/server/src/Server.ts",
         "lint:biome": "biome lint .",
-        "format:biome": "biome lint --write ."
+        "format:biome": "biome lint --write .",
+        "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",
+        "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts"
     },
     "repository": {
         "type": "git",
@@ -53,7 +54,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandström",
+            "name": "Filiph Sandstr\u00f6m",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
@@ -87,6 +88,7 @@
         "husky": "9.1.7",
         "lint-staged": "17.6.0",
         "prettier": "3.9.10",
+        "rolldown": "1.2.15",
         "scriptc": "0.4.3",
         "ts-mockito": "2.6.1",
         "tsc-ts": "0.0.9",
