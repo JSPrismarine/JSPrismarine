@@ -34,7 +34,7 @@ export class Block {
     public stateName?: string;
     public hardness: number;
     public meta = 0;
-    private networkId: number;
+    private networkId: number | undefined;
 
     // TODO
     public nbt = null;
@@ -68,7 +68,7 @@ export class Block {
         this.stateName = stateName;
         this.hardness = hardness ?? 0;
 
-        this.networkId = (BlockIdMap as any)[parentName ?? name] as number;
+        this.networkId = BlockIdMap[parentName ?? name];
     }
 
     public get [Symbol.toStringTag]() {

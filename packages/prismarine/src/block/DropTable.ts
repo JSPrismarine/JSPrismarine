@@ -80,10 +80,10 @@ export class DropTable {
  *
  * A block is handed a server and nothing else, so this is where a roll finds its randomness.
  * The fallback keeps a bare stand-in server - every block test has one - working.
- * @param {object} server - the server the break happened on.
+ * @param server - the server the break happened on.
  * @returns {Random} the source of chance.
  */
-export const randomOf = (server: unknown): Random =>
-    (server as { getRandom?: () => Random } | null)?.getRandom?.() ?? Math.random;
+export const randomOf = (server: { getRandom?: () => Random } | null | undefined): Random =>
+    server?.getRandom?.() ?? Math.random;
 
 export default DropTable;
