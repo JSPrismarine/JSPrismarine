@@ -22,6 +22,7 @@ import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
 import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
+import SetSpawnPositionPacket from '../packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
@@ -35,13 +36,17 @@ import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandl
  */
 const harness = ({
     cancelSpawn = false,
-    joinSpawn = null
+    joinSpawn = null,
+    spawn = new Vector3(0, 64, 0)
 }: {
     cancelSpawn?: boolean;
     /** Where the player was placed on joining; null, the default, is a returning player. */
     joinSpawn?: PlayerSpawn | null;
+    /** The world spawn `getSpawnPosition` answers with. */
+    spawn?: Vector3;
 } = {}) => {
     const sent: string[] = [];
+    /** The packets written straight to the connection, for the tests that read their fields. */
     const packets: DataPacket[] = [];
     const record = (name: string) => async () => void sent.push(name);
     const kick = vi.fn(async (_reason: string, _code?: DisconnectReason) => {});
@@ -51,7 +56,7 @@ const harness = ({
         getTicks: () => 6000,
         getDimension: () => Dimensions.Overworld,
         getGenerator: () => stub<Generator>(),
-        getSpawnPosition: async () => new Vector3(0, 64, 0),
+        getSpawnPosition: async () => spawn,
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',
         getSeed: () => 42,
@@ -160,6 +165,26 @@ describe('ResourcePackClientResponseHandler', () => {
             'SetActorData',
             'InventoryContent'
         ]);
+    });
+
+    it('floors a fractional world spawn into the block positions of SetSpawnPosition', async () => {
+        // Both positions are `BlockPos`, and a ZigZag varint write truncates toward zero, so
+        // the spawn at -0.5 would have gone out as block 0.
+        const { packets, server, session } = harness({ spawn: new Vector3(0.5, 64.9, -0.5) });
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        const packet = packets.find((sent) => sent instanceof SetSpawnPositionPacket);
+        expect(packet).toBeInstanceOf(SetSpawnPositionPacket);
+        if (!(packet instanceof SetSpawnPositionPacket)) return;
+
+        const components = (position: Vector3) => [position.getX(), position.getY(), position.getZ()];
+        expect(components(packet.position)).toEqual([0, 64, -1]);
+        expect(components(packet.blockPosition)).toEqual([0, 64, -1]);
     });
 
     it('sends no Respawn when the player returns to a saved position', async () => {

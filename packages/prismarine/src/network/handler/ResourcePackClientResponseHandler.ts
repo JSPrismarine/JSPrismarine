@@ -9,6 +9,7 @@ import { eyePositionAt } from '../../entity/Human';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
+import BlockPosition from '../../world/BlockPosition';
 import Flat from '../../world/generators/Flat';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
@@ -233,9 +234,12 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         await session.sendTime(world.getTicks());
 
+        // The world spawn is a `Vector3` and may be fractional, while both positions in this
+        // packet are `BlockPos`. A ZigZag varint write truncates toward zero without a word,
+        // so a spawn at -0.5 would have been sent as block 0 rather than block -1.
         const setSpawnPos = new SetSpawnPositionPacket();
         setSpawnPos.dimension = world.getDimension().id;
-        setSpawnPos.position = worldSpawnPos;
+        setSpawnPos.position = BlockPosition.fromVector3(worldSpawnPos);
         setSpawnPos.blockPosition = setSpawnPos.position;
         setSpawnPos.type = SpawnPositionType.PlayerRespawn;
         await connection.sendDataPacket(setSpawnPos);
