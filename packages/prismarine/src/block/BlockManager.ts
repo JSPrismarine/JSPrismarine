@@ -1,10 +1,9 @@
-import * as Blocks from './Blocks';
+import { allBlocks } from './Blocks';
 
 import type Server from '../Server';
 import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import Timer from '../utils/Timer';
 import type { Block } from './Block';
-import { BlockIdsType } from './BlockIdsType';
 import { BlockStateSchemas } from './state/BlockStateSchema';
 
 export default class BlockManager {
@@ -86,11 +85,12 @@ export default class BlockManager {
      * Get block by numeric ID.
      */
     public getBlockById(id: number): Block {
-        if (!BlockIdsType[id]) {
+        const block = this.getBlocks().find((a) => a.getId() === id && a.meta === 0);
+        if (!block) {
             throw new Error(`invalid block with numeric id ${id}`);
         }
 
-        return this.getBlocks().find((a) => a.getId() === id && a.meta === 0)!;
+        return block;
     }
 
     /**
@@ -135,7 +135,7 @@ export default class BlockManager {
         const timer = new Timer();
 
         // Dynamically register blocks
-        await Promise.all(Object.entries(Blocks).map(async ([, block]) => this.registerBlock(new block())));
+        await Promise.all(allBlocks().map(async (block) => this.registerBlock(new block())));
 
         this.server.getLogger().verbose(`Registered §b${this.blocks.size}§r block(s) (took §e${timer.stop()} ms§r)!`);
     }

@@ -1,6 +1,7 @@
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import type { DropChance } from '../DropTable';
+import type { Item } from '../../item/Item';
 import { DropTable } from '../DropTable';
 import { Solid } from '../Solid';
 
@@ -44,7 +45,7 @@ export default class Leaves extends Solid {
      * the wrong one. Every leaf block is `<wood>_leaves` and every sapling `<wood>_sapling`.
      * @returns {DropTable} what falls, before shears are taken into account.
      */
-    public override getDropTable(): DropTable {
+    public override getDropTable(_item: Item | null): DropTable {
         const wood = this.getName().replace('minecraft:', '').replace('_leaves', '');
 
         const drops: DropChance[] = [

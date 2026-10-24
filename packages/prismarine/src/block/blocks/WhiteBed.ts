@@ -1,3 +1,4 @@
+import type { Block } from '../Block';
 import { BlockIdsType } from '../BlockIdsType';
 import type { Item } from '../../item/Item';
 import type Server from '../../Server';
@@ -35,7 +36,7 @@ export default class WhiteBed extends Solid {
         this.meta = type;
     }
 
-    public getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(_item: Item | null, server: Server): Array<Block | Item | null> {
         return [server.getItemManager().getItem('minecraft:bed')];
     }
 }

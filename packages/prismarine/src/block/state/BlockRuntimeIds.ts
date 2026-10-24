@@ -79,9 +79,9 @@ export class BlockRuntimeIds {
     public static getByName(name: string): number {
         // Memoised because world generation calls this per block placed - around 18000
         // times per chunk - and `getDefaultState` builds a fresh BlockState every time.
-        if (this.namedRevision !== BlockStateSchemas.revision) {
+        if (this.namedRevision !== BlockStateSchemas.getRevision()) {
             this.namedCache.clear();
-            this.namedRevision = BlockStateSchemas.revision;
+            this.namedRevision = BlockStateSchemas.getRevision();
         }
 
         const cached = this.namedCache.get(name);
@@ -126,9 +126,9 @@ export class BlockRuntimeIds {
      * find a block should lose that detail, not take world generation or the tick down with it.
      */
     public static tryGetByState(name: string, states?: Readonly<Record<string, BlockStateValue>>): number | null {
-        if (this.statedRevision !== BlockStateSchemas.revision) {
+        if (this.statedRevision !== BlockStateSchemas.getRevision()) {
             this.statedCache.clear();
-            this.statedRevision = BlockStateSchemas.revision;
+            this.statedRevision = BlockStateSchemas.getRevision();
         }
 
         const key = states ? `${name}${JSON.stringify(states)}` : name;
@@ -155,9 +155,9 @@ export class BlockRuntimeIds {
      * something actually reads a block, and rebuilt when a plugin changes the catalogue.
      */
     public static getState(runtimeId: number): BlockState | null {
-        if (this.reverseIndex === null || this.indexedRevision !== BlockStateSchemas.revision) {
+        if (this.reverseIndex === null || this.indexedRevision !== BlockStateSchemas.getRevision()) {
             this.reverseIndex = new Map();
-            this.indexedRevision = BlockStateSchemas.revision;
+            this.indexedRevision = BlockStateSchemas.getRevision();
 
             for (const name of BlockStateSchemas.names()) {
                 for (const state of BlockStateSchemas.get(name)!.getAllStates()) {

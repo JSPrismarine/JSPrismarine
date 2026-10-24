@@ -1,4 +1,4 @@
-import * as Items from './Items';
+import { allItems } from './Items';
 
 import type Server from '../Server';
 import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
@@ -81,7 +81,7 @@ export default class ItemManager {
         const timer = new Timer();
 
         // Dynamically register blocks
-        await Promise.all(Object.entries(Items).map(async ([, item]) => this.registerItem(new item())));
+        await Promise.all(allItems().map(async (item) => this.registerItem(new item())));
 
         this.server.getLogger().verbose(`Registered §b${this.items.size}§r item(s) (took §e${timer.stop()} ms§r)!`);
     }
