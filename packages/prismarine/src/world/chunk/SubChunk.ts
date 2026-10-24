@@ -9,6 +9,12 @@ import BlockStorage from './BlockStorage';
  */
 export type SubChunkVersion = 1 | 8 | 9;
 
+/**
+ * Narrows a version byte read from disk or the wire to the sub chunk formats this server reads.
+ */
+export const isSubChunkVersion = (version: number): version is SubChunkVersion =>
+    version === 1 || version === 8 || version === 9;
+
 export default class SubChunk {
     private storages: Map<number, BlockStorage> = new Map();
 
@@ -112,7 +118,12 @@ export default class SubChunk {
 
         // The version byte was being skipped, so its value - 8 - was read as the layer count and
         // every deserialisation ran off the end of the stream.
-        subChunk.sourceVersion = stream.readByte() as SubChunkVersion;
+        const version = stream.readByte();
+        if (!isSubChunkVersion(version)) {
+            throw new Error(`Unsupported sub chunk version ${version}`);
+        }
+
+        subChunk.sourceVersion = version;
         const layerCount = stream.readByte();
 
         for (let i = 0; i < layerCount; i++) {

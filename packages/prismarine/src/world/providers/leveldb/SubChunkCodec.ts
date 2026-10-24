@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 
 import BlockStorage from '../../chunk/BlockStorage';
-import SubChunk from '../../chunk/SubChunk';
+import SubChunk, { isSubChunkVersion } from '../../chunk/SubChunk';
 import type { SubChunkVersion } from '../../chunk/SubChunk';
 import { decodePersistentStorage, encodePersistentStorage } from './PersistentBlockStorage';
 
@@ -48,7 +48,7 @@ export const decodeSubChunk = (value: Buffer): DecodedSubChunk => {
     const stream = new BinaryStream(value);
     const version = stream.readByte();
 
-    if (version !== 1 && version !== 8 && version !== 9) {
+    if (!isSubChunkVersion(version)) {
         throw new Error(`Unsupported sub chunk version ${version}`);
     }
 

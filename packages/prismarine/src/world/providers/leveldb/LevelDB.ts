@@ -187,9 +187,8 @@ export default class LevelDB extends BaseProvider {
                 blockEntities.push(BlockEntityRegistry.fromNBT(reader.parse()));
             } catch (error) {
                 // One malformed tile must not cost the chunk. Stop reading, keep what was read.
-                this.getServer()
-                    .getLogger()
-                    .warn(`Stopped reading block entities: ${(error as Error).message}`);
+                const reason = error instanceof Error ? error.message : String(error);
+                this.getServer().getLogger().warn(`Stopped reading block entities: ${reason}`);
                 break;
             }
         }
