@@ -2,8 +2,6 @@ import GameRuleManager, { GameRules } from './GameRuleManager';
 
 import fs from 'node:fs';
 
-import JSON5 from 'json5';
-
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { Block, Server, Service } from '../';
@@ -36,6 +34,7 @@ import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
+import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
@@ -1198,10 +1197,10 @@ export class World implements Service {
         if (!fs.existsSync(path)) return {};
 
         try {
-            const raw = await fs.promises.readFile(path, 'utf-8');
             // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
-            return JSON5.parse(raw.toString());
-        } catch (error: any) {
+            const data: unknown = (await readJsonFile(path, '{}')).get([]);
+            return data as Partial<LevelData>;
+        } catch (error: unknown) {
             // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
         }
@@ -1228,11 +1227,11 @@ export class World implements Service {
         };
 
         try {
-            await fs.promises.writeFile(
-                // FIXME: This overwrites comments in the file.
-                withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME),
-                JSON.stringify(data, null, 4)
-            );
+            // Written key by key, so a comment somebody left in the file stays with its key.
+            const file = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
+            const document = await readJsonFile(file, '{}');
+            for (const [key, value] of Object.entries(data)) document.set([key], value);
+            await writeJsonFile(file, document);
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save level data`);
             this.server.getLogger().error(error);
@@ -1246,12 +1245,11 @@ export class World implements Service {
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
         try {
-            const raw = await fs.promises.readFile(
-                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
-                'utf8'
-            );
+            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`);
+            await fs.promises.access(file);
             // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
-            return JSON5.parse(raw);
+            const data: unknown = (await readJsonFile(file, '{}')).get([]);
+            return data as Partial<WorldPlayerData>;
         } catch (error: unknown) {
             // Missing player data is the ordinary case - it is what a first join looks like -
             // so this is a debug line and not an error. It used to raise "Player has no XUID"
@@ -1301,12 +1299,10 @@ export class World implements Service {
         } satisfies WorldPlayerData;
 
         try {
-            await fs.promises.writeFile(
-                // FIXME: This overwrites comments in the file.
-                withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
-                JSON.stringify(data, null, 4),
-                { encoding: 'utf8', flush: true }
-            );
+            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`);
+            const document = await readJsonFile(file, '{}');
+            for (const [key, value] of Object.entries(data)) document.set([key], value);
+            await writeJsonFile(file, document);
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save player data`);
             this.server.getLogger().error(error);

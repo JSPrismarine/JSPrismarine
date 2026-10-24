@@ -48,6 +48,11 @@ are. When a new version adds a setting, the server adds that key and its
 comment to the end of your file and leaves the rest alone, so there is no
 need to regenerate the file after an upgrade.
 
+The same applies to the JSON files beside it (`banned-players.json`,
+`ops.json`, `permissions.json`) and to each world's `level.json` and player
+data: the server changes the entry it means to and leaves your comments in
+place. All of them may hold `//` and `/* */` comments and trailing commas.
+
 A file that does not parse stops the server with an error naming the file
 rather than being replaced by the defaults, so a typo costs a restart, not
 the config.
