@@ -235,8 +235,12 @@ const dataComponentPredicatesTest = (
             at.warn(`data component predicate ${id} is not implemented; it evaluates false`);
             return () => false;
         }
-        at.error(`unknown data component predicate type ${type}`);
-        return () => false;
+        // 26.3 falls back to AnyValue for a key that names a data component
+        // type rather than a predicate type, which is a presence check.
+        if (Object.keys(isJsonObject(json) ? json : { ignored: true }).length > 0) {
+            at.warn(`${id} is not a data component predicate type, so only the presence of the component is checked`);
+        }
+        return (stack: ItemStack) => stack.components.get(id) !== undefined;
     });
 
     return (stack, evaluation) => tests.every((test) => test(stack, evaluation));
