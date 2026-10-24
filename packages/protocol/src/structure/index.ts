@@ -1,4 +1,6 @@
 import ActorLink from './ActorLink';
+import AttributeLayerData from './AttributeLayerData';
+import AttributeLayerSettings from './AttributeLayerSettings';
 import BlockPos from './BlockPos';
 import CameraAimAssistCategoryDefinition from './CameraAimAssistCategoryDefinition';
 import CameraAimAssistCategoryPriorities from './CameraAimAssistCategoryPriorities';
@@ -32,6 +34,13 @@ import type { DataStoreUpdateData, DataStoreValue } from './DataStoreUpdate';
 import DimensionDefinition from './DimensionDefinition';
 import EduSharedUriResource from './EduSharedUriResource';
 import type { EduSharedUriResourceData } from './EduSharedUriResource';
+import EnvironmentAttributeData, {
+    AttributeDataType,
+    BoolAttributeOperation,
+    ColorAttributeOperation,
+    FloatAttributeOperation
+} from './EnvironmentAttributeData';
+import type { AttributeValue, EnvironmentAttributeFields } from './EnvironmentAttributeData';
 import Experiments from './Experiments';
 import FullContainerName from './FullContainerName';
 import ItemData, { ItemVersion } from './ItemData';
@@ -41,6 +50,7 @@ import LevelSettings from './LevelSettings';
 import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorBarWaypointPayload';
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
+import NoiseAlignment, { NoiseAlignmentType } from './NoiseAlignment';
 import PlayerPartyInfo from './PlayerPartyInfo';
 import PresenceConfig from './PresenceConfig';
 import PrimitiveShapeData, { PrimitiveShapeExtraDataType, PrimitiveShapeType } from './PrimitiveShapeData';
@@ -65,8 +75,12 @@ import Vec3 from './Vec3';
 
 export {
     ActorLink,
+    AttributeDataType,
+    AttributeLayerData,
+    AttributeLayerSettings,
     AimAssistTargetMode,
     BlockPos,
+    BoolAttributeOperation,
     CameraAimAssistCategoryDefinition,
     CameraAimAssistCategoryPriorities,
     CameraAimAssistPresetDefinition,
@@ -77,6 +91,7 @@ export {
     CameraSplineType,
     ChunkPos,
     ClientStoreEntryPointConfig,
+    ColorAttributeOperation,
     ControlScheme,
     DataItem,
     DataStoreUpdate,
@@ -84,7 +99,9 @@ export {
     DimensionDefinition,
     EasingType,
     EduSharedUriResource,
+    EnvironmentAttributeData,
     Experiments,
+    FloatAttributeOperation,
     FullContainerName,
     ItemData,
     ItemInstanceUserData,
@@ -92,6 +109,8 @@ export {
     LevelSettings,
     LocatorBarWaypointPayload,
     NetworkItemStackDescriptor,
+    NoiseAlignment,
+    NoiseAlignmentType,
     PlayerPartyInfo,
     PresenceConfig,
     PrimitiveShapeData,
@@ -116,6 +135,7 @@ export {
     isEasingFunction
 };
 export type {
+    AttributeValue,
     CameraAimAssistDefinition,
     CameraAimAssistItemSetting,
     CameraAimAssistPresetExclusions,
@@ -136,6 +156,7 @@ export type {
     DataStoreValue,
     EasingFunction,
     EduSharedUriResourceData,
+    EnvironmentAttributeFields,
     HeightMap,
     ItemInstanceUserDataConfig,
     NetworkItemStackDescriptorConfig,
