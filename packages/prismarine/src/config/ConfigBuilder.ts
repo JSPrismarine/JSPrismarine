@@ -40,17 +40,22 @@ const _ = {
         let current: Tree = obj;
         for (let index = 0; index < keys.length - 1; index++) {
             const key = keys[index]!;
-            const next = current[key];
-            if (isTree(next)) {
+            const hasOwn = Object.hasOwn(current, key);
+            const next = hasOwn ? current[key] : undefined;
+
+            if (hasOwn && isTree(next)) {
                 current = next;
                 continue;
             }
-            const created: Tree = /^\d+$/.test(keys[index + 1] ?? '') ? ([] as unknown as Tree) : {};
+
+            const created: Tree = /^\d+$/.test(keys[index + 1] ?? '')
+                ? ([] as unknown as Tree)
+                : (Object.create(null) as Tree);
             current[key] = created;
             current = created;
         }
         const last = keys.at(-1);
-        if (last !== undefined) current[last] = value;
+        if (last !== undefined && !isUnsafeKey(last)) current[last] = value;
         return obj;
     },
     has: (obj: unknown, key: string): boolean => {
