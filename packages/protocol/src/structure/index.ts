@@ -5,6 +5,21 @@ import CameraAimAssistCategoryPriorities from './CameraAimAssistCategoryPrioriti
 import type { CameraAimAssistPriority } from './CameraAimAssistCategoryPriorities';
 import CameraAimAssistPresetDefinition from './CameraAimAssistPresetDefinition';
 import type { CameraAimAssistItemSetting, CameraAimAssistPresetExclusions } from './CameraAimAssistPresetDefinition';
+import CameraInstruction, { EasingType, isEasingFunction } from './CameraInstruction';
+import type {
+    CameraEase,
+    CameraFadeColor,
+    CameraFadeInstruction,
+    CameraFadeTime,
+    CameraFovInstruction,
+    CameraInstructionData,
+    CameraSetInstruction,
+    CameraSplineInstruction,
+    CameraSplineProgressKeyFrame,
+    CameraSplineRotationKeyFrame,
+    CameraTargetInstruction,
+    EasingFunction
+} from './CameraInstruction';
 import CameraPreset, { AimAssistTargetMode, CameraAudioListener, ControlScheme } from './CameraPreset';
 import type { CameraAimAssistDefinition, CameraPresetData } from './CameraPreset';
 import { ChunkPos } from './ChunkPos';
@@ -48,6 +63,7 @@ export {
     CameraAimAssistCategoryPriorities,
     CameraAimAssistPresetDefinition,
     CameraAudioListener,
+    CameraInstruction,
     CameraPreset,
     ChunkPos,
     ControlScheme,
@@ -55,6 +71,7 @@ export {
     DataStoreUpdate,
     DataStoreValueType,
     DimensionDefinition,
+    EasingType,
     EduSharedUriResource,
     Experiments,
     FullContainerName,
@@ -79,16 +96,29 @@ export {
     UpdateSubChunkNetworkBlockInfo,
     UUID,
     Vec2,
-    Vec3
+    Vec3,
+    isEasingFunction
 };
 export type {
     CameraAimAssistDefinition,
     CameraAimAssistItemSetting,
     CameraAimAssistPresetExclusions,
     CameraAimAssistPriority,
+    CameraEase,
+    CameraFadeColor,
+    CameraFadeInstruction,
+    CameraFadeTime,
+    CameraFovInstruction,
+    CameraInstructionData,
     CameraPresetData,
+    CameraSetInstruction,
+    CameraSplineInstruction,
+    CameraSplineProgressKeyFrame,
+    CameraSplineRotationKeyFrame,
+    CameraTargetInstruction,
     DataStoreUpdateData,
     DataStoreValue,
+    EasingFunction,
     EduSharedUriResourceData,
     HeightMap,
     ItemInstanceUserDataConfig,
