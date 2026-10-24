@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
@@ -62,8 +62,6 @@ import CommandData from './type/CommandData';
 import { CommandEnum } from './type/CommandEnum';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';
 import MovementType from './type/MovementType';
-import PermissionType from './type/PermissionType';
-import PlayerPermissionType from './type/PlayerPermissionType';
 import ChunkSender from './ChunkSender';
 import TextType from './type/TextType';
 
@@ -468,8 +466,8 @@ export default class PlayerSession {
         mainLayer.walkSpeed = 0.1;
 
         const packet = new UpdateAbilitiesPacket();
-        packet.commandPermission = target.isOp() ? PermissionType.Operator : PermissionType.Normal;
-        packet.playerPermission = target.isOp() ? PlayerPermissionType.Operator : PlayerPermissionType.Member;
+        packet.commandPermission = target.isOp() ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
+        packet.playerPermission = target.isOp() ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER;
         packet.targetActorUniqueId = target.getRuntimeId();
         packet.abilityLayers = [mainLayer];
         await this.send(packet);
