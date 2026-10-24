@@ -40,6 +40,8 @@ import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorB
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
 import PlayerPartyInfo from './PlayerPartyInfo';
+import PrimitiveShapeData, { PrimitiveShapeExtraDataType, PrimitiveShapeType } from './PrimitiveShapeData';
+import type { PrimitiveShapeDataFields, PrimitiveShapeExtraData } from './PrimitiveShapeData';
 import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
@@ -84,6 +86,9 @@ export {
     LocatorBarWaypointPayload,
     NetworkItemStackDescriptor,
     PlayerPartyInfo,
+    PrimitiveShapeData,
+    PrimitiveShapeExtraDataType,
+    PrimitiveShapeType,
     PropertySyncData,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
@@ -125,5 +130,7 @@ export type {
     HeightMap,
     ItemInstanceUserDataConfig,
     NetworkItemStackDescriptorConfig,
+    PrimitiveShapeDataFields,
+    PrimitiveShapeExtraData,
     WorldPosition
 };
