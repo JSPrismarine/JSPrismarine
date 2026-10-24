@@ -6,12 +6,18 @@ import Timer from '../utils/Timer';
 import type { Block } from './Block';
 import { BlockStateSchemas } from './state/BlockStateSchema';
 
-export default class BlockManager {
-    private readonly server: Server;
-    private readonly blocks = new Map();
-    private readonly javaBlocks = new Map();
+/**
+ * The part of the server the block manager uses. A test can hand in a logger and an
+ * event sink without building the rest.
+ */
+export type BlockManagerServer = Pick<Server, 'getLogger' | 'emit'>;
 
-    public constructor(server: Server) {
+export default class BlockManager {
+    private readonly server: BlockManagerServer;
+    private readonly blocks = new Map<string, Block>();
+    private readonly javaBlocks = new Map<string, Block>();
+
+    public constructor(server: BlockManagerServer) {
         this.server = server;
     }
 
@@ -78,7 +84,7 @@ export default class BlockManager {
      * can carry on without the block ask with this instead of catching.
      */
     public findBlock(name: string): Block | null {
-        return (this.blocks.get(name) ?? this.javaBlocks.get(name) ?? null) as Block | null;
+        return this.blocks.get(name) ?? this.javaBlocks.get(name) ?? null;
     }
 
     /**
@@ -107,7 +113,7 @@ export default class BlockManager {
      * @returns all registered blocks.
      */
     public getBlocks(): Block[] {
-        return Array.from(this.blocks.values()) as Block[];
+        return Array.from(this.blocks.values());
     }
 
     /**
