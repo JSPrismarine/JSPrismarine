@@ -9,7 +9,6 @@ import Blaze from './hostile/Blaze';
 import Boat from './other/Boat';
 import Cat from './passive/Cat';
 import CaveSpider from './neutral/CaveSpider';
-import Chalkboard from './other/Chalkboard';
 import ChestMinecart from './other/ChestMinecart';
 import Chicken from './passive/Chicken';
 import Cod from './passive/Cod';
@@ -53,7 +52,6 @@ import LlamaSpit from './other/LlamaSpit';
 import MagmaCube from './hostile/MagmaCube';
 import Minecart from './other/Minecart';
 import Mooshroom from './passive/Mooshroom';
-import MovingBlock from './other/MovingBlock';
 import Mule from './passive/Mule';
 import NPC from './other/NPC';
 import Ocelot from './passive/Ocelot';
@@ -74,7 +72,6 @@ import Rabbit from './passive/Rabbit';
 import Ravager from './hostile/Ravager';
 import Salmon from './passive/Salmon';
 import Sheep from './passive/Sheep';
-import Shield from './other/Shield';
 import Shulker from './hostile/Shulker';
 import ShulkerBullet from './other/ShulkerBullet';
 import Silverfish from './hostile/Silverfish';
@@ -123,7 +120,6 @@ export {
     Boat,
     Cat,
     CaveSpider,
-    Chalkboard,
     ChestMinecart,
     Chicken,
     Cod,
@@ -167,7 +163,6 @@ export {
     MagmaCube,
     Minecart,
     Mooshroom,
-    MovingBlock,
     Mule,
     NPC,
     Ocelot,
@@ -188,7 +183,6 @@ export {
     Ravager,
     Salmon,
     Sheep,
-    Shield,
     Shulker,
     ShulkerBullet,
     Silverfish,
@@ -244,7 +238,6 @@ export const spawnableEntities = (): SpawnableEntityClass[] => [
     Boat,
     Cat,
     CaveSpider,
-    Chalkboard,
     ChestMinecart,
     Chicken,
     Cod,
@@ -286,7 +279,6 @@ export const spawnableEntities = (): SpawnableEntityClass[] => [
     MagmaCube,
     Minecart,
     Mooshroom,
-    MovingBlock,
     Mule,
     NPC,
     Ocelot,
@@ -307,7 +299,6 @@ export const spawnableEntities = (): SpawnableEntityClass[] => [
     Ravager,
     Salmon,
     Sheep,
-    Shield,
     Shulker,
     ShulkerBullet,
     Silverfish,
