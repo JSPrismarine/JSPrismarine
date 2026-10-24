@@ -1,0 +1,63 @@
+{
+    "bds": {
+        "version": "1.26.51.1",
+        "entries": {
+            "allowlist.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+            "bedrock_server": "e93e739f373a84edfff7c9cd76fcb090c2176744b412e1143f1b38e91a49bed4",
+            "bedrock_server_how_to.html": "0dae076eaeefa29c7f2cdc51181dfb8c52753056584f8ee8bc83cde56ac55f0a",
+            "behavior_packs": "e9f8bd89a5a2361c31fb022a6440b076db8e965e2366977e8cb4d3fbc451974c",
+            "config": "529d3f0259aa98e49fbc5d5dc329526e0430ebf0c4b78a59cf5d9fb41bc33988",
+            "data": "1c39e84f7f8344252ad34e24170552a81c73e7e6f4b4d80b69acf951c7dea31a",
+            "definitions": "d885c2be98fe88448c5cd683d85f580b0bb619804dae98335272ad91540d1132",
+            "packetlimitconfig.json": "2bbdd2a66f13b735e278c0b1a73881544c13cd9cb956cdd38e7020b37e71fee9",
+            "permissions.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+            "profanity_filter.wlist": "62218d255df1ee0be080f7bc3d21070f705b3e22ed675ec99887f5f592d0f773",
+            "release-notes.txt": "23393b598f7b356fa2cfa9999793d0a3c11e6268f667482cb260063139a0f9ce",
+            "resource_packs": "97241ef3b13a1e702c2c1dd91bc49b20126a94e26cbd207c8417bf5fc0887ea1",
+            "server.properties": "77be850ea6aebf924ca3e9df99591e143b7f47b16e6ff5142510cefe02d80f39"
+        }
+    },
+    "bedrock-samples": {
+        "version": "v1.26.50.4",
+        "entries": {
+            ".github": "9e53b9adc7bd587e04c42d6759e7f715e3cad7e6b6a565fcc8063d5cbd69b04c",
+            ".gitignore": "4d543c33deebd0bf72554a02c2f286cb48a134a4fa2a8c754a31d9fdeeab910a",
+            "CONTRIBUTING.md": "7dd6105e0871bd28be7b87f520b6c44279f72e312ab19b78c154a9ab7b14ee22",
+            "LICENSE.md": "ca18c0dede68ce24ea1cd6f9df0813579b6f9f979787983a50baec99345f975d",
+            "README.md": "80622dcc831dfcd7fa2c44b524169ec0cfd6e6a0a00a66ff4b30c4b42670a438",
+            "behavior_pack": "8b69ce0e07b85920af5d77451fa271ffd9a1a7b6a1765588f8f641c384a0af7b",
+            "documentation": "615a791549fff4e79da5ceb5605e767424d8df4a7e62931d28463d0efd6879b3",
+            "metadata": "1a277f5c31cd163d12011473b9357c124493695bf4069610b59e60b1f66b86ca",
+            "resource_pack": "5cb622682100aa904ac2837571e236f78dce1daa9aa01d41922790c3f69dca10",
+            "version.json": "87d10cc94dad2eb95aba526812739a4136b2be46efc5b6bf0ee2aef4bedb2d13"
+        }
+    },
+    "java-server": {
+        "version": "26.3",
+        "entries": {
+            "server.jar": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64"
+        }
+    },
+    "geyser-mappings": {
+        "version": "81700ab543c1f4e9f9041f58dac4154ecb0d0c8b",
+        "entries": {
+            "LICENSE": "4f49de5134b13de98672e8f870aae5d36f5b415086fb1c6fdf832b78c47c7094",
+            "README.md": "141998e1b7296441f8d973a000964fdc180ab0af4b5daa588568f80ce3adf1c7",
+            "additional_offhand_items.json": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+            "biomes.json": "b6011a937a6470816d42faf4cbcd819e12ad1eb190e78c898ab8c5dfb07af6e6",
+            "block_shapes.nbt": "e7b529a92f57e08b589227b65a397d6d58fd76feceab22361d6fc9fb6e91b379",
+            "blocks.nbt": "e0a442e63761b9d67dbcf17fceafb449bb6e1a58c98d8c60c6ac1a3128e3a5ef",
+            "collisions.nbt": "92c201bc7d9917c3d877a3b4d5112086955d978aa5b70a0aecdce13de72d4dc8",
+            "decorated_pot_patterns.json": "8b25e0c6dccd486757b23417b9a4dfbd67358753199062a6ac1f9316179c0c32",
+            "effects.json": "13680d60f289e9706877b1747959383bcd9328a1386bedfedaa09c72ec8caf70",
+            "interactions.json": "69796a34b33bde15af6e9bbdcb81fb596934c17747cbd2b53a809c7d99093163",
+            "item_components.nbt": "70fefa843c1ab2f5ae20733aaaf0854705378d5f020a2dd80b9871b0223b5678",
+            "item_data_components.json": "a5f44db35586ff7dc037916bfc94da124189eb59fb0a4fb0eaef1c8b76081f02",
+            "items.json": "89ec17a95b005e5dac170d7834a18da79952c914e8f29201f6fe9a1cdb992179",
+            "particles.json": "fe04b0dd5c88e76f1dad761b7769ec40e62e079a43034b3107ad8b0843716c18",
+            "resolvable_item_data_components.json": "8249e8fd8aa9d4a15baf420f3c905cc7ba1260c6f1a4ea6350093ce036dd2a5b",
+            "sounds.json": "d9925ca83d075f29abb0258471e7ad6a5498cc733dc8de7504c1671386311709",
+            "util.json": "0f7dde5bbfa2ce4519cf585caa463a3628446a8d97f31bbea8451dfe385cf3eb"
+        }
+    }
+}
