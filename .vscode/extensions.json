@@ -1,5 +1,6 @@
 {
     "recommendations": [
+        "TypeScriptTeam.native-preview",
         "aaron-bond.better-comments",
         "bierner.markdown-preview-github-styles",
         "biomejs.biome",

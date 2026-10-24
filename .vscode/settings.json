@@ -1,5 +1,4 @@
 {
-    "typescript.tsdk": "node_modules/typescript/lib",
     "typescript.locale": "en",
     "typescript.surveys.enabled": false,
     "git.autofetch": "all",
@@ -88,5 +87,7 @@
     },
     "[typescript]": {
         "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
+    },
+    "typescript.experimental.useTsgo": true,
+    "typescript.native-preview.tsdk": "node_modules/typescript"
 }

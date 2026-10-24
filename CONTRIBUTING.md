@@ -140,7 +140,14 @@ feat(labels): sync CodeRabbit labels
 
 ### TypeScript Styleguide
 
-All TypeScript code is linted with [Prettier](https://prettier.io/).
+All TypeScript code is formatted with [Prettier](https://prettier.io/) and linted with
+[Biome](https://biomejs.dev/). Type checking and declaration output use TypeScript 7 through
+[`tsc-ts`](https://github.com/vercel-labs/tsc-ts); `pnpm run typecheck` runs it for every package.
+
+In VS Code, install the recommended TypeScript Native Preview extension. The workspace settings
+point it at the TypeScript 7 package in `node_modules`, which works on every platform because the
+extension picks the native binary for your OS itself. `tsc-ts` has no language server mode yet, so
+the editor runs the official TypeScript 7 server while the command line uses `tsc-ts`.
 
 -   Prefer the object spread operator (`{...anotherObj}`) to `Object.assign()`
 
