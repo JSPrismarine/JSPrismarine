@@ -1,31 +1,86 @@
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
+import Inventory from '../../inventory/Inventory';
 import { Item } from '../../item/Item';
 import { ContainerUiId } from '../type/ItemStackRequest';
 import InventoryContentPacket from './InventoryContentPacket';
 
 /**
- * What the client is told it is carrying.
+ * Reads a `NetworkItemStackDescriptor` as the 1.26.51 docs lay it out, without going through
+ * `Item`, so that a slip in the encoder cannot be hidden by the same slip in the decoder.
  *
- * Never sent, until now: the call was commented out, and it would have thrown on its first
- * empty slot if it had not been. Under the server authoritative inventory system a client
- * that has not been told what a container holds will not move anything into it, which is what
- * left an item refusing to come off its slot.
- * @see https://github.com/pmmp/BedrockProtocol/blob/35.0.0%2Bbedrock-1.21.40/src/InventoryContentPacket.php
+ * `Id` is an int16 (little endian), `Stack size` a uint16, `Aux value` a varuint32, then a
+ * boolean saying whether a ZigZag `Net Id Variant` follows, `Block Runtime Id` as a varuint32,
+ * and `User Data Buffer` as a varuint32 length and that many bytes. Every field is written
+ * for an empty stack too; only the blob shrinks to a zero length.
  */
-const encoded = (inventory: HumanInventory): Buffer => {
+const readDescriptor = (stream: BinaryStream) => {
+    const id = stream.readShortLE();
+    const count = stream.readUnsignedShortLE();
+    const aux = stream.readUnsignedVarInt();
+    const netId = stream.readBoolean() ? stream.readVarInt() : null;
+    const blockRuntimeId = stream.readUnsignedVarInt();
+    const userData = stream.read(stream.readUnsignedVarInt());
+
+    return { id, count, aux, netId, blockRuntimeId, userData };
+};
+
+/**
+ * Reads the `ItemInstanceUserData` blob of a non-empty stack: an int16 marker that is `-1`
+ * before NBT and `0` otherwise, then the can-place-on and can-destroy lists, each an int32
+ * count of strings, and for a shield an int64 blocking tick.
+ */
+const readUserData = (blob: Buffer, shield = false) => {
+    const stream = new BinaryStream(blob);
+    const marker = stream.readShortLE();
+    const readList = (): string[] => {
+        const names: string[] = [];
+        for (let i = 0, count = stream.readIntLE(); i < count; i++) {
+            names.push(stream.read(stream.readShortLE()).toString('utf-8'));
+        }
+        return names;
+    };
+    const canPlaceOn = readList();
+    const canDestroy = readList();
+    const blockingTick = shield ? stream.readLongLE() : null;
+
+    expect(stream.feof()).toBe(true);
+    return { marker, canPlaceOn, canDestroy, blockingTick };
+};
+
+/** Reads the whole packet in docs order and insists on reaching the last byte. */
+const readBack = (buffer: Buffer) => {
+    const stream = new BinaryStream(buffer);
+    expect(stream.readUnsignedVarInt()).toBe(InventoryContentPacket.NetID);
+
+    const containerId = stream.readUnsignedVarInt();
+    const slots: ReturnType<typeof readDescriptor>[] = [];
+    for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+        slots.push(readDescriptor(stream));
+    }
+    const containerName = stream.readByte();
+    const dynamicId = stream.readBoolean() ? stream.readUnsignedIntLE() : null;
+    const storageItem = readDescriptor(stream);
+
+    expect(stream.feof()).toBe(true);
+    return { containerId, slots, containerName, dynamicId, storageItem };
+};
+
+const encoded = (items: ContainerEntry[], windowId = 0): Buffer => {
     const packet = new InventoryContentPacket();
-    packet.items = inventory.getItems(true);
-    packet.windowId = 0;
+    packet.items = items;
+    packet.windowId = windowId;
     packet.encode();
 
     return packet.getBuffer();
 };
 
 describe('InventoryContentPacket', () => {
+    /** A player's inventory as `PlayerSession.sendInventory` sends it on join. */
     const filled = (): HumanInventory => {
         const inventory = new HumanInventory();
         inventory.setItem(
@@ -37,45 +92,104 @@ describe('InventoryContentPacket', () => {
         return inventory;
     };
 
-    it('writes every slot, empty ones included', () => {
-        // Position is the slot, so a container short of a slot is a container whose every
-        // later item is in the wrong place.
-        const stream = new BinaryStream(encoded(filled()));
-        stream.readUnsignedVarInt(); // Packet header.
-        stream.readUnsignedVarInt(); // Window id.
+    it('decodes the join-time inventory in docs order to the last byte', () => {
+        const read = readBack(encoded(filled().getItems(true)));
 
-        expect(stream.readUnsignedVarInt()).toBe(36);
+        expect(read.containerId).toBe(0);
+        // Position is the slot, so every one of the 36 is written, empty or not.
+        expect(read.slots).toHaveLength(36);
+        expect(read.containerName).toBe(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY);
+        expect(read.dynamicId).toBeNull();
+
+        const planks = read.slots[0]!;
+        expect(planks.id).toBe(ItemIdMap['minecraft:oak_planks']);
+        expect(planks.count).toBe(12);
+        expect(planks.netId).toBeNull();
+        expect(planks.blockRuntimeId).not.toBe(0);
+        expect(readUserData(planks.userData)).toEqual({
+            marker: 0,
+            canPlaceOn: [],
+            canDestroy: [],
+            blockingTick: null
+        });
+
+        const sword = read.slots[5]!;
+        expect(sword.id).toBe(ItemIdMap['minecraft:diamond_sword']);
+        expect(sword.count).toBe(1);
+        expect(sword.blockRuntimeId).toBe(0);
+
+        // An empty slot is a zero id, not air's own id (-158 in the item table), and the
+        // blob behind it has no length at all.
+        const empty = read.slots[1]!;
+        expect(empty).toEqual({ id: 0, count: 0, aux: 0, netId: null, blockRuntimeId: 0, userData: Buffer.alloc(0) });
+
+        // The storage item is written in full as an empty stack. Nothing here is a bundle.
+        expect(read.storageItem.id).toBe(0);
+        expect(read.storageItem.userData).toHaveLength(0);
     });
 
-    it('reads back to the last byte, with the container name and storage stack after it', () => {
-        const stream = new BinaryStream(encoded(filled()));
-        stream.readUnsignedVarInt();
+    it('matches a hand-written buffer', () => {
+        const inventory = new Inventory(2);
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:diamond_sword' }) }));
+        const swordId = ItemIdMap['minecraft:diamond_sword']!;
 
-        expect(stream.readUnsignedVarInt()).toBe(0);
+        const empty = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+        const expected = Buffer.from([
+            0x31, // Header: packet id 49.
+            0x00, // Container Id: varuint32 0, the player inventory.
+            0x02, // Slots: count 2.
+            swordId & 0xff,
+            swordId >> 8, // Id: int16 LE.
+            0x01,
+            0x00, // Stack size: uint16 LE 1.
+            0x00, // Aux value: varuint32 0.
+            0x00, // Net Id Variant: absent.
+            0x00, // Block Runtime Id: varuint32 0, a sword places nothing.
+            0x0a, // User Data Buffer: 10 bytes follow.
+            0x00,
+            0x00, // No NBT marker: int16 LE 0.
+            0x00,
+            0x00,
+            0x00,
+            0x00, // Can place on: int32 LE count 0.
+            0x00,
+            0x00,
+            0x00,
+            0x00, // Can destroy: int32 LE count 0.
+            ...empty, // Slot 1: an empty stack, every field zero and a zero-length blob.
+            0x0c, // Full Container Name: CombinedHotbarAndInventoryContainer (12).
+            0x00, // Dynamic ID: absent.
+            ...empty // Storage Item: an empty stack.
+        ]);
 
-        const ids: number[] = [];
-        for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
-            ids.push(Item.networkDeserialize(stream).getId());
-        }
+        expect([...encoded(inventory.getItems(true))]).toEqual([...expected]);
+    });
 
-        expect(stream.readByte()).toBe(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY);
-        expect(stream.readBoolean()).toBe(false);
+    it('writes the dynamic id as a uint32 after its presence byte', () => {
+        const packet = new InventoryContentPacket();
+        packet.windowId = 3;
+        packet.containerId = ContainerUiId.DYNAMIC_CONTAINER;
+        packet.dynamicId = 0x01020304;
+        packet.encode();
 
-        // The storage stack, which is air - and air is a whole stack at this version, not the
-        // bare zero it used to be.
-        expect(Item.networkDeserialize(stream).getId()).toBe(0);
-        expect(stream.feof()).toBe(true);
+        const read = readBack(packet.getBuffer());
+        expect(read.containerId).toBe(3);
+        expect(read.containerName).toBe(ContainerUiId.DYNAMIC_CONTAINER);
+        expect(read.dynamicId).toBe(0x01020304);
+    });
 
-        // An empty slot is a zero, not air's own id: air is -158 in the item table, and
-        // writing that leaves a real item in every slot the player is not using.
-        expect(ids.filter((id) => id !== 0)).toHaveLength(2);
-        expect(ids[0]).not.toBe(0);
-        expect(ids[5]).not.toBe(0);
+    it('writes a shield with its blocking tick at the end of the blob', () => {
+        const inventory = new Inventory(1);
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:shield' }) }));
+
+        const shield = readBack(encoded(inventory.getItems(true))).slots[0]!;
+        expect(shield.userData).toHaveLength(18);
+        expect(readUserData(shield.userData, true).blockingTick).toBe(0n);
     });
 
     it('does not throw on an inventory that is entirely empty', () => {
         // Every slot holds an `Air` block rather than an item, and a block cannot be written
         // out as a stack. This threw on slot zero, every time.
-        expect(() => encoded(new HumanInventory())).not.toThrow();
+        expect(() => encoded(new HumanInventory().getItems(true))).not.toThrow();
     });
 });

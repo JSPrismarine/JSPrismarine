@@ -1,3 +1,4 @@
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
@@ -6,10 +7,27 @@ import { ContainerUiId } from '../type/ItemStackRequest';
 import InventorySlotPacket from './InventorySlotPacket';
 
 /**
+ * Reads a `NetworkItemStackDescriptor` as the 1.26.51 docs lay it out, without going through
+ * `Item`: `Id` int16 LE, `Stack size` uint16 LE, `Aux value` varuint32, a boolean and then a
+ * ZigZag `Net Id Variant` when it is set, `Block Runtime Id` varuint32, and the `User Data
+ * Buffer` behind a varuint32 length.
+ */
+const readDescriptor = (stream: BinaryStream) => {
+    const id = stream.readShortLE();
+    const count = stream.readUnsignedShortLE();
+    const aux = stream.readUnsignedVarInt();
+    const netId = stream.readBoolean() ? stream.readVarInt() : null;
+    const blockRuntimeId = stream.readUnsignedVarInt();
+    const userData = stream.read(stream.readUnsignedVarInt());
+
+    return { id, count, aux, netId, blockRuntimeId, userData };
+};
+
+/**
  * Reads the packet the way a client of protocol 2193 does, from gophertunnel's
  * `packet/inventory_slot.go` and PocketMine's `InventorySlotPacket`, which agree: Container Id
  * and Slot are both varuint32s, the Full Container Name and the Storage Item are each an
- * optional, and the Item is not.
+ * optional behind a boolean, and the Item is not.
  */
 const readBack = (buffer: Buffer) => {
     const stream = new BinaryStream(buffer);
@@ -19,11 +37,11 @@ const readBack = (buffer: Buffer) => {
     const slot = stream.readUnsignedVarInt();
 
     const container = stream.readBoolean()
-        ? { name: stream.readByte(), dynamicId: stream.readBoolean() ? stream.readIntLE() : null }
+        ? { name: stream.readByte(), dynamicId: stream.readBoolean() ? stream.readUnsignedIntLE() : null }
         : null;
 
-    const storage = stream.readBoolean() ? Item.networkDeserialize(stream) : null;
-    const item = Item.networkDeserialize(stream);
+    const storage = stream.readBoolean() ? readDescriptor(stream) : null;
+    const item = readDescriptor(stream);
 
     expect(stream.feof()).toBe(true);
 
@@ -48,26 +66,31 @@ describe('network', () => {
             expect(read.storage).toBeNull();
         });
 
-        it('writes an emptied slot as a whole air stack rather than a bare zero', () => {
+        it('writes an emptied slot as a whole empty stack rather than a bare zero', () => {
             // One byte here ended the packet seven bytes early, which a real client reads as
             // a malformed packet and hangs up on. This fires on every craft.
             const packet = Object.assign(new InventorySlotPacket(), { windowId: 124, inventorySlot: 29 });
             packet.encode();
 
-            const air = new BinaryStream();
-            Item.air().networkSerialize(air);
+            const expected = Buffer.from([
+                0x32, // Header: packet id 50.
+                0x7c, // Container Id: varuint32 124, the player's own UI.
+                0x1d, // Slot: varuint32 29.
+                0x01, // Full Container Name: present.
+                0x0d, // Container Name: CraftingInputContainer (13).
+                0x00, // Dynamic ID: absent.
+                0x00, // Storage Item: absent.
+                0x00,
+                0x00, // Item, Id: int16 LE 0.
+                0x00,
+                0x00, // Stack size: uint16 LE 0.
+                0x00, // Aux value: 0.
+                0x00, // Net Id Variant: absent.
+                0x00, // Block Runtime Id: 0.
+                0x00 // User Data Buffer: zero length.
+            ]);
 
-            const expected = new BinaryStream();
-            expected.writeUnsignedVarInt(InventorySlotPacket.NetID);
-            expected.writeUnsignedVarInt(124);
-            expected.writeUnsignedVarInt(29);
-            expected.writeBoolean(true);
-            expected.writeByte(ContainerUiId.CRAFTING_INPUT);
-            expected.writeBoolean(false);
-            expected.writeBoolean(false);
-            expected.write(new Uint8Array(air.getBuffer()));
-
-            expect([...packet.getBuffer()]).toEqual([...expected.getBuffer()]);
+            expect([...packet.getBuffer()]).toEqual([...expected]);
         });
 
         it('writes the dynamic id after the container name when there is one', () => {
@@ -93,7 +116,11 @@ describe('network', () => {
             });
             packet.encode();
 
-            expect(readBack(packet.getBuffer()).item?.getAmount()).toBe(3);
+            const item = readBack(packet.getBuffer()).item;
+            expect(item.id).toBe(ItemIdMap['minecraft:oak_planks']);
+            expect(item.count).toBe(3);
+            // A non-empty stack carries the ten-byte empty user data: no NBT, no block lists.
+            expect(item.userData).toEqual(Buffer.alloc(10));
         });
     });
 });
