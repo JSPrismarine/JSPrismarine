@@ -56,8 +56,9 @@ for (const file of files) {
 // explicit type gives the data a shape that every consumer, including ahead-of-time
 // compilation, can work with.
 //
-// The upstream field names are not kept: `id` is an item name and is called `name` here, and
-// `damage` is the aux value every other part of this package calls `meta`.
+// The upstream field names are not kept: `id` is an item name and is called `name` here,
+// `damage` is the aux value every other part of this package calls `meta`, and `block_state_b64`
+// is `block_states` on an entry and `icon_block_states` on a group.
 const creativeSource = requireSource('resources/creative_items.json');
 const creativeTarget = path.resolve('src/generated/creativeitems.ts');
 if (force || !isUpToDate(creativeSource, creativeTarget)) {
@@ -65,7 +66,11 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
     const { groups, items } = JSON.parse(fs.readFileSync(creativeSource, 'utf8'));
 
     const groupBody = groups
-        .map(({ name, category, icon }) => `    ${JSON.stringify({ name, category, icon: icon.id })}`)
+        .map(({ name, category, icon }) => {
+            const group = { name, category, icon: icon.id };
+            if (icon.block_state_b64 !== undefined) group.icon_block_states = icon.block_state_b64;
+            return `    ${JSON.stringify(group)}`;
+        })
         .join(',\n');
 
     // One helper call per entry instead of a 2000-element object literal: TypeScript
@@ -98,6 +103,11 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
             '    category: string;',
             '    /** The item name shown beside the heading. */',
             '    icon: string;',
+            '    /**',
+            '     * The block state the icon shows, as base64 little-endian NBT whose `network_id` is the',
+            '     * hashed block runtime id vanilla puts on the wire. Absent when the icon is not a block.',
+            '     */',
+            '    icon_block_states?: string;',
             '}',
             '',
             '/** One entry of the creative menu as the client orders it. */',
@@ -105,6 +115,11 @@ if (force || !isUpToDate(creativeSource, creativeTarget)) {
             '    name: string;',
             '    /** Which of {@link creative_groups} the entry is filed under, by index. */',
             '    group: number;',
+            '    /**',
+            '     * The block state the entry places, as base64 little-endian NBT whose `network_id` is the',
+            '     * hashed block runtime id vanilla puts on the wire. Absent when the entry is not a block,',
+            '     * which includes the item form of doors, beds and hanging signs.',
+            '     */',
             '    block_states?: string;',
             '    meta?: number;',
             '    nbt?: string;',
