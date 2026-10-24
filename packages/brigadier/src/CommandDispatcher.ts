@@ -74,7 +74,7 @@ export default class CommandDispatcher<S> {
         let contexts: Array<CommandContext<S>> | null = [];
         contexts.push(original);
         let next: CommandContext<S>[] | null = null;
-        while ((contexts as any) !== null) {
+        while (contexts !== null) {
             for (let i = 0; i < contexts.length; i++) {
                 let context = contexts[i]; // FIXME
                 let child = context?.getChild();
@@ -115,7 +115,7 @@ export default class CommandDispatcher<S> {
                 }
             }
 
-            contexts = next!; // FIXME
+            contexts = next;
             next = null;
         }
 
@@ -142,7 +142,7 @@ export default class CommandDispatcher<S> {
         contextSoFar: CommandContextBuilder<S>
     ): ParseResults<S> {
         let source: S = contextSoFar.getSource();
-        let errors: Map<CommandNode<S>, CommandSyntaxException> | null = null;
+        let errors: Map<CommandNode<S>, Error> | null = null;
         let potentials: ParseResults<S>[] | null = null;
         let cursor = originalReader.getCursor();
         for (let child of node.getRelevantNodes(originalReader)) {
@@ -162,7 +162,7 @@ export default class CommandDispatcher<S> {
                 if (errors == null) {
                     errors = new Map();
                 }
-                errors.set(child, ex as any);
+                errors.set(child, ex instanceof Error ? ex : new Error(String(ex)));
                 reader.setCursor(cursor);
                 continue;
             }
