@@ -7,7 +7,11 @@
  * pack involved, so the content runtime must not depend on the pack loader.
  */
 
-/** How much a diagnostic matters: an error fails a strict resolve, a warning never does. */
+/**
+ * How much a finding matters. An error means content was dropped; a warning
+ * means it loaded with something unhandled. A strict resolve fails on either,
+ * which is what `@jsprismarine/packs` does too.
+ */
 export type DiagnosticSeverity = 'error' | 'warning';
 
 /** One finding reported while resolving content. */
