@@ -1,6 +1,11 @@
-import { creativeitems as CreativeItems, item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import {
+    creative_groups as CreativeGroups,
+    creativeitems as CreativeItems,
+    item_table as ItemTable
+} from '@jsprismarine/bedrock-data';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { CreativeCategory } from '../network/packet/CreativeContentPacket';
 import CreativeInventory from './CreativeInventory';
 
 /**
@@ -8,8 +13,8 @@ import CreativeInventory from './CreativeInventory';
  *
  * Deliberately empty, because that is the whole point of what changed: the menu used to be
  * the intersection of the creative list and the blocks and items this server implements
- * classes for, which meant 1611 of the 1919 entries never reached the client. A class is what
- * gives an item behavior once it is held; it is not what makes the client able to show it.
+ * classes for, which left all but three hundred odd entries out. A class is what gives an
+ * item behavior once it is held; it is not what makes the client able to show it.
  */
 const emptyServer = {
     getBlockManager: () => ({ getBlocks: () => [] }),
@@ -20,23 +25,58 @@ describe('CreativeInventory', () => {
     beforeEach(() => CreativeInventory.reset());
 
     it('shows every creative entry the item table still names, with nothing registered', () => {
-        // Not simply `CreativeItems.length`. The two files no longer come from the same
-        // version: the item table is captured from a 1.26.40 server, the creative list still
-        // comes from the submodule and stops at 1.21.40. An entry the table has never heard of
-        // is left out on purpose - that is the guard working, not a menu with a hole in it -
-        // and this asserts the guard drops exactly what it should and nothing more.
+        // An entry the table has never heard of is left out on purpose - that is the guard
+        // working, not a menu with a hole in it - and this asserts the guard drops exactly
+        // what it should and nothing more.
         const nameable = CreativeItems.filter((entry) => entry.name in ItemTable);
 
         expect(CreativeInventory.getItems(emptyServer)).toHaveLength(nameable.length);
     });
 
-    it('leaves out only entries the item table has stopped naming', () => {
-        // One, at the time of writing: `minecraft:chain`, which 1.26.40 renamed to
-        // `minecraft:iron_chain` when copper chains arrived. Worth naming rather than counting,
-        // so that a second one appearing is a test failure instead of a smaller menu.
+    it('leaves out nothing, because both files describe the same version', () => {
+        // The creative list and the item table used to come from different releases, and the
+        // guard above dropped `minecraft:chain` for it. They now agree name for name, so the
+        // guard has nothing left to do - and a name reappearing here is a version drift.
         const dropped = CreativeItems.map((entry) => entry.name).filter((name) => !(name in ItemTable));
 
-        expect(dropped).toEqual(['minecraft:chain']);
+        expect(dropped).toEqual([]);
+    });
+
+    it('files every entry under a group the client will have been sent', () => {
+        // An entry names its group by position, so a group index past the end of the list is
+        // a menu the client cannot draw.
+        const groups = CreativeInventory.getGroups(emptyServer);
+
+        expect(groups).toHaveLength(CreativeGroups.length);
+        for (const entry of CreativeInventory.getEntries(emptyServer)) {
+            expect(groups[entry.group]).toBeDefined();
+        }
+    });
+
+    it('puts every group in a tab the client knows', () => {
+        // Four tabs are used by vanilla. Anything else would mean a heading the client files
+        // under the catch-all, which is the fallback working rather than the data being read.
+        const tabs = new Set(CreativeInventory.getGroups(emptyServer).map((group) => group.category));
+
+        expect([...tabs].sort()).toEqual([
+            CreativeCategory.CONSTRUCTION,
+            CreativeCategory.NATURE,
+            CreativeCategory.EQUIPMENT,
+            CreativeCategory.ITEMS
+        ]);
+    });
+
+    it('gives every group an icon the client can resolve', () => {
+        // 88 of the 124 groups carry a heading. The other 36 are anonymous: vanilla draws
+        // loose runs of items between its headings, and a group with no name and an air icon
+        // is how it says so.
+        const groups = CreativeInventory.getGroups(emptyServer);
+
+        expect(groups.filter((group) => group.name !== '').length).toBeGreaterThan(0);
+        for (const group of groups) {
+            expect(ItemTable[group.icon.getName()]).toBeDefined();
+            if (group.name === '') expect(group.icon.getName()).toBe('minecraft:air');
+        }
     });
 
     it('gives every entry an id the client can resolve', () => {

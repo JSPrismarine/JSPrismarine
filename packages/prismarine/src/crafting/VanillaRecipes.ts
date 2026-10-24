@@ -56,11 +56,8 @@ interface GeneratedRecipe {
  */
 export type KnownItem = (name: string) => boolean;
 
-/** The tag table, indexable by any name rather than only the ones the JSON happens to list. */
-const itemTags: Readonly<Record<string, readonly string[]>> = item_tags;
-
 /** What each tag is satisfied by, as the item table of the pinned version has it. */
-const membersOf = (tag: string, known: KnownItem): string[] => (itemTags[tag] ?? []).filter(known);
+const membersOf = (tag: string, known: KnownItem): string[] => (item_tags[tag] ?? []).filter(known);
 
 const toIngredient = (raw: GeneratedIngredient, known: KnownItem): RecipeIngredient =>
     isTag(raw)
@@ -99,9 +96,10 @@ const namesOf = (recipe: GeneratedRecipe): string[] =>
  *
  * A tag the item table has never heard of, or one whose every member is unknown, leaves an
  * ingredient nothing can match - so the recipe is left out for the same reason one naming an
- * unknown item is. The catalog is generated from a newer server than the item table beside
- * it, so this is a real case rather than a defensive one: `minecraft:egg` and
- * `minecraft:metal_nuggets` are named by recipes and absent from the tags of 1.21.40.
+ * unknown item is. Nothing vanilla trips this now that the tag table and the catalog describe
+ * the same release, and the history is why it is worth keeping: against the tags of 1.21.40,
+ * `minecraft:egg`, `minecraft:metal_nuggets` and `minecraft:mushrooms_for_stew` resolved to
+ * nothing and took 21 recipes with them.
  */
 const tagsResolve = (recipe: GeneratedRecipe, known: KnownItem): boolean =>
     referencesOf(recipe)

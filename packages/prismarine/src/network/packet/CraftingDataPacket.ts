@@ -27,13 +27,15 @@ const UNLOCK_CONTEXT: UnlockContext = UnlockContext.ALWAYS_UNLOCKED;
  * Sent once, on join, and identical for every player - so the encoded form is worth keeping.
  * See `RecipeManager.revision` for what invalidates it.
  *
- * At 2168 this stopped being one list of tagged entries and became **ten separate lists**, one
- * per recipe shape, each holding entries of that shape only. There is no longer a type id in
- * front of a recipe - its position in the packet is its type - so the old `RecipeEntryType`
- * has no part in writing this any more.
+ * Wire order at protocol 2193 is eleven arrays and a flag, each array a varuint count followed
+ * by its entries: Shaped Recipes, Shapeless Recipes, Multi Recipes, User Data Shapeless
+ * Recipes, Shapeless Chemistry Recipes, Shaped Chemistry Recipes, Smithing Transform Recipes,
+ * Smithing Trim Recipes, Potion Mixes, Container Mixes, Material Reducers, then Clear Recipes
+ * as a boolean. There is no type id in front of a recipe - its list is its type - so the old
+ * `RecipeEntryType` has no part in writing this any more.
  *
  * Furnace recipes are the casualty of that change: the format has no list for them, and none
- * of the other nine will take one. Smelting is data driven on the client now. The server still
+ * of the others will take one. Smelting is data driven on the client now. The server still
  * keeps its furnace recipes and still smelts with them; it just no longer says so here.
  *
  * **Bound To:** Client
@@ -54,6 +56,7 @@ export default class CraftingDataPacket extends DataPacket {
      */
     public netIdOf: (recipe: Recipe) => number = (_recipe) => 0;
 
+    /** Writes the eleven recipe arrays in docs order, then Clear Recipes. */
     public encodePayload(): void {
         const shaped: ShapedRecipe[] = [];
         const shapeless: ShapelessRecipe[] = [];
@@ -71,20 +74,20 @@ export default class CraftingDataPacket extends DataPacket {
         this.writeList(shaped, (recipe) => this.writeShaped(recipe));
         this.writeList(shapeless, (recipe) => this.writeShapeless(recipe));
 
-        // Multi, shulker box, shapeless chemistry and shaped chemistry. Written empty rather
-        // than left out: absent, they do not save four bytes, they misalign everything after
-        // them - which now includes every recipe list that follows.
+        // Multi Recipes, User Data Shapeless Recipes, Shapeless Chemistry Recipes and Shaped
+        // Chemistry Recipes. Written empty rather than left out: absent, they do not save four
+        // bytes, they misalign everything after them - which now includes every list that follows.
         this.writeUnsignedVarInt(0);
         this.writeUnsignedVarInt(0);
         this.writeUnsignedVarInt(0);
         this.writeUnsignedVarInt(0);
 
         this.writeList(smithing, (recipe) => this.writeSmithingTransform(recipe));
-        this.writeUnsignedVarInt(0); // Smithing trim.
+        this.writeUnsignedVarInt(0); // Smithing Trim Recipes.
 
-        this.writeUnsignedVarInt(0); // Potion type recipes.
-        this.writeUnsignedVarInt(0); // Potion container recipes.
-        this.writeUnsignedVarInt(0); // Material reducer recipes.
+        this.writeUnsignedVarInt(0); // Potion Mixes.
+        this.writeUnsignedVarInt(0); // Container Mixes.
+        this.writeUnsignedVarInt(0); // Material Reducers.
 
         this.writeBoolean(this.cleanRecipes);
     }

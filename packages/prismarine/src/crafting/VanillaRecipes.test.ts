@@ -1,10 +1,29 @@
-import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { item_id_map as ItemIdMap, item_tags as ItemTags } from '@jsprismarine/bedrock-data';
+import { vanillaRecipes } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
+import { Item } from '../item/Item';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe } from './Recipe';
+import { TagIngredient } from './RecipeIngredient';
 import VanillaRecipes from './VanillaRecipes';
 
 const known = (name: string) => ItemIdMap[name] !== undefined;
+
+/** Every tag name the generated catalog asks for, on either side of a recipe. */
+const tagsInCatalog = (): string[] => {
+    const seen = new Set<string>();
+    for (const recipe of (vanillaRecipes as { recipes: Array<Record<string, unknown>> }).recipes) {
+        for (const value of Object.values(recipe)) {
+            for (const reference of Array.isArray(value) ? value : [value]) {
+                if (reference !== null && typeof reference === 'object' && 'tag' in reference) {
+                    const { tag } = reference;
+                    if (typeof tag === 'string') seen.add(tag);
+                }
+            }
+        }
+    }
+    return [...seen].sort();
+};
 
 describe('crafting', () => {
     describe('VanillaRecipes', () => {
@@ -16,6 +35,35 @@ describe('crafting', () => {
             const nothingResolves = VanillaRecipes.load(() => false);
 
             expect(nothingResolves).toHaveLength(0);
+        });
+
+        it('resolves every tag the catalog names to members the item table knows', () => {
+            // The tag table and the catalog have to describe the same release. When they did
+            // not, `minecraft:egg`, `minecraft:metal_nuggets` and `minecraft:mushrooms_for_stew`
+            // were named by recipes and absent from the tags, and the 21 recipes asking for
+            // them were dropped - quietly, because an unsatisfiable ingredient is a correct
+            // reason to drop a recipe and nothing distinguished it from a real one.
+            const tags = tagsInCatalog();
+
+            expect(tags.length).toBeGreaterThan(0);
+            for (const tag of tags) {
+                expect(ItemTags[tag]?.filter(known) ?? []).not.toHaveLength(0);
+            }
+        });
+
+        it('hands a tag ingredient the members it is satisfied by', () => {
+            // A tag the loader accepted but filled with nothing would match no item, so the
+            // recipe would load and then never fire.
+            const tagged = loaded.flatMap((recipe) =>
+                recipe.getIngredients().filter((ingredient) => ingredient instanceof TagIngredient)
+            );
+
+            expect(tagged.length).toBeGreaterThan(0);
+            for (const ingredient of tagged) {
+                const members = ItemTags[ingredient.tag] ?? [];
+
+                expect(members.some((name) => ingredient.matches(new Item({ id: 0, name })))).toBe(true);
+            }
         });
 
         it('drops nothing against the real item table', () => {

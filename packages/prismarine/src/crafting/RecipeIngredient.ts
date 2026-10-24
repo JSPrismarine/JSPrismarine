@@ -67,10 +67,8 @@ export class ItemIngredient implements RecipeIngredient {
 /**
  * An ingredient satisfied by anything carrying a tag - "any plank", "any log".
  *
- * Nothing vanilla loads as one, because the recipe dump names every alternative out in full.
- * It exists because the alternative for a plugin is a recipe per variant, and because
- * writing it now is what proves {@link RecipeIngredient} is an interface rather than a class
- * wearing one.
+ * Twelve of vanilla's tags reach this, all of them from the per-release behavior pack layers;
+ * the 1.13 baseline the catalog starts from names every alternative out in full instead.
  */
 export class TagIngredient implements RecipeIngredient {
     public constructor(
