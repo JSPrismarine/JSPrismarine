@@ -111,6 +111,23 @@ describe('network', () => {
                 expect(armor.containerId).toBe(ContainerUiId.ARMOR_CONTAINER);
                 expect(armor.items.map((entry) => entry.getItem().getName())).toContain('minecraft:diamond_chestplate');
             });
+
+            it('sends the held item as equipment in the inventory window', async () => {
+                const { session, sent } = ownSession();
+                const inventory = session.getPlayer().getInventory();
+                const sword = new Item({ id: 0, name: 'minecraft:diamond_sword' });
+                inventory.setItem(inventory.getHandSlotIndex(), new ContainerEntry({ item: sword, count: 1 }));
+
+                await session.sendInventory();
+
+                // The off hand goes out through `sendArmorFor` afterwards; the hand comes first.
+                const [hand] = sent.filter((packet) => packet instanceof MobEquipmentPacket);
+                expect(hand.runtimeEntityId).toBe(7n);
+                expect(hand.item.getName()).toBe('minecraft:diamond_sword');
+                expect(hand.windowId).toBe(WindowIds.INVENTORY);
+                expect(hand.inventorySlot).toBe(inventory.getHandSlotIndex());
+                expect(hand.hotbarSlot).toBe(inventory.getHandSlotIndex());
+            });
         });
 
         describe('sendArmorFor', () => {

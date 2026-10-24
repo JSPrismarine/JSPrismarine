@@ -799,7 +799,7 @@ export default class PlayerSession {
         pk.item = item;
         pk.inventorySlot = this.player.getInventory().getHandSlotIndex();
         pk.hotbarSlot = this.player.getInventory().getHandSlotIndex();
-        pk.windowId = 0; // Inventory ID
+        pk.windowId = WindowIds.INVENTORY;
         await this.connection.sendDataPacket(pk);
     }
 
