@@ -120,6 +120,13 @@ export const RAKNET_PROTOCOL_VERSION = 11;
 export const MINECRAFT_PROTOCOL_VERSION = RAKNET_PROTOCOL_VERSION;
 /** The IPv4 and UDP headers a datagram pays for on the wire, which the MTU includes. */
 export const UDP_HEADER_SIZE = 28;
+/**
+ * How many internal addresses follow the peer's own in `ConnectionRequestAccepted` and
+ * `NewIncomingConnection`. RakNet fixes it at compile time and both ends must agree on it:
+ * the public archive builds with 10, Mojang's fork with 20.
+ * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetDefines.h#L76 (MAXIMUM_NUMBER_OF_INTERNAL_IDS)
+ */
+export const MAXIMUM_NUMBER_OF_INTERNAL_IDS = 20;
 /** RakNet's OFFLINE_MESSAGE_DATA_ID, the 16 byte magic every offline packet carries. */
 export const OFFLINE_MESSAGE_DATA_ID: Buffer = Buffer.from([
     0x00, 0xff, 0xff, 0x00, 0xfe, 0xfe, 0xfe, 0xfe, 0xfd, 0xfd, 0xfd, 0xfd, 0x12, 0x34, 0x56, 0x78
