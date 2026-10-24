@@ -1,4 +1,4 @@
-import type { Item } from '../../item/Item';
+import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  *
  * The only way anybody but the wearer sees armor: `AddActorPacket` has no room for it, so this
  * has to follow an entity into view the same way its held item does.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/mob-armor-equipment-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/mob-armor-equipment-packet/
  */
 export default class MobArmorEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobArmorEquipmentPacket;
@@ -40,5 +40,19 @@ export default class MobArmorEquipmentPacket extends DataPacket {
         this.legs.networkSerialize(this);
         this.feet.networkSerialize(this);
         this.body.networkSerialize(this);
+    }
+
+    /**
+     * Reads the five slots back. The client never sends this packet; the reader is here so a
+     * test can take the server's bytes apart with the same layout they were written in.
+     */
+    public decodePayload(): void {
+        this.runtimeEntityId = this.readUnsignedVarLong();
+
+        this.head = Item.networkDeserialize(this);
+        this.chest = Item.networkDeserialize(this);
+        this.legs = Item.networkDeserialize(this);
+        this.feet = Item.networkDeserialize(this);
+        this.body = Item.networkDeserialize(this);
     }
 }
