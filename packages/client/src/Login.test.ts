@@ -184,10 +184,9 @@ describe('logging into a real server', () => {
     it('refuses a protocol version the server does not speak', async () => {
         const client = newClient('VersionTester');
 
-        // Reached into rather than parameterised: the version is deliberately not an option
-        // on Client, because a client that can be pointed at the wrong one is a client that
-        // will be.
-        (client as any).options = { ...(client as any).options };
+        // Rewritten on the way out rather than parameterised: the version is deliberately not
+        // an option on Client, because a client that can be pointed at the wrong one is a
+        // client that will be.
         const session = client.getSession();
         const original = session.sendImmediate.bind(session);
         vi.spyOn(session, 'sendImmediate').mockImplementation(async (packet: any) => {
