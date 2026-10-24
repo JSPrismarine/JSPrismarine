@@ -20,6 +20,14 @@ import DataPacket from './DataPacket';
 export default class LevelSoundEventPacket extends DataPacket {
     public static NetID = Identifiers.LevelSoundEventPacket;
 
+    public override getId(): number {
+        return LevelSoundEventPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'LevelSoundEventPacket';
+    }
+
     public sound!: number;
 
     public positionX!: number;

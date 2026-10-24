@@ -105,7 +105,7 @@ export default class MinecraftSession {
         // overtake a chunk batch that is still compressing.
         void this.ordered(() => {
             this.frame(content, direct);
-            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.constructor.name}§r packet`);
+            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
         });
     }
 
@@ -122,7 +122,7 @@ export default class MinecraftSession {
         this.rakSession.sendFrame(sendPacket, direct ? ConnectionPriority.IMMEDIATE : ConnectionPriority.NORMAL);
     }
 
-    public async sendDataPacket<T extends DataPacket>(packet: T, comp = true, direct = false): Promise<void> {
+    public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
@@ -131,7 +131,7 @@ export default class MinecraftSession {
         } catch (error: unknown) {
             this.logger.error(error);
             this.logger.warn(
-                `Packet §b${packet.constructor.name}§r to §b${this.rakSession
+                `Packet §b${packet.getName()}§r to §b${this.rakSession
                     .getAddress()
                     .toToken()}§r failed with: ${(error as Error).message}`
             );
@@ -142,7 +142,7 @@ export default class MinecraftSession {
         // it was meant to follow.
         await this.ordered(() => {
             this.frameBatch(batch, direct);
-            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.constructor.name}§r packet`);
+            if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
         });
     }
 

@@ -17,7 +17,7 @@ export { AbilityLayerFlag };
 
 export class AbilityLayer {
     public layerType!: AbilityLayerType;
-    public layerFlags!: Map<AbilityLayerFlag, boolean>;
+    public layerFlags: Map<AbilityLayerFlag, boolean> = new Map();
 
     public flySpeed!: number;
     /**
@@ -50,6 +50,14 @@ export class AbilityLayer {
 
 export default class UpdateAbilitiesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAbilitiesPacket;
+
+    public override getId(): number {
+        return UpdateAbilitiesPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'UpdateAbilitiesPacket';
+    }
 
     public commandPermission!: PermissionType;
     public playerPermission!: PlayerPermissionType;

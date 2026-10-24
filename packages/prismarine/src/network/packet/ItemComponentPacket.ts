@@ -30,6 +30,14 @@ const ENTRY_VERSION = 1;
 export default class ItemComponentPacket extends DataPacket {
     public static NetID = Identifiers.ItemComponentPacket;
 
+    public override getId(): number {
+        return ItemComponentPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ItemComponentPacket';
+    }
+
     /** Built once and kept: two thousand entries, identical for every player and every join. */
     private static cached: Buffer | null = null;
 

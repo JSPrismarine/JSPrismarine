@@ -28,6 +28,14 @@ const ALTERNATIVE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'reso
 export default class ResourcePackResponsePacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackResponsePacket;
 
+    public override getId(): number {
+        return ResourcePackResponsePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ResourcePackResponsePacket';
+    }
+
     public status!: number;
     public packIds: string[] = [];
 

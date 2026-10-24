@@ -29,6 +29,14 @@ const identityFromXUID = (xuid: string): string => {
 export default class LoginPacket extends DataPacket {
     public static NetID = Identifiers.LoginPacket;
 
+    public override getId(): number {
+        return LoginPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'LoginPacket';
+    }
+
     /**
      * The client's xbox live ID.
      */

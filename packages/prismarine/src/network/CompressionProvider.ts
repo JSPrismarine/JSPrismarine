@@ -38,7 +38,7 @@ export class CompressionProvider {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:
                 // return new ZlibCompressionProvider();
-                return asyncInflate;
+                return (buffer: Buffer) => asyncInflate(buffer);
             case PacketCompressionAlgorithm.NONE:
                 return async (buffer: Buffer) => buffer;
             case PacketCompressionAlgorithm.SNAPPY:
@@ -59,7 +59,7 @@ export class CompressionProvider {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:
                 // return new ZlibCompressionProvider();
-                return inflateRawSync;
+                return (buffer: Buffer) => inflateRawSync(buffer);
             case PacketCompressionAlgorithm.NONE:
                 return (buffer: Buffer) => buffer;
             case PacketCompressionAlgorithm.SNAPPY:

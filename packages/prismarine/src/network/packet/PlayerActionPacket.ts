@@ -39,6 +39,14 @@ export enum PlayerAction {
 export default class PlayerActionPacket extends DataPacket {
     public static NetID = Identifiers.PlayerActionPacket;
 
+    public override getId(): number {
+        return PlayerActionPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'PlayerActionPacket';
+    }
+
     public runtimeEntityId!: bigint;
     public action!: number;
     public blockPosition!: BlockPosition;

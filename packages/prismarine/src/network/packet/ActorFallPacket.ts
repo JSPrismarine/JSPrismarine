@@ -4,6 +4,14 @@ import DataPacket from './DataPacket';
 export default class ActorFallPacket extends DataPacket {
     public static NetID = Identifiers.ActorFallPacket;
 
+    public override getId(): number {
+        return ActorFallPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ActorFallPacket';
+    }
+
     public runtimeEntityId!: bigint;
     public fallDistance!: number;
     public inVoid!: boolean;

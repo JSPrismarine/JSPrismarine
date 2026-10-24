@@ -6,13 +6,13 @@ export class SyncedProperties {
 
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedVarInt(this.intProps.length);
-        this.intProps.map((index, value) => {
+        this.intProps.forEach((index, value) => {
             stream.writeUnsignedVarInt(index);
             stream.writeVarInt(value);
         });
 
         stream.writeUnsignedVarInt(this.floatProps.length);
-        this.floatProps.map((index, value) => {
+        this.floatProps.forEach((index, value) => {
             stream.writeUnsignedVarInt(index);
             stream.writeVarInt(value);
         });

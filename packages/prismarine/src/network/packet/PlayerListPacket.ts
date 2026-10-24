@@ -114,6 +114,14 @@ export enum PlayerListAction {
 export default class PlayerListPacket extends DataPacket {
     public static NetID = Identifiers.PlayerListPacket;
 
+    public override getId(): number {
+        return PlayerListPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'PlayerListPacket';
+    }
+
     public entries: PlayerListEntry[] = [];
     public type!: number;
 

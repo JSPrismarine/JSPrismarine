@@ -17,6 +17,14 @@ export enum UpdateBlockFlagsType {
 export default class UpdateBlockPacket extends DataPacket {
     public static NetID = Identifiers.UpdateBlockPacket;
 
+    public override getId(): number {
+        return UpdateBlockPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'UpdateBlockPacket';
+    }
+
     public x!: number;
     public y!: number;
     public z!: number;

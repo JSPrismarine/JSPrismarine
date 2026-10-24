@@ -69,7 +69,7 @@ export class NetworkUtil {
      * @param {BinaryStream} stream - The network stream.
      * @returns {BlockPosition} The deserialized `BlockPosition`.
      */
-    public static readBlockPosition(stream: BinaryStream): Vector3 {
+    public static readBlockPosition(stream: BinaryStream): BlockPosition {
         return new BlockPosition(stream.readVarInt(), stream.readVarInt(), stream.readVarInt());
     }
 }

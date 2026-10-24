@@ -78,6 +78,14 @@ export enum SoundName {
 export default class PlaySoundPacket extends DataPacket {
     public static NetID = Identifiers.PlaySoundPacket;
 
+    public override getId(): number {
+        return PlaySoundPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'PlaySoundPacket';
+    }
+
     public name: SoundName | string = '';
     public position: BlockPosition | null = null;
     public volume = 1;

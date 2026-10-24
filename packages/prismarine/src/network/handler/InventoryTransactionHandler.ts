@@ -6,7 +6,7 @@ import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
 import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
-import type { UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
+
 import {
     ActionSource,
     TransactionType,
@@ -126,7 +126,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         connection: PlayerSession
     ): Promise<void> {
         const player = connection.getPlayer();
-        const data = <UseItemOnEntityData>packet.transactionData;
+        const data = packet.transactionData;
+        if (data?.kind !== 'useItemOnEntity') return;
 
         // Interacting and using an item on something are not attacks - shearing a sheep, putting a
         // saddle on a pig - and are not handled yet.
@@ -187,7 +188,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         connection: PlayerSession
     ): Promise<void> {
         const player = connection.getPlayer();
-        const useItemData = <UseItemData>packet.transactionData;
+        const useItemData = packet.transactionData;
+        if (useItemData?.kind !== 'useItem') return;
 
         switch (useItemData.actionType) {
             case UseItemAction.CLICK_BLOCK:

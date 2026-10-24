@@ -5,6 +5,14 @@ import DataPacket from './DataPacket';
 export default class ShowProfilePacket extends DataPacket {
     public static NetID = Identifiers.ShowProfilePacket;
 
+    public override getId(): number {
+        return ShowProfilePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ShowProfilePacket';
+    }
+
     public xuid!: string;
 
     public decodePayload(): void {

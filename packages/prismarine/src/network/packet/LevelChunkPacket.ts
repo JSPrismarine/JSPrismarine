@@ -4,6 +4,14 @@ import DataPacket from './DataPacket';
 export default class LevelChunkPacket extends DataPacket {
     public static NetID = Identifiers.LevelChunkPacket;
 
+    public override getId(): number {
+        return LevelChunkPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'LevelChunkPacket';
+    }
+
     public chunkX!: number;
     public chunkZ!: number;
     public subChunkCount!: number;

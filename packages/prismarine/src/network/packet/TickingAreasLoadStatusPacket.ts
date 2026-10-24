@@ -13,6 +13,14 @@ import DataPacket from './DataPacket';
 export default class TickingAreasLoadStatusPacket extends DataPacket {
     public static NetID = Identifiers.TickingAreasLoadStatusPacket;
 
+    public override getId(): number {
+        return TickingAreasLoadStatusPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'TickingAreasLoadStatusPacket';
+    }
+
     /** `true` while the client is still waiting on the preload. */
     public preload: boolean = false;
 

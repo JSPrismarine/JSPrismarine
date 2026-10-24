@@ -18,6 +18,14 @@ export { InventoryLayout, InventoryLeftTab, InventoryRightTab };
 export default class SetPlayerInventoryOptionsPacket extends DataPacket {
     public static NetID = Identifiers.SetPlayerInventoryOptionsPacket;
 
+    public override getId(): number {
+        return SetPlayerInventoryOptionsPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'SetPlayerInventoryOptionsPacket';
+    }
+
     public leftTab: InventoryLeftTab = InventoryLeftTab.NONE;
     public rightTab: InventoryRightTab = InventoryRightTab.NONE;
     public filtering = false;

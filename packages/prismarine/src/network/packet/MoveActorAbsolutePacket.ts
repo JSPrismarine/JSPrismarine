@@ -6,6 +6,14 @@ import DataPacket from './DataPacket';
 export default class MoveActorAbsolutePacket extends DataPacket {
     public static NetID = Identifiers.MoveActorAbsolutePacket;
 
+    public override getId(): number {
+        return MoveActorAbsolutePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'MoveActorAbsolutePacket';
+    }
+
     /** The entity is standing on something, rather than falling. */
     public static readonly FLAG_ON_GROUND = 0x01;
 

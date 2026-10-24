@@ -5,6 +5,14 @@ import DataPacket from './DataPacket';
 export default class TransferPacket extends DataPacket {
     public static NetID = Identifiers.TransferPacket;
 
+    public override getId(): number {
+        return TransferPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'TransferPacket';
+    }
+
     public address!: string;
     public port!: number;
 

@@ -17,6 +17,14 @@ import DataPacket from './DataPacket';
 export default class InventoryContentPacket extends DataPacket {
     public static NetID = Identifiers.InventoryContentPacket;
 
+    public override getId(): number {
+        return InventoryContentPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'InventoryContentPacket';
+    }
+
     public windowId!: number;
     public items: ContainerEntry[] = [];
 

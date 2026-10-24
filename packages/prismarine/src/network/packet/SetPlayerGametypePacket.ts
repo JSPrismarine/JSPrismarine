@@ -6,6 +6,14 @@ import DataPacket from './DataPacket';
 export default class SetPlayerGametypePacket extends DataPacket {
     public static NetID = Identifiers.SetPlayerGametypePacket;
 
+    public override getId(): number {
+        return SetPlayerGametypePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'SetPlayerGametypePacket';
+    }
+
     public gametype!: Gametype;
 
     public decodePayload(): void {

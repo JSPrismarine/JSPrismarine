@@ -5,6 +5,14 @@ import DataPacket from './DataPacket';
 export default class ResourcePackStackPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackStackPacket;
 
+    public override getId(): number {
+        return ResourcePackStackPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ResourcePackStackPacket';
+    }
+
     public texturePackRequired!: boolean;
     public addonList = [];
     public texturePackList = [];
