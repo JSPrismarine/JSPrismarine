@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  * records the correction as "StartLoadingScreen from 0 to 1" and "EndLoadingScreen from 1 to
  * 2". A 1.26.51 client writes 1 for the start and 2 for the end.
  */
-export enum LoadingScreenPacketType {
+export enum ServerboundLoadingScreenPacketType {
     Unknown = 0,
     StartLoadingScreen = 1,
     EndLoadingScreen = 2
@@ -29,8 +29,8 @@ export enum LoadingScreenPacketType {
 export default class ServerboundLoadingScreenPacket extends DataPacket {
     public static NetID = Identifiers.ServerboundLoadingScreenPacket;
 
-    /** Start or end of the screen, see {@link LoadingScreenPacketType}. */
-    public loadingScreenType = LoadingScreenPacketType.Unknown;
+    /** Start or end of the screen, see {@link ServerboundLoadingScreenPacketType}. */
+    public loadingScreenType = ServerboundLoadingScreenPacketType.Unknown;
 
     /** The id the server gave the screen, or `null` for the screen shown while joining. */
     public loadingScreenId: number | null = null;

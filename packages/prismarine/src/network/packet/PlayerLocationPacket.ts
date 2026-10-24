@@ -3,8 +3,8 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
-/** The two forms of a player location update. */
-export enum PlayerLocationType {
+/** The docs' `PlayerLocationPacketType`: the two forms of a player location update. */
+export enum PlayerLocationPacketType {
     /** Coordinates follow. */
     Coordinates = 0,
     /** Hide the player; no coordinates follow. */
@@ -27,7 +27,7 @@ export default class PlayerLocationPacket extends DataPacket {
     /** Unique id of the player whose location is updated or hidden. */
     public targetActorId = 0n;
 
-    public packetType = PlayerLocationType.Hide;
+    public packetType = PlayerLocationPacketType.Hide;
 
     /** The tracked player's position, or `null` for a hide. */
     public position: Vector3 | null = null;
@@ -39,10 +39,10 @@ export default class PlayerLocationPacket extends DataPacket {
         this.packetType = this.readVarInt();
 
         switch (selector) {
-            case PlayerLocationType.Coordinates:
+            case PlayerLocationPacketType.Coordinates:
                 this.position = NetworkUtil.readVector3(this);
                 break;
-            case PlayerLocationType.Hide:
+            case PlayerLocationPacketType.Hide:
                 this.position = null;
                 break;
             default:
@@ -55,6 +55,6 @@ export default class PlayerLocationPacket extends DataPacket {
         this.writeVarLong(this.targetActorId);
         this.writeUnsignedVarInt(this.packetType);
         this.writeVarInt(this.packetType);
-        if (this.packetType === PlayerLocationType.Coordinates) NetworkUtil.writeVector3(this, this.position);
+        if (this.packetType === PlayerLocationPacketType.Coordinates) NetworkUtil.writeVector3(this, this.position);
     }
 }

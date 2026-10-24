@@ -3,13 +3,14 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * What kind of pack is about to be sent, as the `Pack Type` byte numbers it.
+ * The docs' `PackType`: what kind of pack is about to be sent, as the `Pack Type` byte numbers
+ * it.
  *
  * The packet docs give the field as a bare uint8. The names and numbers are Mojang's `PackType`
  * enum in the datagen snapshot behind `@jsprismarine/minecraft`
  * (`packages/minecraft/datagen/snapshot/enums.html`); gophertunnel uses the same numbers.
  */
-export enum ResourcePackType {
+export enum PackType {
     Invalid = 0,
     Addon = 1,
     Cached = 2,
@@ -59,7 +60,7 @@ export default class ResourcePackDataInfoPacket extends DataPacket {
     /** True when the player needs an entitlement to use the pack. */
     public isPremiumPack = false;
 
-    public packType: ResourcePackType = ResourcePackType.Resources;
+    public packType: PackType = PackType.Resources;
 
     /** Reads the pack name, its size, its hash and its type. */
     public decodePayload(): void {

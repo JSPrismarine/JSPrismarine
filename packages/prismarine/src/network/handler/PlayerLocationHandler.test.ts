@@ -6,7 +6,7 @@ import type Player from '../../Player';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
-import PlayerLocationPacket, { PlayerLocationType } from '../packet/PlayerLocationPacket';
+import PlayerLocationPacket, { PlayerLocationPacketType } from '../packet/PlayerLocationPacket';
 import PlayerLocationHandler from './PlayerLocationHandler';
 
 const fakeSession = () => {
@@ -24,7 +24,7 @@ describe('PlayerLocationHandler', () => {
         const { logged, server, session } = fakeSession();
         const packet = Object.assign(new PlayerLocationPacket(), {
             targetActorId: 9n,
-            packetType: PlayerLocationType.Coordinates,
+            packetType: PlayerLocationPacketType.Coordinates,
             position: new Vector3(1, 2, 3)
         });
 

@@ -9,8 +9,8 @@ import { NetworkUtil } from '../NetworkUtil';
 import { writeEmptyIngredient, writeRecipeIngredient } from '../type/RecipeIngredientCodec';
 import DataPacket from './DataPacket';
 
-/** What has to be true before a recipe shows up in the book. */
-enum UnlockContext {
+/** The docs' `RecipeUnlockingContext`: what has to be true before a recipe shows up in the book. */
+enum RecipeUnlockingContext {
     /** Unlocked by holding the ingredients, which are then listed. */
     NONE,
     ALWAYS_UNLOCKED,
@@ -19,7 +19,7 @@ enum UnlockContext {
 }
 
 /** Every recipe this server sends is available from the start. */
-const UNLOCK_CONTEXT: UnlockContext = UnlockContext.ALWAYS_UNLOCKED;
+const UNLOCK_CONTEXT: RecipeUnlockingContext = RecipeUnlockingContext.ALWAYS_UNLOCKED;
 
 /**
  * Every recipe the client is allowed to know about.
@@ -185,7 +185,7 @@ export default class CraftingDataPacket extends DataPacket {
     private writeUnlockingRequirement(): void {
         this.writeBoolean(true); // The optional is present.
         this.writeVarInt(UNLOCK_CONTEXT);
-        this.writeBoolean(UNLOCK_CONTEXT === UnlockContext.NONE);
+        this.writeBoolean(UNLOCK_CONTEXT === RecipeUnlockingContext.NONE);
     }
 
     /**

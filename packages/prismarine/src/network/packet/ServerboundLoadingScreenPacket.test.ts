@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import ServerboundLoadingScreenPacket, { LoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
+import ServerboundLoadingScreenPacket, { ServerboundLoadingScreenPacketType } from './ServerboundLoadingScreenPacket';
 
 describe('ServerboundLoadingScreenPacket', () => {
     // Header: id 312 as LEB128 is 0xb8 0x02.
@@ -8,7 +8,7 @@ describe('ServerboundLoadingScreenPacket', () => {
         const packet = new ServerboundLoadingScreenPacket(Buffer.from([0xb8, 0x02, 0x02, 0x00]));
         packet.decode();
 
-        expect(packet.loadingScreenType).toBe(LoadingScreenPacketType.StartLoadingScreen);
+        expect(packet.loadingScreenType).toBe(ServerboundLoadingScreenPacketType.StartLoadingScreen);
         expect(packet.loadingScreenId).toBeNull();
         expect(packet.feof()).toBe(true);
     });
@@ -20,14 +20,14 @@ describe('ServerboundLoadingScreenPacket', () => {
         );
         packet.decode();
 
-        expect(packet.loadingScreenType).toBe(LoadingScreenPacketType.EndLoadingScreen);
+        expect(packet.loadingScreenType).toBe(ServerboundLoadingScreenPacketType.EndLoadingScreen);
         expect(packet.loadingScreenId).toBe(0x01020304);
         expect(packet.feof()).toBe(true);
     });
 
     it('encodes the same bytes it decodes', () => {
         const packet = new ServerboundLoadingScreenPacket();
-        packet.loadingScreenType = LoadingScreenPacketType.EndLoadingScreen;
+        packet.loadingScreenType = ServerboundLoadingScreenPacketType.EndLoadingScreen;
         packet.loadingScreenId = 7;
         packet.encode();
 

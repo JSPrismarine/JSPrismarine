@@ -6,7 +6,7 @@ import {
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import { CreativeCategory } from '../network/packet/CreativeContentPacket';
+import { CreativeItemCategory } from '../network/packet/CreativeContentPacket';
 import CreativeInventory from './CreativeInventory';
 
 /**
@@ -69,10 +69,10 @@ describe('CreativeInventory', () => {
         const tabs = new Set(CreativeInventory.getGroups(emptyServer).map((group) => group.category));
 
         expect([...tabs].sort()).toEqual([
-            CreativeCategory.CONSTRUCTION,
-            CreativeCategory.NATURE,
-            CreativeCategory.EQUIPMENT,
-            CreativeCategory.ITEMS
+            CreativeItemCategory.CONSTRUCTION,
+            CreativeItemCategory.NATURE,
+            CreativeItemCategory.EQUIPMENT,
+            CreativeItemCategory.ITEMS
         ]);
     });
 

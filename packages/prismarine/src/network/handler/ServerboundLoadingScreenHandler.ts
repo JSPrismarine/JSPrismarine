@@ -2,7 +2,7 @@ import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type ServerboundLoadingScreenPacket from '../packet/ServerboundLoadingScreenPacket';
-import { LoadingScreenPacketType } from '../packet/ServerboundLoadingScreenPacket';
+import { ServerboundLoadingScreenPacketType } from '../packet/ServerboundLoadingScreenPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -18,9 +18,9 @@ export default class ServerboundLoadingScreenHandler implements PacketHandler<Se
 
     /** Logs which screen opened or closed, and closes a dimension change's screen on the session. */
     public handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): void {
-        const closed = packet.loadingScreenType === LoadingScreenPacketType.EndLoadingScreen;
+        const closed = packet.loadingScreenType === ServerboundLoadingScreenPacketType.EndLoadingScreen;
         const edge =
-            packet.loadingScreenType === LoadingScreenPacketType.StartLoadingScreen
+            packet.loadingScreenType === ServerboundLoadingScreenPacketType.StartLoadingScreen
                 ? 'opened'
                 : closed
                   ? 'closed'

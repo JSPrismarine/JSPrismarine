@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import ResourcePackDataInfoPacket, { ResourcePackType } from './ResourcePackDataInfoPacket';
+import ResourcePackDataInfoPacket, { PackType } from './ResourcePackDataInfoPacket';
 
 describe('ResourcePackDataInfoPacket', () => {
     const hash = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
@@ -28,7 +28,7 @@ describe('ResourcePackDataInfoPacket', () => {
         expect(packet.fileSize).toBe(3n);
         expect(packet.fileHash).toEqual(hash);
         expect(packet.isPremiumPack).toBe(false);
-        expect(packet.packType).toBe(ResourcePackType.Resources);
+        expect(packet.packType).toBe(PackType.Resources);
         expect(packet.feof()).toBe(true);
     });
 
@@ -39,16 +39,16 @@ describe('ResourcePackDataInfoPacket', () => {
         packet.numberOfChunks = 2;
         packet.fileSize = 3n;
         packet.fileHash = hash;
-        packet.packType = ResourcePackType.Resources;
+        packet.packType = PackType.Resources;
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
 
     it("numbers the pack types as Mojang's PackType enum does", () => {
-        expect(ResourcePackType.Invalid).toBe(0);
-        expect(ResourcePackType.Addon).toBe(1);
-        expect(ResourcePackType.Resources).toBe(6);
-        expect(ResourcePackType.WorldTemplate).toBe(8);
+        expect(PackType.Invalid).toBe(0);
+        expect(PackType.Addon).toBe(1);
+        expect(PackType.Resources).toBe(6);
+        expect(PackType.WorldTemplate).toBe(8);
     });
 });

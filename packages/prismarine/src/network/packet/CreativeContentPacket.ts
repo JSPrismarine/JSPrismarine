@@ -4,12 +4,12 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * Which tab of the creative menu a group belongs to.
+ * The docs' `CreativeItemCategory`: which tab of the creative menu a group belongs to.
  *
- * Mirrors `CreativeItemCategory`. The game data names a group's tab in words, which
- * {@link creativeCategoryOf} turns into one of these.
+ * The game data names a group's tab in words, which {@link creativeCategoryOf} turns into one
+ * of these.
  */
-export enum CreativeCategory {
+export enum CreativeItemCategory {
     ALL,
     CONSTRUCTION,
     NATURE,
@@ -24,8 +24,8 @@ export enum CreativeCategory {
  * again beside it.
  */
 const categoriesByName = new Map(
-    Object.entries(CreativeCategory)
-        .filter((member): member is [string, CreativeCategory] => typeof member[1] === 'number')
+    Object.entries(CreativeItemCategory)
+        .filter((member): member is [string, CreativeItemCategory] => typeof member[1] === 'number')
         .map(([name, value]) => [name.toLowerCase(), value])
 );
 
@@ -36,14 +36,14 @@ const categoriesByName = new Map(
  * does not know falls back to the catch-all tab, because a menu drawn under the wrong heading
  * is still a menu and a group index pointing at nothing is not.
  * @param {string} name - the tab name as the creative data writes it.
- * @returns {CreativeCategory} the matching tab, or `ITEMS`.
+ * @returns {CreativeItemCategory} the matching tab, or `ITEMS`.
  */
-export const creativeCategoryOf = (name: string): CreativeCategory =>
-    categoriesByName.get(name.toLowerCase()) ?? CreativeCategory.ITEMS;
+export const creativeCategoryOf = (name: string): CreativeItemCategory =>
+    categoriesByName.get(name.toLowerCase()) ?? CreativeItemCategory.ITEMS;
 
 /** A heading in the creative menu, with the item shown beside it. */
 export interface CreativeGroup {
-    category: CreativeCategory;
+    category: CreativeItemCategory;
     /** A translation key such as `itemGroup.name.planks`, or empty for an anonymous group. */
     name: string;
     icon: Item;
