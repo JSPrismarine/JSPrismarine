@@ -4,7 +4,7 @@ import type { RandomState } from '../RandomState';
 import type { Aquifer, AquiferVolume } from './Aquifer';
 import { createDisabledAquifer, createNoiseAquifer } from './Aquifer';
 import type { FluidPicker } from './FluidPicker';
-import { AIR, createGlobalFluidPicker, } from './FluidPicker';
+import { AIR, createGlobalFluidPicker } from './FluidPicker';
 
 /** The registry name the aquifer random factory is keyed by. */
 export const AQUIFER_SEED = 'minecraft:aquifer';

@@ -1,0 +1,161 @@
+# @jsprismarine/worldgen
+
+[![Join the Discord Server](https://img.shields.io/discord/704967868885762108?color=%237289DA&label=Discord)](https://discord.gg/6w8JWhy)
+[![npm](https://img.shields.io/npm/dt/@jsprismarine/worldgen)](https://www.npmjs.com/package/@jsprismarine/worldgen)
+
+Java Edition's terrain stack in TypeScript: the two random sources, the five noise kinds, all 44
+density function operators, the noise router, aquifers, ore veins and a chunk-shaped sampler.
+Everything is read from Mojang's published `worldgen/*` JSON at load time, and everything is
+pinned to Java Edition 26.3.
+
+```ts
+import { ChunkSampler, RandomState, WorldgenData } from '@jsprismarine/worldgen';
+
+const data = new WorldgenData({ densityFunctions, noises, noiseSettings });
+const settings = data.settings('minecraft:overworld');
+const state = new RandomState(data, 1234n, settings);
+
+const sampler = new ChunkSampler(state, { chunkX: 3, chunkZ: -5 });
+sampler.blockAt(48, 4, -80); // { state: 'minecraft:water', scheduleFluidUpdate: false }
+```
+
+Block states come out as Java identifiers. Translating them to Bedrock is
+`@jsprismarine/mapping`'s job, so nothing here names two editions.
+
+## Parity
+
+Every expected value in the test suite comes from Mojang's own classes. `utils/oracle/` compiles a
+small Java program against the pinned 26.3 server jar and writes `vectors/*.json`; the tests read
+those and compare exactly, not within a tolerance. What matches today:
+
+| Stage | Vectors | Result |
+| --- | --- | --- |
+| `XoroshiroRandomSource`, `LegacyRandomSource` | 6 seeds, both sources, every method | exact |
+| Perlin, simplex, smeared Perlin, normal, old blended noise | 6 positions each | exact |
+| All eight noise router slots, all seven dimensions | 6 positions each | exact |
+| All six aquifer functions, the three dimensions that have them | 6 positions each | exact |
+| Overworld chunk columns with aquifers applied | 9 columns, 384 blocks each | exact |
+
+Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`, which needs the
+pinned jar (`pnpm --filter @jsprismarine/bedrock-data run dump:java`) and a JDK 25 or newer. The
+tests that read the jar directly, rather than the committed vectors, are gated behind
+`JSP_WORLDGEN_VANILLA=1`; without it they skip and the rest of the suite still runs.
+
+26.3 computes the whole density and noise stack in single precision. This package rounds through
+`Math.fround` at every point Java narrows a value, which is why the comparisons above are exact
+rather than approximate. The coordinate arithmetic inside the noise functions stays double, as it
+is in Java.
+
+## Why not deepslate
+
+The plan's decision 6 made `misode/deepslate` the default dependency for density functions, noise,
+randoms and biome lookup. deepslate 0.27.2 (MIT, published 2026-09-27) does track 26.3: it reads
+the new `base_octave` and `amplitude_modifiers` noise schema, seeds octaves from
+`fromHashOf("octave_<index>")`, and knows all 44 density function types plus the `aquifers` block.
+The decision was reasonable. Four things measured against the real jar changed it.
+
+- **Precision.** 26.3 computes `Noise.get`, `DensitySampler.sampleValue` and `DensityBuffer` in
+  `float`. deepslate's noise and density paths are double throughout, and only its cubic spline
+  rounds. Sampling one Perlin octave both ways against Java's own output: the single-precision
+  form matched all six golden positions exactly, the double form matched none of them, by up to
+  1.4e-7. That is small, and it is still the difference between "the same world" and "nearly the
+  same world", which is the whole claim this package exists to support.
+- **Two random sources deviate.** `XoroshiroRandom.nextLong` tests `value > 2^63` where Java's
+  signed wrap is `>= 2^63`, so the single most negative long comes back positive.
+  `LegacyRandom.nextDouble` is `next(30) * 2^-30`; Java's is
+  `((next(26) << 27) + next(27)) * 2^-53`. Neither source has `nextGaussian`, and the all-zero
+  Xoroshiro state is not substituted. Terrain does not touch `nextGaussian`, but carvers and
+  features do.
+- **An unknown type evaluates to zero.** `DensityFunction.fromJson` returns `Constant.ZERO` for a
+  type it does not recognize, so the next schema change arrives as different terrain rather than
+  as an error. This package throws on an unknown type, a missing field and a reference cycle.
+- **The import is wide.** `deepslate/worldgen` reaches 118 modules and all three dependencies,
+  `gl-matrix`, `md5` and `pako`, because `worldgen` imports `core`, which imports the shared math.
+
+`NormalNoise.createForLegacyNetherBiome` also carries a typo, `amplitudes:` for `amplitude:` in
+the second stack, which drops the value factor from the nether's temperature and vegetation
+noises.
+
+deepslate stays the reference this implementation was read against, and it is the right thing to
+reach for when a 1.21-shaped pack or a browser-side preview is the problem. For 26.3 terrain
+intended to match Java block for block, the precision gap alone is disqualifying.
+
+## What it implements
+
+**Randoms.** `XoroshiroRandomSource` and `LegacyRandomSource` with `nextInt`, `nextInt(bound)`,
+`nextLong`, `nextBoolean`, `nextFloat`, `nextDouble`, `nextGaussian`, `fork` and `forkPositional`;
+`XoroshiroPositionalRandomFactory` and `LegacyPositionalRandomFactory` with `at`, `fromHashOf` and
+`fromSeed`; the Stafford seed mixing, Java's position hash and `String.hashCode`.
+
+**Noise.** `PerlinNoise`, `SmearedPerlinNoise`, `SimplexNoise`, the flat `NoiseStack` that replaced
+the old octave list, `NormalNoise` over the 26.3 parameter schema, the legacy nether octave chain,
+and `old_blended_noise` with its three fractal Brownian motion stacks.
+
+**Density functions**, all 44 types 26.3 registers:
+
+| Group | Types |
+| --- | --- |
+| Sources | `constant`, `gradient`, `noise`, `shift`, `shift_a`, `shift_b`, `old_blended_noise`, `end_outer_islands`, `distance_to_point` |
+| Chunk context | `beardifier`, `blend_alpha`, `blend_offset`, `blend_density` |
+| Unary | `abs`, `square`, `cube`, `sqrt`, `half_negative`, `quarter_negative`, `reciprocal`, `negate`, `squeeze`, `log`, `sign` |
+| Rounding | `floor`, `round`, `ceil`, `truncate` |
+| Binary | `add`, `sub`, `mul`, `div`, `min`, `max`, `pow` |
+| Selection | `clamp`, `lerp`, `range_choice`, `interval_select`, `spline` |
+| Structural | `cache`, `interpolated`, `slice`, `find_top_surface` |
+
+The vanilla 26.3 data uses 34 of them; the other 10 are available to data packs.
+
+Trees are parsed once, references resolved eagerly, and each tree compiled once into closures. A
+`cache` node gets a memo slot in the `SampleContext`, and an `interpolated` node records its cell
+corners there, which is what makes a full overworld chunk 0.63 seconds instead of 16.7.
+
+**Settings and the router.** `parseNoiseGeneratorSettings` reads a `worldgen/noise_settings`
+document into the eight router slots (`temperature`, `vegetation`, `continents`, `erosion`,
+`depth`, `ridges`, `chunk_surface_level`, `final_density`), the six aquifer functions, the vertical
+extent, the default block and fluid, the sea level, the material rule reference and the random
+source flag.
+
+1.21's router had fifteen slots. In 26.3 the four aquifer entries moved into the `aquifers` block,
+the three vein entries moved into the `minecraft:ore_vein` material rule, and
+`initial_density_without_jaggedness` became `chunk_surface_level`. Code written against the
+fifteen-slot shape does not load 26.3 data.
+
+**Aquifers and ore veins.** `NoiseBasedAquifer` is the jittered 16 by 12 by 16 cell grid with its
+barrier pressure, floodedness thresholds and lava rule. `createGlobalFluidPicker` builds the
+dimension-wide fluid surface. `compileOreVeinRule` implements the `minecraft:ore_vein` rule with
+its three draws in Java's order.
+
+**Chunk sampling.** `ChunkSampler` samples `final_density` per block and runs the aquifer over the
+result, top-down, for one block, one column or a whole 16 by 16 chunk.
+
+## Seams left open
+
+The terrain core is the bottom of the stack. Four stages sit on top of it, and each has an
+injection point rather than a stub:
+
+- **The surface pass** reads `NoiseGeneratorSettings.materialRule`, which this package resolves to
+  an identifier and does not interpret. It needs `ChunkSampler.sample` for
+  `chunk_surface_level`, the compiled `minecraft:ore_vein` placer from `compileOreVeinRule`, and a
+  per-column biome getter. Java's `material_rule` and `material_condition` registries are its
+  input.
+- **The biome source** reads the six climate slots of the router through `RandomState.sampler`.
+  Multi-noise lookup, the parameter list and the biome registry belong to it.
+- **Features and structures** take `RandomState.randomFactory(name)` for their positional randoms.
+  Nothing in this package draws from a sequential stream, so a feature stage can be added without
+  disturbing terrain.
+- **Carvers** run between the chunk fill and the surface pass. `ChunkSampler.blockAt` and
+  `ChunkSampler.column` return plain values rather than writing into a chunk, so a carver can sit
+  between them and whatever stores the result.
+- **The world blender and the structure beard** are `SampleContext.blendAlpha`,
+  `SampleContext.blendOffset`, `SampleContext.blendDensity` and `SampleContext.beardifier`. They
+  default to the values Java uses outside a blending region, so terrain is correct without them.
+
+## Known gaps
+
+- A full overworld chunk takes about 0.63 seconds. Java samples whole volumes at once where this
+  samples positions; the interpolation grid recovers most of that, and the next step is sampling a
+  column's `final_density` in one pass.
+- The random sources use `BigInt` for their 64-bit state. That is exact and slow, and it is the
+  reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
+- Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,
+  which is what `@jsprismarine/packs` produces.

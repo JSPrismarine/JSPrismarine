@@ -4,7 +4,7 @@ import type { SampleContext } from '../density/SampleContext';
 import { clamp, clampedMap, floor, floorDiv, map, quantize, quartFromBlock, quartToBlock } from '../math';
 import type { PositionalRandomFactory } from '../random/RandomSource';
 import type { AquiferConfig } from '../settings/NoiseGeneratorSettings';
-import type { FluidPicker, } from './FluidPicker';
+import type { FluidPicker } from './FluidPicker';
 import { AIR, FluidStatus, LAVA, WATER } from './FluidPicker';
 
 const X_RANGE = 10;

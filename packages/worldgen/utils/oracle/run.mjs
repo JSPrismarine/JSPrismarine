@@ -84,9 +84,16 @@ execFileSync(
 
 const vectorsDir = path.join(packageRoot, 'vectors');
 fs.mkdirSync(vectorsDir, { recursive: true });
+const written = [];
 for (const name of ['random.json', 'noise.json', 'density.json', 'chunk.json']) {
     const parsed = JSON.parse(fs.readFileSync(path.join(outputDir, name), 'utf8'));
     const target = path.join(vectorsDir, name);
     fs.writeFileSync(target, `${JSON.stringify(parsed, null, 4)}\n`);
+    written.push(target);
     console.log(`Wrote ${path.relative(packageRoot, target)}`);
 }
+
+// The vectors are checked in, so they have to pass `prettier --check` like everything else.
+execFileSync(path.join(repoRoot, 'node_modules/.bin/prettier'), ['--write', '--log-level', 'warn', ...written], {
+    stdio: 'inherit'
+});
