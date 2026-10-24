@@ -52,6 +52,7 @@ import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
 import type { GameRule } from './packet/GameRulesChangedPacket';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
+import UpdatePlayerGameTypePacket from './packet/UpdatePlayerGameTypePacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
@@ -778,6 +779,24 @@ export default class PlayerSession {
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
         const packet = new SetPlayerGameTypePacket();
         packet.gametype = gamemode ?? this.player.gamemode;
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Tells this client which game type a player now has.
+     *
+     * `UpdatePlayerGameTypePacket` is what the docs have the server send to every client after
+     * it accepts a game type change, because each client caches the game type and permission
+     * flags of every player it knows about. The Tick is this client's last input tick when the
+     * player is its own, so the client can reconcile the movement it predicted while the packet
+     * was in flight, and zero for anyone else, as the docs allow.
+     * @param {Player} target - The player whose game type changed.
+     */
+    public async sendGameTypeFor(target: Player): Promise<void> {
+        const packet = new UpdatePlayerGameTypePacket();
+        packet.playerGameType = target.gamemode;
+        packet.targetPlayer = target.getRuntimeId();
+        packet.tick = target === this.player ? this.lastInputTick : 0n;
         await this.connection.sendDataPacket(packet);
     }
 

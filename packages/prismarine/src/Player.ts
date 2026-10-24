@@ -578,6 +578,15 @@ export default class Player extends Human {
         this.gamemode = event.getGamemode();
         await this.getNetworkSession().sendGamemode();
 
+        // Everyone in the world, this player included, caches each player's game type and
+        // permission flags, so the docs have the server follow an accepted change with
+        // `UpdatePlayerGameTypePacket` to every client.
+        await Promise.all(
+            this.getWorld()
+                .getPlayers()
+                .map(async (player) => player.getNetworkSession().sendGameTypeFor(this))
+        );
+
         if (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR) {
             this.metadata.setCanFly(true);
         } else {
