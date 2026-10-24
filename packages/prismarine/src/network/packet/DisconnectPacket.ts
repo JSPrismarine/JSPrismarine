@@ -4,24 +4,17 @@ import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
- * Which alternative of `Messages` is on the wire. The docs type it as
- * `oneOf<DisconnectPacketMessages, null>`: 0 selects the two strings, 1 selects null.
- */
-const MESSAGES_PRESENT = 0;
-const MESSAGES_ABSENT = 1;
-
-/**
  * Tells the client why the server is closing the connection.
  *
- * Wire layout at protocol 2193:
+ * Protocol 2193 layout, in wire order:
  * - `Reason`: a ZigZag varint32 holding a `DisconnectFailReason`, which is `DisconnectReason`
- *   in `@jsprismarine/minecraft`. The client maps it to the error code on its disconnect screen.
- * - `Messages`: `oneOf<DisconnectPacketMessages, null>`. A one-byte selector, 0 for the
- *   messages and 1 for null. Alternative 0 is followed by `Message` and `Filtered Message`,
- *   both strings and both always written. Alternative 1 is followed by nothing.
- *
- * We write the selector as an unsigned varint. gophertunnel writes it as a bool named
- * `HideDisconnectionScreen`. For 0 and 1 the byte is the same, so the two layouts agree.
+ *   in `@jsprismarine/minecraft`. Members run from `Unknown` (0) to `UnsupportedTransport` (149).
+ *   The client maps it to the error code on its disconnect screen.
+ * - `Skip Message`: one bool byte. The docs type what follows as
+ *   `oneOf<DisconnectPacketMessages, null>` and this byte picks the alternative: false means
+ *   the two strings follow, true means null and the packet ends here. The client reads it as
+ *   a bool, so any non-zero byte skips.
+ * - `Message` and `Filtered Message`: strings, both always present when `Skip Message` is false.
  *
  * A client that cannot parse this packet shows `initialconnection-90`, the "bad packet" code,
  * instead of the reason the server meant to send.
@@ -29,10 +22,10 @@ const MESSAGES_ABSENT = 1;
 export default class DisconnectPacket extends DataPacket {
     public static NetID = Identifiers.DisconnectPacket;
 
-    /** The `Reason` enum value. `UNKNOWN` writes a zero byte, which is what the server has always sent. */
+    /** The `Reason` enum value. Callers set it; `UNKNOWN` is the zero byte for a packet nobody did. */
     public reason: DisconnectReason = DisconnectReason.UNKNOWN;
-    /** When set, `Messages` selects null and no strings follow. */
-    public skipMessage!: boolean;
+    /** `Skip Message`. When true no strings follow and the client shows its own generic text. */
+    public skipMessage = false;
     /** The `Message` string, shown on the disconnect screen. */
     public message = '';
     /** The `Filtered Message` string, the same text with chat filtering applied. Empty unless the server filters. */
@@ -40,7 +33,7 @@ export default class DisconnectPacket extends DataPacket {
 
     public encodePayload(): void {
         this.writeVarInt(this.reason);
-        this.writeUnsignedVarInt(this.skipMessage ? MESSAGES_ABSENT : MESSAGES_PRESENT);
+        this.writeBoolean(this.skipMessage);
 
         if (this.skipMessage) return;
 
@@ -50,7 +43,7 @@ export default class DisconnectPacket extends DataPacket {
 
     public decodePayload(): void {
         this.reason = this.readVarInt();
-        this.skipMessage = this.readUnsignedVarInt() === MESSAGES_ABSENT;
+        this.skipMessage = this.readBoolean();
 
         if (this.skipMessage) return;
 

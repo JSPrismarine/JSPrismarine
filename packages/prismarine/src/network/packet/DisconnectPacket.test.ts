@@ -7,67 +7,60 @@ import DisconnectPacket from './DisconnectPacket';
 describe('network', () => {
     describe('packet', () => {
         describe('DisconnectPacket', () => {
-            const HEADER = 0x05;
+            const HEADER = [0x05];
 
-            /** Reason `Kicked` (55, ZigZag 110), selector 0, `Message` "Bye", empty `Filtered Message`. */
-            const KICKED_WITH_MESSAGE = [0x6e, 0x00, 0x03, 0x42, 0x79, 0x65, 0x00];
-            /** Reason `Unknown`, selector 1, nothing after it. */
-            const UNKNOWN_WITHOUT_MESSAGE = [0x00, 0x01];
-
-            const encode = (mutate: (pk: DisconnectPacket) => void) => {
+            it('writes the reason as a ZigZag varint, then both strings after a false Skip Message', () => {
                 const pk = new DisconnectPacket();
-                mutate(pk);
+                pk.reason = DisconnectReason.KICKED;
+                pk.skipMessage = false;
+                pk.message = 'Bye';
                 pk.encode();
-                return [...pk.getBuffer().subarray(1)]; // drop the packet id header
-            };
 
-            const decode = (payload: number[]) => {
+                expect([...pk.getBuffer()]).toEqual([
+                    ...HEADER,
+                    0x6e, // Reason Kicked, 55 as ZigZag 110
+                    0x00, // Skip Message
+                    ...[0x03, 0x42, 0x79, 0x65], // Message "Bye"
+                    0x00 // Filtered Message ""
+                ]);
+            });
+
+            it('writes a true Skip Message and nothing after it', () => {
                 const pk = new DisconnectPacket();
-                pk.setReadBuffer(Buffer.from([HEADER, ...payload]));
+                pk.reason = DisconnectReason.OUTDATED_CLIENT;
+                pk.skipMessage = true;
+                pk.message = 'ignored';
+                pk.encode();
+
+                expect([...pk.getBuffer()]).toEqual([...HEADER, 0x46, 0x01]); // 35 as ZigZag 70
+            });
+
+            it('spreads a reason past 63 over two varint bytes', () => {
+                const pk = new DisconnectPacket();
+                pk.reason = DisconnectReason.UNSUPPORTED_TRANSPORT;
+                pk.skipMessage = true;
+                pk.encode();
+
+                expect([...pk.getBuffer()]).toEqual([...HEADER, 0xaa, 0x02, 0x01]); // 149 as ZigZag 298
+            });
+
+            it('reads a hand-built buffer with both strings to its end', () => {
+                const pk = new DisconnectPacket();
+                pk.setReadBuffer(Buffer.from([...HEADER, 0x56, 0x00, 0x03, 0x42, 0x79, 0x65, 0x02, 0x42, 0x2a]));
                 pk.decode();
-                return pk;
-            };
 
-            it('writes the reason as a ZigZag varint and both strings after selector 0', () => {
-                const payload = encode((pk) => {
-                    pk.reason = DisconnectReason.KICKED;
-                    pk.skipMessage = false;
-                    pk.message = 'Bye';
-                    pk.filteredMessage = '';
-                });
-
-                expect(payload).toEqual(KICKED_WITH_MESSAGE);
-            });
-
-            it('writes selector 1 and nothing after it when the message is skipped', () => {
-                const payload = encode((pk) => {
-                    pk.reason = DisconnectReason.UNKNOWN;
-                    pk.skipMessage = true;
-                });
-
-                expect(payload).toEqual(UNKNOWN_WITHOUT_MESSAGE);
-            });
-
-            it('defaults to reason Unknown and two empty strings', () => {
-                const payload = encode((pk) => {
-                    pk.skipMessage = false;
-                });
-
-                expect(payload).toEqual([0x00, 0x00, 0x00, 0x00]);
-            });
-
-            it('reads a reason and both strings, and nothing past them', () => {
-                const pk = decode(KICKED_WITH_MESSAGE);
-
-                expect(pk.reason).toBe(DisconnectReason.KICKED);
+                expect(pk.reason).toBe(DisconnectReason.LOGGED_IN_OTHER_LOCATION); // 43 as ZigZag 86
                 expect(pk.skipMessage).toBe(false);
                 expect(pk.message).toBe('Bye');
-                expect(pk.filteredMessage).toBe('');
+                expect(pk.filteredMessage).toBe('B*');
                 expect(pk.feof()).toBe(true);
             });
 
-            it('reads selector 1 as a skipped message and stops there', () => {
-                const pk = decode(UNKNOWN_WITHOUT_MESSAGE);
+            it('reads any non-zero Skip Message byte as skipped and stops there', () => {
+                // The byte used to be read as a varuint compared against 1, so 2 meant "strings follow".
+                const pk = new DisconnectPacket();
+                pk.setReadBuffer(Buffer.from([...HEADER, 0x00, 0x02]));
+                pk.decode();
 
                 expect(pk.reason).toBe(DisconnectReason.UNKNOWN);
                 expect(pk.skipMessage).toBe(true);
@@ -76,7 +69,7 @@ describe('network', () => {
 
             it('uses the network id the client expects', () => {
                 expect(DisconnectPacket.NetID).toBe(Identifiers.DisconnectPacket);
-                expect(DisconnectPacket.NetID).toBe(HEADER);
+                expect(DisconnectPacket.NetID).toBe(5);
             });
         });
     });
