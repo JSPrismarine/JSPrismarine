@@ -7,6 +7,8 @@ import CameraAimAssistPresetDefinition from './CameraAimAssistPresetDefinition';
 import type { CameraAimAssistItemSetting, CameraAimAssistPresetExclusions } from './CameraAimAssistPresetDefinition';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
+import DataStoreUpdate, { DataStoreValueType } from './DataStoreUpdate';
+import type { DataStoreUpdateData, DataStoreValue } from './DataStoreUpdate';
 import DimensionDefinition from './DimensionDefinition';
 import EduSharedUriResource from './EduSharedUriResource';
 import type { EduSharedUriResourceData } from './EduSharedUriResource';
@@ -44,6 +46,8 @@ export {
     CameraAimAssistPresetDefinition,
     ChunkPos,
     DataItem,
+    DataStoreUpdate,
+    DataStoreValueType,
     DimensionDefinition,
     EduSharedUriResource,
     Experiments,
@@ -75,6 +79,8 @@ export type {
     CameraAimAssistItemSetting,
     CameraAimAssistPresetExclusions,
     CameraAimAssistPriority,
+    DataStoreUpdateData,
+    DataStoreValue,
     EduSharedUriResourceData,
     HeightMap,
     ItemInstanceUserDataConfig,
