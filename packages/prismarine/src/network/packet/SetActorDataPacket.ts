@@ -3,15 +3,32 @@ import Identifiers from '../Identifiers';
 import { SyncedProperties } from '../type/SyncedProperties';
 import DataPacket from './DataPacket';
 
+/**
+ * Sends a delta of an entity's metadata to clients that can see it.
+ *
+ * Protocol 2193 layout, in order: Target Runtime ID as a varuint64, Actor Data as a
+ * `SynchedActorDataList` (varuint32 count, then per entry the ID as a varuint32, the type as a
+ * varuint32 selector, the same type again as a uint8, and the value), Synched Properties as a
+ * `PropertySyncData`, and Tick as a varuint64. Server to client only.
+ */
 export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;
 
+    /** Target Runtime ID of the entity whose data changed. */
     public runtimeEntityId!: bigint;
+    /** Actor Data: the metadata entries to send. Only the entries present in the map are written. */
     public metadata!: Metadata;
 
+    /** Synched Properties. Empty until the server defines entity properties. */
     public syncedProperties = new SyncedProperties();
 
-    public tick!: bigint;
+    /**
+     * Tick: the most recently processed `PlayerAuthInputPacket` tick of the receiving player, so
+     * the client can reconcile its prediction. Zero is acceptable when the packet is not about the
+     * receiving player or a vehicle they predict, and also for players at the cost of minor
+     * visual flicker.
+     */
+    public tick: bigint = 0n;
 
     public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
