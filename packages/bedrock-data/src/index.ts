@@ -2,7 +2,7 @@ import block_definitions_data from './jsp/block_definitions.json';
 import block_id_map from './jsp/block_id_map.json';
 import banner_patterns from './resources/banner_patterns.json';
 import biome_id_map from './resources/biome_id_map.json';
-import creativeitems from './resources/creativeitems.json';
+import { creativeitems } from './generated/creativeitems';
 import entity_id_map from './resources/entity_id_map.json';
 import required_item_list from './jsp/required_item_list.json';
 import item_tags from './resources/item_tags.json';
