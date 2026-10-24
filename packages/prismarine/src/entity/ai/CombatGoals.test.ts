@@ -23,6 +23,16 @@ import { monsters, players } from './Targeting';
  * in which filter they were built with, so this is where that difference is checked.
  */
 
+/** A human with a gamemode, which is the part of `Player` targeting reads. */
+class Person extends Human {
+    public gamemode: Gametype;
+
+    public constructor(gamemode: Gametype, position: Position) {
+        super({ position });
+        this.gamemode = gamemode;
+    }
+}
+
 const scene = () => {
     const nearby: Entity[] = [];
 
@@ -55,8 +65,7 @@ const scene = () => {
     };
 
     const person = (x = 0, z = 0, gamemode = Gametype.SURVIVAL) => {
-        const human = new Human({ position: new Position(x, 64, z, world) });
-        (human as any).gamemode = gamemode;
+        const human = new Person(gamemode, new Position(x, 64, z, world));
         nearby.push(human);
         return human;
     };

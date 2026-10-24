@@ -15,6 +15,12 @@ import RangedAttackGoal from './goals/RangedAttackGoal';
  * skeleton that fires without setting the flag shoots arrows from a bow held at its side, and
  * everything else about the attack looks correct while it does.
  */
+
+/** A human with a gamemode, which is the part of `Player` targeting reads. */
+class Person extends Human {
+    public gamemode: Gametype = Gametype.SURVIVAL;
+}
+
 const scene = () => {
     const nearby: Entity[] = [];
     const spawned: string[] = [];
@@ -43,8 +49,7 @@ const scene = () => {
     const skeleton = new Skeleton({ position: new Position(0, 64, 0, world) });
     nearby.push(skeleton);
 
-    const victim = new Human({ position: new Position(8, 64, 0, world) });
-    (victim as any).gamemode = Gametype.SURVIVAL;
+    const victim = new Person({ position: new Position(8, 64, 0, world) });
     nearby.push(victim);
 
     return { world, skeleton, victim, spawned, metadataSent };

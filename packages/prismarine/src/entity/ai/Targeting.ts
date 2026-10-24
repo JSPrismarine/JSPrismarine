@@ -53,9 +53,9 @@ const PLAYER_TYPE = 'minecraft:player';
  * By identifier rather than `instanceof`, for the reason `DeathMessages` gives: importing `Player`
  * for real from anything a `Mob` reaches would close a runtime cycle.
  * @param {Entity} entity - Who to test.
- * @returns {boolean} `true` for a player.
+ * @returns {boolean} `true` for a player, narrowing it to `Player`.
  */
-export const isPlayer = (entity: Entity): boolean => entity.getType() === PLAYER_TYPE;
+export const isPlayer = (entity: Entity): entity is Player => entity.getType() === PLAYER_TYPE;
 
 /**
  * Whether this is something a mob could attack at all.
@@ -69,7 +69,7 @@ export const isAttackable = (candidate: Entity): boolean => {
     if (!candidate.isAlive()) return false;
 
     if (isPlayer(candidate)) {
-        const { gamemode } = candidate as Player;
+        const { gamemode } = candidate;
         return gamemode !== Gametype.CREATIVE && gamemode !== Gametype.SPECTATOR;
     }
 
