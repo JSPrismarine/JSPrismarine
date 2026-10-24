@@ -52,3 +52,21 @@ export {
     type ProcessorType,
     type StructureProcessor
 } from './processors';
+export {
+    STRUCTURE_PLACEMENT_TYPES,
+    concentricRingChunks,
+    isStructureChunk,
+    parseStructurePlacement,
+    parseStructureSet,
+    pickStructure,
+    potentialStructureChunk,
+    structureSetCandidates,
+    type ChunkPosition,
+    type ConcentricRingsPlacement,
+    type DimensionOriginPlacement,
+    type FrequencyReductionMethod,
+    type RandomSpreadPlacement,
+    type SpreadType,
+    type StructurePlacement,
+    type StructureSet
+} from './structureSets';
