@@ -1,7 +1,9 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import Chunk from './Chunk';
 import SubChunk from './SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../Dimension';
@@ -128,6 +130,51 @@ describe('world', () => {
 
             expect(SubChunk.networkDeserialize(stream).sourceVersion).toBe(8);
             expect(stream.feof()).toBe(true);
+        });
+
+        it('writes each block entity as a network NBT compound after the border byte', () => {
+            const chunk = build(Dimensions.Overworld);
+            const tag = new NBTTagCompound('');
+            tag.addValue('id', new Types.StringVal('Chest'));
+            tag.addValue('x', new Types.NumberVal(49));
+            tag.addValue('y', new Types.NumberVal(-60));
+            tag.addValue('z', new Types.NumberVal(-110));
+            tag.addValue('isMovable', new Types.ByteVal(1));
+            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(tag));
+
+            const stream = new BinaryStream(chunk.networkSerialize());
+            Chunk.networkDeserialize(stream, 3, -7, chunk.getNetworkSubChunkCount(), Dimensions.Overworld);
+            for (let i = 0; i < subChunkCount(Dimensions.Overworld); i++) {
+                expect(stream.readByte()).toBe(1);
+                expect(stream.readVarInt()).toBe(1);
+            }
+            expect(stream.readByte()).toBe(0);
+
+            const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
+            reader.setUseVarint(true);
+            const compound = reader.parse();
+            expect(compound.getString('id', '')).toBe('Chest');
+            expect([compound.getNumber('x', 0), compound.getNumber('y', 0), compound.getNumber('z', 0)]).toEqual([
+                49, -60, -110
+            ]);
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('rebuilds the payload when a block entity comes or goes', () => {
+            // The mutation count only sees block writes, so the cache has to be dropped by hand.
+            const chunk = build(Dimensions.Overworld);
+            const before = chunk.networkSerialize();
+
+            const tag = new NBTTagCompound('');
+            tag.addValue('id', new Types.StringVal('Chest'));
+            tag.addValue('x', new Types.NumberVal(48));
+            tag.addValue('y', new Types.NumberVal(-60));
+            tag.addValue('z', new Types.NumberVal(-112));
+            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(tag));
+            expect(chunk.networkSerialize().byteLength).toBeGreaterThan(before.byteLength);
+
+            chunk.removeBlockEntity(48, -60, -112);
+            expect(chunk.networkSerialize().equals(before)).toBe(true);
         });
 
         it('caches the payload until a block changes', () => {

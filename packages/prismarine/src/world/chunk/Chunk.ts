@@ -4,6 +4,7 @@ import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
+import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
 import type { Block } from '../../block/Block';
 import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
@@ -179,11 +180,17 @@ export default class Chunk {
         this.blockEntities.set(this.blockEntityIndex(position.getX(), position.getY(), position.getZ()), blockEntity);
 
         this.hasChanged = true;
+        // Block entities travel in the payload, and the mutation count that guards the cache only
+        // sees block writes.
+        this.serialized = null;
     }
 
     public removeBlockEntity(x: number, y: number, z: number): boolean {
         const removed = this.blockEntities.delete(this.blockEntityIndex(x, y, z));
-        if (removed) this.hasChanged = true;
+        if (removed) {
+            this.hasChanged = true;
+            this.serialized = null;
+        }
 
         return removed;
     }
@@ -428,10 +435,16 @@ export default class Chunk {
         // Edition sets any, so the count is always zero.
         stream.writeByte(0);
 
-        // Known gap: block entities. The client reads network NBT compounds from here to the end
-        // of the payload, so writing none is a well formed empty list, but it also means the
-        // chests, signs and furnaces this chunk is holding never reach the client with the chunk
-        // they stand in.
+        // Block entities: one network NBT compound each, little endian with varint lengths, from
+        // here to the end of the payload with no count in front. The compound is the one a world
+        // file holds, `id`, `x`, `y`, `z` and the rest, which is also what `BlockActorDataPacket`
+        // carries for a single block.
+        if (this.blockEntities.size > 0) {
+            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(true);
+            for (const blockEntity of this.blockEntities.values()) writer.writeCompound(blockEntity.toNBT());
+        }
+
         this.serialized = stream.getBuffer();
         this.serializedAt = mutations;
         return this.serialized;
