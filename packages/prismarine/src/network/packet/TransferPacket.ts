@@ -36,6 +36,9 @@ export interface GatheringsConfig {
  * Wire order: `Server Address` string, `Server Port` uint16 little-endian, `Reload World`
  * boolean, then the optional `Gatherings Configuration` as a presence byte followed by a
  * {@link GatheringsConfig} when present.
+ *
+ * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/transfer-packet/
  */
 export default class TransferPacket extends DataPacket {
     public static NetID = Identifiers.TransferPacket;
@@ -52,6 +55,7 @@ export default class TransferPacket extends DataPacket {
     /** The `Gatherings Configuration`, or `null` when the packet carries none. */
     public gatheringsConfig: GatheringsConfig | null = null;
 
+    /** Reads the address, port, reload flag and the optional gatherings configuration. */
     public decodePayload(): void {
         this.address = NetworkUtil.readString(this);
         this.port = this.readUnsignedShortLE();
@@ -59,6 +63,7 @@ export default class TransferPacket extends DataPacket {
         this.gatheringsConfig = this.readBoolean() ? this.readGatheringsConfig() : null;
     }
 
+    /** Writes the address, port, reload flag and the optional gatherings configuration. */
     public encodePayload(): void {
         NetworkUtil.writeString(this, this.address);
         this.writeUnsignedShortLE(this.port);
