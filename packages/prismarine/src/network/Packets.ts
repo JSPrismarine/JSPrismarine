@@ -19,6 +19,7 @@ import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
 import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
+import CommandOutputPacket from './packet/CommandOutputPacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
@@ -75,6 +76,7 @@ import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import RespawnPacket from './packet/RespawnPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
+import ServerSettingsResponsePacket from './packet/ServerSettingsResponsePacket';
 import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
@@ -88,6 +90,7 @@ import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitiali
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsPacket';
 import SetTimePacket from './packet/SetTimePacket';
+import SettingsCommandPacket from './packet/SettingsCommandPacket';
 import SetTitlePacket from './packet/SetTitlePacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
@@ -132,6 +135,7 @@ export {
     ClientMovementPredictionSyncPacket,
     ClientboundMapItemDataPacket,
     CommandBlockUpdatePacket,
+    CommandOutputPacket,
     CommandRequestPacket,
     ContainerClosePacket,
     ContainerOpenPacket,
@@ -191,6 +195,7 @@ export {
     ResourcePacksInfoPacket,
     RespawnPacket,
     ServerSettingsRequestPacket,
+    ServerSettingsResponsePacket,
     ServerboundDiagnosticsPacket,
     ServerboundLoadingScreenPacket,
     ServerboundPackSettingChangePacket,
@@ -204,6 +209,7 @@ export {
     SetPlayerGameTypePacket,
     SetPlayerInventoryOptionsPacket,
     SetTimePacket,
+    SettingsCommandPacket,
     SetTitlePacket,
     ShowCreditsPacket,
     ShowProfilePacket,

@@ -52,6 +52,7 @@ import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
+import SettingsCommandHandler from './handler/SettingsCommandHandler';
 import ShowCreditsHandler from './handler/ShowCreditsHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
@@ -114,6 +115,7 @@ export {
     SetLocalPlayerAsInitializedHandler,
     SetPlayerGameTypeHandler,
     SetPlayerInventoryOptionsHandler,
+    SettingsCommandHandler,
     ShowCreditsHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
