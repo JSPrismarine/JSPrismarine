@@ -1,0 +1,289 @@
+{
+    "seed": "1234",
+    "settings": "minecraft:overworld",
+    "chunkX": 3,
+    "chunkZ": -5,
+    "minY": -64,
+    "height": 384,
+    "columns": [
+        {
+            "x": 48,
+            "z": -80,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 68,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 4,
+                    "count": 11,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 15,
+                    "count": 36,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 51,
+                    "count": 12,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 55,
+            "z": -80,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 70,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 6,
+                    "count": 15,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 21,
+                    "count": 30,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 51,
+                    "count": 12,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 63,
+            "z": -80,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 73,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 9,
+                    "count": 14,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 23,
+                    "count": 5,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 28,
+                    "count": 13,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 41,
+                    "count": 8,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 49,
+                    "count": 14,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 48,
+            "z": -73,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 68,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 4,
+                    "count": 10,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 14,
+                    "count": 32,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 46,
+                    "count": 17,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 55,
+            "z": -73,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 70,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 6,
+                    "count": 12,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 18,
+                    "count": 18,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 36,
+                    "count": 27,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 63,
+            "z": -73,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 71,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 7,
+                    "count": 13,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 20,
+                    "count": 1,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 21,
+                    "count": 2,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 23,
+                    "count": 10,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 33,
+                    "count": 30,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 48,
+            "z": -65,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 115,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 51,
+                    "count": 12,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 55,
+            "z": -65,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 113,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 49,
+                    "count": 14,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        },
+        {
+            "x": 63,
+            "z": -65,
+            "runs": [
+                {
+                    "y": -64,
+                    "count": 57,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": -7,
+                    "count": 6,
+                    "block": "minecraft:air"
+                },
+                {
+                    "y": -1,
+                    "count": 50,
+                    "block": "minecraft:stone"
+                },
+                {
+                    "y": 49,
+                    "count": 14,
+                    "block": "minecraft:water"
+                },
+                {
+                    "y": 63,
+                    "count": 257,
+                    "block": "minecraft:air"
+                }
+            ]
+        }
+    ]
+}

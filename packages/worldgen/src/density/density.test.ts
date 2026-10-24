@@ -339,17 +339,26 @@ describe('cell operators', () => {
         expect(at(interpolated, 0, 8, 0)).toBe(1);
     });
 
-    it('samples the input directly on a cell corner', () => {
+    it('evaluates each cell corner once and reuses it', () => {
         const run = harness({
             type: 'minecraft:interpolated',
             input: { type: 'minecraft:noise', noise: 'minecraft:test' },
             cell_size_xz: 4,
             cell_size_y: 8
         });
+        // A position that is itself a corner costs one evaluation.
         run.sample(4, 8, 4);
         expect(run.noiseCalls()).toBe(1);
+        // An interior position needs the other seven corners of the same cell.
         run.sample(5, 8, 4);
-        expect(run.noiseCalls()).toBe(9);
+        expect(run.noiseCalls()).toBe(8);
+        // Every later position in that cell is pure interpolation.
+        run.sample(6, 12, 6);
+        expect(run.noiseCalls()).toBe(8);
+        // Resetting the context drops the grid.
+        run.context.reset();
+        run.sample(5, 8, 4);
+        expect(run.noiseCalls()).toBe(16);
     });
 
     it('walks down from the upper bound until the density turns positive', () => {

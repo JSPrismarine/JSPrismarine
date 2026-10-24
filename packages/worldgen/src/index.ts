@@ -1,3 +1,7 @@
+export * from './chunk/Aquifer';
+export * from './chunk/ChunkSampler';
+export * from './chunk/FluidPicker';
+export * from './chunk/oreVein';
 export * from './density/compile';
 export * from './density/CubicSpline';
 export * from './density/DensityFunction';

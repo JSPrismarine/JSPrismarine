@@ -84,7 +84,7 @@ execFileSync(
 
 const vectorsDir = path.join(packageRoot, 'vectors');
 fs.mkdirSync(vectorsDir, { recursive: true });
-for (const name of ['random.json', 'noise.json', 'density.json']) {
+for (const name of ['random.json', 'noise.json', 'density.json', 'chunk.json']) {
     const parsed = JSON.parse(fs.readFileSync(path.join(outputDir, name), 'utf8'));
     const target = path.join(vectorsDir, name);
     fs.writeFileSync(target, `${JSON.stringify(parsed, null, 4)}\n`);
