@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
+import { Dimension, DisconnectReason, Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
@@ -404,15 +404,18 @@ export default class Player extends Human {
      * @param {World} world - the new world
      */
     public async setWorld(world: World): Promise<void> {
-        const dim0 = new ChangeDimensionPacket();
-        dim0.dimension = 0;
-        dim0.position = this.getPosition();
-        dim0.respawn = false;
+        const session = this.getNetworkSession();
 
-        const dim1 = new ChangeDimensionPacket();
-        dim1.dimension = 1;
-        dim1.position = this.getPosition();
-        dim1.respawn = false;
+        // Every send opens a loading screen on the client, and the client reports each one
+        // back by the id the packet carried, so each send gets a fresh packet with its own id.
+        const changeDimension = async (dimension: Dimension) => {
+            const packet = new ChangeDimensionPacket();
+            packet.dimension = dimension;
+            packet.position = this.getPosition();
+            packet.respawn = false;
+            packet.loadingScreenId = session.beginLoadingScreen();
+            await session.send(packet);
+        };
 
         // Out of the old world first, so it stops broadcasting to us and its players are
         // told we left. Then the old world's entities come off this client, before
@@ -425,17 +428,17 @@ export default class Player extends Human {
         // Whether the client keeps them across the change is unverified.
         await world.addEntity(this);
 
-        await this.getNetworkSession().send(dim0);
-        await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
-        await this.getNetworkSession().send(dim1);
-        await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await changeDimension(Dimension.OVERWORLD);
+        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await changeDimension(Dimension.NETHER);
+        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
 
         await this.sendInitialSpawnChunks();
 
-        await this.getNetworkSession().send(dim1);
-        await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
-        await this.getNetworkSession().send(dim0);
-        await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await changeDimension(Dimension.NETHER);
+        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
+        await changeDimension(Dimension.OVERWORLD);
+        await session.sendPlayStatus(PlayStatusType.PlayerSpawn);
 
         await this.getNetworkSession().clearChunks();
         await this.getNetworkSession().needNewChunks();

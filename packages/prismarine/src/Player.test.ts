@@ -538,6 +538,25 @@ describe('Player', () => {
             expect(player.getNetworkSession().tracks(42n)).toBe(false);
             expect(player.getWorld()).toBe(target);
         });
+
+        it('gives every dimension change its own loading screen id, which the session then matches', async () => {
+            // The client reports each screen back by the id its ChangeDimensionPacket carried,
+            // and the docs want that id unique among the screens still open.
+            const { player, sent } = fakePlayer();
+            const target = stub<World>({ getName: () => 'other', addEntity: async () => {} });
+
+            await player.setWorld(target);
+
+            const changes = sent.filter((packet) => packet instanceof ChangeDimensionPacket);
+            const ids = changes.flatMap((packet) => (packet.loadingScreenId === null ? [] : [packet.loadingScreenId]));
+            expect(changes.length).toBeGreaterThan(1);
+            expect(ids).toHaveLength(changes.length);
+            expect(new Set(ids).size).toBe(ids.length);
+
+            const session = player.getNetworkSession();
+            for (const id of ids) expect(session.endLoadingScreen(id)).toBe(true);
+            for (const id of ids) expect(session.endLoadingScreen(id)).toBe(false);
+        });
     });
 
     describe('syncing', () => {

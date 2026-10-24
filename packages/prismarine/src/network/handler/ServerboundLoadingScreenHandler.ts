@@ -8,25 +8,35 @@ import type PacketHandler from './PacketHandler';
 /**
  * The client reporting a loading screen edge.
  *
- * The server never assigns a loading screen id, so the only screens a client reports are the
- * join screen and dimension changes. Both are recorded at debug level and nothing is sent back.
+ * The join screen carries no id. A dimension change carries the id the server put in its
+ * `ChangeDimensionPacket`, handed out by `PlayerSession.beginLoadingScreen`; when the client
+ * reports that screen closed, the id is checked off against the session's open screens.
+ * Everything is recorded at debug level and nothing is sent back.
  */
 export default class ServerboundLoadingScreenHandler implements PacketHandler<ServerboundLoadingScreenPacket> {
     public static NetID = Identifiers.ServerboundLoadingScreenPacket;
 
-    /** Logs which screen opened or closed. */
+    /** Logs which screen opened or closed, and closes a dimension change's screen on the session. */
     public handle(packet: ServerboundLoadingScreenPacket, server: Server, session: PlayerSession): void {
+        const closed = packet.loadingScreenType === LoadingScreenPacketType.EndLoadingScreen;
         const edge =
             packet.loadingScreenType === LoadingScreenPacketType.StartLoadingScreen
                 ? 'opened'
-                : packet.loadingScreenType === LoadingScreenPacketType.EndLoadingScreen
+                : closed
                   ? 'closed'
                   : `sent type ${packet.loadingScreenType} for`;
         const screen =
             packet.loadingScreenId === null ? 'the join loading screen' : `loading screen ${packet.loadingScreenId}`;
+        const known =
+            closed && packet.loadingScreenId !== null && !session.endLoadingScreen(packet.loadingScreenId)
+                ? ', which this session never opened'
+                : '';
 
         server
             .getLogger()
-            .debug(`${session.getPlayer().getName()} ${edge} ${screen}`, 'ServerboundLoadingScreenHandler/handle');
+            .debug(
+                `${session.getPlayer().getName()} ${edge} ${screen}${known}`,
+                'ServerboundLoadingScreenHandler/handle'
+            );
     }
 }

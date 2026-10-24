@@ -158,6 +158,15 @@ export default class PlayerSession {
      */
     private lastInputTick = 0n;
 
+    /**
+     * The `Loading Screen Id` the next `ChangeDimensionPacket` gets. The docs ask for an
+     * unsigned integer that increments for ever and is unique among the screens still open.
+     */
+    private nextLoadingScreenId = 1;
+
+    /** Ids from {@link PlayerSession.beginLoadingScreen} whose end the client has not reported. */
+    private readonly openLoadingScreens = new Set<number>();
+
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
         this.connection = connection;
@@ -1050,6 +1059,28 @@ export default class PlayerSession {
      */
     public recordInputTick(tick: bigint): void {
         if (tick > this.lastInputTick) this.lastInputTick = tick;
+    }
+
+    /**
+     * Hands out the `Loading Screen Id` for a `ChangeDimensionPacket` about to be sent, and
+     * remembers it until {@link PlayerSession.endLoadingScreen} hears the client close that
+     * screen.
+     * @returns A uint32 no other open screen on this session uses.
+     */
+    public beginLoadingScreen(): number {
+        const id = this.nextLoadingScreenId;
+        this.nextLoadingScreenId = (id + 1) >>> 0;
+        this.openLoadingScreens.add(id);
+        return id;
+    }
+
+    /**
+     * Records that the client closed a loading screen.
+     * @param {number} id - The `Loading Screen Id` from the client's `ServerboundLoadingScreenPacket`.
+     * @returns Whether the id belonged to a screen this session had opened and not yet closed.
+     */
+    public endLoadingScreen(id: number): boolean {
+        return this.openLoadingScreens.delete(id);
     }
 
     /**

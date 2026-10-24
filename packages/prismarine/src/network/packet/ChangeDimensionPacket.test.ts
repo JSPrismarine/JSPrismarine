@@ -1,4 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
+import { Dimension } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -29,7 +30,7 @@ describe('network', () => {
         describe('ChangeDimensionPacket', () => {
             it('writes a presence byte and nothing else when there is no loading screen', () => {
                 const pk = new ChangeDimensionPacket();
-                pk.dimension = 1;
+                pk.dimension = Dimension.NETHER;
                 pk.position = new Vector3(0, 64, 0);
                 pk.respawn = true;
                 pk.encode();
@@ -39,7 +40,7 @@ describe('network', () => {
 
             it('writes the loading screen id as a little endian uint32 after its presence byte', () => {
                 const pk = new ChangeDimensionPacket();
-                pk.dimension = 1;
+                pk.dimension = Dimension.NETHER;
                 pk.position = new Vector3(0, 64, 0);
                 pk.respawn = true;
                 pk.loadingScreenId = 0x01020304;
@@ -60,7 +61,7 @@ describe('network', () => {
                 pk.setReadBuffer(Buffer.from(WITHOUT_SCREEN));
                 pk.decode();
 
-                expect(pk.dimension).toBe(1);
+                expect(pk.dimension).toBe(Dimension.NETHER);
                 expect(pk.position?.getY()).toBeCloseTo(64, 6);
                 expect(pk.respawn).toBe(true);
                 expect(pk.loadingScreenId).toBeNull();
