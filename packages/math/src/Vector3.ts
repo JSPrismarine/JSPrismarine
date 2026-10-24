@@ -7,9 +7,7 @@ export class Vector3 extends Vector2 {
     /**
      * Returns a Vector3 with 0 on all axis.
      */
-    public static get ZERO(): Vector3 {
-        return new Vector3(0, 0, 0);
-    }
+    public static readonly ZERO: Vector3 = new Vector3(0, 0, 0);
 
     /**
      * Create a new `Vector3` instance.
@@ -54,7 +52,7 @@ export class Vector3 extends Vector2 {
      * @returns {this} A new instance of the concrete class.
      */
     protected create(x: number, y: number, z: number): this {
-        return new (this.constructor as new (x: number, y: number, z: number) => this)(x, y, z);
+        return new Vector3(x, y, z) as this;
     }
 
     /**
