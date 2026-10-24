@@ -14,3 +14,10 @@ export {
     type TemplateEntity,
     type TemplatePosition
 } from './types';
+export {
+    translateJavaTemplate,
+    type TemplateLossKind,
+    type TemplateTranslationLoss,
+    type TranslateOptions,
+    type TranslatedTemplate
+} from './translate';
