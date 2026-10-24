@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import { describe, expect, it } from 'vitest';
@@ -40,6 +40,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     const events: any[] = [];
     const actorEvents: number[] = [];
     const actorSounds: number[] = [];
+    const disconnects: Parameters<ClientConnection['disconnect']>[] = [];
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -47,7 +48,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
-        getLogger: () => stub<Logger>({ debug: () => {} }),
+        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getConfig: () =>
@@ -77,7 +78,8 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getRakNetSession: () => stub<RakNetSession>({ getAddress: () => new InetAddress('127.0.0.1', 19132) }),
         sendDataPacket: async (packet) => void sent.push(packet),
         attachPlayerSession: () => {},
-        closePlayerSession: async () => {}
+        closePlayerSession: async () => {},
+        disconnect: async (...args) => void disconnects.push(args)
     });
 
     const player = new Player({
@@ -99,7 +101,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     // `update` does nothing for a player who never finished joining.
     player['connected'] = true;
 
-    return { player, sent, events, actorEvents, actorSounds };
+    return { player, sent, events, actorEvents, actorSounds, disconnects };
 };
 
 /** Runs `n` ticks, the way the world does. */
@@ -127,6 +129,24 @@ describe('Player', () => {
 
             expect(sent).toEqual([]);
             expect(player.isOnline()).toBe(true);
+        });
+    });
+
+    describe('kick', () => {
+        it('disconnects with the reason shown and the kicked code', async () => {
+            const { player, disconnects } = fakePlayer();
+
+            await player.kick('Cheating');
+
+            expect(disconnects).toEqual([['Cheating', false, DisconnectReason.KICKED]]);
+        });
+
+        it('passes another code through, as the shutdown does', async () => {
+            const { player, disconnects } = fakePlayer();
+
+            await player.kick('Server closed.', DisconnectReason.SHUTDOWN);
+
+            expect(disconnects).toEqual([['Server closed.', false, DisconnectReason.SHUTDOWN]]);
         });
     });
 

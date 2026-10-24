@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import Console from './Console';
 import SessionManager from './SessionManager';
@@ -513,8 +514,13 @@ export default class Server extends EventEmitter {
         clearInterval(this.tickerTimer);
 
         try {
-            // Kick all online players.
-            await this.sessionManager.kickAllPlayers('Server closed.');
+            // Kick all online players. `kickAllPlayers` would send the `KICKED` code, and a
+            // client told the server shut down shows that code instead.
+            await Promise.all(
+                this.sessionManager
+                    .getAllPlayers()
+                    .map((player) => player.kick('Server closed.', DisconnectReason.SHUTDOWN))
+            );
 
             // Disable all managers.
             await this.disable();

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
@@ -114,6 +115,26 @@ describe('network', () => {
             connection.hasCompression = true;
             await connection.disconnect('Kicked', false);
             expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Kicked' }), true);
+        });
+
+        it('stamps the goodbye with the reason code it was given', async () => {
+            // The client maps `Reason` to the error code on its disconnect screen. Every
+            // server-initiated disconnect used to leave it at `UNKNOWN`.
+            const connection = fakeConnection();
+            const send = vi.spyOn(connection, 'sendDataPacket').mockResolvedValue();
+            vi.spyOn(connection, 'forceDisconnect').mockImplementation(() => {});
+
+            await connection.disconnect();
+            expect(send).toHaveBeenLastCalledWith(
+                expect.objectContaining({ reason: DisconnectReason.DISCONNECTED }),
+                false
+            );
+
+            await connection.disconnect('Kicked', false, DisconnectReason.KICKED);
+            expect(send).toHaveBeenLastCalledWith(
+                expect.objectContaining({ reason: DisconnectReason.KICKED, message: 'Kicked' }),
+                false
+            );
         });
 
         it('does nothing for a connection that never got a player', async () => {
