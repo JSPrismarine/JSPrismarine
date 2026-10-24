@@ -257,7 +257,7 @@ export class Database {
         this.assertOpen();
 
         const sources: Array<Iterator<{ internalKey: Buffer; value: Buffer | null }>> = [
-            this.memtable.iterate()[Symbol.iterator]() as Iterator<{ internalKey: Buffer; value: Buffer | null }>
+            this.memtable.iterate()[Symbol.iterator]()
         ];
 
         for (const { file } of this.versions.allFiles()) {
@@ -436,8 +436,8 @@ export class Database {
 
         this.applyAndPersist({
             deletedFiles: [
-                ...inputs0.map((file) => [0, file.number] as [number, number]),
-                ...inputs1.map((file) => [1, file.number] as [number, number])
+                ...inputs0.map((file): [number, number] => [0, file.number]),
+                ...inputs1.map((file): [number, number] => [1, file.number])
             ],
             newFiles: outputs
         });
@@ -542,14 +542,19 @@ function* mergeSorted<T>(sources: Array<Iterator<T>>, compare: (a: T, b: T) => n
 
     for (;;) {
         let best = -1;
+        let bestHead: IteratorYieldResult<T> | null = null;
         for (let i = 0; i < heads.length; i++) {
-            if (heads[i]!.done) continue;
-            if (best === -1 || compare(heads[i]!.value as T, heads[best]!.value as T) < 0) best = i;
+            const head = heads[i]!;
+            if (head.done) continue;
+            if (bestHead === null || compare(head.value, bestHead.value) < 0) {
+                best = i;
+                bestHead = head;
+            }
         }
 
-        if (best === -1) return;
+        if (bestHead === null) return;
 
-        yield heads[best]!.value as T;
+        yield bestHead.value;
         heads[best] = sources[best]!.next();
     }
 }
