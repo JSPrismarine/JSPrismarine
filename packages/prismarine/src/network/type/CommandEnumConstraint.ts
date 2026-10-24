@@ -6,9 +6,8 @@ export default class CommandEnumConstraint {
     private constraints!: number[];
 
     public constructor(_enum: CommandEnum, valueOffset: number, constraints: number[]) {
-        (function (...$_: number[]): void {})(...constraints);
         if (!_enum.values[valueOffset]) {
-            throw new Error('Invalid enum value offset $valueOffset');
+            throw new Error(`Invalid enum value offset ${valueOffset}`);
         }
         this._enum = _enum;
         this.valueOffset = valueOffset;
