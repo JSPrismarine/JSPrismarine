@@ -21,3 +21,14 @@ arrive with their own slices and add families without restructuring.
 Expected gaps are typed entries in [`src/allowlist.ts`](src/allowlist.ts), each with an
 identifier, a reason and a reference. A family's test fails both when a gap has no entry and
 when an entry's gap has closed, so the list cannot hide a regression or go stale.
+
+## The dashboard
+
+```sh
+pnpm --filter @jsprismarine/parity run dashboard
+```
+
+Runs the suite with the JSON reporter and renders a Markdown table of passed, failed and
+allow-listed counts per family to stdout and `dist/dashboard.md`. In CI it also appends the
+table to `$GITHUB_STEP_SUMMARY`. The renderer is a pure function with its own tests,
+[`src/dashboard/render.ts`](src/dashboard/render.ts).
