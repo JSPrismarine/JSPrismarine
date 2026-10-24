@@ -4,6 +4,7 @@ import { Difficulty } from '@jsprismarine/minecraft';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
+import type { DamageSource } from './DamageSource';
 import { freshEnvironment, tickEnvironment } from './MobEnvironment';
 import Cow from './passive/Cow';
 import { statsOf } from './MobStats';
@@ -21,8 +22,13 @@ const MIDNIGHT = 18000;
  */
 
 /** A world made entirely of one block, which is all these checks need. */
-const scene = ({ block = 'air', rules = {} as Record<string, boolean>, ticks = NOON, sky = true } = {}) => {
-    const hits: Array<{ amount: number; cause: DamageCause }> = [];
+const scene = ({
+    block = 'air',
+    rules = {},
+    ticks = NOON,
+    sky = true
+}: { block?: string; rules?: Record<string, boolean>; ticks?: number; sky?: boolean } = {}) => {
+    const hits: Array<{ amount: number; cause: DamageCause | DamageSource }> = [];
 
     const harm: Record<string, DamageCause | null> = {
         air: null,
@@ -53,7 +59,7 @@ const scene = ({ block = 'air', rules = {} as Record<string, boolean>, ticks = N
 
         // The mob reads the world through its `BlockView`, so the world is described to the view
         // rather than to the world - which is also how the mob itself sees it.
-        const view: any = (mob as any).view;
+        const view = mob.getBlockView();
         view.harmAt = () => harm[block] ?? null;
         view.isSolid = () => block === 'stone';
         view.isSubmerged = () => block === 'water';
@@ -62,7 +68,7 @@ const scene = ({ block = 'air', rules = {} as Record<string, boolean>, ticks = N
 
         // Record the blow rather than take it, so the amount can be asserted rather than
         // reverse-engineered from a health bar.
-        (mob as any).damage = async (amount: number, cause: DamageCause) => {
+        mob.damage = async (amount, cause = DamageCause.Generic) => {
             hits.push({ amount, cause });
             return true;
         };
@@ -116,7 +122,7 @@ describe('a mob standing in something', () => {
             await expose(mob, state, 1);
 
             const inTheFire = fire.hits.length;
-            (mob as any).view.harmAt = () => null;
+            mob.getBlockView().harmAt = () => null;
             await expose(mob, state, 40);
 
             expect(fire.hits.length).toBeGreaterThan(inTheFire);
@@ -167,7 +173,7 @@ describe('a mob standing in something', () => {
 
             const water = scene({ block: 'water' });
             const fish = water.spawn(Cow);
-            (fish as any).getType = () => 'minecraft:cod';
+            fish.getType = () => 'minecraft:cod';
 
             await expose(fish, state, 600);
 
@@ -186,7 +192,7 @@ describe('a mob standing in something', () => {
         /** A cow with a zombie's identifier: the table decides who burns, not the class. */
         const undead = (stage: ReturnType<typeof scene>, type = 'minecraft:zombie') => {
             const mob = stage.spawn(Cow);
-            (mob as any).getType = () => type;
+            mob.getType = () => type;
             return mob;
         };
 
