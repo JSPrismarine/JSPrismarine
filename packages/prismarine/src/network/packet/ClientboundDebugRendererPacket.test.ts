@@ -1,74 +1,85 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
+
 import ClientboundDebugRendererPacket, { DebugRendererType } from './ClientboundDebugRendererPacket';
 
-// Header: id 164 is 0xa4 0x01.
+// Packet id 164 as a varuint.
 const HEADER = [0xa4, 0x01];
-const str = (value: string): number[] => [value.length, ...Buffer.from(value, 'ascii')];
+
+const string = (value: string): number[] => [Buffer.byteLength(value), ...Buffer.from(value, 'utf8')];
+
+const f32 = (value: number): number[] => {
+    const buffer = Buffer.alloc(4);
+    buffer.writeFloatLE(value);
+    return [...buffer];
+};
+
+// Opaque red as ARGB, which reaches the wire as B, G, R, A.
+const COLOR = 0xffff0000 | 0;
+
+const ADD_CUBE = [
+    ...string('adddebugmarkercube'),
+    0x01, // DebugMarkerData present
+    ...string('mark'),
+    ...f32(1.5),
+    ...f32(64),
+    ...f32(-2.5),
+    0x00,
+    0x00,
+    0xff,
+    0xff, // Color
+    0xdc,
+    0x05,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    0x00 // duration 1500 ms as a uint64 little-endian
+];
 
 describe('ClientboundDebugRendererPacket', () => {
-    it('encodes a clear as the type string and an absent marker', () => {
+    it('writes a clear as the type string and an empty optional', () => {
         const packet = new ClientboundDebugRendererPacket();
-        packet.type = DebugRendererType.ClearDebugMarkers;
         packet.encode();
 
-        expect(packet.getBuffer()).toEqual(Buffer.from([...HEADER, ...str('cleardebugmarkers'), 0x00]));
+        expect(packet.getBuffer()).toEqual(Buffer.from([...HEADER, ...string('cleardebugmarkers'), 0x00]));
     });
 
-    it('decodes a cube with its text, position, color and duration, consuming the whole buffer', () => {
-        const encoded = Buffer.from([
-            ...HEADER,
-            ...str('adddebugmarkercube'),
-            0x01, // marker present
-            ...str('a'),
-            0x00,
-            0x00,
-            0x80,
-            0x3f, // x 1.0f
-            0x00,
-            0x00,
-            0x00,
-            0x40, // y 2.0f
-            0x00,
-            0x00,
-            0x40,
-            0x40, // z 3.0f
-            0x33,
-            0x22,
-            0x11,
-            0x7f, // ARGB 0x7f112233 as int32 LE
-            0xe8,
-            0x03,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00,
-            0x00 // 1000 ms as uint64 LE
-        ]);
-        const packet = new ClientboundDebugRendererPacket(encoded);
+    it('writes the marker data behind the presence byte', () => {
+        const packet = new ClientboundDebugRendererPacket();
+        packet.type = DebugRendererType.AddDebugMarkerCube;
+        packet.debugMarkerData = {
+            text: 'mark',
+            position: new Vector3(1.5, 64, -2.5),
+            color: COLOR,
+            duration: 1500n
+        };
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(Buffer.from([...HEADER, ...ADD_CUBE]));
+    });
+
+    it('reads the marker data and consumes the whole buffer', () => {
+        const packet = new ClientboundDebugRendererPacket();
+        packet.setReadBuffer(Buffer.from([...HEADER, ...ADD_CUBE]));
         packet.decode();
 
         expect(packet.type).toBe(DebugRendererType.AddDebugMarkerCube);
-        expect(packet.debugMarkerData).toEqual({
-            text: 'a',
-            position: new Vector3(1, 2, 3),
-            color: 0x7f112233,
-            duration: 1000n
-        });
+        expect(packet.debugMarkerData?.text).toBe('mark');
+        expect(packet.debugMarkerData?.position.getY()).toBe(64);
+        expect(packet.debugMarkerData?.color).toBe(COLOR);
+        expect(packet.debugMarkerData?.duration).toBe(1500n);
         expect(packet.feof()).toBe(true);
     });
 
-    it('round-trips a cube', () => {
+    it('reads an absent optional as null and consumes the whole buffer', () => {
         const packet = new ClientboundDebugRendererPacket();
-        packet.type = DebugRendererType.AddDebugMarkerCube;
-        packet.debugMarkerData = { text: 'a', position: new Vector3(1, 2, 3), color: 0x7f112233, duration: 1000n };
-        packet.encode();
+        packet.setReadBuffer(Buffer.from([...HEADER, ...string('cleardebugmarkers'), 0x00]));
+        packet.decode();
 
-        const decoded = new ClientboundDebugRendererPacket(packet.getBuffer());
-        decoded.decode();
-
-        expect(decoded.debugMarkerData).toEqual(packet.debugMarkerData);
-        expect(decoded.feof()).toBe(true);
+        expect(packet.type).toBe(DebugRendererType.ClearDebugMarkers);
+        expect(packet.debugMarkerData).toBeNull();
+        expect(packet.feof()).toBe(true);
     });
 });
