@@ -1,8 +1,6 @@
-import { AbilityLayerFlag } from '@jsprismarine/minecraft';
+import { AbilityLayerFlag, CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import DataPacket from './DataPacket';
 import Identifiers from '../Identifiers';
-import PermissionType from '../type/PermissionType';
-import PlayerPermissionType from '../type/PlayerPermissionType';
 
 /**
  * The "SerializedLayer" value of an ability layer, written as a uint16.
@@ -102,14 +100,13 @@ export class AbilityLayer {
  * followed by that many `AbilityLayer` entries.
  *
  * The docs type "Player Permissions" as `PlayerPermissionLevel` and "Command Permissions" as
- * `CommandPermissionLevel`, both generated enums in `@jsprismarine/minecraft`. The local
- * enums used here write the same numbers for the values the server sends.
+ * `CommandPermissionLevel`, the generated enums in `@jsprismarine/minecraft`.
  */
 export default class UpdateAbilitiesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAbilitiesPacket;
 
-    public commandPermission: PermissionType = PermissionType.Normal;
-    public playerPermission: PlayerPermissionType = PlayerPermissionType.Visitor;
+    public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;
+    public playerPermission: PlayerPermissionLevel = PlayerPermissionLevel.VISITOR;
     public targetActorUniqueId = 0n;
     public abilityLayers: AbilityLayer[] = [];
 

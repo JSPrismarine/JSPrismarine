@@ -1,8 +1,7 @@
+import { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import PermissionType from '../type/PermissionType';
-import PlayerPermissionType from '../type/PlayerPermissionType';
 import UpdateAbilitiesPacket, { AbilityLayer, AbilityLayerFlag, AbilityLayerType } from './UpdateAbilitiesPacket';
 
 // Flags in bit order. BUILD (0) true, FLYING (9) false, MAY_FLY (10) true, FLY_SPEED (13) and
@@ -55,8 +54,8 @@ describe('network', () => {
 
                 const pk = new UpdateAbilitiesPacket();
                 pk.targetActorUniqueId = 1234n;
-                pk.playerPermission = PlayerPermissionType.Operator;
-                pk.commandPermission = PermissionType.Operator;
+                pk.playerPermission = PlayerPermissionLevel.OPERATOR;
+                pk.commandPermission = CommandPermissionLevel.GAME_DIRECTORS;
                 pk.abilityLayers = [layer];
                 pk.encode();
 
@@ -69,8 +68,8 @@ describe('network', () => {
                 pk.decode();
 
                 expect(pk.targetActorUniqueId).toBe(1234n);
-                expect(pk.playerPermission).toBe(PlayerPermissionType.Operator);
-                expect(pk.commandPermission).toBe(PermissionType.Operator);
+                expect(pk.playerPermission).toBe(PlayerPermissionLevel.OPERATOR);
+                expect(pk.commandPermission).toBe(CommandPermissionLevel.GAME_DIRECTORS);
                 expect(pk.abilityLayers).toHaveLength(1);
 
                 const layer = pk.abilityLayers[0];
