@@ -15,7 +15,11 @@ export enum ModalFormCancelReason {
  * (a presence byte, then the JSON text), then Form Cancel Reason as an optional uint8. A
  * submitted form carries the JSON and no reason; a dismissed one carries the reason and no
  * JSON.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/modal-form-response-packet/
+ *
+ * The 1.26.51 metadata lists both as plain required fields, but the client has written each
+ * behind a presence byte since 1.19.30, and the 1.26.60 preview changelog marks them
+ * optional. The presence bytes are what a real client sends, so they stay.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/modal-form-response-packet/
  */
 export default class ModalFormResponsePacket extends DataPacket {
     public static NetID = Identifiers.ModalFormResponsePacket;
