@@ -9,6 +9,7 @@ import DataPacket from './DataPacket';
 /** The fields of one player list entry. A Remove entry needs only `uuid`. */
 interface PlayerListData {
     uuid: UUID;
+    /** Written as the entry's Actor Unique ID. The server gives a player one id for both roles. */
     runtimeId?: bigint | null;
     name?: string | null;
     xuid?: string;
@@ -97,6 +98,29 @@ export class PlayerListEntry {
         // Player Color is an int32 in little-endian byte order, so an ARGB integer lands on the
         // wire as B, G, R, A.
         stream.writeIntLE(this.getColor());
+    }
+
+    /**
+     * A copy of this entry carrying another skin, every other field unchanged.
+     *
+     * The session manager keeps the entry it sends to whoever joins later, so a skin change
+     * mid-session needs a new entry rather than a mutation of one shared with packets already
+     * built from it.
+     */
+    public withSkin(skin: Skin): PlayerListEntry {
+        return new PlayerListEntry({
+            uuid: this.uuid,
+            runtimeId: this.runtimeId,
+            name: this.name,
+            xuid: this.xuid,
+            platformChatId: this.platformChatId,
+            buildPlatform: this.buildPlatform,
+            skin,
+            isTeacher: this.teacher,
+            isHost: this.host,
+            isSubClient: this.subClient,
+            color: this.color
+        });
     }
 
     public getUUID(): UUID {

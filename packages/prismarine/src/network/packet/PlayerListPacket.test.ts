@@ -226,6 +226,39 @@ describe('network', () => {
 
                 expect(() => packet.encode()).toThrow(PLAYER_UUID);
             });
+
+            it('copies an entry with another skin and leaves the original alone', () => {
+                const entry = new PlayerListEntry({
+                    uuid: UUID.fromString(PLAYER_UUID),
+                    runtimeId: 7n,
+                    name: 'Steve',
+                    xuid: '2535400000000000',
+                    platformChatId: 'chat',
+                    buildPlatform: 8,
+                    skin: classicSkin(),
+                    isTeacher: false,
+                    isHost: true,
+                    isSubClient: true,
+                    color: 0xff112233
+                });
+                const skin = personaSkin();
+
+                const copy = entry.withSkin(skin);
+
+                expect(copy).not.toBe(entry);
+                expect(copy.getSkin()).toBe(skin);
+                expect(entry.getSkin()?.getId()).toBe('classic-skin');
+                expect(copy.getUUID().equals(entry.getUUID())).toBe(true);
+                expect(copy.getRuntimeId()).toBe(7n);
+                expect(copy.getName()).toBe('Steve');
+                expect(copy.getXUID()).toBe('2535400000000000');
+                expect(copy.getPlatformChatId()).toBe('chat');
+                expect(copy.getBuildPlatform()).toBe(8);
+                expect(copy.isTeacher()).toBe(false);
+                expect(copy.isHost()).toBe(true);
+                expect(copy.isSubClient()).toBe(true);
+                expect(copy.getColor()).toBe(0xff112233 | 0);
+            });
         });
     });
 });
