@@ -13,6 +13,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 // Imported straight from its module rather than through the barrel; see `CommandManager.ts`.
 import { Entity } from '../entity/Entity';
+import { spawnableEntities } from '../entity/Entities';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation, { parseAbsoluteCoordinate } from '../utils/ParseTildeCaretNotation';
@@ -141,10 +142,16 @@ export class CommandArgumentMob implements CommandArgument {
         return this.name;
     }
 
+    /**
+     * The `EntityType` enum lists what `/summon` can build: every class in `spawnableEntities()`,
+     * by the identifier the command looks it up under. The `minecraft:` namespace is dropped
+     * the way the command's own parser adds it back, so the client offers `zombie`, not
+     * `minecraft:zombie`. An empty enum here left the client with nothing to complete.
+     */
     public getParameters(): Set<CommandParameter> {
         const entityTypeEnum = new CommandEnum();
         entityTypeEnum.name = 'EntityType';
-        entityTypeEnum.values = []; //Object.entries(Entities).map(([, entity]) => entity.MOB_ID);
+        entityTypeEnum.values = spawnableEntities().map(({ MOB_ID }) => MOB_ID.replace(/^minecraft:/, ''));
         return new Set([
             new CommandParameter({
                 paramName: this.name,
