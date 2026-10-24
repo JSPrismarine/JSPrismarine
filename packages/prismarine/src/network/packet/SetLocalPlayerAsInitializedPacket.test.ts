@@ -19,4 +19,12 @@ describe('SetLocalPlayerAsInitializedPacket', () => {
         expect(packet.runtimeEntityId).toBe(8589934592n);
         expect(packet.feof()).toBe(true);
     });
+
+    it('encodes the same bytes it decodes', () => {
+        const packet = new SetLocalPlayerAsInitializedPacket();
+        packet.runtimeEntityId = 300n;
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(Buffer.from([0x71, 0xac, 0x02]));
+    });
 });
