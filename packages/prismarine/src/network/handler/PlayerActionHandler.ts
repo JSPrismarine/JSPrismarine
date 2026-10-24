@@ -2,11 +2,11 @@ import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
-import { CREATIVE_REACH } from '../../entity/Combat';
 import type BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import type PlayerActionPacket from '../packet/PlayerActionPacket';
 import { PlayerActionType } from '../packet/PlayerActionPacket';
+import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -41,18 +41,6 @@ const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
     PlayerActionType.PredictDestroyBlock,
     PlayerActionType.ContinueDestroyBlock
 ]);
-
-/**
- * How far from the player a block action may claim to have happened.
- *
- * Acting on a block reads the world at it, which loads the chunk it falls in and generates
- * that chunk if the world has never had one there. An unchecked position therefore lets a
- * client both break what it cannot see and drive terrain generation anywhere on the map,
- * one crafted packet per chunk. `CREATIVE_REACH` is the furthest any player may reach, and
- * the extra block covers the distance from a player's feet to their eyes and from a block's
- * corner to its middle. This is a bound on nonsense rather than an anti-cheat reach check.
- */
-const MAX_BLOCK_ACTION_DISTANCE = CREATIVE_REACH + 1;
 
 /**
  * Everything a player does that is not moving, whichever packet it arrived in.
@@ -120,8 +108,12 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // could sound a block, animate its cracks and break it outright.
             if (player.gamemode === Gametype.SPECTATOR) return;
 
+            // Acting on a block reads the world at it, which loads the chunk it falls in and
+            // generates that chunk if the world has never had one there. Unchecked, a client
+            // could both break what it cannot see and drive terrain generation anywhere on
+            // the map, one crafted packet per chunk.
             const distance = player.getPosition().distanceTo(blockPosition);
-            if (!Number.isFinite(distance) || distance > MAX_BLOCK_ACTION_DISTANCE) {
+            if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
                 server
                     .getLogger()
                     .verbose(

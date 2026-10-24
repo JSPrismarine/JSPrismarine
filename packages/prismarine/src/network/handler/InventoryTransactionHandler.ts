@@ -18,6 +18,7 @@ import {
     ItemUseActionType,
     ItemUseOnActorActionType
 } from '../packet/InventoryTransactionPacket';
+import { MAX_BLOCK_TARGET_DISTANCE } from './BlockTarget';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -27,15 +28,6 @@ import type PacketHandler from './PacketHandler';
  * somebody flying and a standing one nudges them.
  */
 const SPRINT_KNOCKBACK = 1;
-
-/**
- * How far from the player a block an item use names may be.
- *
- * The bound `PlayerActionHandler` puts on block actions: the furthest any player may reach,
- * plus a block for the distance from the eyes to the feet and from a block's corner to its
- * middle. A bound on nonsense rather than an anti-cheat reach check.
- */
-const MAX_BLOCK_DISTANCE = CREATIVE_REACH + 1;
 
 /** A block has six faces, and the docs' Face names one of them. */
 const FACE_COUNT = 6;
@@ -272,7 +264,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     /**
      * The item in hand being used: on a block, on nothing, or to break a block.
      *
-     * The block the client names has to be within {@link MAX_BLOCK_DISTANCE} of where the
+     * The block the client names has to be within {@link MAX_BLOCK_TARGET_DISTANCE} of where the
      * server has the player, or the transaction is dropped at verbose level. What is placed is
      * the item the server has in the player's hand, not the Item the client sent: the client's
      * copy says what it believes it holds, and the server's inventory is the one that decides.
@@ -284,7 +276,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
                 const distance = player.getPosition().distanceTo(data.blockPosition);
-                if (!Number.isFinite(distance) || distance > MAX_BLOCK_DISTANCE) {
+                if (!Number.isFinite(distance) || distance > MAX_BLOCK_TARGET_DISTANCE) {
                     server
                         .getLogger()
                         .verbose(
