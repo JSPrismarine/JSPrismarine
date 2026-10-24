@@ -5,6 +5,8 @@ import CameraAimAssistCategoryPriorities from './CameraAimAssistCategoryPrioriti
 import type { CameraAimAssistPriority } from './CameraAimAssistCategoryPriorities';
 import CameraAimAssistPresetDefinition from './CameraAimAssistPresetDefinition';
 import type { CameraAimAssistItemSetting, CameraAimAssistPresetExclusions } from './CameraAimAssistPresetDefinition';
+import CameraPreset, { AimAssistTargetMode, CameraAudioListener, ControlScheme } from './CameraPreset';
+import type { CameraAimAssistDefinition, CameraPresetData } from './CameraPreset';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
 import DataStoreUpdate, { DataStoreValueType } from './DataStoreUpdate';
@@ -40,11 +42,15 @@ import Vec3 from './Vec3';
 
 export {
     ActorLink,
+    AimAssistTargetMode,
     BlockPos,
     CameraAimAssistCategoryDefinition,
     CameraAimAssistCategoryPriorities,
     CameraAimAssistPresetDefinition,
+    CameraAudioListener,
+    CameraPreset,
     ChunkPos,
+    ControlScheme,
     DataItem,
     DataStoreUpdate,
     DataStoreValueType,
@@ -76,9 +82,11 @@ export {
     Vec3
 };
 export type {
+    CameraAimAssistDefinition,
     CameraAimAssistItemSetting,
     CameraAimAssistPresetExclusions,
     CameraAimAssistPriority,
+    CameraPresetData,
     DataStoreUpdateData,
     DataStoreValue,
     EduSharedUriResourceData,

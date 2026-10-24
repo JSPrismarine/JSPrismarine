@@ -57,4 +57,27 @@ export default class NetworkBinaryStream extends BinaryStream {
         this.writeUnsignedVarInt(buf.byteLength);
         this.write(buf);
     }
+
+    /**
+     * Reads a value Cereal bound as `brstd::optional<T>`: a presence boolean, then the value
+     * when the boolean is 1.
+     * @param read - Reads the value once the presence byte says it is there.
+     * @returns The value, or undefined when the presence byte is 0.
+     */
+    public readOptional<T>(read: () => T): T | undefined {
+        return this.readBoolean() ? read() : undefined;
+    }
+
+    /**
+     * Writes a value Cereal bound as `brstd::optional<T>`: a presence boolean, then the value
+     * when it is defined.
+     * @param value - The value, or undefined to write a single 0 byte.
+     * @param write - Writes the value after the presence byte.
+     */
+    public writeOptional<T>(value: T | undefined, write: (value: T) => void): void {
+        this.writeBoolean(value !== undefined);
+        if (value !== undefined) {
+            write(value);
+        }
+    }
 }
