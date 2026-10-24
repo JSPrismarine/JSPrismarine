@@ -65,7 +65,7 @@ export const ENTITY_SIZES: Readonly<Record<string, EntitySize>> = {
     'minecraft:ender_dragon': size(13, 4),
     'minecraft:enderman': size(0.6, 2.9),
     'minecraft:endermite': size(0.4, 0.3),
-    'minecraft:evoker_illager': size(0.6, 1.9),
+    'minecraft:evocation_illager': size(0.6, 1.9),
     'minecraft:fox': size(0.6, 0.7),
     'minecraft:ghast': size(4.02, 4),
     'minecraft:guardian': size(0.85, 0.85),
