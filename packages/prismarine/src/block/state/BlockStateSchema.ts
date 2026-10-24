@@ -108,7 +108,7 @@ export class BlockStateSchemas {
     private static load(): void {
         if (this.loaded) return;
 
-        for (const [name, data] of Object.entries(vanillaSchemas.blocks as Record<string, BlockStateSchemaData>)) {
+        for (const [name, data] of Object.entries(vanillaSchemas.blocks)) {
             this.schemas.set(name, new BlockStateSchema(name, data.properties));
         }
         this.loaded = true;
