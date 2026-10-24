@@ -1,118 +1,176 @@
-// import BinaryStream from '@jsprismarine/binaryutils';
-import type Server from '../Server';
-import { NetworkUtil } from '../network/NetworkUtil';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
+import type Server from '../Server';
+import type { GameRule } from '../network/packet/GameRulesChangedPacket';
+import { GameRuleValueType, writeGameRule } from '../network/packet/GameRulesChangedPacket';
+
+/**
+ * The rules every world registers, spelled the way the client spells them.
+ *
+ * The client matches a rule by exact string, so these are the camelCase names a Bedrock
+ * Dedicated Server 1.26.51 sends in `StartGamePacket` (`doDayLightCycle` with a capital L,
+ * `pvp` all lowercase). They used to be all lowercase, and a client given `showcoordinates`
+ * had no rule by that name to turn on.
+ *
+ * Lookups through {@link GameRuleManager} ignore case, so `DoDayLightCycle`,
+ * `dodaylightcycle` and the constant here all name the same rule.
+ */
 export const GameRules = {
-    CommandBlockOutput: 'commandblockoutput',
-    DoDayLightCycle: 'dodaylightcycle',
-    DoEntityDrops: 'doentitydrops',
-    DoFireTick: 'dofiretick',
-    DoMobLoot: 'domobloot',
-    DoMobSpawning: 'domobspawning',
-    DoTileDrops: 'dotiledrops',
-    DoWeatherCycle: 'doweathercycle',
-    // Spelled correctly at last. The value was always right - the constant's *name* was missing an
-    // `n`, so anything reaching for `GameRules.DrowningDamage` got `undefined` and looked up a
-    // gamerule called "undefined".
-    DrowningDamage: 'drowningdamage',
-    FallDamage: 'falldamage',
-    FireDamage: 'firedamage',
-    KeepInventory: 'keepinventory',
-    MobGriefing: 'mobgriefing',
-    NaturalRegeneration: 'naturalregeneration',
+    CommandBlockOutput: 'commandBlockOutput',
+    DoDayLightCycle: 'doDayLightCycle',
+    DoEntityDrops: 'doEntityDrops',
+    DoFireTick: 'doFireTick',
+    DoMobLoot: 'doMobLoot',
+    DoMobSpawning: 'doMobSpawning',
+    DoTileDrops: 'doTileDrops',
+    DoWeatherCycle: 'doWeatherCycle',
+    DrowningDamage: 'drowningDamage',
+    FallDamage: 'fallDamage',
+    FireDamage: 'fireDamage',
+    KeepInventory: 'keepInventory',
+    MobGriefing: 'mobGriefing',
+    NaturalRegeneration: 'naturalRegeneration',
     PVP: 'pvp',
-    ShowCoordinates: 'showcoordinates', // Bool
-    RandomTickSpeed: 'randomtickspeed',
-    TNTExplodes: 'tntexplodes',
-    sendCommandFeedback: 'sendcommandfeedback'
+    ShowCoordinates: 'showCoordinates',
+    RandomTickSpeed: 'randomTickSpeed',
+    TNTExplodes: 'tntExplodes',
+    sendCommandFeedback: 'sendCommandFeedback'
+} as const;
+
+/** What a rule holds: its value, and whether a player may change it from the settings screen. */
+export type GameRuleEntry = [value: boolean | number, editable: boolean];
+
+/**
+ * Called after {@link GameRuleManager.setGameRule} stores a change, with the name spelled as
+ * the wire wants it. Not called for the defaults a manager starts with.
+ */
+export type GameRuleChangeListener = (name: string, value: boolean | number, editable: boolean) => void;
+
+/** The values every world starts with, in the order BDS lists them. */
+const DEFAULTS: ReadonlyArray<readonly [name: string, value: boolean | number]> = [
+    [GameRules.CommandBlockOutput, true],
+    [GameRules.DoDayLightCycle, true],
+    [GameRules.DoEntityDrops, true],
+    [GameRules.DoFireTick, true],
+    [GameRules.DoMobLoot, true],
+    [GameRules.DoMobSpawning, true],
+    [GameRules.DoTileDrops, true],
+    [GameRules.DoWeatherCycle, true],
+    [GameRules.DrowningDamage, true],
+    [GameRules.FallDamage, true],
+    [GameRules.FireDamage, true],
+    [GameRules.KeepInventory, false],
+    [GameRules.MobGriefing, true],
+    [GameRules.NaturalRegeneration, true],
+    [GameRules.PVP, true],
+    [GameRules.ShowCoordinates, false],
+    [GameRules.RandomTickSpeed, 3],
+    [GameRules.TNTExplodes, true],
+    [GameRules.sendCommandFeedback, true]
+];
+
+/**
+ * Shapes one stored rule as the protocol's `GameRule`.
+ *
+ * A boolean travels as the boolean alternative, a whole number as a signed int32 and
+ * anything else as a float. The integer used to go out through `writeUnsignedIntLE`, which
+ * threw on a negative value; the docs type it `int32`.
+ * @param name - The rule's name, spelled as the wire wants it.
+ * @param value - The rule's value.
+ * @param editable - Whether a player may change it from the settings screen.
+ */
+export const toNetworkGameRule = (name: string, value: boolean | number, editable: boolean): GameRule => {
+    if (typeof value === 'boolean') {
+        return { ruleName: name, ruleCanBeModified: editable, ruleValue: { type: GameRuleValueType.Boolean, value } };
+    }
+
+    if (Number.isInteger(value)) {
+        return { ruleName: name, ruleCanBeModified: editable, ruleValue: { type: GameRuleValueType.Integer, value } };
+    }
+
+    return { ruleName: name, ruleCanBeModified: editable, ruleValue: { type: GameRuleValueType.Float, value } };
 };
 
+/**
+ * The game rules of one world.
+ *
+ * Rules are stored under the name the wire uses and found by any spelling of it. A rule set
+ * here for the first time keeps the spelling it arrived with, so a level file saved by an
+ * older server, which wrote lowercase names, loads back onto the camelCase defaults.
+ */
 export default class GameRuleManager {
     private readonly server: Server;
-    private readonly rules: Map<string, [boolean | number, boolean]> = new Map();
+    private readonly rules: Map<string, GameRuleEntry> = new Map();
 
-    public constructor(server: Server) {
+    /** Lowercase name to the spelling the wire uses, for every rule known here. */
+    private readonly names: Map<string, string> = new Map();
+    private readonly onChange: GameRuleChangeListener | undefined;
+
+    /**
+     * @param server - Owning server, for its logger.
+     * @param onChange - Told about every change made after construction; the world uses it to
+     * send `GameRulesChangedPacket` to its players.
+     */
+    public constructor(server: Server, onChange?: GameRuleChangeListener) {
         this.server = server;
+        this.onChange = onChange;
 
-        // Set default values
-        this.setGameRule('CommandBlockOutput', true, true);
-        this.setGameRule('DoDayLightCycle', true, true);
-        this.setGameRule('DoEntityDrops', true, true);
-        this.setGameRule('DoFireTick', true, true);
-        this.setGameRule('DoMobLoot', true, true);
-        this.setGameRule('DoMobSpawning', true, true);
-        this.setGameRule('DoTileDrops', true, true);
-        this.setGameRule('DoWeatherCycle', true, true);
-        this.setGameRule('DrowningDamage', true, true);
-        this.setGameRule('FallDamage', true, true);
-        this.setGameRule('FireDamage', true, true);
-        this.setGameRule('KeepInventory', false, true);
-        this.setGameRule('MobGriefing', true, true);
-        this.setGameRule('NaturalRegeneration', true, true);
-        this.setGameRule('PVP', true, true);
-        this.setGameRule('ShowCoordinates', false, true);
-        this.setGameRule('RandomTickSpeed', 3, true);
-        this.setGameRule('TNTExplodes', true, true);
-        this.setGameRule('sendCommandFeedback', true, true);
+        for (const [name, value] of DEFAULTS) this.store(name, value, true);
     }
 
     /**
-     * Sets a game rule.
-     * @param {string} name - the gameRule's name.
-     * @param {boolean | number} value - the value, boolean OR number.
-     * @param {boolean} editable - if the gameRule is editable.
-     * @TODO: notify clients about gameRule change.
+     * Sets a game rule and tells the change listener.
+     * @param name - The rule's name, in any casing.
+     * @param value - The value, a boolean or a number.
+     * @param editable - Whether a player may change it from the settings screen.
      */
     public setGameRule(name: string, value: boolean | number, editable: boolean): void {
-        this.rules.set(name.toLowerCase(), [value, editable]);
+        const key = this.store(name, value, editable);
+        this.onChange?.(key, value, editable);
     }
 
     /**
-     * Returns the gameRule value.
-     * @param {string} name - the gameRule's name.
+     * Returns a rule's value and editability.
+     * @param name - The rule's name, in any casing.
+     * @returns The entry, or null for a rule nobody registered. An unknown name is also
+     * logged as an error.
      */
-    public getGameRule(name: string) {
-        if (!Object.values(GameRules).includes(name.toLowerCase())) {
+    public getGameRule(name: string): GameRuleEntry | null {
+        const key = this.names.get(name.toLowerCase());
+        if (key === undefined) {
             this.server.getLogger().error(`Unknown GameRule with name ${name}`);
+            return null;
         }
 
-        return this.rules.get(name.toLowerCase()) ?? null;
+        return this.rules.get(key) ?? null;
     }
 
-    public getGameRules() {
+    /** Every rule, keyed by the name the wire uses. */
+    public getGameRules(): Map<string, GameRuleEntry> {
         return this.rules;
     }
 
-    public networkSerialize(stream: any): void {
-        const isInt = (n: number) => {
-            return n % 1 === 0;
-        };
-
-        stream.writeUnsignedVarInt(this.getGameRules().size);
-        for (const [name, [value, editable]] of this.getGameRules()) {
-            NetworkUtil.writeString(stream, name.toLowerCase());
-            stream.writeBoolean(editable);
-            switch (typeof value) {
-                case 'boolean':
-                    stream.writeByte(1); // Maybe value type ??
-                    stream.writeBoolean(value);
-                    break;
-                case 'number':
-                    if (isInt(value)) {
-                        stream.writeByte(2);
-                        // Four fixed bytes, not a varint. The two encodings agree for small
-                        // values and diverge for the rest, so a rule like `maxcommandchainlength`
-                        // shortens the packet and everything after the gamerules is read from
-                        // the wrong place.
-                        stream.writeUnsignedIntLE(value);
-                    } else {
-                        stream.writeByte(3);
-                        stream.writeFloatLE(value);
-                    }
-                    break;
-                default:
-                    this.server.getLogger().error('GameRule format not implemented');
-            }
+    /**
+     * Writes the rules as `GameRulesChangedPacketData`: a varuint32 count, then each rule as
+     * {@link writeGameRule} lays it out. `StartGamePacket` carries this as its Rule Data.
+     * @param stream - The stream to append to.
+     */
+    public networkSerialize(stream: BinaryStream): void {
+        stream.writeUnsignedVarInt(this.rules.size);
+        for (const [name, [value, editable]] of this.rules) {
+            writeGameRule(stream, toNetworkGameRule(name, value, editable));
         }
+    }
+
+    /**
+     * Stores a rule under the spelling already known for it, or under its own when it is new.
+     * @returns The name the rule is stored under.
+     */
+    private store(name: string, value: boolean | number, editable: boolean): string {
+        const lower = name.toLowerCase();
+        const key = this.names.get(lower) ?? name;
+        this.names.set(lower, key);
+        this.rules.set(key, [value, editable]);
+        return key;
     }
 }

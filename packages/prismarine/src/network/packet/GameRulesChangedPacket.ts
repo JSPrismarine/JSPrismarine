@@ -1,3 +1,5 @@
+import type BinaryStream from '@jsprismarine/binaryutils';
+
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
@@ -26,7 +28,11 @@ export type GameRuleValue =
  * `GameRuleManager.networkSerialize` writes it.
  */
 export interface GameRule {
-    /** Rule Name, lowercase, as in `showcoordinates`. */
+    /**
+     * Rule Name, spelled as the client spells it: camelCase, as in `showCoordinates` or
+     * `doDayLightCycle`. A Bedrock Dedicated Server 1.26.51 sends these names, and the client
+     * matches them by exact string.
+     */
     ruleName: string;
     /** Rule Can Be Modified, whether the player may change it from the settings screen. */
     ruleCanBeModified: boolean;
@@ -36,11 +42,11 @@ export interface GameRule {
 
 /**
  * Reads one `GameRule`'s value alternative.
- * @param stream - The packet being decoded.
+ * @param stream - The stream positioned at the value's selector.
  * @returns The value the selector chose.
  * @throws When the selector names no alternative the protocol defines.
  */
-const readGameRuleValue = (stream: DataPacket): GameRuleValue => {
+const readGameRuleValue = (stream: BinaryStream): GameRuleValue => {
     const selector = stream.readUnsignedVarInt();
     switch (selector) {
         case GameRuleValueType.Null:
@@ -57,12 +63,52 @@ const readGameRuleValue = (stream: DataPacket): GameRuleValue => {
 };
 
 /**
+ * Reads one `GameRule`: Rule Name, Rule Can Be Modified, then the Rule Value.
+ * @param stream - The stream positioned at the rule's name.
+ */
+export const readGameRule = (stream: BinaryStream): GameRule => ({
+    ruleName: NetworkUtil.readString(stream),
+    ruleCanBeModified: stream.readBoolean(),
+    ruleValue: readGameRuleValue(stream)
+});
+
+/**
+ * Writes one `GameRule` as the docs lay it out: Rule Name as a string, Rule Can Be Modified
+ * as a boolean, the value's varuint32 selector, then the value itself. A boolean is one byte,
+ * an integer is a signed int32 LE (four fixed bytes, not a varint; a BDS 1.26.51 sends
+ * `maxCommandChainLength` as `02 ff ff 00 00`), a float is a float LE, and the null
+ * alternative has no value bytes.
+ * @param stream - The stream to append to.
+ * @param rule - The rule to write.
+ */
+export const writeGameRule = (stream: BinaryStream, rule: GameRule): void => {
+    NetworkUtil.writeString(stream, rule.ruleName);
+    stream.writeBoolean(rule.ruleCanBeModified);
+
+    const { ruleValue } = rule;
+    stream.writeUnsignedVarInt(ruleValue.type);
+    switch (ruleValue.type) {
+        case GameRuleValueType.Boolean:
+            stream.writeBoolean(ruleValue.value);
+            break;
+        case GameRuleValueType.Integer:
+            stream.writeIntLE(ruleValue.value);
+            break;
+        case GameRuleValueType.Float:
+            stream.writeFloatLE(ruleValue.value);
+            break;
+        default:
+            break; // Null carries no value.
+    }
+};
+
+/**
  * Tells a client that game rules changed.
  *
  * **Bound To:** Client
  *
  * Only the rules that changed need to go out, and only the ones the client acts on matter:
- * rules the server resolves alone, such as `keepinventory`, change nothing client side.
+ * rules the server resolves alone, such as `keepInventory`, change nothing client side.
  *
  * Protocol 2193 layout (docs id 72), in wire order:
  *
@@ -83,11 +129,7 @@ export default class GameRulesChangedPacket extends DataPacket {
 
         this.rulesList = [];
         for (let i = 0; i < count; i++) {
-            this.rulesList.push({
-                ruleName: NetworkUtil.readString(this),
-                ruleCanBeModified: this.readBoolean(),
-                ruleValue: readGameRuleValue(this)
-            });
+            this.rulesList.push(readGameRule(this));
         }
     }
 
@@ -95,24 +137,7 @@ export default class GameRulesChangedPacket extends DataPacket {
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.rulesList.length);
         for (const rule of this.rulesList) {
-            NetworkUtil.writeString(this, rule.ruleName);
-            this.writeBoolean(rule.ruleCanBeModified);
-
-            const { ruleValue } = rule;
-            this.writeUnsignedVarInt(ruleValue.type);
-            switch (ruleValue.type) {
-                case GameRuleValueType.Boolean:
-                    this.writeBoolean(ruleValue.value);
-                    break;
-                case GameRuleValueType.Integer:
-                    this.writeIntLE(ruleValue.value);
-                    break;
-                case GameRuleValueType.Float:
-                    this.writeFloatLE(ruleValue.value);
-                    break;
-                default:
-                    break; // Null carries no value.
-            }
+            writeGameRule(this, rule);
         }
     }
 }

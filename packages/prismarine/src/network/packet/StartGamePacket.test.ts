@@ -187,13 +187,15 @@ describe('StartGamePacket', () => {
         const { data } = decode(build());
         const names = data.gameRules.map((rule) => rule.name);
 
+        // Spelled as a dedicated server spells them; the client matches by exact string.
         expect(data.gameRules).toHaveLength(19);
-        expect(names).toContain('randomtickspeed');
-        expect(data.gameRules.find((rule) => rule.name === 'randomtickspeed')).toMatchObject({
+        expect(names).toContain('randomTickSpeed');
+        expect(names).toContain('doDayLightCycle');
+        expect(data.gameRules.find((rule) => rule.name === 'randomTickSpeed')).toMatchObject({
             editable: true,
             value: 3
         });
-        expect(data.gameRules.find((rule) => rule.name === 'keepinventory')).toMatchObject({
+        expect(data.gameRules.find((rule) => rule.name === 'keepInventory')).toMatchObject({
             editable: true,
             value: false
         });
