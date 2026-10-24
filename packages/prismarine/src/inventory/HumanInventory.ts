@@ -96,11 +96,19 @@ export default class HumanInventory extends Inventory {
     }
 
     /**
+     * Whether a slot number names one of the nine hotbar slots, and so may be the hand slot.
+     * @param {number} slot - the slot, as a client reported it.
+     */
+    public static isHotbarSlot(slot: number): boolean {
+        return Number.isInteger(slot) && slot >= 0 && slot < HOTBAR_SIZE;
+    }
+
+    /**
      * Points the hand at a hotbar slot, as the client reports it.
      * @param {number} slot - the hotbar slot; anything outside the hotbar is ignored.
      */
     public setHandSlot(slot: number): void {
-        if (!Number.isInteger(slot) || slot < 0 || slot >= HOTBAR_SIZE) return;
+        if (!HumanInventory.isHotbarSlot(slot)) return;
 
         this.handSlot = slot;
     }
