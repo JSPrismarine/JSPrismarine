@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
 import type { Frame, InetAddress, RakNetSession } from '@jsprismarine/raknet';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { stub } from '../testing/stub.test.helper';
-import MinecraftSession, { debugDroppedPackets } from './MinecraftSession';
+import MinecraftSession, { debugPacketNames } from './MinecraftSession';
 import BatchPacket from './packet/BatchPacket';
 import SetTimePacket from './packet/SetTimePacket';
 import TextPacket from './packet/TextPacket';
@@ -30,12 +33,12 @@ const time = () => {
     return packet;
 };
 
-const fakeSession = (dropped: Iterable<string>) => {
+const fakeSession = (dropped: Iterable<string>, dumped: Iterable<string> = [], dumpDir?: string) => {
     const framed: Buffer[] = [];
     const warnings: string[] = [];
     const rakSession = stub<RakNetSession>({
         sendFrame: (frame: Frame) => void framed.push(frame.content),
-        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
+        getAddress: () => stub<InetAddress>({ toToken: () => '127.0.0.1:19132' }),
         disconnect: () => {}
     });
     const logger = stub<Logger>({
@@ -44,20 +47,52 @@ const fakeSession = (dropped: Iterable<string>) => {
         warn: (message: unknown) => void warnings.push(String(message))
     });
 
-    return { framed, warnings, session: new MinecraftSession(rakSession, logger, undefined, new Set(dropped)) };
+    return {
+        framed,
+        warnings,
+        session: new MinecraftSession(rakSession, logger, undefined, new Set(dropped), new Set(dumped), dumpDir)
+    };
 };
 
 describe('network', () => {
-    describe('debugDroppedPackets', () => {
+    describe('debugPacketNames', () => {
         it('reads a comma-separated list, trimming blanks', () => {
-            expect([...debugDroppedPackets(' LevelChunkPacket, CraftingDataPacket ,,')]).toEqual([
+            expect([...debugPacketNames(' LevelChunkPacket, CraftingDataPacket ,,')]).toEqual([
                 'LevelChunkPacket',
                 'CraftingDataPacket'
             ]);
         });
 
         it('is empty when the variable is unset', () => {
-            expect(debugDroppedPackets(undefined).size).toBe(0);
+            expect(debugPacketNames(undefined).size).toBe(0);
+        });
+    });
+
+    describe('MinecraftSession packet dumping', () => {
+        const dumpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jsp-dump-test-'));
+        afterEach(() => fs.rmSync(dumpDir, { recursive: true, force: true }));
+
+        it('writes a named packet, header and all, and still sends it', async () => {
+            const { framed, warnings, session } = fakeSession([], ['TextPacket'], dumpDir);
+
+            const packet = message('dumped');
+            await session.sendDataPacket(packet);
+
+            const files = fs.readdirSync(dumpDir);
+            expect(files.length).toBe(1);
+            expect(files[0]).toMatch(/^\d+-127\.0\.0\.1-19132-TextPacket\.bin$/);
+            expect(fs.readFileSync(path.join(dumpDir, files[0]!))).toEqual(packet.getBuffer());
+            expect(framed.length).toBe(1);
+            expect(warnings[0]).toContain('Dumped §bTextPacket§r packet');
+        });
+
+        it('dumps a packet that is also dropped', async () => {
+            const { framed, session } = fakeSession(['TextPacket'], ['TextPacket'], dumpDir);
+
+            await session.sendDataPacket(message('dumped and dropped'));
+
+            expect(fs.readdirSync(dumpDir).length).toBe(1);
+            expect(framed.length).toBe(0);
         });
     });
 

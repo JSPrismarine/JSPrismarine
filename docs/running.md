@@ -63,7 +63,15 @@ it withholds:
 
 Drop one type at a time and watch whether the client's behavior changes. A
 batch of several packets is dropped whole when any packet in it is named.
-The variable is read when a connection is made, so it can also go in
-`packages/server/.env.development.local`, which the server loads at startup
-and which is not committed. Remove it when done; a server with packets
-missing is not one players can use.
+
+Once a packet type is implicated, `JSP_DEBUG_DUMP_PACKETS` takes the same
+kind of list and writes each named packet's encoded bytes, header included,
+to a file of its own under `JSP_DEBUG_DUMP_DIR` (default: a
+`jsprismarine-packets` directory in the system temp directory). That is the
+exact byte sequence the client was given, ready to decode against the
+protocol documentation. A packet can be dumped and dropped at the same time.
+
+The variables are read when a connection is made, so they can also go in
+`packages/server/.env.development.local`, which the server loads at startup.
+Remove them when done; a server with packets missing is not one players can
+use.

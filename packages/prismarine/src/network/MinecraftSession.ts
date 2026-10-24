@@ -3,26 +3,33 @@ import type { RakNetSession } from '@jsprismarine/raknet';
 import { ConnectionPriority, Protocol } from '@jsprismarine/raknet';
 import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { PacketLogFilter } from './PacketLogFilter';
 
 /**
- * The clientbound packets `JSP_DEBUG_DROP_PACKETS` names, by class name.
+ * The packet class names a debugging variable lists, comma-separated.
  *
- * A debugging aid for a client that leaves during the join without saying why. Set the
- * variable to a comma-separated list such as `LevelChunkPacket,CraftingDataPacket` and the
- * named packets never reach the wire, which bisects the join stream one packet type at a
- * time against a real client. Read when a session is created, from the environment the
- * server was started with.
- * @param {string | undefined} [value] - The variable's value; defaults to the process environment.
- * @returns {ReadonlySet<string>} The names to drop, empty when the variable is unset.
+ * Two variables use this. `JSP_DEBUG_DROP_PACKETS` names clientbound packets that never
+ * reach the wire, which bisects a join stream one packet type at a time against a client
+ * that leaves without saying why. `JSP_DEBUG_DUMP_PACKETS` names packets whose encoded bytes
+ * are written to a file, one per packet, so what a real client was given can be decoded
+ * offline. Both leave a warn line per packet. Read when a session is created, from the
+ * environment the server was started with.
+ * @param {string | undefined} value - The variable's value.
+ * @returns {ReadonlySet<string>} The names listed, empty when the variable is unset.
  */
-export const debugDroppedPackets = (value = process.env.JSP_DEBUG_DROP_PACKETS): ReadonlySet<string> =>
+export const debugPacketNames = (value: string | undefined): ReadonlySet<string> =>
     new Set(
         (value ?? '')
             .split(',')
             .map((name) => name.trim())
             .filter((name) => name.length > 0)
     );
+
+/** Where `JSP_DEBUG_DUMP_PACKETS` files go unless `JSP_DEBUG_DUMP_DIR` says otherwise. */
+const defaultDumpDir = (): string => process.env.JSP_DEBUG_DUMP_DIR ?? path.join(os.tmpdir(), 'jsprismarine-packets');
 
 /**
  * The layer between a `ClientConnection` and its RakNet session: wraps single packets in a
@@ -63,7 +70,9 @@ export default class MinecraftSession {
         session: RakNetSession,
         private readonly logger: Logger,
         private readonly logFilter: PacketLogFilter = new PacketLogFilter(),
-        private readonly dropped: ReadonlySet<string> = debugDroppedPackets()
+        private readonly dropped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DROP_PACKETS),
+        private readonly dumped: ReadonlySet<string> = debugPacketNames(process.env.JSP_DEBUG_DUMP_PACKETS),
+        private readonly dumpDir: string = defaultDumpDir()
     ) {
         this.rakSession = session;
     }
@@ -138,6 +147,7 @@ export default class MinecraftSession {
      * @param {boolean} [direct=false] - Force a datagram of its own.
      */
     public sendSharedBatch(content: Buffer, packet: DataPacket, direct = false): void {
+        this.dump(packet);
         if (this.drops(packet.getName())) return;
 
         // Through the same ordering chain as everything else, so a shared batch cannot
@@ -162,8 +172,6 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
-        if (this.drops(packet.getName())) return;
-
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
@@ -178,6 +186,11 @@ export default class MinecraftSession {
             );
             return;
         }
+
+        // After encoding, so a dumped packet is the bytes the client would have been given,
+        // whether or not it is also dropped.
+        this.dump(packet);
+        if (this.drops(packet.getName())) return;
 
         // Behind any chunk batch still compressing, so this packet does not overtake terrain
         // it was meant to follow.
@@ -198,6 +211,29 @@ export default class MinecraftSession {
 
         this.logger.warn(`Dropped §b${name}§r packet, named by JSP_DEBUG_DROP_PACKETS`);
         return true;
+    }
+
+    /**
+     * Writes an encoded packet to a file when `JSP_DEBUG_DUMP_PACKETS` names it.
+     *
+     * One file per packet, `<millis>-<address>-<name>.bin`, holding the packet with its header
+     * and before batching and compression. A write failure is logged and otherwise ignored;
+     * a debugging aid must not take the connection down with it.
+     * @param {DataPacket} packet - An encoded packet.
+     */
+    private dump(packet: DataPacket): void {
+        const name = packet.getName();
+        if (!this.dumped.has(name)) return;
+
+        const address = this.rakSession.getAddress().toToken().replaceAll(':', '-');
+        const file = path.join(this.dumpDir, `${Date.now()}-${address}-${name}.bin`);
+        try {
+            fs.mkdirSync(this.dumpDir, { recursive: true });
+            fs.writeFileSync(file, packet.getBuffer());
+            this.logger.warn(`Dumped §b${name}§r packet (${packet.getBuffer().byteLength} bytes) to ${file}`);
+        } catch (error: unknown) {
+            this.logger.warn(`Could not dump §b${name}§r packet to ${file}: ${String(error)}`);
+        }
     }
 
     /**
