@@ -1,6 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
@@ -12,8 +12,6 @@ import InventoryTransactionPacket, {
     UseItemAction,
     UseItemOnEntityAction
 } from './InventoryTransactionPacket';
-
-import type { UseItemData, UseItemOnEntityData } from './InventoryTransactionPacket';
 
 /**
  * A transaction as a client writes it, built from the layout rather than from the reader.
@@ -66,7 +64,8 @@ describe('InventoryTransactionPacket', () => {
             })
         );
 
-        const data = packet.transactionData as UseItemData;
+        const data = packet.transactionData;
+        assert(data?.kind === 'useItem');
         expect(packet.transactionType).toBe(TransactionType.USE_ITEM);
         expect(data.actionType).toBe(UseItemAction.BREAK_BLOCK);
         expect(data.blockPosition.getY()).toBe(-30);
@@ -127,7 +126,8 @@ describe('InventoryTransactionPacket', () => {
             })
         );
 
-        const data = packet.transactionData as UseItemOnEntityData;
+        const data = packet.transactionData;
+        assert(data?.kind === 'useItemOnEntity');
         expect(data.entityRuntimeId).toBe(42n);
         expect(data.actionType).toBe(UseItemOnEntityAction.ATTACK);
         expect(data.clickPosition.getZ()).toBe(5);
@@ -140,7 +140,7 @@ describe('InventoryTransactionPacket', () => {
         packet.legacySlotChanges = [];
         packet.transactionType = TransactionType.USE_ITEM;
         packet.inventoryActions = [new InventoryAction(ActionSource.WORLD, null, 0, 0, Item.air(), Item.air())];
-        packet.transactionData = <UseItemData>{
+        packet.transactionData = {
             kind: 'useItem',
             actionType: UseItemAction.CLICK_BLOCK,
             triggerType: 1,
@@ -158,7 +158,8 @@ describe('InventoryTransactionPacket', () => {
         packet.encode();
 
         const read = decode(packet.getBuffer());
-        const data = read.transactionData as UseItemData;
+        const data = read.transactionData;
+        assert(data?.kind === 'useItem');
 
         expect(read.inventoryActions).toHaveLength(1);
         expect(read.inventoryActions[0]!.sourceFlags).toBe(0);

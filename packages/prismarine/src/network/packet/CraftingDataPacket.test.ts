@@ -245,7 +245,7 @@ describe('network', () => {
                 matches: () => false
             };
             const packet = new CraftingDataPacket();
-            packet.recipes = [odd as any];
+            packet.recipes = [odd];
 
             expect(() => packet.encode()).toThrow(/cannot write/);
         });

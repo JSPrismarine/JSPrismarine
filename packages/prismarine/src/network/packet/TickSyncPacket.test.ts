@@ -24,7 +24,7 @@ describe('network', () => {
                 pk.serverReceptionTimestamp = BigInt(0xfeedbabe);
                 pk.encode();
 
-                expect(dump.equals((pk as any).getBuffer())).toBe(true);
+                expect(dump.equals(pk.getBuffer())).toBe(true);
             });
         });
     });
