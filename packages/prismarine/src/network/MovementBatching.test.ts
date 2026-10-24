@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import type Server from '../Server';
 import type { Entity } from '../entity/Entity';
+import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import PlayerSession from './PlayerSession';
@@ -33,17 +35,17 @@ const sessionWithCountedSends = () => {
     return { session, batches, singles };
 };
 
-const someWorld = () => ({ getName: () => 'test', getServer: () => ({}) }) as unknown as World;
+const someWorld = () => stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
 
 /** An entity with just the parts a movement packet reads. */
 const entityAt = (id: bigint, x: number): Entity =>
-    ({
+    stub<Entity>({
         getRuntimeId: () => id,
         getPosition: () => new Position(x, 65, 0, someWorld()),
         pitch: 0,
         yaw: 0,
         headYaw: 0
-    }) as unknown as Entity;
+    });
 
 describe('entity movement on the wire', () => {
     it('sends a whole tick of movement as one batch', async () => {
@@ -117,8 +119,8 @@ describe('entity movement on the wire', () => {
         const { session, batches } = sessionWithCountedSends();
 
         const entity = entityAt(1n, 1);
-        (entity as any).yaw = 90;
-        (entity as any).headYaw = 45;
+        entity.yaw = 90;
+        entity.headYaw = 45;
 
         session.queueMoveActor(entity);
         await session.flushQueuedMoves();
