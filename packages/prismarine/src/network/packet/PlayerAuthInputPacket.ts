@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import type { PlayerAuthInputData } from '@jsprismarine/minecraft';
+import { PlayerAuthInputData } from '@jsprismarine/minecraft';
 import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
@@ -10,28 +10,91 @@ import { InventoryAction, LegacySlotChange, readUseItemData, writeUseItemData } 
 import DataPacket from './DataPacket';
 
 /**
- * How many flags {@link PlayerAuthInputData} has room for.
+ * How many flags `PlayerAuthInputData` has room for: one past its highest member, 66.
  *
- * A count above this is not a client with more to say, it is a packet that is not what it
- * claims to be - and a reader that trusts it allocates whatever the number asks for.
+ * The enum's values are not consecutive. Members 2, 54 and 55 were removed from the game and
+ * their numbers were never reused, so `JumpDown` is 3 and `InternalUpdate` is 65. The 1.26.51
+ * docs page numbers the members 0 to 62 as if there were no gaps; the 1.26.60 docs corrected
+ * it, and gophertunnel's `InputFlagCount` agrees with the corrected numbering.
+ *
+ * `Input Data` is a list of the set flags, so a count above this is not a client with more to
+ * say. It is a packet that is not what it claims to be, and a reader that trusts it allocates
+ * whatever the number asks for.
  */
-const INPUT_FLAG_COUNT = 66;
+export const INPUT_FLAG_COUNT =
+    Math.max(...Object.values(PlayerAuthInputData).filter((value): value is number => typeof value === 'number')) + 1;
 
-/** A vector with two components, as the wire carries a rotation or a joystick. */
+/** The most `Player Block Actions` entries the docs allow in one packet (`maxItems`). */
+export const MAX_BLOCK_ACTIONS = 100;
+
+/**
+ * `InputMode`: the input device the player is using, as `Input Mode` numbers it.
+ *
+ * The 1.26.51 docs page lists four members and `Count` as 4; the 1.26.60 docs corrected
+ * `Count` to 5. Member 4 is the motion controller the field's own description mentions, which
+ * the docs' member list leaves out and gophertunnel names `InputModeMotionController`.
+ */
+export enum InputMode {
+    Undefined = 0,
+    Mouse = 1,
+    Touch = 2,
+    GamePad = 3,
+    MotionController = 4,
+    /** One past the last mode; not a mode a client can send. */
+    Count = 5
+}
+
+/**
+ * `ClientPlayMode`: whether the player is in the normal game or in one of the VR modes, as
+ * `Play Mode` numbers it.
+ *
+ * The 1.26.51 docs page numbers the members 0 to 4; the 1.26.60 docs corrected `ExitLevel`
+ * to 7 and `NumModes` to 9. Members 3 to 6 and 8 are the VR modes the docs no longer list
+ * (viewer, reality, placement, living room, exit level living room in gophertunnel's naming).
+ */
+export enum ClientPlayMode {
+    Normal = 0,
+    Teaser = 1,
+    Screen = 2,
+    ExitLevel = 7,
+    /** One past the last mode; not a mode a client can send. */
+    NumModes = 9
+}
+
+/** `NewInteractionModel`: how the player targets blocks, as `New Interaction Model` numbers it. */
+export enum NewInteractionModel {
+    Touch = 0,
+    Crosshair = 1,
+    Classic = 2,
+    /** One past the last model; not a model a client can send. */
+    Count = 3
+}
+
+/** A `Vec2`, as the wire carries a rotation or a joystick: two little-endian floats. */
 export interface Vec2 {
     x: number;
     y: number;
 }
 
-/** One thing the player did to a block this tick: started breaking it, gave up, punched it again. */
+/**
+ * One `PlayerBlockActionData`: a thing the player did to a block this tick.
+ *
+ * Every entry carries all three fields. The docs say a `StopDestroyBlock` "serializes the
+ * default value" for its position rather than leaving it out.
+ */
 export interface PlayerBlockAction {
-    /** A `PlayerAction`, the same numbering `PlayerActionPacket` uses. */
+    /** `Player Action Type`, a `PlayerActionType` in the same numbering `PlayerActionPacket` uses. */
     action: number;
+    /** `Position`, the block the action concerns, or the origin for a `StopDestroyBlock`. */
     position: BlockPosition;
+    /** `Facing`: the block face, "or action-specific integer data for AbortDestroyBlock". */
     face: number;
 }
 
-/** An item used on a block in the same tick the player moved, carried inside the input. */
+/**
+ * A `PackedItemUseLegacyInventoryTransaction`: an item used in the same tick the player moved,
+ * carried inside the input.
+ */
 export interface AuthInputItemUse {
     legacyRequestId: number;
     legacySlotChanges: LegacySlotChange[];
@@ -42,55 +105,94 @@ export interface AuthInputItemUse {
 /**
  * Where the player is and what they pressed, every tick.
  *
- * The only movement packet a client sends. Client authoritative movement - `MovePlayerPacket`
- * from the client - was retired at 1.21.80 and its selector left `StartGamePacket` at
- * 1.21.90, so a client of this version sends this twenty times a second whether the server
- * asked for it or not, and a server that does not read it has players who never move.
+ * The only movement packet a client sends. Client authoritative movement through
+ * `MovePlayerPacket` was retired at 1.21.80, so a client of this version sends this twenty
+ * times a second whether the server asked for it or not, and a server that does not read it
+ * has players who never move.
  *
- * It is also where a survival break arrives now: the start, the swings, the abort and the
- * stop all ride in `blockActions` rather than in `PlayerActionPacket`, which still carries a
- * creative break and the actions that have no block. And when the client used an item or
+ * It is also where a survival break arrives: the start, the swings, the abort and the stop
+ * all come in `Player Block Actions` rather than in `PlayerActionPacket`, which still carries
+ * a creative break and the actions that have no block. When the client used an item or
  * rearranged its inventory in the same tick, that transaction or request comes inside this
  * packet, in the same shape it has in its own.
  *
- * The layout is protocol 2193's, from Mojang's schema and gophertunnel's
- * `packet/player_auth_input.go`. Five optionals each open with a presence byte; 2168 wrote
- * that byte twice for each, and 2193 took the redundant one back out.
+ * Protocol 2193 wire order, with the docs' field names:
+ *
+ * 1. `Player Rotation` (`Vec2`: pitch, yaw), `Position` (`Vec3`), `Move Vector` (`Vec2`),
+ *    `Player Head Rotation` (float).
+ * 2. `Input Data`: a varuint32 count, then each set flag as a ZigZag varint32
+ *    `PlayerAuthInputData` value. See {@link INPUT_FLAG_COUNT} for the numbering.
+ * 3. `Input Mode` (varuint32 {@link InputMode}), `Play Mode` (varuint32 {@link ClientPlayMode}),
+ *    `New Interaction Model` (ZigZag varint32 {@link NewInteractionModel}), `Interact Rotation`
+ *    (`Vec2`), `Client Tick` (`PlayerInputTick`, varuint64), `Pos Delta` (`Vec3`).
+ * 4. Five optionals, each a presence byte then the value when it is 1: `Item Use Transaction`
+ *    (a `PackedItemUseLegacyInventoryTransaction`), `Item Stack Request`, `Player Block
+ *    Actions` (varuint32 count, then each `PlayerBlockActionData` as ZigZag varint32 type,
+ *    `BlockPos`, ZigZag varint32 facing), `Vehicle Rotation` (`Vec2`), `Client Predicted
+ *    Vehicle` (`ActorUniqueID`, ZigZag varint64). Protocol 2168 wrote a second presence byte
+ *    for each; 2193 took the redundant one out.
+ * 5. `Analog Move Vector` (`Vec2`), `Camera Orientation` (`Vec3`), `Raw Move Vector` (`Vec2`).
+ *
+ * The docs say each optional is present only when the matching `Input Data` flag is set
+ * (`PerformItemInteraction`, `PerformItemStackRequest`, `PerformBlockActions`,
+ * `IsInClientPredictedVehicle` for the last two). The reader follows the presence byte, which
+ * is what is on the wire; `PlayerAuthInputHandler` checks the flags.
  *
  * **Bound To:** Server
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-auth-input-packet/
  */
 export default class PlayerAuthInputPacket extends DataPacket {
     public static NetID = Identifiers.PlayerAuthInputPacket;
 
+    /** `Player Rotation` X: the pitch at the start of the tick. */
     public pitch = 0;
+    /** `Player Rotation` Y: the yaw at the start of the tick. */
     public yaw = 0;
-    /** The client's predicted position at the end of the tick. */
+    /** `Position`: the client's predicted position at the end of the tick. */
     public position: Vector3 = Vector3.ZERO;
-    /** The desired direction of travel, in the player's own frame. */
+    /** `Move Vector`: the desired direction of travel, in the player's own frame. */
     public moveVector: Vec2 = { x: 0, y: 0 };
+    /** `Player Head Rotation`. */
     public headYaw = 0;
-    /** Which {@link PlayerAuthInputData} flags are set this tick. */
+    /** `Input Data`: which `PlayerAuthInputData` flags are set this tick. */
     public inputData: Set<PlayerAuthInputData> = new Set();
+    /** `Input Mode`, an {@link InputMode}. */
     public inputMode = 0;
+    /** `Play Mode`, a {@link ClientPlayMode}. */
     public playMode = 0;
+    /** `New Interaction Model`, a {@link NewInteractionModel}. */
     public interactionModel = 0;
-    /** Where the player is looking for the purpose of interacting, as pitch and yaw. */
+    /** `Interact Rotation`: where the player is looking for the purpose of interacting, as pitch and yaw. */
     public interactRotation: Vec2 = { x: 0, y: 0 };
-    /** The client's simulation frame. */
+    /** `Client Tick`: the client's simulation frame. */
     public tick = 0n;
-    /** The client's predicted velocity at the end of the tick. */
+    /** `Pos Delta`: the client's predicted velocity at the end of the tick. */
     public delta: Vector3 = Vector3.ZERO;
+    /** `Item Use Transaction`, or null when the presence byte was 0. */
     public itemUseTransaction: AuthInputItemUse | null = null;
+    /** `Item Stack Request`, or null when the presence byte was 0. */
     public itemStackRequest: ItemStackRequest | null = null;
+    /** `Player Block Actions`, or null when the presence byte was 0. */
     public blockActions: PlayerBlockAction[] | null = null;
+    /** `Vehicle Rotation`, or null when the presence byte was 0. */
     public vehicleRotation: Vec2 | null = null;
+    /** `Client Predicted Vehicle`, or null when the presence byte was 0. */
     public predictedVehicle: bigint | null = null;
+    /** `Analog Move Vector`. */
     public analogMoveVector: Vec2 = { x: 0, y: 0 };
-    /** The world space direction the camera is pointing. */
+    /** `Camera Orientation`: the world space direction the camera is pointing. */
     public cameraOrientation: Vector3 = Vector3.ZERO;
-    /** The move vector before input permissions were applied to it. */
+    /** `Raw Move Vector`: the move vector before input permissions were applied to it. */
     public rawMoveVector: Vec2 = { x: 0, y: 0 };
 
+    /**
+     * Reads the layout described on the class.
+     *
+     * Values are stored as read; the handler decides whether they are ones a client can send.
+     * The two counts are the exception, because a count decides how much is read next.
+     * @throws {Error} When `Input Data` claims more flags than exist or `Player Block Actions`
+     * more entries than the docs allow.
+     */
     public decodePayload(): void {
         this.pitch = this.readFloatLE();
         this.yaw = this.readFloatLE();
@@ -114,13 +216,7 @@ export default class PlayerAuthInputPacket extends DataPacket {
 
         this.itemUseTransaction = this.readBoolean() ? this.readItemUse() : null;
         this.itemStackRequest = this.readBoolean() ? readItemStackRequest(this) : null;
-        this.blockActions = this.readBoolean()
-            ? Array.from({ length: this.readUnsignedVarInt() }, () => ({
-                  action: this.readVarInt(),
-                  position: BlockPosition.fromVector3(NetworkUtil.readBlockPosition(this)),
-                  face: this.readVarInt()
-              }))
-            : null;
+        this.blockActions = this.readBoolean() ? this.readBlockActions() : null;
         this.vehicleRotation = this.readBoolean() ? this.readVec2() : null;
         this.predictedVehicle = this.readBoolean() ? this.readVarLong() : null;
 
@@ -130,8 +226,10 @@ export default class PlayerAuthInputPacket extends DataPacket {
     }
 
     /**
-     * The mirror of {@link decodePayload}, so that a client - the bot harness - can send what
-     * a real one sends, and so that a test can pin the two against each other.
+     * The mirror of {@link decodePayload}, so that a client such as the bot harness can send
+     * what a real one sends, and so that a test can pin the two against each other.
+     * @throws {Error} When an `Item Stack Request` is set: the server only ever reads one, and
+     * there is no writer for it.
      */
     public encodePayload(): void {
         this.writeFloatLE(this.pitch);
@@ -153,8 +251,6 @@ export default class PlayerAuthInputPacket extends DataPacket {
         this.writeBoolean(this.itemUseTransaction !== null);
         if (this.itemUseTransaction !== null) this.writeItemUse(this.itemUseTransaction);
 
-        // A request cannot be written: the server only ever reads one. The bot does not
-        // craft, and a test that needs one builds the bytes itself.
         if (this.itemStackRequest !== null)
             throw new Error('PlayerAuthInputPacket cannot encode an item stack request');
         this.writeBoolean(false);
@@ -180,11 +276,29 @@ export default class PlayerAuthInputPacket extends DataPacket {
     }
 
     /**
-     * The item use a tick can carry - `PackedItemUseLegacyInventoryTransaction`.
+     * `Player Block Actions`: a varuint32 count, then each entry with all three fields.
+     *
+     * The count is checked against {@link MAX_BLOCK_ACTIONS} before anything is allocated.
+     */
+    private readBlockActions(): PlayerBlockAction[] {
+        const count = this.readUnsignedVarInt();
+        if (count > MAX_BLOCK_ACTIONS) {
+            throw new Error(`PlayerAuthInput claims ${count} block actions; the docs allow ${MAX_BLOCK_ACTIONS}`);
+        }
+
+        return Array.from({ length: count }, () => ({
+            action: this.readVarInt(),
+            position: BlockPosition.fromVector3(NetworkUtil.readBlockPosition(this)),
+            face: this.readVarInt()
+        }));
+    }
+
+    /**
+     * A `PackedItemUseLegacyInventoryTransaction`.
      *
      * The same transaction `InventoryTransactionPacket` carries under type `USE_ITEM`, minus
-     * the type: a request id, the legacy slot changes as an optional, the actions, then the
-     * use itself.
+     * the type: `Legacy Request ID` (ZigZag varint32), `Legacy Set Item Slots` behind a
+     * presence byte, the `Actions`, then the `ItemUseInventoryTransaction` itself.
      */
     private readItemUse(): AuthInputItemUse {
         const legacyRequestId = this.readVarInt();
