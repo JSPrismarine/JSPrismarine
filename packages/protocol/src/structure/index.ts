@@ -19,6 +19,7 @@ import LevelSettings from './LevelSettings';
 import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorBarWaypointPayload';
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
+import PlayerPartyInfo from './PlayerPartyInfo';
 import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
@@ -53,6 +54,7 @@ export {
     LevelSettings,
     LocatorBarWaypointPayload,
     NetworkItemStackDescriptor,
+    PlayerPartyInfo,
     PropertySyncData,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
