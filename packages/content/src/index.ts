@@ -1,3 +1,4 @@
+export * from './behaviors';
 export * from './components';
 export * from './definitions';
 export * from './diagnostics';

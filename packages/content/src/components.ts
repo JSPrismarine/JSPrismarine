@@ -27,11 +27,11 @@ export type ComponentSchema<P> = (value: unknown) => ParseResult<P>;
 /** Accepts any JSON value unchanged, for a component with no schema yet. */
 export const anyValue: ComponentSchema<unknown> = (value) => accepted(value);
 
-/** What a component factory can see about the type it binds to. */
-export interface ComponentContext {
+/** What a component factory or a behavior can see about the type it binds to. */
+export interface BindContext {
     /** The identifier of the type being resolved. */
     readonly identifier: string;
-    /** The definition the component's value came from. */
+    /** The definition the type is resolved from. */
     readonly definition: Definition;
 }
 
@@ -54,7 +54,7 @@ export interface ComponentFactory<H extends HookSignatures<H>, P = unknown> {
     /** Runs once per type at load, before {@link ComponentFactory.create}. */
     readonly schema: ComponentSchema<P>;
     /** Turns parsed parameters into the handlers this component contributes. */
-    create(params: P, context: ComponentContext): Partial<H>;
+    create(params: P, context: BindContext): Partial<H>;
 }
 
 /** One component after its value parsed and its handlers bound. */
@@ -74,7 +74,7 @@ export interface BoundComponent<H extends HookSignatures<H>> {
 /** A factory with its parameter type erased, which is how the registry stores one. */
 interface ErasedFactory<H extends HookSignatures<H>> {
     readonly hooks: ReadonlySet<string>;
-    bind(value: unknown, context: ComponentContext): ParseResult<BoundComponent<H>>;
+    bind(value: unknown, context: BindContext): ParseResult<BoundComponent<H>>;
 }
 
 /**
@@ -140,7 +140,7 @@ export class ComponentRegistry<H extends HookSignatures<H>> {
      *   registered under it.
      * @throws {ContentError} When the factory returns a hook it does not declare.
      */
-    public bind(name: string, value: unknown, context: ComponentContext): ParseResult<BoundComponent<H>> {
+    public bind(name: string, value: unknown, context: BindContext): ParseResult<BoundComponent<H>> {
         const factory = this.factories.get(name);
         if (!factory) return rejected(`no component is registered as ${name}`);
         return factory.bind(value, context);

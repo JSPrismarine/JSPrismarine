@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { ComponentContext, ComponentFactory } from './components';
+import type { BindContext, ComponentFactory } from './components';
 import { accepted, anyValue, ComponentRegistry, rejected } from './components';
 import type { Definition } from './definitions';
 import { ContentError } from './errors';
@@ -17,7 +17,7 @@ const definition: Definition = {
     path: 'blocks/marble.json',
     data: {}
 };
-const context: ComponentContext = { identifier: 'jsp:marble', definition };
+const context: BindContext = { identifier: 'jsp:marble', definition };
 
 /** `minecraft:friction`-shaped: one number, used to answer a question later. */
 const friction: ComponentFactory<BlockHooks, number> = {
