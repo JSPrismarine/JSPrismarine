@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { EventEmitter } from 'events';
-import Dgram, { type RemoteInfo } from 'node:dgram';
+import Dgram from 'node:dgram';
+import type { RemoteInfo } from 'node:dgram';
 import { MIN_DATAGRAM_BYTE_LENGTH, RAKNET_TICK_INTERVAL_MS } from './Constants';
 import RakNetSession from './Session';
 import BitFlags from './protocol/BitFlags';

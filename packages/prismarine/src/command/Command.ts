@@ -1,4 +1,5 @@
-import { ArgumentCommandNode, type CommandDispatcher } from '@jsprismarine/brigadier';
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { ArgumentCommandNode } from '@jsprismarine/brigadier';
 
 export interface CommandProps {
     id: string;

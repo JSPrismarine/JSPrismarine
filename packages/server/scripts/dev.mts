@@ -18,7 +18,8 @@
  * namespaces and parameter properties.
  */
 
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import type { ChildProcess } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, readdirSync, watch } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';

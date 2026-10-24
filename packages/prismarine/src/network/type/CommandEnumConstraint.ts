@@ -6,7 +6,6 @@ export default class CommandEnumConstraint {
     private constraints!: number[];
 
     public constructor(_enum: CommandEnum, valueOffset: number, constraints: number[]) {
-        // eslint-disable-next-line unused-imports/no-unused-vars
         (function (...$_: number[]): void {})(...constraints);
         if (!_enum.values[valueOffset]) {
             throw new Error('Invalid enum value offset $valueOffset');

@@ -6,7 +6,7 @@ description: Use before any code-writing task in this repository to apply JSDoc 
 # JSDoc TypeScript Documentation
 
 This guide follows this repository's [contribution guidance](../../../CONTRIBUTING.md) and
-[ESLint configuration](../../../eslint.config.js). Those files define the repository conventions;
+[Biome configuration](../../../biome.json). Those files define the repository conventions;
 this skill gives practical guidance for writing comments that fit them.
 
 ## Repository requirements
@@ -24,9 +24,8 @@ this skill gives practical guidance for writing comments that fit them.
 - Tests, test folders, configuration files, generator templates and private helpers do not need
   JSDoc under the repository lint rules.
 
-The root `pnpm lint` command runs ESLint and Prettier. ESLint checks JSDoc syntax, alignment, type
-expressions, property names, and parameter names; parameter-name mismatches are warnings. It requires
-a hyphen before `@param` descriptions.
+The root `pnpm lint` command runs Biome and Prettier; neither checks JSDoc content, so the
+requirements above are reviewed by hand.
 
 ## Examples
 

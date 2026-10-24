@@ -1,7 +1,8 @@
 import CraftingInput from '../crafting/CraftingInput';
 import HumanInventory from '../inventory/HumanInventory';
 import { Entity } from './Entity';
-import { type Attribute, Attributes } from './Attribute';
+import type { Attribute } from './Attribute';
+import { Attributes } from './Attribute';
 
 /**
  * How far a human's eyes are above its feet, in blocks.

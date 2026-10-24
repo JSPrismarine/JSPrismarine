@@ -42,7 +42,7 @@ When a message asks for an explanation, feasibility assessment, or recommendatio
   `pnpm --filter @jsprismarine/bedrock-data run generate` to regenerate it.
 - Let pnpm update `pnpm-lock.yaml` when dependencies change. Keep dependency versions consistent
   with the repository's package configuration.
-- Follow the configured ESLint and Prettier rules. Derive values from their source of truth instead of maintaining duplicate constants or lists.
+- Follow the configured Biome and Prettier rules. Derive values from their source of truth instead of maintaining duplicate constants or lists.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
 

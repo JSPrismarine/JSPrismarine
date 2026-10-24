@@ -1,6 +1,7 @@
 import { createSigner } from 'fast-jwt';
 import { generateKeyPairSync, randomInt, randomUUID } from 'node:crypto';
-import { createClientData, type ClientDataOptions } from './ClientData';
+import type { ClientDataOptions } from './ClientData';
+import { createClientData } from './ClientData';
 
 import type { IAuthProvider, Identity, LoginCredentials, LoginRequest } from './IAuthProvider';
 

@@ -1,6 +1,7 @@
 import { Logger } from '@jsprismarine/logger';
 import Bot from './Bot';
-import { Samples, type FleetReport } from './Metrics';
+import type { FleetReport } from './Metrics';
+import { Samples } from './Metrics';
 import Random from './Random';
 import { createBehaviours } from './behaviour/Behaviours';
 

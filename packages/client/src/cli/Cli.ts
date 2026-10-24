@@ -1,4 +1,5 @@
-import { parseArgs, type ParseArgsConfig } from 'node:util';
+import type { ParseArgsConfig } from 'node:util';
+import { parseArgs } from 'node:util';
 import { BEHAVIOUR_NAMES } from '../bot/behaviour/Behaviours';
 import { runBot, runConnect, runPing } from './commands';
 

@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { CompressionCodec, type CompressionSettings } from './CompressionCodec';
+import type { CompressionSettings } from './CompressionCodec';
+import { CompressionCodec } from './CompressionCodec';
 
 /** The id every batch carries, and the only packet id RakNet ever sees from Minecraft. */
 export const BATCH_PACKET_ID = 0xfe;
