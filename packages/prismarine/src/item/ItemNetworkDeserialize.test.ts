@@ -135,7 +135,7 @@ describe('item', () => {
             // is empty slots, so most of the packet was that.
             const air = new Item({ id: 0, name: 'minecraft:air' });
 
-            expect((ItemIdMap as Record<string, number>)['minecraft:air']).not.toBe(0);
+            expect(ItemIdMap['minecraft:air']).not.toBe(0);
 
             // The whole stack, all of it zero: two id bytes, two count bytes, the aux value,
             // the flag, the runtime id and an empty user data length.
