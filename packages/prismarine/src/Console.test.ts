@@ -1,12 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
-import Console, { writeAbovePrompt } from './Console';
+import { completeCommand, writeAbovePrompt } from './Console';
 import type { PromptWriter } from './Console';
-import type Server from './Server';
 
 const CLEAR_ROW = '\x1b[2K\r';
 
 /** A readline stand-in that records everything written to its output. */
-const fakeCli = (overrides: Partial<PromptWriter> = {}) => {
+const fakeCli = (overrides: Partial<PromptWriter> = {}): PromptWriter & { written: string[] } => {
     const written: string[] = [];
     return {
         written,
@@ -14,7 +13,7 @@ const fakeCli = (overrides: Partial<PromptWriter> = {}) => {
         line: '',
         prompt: vi.fn(),
         ...overrides
-    } as PromptWriter & { written: string[] };
+    };
 };
 
 describe('Console', () => {
@@ -57,48 +56,32 @@ describe('Console', () => {
         });
 
         it('holds up under a burst, as an unfiltered packet log would be', () => {
-            const cli = fakeCli({ line: '/help', _refreshLine: vi.fn() });
+            const refresh = vi.fn();
+            const cli = fakeCli({ line: '/help', _refreshLine: refresh });
 
             for (let i = 0; i < 50; i++) writeAbovePrompt(cli, `packet ${i}`);
 
             // One erase plus one message per line, and no prompts piling up.
             expect(cli.written.length).toBe(50);
             expect(cli.written.every((chunk) => chunk.startsWith(CLEAR_ROW))).toBe(true);
-            expect((cli._refreshLine as any).mock.calls.length).toBe(50);
+            expect(refresh).toHaveBeenCalledTimes(50);
         });
     });
 
-    describe('complete', () => {
-        it('should return completions for commands', async () => {
-            const serverMock = {
-                getCommandManager: () => ({
-                    getCommands: () =>
-                        new Map([
-                            ['command1', { name: 'command1' }],
-                            ['command2', { name: 'command2' }],
-                            ['command3', { name: 'command3' }]
-                        ])
-                }),
-                getWorldManager: () => ({
-                    getDefaultWorld: () => ({
-                        getName: () => 'world'
-                    })
-                })
-            } as Server;
-            const consoleInstance = new Console(serverMock) as any;
-            consoleInstance['history'] = [];
+    describe('completeCommand', () => {
+        const names = ['command1', 'command2', 'command3'];
 
-            const line = 'co';
-            const expectedCompletions = ['command1', 'command2', 'command3'];
+        it('returns every command that starts with the typed text', () => {
+            expect(completeCommand(names, 'co')).toEqual([names, 'co']);
+            expect(completeCommand(names, 'command1')).toEqual([['command1'], 'command1']);
+        });
 
-            const result = await new Promise((resolve, reject) => {
-                consoleInstance.complete(line, (err: Error | null, result: string[]) => {
-                    if (err) reject(err);
-                    else resolve(result);
-                });
-            });
+        it('offers every command when nothing matches', () => {
+            expect(completeCommand(names, 'zzz')).toEqual([names, 'zzz']);
+        });
 
-            expect(result).toEqual([expectedCompletions, line]);
+        it('drops duplicate names, keeping the last occurrence', () => {
+            expect(completeCommand(['a', 'b', 'a'], '')).toEqual([['b', 'a'], '']);
         });
     });
 });

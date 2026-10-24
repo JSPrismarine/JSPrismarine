@@ -57,6 +57,18 @@ export const writeAbovePrompt = (cli: PromptWriter, line: string): void => {
 };
 
 /**
+ * Completes a partially typed console line against the known command names.
+ *
+ * Duplicate names are dropped, keeping the last occurrence. When no name starts with the
+ * typed text, every name is offered instead.
+ */
+export const completeCommand = (names: readonly string[], line: string): CompleterResult => {
+    const completions = names.filter((name, index, self) => self.lastIndexOf(name) === index);
+    const hits = completions.filter((name) => name.startsWith(line));
+    return [hits.length ? hits : completions, line];
+};
+
+/**
  * Server console.
  */
 export default class Console implements CommandExecutor, Service {
@@ -72,7 +84,7 @@ export default class Console implements CommandExecutor, Service {
         // Make sure we don't enable the console twice.
         if (this.cli) return;
 
-        if (!process.stdin.setRawMode as any) {
+        if (typeof process.stdin.setRawMode !== 'function') {
             // TODO: Handle headless modes better (eg unit testing).
             return;
         }
@@ -138,20 +150,11 @@ export default class Console implements CommandExecutor, Service {
         this.cli?.removeAllListeners();
     }
 
-    private async complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void) {
-        const commands = Array.from(this.server.getCommandManager().getCommands().values()).map(
-            (command) => command.name
-        );
-
-        // Merge and remove duplicates.
-        const completions = commands
-            .reverse() // Reverse to remove duplicates at the end.
-            .filter((value, index, self) => self.indexOf(value) === index)
-            .reverse(); // Restore.
+    private complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void): void {
+        const names = Array.from(this.server.getCommandManager().getCommands().values()).map((command) => command.name);
 
         // TODO: Handle arguments.
-        const hits = completions.filter((c) => c.startsWith(line));
-        return callback(null, [hits.length ? hits : completions, line]);
+        callback(null, completeCommand(names, line));
     }
 
     public write(line: string): void {
