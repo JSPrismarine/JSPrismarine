@@ -1,25 +1,75 @@
+import { NetworkBinaryStream, TextPacket as ProtocolTextPacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
 import TextType from '../type/TextType';
 import TextPacket from './TextPacket';
 
-// A varuint length prefix followed by UTF-8, for strings shorter than 128 bytes.
-const string = (value: string): Buffer => Buffer.concat([Buffer.from([Buffer.byteLength(value)]), Buffer.from(value)]);
+/** The header: packet id 9 as a varuint, no subclient ids. */
+const HEADER = 0x09;
 
-const message = '{"rawtext":[{"text":"Server restarts in 5 minutes"}]}';
+/** A string as the wire carries it: a varuint length, then the UTF-8 bytes. One length byte for these. */
+const str = (text: string): number[] => [Buffer.byteLength(text), ...Buffer.from(text, 'utf-8')];
 
-// One Buffer per docs field, in wire order.
-const wire = Buffer.concat([
-    Buffer.from([0x09]), // header: varuint 9
-    Buffer.from([0x00]), // Localize?: false
-    Buffer.from([0x00]), // Body: MessageOnly
-    Buffer.from([0x0b]), // Message Type: textObjectAnnouncement
-    string(message), // Message
-    string('2535428504464321'), // Sender's XUID
-    string(''), // Platform Id
-    Buffer.from([0x00]) // Filtered Message: absent
-]);
+interface Fields {
+    type: TextType;
+    needsTranslation?: boolean;
+    sourceName?: string;
+    message: string;
+    parameters?: string[];
+    xuid?: string;
+    platformChatId?: string;
+    filtered?: string;
+}
+
+const packet = ({
+    type,
+    needsTranslation = false,
+    sourceName = '',
+    message,
+    parameters = [],
+    xuid = '',
+    platformChatId = '',
+    filtered = ''
+}: Fields): TextPacket => {
+    const pk = new TextPacket();
+    pk.type = type;
+    pk.needsTranslation = needsTranslation;
+    pk.sourceName = sourceName;
+    pk.message = message;
+    pk.parameters = parameters;
+    pk.xuid = xuid;
+    pk.platformChatId = platformChatId;
+    pk.filtered = filtered;
+    return pk;
+};
+
+const encode = (fields: Fields): Buffer => {
+    const pk = packet(fields);
+    pk.encode();
+    return pk.getBuffer();
+};
+
+const decode = (bytes: number[]): TextPacket => {
+    const pk = new TextPacket();
+    pk.setReadBuffer(Buffer.from(bytes));
+    pk.decode();
+    return pk;
+};
+
+const announcement = '{"rawtext":[{"text":"Server restarts in 5 minutes"}]}';
+
+/** A textObjectAnnouncement as the wire carries it, one entry per docs field. */
+const announcementWire = [
+    HEADER,
+    0x00, // Localize?: false
+    0x00, // Body: MessageOnly
+    0x0b, // Message Type: textObjectAnnouncement
+    ...str(announcement), // Message
+    ...str('2535428504464321'), // Sender's XUID
+    ...str(''), // Platform Id
+    0x00 // Filtered Message: absent
+];
 
 describe('network', () => {
     describe('packet', () => {
@@ -29,31 +79,205 @@ describe('network', () => {
                 expect(TextPacket.NetID).toBe(9);
             });
 
-            it('writes a textObjectAnnouncement as a MessageOnly body in docs order', () => {
-                const pk = new TextPacket();
-                pk.type = TextType.JsonAnnouncement;
-                pk.needsTranslation = false;
-                pk.message = message;
-                pk.xuid = '2535428504464321';
-                pk.platformChatId = '';
-                pk.encode();
+            describe('encode', () => {
+                it('writes a Raw message as body variant 0, type after the variant index', () => {
+                    const buffer = encode({ type: TextType.Raw, message: 'hi' });
 
-                expect(pk.getBuffer()).toEqual(wire);
+                    expect([...buffer]).toEqual([
+                        HEADER,
+                        0x00, // Localize?
+                        0x00, // Body variant: MessageOnly
+                        0x00, // Message Type: raw
+                        ...str('hi'), // Message
+                        ...str(''), // Sender's XUID
+                        ...str(''), // Platform Id
+                        0x00 // Filtered Message: absent
+                    ]);
+                });
+
+                it('writes a Chat message as body variant 1 with the Player Name before the Message', () => {
+                    const buffer = encode({
+                        type: TextType.Chat,
+                        sourceName: 'Steve',
+                        message: 'hi',
+                        xuid: '2535',
+                        platformChatId: 'p1',
+                        filtered: 'hi'
+                    });
+
+                    expect([...buffer]).toEqual([
+                        HEADER,
+                        0x00, // Localize?
+                        0x01, // Body variant: AuthorAndMessage
+                        0x01, // Message Type: chat
+                        ...str('Steve'), // Player Name
+                        ...str('hi'), // Message
+                        ...str('2535'), // Sender's XUID
+                        ...str('p1'), // Platform Id
+                        0x01, // Filtered Message: present
+                        ...str('hi')
+                    ]);
+                });
+
+                it('writes a Translation as body variant 2 with the Parameter List after the Message', () => {
+                    const buffer = encode({
+                        type: TextType.Translation,
+                        needsTranslation: true,
+                        message: '%a',
+                        parameters: ['x', 'yz']
+                    });
+
+                    expect([...buffer]).toEqual([
+                        HEADER,
+                        0x01, // Localize?
+                        0x02, // Body variant: MessageAndParams
+                        0x02, // Message Type: translate
+                        ...str('%a'), // Message
+                        0x02, // Parameter List count
+                        ...str('x'),
+                        ...str('yz'),
+                        ...str(''), // Sender's XUID
+                        ...str(''), // Platform Id
+                        0x00 // Filtered Message: absent
+                    ]);
+                });
+
+                it('writes the Filtered Message as an optional: a presence byte, then the string only when present', () => {
+                    const absent = encode({ type: TextType.System, message: 'm' });
+                    const present = encode({ type: TextType.System, message: 'm', filtered: 'f' });
+
+                    expect([...absent.subarray(-1)]).toEqual([0x00]);
+                    expect([...present.subarray(-3)]).toEqual([0x01, ...str('f')]);
+                    expect(present.length).toBe(absent.length + 2);
+                });
+
+                it('writes a Whisper and an Announcement with a Player Name, like Chat', () => {
+                    for (const type of [TextType.Whisper, TextType.Announcement]) {
+                        const buffer = encode({ type, sourceName: 'S', message: 'm' });
+
+                        expect([...buffer.subarray(0, 8)]).toEqual([
+                            HEADER,
+                            0x00,
+                            0x01,
+                            type,
+                            ...str('S'),
+                            ...str('m')
+                        ]);
+                    }
+                });
+
+                it('writes a textObjectAnnouncement as a MessageOnly body in docs order', () => {
+                    const buffer = encode({
+                        type: TextType.JsonAnnouncement,
+                        message: announcement,
+                        xuid: '2535428504464321'
+                    });
+
+                    expect([...buffer]).toEqual(announcementWire);
+                });
             });
 
-            it('reads a hand-built textObjectAnnouncement and consumes it all', () => {
-                const pk = new TextPacket();
-                pk.setReadBuffer(wire);
-                pk.decode();
+            describe('decode', () => {
+                it('reads a Chat message with a present Filtered Message and consumes the whole buffer', () => {
+                    const pk = decode([
+                        HEADER,
+                        0x00,
+                        0x01,
+                        0x01,
+                        ...str('Steve'),
+                        ...str('hi'),
+                        ...str('2535'),
+                        ...str('p1'),
+                        0x01,
+                        ...str('hi!')
+                    ]);
 
-                expect(pk.type).toBe(TextType.JsonAnnouncement);
-                expect(pk.needsTranslation).toBe(false);
-                expect(pk.message).toBe(message);
-                expect(pk.parameters).toEqual([]);
-                expect(pk.xuid).toBe('2535428504464321');
-                expect(pk.platformChatId).toBe('');
-                expect(pk.filtered).toBe('');
-                expect(pk.feof()).toBe(true);
+                    expect(pk.needsTranslation).toBe(false);
+                    expect(pk.type).toBe(TextType.Chat);
+                    expect(pk.sourceName).toBe('Steve');
+                    expect(pk.message).toBe('hi');
+                    expect(pk.parameters).toEqual([]);
+                    expect(pk.xuid).toBe('2535');
+                    expect(pk.platformChatId).toBe('p1');
+                    expect(pk.filtered).toBe('hi!');
+                    expect(pk.feof()).toBe(true);
+                });
+
+                it('reads a Translation with two parameters and an absent Filtered Message', () => {
+                    const pk = decode([
+                        HEADER,
+                        0x01,
+                        0x02,
+                        0x02,
+                        ...str('%a'),
+                        0x02,
+                        ...str('x'),
+                        ...str('yz'),
+                        ...str('X'),
+                        ...str('P'),
+                        0x00
+                    ]);
+
+                    expect(pk.needsTranslation).toBe(true);
+                    expect(pk.type).toBe(TextType.Translation);
+                    expect(pk.message).toBe('%a');
+                    expect(pk.parameters).toEqual(['x', 'yz']);
+                    expect(pk.xuid).toBe('X');
+                    expect(pk.platformChatId).toBe('P');
+                    expect(pk.filtered).toBe('');
+                    expect(pk.feof()).toBe(true);
+                });
+
+                it('reads a Raw message the way the client sends chat: variant 0, nothing optional', () => {
+                    const pk = decode([HEADER, 0x00, 0x00, 0x00, ...str('hello'), 0x00, 0x00, 0x00]);
+
+                    expect(pk.type).toBe(TextType.Raw);
+                    expect(pk.message).toBe('hello');
+                    expect(pk.feof()).toBe(true);
+                });
+
+                it('reads a hand-built textObjectAnnouncement and consumes it all', () => {
+                    const pk = decode(announcementWire);
+
+                    expect(pk.type).toBe(TextType.JsonAnnouncement);
+                    expect(pk.needsTranslation).toBe(false);
+                    expect(pk.message).toBe(announcement);
+                    expect(pk.parameters).toEqual([]);
+                    expect(pk.xuid).toBe('2535428504464321');
+                    expect(pk.platformChatId).toBe('');
+                    expect(pk.filtered).toBe('');
+                    expect(pk.feof()).toBe(true);
+                });
+
+                it('rejects a body variant it does not know', () => {
+                    expect(() => decode([HEADER, 0x00, 0x03, 0x00, ...str('m'), 0x00, 0x00, 0x00])).toThrow(
+                        'Unknown TextPacket body variant 3'
+                    );
+                });
+            });
+
+            it('produces the same bytes as the protocol package for every body variant', () => {
+                const cases: Fields[] = [
+                    { type: TextType.Raw, message: 'hi', filtered: 'hi' },
+                    { type: TextType.Chat, sourceName: 'Steve', message: 'hi', xuid: '2535', platformChatId: 'p1' },
+                    { type: TextType.Translation, needsTranslation: true, message: '%a', parameters: ['x', 'yz'] },
+                    { type: TextType.JsonAnnouncement, message: announcement }
+                ];
+
+                for (const fields of cases) {
+                    const shared = new ProtocolTextPacket({
+                        type: fields.type,
+                        needsTranslation: fields.needsTranslation ?? false,
+                        ...(fields.sourceName === undefined ? {} : { sourceName: fields.sourceName }),
+                        message: fields.message,
+                        ...(fields.parameters === undefined ? {} : { parameters: fields.parameters }),
+                        xuid: fields.xuid ?? '',
+                        platformChatId: fields.platformChatId ?? '',
+                        filtered: fields.filtered ?? ''
+                    }).serialize(new NetworkBinaryStream());
+
+                    expect([...encode(fields)]).toEqual([...shared]);
+                }
             });
         });
     });
