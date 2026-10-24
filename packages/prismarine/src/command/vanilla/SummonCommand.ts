@@ -1,12 +1,11 @@
-import { allEntities } from '../../entity/Entities';
+import { spawnableEntities } from '../../entity/Entities';
 
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
-import { CommandArgumentMob } from '../CommandArguments';
+import { CommandArgumentMob, getString } from '../CommandArguments';
 
-import type Player from '../../Player';
-import type { Entity } from '../../entity/Entity';
-import { Command } from '../Command';
+import Player from '../../Player';
+import { Command, argument, literal } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class SummonCommand extends Command {
     public constructor() {
@@ -17,30 +16,24 @@ export default class SummonCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('summon').then(
                 argument('entity', new CommandArgumentMob()) /* .then(
                     argument('position', new CommandArgumentPosition()) */
                     .executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        // const position = context.getArgument('position') as Vector3;
-                        const entityId = (context.getArgument('entity') as string).toLowerCase();
-                        let Entity: any | undefined;
+                        const source = context.getSource();
+                        if (!(source instanceof Player)) throw new Error(`This command can't be run from the console`);
 
-                        if (!entityId.includes(':')) {
-                            Entity = allEntities().find((value) => value.MOB_ID === `minecraft:${entityId}`);
-                        } else {
-                            Entity = allEntities().find((value) => value.MOB_ID === entityId);
-                        }
+                        // const position = CommandArgumentPosition.getPosition(context, 'position');
+                        const entityId = getString(context, 'entity').toLowerCase();
+                        const mobId = entityId.includes(':') ? entityId : `minecraft:${entityId}`;
 
+                        const Entity = spawnableEntities().find((value) => value.MOB_ID === mobId);
                         if (!Entity) throw new Error(`No such entity "${entityId}"!`);
 
-                        // Summoned where the player stands, in one step. The two positional
-                        // arguments here never matched the constructor, which takes a single
-                        // options object - the `any` above hid it from the compiler, so the
-                        // entity was built with no world and the first read of it threw.
-                        const mob: Entity = new Entity({ position: source.getPosition() });
+                        // Summoned where the player stands.
+                        const mob = new Entity({ position: source.getPosition() });
                         await source.getWorld().addEntity(mob);
 
                         const res = `Summoned ${Entity.MOB_ID}`;

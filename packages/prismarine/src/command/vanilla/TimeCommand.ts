@@ -1,8 +1,10 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, integer, literal, string } from '@jsprismarine/brigadier';
+import { integer, string } from '@jsprismarine/brigadier';
 
-import type Player from '../../Player';
-import { Command } from '../Command';
+import Player from '../../Player';
+import { Command, argument, literal } from '../Command';
+import { getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class TimeCommand extends Command {
     public constructor() {
@@ -13,19 +15,23 @@ export default class TimeCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('time')
                 .then(
                     argument('action', string()).then(
                         argument('value', integer()).executes(async (context) => {
-                            const source = context.getSource() as Player;
+                            const source = context.getSource();
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
+
                             const world = source.getWorld();
 
                             const value = context.getArgument('value');
                             if (value < 0) throw new Error('value can not be less than 0');
 
-                            switch (context.getArgument('action').toLowerCase()) {
+                            const action = getString(context, 'action');
+                            switch (action.toLowerCase()) {
                                 case 'set':
                                     world.setTicks(value);
                                     break;
@@ -36,7 +42,7 @@ export default class TimeCommand extends Command {
                                     world.setTicks(world.getTicks() - value);
                                     break;
                                 default:
-                                    throw new Error(`Invalid argument "${context.getArgument('action')}"`);
+                                    throw new Error(`Invalid argument "${action}"`);
                             }
 
                             await world.sendTime();
@@ -46,7 +52,9 @@ export default class TimeCommand extends Command {
                     )
                 )
                 .executes(async (context) => {
-                    const source = context.getSource() as Player;
+                    const source = context.getSource();
+                    if (!(source instanceof Player)) throw new Error(`This command can't be run from the console`);
+
                     const world = source.getWorld();
 
                     await source.sendMessage(`The current time is ${world.getTicks()}`);
