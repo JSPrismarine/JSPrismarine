@@ -7,10 +7,15 @@ import {
 import type { CommandExecutor } from './CommandExecutor';
 
 /**
- * Starts a literal node whose callbacks receive the command source as a `CommandExecutor`.
+ * Starts a lowercase literal node whose callbacks receive the command source as a `CommandExecutor`.
  * Prefer this over brigadier's `literal`, which leaves the source untyped.
+ * @throws {TypeError} If the name contains uppercase characters.
  */
-export const literal = (name: string) => brigadierLiteral<CommandExecutor>(name);
+export const literal = <const Name extends string>(name: Name & Lowercase<Name>) => {
+    if (name !== name.toLowerCase()) throw new TypeError('Command literal names must be lowercase');
+
+    return brigadierLiteral<CommandExecutor>(name);
+};
 
 /**
  * Starts an argument node whose callbacks receive the command source as a `CommandExecutor`.
