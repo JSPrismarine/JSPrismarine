@@ -337,18 +337,32 @@ export default class Player extends Human {
     private async chatHandler(evt: ChatEvent): Promise<void> {
         if (evt.isCanceled()) return;
 
+        const chat = evt.getChat();
+
         // TODO: proper channel system
         if (
-            evt.getChat().getChannel() === '*.everyone' ||
-            (evt.getChat().getChannel() === '*.ops' && this.isOp()) ||
-            evt.getChat().getChannel() === `*.player.${this.getName()}`
+            chat.getChannel() !== '*.everyone' &&
+            !(chat.getChannel() === '*.ops' && this.isOp()) &&
+            chat.getChannel() !== `*.player.${this.getName()}`
         )
-            await this.sendMessage(
-                evt.getChat().getMessage(),
-                CHAT_TEXT_TYPE[evt.getChat().getType()],
-                evt.getChat().getParameters(),
-                evt.getChat().isNeedsTranslation()
-            );
+            return;
+
+        // A player's chat names its author, as a dedicated server does: the client draws
+        // `<name>` from it and can mute or report the XUID, which it checks against the
+        // player list. Every other type is a line the server formatted, sent as written.
+        const sender = chat.getSender();
+        const author =
+            chat.getType() === ChatType.CHAT
+                ? { sourceName: sender.getName(), xuid: sender instanceof Player ? (sender.getXUID() ?? '') : '' }
+                : {};
+
+        await this.getNetworkSession().sendMessage({
+            message: chat.getMessage(),
+            type: CHAT_TEXT_TYPE[chat.getType()],
+            parameters: chat.getParameters(),
+            needsTranslation: chat.isNeedsTranslation(),
+            ...author
+        });
     }
 
     /**
@@ -531,8 +545,14 @@ export default class Player extends Human {
     }
 
     /**
-     * Send a chat message to the client.
-     * @param message - the message
+     * Sends a line of text to this player's client.
+     *
+     * `type` picks how the client renders it. A JSON text object goes as `TextType.Json`;
+     * a translation key with its parameters as `TextType.Translation`.
+     * @param message - The text, or the translation key for a translated type.
+     * @param type - How the client renders the message. Raw by default.
+     * @param parameters - The values a translated type fills its key with.
+     * @param needsTranslation - Whether the client should translate the message.
      */
     public async sendMessage(
         message: string,
@@ -540,8 +560,6 @@ export default class Player extends Human {
         parameters: string[] = [],
         needsTranslation = false
     ): Promise<void> {
-        // TODO: Do this properly like java edition,
-        // in other words, the message should be JSON formatted.
         await this.getNetworkSession().sendMessage({
             message,
             parameters,
