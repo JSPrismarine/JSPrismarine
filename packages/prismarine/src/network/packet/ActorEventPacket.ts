@@ -8,14 +8,19 @@ import DataPacket from './DataPacket';
  * One-off things that happen to an entity and that the client animates itself: the red
  * flash of being hurt, the death spin, an arm swing.
  *
- * Health arriving as a smaller number is not enough on its own - the client will move the
- * hearts and say nothing about it. The flash and the sound come from here.
+ * Health arriving as a smaller number is not enough on its own. The client moves the hearts
+ * and says nothing about it; the flash and the sound come from here.
  *
- * Protocol 2193 wire order, with the docs' field names: `Target Runtime ID` (varuint64),
- * `Event ID` (uint8, an `ActorEvent`), `Data` (ZigZag varint32), then `Fire At Position` as
- * an optional Vec3 - a presence byte, then three little-endian floats when it is 0x01.
+ * Protocol 2193 layout (docs id 27), in wire order:
  *
- * **Bound To:** Client
+ * | Name | Type | Notes |
+ * | ---- |:----:|:-----:|
+ * | Target Runtime ID | varuint64 | |
+ * | Event ID | uint8 | An {@link ActorEvent} |
+ * | Data | varint32 | ZigZag encoded; meaning depends on the event |
+ * | Fire At Position | optional Vec3 | A presence byte, then three little-endian floats when it is 0x01 |
+ *
+ * **Bound To:** Client and Server. A client sends `FEED` about its own player when it starts eating.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/actor-event-packet/
  */
 export default class ActorEventPacket extends DataPacket {
@@ -55,10 +60,10 @@ export default class ActorEventPacket extends DataPacket {
 }
 
 /**
- * The events this packet can carry. Only the handful the server has a use for; the protocol
- * defines a long tail of mob-specific ones.
+ * The events this packet can carry, generated from Mojang's 1.26.51 release documentation in
+ * `@jsprismarine/minecraft` and re-exported here for the entity code that sends them. The
+ * values have gaps (`FEED` is 57, `UPDATE_STACK_SIZE` is 69) because they are the game's own
+ * enum values; the rendered docs site numbers the members 0 to 60 consecutively, which is a
+ * display artifact of metadata that carries no values.
  */
-// `ActorEvent` is generated and lives in `@jsprismarine/minecraft`. The copy here carried
-// five of its fifty-eight members, and called 4 ARM_SWING where vanilla calls it
-// StartAttacking.
 export { ActorEvent };
