@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
+import type Server from '../Server';
+import type { EventTypes } from '../events/EventEmitter';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
 import { Position } from '../world/Position';
 import { AttributeIds } from './Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { Entity } from './Entity';
+import { stub } from '../testing/stub.test.helper';
 
 /**
  * The damage pipeline on `Entity`: grace periods, absorption, knockback and the events.
@@ -38,14 +41,21 @@ class Dummy extends Entity {
 
 /** Everything a hurt entity reaches for, and nothing else. */
 const scene = () => {
-    const posted: Array<[string, any]> = [];
+    const posted: EventTypes[] = [];
     const flashes: Array<{ id: bigint; event: ActorEvent }> = [];
     const noises: Array<{ id: bigint; sound: LevelSoundEvent }> = [];
 
-    const server: any = {
-        post: (payload: [string, any]) => posted.push(payload),
+    // Stands in for a plugin's listener. It sees the same event object the pipeline goes on to
+    // read, which is what makes cancelling or changing the blow from a test work at all.
+    let listener = (_: EventTypes): void => {};
+
+    const server = stub<Server>({
+        post: (pair) => {
+            listener(pair);
+            return posted.push(pair);
+        },
         getTick: () => 0
-    };
+    });
 
     const world: any = {
         getName: () => 'test',
@@ -61,7 +71,11 @@ const scene = () => {
 
     const at = (x: number, z: number) => new Dummy({ position: new Position(x, 64, z, world) });
 
-    return { posted, flashes, noises, at };
+    const listen = (fn: typeof listener) => {
+        listener = fn;
+    };
+
+    return { posted, flashes, noises, at, listen };
 };
 
 /** Runs the grace period out, which is what the world's tick would otherwise do. */
@@ -221,11 +235,9 @@ describe('the damage pipeline', () => {
             const victim = world.at(0, 0);
             const attacker = world.at(-3, 0);
 
-            // The event the listener sees is the same object the pipeline goes on to read, which
-            // is what makes cancelling it from here work at all.
-            (victim as any).server.post = ([name, event]: [string, any]) => {
+            world.listen(([name, event]) => {
                 if (name === 'entityDamage') event.preventDefault();
-            };
+            });
 
             expect(await victim.damage(6, DamageSource.entity(attacker))).toBe(false);
             expect(victim.getHealth()).toBe(20);
@@ -235,9 +247,9 @@ describe('the damage pipeline', () => {
 
         it('lets a listener change the blow', async () => {
             const victim = world.at(0, 0);
-            (victim as any).server.post = ([name, event]: [string, any]) => {
+            world.listen(([name, event]) => {
                 if (name === 'entityDamage') event.setAmount(2);
-            };
+            });
 
             await victim.damage(10);
 
@@ -250,9 +262,9 @@ describe('the damage pipeline', () => {
 
             await victim.damage(100, DamageSource.entity(attacker));
 
-            const deaths = world.posted.filter(([name]) => name === 'entityDeath');
+            const deaths = world.posted.flatMap(([name, event]) => (name === 'entityDeath' ? [event] : []));
             expect(deaths).toHaveLength(1);
-            expect(deaths[0]![1].getSource().attacker).toBe(attacker);
+            expect(deaths[0]!.getSource().attacker).toBe(attacker);
         });
 
         it('does not announce a second death for something already dead', async () => {
