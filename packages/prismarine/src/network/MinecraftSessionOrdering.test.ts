@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Logger } from '@jsprismarine/logger';
+import type { Frame, InetAddress, RakNetSession } from '@jsprismarine/raknet';
+import { stub } from '../testing/stub.test.helper';
 import MinecraftSession from './MinecraftSession';
 import BatchPacket from './packet/BatchPacket';
 import TextPacket from './packet/TextPacket';
@@ -33,14 +36,14 @@ const batchOf = (text: string) => {
 /** Records what was framed, in the order RakNet was handed it. */
 const fakeSession = () => {
     const framed: string[] = [];
-    const rakSession = {
-        sendFrame: (frame: any) => framed.push(frame.content.toString('base64')),
-        getAddress: () => ({ toToken: () => 'token' }),
+    const rakSession = stub<RakNetSession>({
+        sendFrame: (frame: Frame) => void framed.push(frame.content.toString('base64')),
+        getAddress: () => stub<InetAddress>({ toToken: () => 'token' }),
         disconnect: () => {}
-    };
-    const logger = { silly: () => {}, error: () => {}, warn: () => {} };
+    });
+    const logger = stub<Logger>({ silly: () => {}, error: () => {}, warn: () => {} });
 
-    return { framed, session: new MinecraftSession(rakSession as any, logger as any) };
+    return { framed, session: new MinecraftSession(rakSession, logger) };
 };
 
 describe('network', () => {

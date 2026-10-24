@@ -1,18 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { Logger } from '@jsprismarine/logger';
+import type { RakNetSession } from '@jsprismarine/raknet';
+import type Player from '../Player';
+import { stub } from '../testing/stub.test.helper';
 import ClientConnection from './ClientConnection';
+import type PlayerSession from './PlayerSession';
 
 describe('network', () => {
     describe('ClientConnection', () => {
-        const fakeConnection = () => new ClientConnection({} as any, {} as any);
+        const fakeConnection = () => new ClientConnection(stub<RakNetSession>(), stub<Logger>());
+
+        /**
+         * A player whose teardown is `disable`.
+         *
+         * Set after the fact rather than passed as a literal: `Entity` declares `constructor`
+         * as the class itself, which an object literal's `Function` does not satisfy.
+         */
+        const fakePlayer = (disable: Player['disable']) => {
+            const player = stub<Player>();
+            player.disable = disable;
+            return player;
+        };
 
         /** A session and the player behind it, both recording what was released. */
         const fakePair = () => {
             const released: string[] = [];
-            const session = {
-                getPlayer: () => ({ disable: async () => void released.push('player') }),
+            const session = stub<PlayerSession>({
+                getPlayer: () => fakePlayer(async () => void released.push('player')),
                 disable: () => void released.push('session')
-            } as any;
+            });
 
             return { session, released };
         };
@@ -68,15 +85,14 @@ describe('network', () => {
         });
 
         it('still releases the session when the player fails to shut down', async () => {
-            const disable = vi.fn();
-            const session = {
-                getPlayer: () => ({
-                    disable: async () => {
+            const disable = vi.fn<() => void>();
+            const session = stub<PlayerSession>({
+                getPlayer: () =>
+                    fakePlayer(async () => {
                         throw new Error('world unavailable');
-                    }
-                }),
+                    }),
                 disable
-            } as any;
+            });
 
             const connection = fakeConnection();
             connection.attachPlayerSession(session);
