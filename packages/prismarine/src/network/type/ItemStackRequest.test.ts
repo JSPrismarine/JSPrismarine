@@ -15,7 +15,7 @@ import { ContainerUiId, ItemStackRequestActionType, readItemStackRequest } from 
 const writeSlot = (stream: BinaryStream, slot: ItemStackRequestSlotInfo): void => {
     stream.writeByte(slot.container.containerId);
     stream.writeBoolean(slot.container.dynamicId !== null);
-    if (slot.container.dynamicId !== null) stream.writeIntLE(slot.container.dynamicId);
+    if (slot.container.dynamicId !== null) stream.writeUnsignedIntLE(slot.container.dynamicId);
     stream.writeByte(slot.slotId);
     stream.writeIntLE(slot.stackNetId);
 };
@@ -233,8 +233,110 @@ describe('network', () => {
 
             const parsed = readItemStackRequest(stream);
 
+            expect(parsed.actions[0]!.recipeNetId).toBe(12);
             expect(parsed.actions[0]!.repetitions).toBe(2);
             expect(stream.feof()).toBe(true);
+        });
+
+        it('reads a repair, whose recipe net id is a net id variant of four fixed bytes', () => {
+            const stream = request(
+                10,
+                (out) => {
+                    writeActionType(out, ItemStackRequestActionType.CRAFT_REPAIR_AND_DISENCHANT);
+                    out.writeIntLE(-7); // Recipe Net Id: a net id variant here, not a recipe net id.
+                    out.writeByte(1); // Number of requested crafts.
+                    out.writeVarInt(3); // Repair Cost.
+                },
+                1
+            );
+
+            const parsed = readItemStackRequest(stream);
+
+            expect(parsed.actions[0]!.type).toBe(ItemStackRequestActionType.CRAFT_REPAIR_AND_DISENCHANT);
+            expect(parsed.actions[0]!.repetitions).toBe(1);
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('reads an anvil rename, whose filtered string index is four fixed bytes', () => {
+            const stream = new BinaryStream();
+            stream.writeVarInt(-11);
+            stream.writeUnsignedVarInt(1);
+            writeActionType(stream, ItemStackRequestActionType.CRAFTING_RECIPE_OPTIONAL);
+            stream.writeUnsignedVarInt(5); // Recipe Net Id.
+            stream.writeIntLE(0); // Filtered String Index: the first filter string is the new name.
+            stream.writeUnsignedVarInt(1); // Strings To Filter.
+            NetworkUtil.writeString(stream, 'Sharp');
+            stream.writeIntLE(4); // StringsToFilterOrigin: AnvilText.
+
+            const input = new BinaryStream(stream.getBuffer());
+            const parsed = readItemStackRequest(input);
+
+            expect(parsed.actions[0]!.type).toBe(ItemStackRequestActionType.CRAFTING_RECIPE_OPTIONAL);
+            expect(parsed.filterStrings).toEqual(['Sharp']);
+            expect(parsed.filterStringCause).toBe(4);
+            expect(input.feof()).toBe(true);
+        });
+
+        it('steps over the results a deprecated action restates, byte by byte', () => {
+            // One result, a named item with no user data, then Num Crafts. The stack size is
+            // a uint16, two bytes, not a varint.
+            const stream = request(
+                12,
+                (out) => {
+                    writeActionType(out, ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED);
+                    out.write(
+                        Buffer.from([
+                            0x01, // Craft Results: one.
+                            0x01, // Item Descriptor: variant index, ItemName.
+                            0x01, // Descriptor Type, the same value again.
+                            0x0f, // Full Name: fifteen bytes.
+                            ...Buffer.from('minecraft:stick'),
+                            0x00, // Aux Value: 0.
+                            0x04, // Stack size: 4 as a uint16 LE.
+                            0x00,
+                            0x00, // Block Runtime Id: 0.
+                            0x00, // User Data Buffer: empty.
+                            0x01 // Num Crafts.
+                        ])
+                    );
+                },
+                1
+            );
+
+            const parsed = readItemStackRequest(stream);
+
+            expect(parsed.actions[0]!.type).toBe(ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED);
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('reads a dynamic container id, which is unsigned', () => {
+            const stream = request(
+                13,
+                (out) => {
+                    writeActionType(out, ItemStackRequestActionType.DESTROY);
+                    out.writeByte(1);
+                    writeSlot(out, {
+                        container: { containerId: ContainerUiId.DYNAMIC_CONTAINER, dynamicId: 0xfffffffe },
+                        slotId: 2,
+                        stackNetId: 0
+                    });
+                },
+                1
+            );
+
+            const parsed = readItemStackRequest(stream);
+
+            expect(parsed.actions[0]!.source!.container).toEqual({
+                containerId: ContainerUiId.DYNAMIC_CONTAINER,
+                dynamicId: 0xfffffffe
+            });
+            expect(stream.feof()).toBe(true);
+        });
+
+        it('refuses more actions than the docs allow, rather than allocating for them', () => {
+            const stream = request(14, () => {}, 101);
+
+            expect(() => readItemStackRequest(stream)).toThrow(/101/);
         });
 
         it('refuses an action type it does not know, rather than reading on regardless', () => {

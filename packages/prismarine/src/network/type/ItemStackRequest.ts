@@ -17,6 +17,13 @@ export { ItemStackRequestActionType };
  */
 export { ContainerUiId };
 
+/**
+ * The most actions one request carries. The docs cap `Actions` at 100 entries, so a count
+ * above that is a malformed request rather than a long one, and reading it would mean
+ * allocating for whatever number a stranger wrote.
+ */
+export const MAX_REQUEST_ACTIONS = 100;
+
 /** FullContainerName: a Container Name byte and, when present, the Dynamic ID of that container. */
 export interface FullContainerName {
     /** Container Name, a `ContainerUiId` value written as a uint8. */
@@ -44,17 +51,17 @@ export interface ItemStackRequestSlotInfo {
  */
 export interface ItemStackRequestAction {
     type: ItemStackRequestActionType;
-    /** Amount, for the actions that move or remove a number of items. */
+    /** Amount, for the actions that move or remove a number of items. The docs bound it to 1 to 64. */
     count?: number;
     source?: ItemStackRequestSlotInfo;
     destination?: ItemStackRequestSlotInfo;
-    /** `CREATIVE_CREATE`: which entry of the creative menu, as sent in `CreativeContentPacket`. */
+    /** `CREATIVE_CREATE`: Creative Item Net Id, which entry of the creative menu, as sent in `CreativeContentPacket`. */
     creativeItemNetId?: number;
-    /** Times Crafted, for the crafting actions that carry one. */
+    /** Number of requested crafts, for the crafting actions that carry one. */
     repetitions?: number;
-    /** `MINE_BLOCK`: the hotbar slot the block was being mined with. */
+    /** `MINE_BLOCK`: Slot, the hotbar slot the block was being mined with. */
     hotbarSlot?: number;
-    /** The crafting actions: which recipe, as numbered by `CraftingDataPacket`. */
+    /** `CRAFTING_RECIPE` and `CRAFTING_RECIPE_AUTO`: Recipe Net Id, as numbered by `CraftingDataPacket`. */
     recipeNetId?: number;
 }
 
@@ -65,7 +72,7 @@ export interface ItemStackRequestAction {
  * Strings To Filter (varuint count, then strings), StringsToFilterOrigin (int32 LE).
  */
 export interface ItemStackRequest {
-    /** Client Request Id. The response names the same id. */
+    /** Client Request Id. A client makes these up negative and odd; the response names the same id. */
     requestId: number;
     /** Actions, in the order the client wants them applied. */
     actions: ItemStackRequestAction[];
@@ -78,38 +85,47 @@ export interface ItemStackRequest {
 /**
  * Reads a FullContainerName: the Container Name byte, then the Dynamic ID as an optional.
  *
- * The optional is one presence byte followed by a uint32 LE when present. The 2193 docs
- * page shows Dynamic ID as a plain uint32 and only records the optional from 2207 on, but
- * gophertunnel and the live 1.26.50 client both write the presence byte.
+ * The optional is one presence byte followed by a uint32 LE when present. The 2193 schema
+ * lists Dynamic ID as a required uint32 and only records the optional from 2207 on, but
+ * gophertunnel at 2193 and the live 1.26.50 client both write the presence byte.
  */
 const readFullContainerName = (stream: BinaryStream): FullContainerName => ({
     containerId: stream.readByte(),
-    dynamicId: stream.readBoolean() ? stream.readIntLE() : null
+    dynamicId: stream.readBoolean() ? stream.readUnsignedIntLE() : null
 });
 
 /**
- * Reads an ItemStackRequestSlotInfo: Full container name, Slot, Net Id Variant.
+ * Reads an ItemStackNetIdVariant: four fixed bytes, as an int32 LE.
  *
- * Net Id Variant is an `ItemStackNetIdVariant`, four fixed bytes as int32 LE and not a
- * varint. Every other net id variant in a request has the same shape: the one a mined block
- * names and the recipe net id of a repair.
+ * Mojang's 2193 note calls this a tagged variant of the three id types, and the schema gives
+ * it no fields at all. What the client writes is four bytes: gophertunnel has read them that
+ * way since protocol 2168, when the client stopped sending a varint here, and the handler's
+ * notes on what a live client sends were taken against this layout. The sign still tells the
+ * kinds apart: a positive value is a stack id the server handed out, a negative odd one is a
+ * request id the client made up, and a negative even one below -1 is a legacy request id.
  */
+const readNetIdVariant = (stream: BinaryStream): number => stream.readIntLE();
+
+/** Reads an ItemStackRequestSlotInfo: Full container name, Slot, Net Id Variant. */
 const readSlotInfo = (stream: BinaryStream): ItemStackRequestSlotInfo => ({
     container: readFullContainerName(stream),
     slotId: stream.readByte(),
-    stackNetId: stream.readIntLE()
+    stackNetId: readNetIdVariant(stream)
 });
 
 /**
- * Steps over one ingredient of an auto-crafted recipe.
+ * Steps over one Item Descriptor in the form a request carries.
  *
- * This is the client's form of an item descriptor, which differs from the server's. It is a
- * varuint variant index, the same value again as the Descriptor Type byte, the descriptor
- * named by the index, then a uint16 count. The server's form, which `CraftingDataPacket`
- * carries and `RecipeIngredientCodec` writes, spells the kind out as a string and ends in a
- * varint. Nothing here uses the ingredients, so they are read for their length and dropped.
+ * This is the client's form of a descriptor, which differs from the server's. It is a Cereal
+ * variant: a varuint variant index, the same value again as the Descriptor Type byte, then
+ * the fields of the descriptor the index names. `Empty` has none; `ItemName` is Full Name
+ * (string) and Aux Value (varint); `Molang` is Tag Expression (string) and Molang Version
+ * (int16 LE); `ItemTag` is Item Tag (string). The server's form, which `CraftingDataPacket`
+ * carries and `RecipeIngredientCodec` writes, spells the kind out as a string instead.
+ * Nothing here uses the descriptor, so it is read for its length and dropped.
+ * @throws when the variant index names no descriptor, because from there the stream cannot be trusted.
  */
-const skipRequestIngredient = (stream: BinaryStream): void => {
+const skipRequestDescriptor = (stream: BinaryStream): void => {
     const kind = stream.readUnsignedVarInt();
     stream.readByte(); // Descriptor Type, the same value as the variant index.
 
@@ -130,29 +146,23 @@ const skipRequestIngredient = (stream: BinaryStream): void => {
         default:
             throw new Error(`Unknown item descriptor kind ${kind} in an item stack request`);
     }
+};
 
-    stream.readUnsignedShortLE(); // Count.
+/** Steps over one RecipeIngredient of an auto craft: Item Descriptor, then StackSize as a uint16 LE. */
+const skipRequestIngredient = (stream: BinaryStream): void => {
+    skipRequestDescriptor(stream);
+    stream.readUnsignedShortLE(); // StackSize.
 };
 
 /**
  * Steps over one ItemStackRequestNetworkItemInstanceDescriptor of a deprecated crafting result.
  *
- * Wire order: Item Descriptor (as in a request ingredient), Stack size (int16 LE), Block
- * Runtime Id (varuint), User Data Buffer (varuint length then bytes). Only the Empty and
- * ItemName descriptors are accepted, because a result is a specific item.
+ * Wire order: Item Descriptor (as in an ingredient), Stack size (uint16 LE), Block Runtime Id
+ * (varuint), User Data Buffer (varuint length then bytes).
  */
 const skipRequestItem = (stream: BinaryStream): void => {
-    const kind = stream.readUnsignedVarInt();
-    stream.readByte(); // Descriptor Type, the same value as the variant index.
-
-    if (kind === ItemDescriptorType.ITEM_NAME) {
-        NetworkUtil.readString(stream); // Full Name.
-        stream.readVarInt(); // Aux Value.
-    } else if (kind !== ItemDescriptorType.EMPTY) {
-        throw new Error(`Unknown item descriptor kind ${kind} in a crafting result`);
-    }
-
-    stream.readShortLE(); // Stack size.
+    skipRequestDescriptor(stream);
+    stream.readUnsignedShortLE(); // Stack size.
     stream.readUnsignedVarInt(); // Block Runtime Id.
     stream.read(stream.readUnsignedVarInt()); // User Data Buffer: nbt, can place on, can break.
 };
@@ -212,43 +222,43 @@ const readAction = (stream: BinaryStream, type: ItemStackRequestActionType): Ite
             return readDisappear(stream, type);
 
         case ItemStackRequestActionType.CRAFTING_CREATE_SPECIFIC_RESULT:
-            stream.readByte(); // Results Slot: which of several results was picked.
+            stream.readByte(); // Results Index: which of several results was picked.
             return { type };
 
         case ItemStackRequestActionType.LAB_TABLE_COMBINE:
         case ItemStackRequestActionType.CRAFTING_NON_IMPLEMENTED_DEPRECATED:
-            return { type };
+            return { type }; // Dataless: only the action type byte is serialized.
 
         case ItemStackRequestActionType.BEACON_PAYMENT:
-            stream.readVarInt(); // Primary Effect.
-            stream.readVarInt(); // Secondary Effect.
+            stream.readVarInt(); // Primary Effect Id.
+            stream.readVarInt(); // Secondary Effect Id.
             return { type };
 
         case ItemStackRequestActionType.MINE_BLOCK: {
-            const hotbarSlot = stream.readVarInt(); // Hotbar Slot.
+            const hotbarSlot = stream.readVarInt(); // Slot.
             stream.readVarInt(); // Predicted Durability.
-            stream.readIntLE(); // Net Id Variant, four fixed bytes, see `readSlotInfo`.
+            readNetIdVariant(stream); // Net Id Variant.
             return { type, hotbarSlot };
         }
 
         case ItemStackRequestActionType.CRAFTING_RECIPE: {
             const recipeNetId = stream.readUnsignedVarInt(); // Recipe Net Id.
-            return { type, recipeNetId, repetitions: stream.readByte() }; // Times Crafted.
+            return { type, recipeNetId, repetitions: stream.readByte() }; // Number of requested crafts.
         }
 
         case ItemStackRequestActionType.CRAFTING_RECIPE_AUTO: {
-            stream.readUnsignedVarInt(); // Recipe Net Id.
-            const repetitions = stream.readByte(); // Times Crafted.
+            const recipeNetId = stream.readUnsignedVarInt(); // Recipe Net Id.
+            const repetitions = stream.readByte(); // Number of requested crafts.
             // Ingredients: varuint count, then one request ingredient each.
             for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) skipRequestIngredient(stream);
-            return { type, repetitions };
+            return { type, recipeNetId, repetitions };
         }
 
         case ItemStackRequestActionType.CREATIVE_CREATE:
             return {
                 type,
                 creativeItemNetId: stream.readUnsignedVarInt(), // Creative Item Net Id.
-                repetitions: stream.readByte() // Times Crafted.
+                repetitions: stream.readByte() // Number of requested crafts.
             };
 
         case ItemStackRequestActionType.CRAFTING_RECIPE_OPTIONAL:
@@ -257,21 +267,21 @@ const readAction = (stream: BinaryStream, type: ItemStackRequestActionType): Ite
             return { type };
 
         case ItemStackRequestActionType.CRAFT_REPAIR_AND_DISENCHANT: {
-            stream.readIntLE(); // Recipe Net Id, a net id variant, four fixed bytes.
-            const repetitions = stream.readByte(); // Times Crafted.
+            readNetIdVariant(stream); // Recipe Net Id, a net id variant rather than a recipe net id.
+            const repetitions = stream.readByte(); // Number of requested crafts.
             stream.readVarInt(); // Repair Cost.
             return { type, repetitions };
         }
 
         case ItemStackRequestActionType.CRAFTING_LOOM:
-            NetworkUtil.readString(stream); // Pattern Id.
-            stream.readByte(); // Times Crafted.
+            NetworkUtil.readString(stream); // Pattern Name Id.
+            stream.readByte(); // Num Crafts.
             return { type };
 
         case ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED: {
             // Craft Results: varuint count, then one network item instance descriptor each.
             for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) skipRequestItem(stream);
-            stream.readByte(); // Times Crafted.
+            stream.readByte(); // Num Crafts.
             return { type };
         }
 
@@ -288,12 +298,21 @@ const readAction = (stream: BinaryStream, type: ItemStackRequestActionType): Ite
  * which is the action's position in the oneOf list, and then the Action type as a byte. The
  * variant index is what is dispatched on, see {@link actionTypeOf} for why the two differ
  * from the lab table on, and the byte is read and dropped.
+ * @throws when the action count is above {@link MAX_REQUEST_ACTIONS}, or an action or
+ * descriptor type is unknown.
  */
 export const readItemStackRequest = (stream: BinaryStream): ItemStackRequest => {
     const requestId = stream.readVarInt(); // Client Request Id.
 
+    const actionCount = stream.readUnsignedVarInt();
+    if (actionCount > MAX_REQUEST_ACTIONS) {
+        throw new RangeError(
+            `Item stack request ${requestId} names ${actionCount} actions; the docs allow at most ${MAX_REQUEST_ACTIONS}`
+        );
+    }
+
     const actions: ItemStackRequestAction[] = [];
-    for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
+    for (let i = 0; i < actionCount; i++) {
         const type = actionTypeOf(stream.readUnsignedVarInt()); // Variant index.
         stream.readByte(); // Action type, the same action as a byte.
         actions.push(readAction(stream, type));

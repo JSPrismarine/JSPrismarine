@@ -67,4 +67,79 @@ describe('ItemStackRequestPacket', () => {
         // Nothing left over is what says the layout is right.
         expect(packet.feof()).toBe(true);
     });
+
+    it('reads a creative pick from bytes written by hand', () => {
+        // A `CraftCreative` and the `Place` that puts the result on the cursor, as 2193 lays
+        // them out. 147 does not fit one varuint byte, so the header is two.
+        const packet = decode(
+            Buffer.from([
+                0x93, // Header: 147.
+                0x01,
+                0x01, // Requests: one.
+                0x01, // Client Request Id: -1 as a ZigZag varint32.
+                0x02, // Actions: two.
+                0x0c, // Variant index: CraftCreative is type 14, index 12 past the gap.
+                0x0e, // Action type: CraftCreative.
+                0xac, // Creative Item Net Id: 300.
+                0x02,
+                0x01, // Number of requested crafts.
+                0x01, // Variant index: Place.
+                0x01, // Action type: Place.
+                0x40, // Amount: 64.
+                0x3c, // Source: Container Name, CreatedOutputContainer.
+                0x00, // Source: no Dynamic ID.
+                0x32, // Source: Slot 50, the created item output slot.
+                0x00, // Source: Net Id Variant, four fixed bytes.
+                0x00,
+                0x00,
+                0x00,
+                0x3b, // Destination: Container Name, CursorContainer.
+                0x00, // Destination: no Dynamic ID.
+                0x00, // Destination: Slot.
+                0x00, // Destination: Net Id Variant.
+                0x00,
+                0x00,
+                0x00,
+                0x00, // Strings To Filter: none.
+                0x00, // StringsToFilterOrigin: unknown, as an int32 LE.
+                0x00,
+                0x00,
+                0x00
+            ])
+        );
+
+        expect(packet.requests).toEqual([
+            {
+                requestId: -1,
+                actions: [
+                    { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 300, repetitions: 1 },
+                    {
+                        type: ItemStackRequestActionType.PLACE,
+                        count: 64,
+                        source: {
+                            container: { containerId: ContainerUiId.CREATED_OUTPUT, dynamicId: null },
+                            slotId: 50,
+                            stackNetId: 0
+                        },
+                        destination: {
+                            container: { containerId: ContainerUiId.CURSOR, dynamicId: null },
+                            slotId: 0,
+                            stackNetId: 0
+                        }
+                    }
+                ],
+                filterStrings: [],
+                filterStringCause: 0
+            }
+        ]);
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('refuses a request count no client sends, rather than allocating for it', () => {
+        const out = new BinaryStream();
+        out.writeUnsignedVarInt(Identifiers.ItemStackRequestPacket);
+        out.writeUnsignedVarInt(5000);
+
+        expect(() => decode(out.getBuffer())).toThrow(/5000/);
+    });
 });
