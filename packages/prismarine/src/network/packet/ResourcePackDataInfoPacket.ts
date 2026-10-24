@@ -5,10 +5,12 @@ import DataPacket from './DataPacket';
 /**
  * What kind of pack is about to be sent, as the `Pack Type` byte numbers it.
  *
- * The docs give the field as a bare uint8 without naming its members. These are the names and
- * values gophertunnel uses.
+ * The packet docs give the field as a bare uint8. The names and numbers are Mojang's `PackType`
+ * enum in the datagen snapshot behind `@jsprismarine/minecraft`
+ * (`packages/minecraft/datagen/snapshot/enums.html`); gophertunnel uses the same numbers.
  */
 export enum ResourcePackType {
+    Invalid = 0,
     Addon = 1,
     Cached = 2,
     CopyProtected = 3,

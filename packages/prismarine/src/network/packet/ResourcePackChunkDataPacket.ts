@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * `ResourcePackDataInfoPacket`.
  *
  * Nothing sends this yet. The server announces no downloadable packs, and
- * `ResourcePackChunkRequestHandler` only logs the requests it gets.
+ * `ResourcePackChunkRequestHandler` disconnects a client that asks for a chunk anyway.
  *
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-data-packet/

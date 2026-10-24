@@ -44,4 +44,11 @@ describe('ResourcePackDataInfoPacket', () => {
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
+
+    it("numbers the pack types as Mojang's PackType enum does", () => {
+        expect(ResourcePackType.Invalid).toBe(0);
+        expect(ResourcePackType.Addon).toBe(1);
+        expect(ResourcePackType.Resources).toBe(6);
+        expect(ResourcePackType.WorldTemplate).toBe(8);
+    });
 });

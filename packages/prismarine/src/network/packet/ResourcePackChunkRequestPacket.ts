@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  *
  * Wire layout at protocol 2193: Resource Name as a string (the pack's `uuid_version` as
  * `ResourcePackDataInfoPacket` named it), then Chunk as an int32 LE index.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/resource-pack-chunk-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-chunk-request-packet/
  */
 export default class ResourcePackChunkRequestPacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackChunkRequestPacket;

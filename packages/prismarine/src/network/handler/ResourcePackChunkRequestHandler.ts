@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
@@ -5,22 +6,35 @@ import type ResourcePackChunkRequestPacket from '../packet/ResourcePackChunkRequ
 import type PacketHandler from './PacketHandler';
 
 /**
- * A request for a resource pack chunk.
+ * A request for one chunk of a resource pack the client is downloading.
  *
- * The server announces no downloadable packs, so a client has nothing to request. The
- * request is recorded at debug level; `ResourcePackChunkDataPacket` is not modeled yet, so
- * there is no reply.
+ * A client asks for chunks only of packs the server listed in `ResourcePacksInfoPacket` and
+ * described in `ResourcePackDataInfoPacket`. `LoginHandler` lists none, so no `Resource Name`
+ * can match a served pack and there is no chunk to answer with. The request is logged at debug
+ * level and the connection is closed with the resource pack reason, the same answer
+ * `ResourcePackClientResponseHandler` gives a `SendPacks` status, rather than leaving the
+ * client on its download screen until RakNet times it out.
+ *
+ * Once the server serves packs, this is where `Resource Name` is matched against them, `Chunk`
+ * is checked against that pack's `Number of Chunks`, and a `ResourcePackChunkDataPacket`
+ * carries the chunk back.
  */
 export default class ResourcePackChunkRequestHandler implements PacketHandler<ResourcePackChunkRequestPacket> {
     public static NetID = Identifiers.ResourcePackChunkRequestPacket;
 
-    /** Logs the requested pack and chunk. */
-    public handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): void {
+    /** Logs the requested pack and chunk, then disconnects the client. */
+    public async handle(packet: ResourcePackChunkRequestPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
+
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
+                `${player.getName()} requested chunk ${packet.chunk} of pack ${packet.resourceName}, which the server does not serve`,
                 'ResourcePackChunkRequestHandler/handle'
             );
+        await player.kick(
+            'Asked for a resource pack this server does not have',
+            DisconnectReason.RESOURCE_PACK_PROBLEM
+        );
     }
 }
