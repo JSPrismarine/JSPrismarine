@@ -53,7 +53,7 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
 
     /** Walks the player down from one height to another, a block at a time, then lands. */
     const fall = async (from: number, to: number) => {
-        (player as any).position = new Position(0, from, 0, world);
+        player['position'] = new Position(0, from, 0, world);
 
         for (let y = from - 1; y >= to; y--) {
             await player.setPosition({ position: new Vector3(0, y, 0), type: MovementType.Normal }, false);
