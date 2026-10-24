@@ -3,6 +3,8 @@ import {
     creativeitems as CreativeItems,
     item_table as ItemTable
 } from '@jsprismarine/bedrock-data';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { Item } from '../item/Item';
 import type { CreativeEntry, CreativeGroup } from '../network/packet/CreativeContentPacket';
 import { creativeCategoryOf } from '../network/packet/CreativeContentPacket';
@@ -22,6 +24,24 @@ export interface CreativeRegistries {
     getBlockManager(): { getBlocks(): readonly CreativeRegistryEntry[] };
     getItemManager(): { getItems(): readonly CreativeRegistryEntry[] };
 }
+
+/**
+ * The hashed block runtime id a creative record's block state carries, or zero when it has none.
+ *
+ * The record is vanilla's own: little-endian NBT whose `network_id` is the FNV-1a hash of the
+ * state, the same function `BlockRuntimeIds` applies, so the two agree wherever the menu shows
+ * a block in its default state. Where the menu shows another state (a piston faces up), or
+ * where vanilla sends no block for a block-shaped item (a door, a bed, a hanging sign), the
+ * record is what the client expects and a lookup by name is not.
+ * @param {string | undefined} blockStates - the record as base64, or undefined for an item that is not a block.
+ * @returns {number} the id to put on the wire.
+ */
+const blockRuntimeIdOf = (blockStates: string | undefined): number => {
+    if (blockStates === undefined) return 0;
+
+    const stream = new BinaryStream(Buffer.from(blockStates, 'base64'));
+    return NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN).getNumber('network_id', 0);
+};
 
 /**
  * The creative menu, in the order the client shows it.
@@ -60,21 +80,23 @@ export class CreativeInventory {
 
         // The numeric id here is only the server's own handle on the item, and the fallback
         // for anything the item table does not name - which, past the guard below, is nothing.
-        // What goes on the wire is the table's id, resolved by name.
-        const toItem = (name: string, meta = 0) => new Item({ id: byName.get(name)?.getId() ?? 0, name, meta });
+        // What goes on the wire is the table's id, resolved by name, and the block state the
+        // record carries rather than the one the name would resolve to.
+        const toItem = (name: string, meta: number, blockStates: string | undefined) =>
+            new Item({ id: byName.get(name)?.getId() ?? 0, name, meta, blockRuntimeId: blockRuntimeIdOf(blockStates) });
 
         const entries: CreativeEntry[] = [];
         for (const entry of CreativeItems) {
             if (!(entry.name in ItemTable)) continue; // The client has no id to resolve it to.
 
-            entries.push({ item: toItem(entry.name, entry.meta ?? 0), group: entry.group });
+            entries.push({ item: toItem(entry.name, entry.meta ?? 0, entry.block_states), group: entry.group });
         }
 
         CreativeInventory.entries = entries;
         CreativeInventory.groups = CreativeGroups.map((group) => ({
             category: creativeCategoryOf(group.category),
             name: group.name,
-            icon: toItem(group.icon)
+            icon: toItem(group.icon, 0, group.icon_block_states)
         }));
 
         return entries;

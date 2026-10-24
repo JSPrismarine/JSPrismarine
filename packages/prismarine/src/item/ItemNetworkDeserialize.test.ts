@@ -236,4 +236,40 @@ describe('item', () => {
             expect(stream.feof()).toBe(false);
         });
     });
+
+    describe('Item.getBlockRuntimeId', () => {
+        /** The `Block Runtime Id` field of the untracked form, read past the id, count and aux value. */
+        const writtenBlockId = (item: Item): number => {
+            const written = new NetworkBinaryStream();
+            item.networkSerializeWithoutStackId(written);
+
+            const stream = new NetworkBinaryStream(written.getBuffer());
+            stream.readVarInt();
+            stream.readUnsignedShortLE();
+            stream.readUnsignedVarInt();
+            return stream.readVarInt();
+        };
+
+        it('resolves a block by name to its default state', () => {
+            const stone = new Item({ id: 1, name: 'minecraft:stone' });
+
+            expect(stone.getBlockRuntimeId()).toBe(BlockRuntimeIds.getByName('minecraft:stone'));
+            expect(writtenBlockId(stone)).toBe(stone.getBlockRuntimeId());
+        });
+
+        it('writes the id it was given instead of the one the name resolves to', () => {
+            const piston = new Item({ id: 33, name: 'minecraft:piston', blockRuntimeId: 1234 });
+
+            expect(piston.getBlockRuntimeId()).toBe(1234);
+            expect(writtenBlockId(piston)).toBe(1234);
+        });
+
+        it('keeps an explicit zero for a block-shaped item that places no block', () => {
+            // A door is a block to this server and an item to vanilla, which sends a zero here.
+            const door = new Item({ id: 324, name: 'minecraft:wooden_door', blockRuntimeId: 0 });
+
+            expect(BlockRuntimeIds.tryGetByName('minecraft:wooden_door')).not.toBeNull();
+            expect(writtenBlockId(door)).toBe(0);
+        });
+    });
 });

@@ -11,12 +11,19 @@ export interface ItemProps {
     nbt?: any;
     count?: number;
     durability?: number;
+    /**
+     * The runtime id of the block state this stack places, when the name alone would get it
+     * wrong. Vanilla's creative menu shows a piston facing up and sends a door with no block at
+     * all, so a creative entry passes its own number rather than resolving its default state.
+     */
+    blockRuntimeId?: number;
 }
 
 export class Item {
     private id: number;
     private networkId: number | undefined;
     private name: string;
+    private readonly placedBlockRuntimeId: number | undefined;
     public meta = 0;
     public durability: number = this.getMaxDurability();
 
@@ -24,9 +31,10 @@ export class Item {
     public nbt = null;
     public count = 1;
 
-    public constructor({ id, name, meta, count }: ItemProps) {
+    public constructor({ id, name, meta, count, blockRuntimeId }: ItemProps) {
         this.id = id;
         this.name = name;
+        this.placedBlockRuntimeId = blockRuntimeId;
         if (meta) this.meta = meta;
         // Declared by `ItemProps` but silently dropped until now, so a stack read off the
         // wire came back as one item however many the client said it held.
@@ -166,7 +174,7 @@ export class Item {
             stream.writeVarInt(stackNetId);
         }
 
-        stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.blockRuntimeId());
+        stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.getBlockRuntimeId());
         this.writeExtraData(stream, networkId !== 0);
     }
 
@@ -182,7 +190,7 @@ export class Item {
         stream.writeVarInt(networkId);
         stream.writeUnsignedShortLE(networkId === 0 ? 0 : this.getAmount());
         stream.writeUnsignedVarInt(networkId === 0 ? 0 : this.meta);
-        stream.writeVarInt(networkId === 0 ? 0 : this.blockRuntimeId());
+        stream.writeVarInt(networkId === 0 ? 0 : this.getBlockRuntimeId());
 
         this.writeExtraData(stream, networkId !== 0);
     }
@@ -190,12 +198,15 @@ export class Item {
     /**
      * The runtime id of the block this item places, or zero for anything that places none.
      *
-     * TODO: blocks whose state name differs from their item name - the sixteen beds are all
-     * `minecraft:bed` on the wire - resolve to zero here too. Fixing that needs the
-     * BlockManager, which an Item has no way to reach.
+     * An id given at construction wins. Otherwise the name resolves to the block's default
+     * state, which is right for a stack a player holds and wrong for two kinds of creative
+     * entry: a block the menu shows in another state (a piston faces up there), and the item
+     * form of a block vanilla treats as a plain item (a door, a bed, a hanging sign travel with
+     * a zero) while this server has a block schema under the same name.
+     * @returns {number} the hashed block runtime id, or `0`.
      */
-    private blockRuntimeId(): number {
-        return BlockRuntimeIds.tryGetByName(this.getName()) ?? 0;
+    public getBlockRuntimeId(): number {
+        return this.placedBlockRuntimeId ?? BlockRuntimeIds.tryGetByName(this.getName()) ?? 0;
     }
 
     /**

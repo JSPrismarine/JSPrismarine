@@ -5,8 +5,18 @@ import {
 } from '@jsprismarine/bedrock-data';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { CreativeCategory } from '../network/packet/CreativeContentPacket';
 import CreativeInventory from './CreativeInventory';
+
+/**
+ * The `network_id` vanilla recorded in a creative block state, read off the raw bytes rather
+ * than through the NBT reader the code under test uses.
+ */
+const vanillaBlockId = (blockStates: string): number => {
+    const bytes = Buffer.from(blockStates, 'base64');
+    return bytes.readInt32LE(bytes.indexOf('network_id') + 'network_id'.length);
+};
 
 /**
  * A server that has registered nothing at all.
@@ -98,6 +108,54 @@ describe('CreativeInventory', () => {
 
         for (const item of items) {
             expect(item.getNetworkId()).toBe(ItemTable[item.getName()]!.runtime_id);
+        }
+    });
+
+    it('hashes a default block state to the number vanilla recorded for it', () => {
+        // The creative data carries vanilla's hashed ids, and `StartGamePacket` announces that
+        // this server's ids are hashes too. The two schemes have to be the same function, or
+        // the menu and the chunk palette would call the same block by different numbers.
+        const planks = CreativeItems.find((entry) => entry.name === 'minecraft:oak_planks');
+
+        expect(planks?.block_states).toBeDefined();
+        expect(BlockRuntimeIds.getByName('minecraft:oak_planks')).toBe(vanillaBlockId(planks!.block_states!));
+    });
+
+    it('sends each block entry with the block state vanilla shows', () => {
+        const shown = CreativeItems.filter((entry) => entry.name in ItemTable);
+        const items = CreativeInventory.getItems(emptyServer);
+
+        expect(items).toHaveLength(shown.length);
+        for (const [i, entry] of shown.entries()) {
+            const expected = entry.block_states === undefined ? 0 : vanillaBlockId(entry.block_states);
+            expect(items[i]!.getBlockRuntimeId()).toBe(expected);
+        }
+    });
+
+    it('sends the state the menu shows, not the default, where the two differ', () => {
+        // A piston faces up in the menu. Resolving its name gave the default state, which is
+        // a different hash, and so a different block as far as the client could tell.
+        const piston = CreativeInventory.getItems(emptyServer).find((item) => item.getName() === 'minecraft:piston');
+
+        expect(piston).toBeDefined();
+        expect(piston!.getBlockRuntimeId()).not.toBe(BlockRuntimeIds.getByName('minecraft:piston'));
+    });
+
+    it('sends no block for the item form of a door, as vanilla does', () => {
+        // The server has a block schema under the door's name, which is what made a lookup by
+        // name put a block id on an item vanilla sends with none.
+        const door = CreativeInventory.getItems(emptyServer).find((item) => item.getName() === 'minecraft:cherry_door');
+
+        expect(BlockRuntimeIds.tryGetByName('minecraft:cherry_door')).not.toBeNull();
+        expect(door?.getBlockRuntimeId()).toBe(0);
+    });
+
+    it('gives every group icon the block state vanilla draws', () => {
+        const groups = CreativeInventory.getGroups(emptyServer);
+
+        for (const [i, group] of CreativeGroups.entries()) {
+            const expected = group.icon_block_states === undefined ? 0 : vanillaBlockId(group.icon_block_states);
+            expect(groups[i]!.icon.getBlockRuntimeId()).toBe(expected);
         }
     });
 
