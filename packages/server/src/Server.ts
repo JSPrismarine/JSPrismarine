@@ -59,11 +59,17 @@ let forceExitTriggered = false;
     });
 });
 
-try {
-    await server.bootstrap(config.getServerIp(), config.getServerPort());
-} catch (error: unknown) {
-    logger.warn(`Cannot start the server, is it already running on the same port?`);
-    throw error; // Re-throw it so `process.on` can handle it.
-}
+// In a function rather than top-level await so the entry also works where top-level
+// await cannot: a single-executable application runs its main script as CommonJS.
+const bootstrap = async (): Promise<void> => {
+    try {
+        await server.bootstrap(config.getServerIp(), config.getServerPort());
+    } catch (error: unknown) {
+        logger.warn(`Cannot start the server, is it already running on the same port?`);
+        throw error; // Re-throw it so `process.on` can handle it.
+    }
+};
+
+void bootstrap();
 
 export {};

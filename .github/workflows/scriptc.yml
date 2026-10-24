@@ -1,0 +1,33 @@
+# Tracks whether the experimental scriptc ahead-of-time build works yet. The
+# default executable comes from Node's single-executable packaging (see
+# `pnpm run package`); this workflow is allowed to fail and exists so the day
+# scriptc can compile the server shows up as a green run.
+name: scriptc
+
+on:
+    push:
+        branches:
+            - master
+    schedule:
+        - cron: '0 6 * * 1'
+    workflow_dispatch:
+
+jobs:
+    scriptc:
+        name: 🧪 Attempt scriptc build
+        runs-on: ubuntu-latest
+        continue-on-error: true
+        steps:
+            - uses: actions/checkout@v7
+              with:
+                  submodules: 'recursive'
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: 🧪 Coverage report
+              continue-on-error: true
+              run: pnpm run package:scriptc:coverage
+
+            - name: 🧪 Build
+              run: pnpm run package:scriptc
