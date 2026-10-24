@@ -16,6 +16,7 @@ import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 import SpawnSettings from './SpawnSettings';
 import SyncedPlayerMovementSettings from './SyncedPlayerMovementSettings';
+import UpdateSubChunkNetworkBlockInfo from './UpdateSubChunkNetworkBlockInfo';
 import UUID from './UUID';
 import Vec2 from './Vec2';
 import Vec3 from './Vec3';
@@ -37,6 +38,7 @@ export {
     SerializedAbilityLayer,
     SpawnSettings,
     SyncedPlayerMovementSettings,
+    UpdateSubChunkNetworkBlockInfo,
     UUID,
     Vec2,
     Vec3
