@@ -47,7 +47,9 @@ const startServer = async (): Promise<void> => {
     const logger = new Logger(config.getLogLevel(), [
         new FileTransport({
             level: 'debug',
-            filename: path.join(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile)
+            // `resolve`, not `join`, so an absolute JSP_DIR such as /data is used as is, the way
+            // the rest of the server resolves it.
+            filename: path.resolve(process.cwd(), process.env.JSP_DIR || '', 'logs', logFile)
         })
     ]);
     const server = new Server({ config, logger });
