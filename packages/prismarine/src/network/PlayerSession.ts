@@ -1195,7 +1195,9 @@ export default class PlayerSession {
 
         const pk = new TextPacket();
         pk.message = message;
-        pk.filtered = message;
+        // `Filtered Message` is the text after chat filtering. A dedicated server leaves it
+        // empty for its own messages; repeating the message there doubled the payload.
+        pk.filtered = '';
         pk.sourceName = sourceName;
         pk.xuid = xuid;
         pk.platformChatId = platformChatId;
