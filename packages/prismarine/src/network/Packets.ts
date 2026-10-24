@@ -108,7 +108,7 @@ import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket'
 import TakeItemActorPacket from './packet/TakeItemActorPacket';
 import TransferPacket from './packet/TransferPacket';
 import UpdateAbilitiesPacket from './packet/UpdateAbilitiesPacket';
-import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
+import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
 import UpdateClientOptionsPacket from './packet/UpdateClientOptionsPacket';
@@ -121,7 +121,7 @@ export {
     AddItemActorPacket,
     AddPaintingPacket,
     AddPlayerPacket,
-    AdventureSettingsPacket,
+    UpdateAdventureSettingsPacket,
     AnimatePacket,
     AnvilDamagePacket,
     AvailableActorIdentifiersPacket,
