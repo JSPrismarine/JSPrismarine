@@ -19,7 +19,7 @@ export enum PhotoType {
  *
  * Wire layout at protocol 2193: Photo Name, Photo Data and Book ID as strings, Type and Source
  * Type as `PhotoType` bytes, Owner ID as an int64 LE, then New Photo Name as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/photo-transfer-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/photo-transfer-packet/
  */
 export default class PhotoTransferPacket extends DataPacket {
     public static NetID = Identifiers.PhotoTransferPacket;
@@ -30,8 +30,9 @@ export default class PhotoTransferPacket extends DataPacket {
     /**
      * The encoded image.
      *
-     * The docs call this a string, but it is a length prefixed run of PNG bytes, so it is kept
-     * as a `Buffer` rather than being decoded as UTF-8. Empty means "send me this photo".
+     * The docs call this a string, which on the wire is the same varuint32 length prefix
+     * followed by the bytes. Those bytes are an image file (the docs name `.jpeg` files), so
+     * they are kept as a `Buffer` rather than decoded as UTF-8. Empty means "send me this photo".
      */
     public photoData: Buffer = Buffer.alloc(0);
 
