@@ -11,8 +11,6 @@ export default class SkinImage {
         this.data = data;
     }
 
-    // TODO: API
-
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedIntLE(this.width);
         stream.writeUnsignedIntLE(this.height);
