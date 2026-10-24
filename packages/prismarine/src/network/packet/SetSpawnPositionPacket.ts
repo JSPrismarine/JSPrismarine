@@ -1,12 +1,24 @@
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/**
+ * Spawn Position Type as a ZigZag varint32. `PLAYER_SPAWN` is PlayerRespawn (0) and
+ * `WORLD_SPAWN` is WorldSpawn (1) in the protocol docs.
+ */
 export enum SpawnType {
     PLAYER_SPAWN,
     WORLD_SPAWN
 }
 
+/**
+ * Sent by the server on login and when the world spawn changes.
+ *
+ * Protocol 2193 layout: Spawn Position Type (ZigZag varint32), Block Position (`BlockPos`:
+ * x, y, z as ZigZag varint32), Dimension type (ZigZag varint32), Spawn Block Pos (`BlockPos`).
+ * `position` is the Block Position field and `blockPosition` is the Spawn Block Pos field.
+ */
 export default class SetSpawnPositionPacket extends DataPacket {
     public static NetID = Identifiers.SetSpawnPositionPacket;
 
@@ -17,24 +29,16 @@ export default class SetSpawnPositionPacket extends DataPacket {
 
     public decodePayload(): void {
         this.type = this.readVarInt();
-        this.position = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
+        this.position = NetworkUtil.readBlockPosition(this);
         this.dimension = this.readVarInt();
-        this.blockPosition = new Vector3(this.readVarInt(), this.readUnsignedVarInt(), this.readVarInt());
+        this.blockPosition = NetworkUtil.readBlockPosition(this);
     }
 
     public encodePayload(): void {
         this.writeVarInt(this.type);
-
-        // Three signed varints. The Y went out unsigned, which is the same bytes above sea
-        // level and the wrong ones below it.
-        this.writeVarInt(this.position.getX());
-        this.writeVarInt(this.position.getY());
-        this.writeVarInt(this.position.getZ());
-
+        // Both positions are BlockPos: x, y and z as signed varints.
+        NetworkUtil.writeBlockPosition(this, this.position);
         this.writeVarInt(this.dimension);
-
-        this.writeVarInt(this.blockPosition.getX());
-        this.writeVarInt(this.blockPosition.getY());
-        this.writeVarInt(this.blockPosition.getZ());
+        NetworkUtil.writeBlockPosition(this, this.blockPosition);
     }
 }
