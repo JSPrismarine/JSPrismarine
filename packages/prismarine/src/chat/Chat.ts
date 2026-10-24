@@ -1,4 +1,5 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
+import TextType from '../network/type/TextType';
 
 export enum ChatType {
     RAW = 0,
@@ -7,6 +8,17 @@ export enum ChatType {
     SYSTEM = 6,
     ANNOUNCEMENT = 8
 }
+
+/**
+ * The text packet type that carries each kind of chat to the client.
+ */
+export const CHAT_TEXT_TYPE: Record<ChatType, TextType> = {
+    [ChatType.RAW]: TextType.Raw,
+    [ChatType.CHAT]: TextType.Chat,
+    [ChatType.TRANSLATION]: TextType.Translation,
+    [ChatType.SYSTEM]: TextType.System,
+    [ChatType.ANNOUNCEMENT]: TextType.Announcement
+};
 
 export class Chat {
     private readonly channel: string;
