@@ -225,12 +225,15 @@ export default class Server extends EventEmitter {
 
     /**
      * Starts the server.
-     * @param {string} [serverIp='0.0.0.0'] - The server IP.
-     * @param {number} [port=19132] - The server port.
+     * @param serverIp - Optional bind address. Defaults to the configured server IP.
+     * @param port - Optional bind port. Defaults to the configured server port.
      * @returns {Promise<void>} A promise that resolves when the server is started.
      */
-    public async bootstrap(serverIp = '0.0.0.0', port = 19132): Promise<void> {
+    public async bootstrap(serverIp?: string, port?: number): Promise<void> {
         await this.enable();
+
+        const bindAddress = serverIp ?? this.config.getServerIp();
+        const bindPort = port ?? this.config.getServerPort();
 
         this.raknet = new RakNetListener(
             this.getConfig().getMaxPlayers(),
@@ -238,7 +241,7 @@ export default class Server extends EventEmitter {
             new ServerName(this),
             this.getLogger()
         );
-        this.raknet.start(serverIp, port);
+        this.raknet.start(bindAddress, bindPort);
 
         this.raknet.on('openConnection', async (session: RakNetSession) => {
             const event = new RaknetConnectEvent(session);

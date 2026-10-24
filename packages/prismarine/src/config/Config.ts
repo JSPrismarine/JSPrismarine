@@ -21,6 +21,12 @@ const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
 
+/** Runtime settings that take precedence over values in config.yaml. */
+export interface ConfigOptions {
+    /** Port the server listens on. */
+    serverPort?: number;
+}
+
 /**
  * Clamps a configured zlib level to the range zlib accepts.
  *
@@ -42,6 +48,8 @@ export function toPacketCompressionLevel(raw: unknown): number {
 
 export class Config {
     private configBuilder!: ConfigBuilder;
+
+    private readonly serverPortOverride: number | undefined;
 
     private logLevel!: LogLevel;
 
@@ -102,7 +110,13 @@ export class Config {
      */
     private craftingRecipeLimit = -1;
 
-    public constructor() {
+    /**
+     * Creates the server configuration.
+     *
+     * @param options - runtime values that override corresponding config.yaml settings.
+     */
+    public constructor({ serverPort }: ConfigOptions = {}) {
+        this.serverPortOverride = serverPort;
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
     }
@@ -115,6 +129,7 @@ export class Config {
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
         this.port = this.configBuilder.get('port', 19132);
+        if (this.serverPortOverride !== undefined) this.port = this.serverPortOverride;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0');
         this.levelName = this.configBuilder.get('level-name', 'world');
         this.worlds = this.configBuilder.get<Record<string, WorldData>>('worlds', {

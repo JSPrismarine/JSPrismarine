@@ -1,12 +1,14 @@
-import type { ParseArgsConfig } from 'node:util';
-import { parseArgs } from 'node:util';
+import yargs from 'yargs/yargs';
+import pkg from '../../package.json' with { type: 'json' };
 import { BEHAVIOR_NAMES } from '../bot/behavior/Behaviors';
 import { runBot, runConnect, runPing } from './commands';
+
+import type { Options } from 'yargs';
 
 /**
  * How long a `--duration` or `--ramp` value means.
  *
- * A bare number is *seconds*, not milliseconds: `--duration 60` meaning a sixteenth of a
+ * A bare number is seconds, not milliseconds: `--duration 60` meaning a sixteenth of a
  * second is the kind of surprise that wastes an afternoon of load testing.
  */
 export const parseDuration = (value: string): number => {
@@ -26,7 +28,7 @@ export const parseDuration = (value: string): number => {
     }
 };
 
-/** `5` and `5/s` both mean five per second. */
+/** Parses a rate expressed as a number per second. */
 export const parseRate = (value: string): number => {
     const match = /^(\d+(?:\.\d+)?)(?:\/s)?$/.exec(value.trim());
     if (!match) throw new UsageError(`Cannot read "${value}" as a rate. Try 5 or 5/s.`);
@@ -34,6 +36,7 @@ export const parseRate = (value: string): number => {
     return Number(match[1]);
 };
 
+/** Parses a non-negative whole-number option. */
 export const parseCount = (value: string, flag: string): number => {
     const count = Number(value);
     if (!Number.isInteger(count) || count < 0) throw new UsageError(`${flag} must be a whole number, got "${value}"`);
@@ -41,64 +44,28 @@ export const parseCount = (value: string, flag: string): number => {
     return count;
 };
 
-/** Something the user can fix by typing something else, as opposed to a failure. */
+/** A command-line input mistake that should exit with status 2. */
 export class UsageError extends Error {}
 
-const OPTIONS: ParseArgsConfig['options'] = {
-    host: { type: 'string', short: 'h' },
-    port: { type: 'string', short: 'p' },
-    name: { type: 'string' },
-    'name-prefix': { type: 'string' },
-    count: { type: 'string', short: 'c' },
-    ramp: { type: 'string' },
-    duration: { type: 'string', short: 'd' },
-    seed: { type: 'string' },
-    behavior: { type: 'string', short: 'b' },
-    'view-distance': { type: 'string' },
-    report: { type: 'string' },
-    timeout: { type: 'string' },
-    verbose: { type: 'boolean', short: 'v' },
-    help: { type: 'boolean' }
-};
+/** Values consumed by the command handlers. */
+export interface Values {
+    [key: string]: unknown;
+    host?: string;
+    port?: string;
+    name?: string;
+    count?: string;
+    ramp?: string;
+    duration?: string;
+    seed?: string;
+    behavior?: string;
+    'view-distance'?: string;
+    'name-prefix'?: string;
+    report?: string;
+    timeout?: string;
+    verbose?: boolean;
+}
 
-const HELP = `jsp-client - a Minecraft: Bedrock Edition client
-
-  jsp-client connect --host <address> [--port 19132] [--name Steve]
-      Joins a server and prints the chat until interrupted.
-
-  jsp-client ping --host <address> [--port 19132]
-      Asks a server for its MOTD without connecting.
-
-  jsp-client bot --host <address> --count <n> [options]
-      Runs a fleet of synthetic players against a server and reports what happened.
-
-      --count, -c        how many bots                          (required)
-      --behavior, -b    comma separated: ${BEHAVIOR_NAMES.join(', ')}
-      --duration, -d     how long to run for, e.g. 10m          (default 60s)
-      --ramp             connections per second, 0 for all at once  (default 10)
-      --seed             makes the run reproducible             (default 1)
-      --view-distance    in chunks; the biggest dial there is   (default 4)
-      --name-prefix      each bot gets its index appended       (default Bot)
-      --report           write the full report as JSON here
-      --timeout          per bot login budget, e.g. 30s         (default 30s)
-
-Common:
-      --host, -h         server address                         (required)
-      --port, -p         server port                            (default 19132)
-      --verbose, -v      log everything the client does
-      --help
-
-Exit codes: 0 all good, 1 something failed, 2 the command line was wrong.`;
-
-/**
- * Parsed flags.
- *
- * The array arm is `parseArgs`'s doing: it types every value as possibly repeated because
- * an option *could* be declared `multiple`. None here are, but the readers below check the
- * type anyway rather than casting the possibility away.
- */
-export type Values = Record<string, string | boolean | (string | boolean)[] | undefined>;
-
+/** Output streams used by the CLI, replaceable by callers embedding it. */
 export interface CliIo {
     out(line: string): void;
     err(line: string): void;
@@ -109,43 +76,133 @@ const CONSOLE_IO: CliIo = {
     err: (line) => process.stderr.write(`${line}\n`)
 };
 
+const DEFAULT_PORT = '19132';
+const CLI_NAME = Object.keys(pkg.bin)[0] ?? pkg.name;
+
+const HOST_PORT_OPTIONS = {
+    host: {
+        alias: 'h',
+        describe: 'Server address (required)',
+        type: 'string'
+    },
+    port: {
+        alias: 'p',
+        default: DEFAULT_PORT,
+        describe: 'Server port',
+        type: 'string'
+    }
+} satisfies Record<string, Options>;
+
 /**
- * The command line, and the whole of it.
- *
- * `node:util.parseArgs` rather than a dependency: the repository has no argument library
- * anywhere, the engine requirement is already Node 21, and a load-testing binary that has to
- * stay `bun build --compile`-able has every reason not to grow a dependency tree for the
- * sake of parsing five flags.
+ * Parses and runs a client command.
  *
  * @param argv - arguments after the executable and script, i.e. `process.argv.slice(2)`.
+ * @param io - output streams for command results and diagnostics.
  * @returns the process exit code.
  */
 export const run = async (argv: readonly string[], io: CliIo = CONSOLE_IO): Promise<number> => {
-    try {
-        const [command, ...rest] = argv;
-
-        if (command === undefined || command === '--help' || command === 'help') {
-            io.out(HELP);
-            return command === undefined ? 2 : 0;
+    let exitCode = 0;
+    let commandError: { error: unknown } | undefined;
+    const execute = async (command: (values: Values, io: CliIo) => Promise<number>, values: Values): Promise<void> => {
+        try {
+            exitCode = await command(values, io);
+        } catch (error: unknown) {
+            commandError = { error };
         }
+    };
 
-        const { values } = parseArgs({ args: [...rest], options: OPTIONS, allowPositionals: false });
+    const cli = yargs([...argv])
+        .scriptName(CLI_NAME)
+        .usage('$0 <command> [options]')
+        .example('$0 bot --host <address> --count <n>', 'Run synthetic players against a server')
+        .strict()
+        .showHelpOnFail(false)
+        .help('help', 'Show this help message')
+        .version('version', 'Show the client version', `${CLI_NAME} ${pkg.version}`)
+        .completion('completion', 'Generate a shell completion script')
+        .exitProcess(false)
+        .fail((message, error) => {
+            if (error instanceof UsageError) throw error;
+            throw new UsageError(message ?? error?.message ?? 'Invalid command-line arguments');
+        })
+        .option('verbose', {
+            alias: 'v',
+            type: 'boolean',
+            describe: 'Log everything the client does'
+        })
+        .command(
+            'connect',
+            'Join a server and print chat until interrupted',
+            (yargs) =>
+                yargs.options({
+                    ...HOST_PORT_OPTIONS,
+                    name: { type: 'string', default: 'Player', describe: 'Player display name' },
+                    timeout: { type: 'string', describe: 'Login timeout, e.g. 30s' }
+                }),
+            async (values) => {
+                await execute(runConnect, values);
+            }
+        )
+        .command(
+            'ping',
+            'Ask a server for its MOTD without connecting',
+            (yargs) => yargs.options(HOST_PORT_OPTIONS),
+            async (values) => {
+                await execute(runPing, values);
+            }
+        )
+        .command(
+            'bot',
+            'Run a fleet of synthetic players and report the results',
+            (yargs) =>
+                yargs.options({
+                    ...HOST_PORT_OPTIONS,
+                    count: { alias: 'c', type: 'string', describe: 'Number of bots to run (required)' },
+                    behavior: {
+                        alias: 'b',
+                        type: 'string',
+                        describe: `Comma-separated behaviors: ${BEHAVIOR_NAMES.join(', ')}`
+                    },
+                    duration: { alias: 'd', type: 'string', default: '60s', describe: 'Run duration, e.g. 10m' },
+                    ramp: { type: 'string', default: '10', describe: 'Connections per second; 0 starts all at once' },
+                    seed: { type: 'string', default: '1', describe: 'Seed for reproducible runs' },
+                    'view-distance': { type: 'string', default: '4', describe: 'Client view distance in chunks' },
+                    'name-prefix': { type: 'string', default: 'Bot', describe: 'Prefix for generated player names' },
+                    report: { type: 'string', describe: 'Write the full report as JSON to this path' },
+                    timeout: { type: 'string', default: '30s', describe: 'Login timeout per bot, e.g. 30s' }
+                }),
+            async (values) => {
+                await execute(runBot, values);
+            }
+        )
+        .demandCommand(1, `Please specify a command. Run ${CLI_NAME} --help for usage.`);
 
-        if (values.help) {
-            io.out(HELP);
+    if (argv.length === 0) {
+        cli.showHelp((help) => io.out(help.replace(/\n+$/, '')));
+        return 2;
+    }
+
+    const firstToken = argv[0];
+    if (
+        firstToken !== undefined &&
+        !firstToken.startsWith('-') &&
+        !['connect', 'ping', 'bot', 'completion'].includes(firstToken)
+    ) {
+        io.err(`Unknown command "${firstToken}". Try --help.`);
+        return 2;
+    }
+
+    try {
+        let parserOutput = '';
+        await cli.parseAsync([...argv], {}, (_error, _parsed, output) => {
+            parserOutput = output;
+        });
+        if (parserOutput.length > 0) {
+            io.out(parserOutput.replace(/\n+$/, ''));
             return 0;
         }
-
-        switch (command) {
-            case 'connect':
-                return await runConnect(values, io);
-            case 'ping':
-                return await runPing(values, io);
-            case 'bot':
-                return await runBot(values, io);
-            default:
-                throw new UsageError(`Unknown command "${command}". Try --help.`);
-        }
+        if (commandError !== undefined) throw commandError.error;
+        return exitCode;
     } catch (error: unknown) {
         // A usage mistake is not a stack trace: it is a sentence and a different exit code,
         // so a script can tell "you typed it wrong" from "the server refused you".

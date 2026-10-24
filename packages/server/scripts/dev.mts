@@ -52,10 +52,12 @@ let child: ChildProcess | null = null;
 let restartQueued = false;
 let shuttingDown = false;
 let forceKillTimer: NodeJS.Timeout | undefined;
+const serverArgs = process.argv.slice(2);
+if (serverArgs[0] === '--') serverArgs.shift();
 
 const start = (): void => {
     if (child) return;
-    child = spawn(process.execPath, ['--import', 'tsx', './src/Server.ts'], {
+    child = spawn(process.execPath, ['--import', 'tsx', './src/Server.ts', ...serverArgs], {
         cwd: serverDir,
         stdio: 'inherit'
     });
