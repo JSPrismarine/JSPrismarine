@@ -1,4 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
 import { Config, toPacketCompressionLevel } from './Config';
@@ -6,10 +9,18 @@ import { Config, toPacketCompressionLevel } from './Config';
 describe('config', () => {
     describe('Config', () => {
         let config: Config;
+        let configDirectory: string;
 
         beforeEach(async () => {
+            configDirectory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-config-test-'));
+            vi.stubEnv('JSP_DIR', configDirectory);
             config = new Config();
             await config.enable();
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            rmSync(configDirectory, { recursive: true, force: true });
         });
 
         it('should have the default server port', () => {
