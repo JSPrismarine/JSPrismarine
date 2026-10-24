@@ -20,13 +20,21 @@ export type DataItemEntry =
 /**
  * One `DataItemEntry` of a `SynchedActorDataList`, the typed entity data an actor carries.
  *
- * Wire layout: `ID` (varuint32), then the `Payload`, a one-of whose every alternative opens
- * with `Type` (uint8 `DataItemType`). That byte is the discriminator and is written once; no
- * separate selector precedes it. The `Value` follows: `Byte` as int8, `Short` as int16 little
- * endian, `Int` as varint32, `Float` as float little endian, `String` as a string,
- * `CompoundTag` as network NBT, `Pos` as a `BlockPos` of three varint32, `Int64` as varint64,
- * `Vec3` as three floats.
+ * Wire layout: `ID` (varuint32), then the `Payload`, a Cereal tagged variant. The variant
+ * writes its selector as a varuint32 (the alternative's index in the schema's `oneOf`, which
+ * the schema marks with `x-control-value-type: uint32`), and then the chosen alternative in
+ * full. Every alternative opens with its own `Type` byte (uint8 `DataItemType`), so the type
+ * is on the wire twice: once as the selector and once as the alternative's first field. The
+ * `Value` follows: `Byte` as int8, `Short` as int16 little endian, `Int` as varint32, `Float`
+ * as float little endian, `String` as a string, `CompoundTag` as network NBT, `Pos` as a
+ * `BlockPos` of three varint32, `Int64` as varint64, `Vec3` as three floats.
+ *
+ * The selector is not a duplicate to drop. gophertunnel master (protocol 2193) writes
+ * `Varuint32(dataType)` then `Uint8(legacyDataType)` in `Writer.EntityMetadata` and its
+ * reader rejects an entry whose two disagree; a retail 1.26.51 client fails to join when the
+ * selector is missing. The alternative indices happen to equal the `DataItemType` values.
  * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/data-item-entry/}
+ * {@link https://github.com/Sandertv/gophertunnel/blob/master/minecraft/protocol/writer.go}
  */
 export class DataItem extends NetworkStructure {
     /**
@@ -56,9 +64,10 @@ export class DataItem extends NetworkStructure {
         return this.entry.value;
     }
 
-    /** Writes the item in docs order: the id, the type byte, the value. */
+    /** Writes the item in docs order: the id, the one-of selector, the alternative's type byte, the value. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeUnsignedVarInt(this.id);
+        stream.writeUnsignedVarInt(this.entry.type);
         stream.writeByte(this.entry.type);
         switch (this.entry.type) {
             case DataItemType.BYTE:
@@ -93,11 +102,17 @@ export class DataItem extends NetworkStructure {
 
     /**
      * Reads the item from the stream.
-     * @throws Error when the type byte is not a known {@link DataItemType}.
+     * @throws Error when the one-of selector and the alternative's type byte disagree, or when
+     * neither names a known {@link DataItemType}.
      */
     public deserialize(stream: NetworkBinaryStream): void {
         this.id = stream.readUnsignedVarInt();
+        const selector = stream.readUnsignedVarInt();
         const type: DataItemType = stream.readByte();
+        if (selector !== type) {
+            throw new Error(`Data item ${this.id} selects payload ${selector} but carries type ${type}`);
+        }
+
         switch (type) {
             case DataItemType.BYTE:
                 this.entry = { type, value: stream.readSignedByte() };
