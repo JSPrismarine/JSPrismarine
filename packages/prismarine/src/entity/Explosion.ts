@@ -2,11 +2,11 @@ import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
 import { GameRules } from '../world/GameRuleManager';
 import type { World } from '../world/World';
-import type BlockView from './ai/BlockView';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
 import { sizeOf } from './EntitySize';
+import { Mob } from './Mob';
 
 /**
  * A blast: what it hurts, how hard, and what it takes out of the world.
@@ -156,12 +156,12 @@ const distanceFrom = (at: Vector3, entity: Entity): number => {
  * The cost is that a corner is either full cover or none, where vanilla would grade it.
  *
  * Read through the entity's *own* `BlockView` rather than the world's, which is why anything
- * without one - a dropped item, an arrow - is simply counted as exposed. Nothing that lacks a view
- * has cover worth modelling.
+ * that is not a mob - a dropped item, an arrow - is simply counted as exposed. Nothing that lacks
+ * a view has cover worth modelling.
  */
 const exposure = (at: Vector3, entity: Entity): number => {
-    const view = (entity as unknown as { getBlockView?: () => BlockView }).getBlockView?.();
-    if (!view) return 1;
+    if (!(entity instanceof Mob)) return 1;
+    const view = entity.getBlockView();
 
     const position = entity.getPosition();
     const middle = entity.getFeetY() + sizeOf(entity.getType()).height / 2;

@@ -113,7 +113,7 @@ describe('explosions', () => {
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
         // Queued rather than applied: a mob spends its knockback in the next `applyPhysics`.
-        expect((cow as any).pendingKnockback?.impulse.getX()).toBeGreaterThan(0);
+        expect(cow['pendingKnockback']?.impulse.getX()).toBeGreaterThan(0);
     });
 
     it('throws up particles', async () => {

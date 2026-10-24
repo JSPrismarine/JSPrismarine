@@ -7,6 +7,7 @@ import { drawPower, lookVector } from './Archery';
 import { DamageCause } from './DamageCause';
 import type { Entity } from './Entity';
 import Arrow from './other/Arrow';
+import type { Projectile } from './other/Projectile';
 import Snowball from './other/Snowball';
 import Cow from './passive/Cow';
 
@@ -17,7 +18,7 @@ import Cow from './passive/Cow';
  * over anything standing between where it was and where it ended up, so a check at the destination
  * alone finds nothing at all.
  */
-const scene = ({ solidAt = null as ((x: number, y: number, z: number) => boolean) | null } = {}) => {
+const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number) => boolean) | null } = {}) => {
     const nearby: Entity[] = [];
     const removed: string[] = [];
 
@@ -45,8 +46,8 @@ const scene = ({ solidAt = null as ((x: number, y: number, z: number) => boolean
     };
 
     /** Arrows read the world through their own view, so it is described there. */
-    const describeBlocks = (projectile: Entity) => {
-        const view: any = (projectile as any).view;
+    const describeBlocks = (projectile: Projectile) => {
+        const view = projectile['view'];
         view.isSolid = (x: number, y: number, z: number) => (solidAt ? solidAt(x, y, z) : false);
         view.isLoaded = () => true;
     };
@@ -165,7 +166,7 @@ describe('projectiles', () => {
             await snowball.update(0);
 
             expect(cow.getHealth()).toBe(10);
-            expect((cow as any).pendingKnockback?.impulse.getX()).toBeGreaterThan(0);
+            expect(cow['pendingKnockback']?.impulse.getX()).toBeGreaterThan(0);
         });
     });
 
