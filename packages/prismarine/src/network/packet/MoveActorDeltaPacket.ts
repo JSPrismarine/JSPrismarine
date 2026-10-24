@@ -18,10 +18,12 @@ const DEGREES_PER_STEP = 360 / 256;
  * as optional floats, Rotation X, Rotation Y and Rotation Y Head as optional packed rotation
  * bytes, Is On Ground, Force Move, Force Move Local Entity and Force Completion as booleans,
  * and Ticks as a varuint64. An optional is a presence byte followed by the value when present.
+ * The docs type a rotation as int8; it is read here as the same byte unsigned, so the angle
+ * comes back in `[0, 360)` rather than `[-180, 180)`.
  *
  * Up to protocol 2177 the six components were announced by a single uint16 flag field read
  * before them. 2193 replaced that with per-component presence bytes and added Ticks.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/move-actor-delta-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-delta-packet/
  */
 export default class MoveActorDeltaPacket extends DataPacket {
     public static NetID = Identifiers.MoveActorDeltaPacket;

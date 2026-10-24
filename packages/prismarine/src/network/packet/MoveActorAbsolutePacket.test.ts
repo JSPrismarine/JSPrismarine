@@ -34,7 +34,69 @@ const moveTo = (pitch: number, yaw: number, headYaw: number) => {
     return packet;
 };
 
+/**
+ * The whole packet as protocol 2193 lays it out, written by hand in the docs' order.
+ * `ActorRuntimeID` as a varuint64, `Header` as one byte, `Position` as three LE floats, then
+ * `Rotation X`, `Rotation Y` and `Rotation Y Head` as one byte each, 256ths of a turn.
+ */
+const WIRE = [
+    0x12, // Header: id 18, no subclient ids.
+    0x2a, // ActorRuntimeID: 42.
+    0x01, // Header: on ground.
+    0x00,
+    0x00,
+    0xc0,
+    0x3f, // Position X: 1.5
+    0x00,
+    0x80,
+    0x80,
+    0x42, // Position Y: 64.25
+    0x00,
+    0x00,
+    0x70,
+    0xc0, // Position Z: -3.75
+    0x07, // Rotation X: 10 degrees, rounded to 7/256 of a turn.
+    0x40, // Rotation Y: 90 degrees.
+    0x80 // Rotation Y Head: 180 degrees.
+];
+
 describe('MoveActorAbsolutePacket', () => {
+    it('writes the docs layout byte for byte', () => {
+        const packet = new MoveActorAbsolutePacket();
+        packet.runtimeEntityId = 42n;
+        packet.flags = MoveActorAbsolutePacket.FLAG_ON_GROUND;
+        packet.position = new Vector3(1.5, 64.25, -3.75);
+        packet.pitch = 10;
+        packet.yaw = 90;
+        packet.headYaw = 180;
+        packet.encode();
+
+        expect([...packet.getBuffer()]).toEqual(WIRE);
+    });
+
+    it('reads a hand-built buffer to its end', () => {
+        const packet = new MoveActorAbsolutePacket(Buffer.from(WIRE));
+        packet.decode();
+
+        expect(packet.runtimeEntityId).toBe(42n);
+        expect(packet.flags).toBe(MoveActorAbsolutePacket.FLAG_ON_GROUND);
+        expect(packet.position.getX()).toBe(1.5);
+        expect(packet.position.getY()).toBe(64.25);
+        expect(packet.position.getZ()).toBe(-3.75);
+        // The byte holds 7/256 of a turn, which is as close to 10 degrees as it gets.
+        expect(packet.pitch).toBeCloseTo(9.84, 2);
+        expect(packet.yaw).toBe(90);
+        expect(packet.headYaw).toBe(180);
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('numbers the header bits the way every implementation does', () => {
+        expect(MoveActorAbsolutePacket.FLAG_ON_GROUND).toBe(0x01);
+        expect(MoveActorAbsolutePacket.FLAG_TELEPORT).toBe(0x02);
+        expect(MoveActorAbsolutePacket.FLAG_FORCE_MOVE_LOCAL_ENTITY).toBe(0x04);
+        expect(MoveActorAbsolutePacket.FLAG_FORCE_COMPLETION).toBe(0x08);
+    });
+
     it('writes the rotations as pitch, body yaw, head yaw', () => {
         // Three distinct values, so a swapped pair cannot pass.
         expect(rotationBytesOf(moveTo(10, 90, 180))).toEqual([

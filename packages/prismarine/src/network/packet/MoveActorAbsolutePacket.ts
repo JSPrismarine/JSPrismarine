@@ -11,6 +11,10 @@ import DataPacket from './DataPacket';
  * little-endian floats), then `Rotation X`, `Rotation Y` and `Rotation Y Head`, each one byte
  * holding the angle as a 256th of a turn.
  *
+ * The docs defer the `Header` bits to a supplemental document that is not published. The
+ * values here are the ones every open implementation agrees on: on ground 0x01, teleport
+ * 0x02, force move local entity 0x04, force completion 0x08.
+ *
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-absolute-packet/
  */
@@ -28,6 +32,18 @@ export default class MoveActorAbsolutePacket extends DataPacket {
      * is what turns smooth movement into a stutter.
      */
     public static readonly FLAG_TELEPORT = 0x02;
+
+    /**
+     * Snap an entity the receiving client owns locally, which {@link FLAG_TELEPORT} alone does not
+     * cover. The docs' `Force Move Local Entity`, as `MoveActorDeltaPacket` spells it out.
+     */
+    public static readonly FLAG_FORCE_MOVE_LOCAL_ENTITY = 0x04;
+
+    /**
+     * Finish any movement already in progress on the client before applying this one. The
+     * docs' `Force Completion`.
+     */
+    public static readonly FLAG_FORCE_COMPLETION = 0x08;
 
     public runtimeEntityId!: bigint;
     public flags!: number;
@@ -60,6 +76,17 @@ export default class MoveActorAbsolutePacket extends DataPacket {
         this.writeByte(MoveActorAbsolutePacket.toByteRotation(this.headYaw));
     }
 
+    /** Reads the fields in the order listed on the class; the rotations come back in degrees. */
+    public decodePayload(): void {
+        this.runtimeEntityId = this.readUnsignedVarLong();
+        this.flags = this.readByte();
+        this.position = NetworkUtil.readVector3(this);
+
+        this.pitch = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
+        this.yaw = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
+        this.headYaw = MoveActorAbsolutePacket.fromByteRotation(this.readByte());
+    }
+
     /**
      * An angle as the single byte the packet carries it in.
      *
@@ -70,5 +97,10 @@ export default class MoveActorAbsolutePacket extends DataPacket {
      */
     private static toByteRotation(degrees: number): number {
         return Math.round(degrees / (360 / 256)) & 0xff;
+    }
+
+    /** The byte back as degrees in `[0, 360)`. */
+    private static fromByteRotation(byte: number): number {
+        return byte * (360 / 256);
     }
 }
