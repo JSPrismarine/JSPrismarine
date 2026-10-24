@@ -50,6 +50,8 @@ import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
 import SetTimePacket from './packet/SetTimePacket';
+import type { GameRule } from './packet/GameRulesChangedPacket';
+import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
 import TextPacket from './packet/TextPacket';
 import UpdateAbilitiesPacket, {
     AbilityLayer,
@@ -776,6 +778,16 @@ export default class PlayerSession {
     public async sendGamemode(gamemode?: Gametype): Promise<void> {
         const packet = new SetPlayerGameTypePacket();
         packet.gametype = gamemode ?? this.player.gamemode;
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Tells this client that game rules changed.
+     * @param {GameRule[]} rules - The rules that changed, spelled as the client spells them.
+     */
+    public async sendGameRules(rules: GameRule[]): Promise<void> {
+        const packet = new GameRulesChangedPacket();
+        packet.rulesList = rules;
         await this.connection.sendDataPacket(packet);
     }
 

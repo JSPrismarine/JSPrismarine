@@ -213,7 +213,14 @@ export class World implements Service {
         this.name = name;
         this.server = server;
         this.provider = provider;
-        this.gameRuleManager = new GameRuleManager(server);
+        // A rule set after this point goes out to everyone in the world through the sink, the
+        // same route the clock takes. `this.changes` is read when the rule changes, not now,
+        // so the replicator attached later is the one that hears it.
+        this.gameRuleManager = new GameRuleManager(server, (name, value, editable) => {
+            this.changes.gameRuleChanged(name, value, editable).catch((error: unknown) => {
+                this.server.getLogger().error(`Failed to send game rule ${name}: ${error}`);
+            });
+        });
         this.seed = seed;
         this.generator = generator;
         this.config = config ?? {};

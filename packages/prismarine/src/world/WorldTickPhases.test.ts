@@ -32,6 +32,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         entityAdded: record('entityAdded'),
         entityRemoved: record('entityRemoved'),
         timeChanged: record('timeChanged'),
+        gameRuleChanged: record('gameRuleChanged'),
         reconcile: record('reconcile'),
         flushBlockChanges: record('flushBlockChanges'),
         flushMovement: record('flushMovement')

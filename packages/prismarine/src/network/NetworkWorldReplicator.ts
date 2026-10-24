@@ -5,6 +5,7 @@ import Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
+import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
 import type { AudienceOptions, World } from '../world/World';
@@ -363,6 +364,14 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     public async timeChanged(ticks: number): Promise<void> {
         // Try to send it at the same time to all
         await Promise.all(this.world.getPlayers().map((player) => player.getNetworkSession().sendTime(ticks)));
+    }
+
+    /** @inheritdoc */
+    public async gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void> {
+        const rule = toNetworkGameRule(name, value, editable);
+        await Promise.all(
+            this.world.getPlayers().map(async (player) => player.getNetworkSession().sendGameRules([rule]))
+        );
     }
 
     /** @inheritdoc */

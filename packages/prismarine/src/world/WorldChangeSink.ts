@@ -133,6 +133,16 @@ export interface WorldChangeSink {
     timeChanged(ticks: number): Promise<void>;
 
     /**
+     * A game rule now has a different value, or may now be changed by a player when it could
+     * not be before.
+     * @param {string} name - The rule's name, spelled as the client spells it.
+     * @param {boolean | number} value - What it is now.
+     * @param {boolean} editable - Whether a player may change it from the settings screen.
+     * @returns {Promise<void>} Resolves once it is on its way.
+     */
+    gameRuleChanged(name: string, value: boolean | number, editable: boolean): Promise<void>;
+
+    /**
      * Tick phase: bring everyone's idea of what is visible in line with where things now are.
      *
      * Runs after everything has moved and before the movement goes out, so that an entity that
@@ -174,6 +184,7 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     entityRemoved: async () => {},
     entityMoved: () => {},
     timeChanged: async () => {},
+    gameRuleChanged: async () => {},
     reconcile: async () => {},
     flushBlockChanges: async () => {},
     flushMovement: async () => {}
