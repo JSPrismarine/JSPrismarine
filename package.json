@@ -83,7 +83,7 @@
         "@nordcom/prettier": "0.1.1",
         "@turbo/gen": "2.11.10",
         "@types/node": "24.19.2",
-        "@vitest/coverage-v8": "5.0.1",
+        "@vitest/coverage-v8": "5.0.5",
         "concurrently": "10.0.6",
         "cross-env": "10.1.0",
         "glob": "13.0.6",
@@ -98,7 +98,7 @@
         "turbo-ignore": "2.11.10",
         "typescript": "7.0.2",
         "vite": "8.3.3",
-        "vitest": "5.0.1"
+        "vitest": "5.0.5"
     },
     "dependencies": {
         "@jsprismarine/bedrock-data": "workspace:*",
