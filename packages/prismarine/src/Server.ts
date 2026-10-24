@@ -479,7 +479,7 @@ export default class Server extends EventEmitter {
             void tick();
         }
 
-        this.logger.info(`JSPrismarine is now listening on port §b${port}`);
+        this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
     }
 
     /**
