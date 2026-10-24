@@ -14,6 +14,22 @@ export {
     type TemplateEntity,
     type TemplatePosition
 } from './types';
+export { TRANSFORM_NAMES, type Mirror, type Rotation, type TransformName } from './tableShape';
+export {
+    AMBIGUOUS_STATE_TRANSFORMS,
+    STATE_TRANSFORM_VERSIONS,
+    mirrorBedrockState,
+    rotateBedrockState,
+    transformBedrockState,
+    transformEntityPosition,
+    transformPosition,
+    transformTemplate,
+    transformedSize,
+    verifyStateTransforms,
+    type Placement,
+    type TransformMismatch,
+    type TransformedTemplate
+} from './transform';
 export {
     translateJavaTemplate,
     type TemplateLossKind,
