@@ -1,7 +1,8 @@
 /**
  * The server state a `ServerName` reads when it is created.
  *
- * `getIdentifiers().MinecraftVersions` must hold at least one version; the first entry is advertised.
+ * `getIdentifiers().MinecraftVersions` must hold at least one version, in ascending order;
+ * the last entry is advertised.
  */
 export interface ServerNameSource {
     /** Returns the configuration the advertised MOTD, gamemode, and player cap come from. */
@@ -44,7 +45,10 @@ export class ServerName {
         this.gamemode = server.getConfig().getGamemode();
         this.maxPlayers = server.getConfig().getMaxPlayers();
         this.protocol = server.getIdentifiers().Protocol;
-        this.version = server.getIdentifiers().MinecraftVersions.at(0)!;
+        // The newest supported version, which is what a Bedrock Dedicated Server of that
+        // version advertises. Advertising the oldest told a current client it had found an
+        // older server.
+        this.version = server.getIdentifiers().MinecraftVersions.at(-1)!;
     }
 
     /**

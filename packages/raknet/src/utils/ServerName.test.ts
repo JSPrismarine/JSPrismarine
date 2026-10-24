@@ -47,6 +47,18 @@ describe('ServerName', () => {
         );
     });
 
+    it('advertises the newest supported game version', () => {
+        const name = new ServerName({
+            getConfig: () => ({ getMotd: () => 'motd', getGamemode: () => 'Survival', getMaxPlayers: () => 20 }),
+            getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.50', '1.26.51'] })
+        });
+
+        // The first entry used to be advertised, so a 1.26.51 client was shown a 1.26.50
+        // server even though the protocol it would speak is the same.
+        expect(name.getVersion()).toBe('1.26.51');
+        expect(name.toString().split(';')[3]).toBe('1.26.51');
+    });
+
     it('advertises the default Bedrock port until the socket says otherwise', () => {
         expect(build().toString().split(';')[10]).toBe('19132');
     });
