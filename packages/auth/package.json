@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/auth",
-    "version": "0.15.2",
+    "version": "0.15.3",
     "description": "Minecraft: Bedrock Edition login identity: JWT chains, client data and Xbox Live",
     "sideEffects": false,
     "publishConfig": {

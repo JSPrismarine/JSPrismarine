@@ -1,5 +1,13 @@
 # @jsprismarine/client
 
+## 0.15.3
+
+### Patch Changes
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`42adf17`](https://github.com/JSPrismarine/JSPrismarine/commit/42adf17723e47eb83a36561e13e643805068805a) Thanks [@filiphsps](https://github.com/filiphsps)! - Pass the redirect context to single redirect modifiers
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`f544fb4`](https://github.com/JSPrismarine/JSPrismarine/commit/f544fb40304013ab7bf257d030a75eab0346719c) Thanks [@filiphsps](https://github.com/filiphsps)! - Match upstream redirect execution semantics
+
 ## 0.15.2
 
 No changes in this release.

@@ -1,5 +1,36 @@
 # @jsprismarine/prismarine
 
+## 0.15.3
+
+### Patch Changes
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`aa68cb1`](https://github.com/JSPrismarine/JSPrismarine/commit/aa68cb14115bf30f9fb8db7b4593ae6c4cf37e3d) Thanks [@filiphsps](https://github.com/filiphsps)! - Derive the persisted block state version from the catalog
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`b898ad5`](https://github.com/JSPrismarine/JSPrismarine/commit/b898ad5220836d825b2c15ce5089c6b0f1d22c4e) Thanks [@filiphsps](https://github.com/filiphsps)! - Persist entities in Bedrock LevelDB chunks
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`9bc4514`](https://github.com/JSPrismarine/JSPrismarine/commit/9bc4514b4148af9343dd4f3220a6e3ca552261b8) Thanks [@filiphsps](https://github.com/filiphsps)! - Preserve nested literal and redirected command paths
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`4555d70`](https://github.com/JSPrismarine/JSPrismarine/commit/4555d70bc9ef62bdee2184911334c9f864d2bb15) Thanks [@filiphsps](https://github.com/filiphsps)! - Save the world spawn in level.dat
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`b6ad6d8`](https://github.com/JSPrismarine/JSPrismarine/commit/b6ad6d8bff135055b0a6edda5c16d0b8a15b6196) Thanks [@filiphsps](https://github.com/filiphsps)! - Write chunk version 42 for current Bedrock format
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`4158282`](https://github.com/JSPrismarine/JSPrismarine/commit/4158282ba062f75acb4d64e4ab0f27c68051675e) Thanks [@filiphsps](https://github.com/filiphsps)! - Store player data in LevelDB records
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`4039da2`](https://github.com/JSPrismarine/JSPrismarine/commit/4039da24f7ca0ca72ce4bc5205a9ae7c2e400014) Thanks [@filiphsps](https://github.com/filiphsps)! - Correct command argument protocol ids
+
+- [#2612](https://github.com/JSPrismarine/JSPrismarine/pull/2612) [`a592bfb`](https://github.com/JSPrismarine/JSPrismarine/commit/a592bfb22322d7950da5b9a84e52e51de81cad9b) Thanks [@filiphsps](https://github.com/filiphsps)! - Correct the Bedrock chunk tag ids
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.15.3
+  - @jsprismarine/color-parser@0.15.3
+  - @jsprismarine/errors@0.15.3
+  - @jsprismarine/leveldb@0.15.3
+  - @jsprismarine/logger@0.15.3
+  - @jsprismarine/math@0.15.3
+  - @jsprismarine/minecraft@0.15.3
+  - @jsprismarine/nbt@0.15.3
+  - @jsprismarine/protocol@0.15.3
+  - @jsprismarine/raknet@0.15.3
+
 ## 0.15.2
 
 ### Patch Changes

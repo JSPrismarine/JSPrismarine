@@ -1,5 +1,16 @@
 # @jsprismarine/client
 
+## 0.15.3
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/auth@0.15.3
+  - @jsprismarine/logger@0.15.3
+  - @jsprismarine/minecraft@0.15.3
+  - @jsprismarine/protocol@0.15.3
+  - @jsprismarine/raknet@0.15.3
+
 ## 0.15.2
 
 ### Patch Changes
