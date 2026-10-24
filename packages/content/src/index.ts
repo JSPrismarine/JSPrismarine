@@ -3,6 +3,7 @@ export * from './components';
 export * from './definitions';
 export * from './diagnostics';
 export * from './errors';
+export * from './flatten';
 export * from './hooks';
 export * from './instances';
 export * from './registry';
