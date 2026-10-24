@@ -13,24 +13,32 @@ import DataPacket from './DataPacket';
  * so the answer had nowhere to say the ingredients were gone. The log stayed on screen and
  * could be crafted from for ever, while the server had already spent it.
  *
+ * Wire order at protocol 2193: `Container Id` (varuint32, despite the docs page typing it as
+ * a uint8 - gophertunnel and PocketMine both read a varuint here), `Slot` (varuint32),
+ * `Full Container Name` as an optional, `Storage Item` as an optional
+ * `NetworkItemStackDescriptor`, then `Item`.
+ *
  * **Bound To:** Client
- * @see https://github.com/pmmp/BedrockProtocol/blob/35.0.0%2Bbedrock-1.21.40/src/InventorySlotPacket.php
  */
 export default class InventorySlotPacket extends DataPacket {
     public static NetID = Identifiers.InventorySlotPacket;
 
-    /** Which window; the crafting grid lives in the player's own UI, which is 124. */
+    /** `Container Id`; the crafting grid lives in the player's own UI, which is 124. */
     public windowId!: number;
 
-    /** The slot, in the client's numbering - 28 upwards for the inventory's crafting grid. */
+    /** `Slot`, in the client's numbering - 28 upwards for the inventory's crafting grid. */
     public inventorySlot!: number;
 
+    /** The `Container Name` of `Full Container Name`. */
     public containerId: number = ContainerUiId.CRAFTING_INPUT;
+
+    /** The `Dynamic ID` of `Full Container Name`, absent unless several of a kind are open. */
     public dynamicId: number | null = null;
 
-    /** What is in it now. `null` empties the slot. */
+    /** `Item`: what is in the slot now. `null` empties it. */
     public item: Item | null = null;
 
+    /** Writes the five fields in docs order. */
     public encodePayload(): void {
         this.writeUnsignedVarInt(this.windowId);
         this.writeUnsignedVarInt(this.inventorySlot);

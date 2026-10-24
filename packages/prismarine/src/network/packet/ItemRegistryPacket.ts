@@ -25,10 +25,11 @@ const ENTRY_VERSION = 1;
  * does not receive it falls back to its own built-in table, which disagrees with ours for
  * part of the items, so it shows the wrong item for those ids.
  *
- * Wire layout: `Item Data` is a varuint32 count followed by one `ItemData` per entry:
- * `Item Name` (string), `Item Id` (int16 little endian, negative for a block's item form),
- * `Is Component Based` (boolean), `Item Version` (varint32, see {@link ENTRY_VERSION}), and
- * `Item Component Data` (network NBT compound with varint lengths, little endian).
+ * Wire layout: `Item Data` is a varuint count followed by one `ItemData` per entry:
+ * `Item Name` (a `hashed_string`, which travels as an ordinary string), `Item Id` (int16
+ * little endian, negative for a block's item form), `Is Component Based` (boolean),
+ * `Item Version` (varint32, see {@link ENTRY_VERSION}), and `Item Component Data` (network
+ * NBT compound with varint lengths, little endian).
  */
 export default class ItemRegistryPacket extends DataPacket {
     public static NetID = Identifiers.ItemRegistryPacket;
@@ -36,6 +37,7 @@ export default class ItemRegistryPacket extends DataPacket {
     /** Built once and kept. The table is identical for every player and every join. */
     private static cached: Buffer | null = null;
 
+    /** Writes `Item Data`, which is the same bytes for every player; see {@link getTable}. */
     public encodePayload(): void {
         this.write(ItemRegistryPacket.getTable());
     }

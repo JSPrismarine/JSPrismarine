@@ -13,7 +13,12 @@ import DataPacket from './DataPacket';
  *
  * Mobs do not need it: the server moves them, and `MoveActorAbsolutePacket` already says where
  * they ended up.
- * @see https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json `packet_set_entity_motion`
+ *
+ * Protocol 2193 wire order, with the docs' field names: `Target Runtime ID` (varuint64),
+ * `Motion` (three little-endian floats), `Tick` (a `PlayerInputTick`, a varuint64).
+ *
+ * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-actor-motion-packet/
  */
 export default class SetActorMotionPacket extends DataPacket {
     public static NetID = Identifiers.SetActorMotionPacket;

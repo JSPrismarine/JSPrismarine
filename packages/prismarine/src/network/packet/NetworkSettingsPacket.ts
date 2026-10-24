@@ -1,27 +1,49 @@
-import DataPacket from './DataPacket';
+import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
 
+/**
+ * The two `Compression Threshold` values this server has a name for.
+ *
+ * The field is a raw uint16 byte count, not an enum: zero turns compression off and any other
+ * value is the smallest payload worth compressing. `COMPRESS_EVERYTHING` is 1 because one byte
+ * is the smallest payload there is.
+ */
 export enum CompressionThreshold {
-    COMPRESS_NOTHING,
-    COMPRESS_EVERYTHING
+    COMPRESS_NOTHING = 0,
+    COMPRESS_EVERYTHING = 1
 }
 
-// `PacketCompressionAlgorithm` lives in `@jsprismarine/minecraft`, where every other
-// protocol enum does. A copy here declared `NONE` as `0xffff & 0xff` - 255 - reasoning that
-// the field is a byte. It is not: `compressionAlgorithm` is written with
-// `writeUnsignedShortLE` a few lines below, and Mojang's documentation for protocol 748
-// says 0xffff. The copy shadowed the real one for every importer.
-
+/**
+ * The compression terms every later batch is framed under, sent uncompressed in answer to
+ * `RequestNetworkSettingsPacket`.
+ *
+ * Protocol 2193 wire order, with the docs' field names: `Compression Threshold` (uint16 little
+ * endian), `CompressionAlgorithm` (uint16 little endian holding a `PacketCompressionAlgorithm`),
+ * `Client Throttle Enabled` (boolean), `Client Throttle Threshold` (uint8) and
+ * `Client Throttle Scalar` (float, little endian).
+ *
+ * `CompressionAlgorithm` is two bytes wide, which is why `PacketCompressionAlgorithm.NONE` is
+ * 0xffff rather than something that fits in a byte.
+ *
+ * **Bound To:** Client
+ */
 export default class NetworkSettingsPacket extends DataPacket {
     public static NetID = Identifiers.NetworkSettingsPacket;
 
+    /** `Compression Threshold`: the smallest payload that gets compressed, or 0 for none. */
     public compressionThreshold!: number;
-    public compressionAlgorithm!: number;
+    /** `CompressionAlgorithm` that every later batch is compressed with. */
+    public compressionAlgorithm!: PacketCompressionAlgorithm;
 
+    /** `Client Throttle Enabled`: whether the client stops ticking players past the threshold. */
     public clientThrottlingEnabled!: boolean;
+    /** `Client Throttle Threshold`: how many players the client ticks before throttling. */
     public clientThrottleThreshold!: number;
+    /** `Client Throttle Scalar`: how hard it throttles once it does. */
     public clientThrottleScalar!: number;
 
+    /** Reads the five fields in the protocol 2193 order described on the class. */
     public decodePayload(): void {
         this.compressionThreshold = this.readUnsignedShortLE();
         this.compressionAlgorithm = this.readUnsignedShortLE();
@@ -30,6 +52,7 @@ export default class NetworkSettingsPacket extends DataPacket {
         this.clientThrottleScalar = this.readFloatLE();
     }
 
+    /** Writes the five fields in the protocol 2193 order described on the class. */
     public encodePayload(): void {
         this.writeUnsignedShortLE(this.compressionThreshold);
         this.writeUnsignedShortLE(this.compressionAlgorithm);

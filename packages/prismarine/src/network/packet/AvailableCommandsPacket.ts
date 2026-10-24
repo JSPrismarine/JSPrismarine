@@ -11,6 +11,10 @@ import DataPacket from './DataPacket';
  *
  * The level itself is still a small integer everywhere else; only the wire spells it out.
  * Anything unrecognized is `unknown`, which is what the client's own table falls back to.
+ *
+ * Lower case, where the docs page prints the enum member names as `Any` and `GameDirectors`.
+ * The docs render every stringly typed enum in CamelCase - `CommandOriginData`'s `Type` is
+ * `Player` there and `player` on the wire - and gophertunnel writes and matches lower case.
  * @param {number} level - The permission level.
  * @returns {string} The name the client reads.
  */

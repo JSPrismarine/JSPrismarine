@@ -1,0 +1,36 @@
+import Identifiers from '../Identifiers';
+import DataPacket from './DataPacket';
+
+/**
+ * Turns command execution on or off for one client.
+ *
+ * **Bound To:** Client
+ *
+ * The client enforces it locally: with commands disabled it stops running them itself and
+ * greys out the parts of the interface that need them. The world settings screen, the cheats
+ * toggle and the Education Edition teacher tools all go through this, usually as the reply
+ * to a `SimpleEventPacket` the client sent.
+ *
+ * Protocol 2193 layout (docs id 59), in wire order:
+ *
+ * | Name | Type | Notes |
+ * | ---- |:----:|:-----:|
+ * | Commands Enabled | boolean | |
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-commands-enabled-packet/
+ */
+export default class SetCommandsEnabledPacket extends DataPacket {
+    public static NetID = Identifiers.SetCommandsEnabledPacket;
+
+    /** Commands Enabled, whether the client may run commands. */
+    public commandsEnabled = false;
+
+    /** Reads the flag. */
+    public decodePayload(): void {
+        this.commandsEnabled = this.readBoolean();
+    }
+
+    /** Writes the flag. */
+    public encodePayload(): void {
+        this.writeBoolean(this.commandsEnabled);
+    }
+}

@@ -3,12 +3,19 @@ import type { IngredientDescriptor, RecipeIngredient } from '../../crafting/Reci
 import { NetworkUtil } from '../NetworkUtil';
 
 /**
- * Which alternative of the descriptor variant is on the wire.
+ * Which alternative of the `Item Descriptor` variant is on the wire.
  *
- * Only two are ever selected, and that is not a simplification here - it is what the format
- * does. Everything that is not the invalid descriptor selects `DEFAULT`, and the *name string*
- * that follows says which of the three real shapes it actually is. Mojang's documentation
- * describes the old byte-tagged union and does not mention the string at all.
+ * `CraftingDataPacket` carries the legacy form of a `RecipeIngredient`, where only these two
+ * selectors are ever written: the invalid descriptor selects `INVALID` and all three real
+ * shapes select `DEFAULT`, with the name string that follows saying which of the three it is.
+ *
+ * The docs type page for `recipe-ingredient` describes a different encoding - a
+ * `Descriptor Type` uint8 of 0 Empty, 1 ItemName, 2 Molang, 3 ItemTag, followed by a
+ * `StackSize` uint16. That encoding is real, but it belongs to the auto-craft action inside
+ * an `ItemStackRequest`, which `ItemStackRequest.ts` reads. gophertunnel at protocol 2193
+ * keeps the two apart the same way: `Writer.ItemDescriptorCount` writes the legacy form used
+ * here and is what every recipe in `crafting_data.go` goes through, while
+ * `StackRequestItemDescriptorCount` writes the selector plus type byte form.
  */
 const VARIANT_INVALID = 0;
 const VARIANT_DEFAULT = 1;
@@ -22,26 +29,21 @@ const NAME_TAG = 'item_tag';
  * The auxiliary value written for a descriptor that names no single item.
  *
  * 32767 is the wildcard meta - "any" - which is what an invalid descriptor and a tag
- * descriptor both stand for. It is written *after* the tag's name, not before it.
+ * descriptor both stand for. An invalid descriptor writes it in place of a name; a tag
+ * descriptor writes it after the tag's name.
  */
 const ANY_AUX = 32767;
 
 /** An ingredient as it travels: what identifies it, and how many are wanted. */
 export interface WireIngredient {
+    /** The `Item Descriptor`, or `null` for the empty slot of a shaped pattern. */
     descriptor: IngredientDescriptor | null;
+    /** The stack size, a varint32 in this form rather than the docs' `StackSize` uint16. */
     count: number;
 }
 
 /**
- * Reads and writes a recipe ingredient.
- *
- * Both halves live here on purpose. They are one format described twice, and the last time
- * this codebase described a format twice - the item stack, once for reading and once for
- * writing - the two drifted by a byte and the client rejected the packet.
- */
-
-/**
- * Writes one ingredient.
+ * Writes one ingredient: the variant selector, the descriptor's name and fields, then the count.
  *
  * A named ingredient goes out under `name` rather than by numeric id: the name is what this
  * server reasons in, and the numeric ids are the thing that has already proved inconsistent
@@ -56,8 +58,8 @@ export const writeRecipeIngredient = (stream: BinaryStream, ingredient: RecipeIn
         case 'name':
             NetworkUtil.writeString(stream, NAME_ITEM);
             NetworkUtil.writeString(stream, descriptor.name);
-            // A varint at this version, where 748 had two fixed bytes. Writing the short
-            // form leaves every ingredient after the first one byte out of place.
+            // The aux value, a varint32 in this form rather than the two fixed bytes 748 had.
+            // The short form leaves every ingredient after the first one byte out of place.
             stream.writeVarInt(descriptor.meta);
             break;
 
@@ -79,10 +81,12 @@ export const writeEmptyIngredient = (stream: BinaryStream): void => {
 };
 
 /**
- * Reads one ingredient.
+ * Reads one ingredient, the mirror of {@link writeRecipeIngredient}.
  *
  * Every shape is read, including the ones nothing here produces: an unread shape does not
- * cost that ingredient, it costs the rest of the packet.
+ * cost that ingredient, it costs the rest of the packet. A `molang` descriptor is stepped
+ * over rather than returned, because {@link IngredientDescriptor} has no molang kind - this
+ * server never sends one, and nothing it reads back is a recipe it did not send.
  */
 export const readRecipeIngredient = (stream: BinaryStream): WireIngredient => {
     const variant = stream.readUnsignedVarInt();
@@ -104,8 +108,8 @@ export const readRecipeIngredient = (stream: BinaryStream): WireIngredient => {
             break;
 
         case NAME_MOLANG:
-            NetworkUtil.readString(stream); // The expression.
-            stream.readShortLE(); // The MoLang version.
+            NetworkUtil.readString(stream); // Tag Expression.
+            stream.readShortLE(); // Molang Version, an int16.
             break;
 
         case NAME_TAG:

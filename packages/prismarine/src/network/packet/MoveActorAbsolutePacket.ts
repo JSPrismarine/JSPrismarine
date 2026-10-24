@@ -3,6 +3,17 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/**
+ * Where an entity now is, as the server tells a client.
+ *
+ * The payload is one `MoveActorAbsoluteData`. Protocol 2193 wire order, with the docs' field
+ * names: `ActorRuntimeID` (varuint64), `Header` (uint8, the flags below), `Position` (three
+ * little-endian floats), then `Rotation X`, `Rotation Y` and `Rotation Y Head`, each one byte
+ * holding the angle as a 256th of a turn.
+ *
+ * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/move-actor-absolute-packet/
+ */
 export default class MoveActorAbsolutePacket extends DataPacket {
     public static NetID = Identifiers.MoveActorAbsolutePacket;
 
@@ -31,6 +42,8 @@ export default class MoveActorAbsolutePacket extends DataPacket {
      * *body* yaw, then head yaw - is not the order they are usually listed in. Filled in as pitch,
      * head, body, an entity's head is set from its body and its body from its head, which shows up
      * as a head that is stuck at the wrong angle and never turns.
+     *
+     * The docs call them `Rotation X`, `Rotation Y` and `Rotation Y Head`, in that order.
      * @see https://apidoc-dev.pmmp.io/d1/d15/_move_actor_absolute_packet_8php_source.html
      */
     public pitch: number = 0;

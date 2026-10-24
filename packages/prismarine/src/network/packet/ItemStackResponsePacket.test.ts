@@ -25,8 +25,8 @@ const readBack = (buffer: Buffer) => {
                 const slots = [];
                 for (let k = 0, m = stream.readUnsignedVarInt(); k < m; k++) {
                     slots.push({
+                        requestedSlot: stream.readByte(),
                         slot: stream.readByte(),
-                        hotbarSlot: stream.readByte(),
                         count: stream.readByte(),
                         stackNetId: stream.readBoolean() ? stream.readVarInt() : null,
                         customName: NetworkUtil.readString(stream),
@@ -62,7 +62,6 @@ describe('ItemStackResponsePacket', () => {
                         slots: [
                             {
                                 slot: 3,
-                                hotbarSlot: 3,
                                 count: 16,
                                 itemStackId: 77,
                                 customName: '',
@@ -84,8 +83,8 @@ describe('ItemStackResponsePacket', () => {
                         dynamicId: null,
                         slots: [
                             {
+                                requestedSlot: 3,
                                 slot: 3,
-                                hotbarSlot: 3,
                                 count: 16,
                                 stackNetId: 77,
                                 customName: '',
@@ -111,7 +110,6 @@ describe('ItemStackResponsePacket', () => {
                         slots: [
                             {
                                 slot: 0,
-                                hotbarSlot: 0,
                                 count: 0,
                                 itemStackId: 0,
                                 customName: '',
@@ -126,6 +124,29 @@ describe('ItemStackResponsePacket', () => {
         const [response] = readBack(encode(packet));
         expect(response!.containers[0]!.dynamicId).toBe(9);
         expect(response!.containers[0]!.slots[0]!.stackNetId).toBeNull();
+    });
+
+    it('writes the changed slot under both Requested Slot and Slot', () => {
+        // The two carry the same number. Writing zero for the second one answered for the
+        // crafting grid's slot 28 with "slot 0 changed", which is the first square of the grid
+        // whichever square actually emptied.
+        const packet = new ItemStackResponsePacket();
+        packet.responses = [
+            {
+                result: ItemStackResponseResult.OK,
+                requestId: 2,
+                containers: [
+                    {
+                        container: { containerId: 13, dynamicId: null },
+                        slots: [{ slot: 28, count: 0, itemStackId: 0, customName: '', durabilityCorrection: 0 }]
+                    }
+                ]
+            }
+        ];
+
+        const slot = readBack(encode(packet))[0]!.containers[0]!.slots[0]!;
+        expect(slot.requestedSlot).toBe(28);
+        expect(slot.slot).toBe(28);
     });
 
     it('writes a refusal as a result and a request id, followed by a byte saying no containers', () => {
