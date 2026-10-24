@@ -91,6 +91,36 @@ export const enchantmentLevelFromComponent = (stack: ItemStack, enchantment: str
     return typeof level === 'number' ? level : 0;
 };
 
+/** What `exploration_map` is asked to find. */
+export interface ExplorationMapRequest {
+    /** Namespaced structure id or tag the map should point at. */
+    readonly destination: string;
+    /** Namespaced map decoration id. */
+    readonly decoration: string;
+    readonly zoom: number;
+    readonly searchRadius: number;
+    readonly skipExistingChunks: boolean;
+}
+
+/**
+ * Content lookups a few item modifiers need that this package cannot own,
+ * because smelting recipes, player profiles, structure search and the dye
+ * color table live elsewhere. An unimplemented member makes the modifier
+ * report a diagnostic and leave the stack unchanged.
+ */
+export interface ContentView {
+    /** Result of smelting one item, for `furnace_smelt`. */
+    smeltingResult?(stack: ItemStack): ItemStack | undefined;
+    /** Value for the `minecraft:profile` component of an entity, for `fill_player_head`. */
+    profileOf?(entity: unknown): unknown;
+    /** Builds the map item for `exploration_map`, or undefined when no structure was found. */
+    explorationMap?(stack: ItemStack, request: ExplorationMapRequest): ItemStack | undefined;
+    /** Rolls loot pool entries into stacks, for `set_contents`. */
+    rollEntries?(entries: unknown): readonly ItemStack[] | undefined;
+    /** The packed RGB values of the dye colors, for `set_random_dyes`. */
+    dyeColors?(): readonly number[];
+}
+
 /** An {@link EnchantmentView} that only knows what the stack's own components say. */
 export const defaultEnchantmentView: EnchantmentView = {
     levelOn: enchantmentLevelFromComponent

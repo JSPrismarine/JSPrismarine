@@ -22,8 +22,10 @@ export interface FluidState {
 /** The block entity behind the `block_entity` context parameter. */
 export interface BlockEntityView {
     readonly id: string;
-    /** Parsed NBT, in whatever shape the host uses; this package only compares it by identity. */
+    /** Parsed NBT, in whatever shape the host uses. */
     readonly nbt?: unknown;
+    /** Data components on the block entity, which `copy_components` copies onto the dropped item. */
+    readonly components?: ReadonlyMap<string, unknown>;
 }
 
 /** One status effect on an entity. */

@@ -1,6 +1,6 @@
 import { DiagnosticCollector } from './diagnostics';
 import { defaultEnchantmentView, defaultItemStackOps } from './item';
-import type { EnchantmentView, ItemStack, ItemStackOps } from './item';
+import type { ContentView, EnchantmentView, ItemStack, ItemStackOps } from './item';
 import { constantRandom } from './random';
 import type { RandomSource } from './random';
 import type { BlockEntityView, BlockState, DamageSource, EntityView, LevelView, Vec3 } from './world';
@@ -126,6 +126,7 @@ export interface PredicateContextOptions {
     diagnostics?: DiagnosticCollector;
     items?: ItemStackOps;
     enchantments?: EnchantmentView;
+    content?: ContentView;
 }
 
 /**
@@ -143,6 +144,7 @@ export class PredicateContext {
     public readonly diagnostics: DiagnosticCollector;
     public readonly items: ItemStackOps;
     public readonly enchantments: EnchantmentView;
+    public readonly content: ContentView;
 
     public constructor(options: PredicateContextOptions = {}) {
         this.parameterSet = options.parameterSet ?? 'empty';
@@ -152,6 +154,7 @@ export class PredicateContext {
         this.diagnostics = options.diagnostics ?? new DiagnosticCollector();
         this.items = options.items ?? defaultItemStackOps;
         this.enchantments = options.enchantments ?? defaultEnchantmentView;
+        this.content = options.content ?? {};
     }
 
     /**

@@ -3,6 +3,7 @@ export * from './context';
 export * from './diagnostics';
 export * from './item';
 export * from './json';
+export * from './modifiers';
 export * from './parse';
 export * from './providers';
 export * from './random';

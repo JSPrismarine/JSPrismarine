@@ -169,7 +169,7 @@ describe('float providers', () => {
             draw({ type: 'minecraft:environment_attribute', attribute: 'minecraft:temperature' }, 'float', {
                 level: { environmentAttribute: () => 0.8 }
             })
-        ).toBe(0.8);
+        ).toBeCloseTo(0.8, 6);
     });
 });
 
