@@ -15,10 +15,15 @@ export default class SetLocalPlayerAsInitializedHandler implements PacketHandler
         const player = session.getPlayer();
         const world = server.getWorldManager().getDefaultWorld();
 
-        // Add player to the world.
+        // Into the world only now: this is the client saying it has a player to show, so
+        // this is when everyone else gets an `AddPlayer` for it.
         await world.addEntity(player);
 
-        // Send the spawn packets.
+        // The one place `completeSpawn` runs. The join burst in `ResourcePackResponseHandler`
+        // already sent the gamemode, settings, abilities, attributes, metadata and inventory,
+        // but the client rebuilds its local player while spawning and loses them - the hunger
+        // bar sat empty without this. It used to run from the burst as well, so everything
+        // went out twice.
         await player.completeSpawn();
     }
 }
