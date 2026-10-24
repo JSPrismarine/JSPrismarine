@@ -777,7 +777,10 @@ export default class Session {
                         () => {}
                     );
                 } else if (id === MessageIdentifiers.NEW_INCOMING_CONNECTION) {
-                    // TODO: online mode
+                    // Nothing here depends on online mode. Bedrock never enables RakNet's own
+                    // security, so this handshake is the same whether or not the server will
+                    // demand an Xbox Live identity; that check belongs to the game layer's
+                    // login, which is the first thing to follow this.
                     this.state = SessionStatus.CONNECTED;
                     this.listener.emit('openConnection', this);
                 }

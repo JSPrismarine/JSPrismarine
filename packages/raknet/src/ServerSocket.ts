@@ -27,9 +27,17 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
 
     private readonly offlineHandler = new OfflineHandler(this);
 
+    /**
+     * @param maxConnections - how many sessions may exist at once; see {@link setMaxConnections}.
+     * @param _onlineMode - accepted for compatibility and unused. RakNet has no part in
+     * Bedrock's online mode: the client never enables RakNet security, and the identity
+     * check belongs to the game layer's login.
+     * @param serverName - the MOTD line; the socket feeds it the guid and the bound port.
+     * @param logger - where the socket reports.
+     */
     public constructor(
         private maxConnections: number,
-        private readonly onlineMode: boolean,
+        _onlineMode: boolean,
         public readonly serverName: ServerName,
         private readonly logger: Logger
     ) {
@@ -42,10 +50,6 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
         this.guid = guid;
         // The MOTD line carries the guid too, and a client matches the two.
         this.serverName.setServerId(guid);
-
-        if (this.onlineMode) {
-            this.logger.warn('Online mode is currently not supported.', 'RakNet/ServerSocket');
-        }
     }
 
     public start(address: string, port: number): void {
