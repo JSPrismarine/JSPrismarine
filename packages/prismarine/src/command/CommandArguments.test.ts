@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { spawnableEntities } from '../entity/Entities';
-import { CommandArgumentMob } from './CommandArguments';
+import { CommandArgumentCommand, CommandArgumentMob } from './CommandArguments';
+import { CommandParameterType } from '../network/type/CommandParameter';
 
 describe('command', () => {
     describe('CommandArgumentMob', () => {
@@ -16,6 +17,14 @@ describe('command', () => {
             expect(values).toContain('cat');
             // What a player types, and what the command's parser prefixes `minecraft:` onto.
             expect(values.filter((value) => value.startsWith('minecraft:'))).toEqual([]);
+        });
+    });
+
+    describe('CommandArgumentCommand', () => {
+        it('advertises a command root argument with the protocol message-root type', () => {
+            const [parameter] = new CommandArgumentCommand().getParameters();
+
+            expect(parameter?.paramType).toBe(CommandParameterType.MessageRoot);
         });
     });
 });

@@ -367,7 +367,7 @@ export class CommandArgumentCommand implements CommandArgument {
         return new Set([
             new CommandParameter({
                 paramName: this.name,
-                paramType: CommandParameterType.Position,
+                paramType: CommandParameterType.MessageRoot,
                 isOptional: this.optional,
                 flags: this.flags,
                 postfix: this.postfix

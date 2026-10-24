@@ -155,7 +155,7 @@ const SOFT_ENUM = 0x4000000;
  * The basic argument type ids of protocol 2193 that a plain parameter may carry. The low 16
  * bits of a parameter's `Parse Symbol` once its flags are masked off.
  */
-const ARGUMENT_TYPE_IDS = new Set([1, 3, 4, 5, 6, 7, 8, 56, 64, 65, 67, 70, 74, 87]);
+const ARGUMENT_TYPE_IDS = new Set([1, 3, 4, 5, 6, 7, 8, 56, 64, 65, 67, 68, 70, 74, 87]);
 
 describe('AvailableCommandsPacket', () => {
     it('writes one command with every parameter kind in protocol 2193 order', () => {
