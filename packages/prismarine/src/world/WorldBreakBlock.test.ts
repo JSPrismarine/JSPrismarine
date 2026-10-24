@@ -100,7 +100,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
 
     // The real replicator over the fake world, so that what a break puts on the wire - and to
     // whom - is still the code under test. The world itself no longer builds those packets.
-    const replicator = new NetworkWorldReplicator(world, (world as any).server);
+    const replicator = new NetworkWorldReplicator(world, world.getServer());
     world.attachChangeSink(replicator);
 
     return {

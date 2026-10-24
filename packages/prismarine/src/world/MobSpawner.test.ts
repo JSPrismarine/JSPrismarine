@@ -1,10 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { Difficulty } from '@jsprismarine/minecraft';
-import { Vector3 } from '@jsprismarine/math';
+import type { Logger } from '@jsprismarine/logger';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
+import type Player from '../Player';
+import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import MobSpawner from './MobSpawner';
 import { Position } from './Position';
@@ -18,9 +22,30 @@ import type { World } from './World';
 class TestWorld {
     private readonly chunks = new Map<string, Chunk>();
     private readonly entities: Entity[] = [];
-    private readonly players: any[] = [];
+    private readonly players: Player[] = [];
 
     public ticks = 6000; // Midday.
+
+    /** The face this shows to the code under test. Every member reads the state above. */
+    private readonly world = stub<World>({
+        getLoadedChunk: (cx, cz) => this.chunks.get(`${cx},${cz}`) ?? null,
+        getEntities: () => this.getEntities(),
+        getPlayers: () => this.players,
+        getTicks: () => this.ticks,
+        addEntity: (entity) => this.addEntity(entity),
+        removeEntity: async (entity) => {
+            const index = this.entities.indexOf(entity);
+            if (index >= 0) this.entities.splice(index, 1);
+        },
+        broadcastMove: async () => {},
+        getServer: () =>
+            stub<Server>({
+                getLogger: () => stub<Logger>({ debug: () => {}, warn: () => {} }),
+                // Normal, so monsters are allowed - peaceful suppresses them entirely.
+                getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL })
+            }),
+        getName: () => 'test'
+    });
 
     public constructor(radius = 4, groundY = 64) {
         const stone = BlockRuntimeIds.getByName('minecraft:stone');
@@ -40,51 +65,31 @@ class TestWorld {
         }
     }
 
-    public getLoadedChunk(cx: number, cz: number): Chunk | null {
-        return this.chunks.get(`${cx},${cz}`) ?? null;
-    }
-
     public getEntities(): Entity[] {
         return [...this.entities];
-    }
-
-    public getPlayers(): any[] {
-        return this.players;
-    }
-
-    public getTicks(): number {
-        return this.ticks;
     }
 
     public async addEntity(entity: Entity): Promise<void> {
         this.entities.push(entity);
     }
 
-    public async removeEntity(entity: Entity): Promise<void> {
-        const index = this.entities.indexOf(entity);
-        if (index >= 0) this.entities.splice(index, 1);
-    }
-
-    public async broadcastMove(): Promise<void> {}
-
-    public getServer(): any {
-        return {
-            getLogger: () => ({ debug: () => {}, warn: () => {} }),
-            // Normal, so monsters are allowed - peaceful suppresses them entirely.
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
-        };
-    }
-
-    public getName(): string {
-        return 'test';
-    }
-
     public addPlayerAt(x: number, y: number, z: number): void {
-        this.players.push({ getPosition: () => new Vector3(x, y, z), isOnline: () => true, gamemode: 0 });
+        this.players.push(
+            stub<Player>({
+                getPosition: () => new Position(x, y, z, this.world),
+                isOnline: () => true,
+                gamemode: Gametype.SURVIVAL
+            })
+        );
+    }
+
+    /** Everyone leaves, so a test can put the players somewhere else entirely. */
+    public clearPlayers(): void {
+        this.players.length = 0;
     }
 
     public asWorld(): World {
-        return this as unknown as World;
+        return this.world;
     }
 }
 
@@ -163,7 +168,7 @@ describe('mob spawner', () => {
 
         // Everyone walks a long way off. Without this, a world fills with everything that has ever
         // been beside a player and never empties.
-        (world as any).players.length = 0;
+        world.clearPlayers();
         world.addPlayerAt(1000, 65, 1000);
         await spawner.tick(80);
 

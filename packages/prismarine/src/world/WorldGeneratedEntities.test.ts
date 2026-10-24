@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { assert, describe, expect, it } from 'vitest';
 
 import type { Entity } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
@@ -76,8 +76,9 @@ describe('mobs left by world generation', () => {
         const { world, added } = worldLoading(chunk);
         await world.loadChunk(0, 0);
 
-        expect(added[0]).toBeInstanceOf(Mob);
-        expect((added[0] as Mob).isPersistent()).toBe(true);
+        const [first] = added;
+        assert(first instanceof Mob);
+        expect(first.isPersistent()).toBe(true);
     });
 
     it('skips a mob this server has no class for, and keeps the rest', async () => {

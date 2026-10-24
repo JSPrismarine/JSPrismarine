@@ -21,7 +21,9 @@ describe('world', () => {
             // The invariant the class is for. It used to be checked on the way out of
             // `getWorld()`, which let a worldless position be built and passed around, and
             // blamed whichever unrelated read happened to touch it first.
-            expect(() => new Position(1, 2, 3, undefined as unknown as World)).toThrow(/requires the world/);
+            // @ts-expect-error the guard under test rejects a missing world
+            const worldless = () => new Position(1, 2, 3, undefined);
+            expect(worldless).toThrow(/requires the world/);
         });
 
         it('should move to another world without altering the original', () => {
