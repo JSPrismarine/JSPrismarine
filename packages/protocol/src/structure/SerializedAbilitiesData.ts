@@ -9,7 +9,7 @@ import SerializedAbilityLayer from './SerializedAbilityLayer';
  * Wire order: "Target Player Raw Id" int64 LE, "Player Permissions" `PlayerPermissionLevel`
  * as int8, "Command Permissions" `CommandPermissionLevel` as uint8, then "Layers" as a
  * varuint32 count followed by that many `SerializedAbilityLayer` entries.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/update-abilities-packet/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/serialized-abilities-data/}
  */
 export default class SerializedAbilitiesData extends NetworkStructure {
     public layers: Array<SerializedAbilityLayer>;
@@ -26,7 +26,7 @@ export default class SerializedAbilitiesData extends NetworkStructure {
 
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeLongLE(this.targetPlayerRawId);
-        stream.writeByte(this.mPlayerPermissions);
+        stream.writeSignedByte(this.mPlayerPermissions);
         stream.writeByte(this.mCommandPermissions);
         stream.writeUnsignedVarInt(this.layers.length);
         for (const layer of this.layers) {
@@ -36,7 +36,7 @@ export default class SerializedAbilitiesData extends NetworkStructure {
 
     public deserialize(stream: NetworkBinaryStream): void {
         this.targetPlayerRawId = stream.readLongLE();
-        this.mPlayerPermissions = stream.readByte();
+        this.mPlayerPermissions = stream.readSignedByte();
         this.mCommandPermissions = stream.readByte();
         const layersCount = stream.readUnsignedVarInt();
         this.layers = new Array(layersCount);

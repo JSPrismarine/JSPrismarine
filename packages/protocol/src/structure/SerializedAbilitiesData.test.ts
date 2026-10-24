@@ -57,4 +57,17 @@ describe('SerializedAbilitiesData', () => {
         expect(layer?.walkSpeed).toBeCloseTo(0.1);
         expect(stream.feof()).toBe(true);
     });
+
+    it('reads Player Permissions as a signed byte', () => {
+        // The docs type the field as int8. A 0xff byte is -1, not 255.
+        const bytes = Buffer.concat([wire.subarray(0, 8), Buffer.from([0xff, 0x00, 0x00])]);
+        const data = SerializedAbilitiesData.deserialize(new NetworkBinaryStream(bytes));
+
+        expect(data.mPlayerPermissions).toBe(-1);
+        expect(data.layers).toEqual([]);
+
+        const stream = new NetworkBinaryStream();
+        data.serialize(stream);
+        expect(stream.getBuffer()).toEqual(bytes);
+    });
 });

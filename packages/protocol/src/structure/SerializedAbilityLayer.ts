@@ -6,7 +6,10 @@ import NetworkStructure from '../NetworkStructure';
  *
  * Wire order, all little-endian: "SerializedLayer" uint16, "AbilitiesSet" uint32,
  * "AbilityValues" uint32, "FlySpeed" float, "VerticalFlySpeed" float, "WalkSpeed" float.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/update-abilities-packet/}
+ * "AbilitiesSet" marks which `AbilitiesIndex` bits the layer carries and "AbilityValues"
+ * holds their booleans. The three speed indices (13, 14, 19) have no value bit; their
+ * presence in "AbilitiesSet" says the matching float applies.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/serialized-abilities-data-serialized-layer/}
  */
 export default class SerializedAbilityLayer extends NetworkStructure {
     public constructor(
