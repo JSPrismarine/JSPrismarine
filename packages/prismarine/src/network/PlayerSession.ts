@@ -3,8 +3,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
-import type { CommandArgument } from '../command/CommandArguments';
-import { CommandArgumentEntity, CommandArgumentGamemode } from '../command/CommandArguments';
+import { CommandArgumentEntity, CommandArgumentGamemode, isCommandArgument } from '../command/CommandArguments';
 import type { Attribute, Attributes } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
@@ -794,8 +793,8 @@ export default class PlayerSession {
 
                 command[2].forEach((arg, index) => {
                     const parameters = arg
-                        .map((parameter: CommandArgument | null) => {
-                            if (!parameter || !(parameter as any)?.getParameters) return [];
+                        .map((parameter) => {
+                            if (!isCommandArgument(parameter)) return [];
 
                             const parameters = parameter.getParameters(this.server);
                             if (parameters) return Array.from(parameters.values());

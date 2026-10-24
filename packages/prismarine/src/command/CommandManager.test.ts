@@ -2,6 +2,11 @@ import { describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
 import Console from '../Console';
 import Player from '../Player';
+import type { PermissionManager } from '../permission/PermissionManager';
+import { stub, stubOf } from '../testing/stub.test.helper';
+import type GameRuleManager from '../world/GameRuleManager';
+import type { World } from '../world/World';
+import type WorldManager from '../world/WorldManager';
 import * as Commands from './Commands';
 import { Command } from './Command';
 import { CommandManager } from './CommandManager';
@@ -36,7 +41,7 @@ describe('command', () => {
         it('should clear commands on disable', async () => {
             const commandManager = new CommandManager(server);
 
-            (commandManager as any).commands.set('test', new Command({} as any));
+            commandManager.getCommands().set('test', new Command({ id: 'test:test' }));
             await commandManager.disable();
 
             expect(commandManager.getCommands().size).toBe(0);
@@ -57,17 +62,20 @@ describe('command', () => {
         /** A manager whose permission checks are observable, plus the spy watching them. */
         const managerWithPermissionSpy = (granted = true) => {
             const can = vi.fn().mockReturnValue({ execute: () => granted });
-            const worldManager = {
-                getDefaultWorld: () => ({ getGameRuleManager: () => ({ getGameRule: () => false }) })
-            };
+            // An unset rule keeps command feedback off, so the double needs no chat manager.
+            const gameRules = stub<GameRuleManager>({ getGameRule: () => null });
+            const world = stub<World>({ getGameRuleManager: () => gameRules });
+            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world });
 
             return {
                 can,
-                commandManager: new CommandManager({
-                    ...server,
-                    getPermissionManager: () => ({ can }),
-                    getWorldManager: () => worldManager
-                } as unknown as Server)
+                commandManager: new CommandManager(
+                    stub<Server>({
+                        ...server,
+                        getPermissionManager: () => stub<PermissionManager>({ can }),
+                        getWorldManager: () => worldManager
+                    })
+                )
             };
         };
 
@@ -93,7 +101,7 @@ describe('command', () => {
 
             // Prototype-only: a real player needs a live connection, and a refused command
             // returns before anything would reach for one.
-            const player = Object.create(Player.prototype) as Player;
+            const player = stubOf(Player);
             const sendMessage = vi.spyOn(player, 'sendMessage').mockResolvedValue();
 
             await commandManager.dispatchCommand(player, player, '/help');

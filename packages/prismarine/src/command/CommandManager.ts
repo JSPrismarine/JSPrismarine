@@ -1,5 +1,5 @@
-import type { ArgumentCommandNode } from '@jsprismarine/brigadier';
-import { CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
+import type { RootCommandNode } from '@jsprismarine/brigadier';
+import { ArgumentCommandNode, CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
 import {
     CommandRegisterClassMalformedOrMissingError,
     CommandUnknownCommandError,
@@ -7,7 +7,7 @@ import {
     GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
 
-import type { Command, CommandArgument, Entity, Server, Service } from '../';
+import type { Command, Entity, Server, Service } from '../';
 import { Chat } from '../chat/Chat';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
 // `./world/` before `Player`, so reaching for it via '../' lands in a half-initialised
@@ -15,17 +15,38 @@ import { Chat } from '../chat/Chat';
 import Player from '../Player';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
 import Timer from '../utils/Timer';
-import * as Commands from './Commands';
+import type { CommandArgumentType } from './CommandArguments';
+import { isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
+import { isCommandExecutor } from './CommandExecutor';
+import * as Commands from './Commands';
+
+/**
+ * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
+ * is read off the root node's API.
+ */
+export type CommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandExecutor>['getChild']>>;
+
+/**
+ * A registered command variant: its name, its node, and each overload's arguments in input
+ * order. A command that runs without arguments lists no overloads.
+ */
+export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
+
+/** An argument and whatever may follow it, as read off the command tree. */
+interface ArgumentTree {
+    item: CommandArgumentType;
+    children: ArgumentTree[];
+}
 
 export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
-    private dispatcher!: CommandDispatcher<Player>;
+    private dispatcher!: CommandDispatcher<CommandExecutor>;
 
     public constructor(server: Server) {
         this.server = server;
-        this.dispatcher = new CommandDispatcher<Player>();
+        this.dispatcher = new CommandDispatcher<CommandExecutor>();
     }
 
     /**
@@ -35,12 +56,12 @@ export class CommandManager implements Service {
     public async enable(): Promise<void> {
         const timer = new Timer();
 
-        const commands = Object.keys(Commands).map((key) => (Commands as any)[key] as typeof Command);
+        const commands = Object.values(Commands);
 
         // Register jsprismarine commands
         await Promise.all(
             commands.map(async (Command) => {
-                const command: Command = new Command({} as any);
+                const command = new Command();
 
                 const event = new CommandRegisterEvent(command);
                 await this.server.emit('commandRegister', event);
@@ -77,9 +98,7 @@ export class CommandManager implements Service {
         if (!command || !command.id) throw new CommandRegisterClassMalformedOrMissingError();
         if (command.id.split(':').length !== 2) throw new GenericNamespaceInvalidError();
 
-        if (!(command as any).register)
-            this.server.getLogger().warn(`Command is missing "register" member. This is unsupported!`);
-        else await command.register(this.dispatcher);
+        await command.register(this.dispatcher);
         this.commands.set(command.id, command);
 
         await Promise.all(
@@ -127,56 +146,40 @@ export class CommandManager implements Service {
      * @remarks
      * This is EXCLUDING legacy commands.
      */
-    public getCommandsList(): Array<[string, /* CommandNode<Player> */ any, CommandArgument[][]]> {
-        const parseNode = (node: /* CommandNode<Player> */ any): any[] => {
-            if (node.getChildrenCount() <= 0) {
-                return [
-                    {
-                        item: (node as ArgumentCommandNode<any, any>).getType(),
-                        children: []
-                    }
-                ];
-            }
+    public getCommandsList(): CommandListEntry[] {
+        const parseNode = (node: CommandTreeNode): ArgumentTree[] => {
+            // A nested literal has no argument type to list. The client is not told about it.
+            if (!(node instanceof ArgumentCommandNode)) return [];
 
-            const res = Array.from(node.getChildren())
-                .map((node) => parseNode(node))
-                .reverse();
+            const item: CommandArgumentType = node.getType();
+            if (node.getChildrenCount() <= 0) return [{ item, children: [] }];
 
-            return [
-                node.getCommand()
-                    ? {
-                          item: (node as ArgumentCommandNode<any, any>).getType(),
-                          children: []
-                      }
-                    : undefined,
-                ...res.map((children: any) => ({
-                    item: (node as ArgumentCommandNode<any, any>).getType(),
-                    children: [...children]
-                }))
-            ].filter((a) => a);
+            const subtrees = Array.from(node.getChildren()).map(parseNode).reverse();
+            const own: ArgumentTree[] = node.getCommand() ? [{ item, children: [] }] : [];
+
+            return [...own, ...subtrees.map((children) => ({ item, children }))];
         };
 
-        const traverse = (node: any, path: any[] = [], result: any[] = []) => {
-            if (!node.children.length) result.push(path.concat(node.item));
-            for (const child of node.children) traverse(child, path.concat(node.item), result);
+        const traverse = (
+            tree: ArgumentTree,
+            path: CommandArgumentType[] = [],
+            result: CommandArgumentType[][] = []
+        ): CommandArgumentType[][] => {
+            if (!tree.children.length) result.push([...path, tree.item]);
+            for (const child of tree.children) traverse(child, [...path, tree.item], result);
             return result;
         };
 
-        const res = Array.from(this.server.getCommandManager().getDispatcher().getRoot().getChildren())
-            .flatMap((command) => {
-                const branches: any[] = [];
-                if (command.getCommand()) branches.push([]);
+        const res = Array.from(this.dispatcher.getRoot().getChildren()).flatMap((command) => {
+            const branches: CommandArgumentType[][][] = [];
+            if (command.getCommand()) branches.push([]);
 
-                Array.from(command.getChildren()).forEach((node) => {
-                    const parsed = parseNode(node);
-                    parsed.forEach((branch) => {
-                        branches.push(traverse(branch));
-                    });
-                });
+            for (const node of command.getChildren()) {
+                for (const branch of parseNode(node)) branches.push(traverse(branch));
+            }
 
-                return branches.map((branch) => [command.getName(), command, branch]);
-            })
-            .filter((a) => a as any);
+            return branches.map((branch): CommandListEntry => [command.getName(), command, branch]);
+        });
 
         res.toString = () => {
             return `${this.getCommandsList()
@@ -186,21 +189,24 @@ export class CommandManager implements Service {
                         .map(
                             (entries) =>
                                 `/${item[0]} ${entries
-                                    .flat(Number.POSITIVE_INFINITY)
-                                    .map((argument: any) => argument.getReadableType?.() ?? argument.constructor.name)
+                                    .map((argument) =>
+                                        isCommandArgument(argument)
+                                            ? argument.getReadableType()
+                                            : argument.constructor.name
+                                    )
                                     .join(' ')}`
                         )
                         .join(`\n`);
                 })
                 .join('\n')}`;
         };
-        return res as any;
+        return res;
     }
 
     /**
      * Get dispatcher
      */
-    public getDispatcher(): CommandDispatcher<Player> {
+    public getDispatcher(): CommandDispatcher<CommandExecutor> {
         return this.dispatcher;
     }
 
@@ -213,9 +219,14 @@ export class CommandManager implements Service {
      */
     public async dispatchCommand(sender: CommandExecutor, target: CommandExecutor | Entity, input = ''): Promise<void> {
         try {
+            // Anything else an `@e` selector can match has no way to be answered.
+            if (!isCommandExecutor(target)) {
+                await sender.sendMessage(`§c${target.getName()} cannot execute commands`);
+                return;
+            }
             if (input.startsWith('/')) input = input.slice(1);
 
-            const parsed = this.dispatcher.parse(input.trim(), target as Player);
+            const parsed = this.dispatcher.parse(input.trim(), target);
             const id = parsed.getReader().getString().split(' ')[0]!;
 
             // Get command from parsed string.
