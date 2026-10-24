@@ -2,8 +2,8 @@ import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 
 /**
- * Represents the network structure of a chunk position.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/ChunkPos.html}
+ * A chunk column position: `X` then `Z`, both ZigZag varint32, counted in chunks.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/chunk-pos/}
  */
 export class ChunkPos extends NetworkStructure {
     public constructor(
