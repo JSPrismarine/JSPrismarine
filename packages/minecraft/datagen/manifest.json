@@ -317,8 +317,9 @@
             "(`direction` became `minecraft:cardinal_direction`). Every shared property's values",
             "agree exactly. `README-palette.md` is how to capture it again.",
             "",
-            "This is the last thing that came from pmmp/BedrockData other than item tags and the",
-            "creative list, and it was the one that needed a native mod hooking the server binary."
+            "Nothing in this package comes from pmmp/BedrockData any more; that repository was",
+            "archived at 1.26.30. This was the capture that needed a native mod hooking the",
+            "server binary."
         ],
         "source": "snapshot/block-palette.json",
         "target": "../src/generated/block-schemas.ts"
@@ -347,7 +348,12 @@
             "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
         ],
         "source": "behavior_packs",
-        "itemAliases": "../../bedrock-data/src/resources/r16_to_current_item_map.json",
+        "$itemAliases": [
+            "pmmp/BedrockData at tag `bedrock-1.26.30`, vendored into bedrock-data because that",
+            "repository was archived and the submodule it used to be now points elsewhere. The",
+            "newer map covers `minecraft:chain`, which used to need an override beside it."
+        ],
+        "itemAliases": "../../bedrock-data/src/vendor/r16_to_current_item_map.json",
         "$itemAliasOverrides": [
             "What the alias map above does not cover. Kept here rather than patched into the output,",
             "so regenerating cannot quietly lose it - and listed one by one, so a name that stops being",
@@ -355,14 +361,7 @@
         ],
         "itemAliasOverrides": {
             "minecraft:muttonCooked": "minecraft:cooked_mutton",
-            "minecraft:muttonRaw": "minecraft:mutton",
-            "$chain": [
-                "Renamed when copper chains arrived and the iron one stopped being the only one.",
-                "The alias map beside this predates the rename, and 25 recipes in the older pack",
-                "layers still say `chain` - the game resolves them through its own table, which is",
-                "the thing this override stands in for."
-            ],
-            "minecraft:chain": "minecraft:iron_chain"
+            "minecraft:muttonRaw": "minecraft:mutton"
         },
         "idAliases": {
             "$comment": [

@@ -12,7 +12,18 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const input = Object.fromEntries(
     globSync('./**/src/**/*.{ts*,json}', {
-        ignore: ['**/*.d.ts', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/*.test.*']
+        ignore: [
+            '**/*.d.ts',
+            '**/coverage/**',
+            '**/dist/**',
+            '**/node_modules/**',
+            '**/*.test.*',
+            // The submodule's raw files, which are inputs to `utils/build.js` and nothing else.
+            // Every one of them would otherwise be a bundle of its own, and two - `blocks.json`
+            // at 18 MB and `biome_definitions.json` at 9.4 MB - are larger than the rest of the
+            // package put together. What ships is what `src/index.ts` exports.
+            '**/src/resources/**'
+        ]
     }).map((file) => {
         const filenameWithoutExt = file.slice(0, file.length - extname(file).length);
 

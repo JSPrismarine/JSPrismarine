@@ -12,7 +12,6 @@ import type { BlockStateValue } from '../../../block/state/BlockState';
  * Written on the way out because the game uses it to decide whether a state needs running through
  * its upgrade schema. Understate it and blocks come back as `minecraft:unknown` after the game has
  * "fixed" them; the field is ignored on the way in, since it is not part of a block's identity.
- * @see packages/bedrock-data/src/resources/canonical_block_states.nbt
  */
 export const BLOCK_STATE_VERSION = 18163713;
 

@@ -1,11 +1,9 @@
 import block_definitions_data from './jsp/block_definitions.json';
-import block_id_map from './jsp/block_id_map.json';
-import banner_patterns from './resources/banner_patterns.json';
-import biome_id_map from './resources/biome_id_map.json';
-import { creativeitems } from './generated/creativeitems';
-import entity_id_map from './resources/entity_id_map.json';
+import { creative_groups, creativeitems } from './generated/creativeitems';
 import required_item_list from './jsp/required_item_list.json';
-import item_tags from './resources/item_tags.json';
+import item_tags_data from './vendor/item_tags.json';
+
+export type { CreativeGroupEntry, CreativeItemEntry } from './generated/creativeitems';
 
 /** One item as the item table names it. */
 export interface ItemTypeEntry {
@@ -23,9 +21,10 @@ export interface ItemTypeEntry {
  *
  * Captured from a Bedrock Dedicated Server 1.26.51.1, not taken from a third party: the
  * server sends it as `ItemRegistryPacket`, so a client that can log in can simply record it.
- * `packages/client/tools/capture-server-data.mjs` is that client. It lives under `jsp/` rather
- * than `resources/` because `resources/` is somebody else's repository, checked out as a
- * submodule, and stops at 1.26.30.
+ * `packages/client/tools/capture-server-data.mjs` is that client. It stays under `jsp/` rather
+ * than moving to `resources/` because a capture of the version this server targets is the
+ * thing nothing else can promise; the submodule's own `runtime_item_states.json` happens to
+ * agree with it name for name and number for number, which is how the pin was chosen.
  *
  * The version matters more than it looks. Against the 1.21.40 table this has 240 names it did
  * not, and - the part that breaks quietly - **528 items whose number changed**. A server on
@@ -68,30 +67,33 @@ export const block_definitions: readonly BlockDefinitionEntry[] = block_definiti
 }));
 
 export {
-    banner_patterns,
-    // Biome name to numeric id. A world's Data3D records store the numbers, so anything that
-    // wants to talk about biomes by name needs this to get there.
-    biome_id_map,
-    block_id_map,
-    creativeitems,
-    entity_id_map,
-    // Tag name to the items carrying it. A recipe may ask for "any plank" rather than name the
-    // eleven, and this is the only place that question has an answer.
-    item_tags
+    // The headings of the creative menu, and the entries filed under them. `CreativeItemEntry.group`
+    // indexes this list, so the two travel together or neither means anything.
+    creative_groups,
+    creativeitems
 };
 
-import biome_definitions_data from './generated/biome_definitions.json';
+/**
+ * Tag name to the items carrying it.
+ *
+ * A recipe may ask for "any plank" rather than name the thirteen, and this is the only place
+ * that question has an answer. Typed by the question rather than by the file: a caller asks
+ * about a tag name a recipe gave it, which is a string and not one of the 77 keys the JSON
+ * happens to hold.
+ */
+export const item_tags: Readonly<Record<string, readonly string[]>> = item_tags_data;
+
 import biome_definitions_network_data from './generated/biome_definitions_network.json';
 import entity_identifiers_data from './generated/entity_identifiers.json';
 import jigsaw_structure_data_data from './generated/jigsaw_structure_data.json';
-import r12_to_current_block_map_data from './generated/r12_to_current_block_map.json';
-import canonical_block_states_data from './generated/runtime_block_states.json';
 
-const toBuffer = ({ data }: { data: any }) => Buffer.from(data, 'base64'); // FIXME: Properly handle types.
-export const biome_definitions: any = toBuffer(biome_definitions_data);
-export const entity_identifiers: any = toBuffer(entity_identifiers_data);
-export const canonical_block_states: any = toBuffer(canonical_block_states_data);
-export const r12_to_current_block_map: any = toBuffer(r12_to_current_block_map_data);
+const toBuffer = ({ data }: { data: string }) => Buffer.from(data, 'base64');
+
+/**
+ * Every actor type a client may be asked to render, as `AvailableActorIdentifiersPacket`
+ * carries it: one network NBT compound holding an `idlist`, replayed verbatim.
+ */
+export const entity_identifiers: Buffer = toBuffer(entity_identifiers_data);
 
 /**
  * The jigsaw structure rules, as `JigsawStructureDataPacket` carries them: one network NBT
@@ -104,8 +106,7 @@ export const jigsaw_structure_data: Buffer = toBuffer(jigsaw_structure_data_data
  * The vanilla biome definitions, as `BiomeDefinitionListPacket` carries them at protocol 2193:
  * the whole payload of the packet a Bedrock Dedicated Server 1.26.51.1 sends, replayed verbatim.
  *
- * Not the stale `biome_definitions` above (1.21.40, and a format the packet stopped using): at
- * 1.26.x the packet became a map of biome data plus a shared string table the entries index
+ * At 1.26.x the packet became a map of biome data plus a shared string table the entries index
  * into. An empty one is no longer enough - a client reaches the world-generation screen with no
  * biomes and gives up - so a server that generates any world has to send the real thing.
  */
