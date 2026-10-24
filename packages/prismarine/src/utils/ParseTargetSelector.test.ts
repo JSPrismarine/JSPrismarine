@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
 import Player from '../Player';
+import type Server from '../Server';
 import { Entity } from '../entity/Entity';
 import Sheep from '../entity/passive/Sheep';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world';
 import { Position } from '../world/Position';
 import ParseTargetSelector from './ParseTargetSelector';
@@ -15,7 +17,7 @@ import ParseTargetSelector from './ParseTargetSelector';
  * that is nowhere is not a state the type system should have allowed.
  */
 const fakeWorld = () =>
-    ({ getName: () => 'test-world', getServer: () => null, getEntities: () => [] }) as unknown as World;
+    stub<World>({ getName: () => 'test-world', getServer: () => stub<Server>(), getEntities: () => [] });
 
 /** An entity somewhere, since where exactly does not matter to a selector. */
 const somewhere = () => new Position(0, 0, 0, fakeWorld());
@@ -27,7 +29,7 @@ const somewhere = () => new Position(0, 0, 0, fakeWorld());
  * carrying the right methods no longer passes for one. Going through the prototype rather
  * than the constructor keeps the network session out of a unit test.
  */
-const fakePlayer = () => Object.create(Player.prototype) as Player;
+const fakePlayer = () => stubOf(Player);
 
 describe('utils', () => {
     describe('ParseTargetSelector', () => {
