@@ -343,7 +343,7 @@ describe('AvailableCommandsPacket', () => {
         const commandManager = new CommandManager(server);
         await commandManager.enable();
 
-        const player = stub<Player>({ getName: () => 'Steve', getServer: () => server });
+        const player = stub<Player>({ getName: () => 'Steve', getServer: () => server, isOp: () => false });
         players.push(player);
         const connection = stub<ClientConnection>({
             sendDataPacket: async (packet) => {
