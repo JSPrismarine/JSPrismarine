@@ -1,15 +1,17 @@
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import path from 'node:path';
+import { promisify } from 'node:util';
 import { fileURLToPath } from 'node:url';
 
 const MAX_RELEASE_BODY_CHARACTERS = 120_000;
 const repositoryRoot = fileURLToPath(new URL('../..', import.meta.url));
-const packageRoot = path.join(repositoryRoot, 'packages');
 const repository = process.env.GITHUB_REPOSITORY;
 const token = process.env.GITHUB_TOKEN;
 const serverUrl = (process.env.GITHUB_SERVER_URL ?? 'https://github.com').replace(/\/+$/, '');
 const apiUrl = (process.env.GITHUB_API_URL ?? 'https://api.github.com').replace(/\/+$/, '');
 const dryRun = process.argv.includes('--dry-run');
+const execFileAsync = promisify(execFile);
 
 if (!repository || (!dryRun && !token)) {
     throw new Error('GITHUB_REPOSITORY is required, and GITHUB_TOKEN is required outside dry-run mode');
@@ -23,36 +25,32 @@ if (
     throw new Error('PUBLISHED_PACKAGES must be a JSON array of package names and versions');
 }
 
-const packageDirectories = await readdir(packageRoot, { withFileTypes: true });
+const { stdout: workspacePackagesJson } = await execFileAsync(
+    'pnpm',
+    ['list', '--recursive', '--depth', '-1', '--json'],
+    { cwd: repositoryRoot }
+);
+const workspacePackages = JSON.parse(workspacePackagesJson);
 const packagesByName = new Map();
-for (const directory of packageDirectories) {
-    if (!directory.isDirectory()) {
+for (const workspacePackage of workspacePackages) {
+    if (
+        typeof workspacePackage.name !== 'string' ||
+        typeof workspacePackage.version !== 'string' ||
+        typeof workspacePackage.path !== 'string'
+    ) {
         continue;
     }
 
-    const packageDirectory = path.join(packageRoot, directory.name);
-    let packageJson;
-    try {
-        packageJson = JSON.parse(await readFile(path.join(packageDirectory, 'package.json'), 'utf8'));
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            continue;
-        }
-        throw error;
-    }
-
-    if (typeof packageJson.name === 'string') {
-        packagesByName.set(packageJson.name, {
-            directory: packageDirectory,
-            version: packageJson.version
-        });
-    }
+    packagesByName.set(workspacePackage.name, {
+        directory: workspacePackage.path,
+        version: workspacePackage.version
+    });
 }
 
 for (const publishedPackage of publishedPackages) {
     const packageInfo = packagesByName.get(publishedPackage.name);
     if (!packageInfo || packageInfo.version !== publishedPackage.version) {
-        throw new Error(`Could not find ${publishedPackage.name}@${publishedPackage.version} in packages/`);
+        throw new Error(`Could not find ${publishedPackage.name}@${publishedPackage.version} in the pnpm workspace`);
     }
 
     const changelogPath = path.join(packageInfo.directory, 'CHANGELOG.md');
