@@ -3,9 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
+import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
+import Cat from './passive/Cat';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
@@ -150,6 +152,44 @@ describe('entity', () => {
         it('knows which identifiers it models', () => {
             expect(EntitySerializer.isModeled('minecraft:cow')).toBe(true);
             expect(EntitySerializer.isModeled('minecraft:some_future_mob')).toBe(false);
+        });
+
+        describe('identity', () => {
+            // Every entity once read its uuid off the world it was built in, so all of them
+            // shared one. Only players carry a uuid now, and each entity has its own runtime id.
+            const catWithId = (uniqueId: bigint) =>
+                actor('minecraft:cat', (root) => root.addValue('UniqueID', new Types.LongVal(uniqueId)));
+
+            it('gives two actors loaded from disk their own runtime ids', () => {
+                const first = EntitySerializer.fromNBT(catWithId(1n), world);
+                const second = EntitySerializer.fromNBT(catWithId(2n), world);
+
+                expect(first.getRuntimeId()).not.toBe(second.getRuntimeId());
+            });
+
+            it('describes two actors differently, and without a uuid', () => {
+                const first = EntitySerializer.fromNBT(catWithId(1n), world).toString();
+                const second = EntitySerializer.fromNBT(catWithId(2n), world).toString();
+
+                expect(first).not.toBe(second);
+                expect(first).not.toMatch(/uuid/i);
+                expect(second).not.toMatch(/uuid/i);
+            });
+
+            it('writes each actor back with the UniqueID it came with', () => {
+                const first = EntitySerializer.toNBT(EntitySerializer.fromNBT(catWithId(1n), world));
+                const second = EntitySerializer.toNBT(EntitySerializer.fromNBT(catWithId(2n), world));
+
+                expect(first.getLong('UniqueID', 0n)).toBe(1n);
+                expect(second.getLong('UniqueID', 0n)).toBe(2n);
+            });
+
+            it('gives two entities built directly their own runtime ids', () => {
+                const first = new Cat({ position: new Position(0, 0, 0, world) });
+                const second = new Cat({ position: new Position(0, 0, 0, world) });
+
+                expect(first.getRuntimeId()).not.toBe(second.getRuntimeId());
+            });
         });
     });
 });
