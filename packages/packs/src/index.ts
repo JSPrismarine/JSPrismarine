@@ -3,6 +3,7 @@ export * from './datapack';
 export * from './diagnostics';
 export * from './filters';
 export * from './formatVersion';
+export * from './identifiers';
 export * from './javaRegistries';
 export * from './lenientJson';
 export * from './load';
