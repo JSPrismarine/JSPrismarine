@@ -76,10 +76,13 @@ execFileSync(
 );
 
 console.log('Running the vector dumper...');
+fs.mkdirSync(outputDir, { recursive: true });
+// Mojang's logger writes a `logs/` directory into the working directory, so the dumper runs
+// inside the cache rather than in the repository root.
 execFileSync(
     path.join(jdkHome, 'bin/java'),
     ['-cp', [classesDir, classpath].join(path.delimiter), 'DumpWorldgenVectors', outputDir],
-    { stdio: 'inherit' }
+    { cwd: cacheDir, stdio: 'inherit' }
 );
 
 const vectorsDir = path.join(packageRoot, 'vectors');
