@@ -11,9 +11,13 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Event Id as a ZigZag varint32, then the event data to the end
- * of the packet.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/level-event-generic-packet/
+ * Protocol 2193 layout (docs id 124), in wire order:
+ *
+ * | Name | Type | Notes |
+ * | ---- |:----:|:-----:|
+ * | Event Id | varint32 | ZigZag |
+ * | Event data | headless compound | The docs type it `unknown`; see {@link serializedEventData} |
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/level-event-generic-packet/
  */
 export default class LevelEventGenericPacket extends DataPacket {
     public static NetID = Identifiers.LevelEventGenericPacket;
@@ -24,9 +28,12 @@ export default class LevelEventGenericPacket extends DataPacket {
     /**
      * The event data, kept as the raw bytes.
      *
-     * Not a compound: the tags are written loose, with no opening `TAG_Compound` and no
-     * closing `TAG_End`, so the NBT reader cannot be pointed at them as they stand. Nothing in
-     * this server builds one of these events, so the bytes are carried through untouched.
+     * A compound written headless: its named entries and the closing `TAG_End`, with no type
+     * byte and no root name in front, which is what vanilla's `CompoundTag::write` produces
+     * and what PocketMine reads back with `readHeadless`. The NBT reader here only parses a
+     * full named compound, so to decode these prepend `0x0a 0x00` (`TAG_Compound`, empty
+     * name). Nothing in this server builds one of these events, so the bytes are carried
+     * through untouched.
      */
     public serializedEventData: Buffer = Buffer.alloc(0);
 

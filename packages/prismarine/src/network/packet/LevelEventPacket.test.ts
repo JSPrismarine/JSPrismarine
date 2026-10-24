@@ -13,9 +13,36 @@ import LevelEventPacket from './LevelEventPacket';
  * The values below are vanilla's, written out by hand rather than taken from the enum, so
  * that renumbering it fails here rather than in the game.
  */
+const ENCODED = Buffer.concat([
+    Buffer.from([0x19]), // Header: id 25.
+    Buffer.from([0xa2, 0x1f]), // Event Id 2001, PARTICLES_DESTROY_BLOCK, as a ZigZag varint32.
+    Buffer.from([0x00, 0x00, 0xc0, 0x3f, 0x00, 0x00, 0x80, 0x42, 0x00, 0x00, 0xa4, 0xc1]), // Position 1.5, 64, -20.5 as three little endian floats.
+    Buffer.from([0xeb, 0xf3, 0x84, 0xf5, 0x0d]) // Data -1867554038, a hashed runtime id, as a ZigZag varint32.
+]);
+
 describe('network', () => {
     describe('packet', () => {
         describe('LevelEventPacket', () => {
+            it('encodes the event id, the position and the data in docs order', () => {
+                const pk = new LevelEventPacket();
+                pk.eventId = LevelEvent.PARTICLES_DESTROY_BLOCK;
+                pk.position = new Vector3(1.5, 64, -20.5);
+                pk.data = -1867554038;
+                pk.encode();
+
+                expect(pk.getBuffer()).toEqual(ENCODED);
+            });
+
+            it('decodes every field and consumes the whole buffer', () => {
+                const pk = new LevelEventPacket(ENCODED);
+                pk.decode();
+
+                expect(pk.eventId).toBe(LevelEvent.PARTICLES_DESTROY_BLOCK);
+                expect(pk.position).toEqual(new Vector3(1.5, 64, -20.5));
+                expect(pk.data).toBe(-1867554038);
+                expect(pk.feof()).toBe(true);
+            });
+
             it.each([
                 ['PARTICLES_DESTROY_BLOCK', LevelEvent.PARTICLES_DESTROY_BLOCK, 2001],
                 ['PARTICLES_DESTROY_BLOCK_NO_SOUND', LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND, 2021],
