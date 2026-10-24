@@ -33,17 +33,35 @@ describe('network', () => {
                 ]);
             });
 
-            it('writes CompressionAlgorithm None across both of its bytes', () => {
+            it('reads CompressionAlgorithm from both of its bytes', () => {
+                // The 1.26.51 docs number None as 2; `PacketCompressionAlgorithm.NONE` is the
+                // 65535 protocol 2207 moved it to. A one byte reader gets 2 right by luck and
+                // 65535 wrong.
+                const read = (algorithm: [number, number]) => {
+                    const pk = new NetworkSettingsPacket();
+                    pk.setReadBuffer(
+                        Buffer.from([...HEADER, 0x00, 0x00, ...algorithm, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                    );
+                    pk.decode();
+                    return pk.compressionAlgorithm;
+                };
+
+                expect(read([0x02, 0x00])).toBe(2);
+                expect(read([0xff, 0xff])).toBe(PacketCompressionAlgorithm.NONE);
+            });
+
+            it('writes a disabled threshold as zero', () => {
                 const pk = new NetworkSettingsPacket();
                 pk.compressionThreshold = CompressionThreshold.COMPRESS_NOTHING;
-                pk.compressionAlgorithm = PacketCompressionAlgorithm.NONE;
+                pk.compressionAlgorithm = PacketCompressionAlgorithm.ZLIB;
                 pk.clientThrottlingEnabled = false;
                 pk.clientThrottleThreshold = 0;
                 pk.clientThrottleScalar = 0;
                 pk.encode();
 
-                // 0xffff, which is why the field is two bytes wide rather than one.
-                expect([...pk.getBuffer().subarray(HEADER.length + 2, HEADER.length + 4)]).toEqual([0xff, 0xff]);
+                expect([...pk.getBuffer().subarray(HEADER.length)]).toEqual([
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                ]);
             });
 
             it('reads a hand-built buffer to its end', () => {

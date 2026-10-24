@@ -9,11 +9,11 @@ const asyncInflate = promisify(inflateRaw);
  * "Not compressed", as a batch's prefix byte says it.
  *
  * The same idea travels at two widths and they do not agree. `NetworkSettingsPacket` negotiates the
- * algorithm in a two byte field, where none is `0xffff`; every batch then repeats it in a *single*
- * byte, where none is `0xff`. Reading the byte straight into
- * {@link PacketCompressionAlgorithm} therefore matches nothing and throws - which shows up as
- * "Failed to inflate batched content" the moment a client sends its first uncompressed packet,
- * a few packets into the login it had otherwise completed.
+ * algorithm in a two byte field, numbered ZLib 0, Snappy 1 and None 2 in the 1.26.51 docs (65535
+ * from protocol 2207); every batch then repeats it in a *single* byte, where none is `0xff`.
+ * Reading the byte straight into {@link PacketCompressionAlgorithm} therefore matches nothing and
+ * throws, which shows up as "Failed to inflate batched content" the moment a client sends its
+ * first uncompressed packet, a few packets into the login it had otherwise completed.
  */
 export const UNCOMPRESSED_BATCH = 0xff;
 
@@ -37,7 +37,6 @@ export class CompressionProvider {
     public static fromAlgorithm(algorithm: PacketCompressionAlgorithm): (buffer: Buffer) => Promise<Buffer> {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:
-                // return new ZlibCompressionProvider();
                 return (buffer: Buffer) => asyncInflate(buffer);
             case PacketCompressionAlgorithm.NONE:
                 return async (buffer: Buffer) => buffer;
@@ -49,16 +48,15 @@ export class CompressionProvider {
     }
 
     /**
-     * Create a new compression provider.
-     *
-     * @todo Move to full async... and remove this method...
+     * The synchronous twin of {@link fromAlgorithm}, kept for `BatchPacket.decodePayload`.
+     * The server reads incoming batches through `BatchPacket.asyncDecode`, so only tests and
+     * callers that decode a batch by hand take this path.
      * @param {PacketCompressionAlgorithm} algorithm - The compression algorithm to use.
      * @returns {Function} A function that will decompress the buffer.
      */
     public static fromAlgorithmSync(algorithm: PacketCompressionAlgorithm): (buffer: Buffer) => Buffer {
         switch (algorithm) {
             case PacketCompressionAlgorithm.ZLIB:
-                // return new ZlibCompressionProvider();
                 return (buffer: Buffer) => inflateRawSync(buffer);
             case PacketCompressionAlgorithm.NONE:
                 return (buffer: Buffer) => buffer;

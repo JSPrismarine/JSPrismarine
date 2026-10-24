@@ -23,8 +23,10 @@ export enum CompressionThreshold {
  * `Client Throttle Enabled` (boolean), `Client Throttle Threshold` (uint8) and
  * `Client Throttle Scalar` (float, little endian).
  *
- * `CompressionAlgorithm` is two bytes wide, which is why `PacketCompressionAlgorithm.NONE` is
- * 0xffff rather than something that fits in a byte.
+ * `CompressionAlgorithm` is numbered as the 1.26.51 docs list `PacketCompressionAlgorithm`:
+ * ZLib 0, Snappy 1, None 2. `@jsprismarine/minecraft` carries `NONE` as 65535, the value
+ * protocol 2207 moved it to. This server only ever sends `ZLIB`, and a batch's own one byte
+ * prefix says 0xff for none either way.
  *
  * **Bound To:** Client
  */

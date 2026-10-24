@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
@@ -6,7 +7,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import type DataPacket from '../packet/DataPacket';
-import NetworkSettingsPacket from '../packet/NetworkSettingsPacket';
+import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
 import PlayStatusPacket from '../packet/PlayStatusPacket';
 import RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsPacket';
 import PlayStatusType from '../type/PlayStatusType';
@@ -20,14 +21,20 @@ import RequestNetworkSettingsHandler from './RequestNetworkSettingsHandler';
  */
 const fakeConnection = () => {
     const sent: Array<{ packet: DataPacket; comp: boolean | undefined }> = [];
-    const disconnect = vi.fn(async () => {});
+    /** Packet names and the hang-up, in the order the handler asked for them. */
+    const order: string[] = [];
+    const disconnect = vi.fn(async () => void order.push('disconnect'));
 
     return {
         sent,
+        order,
         disconnect,
         connection: stub<ClientConnection>({
             hasCompression: false,
-            sendDataPacket: async (packet, comp) => void sent.push({ packet, comp }),
+            sendDataPacket: async (packet, comp) => {
+                sent.push({ packet, comp });
+                order.push(packet.getName());
+            },
             disconnect
         })
     };
@@ -47,6 +54,15 @@ describe('RequestNetworkSettingsHandler', () => {
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet).toBeInstanceOf(NetworkSettingsPacket);
+        // What every later batch is framed under: `BatchPacket` deflates everything with
+        // zlib, so the threshold is 1 and the algorithm ZLib. Throttling is off.
+        expect(sent[0]!.packet).toMatchObject({
+            compressionThreshold: CompressionThreshold.COMPRESS_EVERYTHING,
+            compressionAlgorithm: PacketCompressionAlgorithm.ZLIB,
+            clientThrottlingEnabled: false,
+            clientThrottleThreshold: 0,
+            clientThrottleScalar: 0
+        });
         // The one packet that goes out before compression is on.
         expect(sent[0]!.comp).toBe(false);
         expect(connection.hasCompression).toBe(true);
@@ -55,7 +71,7 @@ describe('RequestNetworkSettingsHandler', () => {
 
     it('tells an older client that it is out of date', async () => {
         // A bare disconnect here showed "Disconnected from Server" and nothing else (#1586).
-        const { sent, disconnect, connection } = fakeConnection();
+        const { sent, order, disconnect, connection } = fakeConnection();
 
         await new RequestNetworkSettingsHandler().handle(request(Identifiers.Protocol - 10), server, connection);
 
@@ -65,6 +81,8 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(packet).toMatchObject({ status: PlayStatusType.LoginFailedClient });
         // Compression was never agreed, so a prefixed batch would be read as garbage.
         expect(comp).toBe(false);
+        // The status first, so the client has a screen to put the reason on.
+        expect(order).toEqual(['PlayStatusPacket', 'disconnect']);
         expect(disconnect).toHaveBeenCalledWith(
             `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
             false

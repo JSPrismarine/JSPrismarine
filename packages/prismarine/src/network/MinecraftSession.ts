@@ -6,9 +6,16 @@ import { BatchPacket } from './Packets';
 import { PacketLogFilter } from './PacketLogFilter';
 
 /**
- * Act as the first connection layer, handles everything related to batching,
- * queuing and encrypting of Minecraft packets in a hypotetical session.
- * TODO: implement ticking, batching, queues, encryption.
+ * The layer between a `ClientConnection` and its RakNet session: wraps single packets in a
+ * batch of their own, frames encoded batches in the order they were asked for, and logs what
+ * went out.
+ *
+ * Whether a batch is compressed is the caller's decision, taken from the connection's
+ * negotiated state. `RequestNetworkSettingsHandler` sends `NetworkSettings` uncompressed
+ * and flips `ClientConnection.hasCompression` at the same time, so the next packet in either
+ * direction is the first one with an algorithm prefix. Nothing is encrypted: the server never
+ * sends `ServerToClientHandshake`, and a client accepts a plaintext session when no handshake
+ * arrives.
  */
 export default class MinecraftSession {
     protected readonly rakSession: RakNetSession;
