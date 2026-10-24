@@ -2,6 +2,8 @@ import ActorLink from './ActorLink';
 import BlockPos from './BlockPos';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
+import EduSharedUriResource from './EduSharedUriResource';
+import type { EduSharedUriResourceData } from './EduSharedUriResource';
 import Experiments from './Experiments';
 import ItemData, { ItemVersion } from './ItemData';
 import ItemInstanceUserData from './ItemInstanceUserData';
@@ -23,6 +25,7 @@ export {
     BlockPos,
     ChunkPos,
     DataItem,
+    EduSharedUriResource,
     Experiments,
     ItemData,
     ItemInstanceUserData,
@@ -38,4 +41,4 @@ export {
     Vec2,
     Vec3
 };
-export type { ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };
+export type { EduSharedUriResourceData, ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };

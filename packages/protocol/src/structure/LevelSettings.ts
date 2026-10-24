@@ -3,6 +3,7 @@ import { Gametype, Generator } from '@jsprismarine/minecraft';
 import type { BlockPos, NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 import { GameRuleType } from '../packet/StartGamePacket';
+import type { EduSharedUriResourceData as EduSharedUriResource } from './EduSharedUriResource';
 import Experiments from './Experiments';
 import type SpawnSettings from './SpawnSettings';
 
@@ -45,11 +46,6 @@ export enum ServerEditorConnectionPolicy {
     EDITOR_ONLY = 1,
     VANILLA_ONLY = 2,
     MIXED = 3
-}
-
-interface EduSharedUriResource {
-    buttonName: string;
-    linkUri: string;
 }
 
 interface LevelSettingsConfig {
