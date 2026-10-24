@@ -1,18 +1,59 @@
+import { createCipheriv, createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 
 import { BATCH_PACKET_ID } from './BatchCodec';
 import { EncryptionCodec } from './EncryptionCodec';
 
+const KEY = Buffer.alloc(32, 7);
+
 /** Two ends of one connection, each deriving the same key. */
 const pair = () => {
-    const key = Buffer.alloc(32, 7);
-    return { client: new EncryptionCodec(key), server: new EncryptionCodec(key) };
+    return { client: new EncryptionCodec(KEY), server: new EncryptionCodec(KEY) };
 };
 
 const batch = (body: string) => Buffer.concat([Buffer.from([BATCH_PACKET_ID]), Buffer.from(body, 'utf8')]);
 
+/** The checksum the docs describe: SHA-256(counter LE64 || body || key), cut to eight bytes. */
+const checksum = (counter: number, body: Buffer): Buffer => {
+    const counted = Buffer.alloc(8);
+    counted.writeBigUInt64LE(BigInt(counter));
+
+    return createHash('sha256').update(counted).update(body).update(KEY).digest().subarray(0, 8);
+};
+
 describe('protocol', () => {
     describe('EncryptionCodec', () => {
+        /**
+         * Two batches for `KEY`, worked out by hand with AES-256-GCM streamed over the key's
+         * first twelve bytes. The ciphertext is pinned so a change to the IV construction
+         * cannot pass by round-tripping against itself.
+         */
+        it('produces the bytes AES-256-GCM over the first twelve key bytes produces', () => {
+            const { client } = pair();
+
+            expect(checksum(0, Buffer.from('hello')).toString('hex')).toBe('c18007d16685ff01');
+            expect(checksum(1, Buffer.from('second')).toString('hex')).toBe('1dd9f88aa956af71');
+
+            expect(client.encrypt(batch('hello')).toString('hex')).toBe('fea6fe265369273f629d8f04c53e');
+            expect(client.encrypt(batch('second')).toString('hex')).toBe('feaac31723cbe30d2086eec8382e64');
+        });
+
+        /** The same equivalence over a longer run, so block boundaries get crossed. */
+        it('keeps matching a streamed GCM cipher across many batches', () => {
+            const { client } = pair();
+            const gcm = createCipheriv('aes-256-gcm', KEY, KEY.subarray(0, 12));
+
+            for (let counter = 0; counter < 40; counter++) {
+                const body = Buffer.from(`batch number ${counter} with some padding to cross blocks`);
+                const expected = Buffer.concat([
+                    Buffer.from([BATCH_PACKET_ID]),
+                    gcm.update(Buffer.concat([body, checksum(counter, body)]))
+                ]);
+
+                expect(client.encrypt(Buffer.concat([Buffer.from([BATCH_PACKET_ID]), body]))).toEqual(expected);
+            }
+        });
+
         it('refuses a key that is not 32 bytes', () => {
             expect(() => new EncryptionCodec(Buffer.alloc(16))).toThrow('32 bytes');
         });

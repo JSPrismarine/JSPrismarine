@@ -5,11 +5,13 @@ import { PacketIdentifier } from '../PacketIdentifier';
 export type ClientToServerHandshake = Record<string, never>;
 
 /**
- * The client's answer to `ServerToClientHandshake`: an empty payload, sent encrypted.
+ * The client's answer to `ServerToClientHandshake`: nothing after the packet header, sent
+ * encrypted.
  *
- * It says only that the client derived the key and turned encryption on. The server verifies
- * that by decrypting this and checking its checksum, so an empty packet that arrives readable
- * carries more than one with fields in it would.
+ * It says only that the client derived the key and turned encryption on. The server learns
+ * that by decrypting the batch and checking its checksum, so the packet carries its meaning
+ * by arriving readable rather than by its contents. A client sends it only after receiving
+ * `ServerToClientHandshake`, so a server that skipped the handshake must not wait for it.
  */
 export default class ClientToServerHandshakePacket extends NetworkPacket<ClientToServerHandshake> {
     public get id(): number {

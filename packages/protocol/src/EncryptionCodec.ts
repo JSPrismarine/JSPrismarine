@@ -8,10 +8,12 @@ const CHECKSUM_LENGTH = 8;
 /**
  * The cipher both ends agree on, and the initialization vector built from the key itself.
  *
- * Not a random IV, and not the key's first sixteen bytes either: twelve bytes of key followed
- * by a counter block of `00 00 00 02`. There is nothing to derive it from - it is simply the
- * construction the game uses, and a peer that picks any other one produces a stream that
- * decrypts to noise without either side being told why.
+ * The game runs AES-256-GCM as a stream. Its 12-byte nonce is the first twelve bytes of the
+ * key, and the stream is never finalized, so no authentication tag exists; the 8-byte
+ * checksum below stands in for it. GCM encrypts with AES-CTR whose first counter block is
+ * `nonce || 00 00 00 02` (block 1 is reserved for the tag), so CTR with that 16-byte IV
+ * produces the same bytes and is what Node can run without a tag. A peer that picks any
+ * other nonce produces a stream that decrypts to noise without either side being told why.
  */
 const CIPHER = 'aes-256-ctr';
 const IV_KEY_BYTES = 12;
@@ -23,15 +25,19 @@ const streamFor = (key: Buffer): Cipheriv =>
 /**
  * The encryption layer, which sits between a batch and the transport.
  *
- * A batch arrives here already framed and compressed - `0xFE`, the algorithm byte, the
- * compressed packets - and everything after the `0xFE` is encrypted. The header stays in the
- * clear because RakNet has to keep recognizing the frame, and because the checksum is computed
- * over what follows it rather than over the whole thing.
+ * A batch arrives here already framed and compressed: `0xFE`, the algorithm byte, then the
+ * compressed packets. Everything after the `0xFE` is encrypted, including the algorithm byte.
+ * The header stays in the clear because RakNet has to keep recognizing the frame, and the
+ * checksum covers what follows it rather than the whole thing.
  *
- * Two things make this unforgiving. The stream is *continuous*: one keystream runs across
+ * On the wire an encrypted batch is `0xFE || AES(body || checksum)`, where the checksum is
+ * the first eight bytes of SHA-256(counter as little-endian uint64 || body || key) and the
+ * counter is how many batches this direction has sent before this one.
+ *
+ * Two things make this unforgiving. The stream is continuous: one keystream runs across
  * every batch in a direction, so a batch that is dropped, reordered or encrypted twice
  * desynchronizes everything after it and there is no resynchronizing. And each direction keeps
- * its own counter, which is hashed into the checksum but never sent - so the only way a peer
+ * its own counter, which is hashed into the checksum but never sent, so the only way a peer
  * learns the counters disagree is that every checksum from then on is wrong.
  *
  * Both of those fail the same way a wrong key does: silently, with the connection simply
