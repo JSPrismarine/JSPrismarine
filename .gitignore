@@ -47,3 +47,7 @@ tools/docs/site/guide/
 tools/docs/site/.vitepress/dist/
 tools/docs/site/.vitepress/cache/
 tools/docs/site/.vitepress/.temp/
+
+# Local environment overrides the server loads from its working directory; never shared.
+.env.local
+.env.*.local
