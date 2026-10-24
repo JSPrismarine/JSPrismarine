@@ -15,7 +15,7 @@ import { BatchPacket } from './Packets';
 import type { ActorEvent } from './packet/ActorEventPacket';
 import ActorEventPacket from './packet/ActorEventPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
-import UpdateBlockPacket from './packet/UpdateBlockPacket';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from './packet/UpdateBlockPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
 
 /**
@@ -201,6 +201,10 @@ export class NetworkWorldReplicator implements WorldChangeSink {
                 packet.y = position.getY();
                 packet.z = position.getZ();
                 packet.blockRuntimeId = blockRuntimeId;
+                // The bit every server-driven change carries. A Bedrock Dedicated Server
+                // broadcasts its own changes with it set; without it the flags said the change
+                // was a local tick, which is not what a client receiving a packet should hear.
+                packet.flags = UpdateBlockFlagsType.Network;
 
                 batch.addPacket(packet);
             }

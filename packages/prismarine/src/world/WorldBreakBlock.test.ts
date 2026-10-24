@@ -7,7 +7,7 @@ import { BlockState } from '../block/state/BlockState';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import BatchPacket from '../network/packet/BatchPacket';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
-import UpdateBlockPacket from '../network/packet/UpdateBlockPacket';
+import UpdateBlockPacket, { UpdateBlockFlagsType } from '../network/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
@@ -169,6 +169,8 @@ describe('world', () => {
             const [update] = await world.flush();
             expect(update!.blockRuntimeId).toBe(BlockRuntimeIds.getByName('minecraft:air') >>> 0);
             expect([update!.x, update!.y, update!.z]).toEqual([10, 64, -20]);
+            // Flagged as a change that came over the network, the bit every server sets.
+            expect(update!.flags).toBe(UpdateBlockFlagsType.Network);
 
             // The silent variant, because the sound is its own packet above.
             expect(world.events).toHaveLength(1);
