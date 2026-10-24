@@ -3,6 +3,7 @@ import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+/** Sound names this packet and the `/playsound` command accept, a subset of the client's sound definitions. */
 export enum SoundName {
     // Ambient
     AMBIENT_BASALT_DELTAS_MOOD = 'ambient.basalt_deltas.mood',
@@ -65,13 +66,15 @@ export enum SoundName {
 /**
  * Plays a named sound at a position, once or on a loop.
  *
- * The layout is protocol 2193's. The position travels as a block position in eighths of a
- * block - three signed varints, each the coordinate times eight - and after the pitch come
- * the fields 1.26.50 added: a loop count, a flag telling the client to play the sound however
- * far away it is, and two optionals, a handle the server can later stop the sound by and a
- * position in seconds to start playback from.
+ * Wire order at protocol 2193: `Name` as a string, `Position` as a `BlockPos` of three ZigZag
+ * varint32 holding each coordinate times eight (the client divides them back, so the sound
+ * lands on an eighth of a block), `Volume` and `Pitch` as little-endian floats, then the
+ * fields 1.26.50 added: `Loop Count` as a ZigZag varint32, `Bypass Listener Range Check` as
+ * one byte, and two optionals behind a presence byte each, `Server Sound Handle` as a
+ * little-endian uint64 and `Playback Position Seconds` as a float.
  *
  * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/play-sound-packet/
  */
 export default class PlaySoundPacket extends DataPacket {
     public static NetID = Identifiers.PlaySoundPacket;

@@ -12,10 +12,10 @@ import DataPacket from './DataPacket';
  *
  * **Bound To:** Client
  *
- * Wire layout at protocol 2193: Dimension Id as a byte, Actor Id as a ZigZag varint64,
- * Position as three floats LE, Effect Name as a string, then Molang Variables as an optional
- * string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/spawn-particle-effect-packet/
+ * Wire layout at protocol 2193: `Dimension Id` as a byte, `Actor Id` as a ZigZag varint64,
+ * `Position` as three little-endian floats, `Effect Name` as a string, then `Molang Variables`
+ * as a presence byte followed by a string when the byte is set.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/spawn-particle-effect-packet/
  */
 export default class SpawnParticleEffectPacket extends DataPacket {
     public static NetID = Identifiers.SpawnParticleEffectPacket;
@@ -35,9 +35,9 @@ export default class SpawnParticleEffectPacket extends DataPacket {
     /**
      * Molang variables for the effect, as the JSON map the client reads them from.
      *
-     * Left out entirely in almost every case. The docs mark the field present at 2193 and
-     * optional from 2207, but gophertunnel writes the presence byte at 2193 and a client reads
-     * one, so it is written here.
+     * Left out in almost every case. The docs mark the field present at 2193 and optional from
+     * 2207, but gophertunnel writes the presence byte at 2193 and a client reads one, so it is
+     * written here.
      */
     public molangVariables?: string;
 
