@@ -5,4 +5,9 @@ export default class BlockPosition extends Vector3 {
         const position = vec.floor();
         return new BlockPosition(position.getX(), position.getY(), position.getZ());
     }
+
+    /** Keeps derived positions block positions, as `withX` and friends return a new instance. */
+    protected override create(x: number, y: number, z: number): this {
+        return new BlockPosition(x, y, z) as this;
+    }
 }

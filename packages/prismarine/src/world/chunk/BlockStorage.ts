@@ -24,7 +24,7 @@ export default class BlockStorage {
 
     public constructor({ blocks, palette }: BlockStorageData) {
         this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
-        this.blocks = blocks ?? Array.from<number>({ length: 4096 }).fill(0);
+        this.blocks = blocks ?? new Array<number>(4096).fill(0);
         this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
     }
 

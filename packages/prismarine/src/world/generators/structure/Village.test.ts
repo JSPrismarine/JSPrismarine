@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Blocks from '../../../block/Blocks';
+import { allBlocks } from '../../../block/Blocks';
 import type { Block } from '../../../block/Block';
-import * as Entities from '../../../entity/Entities';
+import { allEntities } from '../../../entity/Entities';
 import { Mob } from '../../../entity/Mob';
 import type Chunk from '../../chunk/Chunk';
 import Noise from '../Noise';
@@ -14,7 +14,7 @@ import VillageStructure from './VillageStructure';
 /** A BlockManager stand-in: the generator only ever looks blocks up by name. */
 const blockManager: any = {
     getBlock: (name: string) => {
-        const found = Object.values(Blocks)
+        const found = allBlocks()
             .map((B) => new (B as any)())
             .find((block: Block) => block.getName() === name);
         if (!found) throw new Error(`invalid block with id ${name}`);
@@ -224,7 +224,7 @@ describe('village generation', () => {
         expect(wanted.size).toBeGreaterThan(0);
 
         for (const type of wanted) {
-            const Species = Object.values(Entities).find((candidate) => candidate.MOB_ID === type);
+            const Species = allEntities().find((candidate) => candidate.MOB_ID === type);
             expect(`${type} -> ${Species?.name ?? 'nothing'}`).toBe(`${type} -> ${Species?.name}`);
             expect(Species!.prototype).toBeInstanceOf(Mob);
         }

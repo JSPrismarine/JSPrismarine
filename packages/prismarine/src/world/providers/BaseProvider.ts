@@ -1,3 +1,4 @@
+import type { WorldConfig } from '../World';
 import type { Generator, World } from '../';
 import type { Server } from '../../';
 import type Chunk from '../chunk/Chunk';
@@ -53,7 +54,13 @@ export default abstract class BaseProvider implements Provider {
      * @param cx - the chunk x coordinate.
      * @param cz - the chunk y coordinate.
      */
-    public abstract readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk>;
+    public abstract readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator,
+        config?: WorldConfig
+    ): Promise<Chunk>;
 
     /**
      * Writes a chunk.

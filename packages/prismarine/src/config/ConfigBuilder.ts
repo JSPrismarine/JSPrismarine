@@ -4,47 +4,62 @@ import JSON5 from 'json5';
 import fs from 'node:fs';
 import path from 'node:path';
 
+type Tree = Record<string, unknown>;
+
+const isTree = (value: unknown): value is Tree => typeof value === 'object' && value !== null;
+
+/** Splits `a.b[0].c` into its keys. */
+const keysOf = (path: string): string[] => path.match(/[^.[\]]+/g) ?? [];
+
+const walk = (root: unknown, keys: string[]): unknown => {
+    let current: unknown = root;
+    for (const key of keys) {
+        if (!isTree(current)) return undefined;
+        current = current[key];
+    }
+    return current;
+};
+
+/**
+ * Minimal path helpers over nested config data. A dotted key is tried literally first,
+ * so `get(data, 'server-ip')` and a key that happens to contain a dot both still work.
+ */
 const _ = {
-    get: (obj: any, path: string, defaultValue = undefined) => {
-        const travel = (regexp: any) =>
-            String.prototype.split
-                .call(path, regexp)
-                .filter(Boolean)
-                .reduce((res, key) => (res !== null && res !== undefined ? res[key] : res), obj);
-        const result = travel(/[,[\]]+?/) || travel(/[,[\].]+?/);
+    get: (obj: unknown, path: string, defaultValue?: unknown): unknown => {
+        const literal = path.split(/[,[\]]+/).filter(Boolean);
+        const result = walk(obj, literal) ?? walk(obj, keysOf(path));
         return result === undefined || result === obj ? defaultValue : result;
     },
-    set: (obj: any, path: any, value: any) => {
-        if (Object(obj) !== obj) return obj;
-        if (!Array.isArray(path)) path = path.toString().match(/[^.[\]]+/g) || [];
-        path
-            .slice(0, -1)
-            .reduce(
-                (a: any, c: any, i: any) =>
-                    Object(a[c]) === a[c]
-                        ? a[c]
-                        : (a[c] = Math.abs(path[i + 1]) >> 0 === Number(path[i + 1]) ? [] : {}),
-                obj
-            )[path.at(-1)] = value;
+    set: (obj: unknown, path: string | string[], value: unknown): unknown => {
+        if (!isTree(obj)) return obj;
+        const keys = Array.isArray(path) ? path : keysOf(path);
+        let current: Tree = obj;
+        for (let index = 0; index < keys.length - 1; index++) {
+            const key = keys[index]!;
+            const next = current[key];
+            if (isTree(next)) {
+                current = next;
+                continue;
+            }
+            const created: Tree = /^\d+$/.test(keys[index + 1] ?? '') ? ([] as unknown as Tree) : {};
+            current[key] = created;
+            current = created;
+        }
+        const last = keys.at(-1);
+        if (last !== undefined) current[last] = value;
         return obj;
     },
-    has: (obj: any, key: string): boolean => {
-        const keyParts = key.split('.');
-
-        return Boolean(
-            obj &&
-            (keyParts.length > 1
-                ? _.has(obj[key.split('.')[0]!], keyParts.slice(1).join('.'))
-                : Object.hasOwnProperty.call(obj, key))
-        );
+    has: (obj: unknown, key: string): boolean => {
+        const [head, ...rest] = key.split('.');
+        if (!isTree(obj) || head === undefined) return false;
+        if (rest.length > 0) return _.has(obj[head], rest.join('.'));
+        return Object.hasOwn(obj, key);
     },
-    del: (obj: any, path: any) => {
-        const pathArray = Array.isArray(path) ? path : path.match(/([^[.\]])+/g);
-
-        pathArray.reduce((acc: any, key: any, i: number) => {
-            if (i === pathArray.length - 1) delete acc[key];
-            return acc[key];
-        }, obj);
+    del: (obj: unknown, path: string | string[]): boolean => {
+        const keys = Array.isArray(path) ? path : keysOf(path);
+        const parent = walk(obj, keys.slice(0, -1));
+        const last = keys.at(-1);
+        if (isTree(parent) && last !== undefined) delete parent[last];
         return true;
     }
 };
@@ -54,9 +69,7 @@ const TypeDefaults = {
     yaml: ' '
 };
 
-export type ConfigData = {
-    [key: string]: any;
-};
+export type ConfigData = Record<string, unknown>;
 
 /**
  * General config-file handler.
@@ -107,7 +120,7 @@ export class ConfigBuilder {
      */
     private setFileData(data: ConfigData = {}) {
         if (!(data as any)) throw new ConfigInvalidDataError();
-        fs.writeFileSync(this.path, this.stringify(data), 'utf8');
+        fs.writeFileSync(this.path, this.stringify(data));
     }
 
     /**
@@ -154,15 +167,15 @@ export class ConfigBuilder {
      */
     public get<T = any>(key: string, defaults?: T): T {
         const data = this.getFileData();
-        let result = _.get(data, key);
+        let result = _.get(data, key) as T | undefined;
 
         if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
-            const newData = _.set(data, key, defaults);
+            const newData = _.set(data, key, defaults) as ConfigData;
             this.setFileData(newData);
             result = defaults;
         }
 
-        return result;
+        return result as T;
     }
 
     /**
@@ -172,7 +185,7 @@ export class ConfigBuilder {
      */
     public set(key: string, value: any) {
         const data = this.getFileData();
-        const newData = _.set(data, key, value);
+        const newData = _.set(data, key, value) as ConfigData;
 
         try {
             this.setFileData(newData);

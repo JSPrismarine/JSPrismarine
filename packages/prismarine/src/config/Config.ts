@@ -1,4 +1,5 @@
 import type { LogLevel } from '@jsprismarine/logger';
+import type { WorldData } from '../world/WorldManager';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import { ConfigBuilder } from './ConfigBuilder';
@@ -28,7 +29,7 @@ export class Config {
     private port!: number;
     private serverIp!: string;
     private levelName!: string;
-    private worlds!: any;
+    private worlds!: Record<string, WorldData>;
     private maxPlayers!: number;
     private gamemode!: string;
     private difficulty!: string;
@@ -97,7 +98,7 @@ export class Config {
         this.port = this.configBuilder.get('port', 19132) as number;
         this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
         this.levelName = this.configBuilder.get('level-name', 'world') as string;
-        this.worlds = this.configBuilder.get('worlds', {
+        this.worlds = this.configBuilder.get<Record<string, WorldData>>('worlds', {
             world: {
                 generator: 'Flat',
                 provider: 'LevelDB',
@@ -171,7 +172,7 @@ export class Config {
         return this.levelName;
     }
 
-    public getWorlds(): any {
+    public getWorlds(): Record<string, WorldData> {
         return this.worlds;
     }
 

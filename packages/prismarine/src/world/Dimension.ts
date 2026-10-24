@@ -18,7 +18,7 @@ export interface DimensionDefinition {
     readonly height: number;
 }
 
-export const Dimensions = {
+export const Dimensions: Record<'Overworld' | 'Nether' | 'TheEnd' | 'Legacy', DimensionDefinition> = {
     Overworld: { id: 0, name: 'minecraft:overworld', minY: -64, height: 384 },
     Nether: { id: 1, name: 'minecraft:nether', minY: 0, height: 128 },
     TheEnd: { id: 2, name: 'minecraft:the_end', minY: 0, height: 256 },
@@ -29,7 +29,7 @@ export const Dimensions = {
      * @deprecated Use {@link Dimensions.Overworld}.
      */
     Legacy: { id: 0, name: 'minecraft:overworld', minY: 0, height: 256 }
-} as const satisfies Record<string, DimensionDefinition>;
+};
 
 export type DimensionName = 'overworld' | 'nether' | 'the_end';
 

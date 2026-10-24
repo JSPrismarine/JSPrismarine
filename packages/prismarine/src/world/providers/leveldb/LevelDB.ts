@@ -1,3 +1,4 @@
+import type { WorldConfig } from '../../World';
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -91,7 +92,13 @@ export default class LevelDB extends BaseProvider {
 
     // ------------------------------------------------------------------ chunks
 
-    public async readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk> {
+    public async readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator,
+        config?: WorldConfig
+    ): Promise<Chunk> {
         const database = this.requireDatabase();
         const dimension = this.dimension();
         const key = (tag: ChunkTag, subChunk?: number) =>

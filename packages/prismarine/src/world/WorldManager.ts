@@ -156,7 +156,7 @@ export default class WorldManager implements Service {
 
             seed: worldData.seed,
             generator,
-            config: worldData
+            config: { ...worldData }
         });
         this.worlds.set(world.getUUID(), world);
 
