@@ -2,7 +2,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeId } from '@jsprismarine/minecraft';
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
-import { Chat, ChatType } from './chat/Chat';
+import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
 import { AttributeIds } from './entity/Attribute';
 import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
@@ -314,7 +314,7 @@ export default class Player extends Human {
         )
             await this.sendMessage(
                 evt.getChat().getMessage(),
-                evt.getChat().getType() as number as TextType,
+                CHAT_TEXT_TYPE[evt.getChat().getType()],
                 evt.getChat().getParameters(),
                 evt.getChat().isNeedsTranslation()
             );
@@ -350,7 +350,7 @@ export default class Player extends Human {
         this.getNetworkSession().queueChunks(
             CoordinateUtils.fromBlockToChunk(this.position.getX()),
             CoordinateUtils.fromBlockToChunk(this.position.getZ()),
-            savedChunks.map((coord) => [coord.x, coord.z] as [number, number])
+            savedChunks.map((coord): [number, number] => [coord.x, coord.z])
         );
     }
 
