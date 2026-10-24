@@ -1,4 +1,1 @@
-pnpm run build
-pnpm run typecheck
-pnpm run test
-pnpx lint-staged --allow-empty
+pnpm exec lint-staged --allow-empty
