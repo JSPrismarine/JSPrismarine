@@ -2,12 +2,16 @@ import { assert, expect, describe, beforeEach, it } from 'vitest';
 import StringRange from './context/StringRange';
 import Suggestion from './suggestion/Suggestion';
 import CommandDispatcher from './CommandDispatcher';
-import { literal } from './builder/LiteralArgumentBuilder';
-import { argument } from './builder/RequiredArgumentBuilder';
+import { literal as literalOf } from './builder/LiteralArgumentBuilder';
+import { argument as argumentOf } from './builder/RequiredArgumentBuilder';
+import type ArgumentType from './arguments/ArgumentType';
 import { DefaultType } from './arguments/ArgumentType';
 import StringReader from './StringReader';
 
 const { integer, word } = DefaultType;
+
+const literal = literalOf<Object>;
+const argument = <T>(name: string, type: ArgumentType<T>) => argumentOf<Object, T>(name, type);
 
 describe('Command Suggestion Test', () => {
     let subject: CommandDispatcher<Object>;
@@ -212,13 +216,7 @@ describe('Command Suggestion Test', () => {
 
     it('getCompletionSuggestions_redirect_lots', async () => {
         const loop = subject.register(literal('redirect'));
-        subject.register(
-            literal('redirect').then(
-                literal('loop').then(
-                    argument('loop', integer()).redirect(loop as any) as any // FIXME
-                )
-            )
-        );
+        subject.register(literal('redirect').then(literal('loop').then(argument('loop', integer()).redirect(loop))));
 
         const result = await subject.getCompletionSuggestions(
             subject.parse('redirect loop 1 loop 02 loop 003 ', source)
@@ -232,16 +230,8 @@ describe('Command Suggestion Test', () => {
         const execute = subject.register(literal('execute'));
         subject.register(
             literal('execute')
-                .then(
-                    literal('as').then(
-                        argument('name', word()).redirect(execute as any) as any // FIXME
-                    )
-                )
-                .then(
-                    literal('store').then(
-                        argument('name', word()).redirect(execute as any) as any // FIXME
-                    )
-                )
+                .then(literal('as').then(argument('name', word()).redirect(execute)))
+                .then(literal('store').then(argument('name', word()).redirect(execute)))
                 .then(literal('run').executes(async () => 0))
         );
 
@@ -256,11 +246,7 @@ describe('Command Suggestion Test', () => {
         subject.register(
             literal('execute')
                 .then(literal('as').then(literal('bar').redirect(execute)).then(literal('baz').redirect(execute)))
-                .then(
-                    literal('store').then(
-                        argument('name', word()).redirect(execute as any) as any // FIXME
-                    )
-                )
+                .then(literal('store').then(argument('name', word()).redirect(execute)))
                 .then(literal('run').executes(async () => 0))
         );
 
