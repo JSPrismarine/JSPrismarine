@@ -38,7 +38,7 @@ const start = async () => {
 
     // ServerSocket.start binds asynchronously; wait for the port to be assigned.
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = (server as any).socket as Dgram.Socket;
+        const socket = server['socket'];
         try {
             resolve(socket.address().port);
         } catch {
@@ -59,7 +59,7 @@ const start = async () => {
         return inbox.shift()!;
     };
 
-    return { server, send, next, inbox };
+    return { server, send, next, inbox, port };
 };
 
 const openConnectionRequest1 = (mtuProbe: number) => {
@@ -150,8 +150,7 @@ describe('offline handshake over a real socket', () => {
     });
 
     it('re-answers a duplicate OpenConnectionRequest2, but only while the handshake is running', async () => {
-        const { server, send, next } = await start();
-        const serverPort = (server as any).socket.address().port;
+        const { server, send, next, port: serverPort } = await start();
 
         const opened: any[] = [];
         server.on('openConnection', (session) => opened.push(session));
@@ -188,14 +187,14 @@ describe('offline handshake over a real socket', () => {
     });
 
     it('negotiates an MTU and never trusts the one the client claims', async () => {
-        const { server, send, next } = await start();
+        const { server, send, next, port } = await start();
 
         send(openConnectionRequest1(1200));
         const reply1 = await next();
         expect(reply1[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_1);
 
         // Claim an impossible MTU: the session must be built with a clamped one.
-        send(openConnectionRequest2(9, (server as any).socket.address().port));
+        send(openConnectionRequest2(9, port));
         const reply2 = await next();
         expect(reply2[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_2);
 
@@ -209,8 +208,7 @@ describe('offline handshake over a real socket', () => {
 
 describe('connected handshake over a real socket', () => {
     it('completes the full handshake and delivers game packets in order', async () => {
-        const { server, send, next } = await start();
-        const serverPort = (server as any).socket.address().port;
+        const { server, send, next, port: serverPort } = await start();
 
         const opened: any[] = [];
         server.on('openConnection', (session) => opened.push(session));
@@ -264,8 +262,7 @@ describe('connected handshake over a real socket', () => {
     });
 
     it('survives a flood of malformed datagrams without dying', async () => {
-        const { server, send, next } = await start();
-        const serverPort = (server as any).socket.address().port;
+        const { server, send, next, port: serverPort } = await start();
 
         send(openConnectionRequest1(1200));
         await next();

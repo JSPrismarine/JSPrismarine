@@ -1,4 +1,3 @@
-import type Dgram from 'node:dgram';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
 import LoopbackSocket, { LOOPBACK_MTU_SIZE, MAX_FRAME_CONTENT_BYTE_LENGTH } from './LoopbackSocket';
@@ -62,7 +61,7 @@ const udpPair = async (): Promise<Pair> => {
     const server = new ServerSocket(10, false, serverName, logger);
     server.start('127.0.0.1', 0);
     const port = await new Promise<number>((resolve, reject) => {
-        const socket = (server as any).socket as Dgram.Socket;
+        const socket = server['socket'];
         try {
             resolve(socket.address().port);
         } catch {

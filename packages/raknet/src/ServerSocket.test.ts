@@ -1,6 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { RAKNET_TICK_INTERVAL_MS } from './Constants';
 import ServerSocket from './ServerSocket';
+import { ServerName } from './utils/ServerName';
+
+const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
+const serverName = new ServerName({
+    getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 }),
+    getIdentifiers: () => ({ Protocol: 0, MinecraftVersions: ['0.0.0'] })
+});
 
 describe('ServerSocket', () => {
     afterEach(() => {
@@ -12,7 +19,7 @@ describe('ServerSocket', () => {
         // which a faked `setImmediate` would otherwise leave counted as a pending timer.
         vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] });
 
-        const server = new ServerSocket(1, false, { setOnlinePlayerCount: vi.fn() }, {} as any);
+        const server = new ServerSocket(1, false, serverName, logger);
         server.start('127.0.0.1', 0);
 
         vi.advanceTimersByTime(RAKNET_TICK_INTERVAL_MS);
