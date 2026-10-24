@@ -1,5 +1,8 @@
+import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
+import type Player from '../../Player';
+import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import { StationRegistry } from '../../crafting/CraftingStation';
@@ -9,6 +12,10 @@ import { ItemIngredient } from '../../crafting/RecipeIngredient';
 import CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import { stub } from '../../testing/stub.test.helper';
+import type PlayerSession from '../PlayerSession';
+import type DataPacket from '../packet/DataPacket';
+import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
 import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
@@ -43,37 +50,40 @@ const slot = (slotId: number, containerId = ContainerUiId.COMBINED_HOTBAR_AND_IN
 });
 
 /** A server whose creative menu is one known item, so a pick can be checked by name. */
-const fakeServer = (creative: Item[]) => {
+const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
     CreativeInventory.reset();
-    (CreativeInventory as any).items = creative;
+    CreativeInventory['items'] = creative;
 
     // A refusal says why it refused, and says it through the logger.
-    return { getLogger: () => ({ debug: () => {} }) } as any;
+    return stub<Server>({ getLogger: () => stub<Logger>({ debug: () => {} }), ...overrides });
 };
 
 const run = async (
     requests: ItemStackRequest[],
     inventory: HumanInventory,
-    server: any,
+    server: Server,
     craftingInput = new CraftingInput()
 ) => {
-    const sent: any[] = [];
+    const sent: DataPacket[] = [];
     const craftingSlots: Array<{ slot: number; item: string }> = [];
-    const session = {
-        getPlayer: () => ({ getInventory: () => inventory, getCraftingInput: () => craftingInput }),
-        send: async (packet: any) => void sent.push(packet),
+    const session = stub<PlayerSession>({
+        getPlayer: () => stub<Player>({ getInventory: () => inventory, getCraftingInput: () => craftingInput }),
+        send: async (packet) => void sent.push(packet),
         // The grid lives in the player's UI window, and an `ItemStackResponse` can only answer
         // about slots the request named - a craft names none of them.
-        sendCraftingSlot: async (slot: number, item: any) =>
-            void craftingSlots.push({ slot, item: item?.getName() ?? 'air' })
-    } as any;
+        sendCraftingSlot: async (slot, item) => void craftingSlots.push({ slot, item: item?.getName() ?? 'air' })
+    });
 
-    await new ItemStackRequestHandler().handle({ requests } as any, server, session);
+    await new ItemStackRequestHandler().handle(
+        Object.assign(new ItemStackRequestPacket(), { requests }),
+        server,
+        session
+    );
 
-    const response = sent.find((pk) => pk instanceof ItemStackResponsePacket)!;
-    response.craftingSlots = craftingSlots;
+    const response = sent.find((pk): pk is ItemStackResponsePacket => pk instanceof ItemStackResponsePacket);
+    if (!response) throw new Error('no ItemStackResponsePacket was sent');
 
-    return response;
+    return Object.assign(response, { craftingSlots });
 };
 
 describe('network', () => {
@@ -91,7 +101,7 @@ describe('network', () => {
                             {
                                 type: ItemStackRequestActionType.PLACE,
                                 count: 64,
-                                source: slot(0, 99),
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
                                 destination: slot(3)
                             }
                         ],
@@ -108,9 +118,9 @@ describe('network', () => {
 
             // Answered, and answered about the slot that changed - the client holds its own
             // change back until it hears this.
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.OK);
-            expect(response.responses[0].requestId).toBe(7);
-            expect(response.responses[0].containers[0].slots.map((s: any) => s.slot)).toEqual([3]);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(response.responses[0]?.requestId).toBe(7);
+            expect(response.responses[0]?.containers[0]?.slots.map((s) => s.slot)).toEqual([3]);
         });
 
         it('does not hand the same object to two players', async () => {
@@ -133,7 +143,7 @@ describe('network', () => {
                                 {
                                     type: ItemStackRequestActionType.PLACE,
                                     count: 12,
-                                    source: slot(0, 99),
+                                    source: slot(0, ContainerUiId.CREATED_OUTPUT),
                                     destination: slot(0)
                                 }
                             ],
@@ -201,8 +211,9 @@ describe('network', () => {
             // the earlier ones had done - while the client, told only that the whole request
             // failed, put all of it back. A plank left in the crafting grid on the server and
             // not on the screen then made every later craft match a grid nobody could see.
-            const server = fakeServer([]);
-            (server as any).getRecipeManager = () => ({ getByNetId: () => null });
+            const server = fakeServer([], {
+                getRecipeManager: () => stub<RecipeManager>({ getByNetId: () => null })
+            });
 
             const inventory = new HumanInventory();
             inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:oak_planks' }) }));
@@ -232,7 +243,7 @@ describe('network', () => {
                 craftingInput
             );
 
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
             expect(craftingInput.isEmpty()).toBe(true);
             expect(inventory.getItem(0).getName()).toBe('minecraft:oak_planks');
         });
@@ -255,9 +266,9 @@ describe('network', () => {
                 server
             );
 
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.ERROR);
-            expect(response.responses[0].requestId).toBe(4);
-            expect(response.responses[0].containers).toHaveLength(0);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.requestId).toBe(4);
+            expect(response.responses[0]?.containers).toHaveLength(0);
         });
 
         it('refuses a slot outside the inventory', async () => {
@@ -283,7 +294,7 @@ describe('network', () => {
                 server
             );
 
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
         });
 
         it('crafts what the grid actually holds', async () => {
@@ -297,14 +308,14 @@ describe('network', () => {
                 [new Item({ id: 2, name: 'minecraft:stick' })]
             );
 
-            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} } as any);
+            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
             await manager.registerRecipe(recipe);
             const registry = new StationRegistry();
-            const server = {
+            const server = stub<Server>({
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
-                getLogger: () => ({ debug: () => {} })
-            } as any;
+                getLogger: () => stub<Logger>({ debug: () => {} })
+            });
             registry.registerRecipeStations(server);
 
             const craftingInput = new CraftingInput();
@@ -336,7 +347,7 @@ describe('network', () => {
                 craftingInput
             );
 
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.OK);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
             expect(inventory.getItem(0).getName()).toBe('minecraft:stick');
             // Spent, and the client told so - otherwise it keeps showing what it used up.
             expect(craftingInput.isEmpty()).toBe(true);
@@ -351,14 +362,14 @@ describe('network', () => {
                 [new Item({ id: 2, name: 'minecraft:stick' })]
             );
 
-            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} } as any);
+            const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
             await manager.registerRecipe(recipe);
             const registry = new StationRegistry();
-            const server = {
+            const server = stub<Server>({
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
-                getLogger: () => ({ debug: () => {} })
-            } as any;
+                getLogger: () => stub<Logger>({ debug: () => {} })
+            });
             registry.registerRecipeStations(server);
 
             const empty = new CraftingInput();
@@ -376,7 +387,7 @@ describe('network', () => {
                 empty
             );
 
-            expect(response.responses[0].result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
         });
 
         it('moves a stack into the crafting grid, which is how anything gets made', async () => {
@@ -421,7 +432,7 @@ describe('network', () => {
                             {
                                 type: ItemStackRequestActionType.PLACE,
                                 count: 1,
-                                source: slot(0, 99),
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
                                 destination: slot(0)
                             }
                         ],
