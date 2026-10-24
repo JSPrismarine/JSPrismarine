@@ -1,3 +1,4 @@
+import BinaryStream from '@jsprismarine/binaryutils';
 import { createHash } from 'node:crypto';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Device from '../../utils/Device';
@@ -5,12 +6,87 @@ import Skin from '../../utils/skin/Skin';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+/** The skin fields `Skin.fromJWT` reads, named from its parameter so the two cannot drift. */
+type SkinData = Parameters<typeof Skin.fromJWT>[0];
+
+/** The client data fields this packet reads, on top of what the skin reader takes. */
+interface ClientData extends SkinData {
+    /** The name the player typed. The only name an unauthenticated client sends. */
+    ThirdPartyName?: string;
+    /** The uuid the client made up for itself. Only used when nothing else identifies it. */
+    SelfSignedId?: string;
+    DeviceId: string;
+    DeviceOS: number;
+    DeviceModel: string;
+    CurrentInputMode: number;
+    GuiScale: number;
+    ClientRandomId: number;
+    ServerAddress: string;
+    LanguageCode: string;
+}
+
+/** The claims of one link of the certificate chain. Only the last link carries `extraData`. */
+interface ChainLink {
+    identityPublicKey?: string;
+    extraData?: {
+        XUID: string;
+        identity: string;
+        displayName: string;
+    };
+}
+
+/** The claims of the multiplayer token that clients from 1.26.10 send beside the chain. */
+interface TokenClaims {
+    /** The client's public key. */
+    cpk?: string;
+    /** The Xbox Live id, empty when the player is not signed in. */
+    xid?: string;
+    /** The gamertag, empty when the player is not signed in. */
+    xname?: string;
+    /** A uuid, sent only when there is no XUID to derive one from. */
+    leguuid?: string;
+}
+
+/** `{"chain": [...]}`, one JWT per link. Clients before 1.26.10 send this directly. */
+interface Certificate {
+    chain?: string[];
+}
+
+/**
+ * The chain JSON as a 1.26.51 client sends it. `Certificate` holds a {@link Certificate} as a
+ * JSON string. The `chain` member is only present when an older client sent the bare shape.
+ */
+interface ConnectionRequest extends Certificate {
+    Certificate?: string;
+    /** 0 is Xbox Live, 1 is guest, 2 is self-signed. */
+    AuthenticationType?: number;
+    Token?: string;
+}
+
+/**
+ * `JSON.parse` returns `any`. This is the one place a parsed shape takes a type the compiler
+ * cannot check, so callers name the interface they expect here and work with the typed value.
+ */
+const parseJSON = <T>(json: string): T => JSON.parse(json);
+
+/**
+ * The claims of a JWT, read without checking its signature. The identity chain is verified
+ * elsewhere. Here a token is three base64url segments and the middle one is JSON.
+ */
+const claimsOf = <T>(token: string): T => {
+    const payload = token.split('.')[1];
+    if (!payload) {
+        throw new Error('The login token is not a JWT');
+    }
+    return parseJSON(Buffer.from(payload, 'base64url').toString('utf8'));
+};
+
 /**
  * The uuid that goes with an Xbox Live id.
  *
- * Not sent, and not free to choose: it is an MD5 of the XUID under a fixed namespace, stamped
+ * Not sent, and not free to choose. It is an MD5 of the XUID under a fixed namespace, stamped
  * as a version 3 uuid, and every implementation derives the same one. A server that invents a
- * uuid instead hands the player an identity the client has never heard of - which is the same
+ * uuid instead hands the player an identity the client has never heard of, which is the same
  * failure as sending none, only later and harder to see.
  * @param {string} xuid - the Xbox Live id, or empty for a player who has none.
  * @returns {string} the uuid, or an empty string when there was no XUID to derive it from.
@@ -19,13 +95,33 @@ const identityFromXUID = (xuid: string): string => {
     if (!xuid) return '';
 
     const hash = createHash('md5').update('pocket-auth-1-xuid:').update(xuid).digest();
-    hash[6] = (hash[6]! & 0x0f) | 0x30;
-    hash[8] = (hash[8]! & 0x3f) | 0x80;
+    // Version 3 in the high nibble of byte 6, and the RFC 4122 variant in the top bits of byte 8.
+    hash.writeUInt8((hash.readUInt8(6) & 0x0f) | 0x30, 6);
+    hash.writeUInt8((hash.readUInt8(8) & 0x3f) | 0x80, 8);
 
     const hex = hash.toString('hex');
     return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
 };
 
+/**
+ * Who is connecting, and as what. Sent once by the client after the network settings.
+ *
+ * Wire layout at protocol 2193:
+ * - `Client Network Version`: a big endian int32. The one field a server of another version can
+ *   read, so that it can refuse the connection for the right reason.
+ * - `Connection Request`: a varuint byte length, then that many bytes. Inside are two strings,
+ *   each a little endian uint32 length followed by ASCII bytes: the chain JSON, then the client
+ *   data JWT. Nothing may follow them.
+ *
+ * The chain JSON has two shapes. Clients before 1.26.10 send `{"chain": [...]}` with one JWT per
+ * link and the identity in the last link's `extraData`. Clients from 1.26.10 send the envelope
+ * `{"Certificate": "<that JSON as a string>", "AuthenticationType": n, "Token": "<JWT>"}`, where
+ * the chain holds one empty link and the identity is in the token's `xid`, `xname`, `cpk` and
+ * `leguuid` claims. Decoding reads both shapes.
+ *
+ * Encoding writes `chainData` and `clientData` back as they arrived, so a decoded packet
+ * reproduces its own bytes.
+ */
 export default class LoginPacket extends DataPacket {
     public static NetID = Identifiers.LoginPacket;
 
@@ -42,6 +138,17 @@ export default class LoginPacket extends DataPacket {
     public protocol!: number;
     public identityPublicKey!: string;
 
+    /**
+     * The envelope's `AuthenticationType`: 0 is Xbox Live, 1 is guest, 2 is self-signed. 0 when
+     * the client sent the bare `{"chain": [...]}` shape, which has no such field.
+     */
+    public authenticationType = 0;
+
+    /** The chain JSON exactly as it arrived, before any parsing. */
+    public chainData = '';
+    /** The client data JWT exactly as it arrived, before any parsing. */
+    public clientData = '';
+
     public clientRandomId!: number;
     public serverAddress!: string;
     public languageCode!: string;
@@ -52,45 +159,47 @@ export default class LoginPacket extends DataPacket {
     public decodePayload(): void {
         this.protocol = this.readInt();
 
-        // TODO: content length, to validate it's lenght...
-        this.readUnsignedVarInt();
-        const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this));
-        // The signature is checked against the identity chain elsewhere; here the
-        // payload is only read, so a JWT is just three base64url segments.
-        const decode = (token: string): any => {
-            const payload = token.split('.')[1];
-            if (!payload) {
-                throw new Error('The login token is not a JWT');
-            }
-            return JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'));
-        };
+        // Read through the declared length rather than past it. A request claiming more bytes
+        // than the packet carries fails on the read, and one carrying more than its two strings
+        // is refused below. gophertunnel refuses both the same way.
+        const request = new BinaryStream(this.read(this.readUnsignedVarInt()));
+        this.chainData = NetworkUtil.readLELengthASCIIString(request);
+        this.clientData = NetworkUtil.readLELengthASCIIString(request);
+        if (!request.feof()) {
+            const unread = request.readRemaining().byteLength;
+            throw new Error(`The connection request has ${unread} unread bytes after the client data`);
+        }
+
+        const envelope = parseJSON<ConnectionRequest>(this.chainData);
+        this.authenticationType = envelope.AuthenticationType ?? 0;
 
         // Two shapes, and which one arrives depends on the client's version rather than on
         // anything it chose. Up to 1.26.10 the identity was a link in the chain carrying
         // `extraData`; from 1.26.10 the chain holds one empty string and the identity is a
         // token beside it, under an identity provider's short claim names. Both are read
         // because a server that only knows one refuses half the clients that can reach it.
-        const certificate = typeof chainData.Certificate === 'string' ? JSON.parse(chainData.Certificate) : chainData;
+        const certificate =
+            typeof envelope.Certificate === 'string' ? parseJSON<Certificate>(envelope.Certificate) : envelope;
 
         for (const link of certificate.chain ?? []) {
             if (!link) continue;
 
-            const decodedChain = decode(link);
+            const { extraData, identityPublicKey } = claimsOf<ChainLink>(link);
 
-            if (decodedChain.extraData) {
-                this.XUID = decodedChain.extraData.XUID;
-                this.identity = decodedChain.extraData.identity;
-                this.displayName = decodedChain.extraData.displayName;
+            if (extraData) {
+                this.XUID = extraData.XUID;
+                this.identity = extraData.identity;
+                this.displayName = extraData.displayName;
             }
 
-            this.identityPublicKey = decodedChain.identityPublicKey;
+            this.identityPublicKey = identityPublicKey ?? this.identityPublicKey;
         }
 
-        if (chainData.Token) {
-            const token = decode(chainData.Token);
+        if (envelope.Token) {
+            const token = claimsOf<TokenClaims>(envelope.Token);
 
             // Each of these only when the token actually carries it. An authenticated login
-            // has both a chain and a token, and the chain is the better source - overwriting
+            // has both a chain and a token, and the chain is the better source. Overwriting
             // its XUID with an absent one leaves a signed in player looking unauthenticated.
             this.XUID = token.xid || this.XUID;
             // `leguuid` is only sent when there is no XUID to derive a uuid from, which for an
@@ -101,53 +210,44 @@ export default class LoginPacket extends DataPacket {
         }
 
         // An authenticated login on the token format sends an XUID and no uuid, because the
-        // uuid is not a fact to be sent - it is derived from the XUID, and both ends derive
-        // the same one. A server that waits to be told it refuses every signed in player.
+        // uuid is not a fact to be sent. It is derived from the XUID, and both ends derive
+        // the same one. A server that waits to be told refuses every signed in player.
         this.identity ||= identityFromXUID(this.XUID);
 
-        const decodedJWT = decode(NetworkUtil.readLELengthASCIIString(this));
+        const clientData = claimsOf<ClientData>(this.clientData);
 
         // The last place a name and an identity can be, and for a real client that is not
         // signed in to Xbox Live it is the only place. The chain holds one empty link and the
-        // token names nobody, because there is nobody to name - what the player typed lives in
+        // token names nobody, because there is nobody to name. What the player typed lives in
         // the client data as `ThirdPartyName`, beside the id it made up for itself.
         //
         // A server that does not look here refuses every unauthenticated client with "invalid
         // username", having been handed the username in the same packet.
-        this.displayName ||= decodedJWT.ThirdPartyName;
-        this.identity ||= decodedJWT.SelfSignedId;
-        this.skin = Skin.fromJWT(decodedJWT);
+        this.displayName ||= clientData.ThirdPartyName ?? '';
+        this.identity ||= clientData.SelfSignedId ?? '';
+        this.skin = Skin.fromJWT(clientData);
         this.device = new Device({
-            id: decodedJWT.DeviceId,
-            os: decodedJWT.DeviceOS,
-            model: decodedJWT.DeviceModel,
-            inputMode: decodedJWT.CurrentInputMode,
-            guiScale: decodedJWT.GuiScale
+            id: clientData.DeviceId,
+            os: clientData.DeviceOS,
+            model: clientData.DeviceModel,
+            inputMode: clientData.CurrentInputMode,
+            guiScale: clientData.GuiScale
         });
 
-        this.clientRandomId = decodedJWT.ClientRandomId;
-        this.serverAddress = decodedJWT.ServerAddress;
-        this.languageCode = decodedJWT.LanguageCode;
+        this.clientRandomId = clientData.ClientRandomId;
+        this.serverAddress = clientData.ServerAddress;
+        this.languageCode = clientData.LanguageCode;
     }
 
     public encodePayload(): void {
-        /*
-        TODO
-        this.writeInt(Identifiers.Protocol);
+        this.writeInt(this.protocol);
 
-        const stream = new BinaryStream();
-        const data = JSON.stringify({
-            chain: [
-                "eyJhbGciOiJFUzM4NCIsIng1dSI6Ik1IWXdFQVlIS29aSXpqMENBUVlGSzRFRUFDSURZZ0FFZitQNy94REozUFFTK2Vsb1M5WjhDdzczMG0vcndFZlZmaWg1QjBQZmtEdWR2QmlIeXJxUjhmaEg5YWJkRWRELzE3Sk9xZVdwZTRzcjB3Sk9FZDRRV05wbm5kYk90V0YzTXo1bk5aVU1rekEwaWE2V28vQnBQQ0hXR093Q3R5bWwifQo.eyJjZXJ0aWZpY2F0ZUF1dGhvcml0eSI6dHJ1ZSwiZXhwIjoxNjA2NDY5OTg4LCJpZGVudGl0eVB1YmxpY0tleSI6Ik1IWXdFQVlIS29aSXpqMENBUVlGSzRFRUFDSURZZ0FFOEVMa2l4eUxjd2xacnlVUWN1MVR2UE9tSTJCN3ZYODNuZG5XUlVhWG03NHdGZmE1Zi9sd1FOVGZyTFZIYTJQbWVucEdJNkpoSU1VSmFXWnJqbU1qOTBOb0tORlNOQnVLZG04cllpWHNmYXozSzM2eC8xVTI2SHBHMFp4Sy9WMVYiLCJuYmYiOjE2MDYyOTcxMjh9Cg.2zvxWED0umE0fYgZlx6h3dIfPw1hv50Ug5DvtOXqVHBv2sfriTB7jkJSMGp2rnuNYS_Ir_Q4e9CSWA5AzuuuJ82Z3pp2SQuX7Yh1LplmvjAoiXfQqQr4_TaukBtGXmLd",
-                "eyJ4NXUiOiJNSFl3RUFZSEtvWkl6ajBDQVFZRks0RUVBQ0lEWWdBRThFTGtpeHlMY3dsWnJ5VVFjdTFUdlBPbUkyQjd2WDgzbmRuV1JVYVhtNzR3RmZhNWZcL2x3UU5UZnJMVkhhMlBtZW5wR0k2SmhJTVVKYVdacmptTWo5ME5vS05GU05CdUtkbThyWWlYc2ZhejNLMzZ4XC8xVTI2SHBHMFp4S1wvVjFWIiwiYWxnIjoiRVMzODQifQ.eyJuYmYiOjE2MDYyOTcxMjgsInJhbmRvbU5vbmNlIjotMjUxNjAzNDQ4NjM0NTA5NTk1NywiaXNzIjoiTW9qYW5nIiwiZXhwIjoxNjA2NDY5OTg4LCJjZXJ0aWZpY2F0ZUF1dGhvcml0eSI6dHJ1ZSwiaWF0IjoxNjA2Mjk3MTg4LCJpZGVudGl0eVB1YmxpY0tleSI6Ik1IWXdFQVlIS29aSXpqMENBUVlGSzRFRUFDSURZZ0FFYUJTbjlvSWxsNm9Hdk5sTm1wXC9zRFJZTEZFVTlTZDJhZUFYNThSSGpLKzB0Nmx0WWVtWGFubXY1NVwvWlNqbjBXNUdZZkFHS0Y0T1lncWN0WWVieGxERWVYMFwvcDBYT1wvdytNUlwvS3ZwanFWejZZemdYNlRmQTc3c3dvTXVNUDRzSSJ9.FMfiGRUOjw6bI3H4ChYqgsHY4t8yWimq3Qu27D68wQwlBUiBeOdAFVb2NHLWKBXKBP3y3txbn9A65Xvrg9BWhVZPZz5pGLxwiRNl9f8iJJflfi3QfKMMaiLrjj8ZYQwl",
-                "eyJ4NXUiOiJNSFl3RUFZSEtvWkl6ajBDQVFZRks0RUVBQ0lEWWdBRWFCU245b0lsbDZvR3ZObE5tcFwvc0RSWUxGRVU5U2QyYWVBWDU4UkhqSyswdDZsdFllbVhhbm12NTVcL1pTam4wVzVHWWZBR0tGNE9ZZ3FjdFllYnhsREVlWDBcL3AwWE9cL3crTVJcL0t2cGpxVno2WXpnWDZUZkE3N3N3b011TVA0c0kiLCJhbGciOiJFUzM4NCJ9.eyJuYmYiOjE2MDYyOTk0MDksImV4dHJhRGF0YSI6eyJYVUlEIjoiMjUzNTQxMzY2MTMxMTUwMiIsImlkZW50aXR5IjoiZDRmNmQwNmItNDk4OS0zYWIwLTlkMDMtODA2OTRlMjQ3ZWJiIiwiZGlzcGxheU5hbWUiOiJIZXJyeVlUIiwidGl0bGVJZCI6Ijg5NjkyODc3NSJ9LCJyYW5kb21Ob25jZSI6LTYzOTA2MjgwNDA3MDg2MDkyNiwiaXNzIjoiTW9qYW5nIiwiZXhwIjoxNjA2Mzg1ODY5LCJpYXQiOjE2MDYyOTk0NjksImlkZW50aXR5UHVibGljS2V5IjoiTUhZd0VBWUhLb1pJemowQ0FRWUZLNEVFQUNJRFlnQUVmK1A3XC94REozUFFTK2Vsb1M5WjhDdzczMG1cL3J3RWZWZmloNUIwUGZrRHVkdkJpSHlycVI4ZmhIOWFiZEVkRFwvMTdKT3FlV3BlNHNyMHdKT0VkNFFXTnBubmRiT3RXRjNNejVuTlpVTWt6QTBpYTZXb1wvQnBQQ0hXR093Q3R5bWwifQ.ya515qoCGluYhSwMHGHKRGaeCarrBr6mp0H9gCxJQ_8xLTGjKdyNGKeQFldoRqDTLCZsEITrLuAKBQkgSwXiVIbAehO6HeIbjESio6hVELUA9C2eelBasQODL-lE8kax"
-            ]
-        });
+        const request = new BinaryStream();
+        NetworkUtil.writeLELengthASCIIString(request, this.chainData);
+        NetworkUtil.writeLELengthASCIIString(request, this.clientData);
 
-        stream.writeUnsignedVarInt(55309);  // Full length
-
-        stream.writeLInt(Buffer.byteLength(data));
-        stream.append(Buffer.from(data, 'utf8'));
-        */
+        const body = request.getWriteBuffer();
+        this.writeUnsignedVarInt(body.byteLength);
+        this.write(body);
     }
 }

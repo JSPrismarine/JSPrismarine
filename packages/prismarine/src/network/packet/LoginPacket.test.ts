@@ -25,8 +25,8 @@ const clientData = (overrides: Record<string, unknown> = {}) =>
         GuiScale: 0,
         SelfSignedId: '11111111-2222-3333-4444-555555555555',
         ThirdPartyName: 'Steve',
-        // Everything the skin reader touches. Empty is fine - none of it is what these
-        // assert - but absent is not: it decodes each of these from base64.
+        // Everything the skin reader touches. Empty is fine, since none of it is what these
+        // assert, but absent is not: it decodes each of these from base64.
         SkinId: 'test',
         SkinData: '',
         SkinImageWidth: 0,
@@ -50,25 +50,45 @@ const clientData = (overrides: Record<string, unknown> = {}) =>
         ...overrides
     });
 
-/** A login as it arrives: the protocol, then the two length-prefixed JSON blobs. */
-const encode = (chain: unknown, data: string) => {
+/**
+ * A login as it arrives, built by hand in the docs' order: the packet id, `Client Network
+ * Version` as a big endian int32, then `Connection Request` as a varuint length over the two
+ * little endian length prefixed strings. `trailing` goes inside the request, after the client
+ * data, where a well formed request has nothing.
+ */
+const bytes = (chain: unknown, data: string, trailing = Buffer.alloc(0)) => {
     const stream = new BinaryStream();
     stream.writeInt(Identifiers.Protocol);
 
     const body = new BinaryStream();
     NetworkUtil.writeLELengthASCIIString(body, JSON.stringify(chain));
     NetworkUtil.writeLELengthASCIIString(body, data);
+    body.write(trailing);
 
     const payload = body.getBuffer();
     stream.writeUnsignedVarInt(payload.byteLength);
     stream.write(payload);
 
-    const packet = new LoginPacket();
-    packet.setBuffer(Buffer.concat([Buffer.from([Identifiers.LoginPacket]), stream.getBuffer()]));
-    packet.decode();
+    return Buffer.concat([Buffer.from([Identifiers.LoginPacket]), stream.getBuffer()]);
+};
 
+/** The packet decoded from hand-built bytes. */
+const decode = (buffer: Buffer) => {
+    const packet = new LoginPacket();
+    packet.setBuffer(buffer);
+    packet.decode();
     return packet;
 };
+
+/** The packet decoded from a chain and client data. */
+const encode = (chain: unknown, data: string) => decode(bytes(chain, data));
+
+/** The chain a 1.26.51 client sends when it is not signed in to Xbox Live. */
+const selfSigned = () => ({
+    Certificate: JSON.stringify({ chain: [''] }),
+    AuthenticationType: 2,
+    Token: sign({ cpk: KEY, xid: '', xname: 'Alex', leguuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' })
+});
 
 describe('network', () => {
     describe('packet', () => {
@@ -95,13 +115,7 @@ describe('network', () => {
             });
 
             it('reads the identity out of a multiplayer token', () => {
-                const chain = {
-                    Certificate: JSON.stringify({ chain: [''] }),
-                    AuthenticationType: 2,
-                    Token: sign({ cpk: KEY, xid: '', xname: 'Alex', leguuid: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee' })
-                };
-
-                const packet = encode(chain, clientData());
+                const packet = encode(selfSigned(), clientData());
 
                 expect(packet.displayName).toBe('Alex');
                 expect(packet.identity).toBe('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee');
@@ -127,7 +141,7 @@ describe('network', () => {
 
             /**
              * What a client signed in to Xbox Live sends on the token format: an XUID and no
-             * uuid at all, because the uuid is not a fact to be sent - both ends derive the
+             * uuid at all, because the uuid is not a fact to be sent. Both ends derive the
              * same one from the XUID.
              */
             it('derives the identity from the XUID when the token sends no uuid', () => {
@@ -173,6 +187,73 @@ describe('network', () => {
 
                 expect(packet.XUID).toBe('123');
                 expect(packet.displayName).toBe('Alex');
+            });
+
+            it('reads the authentication type from the envelope', () => {
+                expect(encode(selfSigned(), clientData()).authenticationType).toBe(2);
+            });
+
+            it('reports authentication type 0 for the bare chain shape, which has none', () => {
+                const chain = { chain: [sign({ identityPublicKey: KEY })] };
+
+                expect(encode(chain, clientData()).authenticationType).toBe(0);
+            });
+
+            it('keeps the raw chain and client data as they arrived', () => {
+                const chain = selfSigned();
+                const data = clientData();
+
+                const packet = encode(chain, data);
+
+                expect(packet.chainData).toBe(JSON.stringify(chain));
+                expect(packet.clientData).toBe(data);
+            });
+
+            it('consumes the packet exactly', () => {
+                const packet = encode(selfSigned(), clientData());
+
+                expect(packet.feof()).toBe(true);
+            });
+
+            /**
+             * The request's length used to be read and dropped, and the two strings read
+             * straight from the packet. A request carrying more than its two strings then
+             * left the extra bytes where the next packet in the batch would be read from.
+             */
+            it('rejects a connection request with bytes after the client data', () => {
+                const garbage = Buffer.from([0xde, 0xad, 0xbe, 0xef]);
+
+                expect(() => decode(bytes(selfSigned(), clientData(), garbage))).toThrow(
+                    'The connection request has 4 unread bytes after the client data'
+                );
+            });
+
+            it('rejects a connection request that claims more bytes than the packet carries', () => {
+                const truncated = bytes(selfSigned(), clientData());
+
+                expect(() => decode(truncated.subarray(0, truncated.byteLength - 1))).toThrow();
+            });
+
+            it('encodes a decoded login back to the same bytes', () => {
+                const expected = bytes(selfSigned(), clientData());
+
+                const packet = decode(expected);
+                packet.encode();
+
+                expect(packet.getBuffer().equals(expected)).toBe(true);
+            });
+
+            it('encodes the protocol, chain and client data in the docs order', () => {
+                const chain = selfSigned();
+                const data = clientData();
+
+                const packet = new LoginPacket();
+                packet.protocol = Identifiers.Protocol;
+                packet.chainData = JSON.stringify(chain);
+                packet.clientData = data;
+                packet.encode();
+
+                expect(packet.getBuffer().equals(bytes(chain, data))).toBe(true);
             });
         });
     });
