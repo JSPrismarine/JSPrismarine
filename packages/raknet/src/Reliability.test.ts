@@ -1,3 +1,4 @@
+import type { RemoteInfo } from 'node:dgram';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it, vi } from 'vitest';
 import Session, { RakNetPriority, SessionStatus } from './Session';
@@ -7,6 +8,7 @@ import FrameSet from './protocol/FrameSet';
 import ACK from './protocol/ACK';
 import NACK from './protocol/NACK';
 import { monotonicNow } from './utils/Clock';
+import { ServerName } from './utils/ServerName';
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
 
@@ -60,7 +62,7 @@ describe('C1 - NACK retransmission is verbatim', () => {
 
         const nack = new NACK();
         nack.sequenceNumbers = [lost.sequenceNumber];
-        (session as any).handleNACK(nack);
+        session['handleNACK'](nack);
 
         const resent = decodeSent(sent.at(-1)!);
         expect(resent.sequenceNumber).not.toBe(lost.sequenceNumber); // new datagram
@@ -77,12 +79,12 @@ describe('C1 - NACK retransmission is verbatim', () => {
         const seq = decodeSent(sent[0]!).sequenceNumber;
         const ack = new ACK();
         ack.sequenceNumbers = [seq];
-        (session as any).handleACK(ack);
+        session['handleACK'](ack);
 
         const before = sent.length;
         const nack = new NACK();
         nack.sequenceNumbers = [seq];
-        (session as any).handleNACK(nack);
+        session['handleNACK'](nack);
         expect(sent.length).toBe(before); // nothing retransmitted
     });
 });
@@ -102,7 +104,7 @@ describe('C2 - fragments are independent messages', () => {
         const nack = new NACK();
         nack.sequenceNumbers = [decodeSent(sent[0]!).sequenceNumber];
         const beforeLength = sent.length;
-        (session as any).handleNACK(nack);
+        session['handleNACK'](nack);
         const resent = decodeSent(sent[beforeLength]!).frames[0]!;
         expect(resent.fragmentIndex).toBe(0);
         expect(resent.content.equals(fragments[0]!.content)).toBe(true);
@@ -141,7 +143,7 @@ describe('C4 - hostile ordering channel', () => {
         frame.orderChannel = 200; // > MAX_CHANNELS
         frame.orderIndex = 0;
         frame.content = Buffer.from([0xfe]);
-        expect(() => (session as any).handleFrame(frame)).not.toThrow();
+        expect(() => session['handleFrame'](frame)).not.toThrow();
     });
 });
 
@@ -164,7 +166,7 @@ describe('C3 / C5 / C8 - offline path', () => {
         return { listener, addSession, sentPackets };
     };
 
-    const rinfo: any = { address: '1.2.3.4', port: 19132, family: 'IPv4', size: 0 };
+    const rinfo: RemoteInfo = { address: '1.2.3.4', port: 19132, family: 'IPv4', size: 0 };
 
     it('C3: an unknown offline packet id is logged, never thrown', async () => {
         const { OfflineHandler } = await import('./protocol/OfflineHandler');
@@ -204,14 +206,17 @@ describe('C3 / C5 / C8 - offline path', () => {
         const server: any = new ServerSocket(
             10,
             false,
-            { toString: () => 'x', setOnlinePlayerCount: vi.fn() } as any,
+            new ServerName({
+                getConfig: () => ({ getMotd: () => 'x', getGamemode: () => 'survival', getMaxPlayers: () => 10 }),
+                getIdentifiers: () => ({ Protocol: 0, MinecraftVersions: ['0.0.0'] })
+            }),
             logger
         );
         // Register a session so the datagram reaches the decoder rather than being ignored.
         server.sessions.set(
             `${rinfo.address}:${rinfo.port}`,
             new Session(
-                { getLogger: () => logger, sendPacket: vi.fn(), emit: vi.fn(), removeSession: vi.fn() } as any,
+                { getLogger: () => logger, sendPacket: vi.fn(), emit: vi.fn(), removeSession: vi.fn() },
                 1400,
                 rinfo,
                 1n
@@ -234,9 +239,9 @@ describe('C7 - hostile first datagram sequence number', () => {
         frameSet.frames = [];
 
         const started = Date.now();
-        (session as any).handleFrameSet(frameSet);
+        session['handleFrameSet'](frameSet);
         expect(Date.now() - started).toBeLessThan(1000);
-        expect((session as any).lostFrameSequences.size).toBeLessThanOrEqual(512);
+        expect(session['lostFrameSequences'].size).toBeLessThanOrEqual(512);
     });
 });
 
@@ -273,13 +278,8 @@ const makeReceivingSession = () => {
         },
         removeSession: vi.fn()
     };
-    const session = new Session(
-        listener,
-        1400,
-        { address: '1.2.3.4', port: 19132, family: 'IPv4', size: 0 } as any,
-        1n
-    );
-    (session as any).state = 1; // SessionStatus.CONNECTED
+    const session = new Session(listener, 1400, { address: '1.2.3.4', port: 19132, family: 'IPv4', size: 0 }, 1n);
+    session['state'] = SessionStatus.CONNECTED;
     return { session, delivered };
 };
 
@@ -304,7 +304,7 @@ describe('H1 - retransmission on timeout', () => {
         expect(resent.frames[0]!.content.toString()).toBe('tail');
 
         // Acknowledging it ends the retransmissions.
-        (session as any).handleACK(ackFor(resent.sequenceNumber));
+        session['handleACK'](ackFor(resent.sequenceNumber));
         session.update(monotonicNow() + 6000);
         expect(sent.length).toBe(2);
     });
@@ -315,7 +315,7 @@ describe('H1 - retransmission on timeout', () => {
 
         session.sendFrame(gameFrame(Buffer.from('x')));
         session.sendFrameQueue();
-        (session as any).handleACK(ackFor(decodeSent(sent[0]!).sequenceNumber));
+        session['handleACK'](ackFor(decodeSent(sent[0]!).sequenceNumber));
 
         expect(session.getRTT()).not.toBeNull();
         expect(session.getRTT()!).toBeGreaterThanOrEqual(0);
@@ -326,15 +326,15 @@ describe('H2 - out of order datagrams', () => {
     it('processes a datagram that arrives after a higher one, and acks both', () => {
         const { session, delivered } = makeReceivingSession();
 
-        (session as any).handleFrameSet(incoming(1, [inboundFrame(1, 1, 0xb1)]));
-        (session as any).handleFrameSet(incoming(0, [inboundFrame(0, 0, 0xa0)]));
+        session['handleFrameSet'](incoming(1, [inboundFrame(1, 1, 0xb1)]));
+        session['handleFrameSet'](incoming(0, [inboundFrame(0, 0, 0xa0)]));
 
         // Reordering must not lose data: both messages are delivered, in order.
         expect(delivered).toEqual([0xa0, 0xb1]);
         // And both datagrams are acknowledged, so the peer stops resending them.
-        expect(Array.from((session as any).ackQueue).sort()).toEqual([0, 1]);
+        expect(Array.from(session['ackQueue']).sort()).toEqual([0, 1]);
         // The hole was filled before the NACK went out.
-        expect((session as any).lostFrameSequences.size).toBe(0);
+        expect(session['lostFrameSequences'].size).toBe(0);
     });
 });
 
@@ -342,18 +342,18 @@ describe('H3 - duplicate reliable messages', () => {
     it('delivers a retransmitted message only once', () => {
         const { session, delivered } = makeReceivingSession();
 
-        (session as any).handleFrameSet(incoming(0, [inboundFrame(0, 0, 0xa0)]));
+        session['handleFrameSet'](incoming(0, [inboundFrame(0, 0, 0xa0)]));
         // Same message, new datagram: this is what a retransmission looks like.
-        (session as any).handleFrameSet(incoming(1, [inboundFrame(0, 0, 0xa0)]));
+        session['handleFrameSet'](incoming(1, [inboundFrame(0, 0, 0xa0)]));
 
         expect(delivered).toEqual([0xa0]);
     });
 
     it('rejects a message far beyond the receive window instead of buffering it', () => {
         const { session, delivered } = makeReceivingSession();
-        (session as any).handleFrameSet(incoming(0, [inboundFrame(500_000, 0, 0xff)]));
+        session['handleFrameSet'](incoming(0, [inboundFrame(500_000, 0, 0xff)]));
         expect(delivered).toEqual([]);
-        expect((session as any).receivedReliableIndexes.size).toBe(0);
+        expect(session['receivedReliableIndexes'].size).toBe(0);
     });
 });
 
@@ -370,7 +370,7 @@ describe('H5 - split message limits', () => {
             fragment.content = Buffer.from([0xfe]);
             session.handleFragment(fragment);
         }
-        expect((session as any).fragmentsQueue.size).toBeLessThanOrEqual(64);
+        expect(session['fragmentsQueue'].size).toBeLessThanOrEqual(64);
     });
 
     it('rejects an absurd fragment count', () => {
@@ -383,7 +383,7 @@ describe('H5 - split message limits', () => {
         fragment.fragmentSize = 1_000_000;
         fragment.content = Buffer.from([0xfe]);
         session.handleFragment(fragment);
-        expect((session as any).fragmentsQueue.size).toBe(0);
+        expect(session['fragmentsQueue'].size).toBe(0);
     });
 
     it('abandons a reassembly that never completes', () => {
@@ -396,10 +396,10 @@ describe('H5 - split message limits', () => {
         fragment.fragmentSize = 2;
         fragment.content = Buffer.from([0xfe]);
         session.handleFragment(fragment);
-        expect((session as any).fragmentsQueue.size).toBe(1);
+        expect(session['fragmentsQueue'].size).toBe(1);
 
         session.update(monotonicNow() + 60_000);
-        expect((session as any).fragmentsQueue.size).toBe(0);
+        expect(session['fragmentsQueue'].size).toBe(0);
     });
 });
 
@@ -436,16 +436,16 @@ describe('P4 - acknowledgements are resolved without expanding ranges', () => {
             session.sendFrameQueue();
         }
         const sequences = sent.map((d) => decodeSent(d).sequenceNumber);
-        expect((session as any).resendBuffer.size).toBe(5);
+        expect(session['resendBuffer'].size).toBe(5);
 
         // A range that covers the first three datagrams, plus sequence numbers we never sent.
         const ack = new ACK(rangeDatagram(0xc0, sequences[0]!, sequences[2]!));
         ack.decode();
-        (session as any).handleACK(ack);
+        session['handleACK'](ack);
 
-        expect((session as any).resendBuffer.size).toBe(2);
-        expect((session as any).datagramHistory.size).toBe(2);
-        expect([...(session as any).datagramHistory.keys()]).toEqual([sequences[3], sequences[4]]);
+        expect(session['resendBuffer'].size).toBe(2);
+        expect(session['datagramHistory'].size).toBe(2);
+        expect([...session['datagramHistory'].keys()]).toEqual([sequences[3], sequences[4]]);
     });
 
     it('is unmoved by a range naming datagrams that were never sent', () => {
@@ -456,10 +456,10 @@ describe('P4 - acknowledgements are resolved without expanding ranges', () => {
 
         const nack = new NACK(rangeDatagram(0xa0, 0x800000, 0xffffff));
         nack.decode();
-        (session as any).handleNACK(nack);
+        session['handleNACK'](nack);
 
         expect(sent.length).toBe(before); // nothing matched, nothing retransmitted
-        expect((session as any).resendBuffer.size).toBe(1);
+        expect(session['resendBuffer'].size).toBe(1);
     });
 
     it('retransmits in ascending sequence order whatever order the records claim', () => {
@@ -474,7 +474,7 @@ describe('P4 - acknowledgements are resolved without expanding ranges', () => {
         const nack = new NACK();
         nack.sequenceNumbers = [sequences[2]!, sequences[0]!, sequences[1]!];
         const before = sent.length;
-        (session as any).handleNACK(nack);
+        session['handleNACK'](nack);
 
         const requeued = decodeSent(sent[before]!).frames.map((f) => f.content.toString());
         expect(requeued).toEqual(['m0', 'm1', 'm2']);
@@ -563,7 +563,7 @@ describe('P2 - direct datagram encoder', () => {
         for (let reliability = 0; reliability <= 7; reliability++) {
             for (const fragmented of [false, true]) {
                 const frame = new Frame();
-                frame.reliability = reliability as FrameReliability;
+                frame.reliability = reliability;
                 frame.reliableIndex = 0x123456;
                 frame.sequenceIndex = 0xabcdef;
                 frame.orderIndex = 0x0f0f0f;
@@ -675,7 +675,7 @@ describe('P6 - output queue MTU accounting', () => {
         // IMMEDIATE flushes through a different path than the MTU check.
         session.sendFrame(gameFrame(Buffer.alloc(100, 0x42)), RakNetPriority.IMMEDIATE);
         expect(sent.length).toBe(1);
-        expect((session as any).outputFrameQueueByteLength).toBe(6);
+        expect(session['outputFrameQueueByteLength']).toBe(6);
 
         // The queue must now accept a full datagram's worth again.
         for (let i = 0; i < 12; i++) session.sendFrame(gameFrame(Buffer.alloc(100, 0x42)));
@@ -748,7 +748,7 @@ describe('P1 - split reassembly is byte-exact', () => {
             removeSession: vi.fn()
         };
         const session = new Session(listener, 1400, { address: '5.6.7.8', port: 19133, family: 'IPv4', size: 0 }, 2n);
-        (session as any).state = SessionStatus.CONNECTED;
+        session['state'] = SessionStatus.CONNECTED;
         return { session, received };
     };
 
@@ -870,7 +870,7 @@ describe('H9 - server GUID', () => {
 describe('M1 - 24 bit counters wrap', () => {
     it('wraps the reliable index rather than overflowing the triad field', () => {
         const { session, sent } = makeSession();
-        (session as any).outputReliableIndex = 0xffffff;
+        session['outputReliableIndex'] = 0xffffff;
 
         session.sendFrame(gameFrame(Buffer.from('a')));
         session.sendFrameQueue();
@@ -883,7 +883,7 @@ describe('M1 - 24 bit counters wrap', () => {
 
     it('wraps the ordering index', () => {
         const { session, sent } = makeSession();
-        (session as any).outputOrderIndex[0] = 0xffffff;
+        session['outputOrderIndex'][0] = 0xffffff;
 
         session.sendFrame(gameFrame(Buffer.from('a')));
         session.sendFrameQueue();
@@ -916,9 +916,9 @@ describe('M4 - acknowledgements respect the MTU', () => {
     it('splits a large acknowledgement set across datagrams', () => {
         const { session, sent } = makeSession(576);
         // Non consecutive, so nothing collapses into ranges.
-        for (let i = 0; i < 2000; i += 2) (session as any).ackQueue.add(i);
+        for (let i = 0; i < 2000; i += 2) session['ackQueue'].add(i);
 
-        (session as any).sendAcknowledgements();
+        session['sendAcknowledgements']();
 
         expect(sent.length).toBeGreaterThan(1);
         for (const buffer of sent) {
@@ -939,12 +939,12 @@ describe('M5 - several sequenced messages can share an ordering index', () => {
             frame.sequenceIndex = seq;
             frame.content = Buffer.from([0xfe, seq]);
             buffered.push(frame);
-            (session as any).handleFrame(frame);
+            session['handleFrame'](frame);
         }
 
-        const bucket = (session as any).inputOrderingQueue.get(0).get(5);
+        const bucket = session['inputOrderingQueue'].get(0)?.get(5);
         expect(bucket).toHaveLength(3);
-        expect(bucket.map((f: Frame) => f.sequenceIndex)).toEqual([0, 1, 2]);
+        expect(bucket?.map((f) => f.sequenceIndex)).toEqual([0, 1, 2]);
     });
 });
 
@@ -981,7 +981,7 @@ describe('M7 - packet pool reuse', () => {
 
         // Every datagram decoded correctly, so the pooled instance was reset each time.
         expect(delivered).toEqual([0xa0, 0xa1, 0xa2]);
-        expect((session as any).packetPool.framesetPool.length).toBeGreaterThan(0);
+        expect(session['packetPool']['framesetPool'].length).toBeGreaterThan(0);
     });
 });
 
@@ -1000,7 +1000,7 @@ describe('M10 - ping and disconnect work while connecting', () => {
         frame.reliability = FrameReliability.UNRELIABLE;
         frame.orderChannel = 0;
         frame.content = pingBuffer;
-        (session as any).handlePacket(frame);
+        session['handlePacket'](frame);
 
         await new Promise((resolve) => setImmediate(resolve));
         session.sendFrameQueue();
