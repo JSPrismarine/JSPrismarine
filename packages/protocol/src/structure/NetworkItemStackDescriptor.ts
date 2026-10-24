@@ -16,7 +16,7 @@ export interface NetworkItemStackDescriptorConfig {
  * (uint16 little endian), `Aux value` (varuint32), `Net Id Variant` (optional: a boolean,
  * then a varint32 when true), `Block Runtime Id` (varuint32) and `User Data Buffer` (a
  * varuint32 length, then the `ItemInstanceUserData` bytes).
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/NetworkItemStackDescriptor.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/}
  */
 export default class NetworkItemStackDescriptor extends NetworkStructure {
     /** `Net Id Variant`, meaningful only when `includeNetid` is true. */

@@ -6,8 +6,8 @@ import BinaryStream from '@jsprismarine/binaryutils';
  */
 export default class NetworkBinaryStream extends BinaryStream {
     /**
-     * Reads a string from the stream.
-     * {@link https://mojang.github.io/bedrock-protocol-docs/html/string.html | Not documented in the protocol docs}
+     * Reads a string from the stream: a varuint32 byte length, then UTF-8 bytes.
+     * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/primitives/#string | The docs' string primitive}
      * @returns The read string.
      */
     public readString(): string {
@@ -23,8 +23,9 @@ export default class NetworkBinaryStream extends BinaryStream {
     }
 
     /**
-     * Reads a length-prefixed ASCII string from the stream.
-     * {@link https://mojang.github.io/bedrock-protocol-docs/html/string.html | Not documented in the protocol docs}
+     * Reads an ASCII string with a little-endian uint32 byte length, the form the
+     * `LoginPacket` connection request uses for its JWT chain and client data. The docs
+     * describe only the varuint32-prefixed string primitive, not this one.
      * @returns The read string.
      */
     public readLELengthASCIIString(): string {

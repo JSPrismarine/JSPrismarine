@@ -19,7 +19,7 @@ export enum ItemVersion {
  * for a block's item form), `Is Component Based` (boolean), `Item Version` (varint32
  * {@link ItemVersion}) and `Item Component Data` (a network NBT compound: little endian with
  * varint lengths).
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/ItemData.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/item-data/}
  */
 export default class ItemData extends NetworkStructure {
     /**

@@ -3,7 +3,7 @@ import NetworkStructure from '../NetworkStructure';
 
 /**
  * Represents the network structure of a 2D vector.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/Vec2.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/vec2/}
  */
 export default class Vec2 extends NetworkStructure {
     /**

@@ -161,7 +161,7 @@ export class Item {
      * as a bad packet on join, before any of the interesting packets are even reached.
      * @param {BinaryStream} stream - the stream to write to.
      * @param {number | null} stackNetId - the stack's net id, when the receiver tracks one.
-     * @see https://mojang.github.io/bedrock-protocol-docs/html/NetworkItemStackDescriptor.html
+     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public networkSerialize(stream: BinaryStream, stackNetId: number | null = null): void {
         const networkId = this.wireId();
@@ -251,7 +251,7 @@ export class Item {
      * the reader was one out: the lists it then walked had garbage lengths, ran off the end
      * of the buffer and threw. Every InventoryTransaction died there - which is what left a
      * survival block break with no sound, the packet never reaching its handler.
-     * @see https://mojang.github.io/bedrock-protocol-docs/html/NetworkItemStackDescriptor.html
+     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/
      */
     public static networkDeserialize(stream: BinaryStream): Item {
         return Item.readStack(stream, true);

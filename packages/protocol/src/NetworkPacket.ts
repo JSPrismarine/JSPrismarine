@@ -4,7 +4,11 @@ import type NetworkBinaryStream from './NetworkBinaryStream';
  * Represents the network packet (aka DataPacket).
  * This is just a serialization layer to include the packet header
  * and to reduce redundancy in the packet classes.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/packetHeader.html}
+ *
+ * The header is one varuint32: the low 10 bits are the packet id, the next two bits the
+ * sender sub-client id, the two after that the target sub-client id. The docs have no page
+ * for the header; each packet page lists it as the `ID` varuint ahead of the body.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/#packets}
  */
 export default abstract class NetworkPacket<T> {
     abstract get id(): number;

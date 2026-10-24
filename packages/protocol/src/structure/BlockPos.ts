@@ -3,7 +3,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 
 /**
  * Represents the network structure of a block position.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/BlockPos.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/block-pos/}
  */
 export default class BlockPos extends Vec3 {
     /**

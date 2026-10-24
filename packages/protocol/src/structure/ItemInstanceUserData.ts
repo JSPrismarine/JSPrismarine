@@ -29,7 +29,8 @@ const USER_DATA_VERSION = 1;
  * varints. Then `Can Place On` and `Can Destroy`, each a uint32 little-endian count followed by
  * strings with an int16 little-endian length. A shield ends with its `Blocking Tick` (int64
  * little endian); nothing on the wire says whether it is there, so the reader has to be told.
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/ItemInstanceUserData.html}
+ * The docs have no page for this blob; the descriptor that carries it is at
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/network-item-stack-descriptor/}.
  */
 export default class ItemInstanceUserData extends NetworkStructure {
     /** Block names the item may be placed on. */
