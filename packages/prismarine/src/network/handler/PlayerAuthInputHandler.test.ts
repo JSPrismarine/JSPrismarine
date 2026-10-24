@@ -11,7 +11,7 @@ import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
-import { HandSlot, UseItemAction } from '../packet/InventoryTransactionPacket';
+import { HandSlot, ItemUseActionType } from '../packet/InventoryTransactionPacket';
 import { PlayerActionType } from '../packet/PlayerActionPacket';
 import PlayerAuthInputPacket, { ClientPlayMode, InputMode, NewInteractionModel } from '../packet/PlayerAuthInputPacket';
 import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandler';
@@ -160,7 +160,7 @@ describe('PlayerAuthInputHandler', () => {
                     actions: [],
                     data: {
                         kind: 'useItem',
-                        actionType: UseItemAction.BREAK_BLOCK,
+                        actionType: ItemUseActionType.DESTROY,
                         triggerType: 1,
                         blockPosition: new BlockPosition(1, 63, 2),
                         blockFace: 1,

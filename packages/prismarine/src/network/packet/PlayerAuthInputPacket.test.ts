@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
-import { HandSlot, UseItemAction } from './InventoryTransactionPacket';
+import { HandSlot, ItemUseActionType } from './InventoryTransactionPacket';
 import { PlayerActionType } from './PlayerActionPacket';
 import PlayerAuthInputPacket, {
     ClientPlayMode,
@@ -191,7 +191,7 @@ describe('PlayerAuthInputPacket', () => {
                 out.writeVarInt(0); // Legacy Request ID.
                 out.writeBoolean(false); // No Legacy Set Item Slots.
                 out.writeUnsignedVarInt(0); // No Actions.
-                out.writeVarInt(UseItemAction.CLICK_BLOCK); // Action Type.
+                out.writeVarInt(ItemUseActionType.PLACE); // Action Type.
                 out.writeByte(1); // Trigger Type: player input.
                 out.writeVarInt(3); // Position.
                 out.writeVarInt(64);
@@ -217,7 +217,7 @@ describe('PlayerAuthInputPacket', () => {
         );
 
         const use = packet.itemUseTransaction!;
-        expect(use.data.actionType).toBe(UseItemAction.CLICK_BLOCK);
+        expect(use.data.actionType).toBe(ItemUseActionType.PLACE);
         expect(use.data.hand).toBe(HandSlot.OFFHAND);
         expect(use.data.hotbarSlot).toBe(4);
         expect(use.data.blockPosition.getZ()).toBe(-2);

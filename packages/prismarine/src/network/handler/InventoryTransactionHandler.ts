@@ -11,12 +11,12 @@ import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
 import {
-    ActionSource,
+    InventorySourceType,
     HandSlot,
-    ReleaseItemAction,
+    ItemReleaseActionType,
     TransactionType,
-    UseItemAction,
-    UseItemOnEntityAction
+    ItemUseActionType,
+    ItemUseOnActorActionType
 } from '../packet/InventoryTransactionPacket';
 import type PacketHandler from './PacketHandler';
 
@@ -49,7 +49,7 @@ const isFace = (face: number): boolean => Number.isInteger(face) && face >= 0 &&
  * Why a transaction cannot be acted on, or null when every value is one a client can send.
  *
  * The packet stores what is on the wire; this is where the values are held against the docs:
- * the type a {@link TransactionType}, every action's source an {@link ActionSource}, the
+ * the type a {@link TransactionType}, every action's source an {@link InventorySourceType}, the
  * body present for a type that has one and absent for one that does not, its action type a
  * member of the enum for that body, the hand a {@link HandSlot}, the hotbar slot inside the
  * hotbar, the face one of a block's six when a block is clicked, and every position finite.
@@ -62,7 +62,7 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
     if (!(type in TransactionType)) return `transaction type ${type} is not one the packet may carry`;
 
     for (const action of packet.inventoryActions) {
-        if (!(action.sourceType in ActionSource)) return `action source ${action.sourceType} does not exist`;
+        if (!(action.sourceType in InventorySourceType)) return `action source ${action.sourceType} does not exist`;
     }
 
     const data = packet.transactionData;
@@ -77,9 +77,9 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
         case 'useItem':
             if (type !== TransactionType.USE_ITEM)
                 return `a ${TransactionType[type]} transaction carries a use-item body`;
-            if (!(data.actionType in UseItemAction)) return `item use action ${data.actionType} does not exist`;
+            if (!(data.actionType in ItemUseActionType)) return `item use action ${data.actionType} does not exist`;
             if (!(data.hand in HandSlot)) return `hand ${data.hand} does not exist`;
-            if (data.actionType === UseItemAction.CLICK_BLOCK && !isFace(data.blockFace)) {
+            if (data.actionType === ItemUseActionType.PLACE && !isFace(data.blockFace)) {
                 return `face ${data.blockFace} is not one of a block's six`;
             }
             if (!isFiniteVector(data.playerPosition) || !isFiniteVector(data.clickPosition)) {
@@ -91,7 +91,7 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
             if (type !== TransactionType.USE_ITEM_ON_ENTITY) {
                 return `a ${TransactionType[type]} transaction carries a use-item-on-entity body`;
             }
-            if (!(data.actionType in UseItemOnEntityAction)) {
+            if (!(data.actionType in ItemUseOnActorActionType)) {
                 return `item use on entity action ${data.actionType} does not exist`;
             }
             if (!isFiniteVector(data.playerPosition) || !isFiniteVector(data.clickPosition)) {
@@ -102,7 +102,8 @@ export const rejectionReason = (packet: InventoryTransactionPacket): string | nu
         case 'releaseItem':
             if (type !== TransactionType.RELEASE_ITEM)
                 return `a ${TransactionType[type]} transaction carries a release body`;
-            if (!(data.actionType in ReleaseItemAction)) return `item release action ${data.actionType} does not exist`;
+            if (!(data.actionType in ItemReleaseActionType))
+                return `item release action ${data.actionType} does not exist`;
             if (!isFiniteVector(data.playerPosition)) return 'a position is not finite';
             return null;
     }
@@ -190,7 +191,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * client's From Item and To Item over what the server holds.
      */
     private handleNormal(packet: InventoryTransactionPacket, server: Server, player: Player): void {
-        const sources = packet.inventoryActions.map((action) => ActionSource[action.sourceType]).join(', ');
+        const sources = packet.inventoryActions.map((action) => InventorySourceType[action.sourceType]).join(', ');
         server
             .getLogger()
             .debug(
@@ -215,7 +216,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     private async handleUseItemOnEntity(data: UseItemOnEntityData, server: Server, player: Player): Promise<void> {
         // Interacting and using an item on something are not attacks (shearing a sheep, putting
         // a saddle on a pig) and are not handled yet.
-        if (data.actionType !== UseItemOnEntityAction.ATTACK) return;
+        if (data.actionType !== ItemUseOnActorActionType.ATTACK) return;
 
         const target = player.getWorld().getEntity(data.entityRuntimeId);
         if (!target) {
@@ -250,7 +251,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     /**
      * A held item let go of, which for a bow means the arrow leaves.
      *
-     * The charge is measured rather than sent; see the `CLICK_AIR` branch of
+     * The charge is measured rather than sent; see the `USE` branch of
      * {@link handleUseItem} for why. The docs' Use action, a crossbow finishing its charge, is
      * taken and does nothing, since crossbows are not implemented.
      *
@@ -262,7 +263,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     private async handleReleaseItem(data: ReleaseItemData, server: Server, player: Player): Promise<void> {
         const drawn = player.takeItemUseTicks(server.getTick());
 
-        if (data.actionType !== ReleaseItemAction.RELEASE) return;
+        if (data.actionType !== ItemReleaseActionType.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
         await loose(player, drawn);
@@ -280,20 +281,20 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         const world = player.getWorld();
 
         switch (data.actionType) {
-            case UseItemAction.CLICK_BLOCK:
-            case UseItemAction.BREAK_BLOCK: {
+            case ItemUseActionType.PLACE:
+            case ItemUseActionType.DESTROY: {
                 const distance = player.getPosition().distanceTo(data.blockPosition);
                 if (!Number.isFinite(distance) || distance > MAX_BLOCK_DISTANCE) {
                     server
                         .getLogger()
                         .verbose(
-                            `Dropped item use ${UseItemAction[data.actionType]} from ${player.getName()} on a block ${distance.toFixed(1)} away`,
+                            `Dropped item use ${ItemUseActionType[data.actionType]} from ${player.getName()} on a block ${distance.toFixed(1)} away`,
                             'InventoryTransactionHandler/handleUseItem'
                         );
                     return;
                 }
 
-                if (data.actionType === UseItemAction.CLICK_BLOCK) {
+                if (data.actionType === ItemUseActionType.PLACE) {
                     await world.useItemOn(
                         player.getInventory().getItemInHand(),
                         data.blockPosition,
@@ -311,7 +312,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 return;
             }
 
-            case UseItemAction.CLICK_AIR:
+            case ItemUseActionType.USE:
                 // Bedrock never says how long a bow was drawn for. It says "started" here and
                 // "released" in another transaction entirely, and the gap between the two is the
                 // charge. So the clock starts here.
@@ -325,7 +326,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
             // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
             // so there is nothing here to apply.
-            case UseItemAction.USE_AS_ATTACK:
+            case ItemUseActionType.USE_AS_ATTACK:
                 return;
         }
     }

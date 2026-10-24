@@ -5,15 +5,15 @@ import { assert, describe, expect, it } from 'vitest';
 import { Item } from '../../item/Item';
 import BlockPosition from '../../world/BlockPosition';
 import InventoryTransactionPacket, {
-    ActionSource,
+    InventorySourceType,
     HandSlot,
     InventoryAction,
     LegacySlotChange,
     MAX_INVENTORY_ACTIONS,
-    ReleaseItemAction,
+    ItemReleaseActionType,
     TransactionType,
-    UseItemAction,
-    UseItemOnEntityAction
+    ItemUseActionType,
+    ItemUseOnActorActionType
 } from './InventoryTransactionPacket';
 
 /**
@@ -64,7 +64,7 @@ describe('InventoryTransactionPacket', () => {
         const packet = decode(
             transaction(TransactionType.USE_ITEM, (out) => {
                 out.writeUnsignedVarInt(0); // No actions.
-                out.writeVarInt(UseItemAction.BREAK_BLOCK);
+                out.writeVarInt(ItemUseActionType.DESTROY);
                 out.writeByte(1); // Trigger: player input.
                 out.writeVarInt(10); // Block position, signed.
                 out.writeVarInt(-30);
@@ -88,7 +88,7 @@ describe('InventoryTransactionPacket', () => {
         const data = packet.transactionData;
         assert(data?.kind === 'useItem');
         expect(packet.transactionType).toBe(TransactionType.USE_ITEM);
-        expect(data.actionType).toBe(UseItemAction.BREAK_BLOCK);
+        expect(data.actionType).toBe(ItemUseActionType.DESTROY);
         expect(data.blockPosition.getY()).toBe(-30);
         expect(data.blockFace).toBe(4);
         expect(data.hand).toBe(HandSlot.MAINHAND);
@@ -102,7 +102,7 @@ describe('InventoryTransactionPacket', () => {
             transaction(TransactionType.NORMAL, (out) => {
                 out.writeUnsignedVarInt(2);
                 // From a container: a window id, no flags.
-                out.writeUnsignedVarInt(ActionSource.CONTAINER);
+                out.writeUnsignedVarInt(InventorySourceType.CONTAINER);
                 out.writeBoolean(true);
                 out.writeSignedByte(-1);
                 out.writeBoolean(false);
@@ -110,7 +110,7 @@ describe('InventoryTransactionPacket', () => {
                 Item.air().networkSerialize(out);
                 Item.air().networkSerialize(out);
                 // Into the world: flags, no window id.
-                out.writeUnsignedVarInt(ActionSource.WORLD);
+                out.writeUnsignedVarInt(InventorySourceType.WORLD);
                 out.writeBoolean(false);
                 out.writeBoolean(true);
                 out.writeUnsignedVarInt(0);
@@ -122,13 +122,13 @@ describe('InventoryTransactionPacket', () => {
 
         expect(packet.inventoryActions).toHaveLength(2);
         expect(packet.inventoryActions[0]).toMatchObject({
-            sourceType: ActionSource.CONTAINER,
+            sourceType: InventorySourceType.CONTAINER,
             windowId: -1,
             sourceFlags: null,
             targetSlot: 3
         });
         expect(packet.inventoryActions[1]).toMatchObject({
-            sourceType: ActionSource.WORLD,
+            sourceType: InventorySourceType.WORLD,
             windowId: null,
             sourceFlags: 0
         });
@@ -140,7 +140,7 @@ describe('InventoryTransactionPacket', () => {
             transaction(TransactionType.USE_ITEM_ON_ENTITY, (out) => {
                 out.writeUnsignedVarInt(0);
                 out.writeUnsignedVarLong(42n);
-                out.writeVarInt(UseItemOnEntityAction.ATTACK);
+                out.writeVarInt(ItemUseOnActorActionType.ATTACK);
                 out.writeVarInt(0);
                 Item.air().networkSerialize(out);
                 for (let i = 0; i < 6; i++) out.writeFloatLE(i);
@@ -150,7 +150,7 @@ describe('InventoryTransactionPacket', () => {
         const data = packet.transactionData;
         assert(data?.kind === 'useItemOnEntity');
         expect(data.entityRuntimeId).toBe(42n);
-        expect(data.actionType).toBe(UseItemOnEntityAction.ATTACK);
+        expect(data.actionType).toBe(ItemUseOnActorActionType.ATTACK);
         expect(data.clickPosition.getZ()).toBe(5);
         expect(packet.feof()).toBe(true);
     });
@@ -251,10 +251,10 @@ describe('InventoryTransactionPacket', () => {
         packet.legacyRequestId = 0;
         packet.legacySlotChanges = [];
         packet.transactionType = TransactionType.USE_ITEM;
-        packet.inventoryActions = [new InventoryAction(ActionSource.WORLD, null, 0, 0, Item.air(), Item.air())];
+        packet.inventoryActions = [new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), Item.air())];
         packet.transactionData = {
             kind: 'useItem',
-            actionType: UseItemAction.CLICK_BLOCK,
+            actionType: ItemUseActionType.PLACE,
             triggerType: 1,
             blockPosition: new BlockPosition(-1, -64, 1),
             blockFace: 1,
@@ -284,7 +284,7 @@ describe('InventoryTransactionPacket', () => {
     it('refuses an item use with bytes left over, rather than acting on a guess', () => {
         const buffer = transaction(TransactionType.USE_ITEM, (out) => {
             out.writeUnsignedVarInt(0);
-            out.writeVarInt(UseItemAction.BREAK_BLOCK);
+            out.writeVarInt(ItemUseActionType.DESTROY);
             out.writeByte(1);
             out.writeVarInt(0);
             out.writeVarInt(0);
@@ -331,7 +331,7 @@ describe('InventoryTransactionPacket', () => {
         assert(data?.kind === 'useItemOnEntity');
         expect(packet.transactionType).toBe(TransactionType.USE_ITEM_ON_ENTITY);
         expect(data.entityRuntimeId).toBe(42n);
-        expect(data.actionType).toBe(UseItemOnEntityAction.ATTACK);
+        expect(data.actionType).toBe(ItemUseOnActorActionType.ATTACK);
         expect(data.hotbarSlot).toBe(4);
         expect(data.itemInHand.getName()).toBe('minecraft:air');
         expect(data.playerPosition).toEqual(new Vector3(1, 64, -2));
@@ -347,7 +347,7 @@ describe('InventoryTransactionPacket', () => {
         packet.inventoryActions = [];
         packet.transactionData = {
             kind: 'releaseItem',
-            actionType: ReleaseItemAction.USE,
+            actionType: ItemReleaseActionType.USE,
             hotbarSlot: 3,
             itemInHand: Item.air(),
             playerPosition: new Vector3(0.5, 70, -0.5)

@@ -6,16 +6,15 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
-/**
- * The docs' `ItemUseActionType`: what the client did with the item in hand.
- *
- * The member names are ours. The docs call them Place, Use, Destroy and Use As Attack.
- */
-export enum UseItemAction {
-    CLICK_BLOCK,
-    CLICK_AIR,
-    BREAK_BLOCK,
-    /** A swing with the item at nothing in particular. The docs' "Use As Attack". */
+/** The docs' `ItemUseActionType`: what the client did with the item in hand. */
+export enum ItemUseActionType {
+    /** Clicked a block with the item. */
+    PLACE,
+    /** Clicked the air with the item. */
+    USE,
+    /** Broke a block. */
+    DESTROY,
+    /** A swing with the item at nothing in particular. */
     USE_AS_ATTACK = 3
 }
 
@@ -26,7 +25,7 @@ export enum UseItemAction {
  * dismounting and opening a villager's trades. Everything that comes out of swinging at
  * something comes through this transaction.
  */
-export enum UseItemOnEntityAction {
+export enum ItemUseOnActorActionType {
     /** Right-clicked it: shearing, saddling, trading, leading. */
     INTERACT,
     /** Hit it. */
@@ -38,7 +37,7 @@ export enum UseItemOnEntityAction {
 /**
  * The docs' `ItemReleaseActionType`: why a held item was let go of.
  */
-export enum ReleaseItemAction {
+export enum ItemReleaseActionType {
     /** The docs' Release: a bow fired, or a held item let go of. */
     RELEASE,
     /** The docs' Use: a crossbow finished charging. */
@@ -110,7 +109,7 @@ export class LegacySlotChange {
  * client sends that is not one of these stays on the action as the number it was, and the
  * handler drops the transaction.
  */
-export enum ActionSource {
+export enum InventorySourceType {
     /** Container Inventory. */
     CONTAINER,
     /** Global Inventory. */
@@ -139,7 +138,7 @@ export enum ActionSource {
  */
 export class InventoryAction {
     public constructor(
-        /** The docs' Source Type, as read. An {@link ActionSource} when the client sent a known one. */
+        /** The docs' Source Type, as read. An {@link InventorySourceType} when the client sent a known one. */
         public sourceType: number,
         public windowId: number | null,
         public sourceFlags: number | null,

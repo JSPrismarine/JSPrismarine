@@ -19,13 +19,13 @@ import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
 import InventoryTransactionPacket, {
-    ActionSource,
+    InventorySourceType,
     HandSlot,
     InventoryAction,
-    ReleaseItemAction,
+    ItemReleaseActionType,
     TransactionType,
-    UseItemAction,
-    UseItemOnEntityAction
+    ItemUseActionType,
+    ItemUseOnActorActionType
 } from '../packet/InventoryTransactionPacket';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
 
@@ -121,7 +121,7 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 /** A click on the top of the block under the player's feet, from slot 2. */
 const useItem = (overrides: Partial<UseItemData> = {}): UseItemData => ({
     kind: 'useItem',
-    actionType: UseItemAction.CLICK_BLOCK,
+    actionType: ItemUseActionType.PLACE,
     triggerType: 1,
     blockPosition: new BlockPosition(0, 62, 0),
     blockFace: 1,
@@ -140,7 +140,7 @@ const useItem = (overrides: Partial<UseItemData> = {}): UseItemData => ({
 const useItemOnEntity = (overrides: Partial<UseItemOnEntityData> = {}): UseItemOnEntityData => ({
     kind: 'useItemOnEntity',
     entityRuntimeId: 42n,
-    actionType: UseItemOnEntityAction.ATTACK,
+    actionType: ItemUseOnActorActionType.ATTACK,
     hotbarSlot: 2,
     itemInHand: Item.air(),
     playerPosition: new Vector3(0, 64, 0),
@@ -150,7 +150,7 @@ const useItemOnEntity = (overrides: Partial<UseItemOnEntityData> = {}): UseItemO
 
 const releaseItem = (overrides: Partial<ReleaseItemData> = {}): ReleaseItemData => ({
     kind: 'releaseItem',
-    actionType: ReleaseItemAction.RELEASE,
+    actionType: ItemReleaseActionType.RELEASE,
     hotbarSlot: 2,
     itemInHand: Item.air(),
     playerPosition: new Vector3(0, 64, 0),
@@ -197,7 +197,9 @@ describe('InventoryTransactionHandler', () => {
                 'action source 4 does not exist'
             );
             expect(
-                rejectionReason(transaction(TransactionType.NORMAL, null, [action(ActionSource.NON_IMPLEMENTED_TODO)]))
+                rejectionReason(
+                    transaction(TransactionType.NORMAL, null, [action(InventorySourceType.NON_IMPLEMENTED_TODO)])
+                )
             ).toBeNull();
         });
 
@@ -222,7 +224,7 @@ describe('InventoryTransactionHandler', () => {
             expect(use({ actionType: 4 })).toBe('item use action 4 does not exist');
             expect(use({ hand: 2 })).toBe('hand 2 does not exist');
             expect(use({ blockFace: 6 })).toBe("face 6 is not one of a block's six");
-            expect(use({ blockFace: 255, actionType: UseItemAction.BREAK_BLOCK })).toBeNull();
+            expect(use({ blockFace: 255, actionType: ItemUseActionType.DESTROY })).toBeNull();
             expect(use({ clickPosition: new Vector3(Number.NaN, 0, 0) })).toBe('a position is not finite');
 
             expect(
@@ -272,7 +274,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(
             transaction(
                 TransactionType.USE_ITEM,
-                useItem({ blockPosition: far, actionType: UseItemAction.BREAK_BLOCK })
+                useItem({ blockPosition: far, actionType: ItemUseActionType.DESTROY })
             ),
             world
         );
@@ -280,8 +282,8 @@ describe('InventoryTransactionHandler', () => {
         expect(world.placed).toEqual([]);
         expect(world.broken).toEqual([]);
         expect(world.logged).toEqual([
-            'verbose: Dropped item use CLICK_BLOCK from tester on a block 8.0 away',
-            'verbose: Dropped item use BREAK_BLOCK from tester on a block 8.0 away'
+            'verbose: Dropped item use PLACE from tester on a block 8.0 away',
+            'verbose: Dropped item use DESTROY from tester on a block 8.0 away'
         ]);
     });
 
@@ -300,7 +302,7 @@ describe('InventoryTransactionHandler', () => {
         const world = fake();
 
         await handle(
-            transaction(TransactionType.USE_ITEM, useItem({ actionType: UseItemAction.BREAK_BLOCK, blockFace: 255 })),
+            transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.DESTROY, blockFace: 255 })),
             world
         );
 
@@ -310,7 +312,7 @@ describe('InventoryTransactionHandler', () => {
     it('starts the bow clock on a click at nothing, and only for a bow', async () => {
         const withBow = fake(Gametype.SURVIVAL, new Item({ id: 2, name: 'minecraft:bow' }));
         const withStone = fake();
-        const clickAir = () => transaction(TransactionType.USE_ITEM, useItem({ actionType: UseItemAction.CLICK_AIR }));
+        const clickAir = () => transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE }));
 
         await handle(clickAir(), withBow);
         await handle(clickAir(), withStone);
@@ -350,7 +352,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(
             transaction(
                 TransactionType.USE_ITEM_ON_ENTITY,
-                useItemOnEntity({ actionType: UseItemOnEntityAction.INTERACT })
+                useItemOnEntity({ actionType: ItemUseOnActorActionType.INTERACT })
             ),
             world
         );
@@ -386,8 +388,8 @@ describe('InventoryTransactionHandler', () => {
     it('logs a Normal transaction and applies none of its actions', async () => {
         const world = fake();
         const actions = [
-            new InventoryAction(ActionSource.CONTAINER, 0, null, 2, Item.air(), Item.air()),
-            new InventoryAction(ActionSource.WORLD, null, 0, 0, Item.air(), Item.air())
+            new InventoryAction(InventorySourceType.CONTAINER, 0, null, 2, Item.air(), Item.air()),
+            new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), Item.air())
         ];
 
         await handle(transaction(TransactionType.NORMAL, null, actions), world);
