@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import Player from '../../Player';
 import type Server from '../../Server';
 import UUID from '../../utils/UUID';
@@ -37,7 +38,12 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
     }
 
     /**
-     * Turns a login into a player, or refuses it with the matching `PlayStatus`.
+     * Turns a login into a player, or refuses it.
+     *
+     * A version mismatch and a full server are answered with the matching `PlayStatus`, which
+     * is what the client renders as "outdated client", "outdated server" and "server full".
+     * Everything else is a `Disconnect` whose `DisconnectReason` names the cause on the
+     * client's disconnect screen, with the message shown.
      *
      * Known gap: the server never sends `ServerToClientHandshake`, so sessions stay in
      * plaintext. A client accepts that when no handshake arrives.
@@ -66,7 +72,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // Kick the player if their username is invalid
         if (!packet.displayName) {
             LoginHandler.reportRefusal(packet, server, 'no username');
-            await connection.disconnect('Invalid username!', false);
+            await connection.disconnect('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
 
@@ -75,7 +81,7 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // into the player list under an id nothing on the other side could match.
         if (!packet.identity) {
             LoginHandler.reportRefusal(packet, server, 'no identity');
-            await connection.disconnect('Invalid identity!', false);
+            await connection.disconnect('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             return;
         }
 
@@ -102,19 +108,23 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         await server
             .getSessionManager()
             .findPlayer({ name: packet.displayName, xuid: packet.XUID })
-            ?.kick('Logged in from another location');
+            ?.kick('Logged in from another location', DisconnectReason.LOGGED_IN_OTHER_LOCATION);
 
         // Rejected through the connection, not through the player: this one has no session
         // yet and has joined nothing, so `kick` had nothing to send the reason on and
         // `disable` would have announced a departure for somebody who never arrived.
         if (!player.xuid && server.getConfig().getOnlineMode()) {
-            await connection.disconnect('Server is in online-mode!', false);
+            await connection.disconnect('Server is in online-mode!', false, DisconnectReason.NOT_AUTHENTICATED);
             return;
         }
 
         const reason = server.getBanManager().isBanned(player);
         if (reason !== false) {
-            await connection.disconnect(`You have been banned${reason ? ` for reason: ${reason}` : ''}!`, false);
+            await connection.disconnect(
+                `You have been banned${reason ? ` for reason: ${reason}` : ''}!`,
+                false,
+                DisconnectReason.NOT_ALLOWED
+            );
             return;
         }
 

@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { assert, describe, expect, it, vi } from 'vitest';
@@ -171,33 +172,72 @@ describe('network', () => {
                 ]);
             });
 
-            it('handle with banned without reason', async () => {
+            /** A login the server lets past the identity checks and then refuses for who it is. */
+            const refused = async (overrides: Partial<Server>, pk: LoginPacket) => {
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({
+                    getRakNetSession: () =>
+                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    disconnect,
+                    attachPlayerSession: vi.fn()
+                });
+
+                await new LoginHandler().handle(pk, stub<Server>({ ...server, ...overrides }), rejected);
+
+                expect(rejected.attachPlayerSession).not.toHaveBeenCalled();
+                return disconnect;
+            };
+
+            const login = () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
                 pk.identity = IDENTITY;
                 pk.protocol = Identifiers.Protocol;
+                return pk;
+            };
 
-                const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+            it('refuses a banned player with NOT_ALLOWED and no reason', async () => {
+                const banned = { getBanManager: () => stub<BanManager>({ isBanned: () => '' }) };
+
+                const disconnect = await refused(banned, login());
+
+                expect(disconnect).toHaveBeenCalledWith('You have been banned!', false, DisconnectReason.NOT_ALLOWED);
             });
 
-            it('handle with banned with reason', async () => {
-                const pk = new LoginPacket();
-                pk.displayName = 'runner';
-                pk.identity = IDENTITY;
-                pk.protocol = Identifiers.Protocol;
+            it('refuses a banned player with NOT_ALLOWED and the reason', async () => {
+                const banned = { getBanManager: () => stub<BanManager>({ isBanned: () => 'griefing' }) };
 
-                const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+                const disconnect = await refused(banned, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'You have been banned for reason: griefing!',
+                    false,
+                    DisconnectReason.NOT_ALLOWED
+                );
             });
 
-            it('handle invalid username', async () => {
+            it('refuses a login with no XUID on a server in online mode with NOT_AUTHENTICATED', async () => {
+                const online = { getConfig: () => stub<Config>({ ...config(), getOnlineMode: () => true }) };
+
+                const disconnect = await refused(online, login());
+
+                expect(disconnect).toHaveBeenCalledWith(
+                    'Server is in online-mode!',
+                    false,
+                    DisconnectReason.NOT_AUTHENTICATED
+                );
+            });
+
+            it('refuses a login carrying no username', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol;
 
-                const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({ disconnect });
+                await new LoginHandler().handle(pk, server, rejected);
+
+                expect(disconnect).toHaveBeenCalledWith('Invalid username!', false, DisconnectReason.INVALID_PLAYER);
             });
 
             it('refuses a login carrying no identity', async () => {
@@ -211,16 +251,22 @@ describe('network', () => {
                 const rejected = stub<ClientConnection>({ disconnect });
                 await new LoginHandler().handle(pk, server, rejected);
 
-                expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false);
+                expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             });
 
-            it('handle outdated client', async () => {
+            /** The status the client renders as "outdated client". Nothing else is read from the packet. */
+            it('answers an older client with LoginFailed_ClientOld', async () => {
                 const pk = new LoginPacket();
-                pk.displayName = '';
                 pk.protocol = Identifiers.Protocol - 10;
 
-                const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+                const sent: DataPacket[] = [];
+                const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+                await new LoginHandler().handle(pk, server, connection);
+
+                const [status] = sent;
+                assert(status instanceof PlayStatusPacket);
+                expect(status.status).toBe(PlayStatusType.LoginFailedClient);
+                expect(sent).toHaveLength(1);
             });
 
             it('refuses a login once the server is full', async () => {
@@ -253,15 +299,19 @@ describe('network', () => {
                 expect(connection.attachPlayerSession).not.toHaveBeenCalled();
             });
 
-            it('handle outdated server', async () => {
+            /** The status the client renders as "outdated server". */
+            it('answers a newer client with LoginFailed_ServerOld', async () => {
                 const pk = new LoginPacket();
-                pk.displayName = '';
                 pk.protocol = Identifiers.Protocol + 10;
 
-                const connection = stub<ClientConnection>({ sendDataPacket: async () => {} });
+                const sent: DataPacket[] = [];
+                const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+                await new LoginHandler().handle(pk, server, connection);
 
-                const handler = new LoginHandler();
-                await handler.handle(pk, server, connection);
+                const [status] = sent;
+                assert(status instanceof PlayStatusPacket);
+                expect(status.status).toBe(PlayStatusType.LoginFailedServer);
+                expect(sent).toHaveLength(1);
             });
         });
     });

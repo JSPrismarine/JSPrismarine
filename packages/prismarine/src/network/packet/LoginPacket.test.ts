@@ -54,11 +54,11 @@ const clientData = (overrides: Record<string, unknown> = {}) =>
  * A login as it arrives, built by hand in the docs' order: the packet id, `Client Network
  * Version` as a big endian int32, then `Connection Request` as a varuint length over the two
  * little endian length prefixed strings. `trailing` goes inside the request, after the client
- * data, where a well formed request has nothing.
+ * data, where a well formed request has nothing. `protocol` is the version the client claims.
  */
-const bytes = (chain: unknown, data: string, trailing = Buffer.alloc(0)) => {
+const bytes = (chain: unknown, data: string, trailing = Buffer.alloc(0), protocol = Identifiers.Protocol) => {
     const stream = new BinaryStream();
-    stream.writeInt(Identifiers.Protocol);
+    stream.writeInt(protocol);
 
     const body = new BinaryStream();
     NetworkUtil.writeLELengthASCIIString(body, JSON.stringify(chain));
@@ -232,6 +232,24 @@ describe('network', () => {
                 const truncated = bytes(selfSigned(), clientData());
 
                 expect(() => decode(truncated.subarray(0, truncated.byteLength - 1))).toThrow();
+            });
+
+            /**
+             * A client of another version is refused on the version alone, so nothing past the
+             * framing is read. Its chain and client data need not have this shape, and a decode
+             * error would drop the packet before the handler could send the `PlayStatus` that
+             * tells the player to update.
+             */
+            it('reads only the version and framing from a client of another protocol', () => {
+                const older = bytes('not an envelope', 'not a jwt', Buffer.alloc(0), Identifiers.Protocol - 10);
+
+                const packet = decode(older);
+
+                expect(packet.protocol).toBe(Identifiers.Protocol - 10);
+                expect(packet.chainData).toBe('"not an envelope"');
+                expect(packet.clientData).toBe('not a jwt');
+                expect(packet.displayName).toBeUndefined();
+                expect(packet.feof()).toBe(true);
             });
 
             it('encodes a decoded login back to the same bytes', () => {

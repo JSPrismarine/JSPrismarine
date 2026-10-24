@@ -119,6 +119,10 @@ const identityFromXUID = (xuid: string): string => {
  * the chain holds one empty link and the identity is in the token's `xid`, `xname`, `cpk` and
  * `leguuid` claims. Decoding reads both shapes.
  *
+ * Decoding reads the claims only when `Client Network Version` is this server's protocol.
+ * For any other version it stops after the framing, leaving the identity, skin and device
+ * fields unset, so that the handler can refuse the login with the matching `PlayStatus`.
+ *
  * Encoding writes `chainData` and `clientData` back as they arrived, so a decoded packet
  * reproduces its own bytes.
  */
@@ -169,6 +173,14 @@ export default class LoginPacket extends DataPacket {
             const unread = request.readRemaining().byteLength;
             throw new Error(`The connection request has ${unread} unread bytes after the client data`);
         }
+
+        // Nothing past the framing is read for a client of another protocol. The handler
+        // refuses it on the version alone, and the chain and client data of another version
+        // need not have this shape: parsing them here would throw, and a decode error drops
+        // the packet before the handler can send the `PlayStatus` that tells the player to
+        // update. The docs mark the version big endian for this reason, so that any server
+        // can read it and answer.
+        if (this.protocol !== Identifiers.Protocol) return;
 
         const envelope = parseJSON<ConnectionRequest>(this.chainData);
         this.authenticationType = envelope.AuthenticationType ?? 0;
