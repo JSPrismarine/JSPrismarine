@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import Chunk from './Chunk';
+import SubChunk from './SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../Dimension';
 
 const stone = () => BlockRuntimeIds.getByName('minecraft:stone');
@@ -113,6 +114,20 @@ describe('world', () => {
                 Chunk.networkDeserialize(stream, 0, 0, 1, dimension);
                 expect(payload.byteLength - stream.getReadIndex()).toBe(sections * 2 + 1);
             }
+        });
+
+        it('reads a version 9 sub chunk past its index byte', () => {
+            // Version 9, no layers, index -4 as a signed byte, then a version 8 record with one
+            // layer of air. The index byte used to be taken for the first layer's header.
+            const stream = new BinaryStream(Buffer.from([9, 0, 0xfc, 8, 0]));
+
+            const first = SubChunk.networkDeserialize(stream);
+            expect(first.sourceVersion).toBe(9);
+            expect(first.isEmpty()).toBe(true);
+            expect(stream.getReadIndex()).toBe(3);
+
+            expect(SubChunk.networkDeserialize(stream).sourceVersion).toBe(8);
+            expect(stream.feof()).toBe(true);
         });
 
         it('caches the payload until a block changes', () => {

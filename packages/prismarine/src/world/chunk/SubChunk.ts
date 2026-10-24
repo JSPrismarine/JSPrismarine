@@ -5,7 +5,7 @@ import BlockStorage from './BlockStorage';
 
 /**
  * 1 is the original single-layer form, 8 adds a layer count, 9 adds the sub chunk's own index.
- * Only 8 travels on the wire; the other two exist on disk.
+ * The server writes 8 on the wire and 9 on disk, and reads all three from either.
  */
 export type SubChunkVersion = 1 | 8 | 9;
 
@@ -124,7 +124,13 @@ export default class SubChunk {
         }
 
         subChunk.sourceVersion = version;
-        const layerCount = stream.readByte();
+        const layerCount = version === 1 ? 1 : stream.readByte();
+
+        // Version 9 names its own sub chunk y as a signed byte after the layer count. A sender
+        // writes the column in order from the floor, so the position already says which sub
+        // chunk this is; the byte is consumed so the layers that follow are read from the right
+        // place, which they were not before.
+        if (version === 9) stream.readSignedByte();
 
         for (let i = 0; i < layerCount; i++) {
             subChunk.storages.set(i, BlockStorage.networkDeserialize(stream));
