@@ -1,6 +1,13 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
 import TextType from '../network/type/TextType';
 
+/**
+ * How a chat is shown. The values are the `TextType` numbers the client reads.
+ *
+ * `RAW` is a line the server has already formatted. `CHAT` is a player's own message: the
+ * client draws `<name>` in front of it from the author the packet names, and offers to mute
+ * or report that author by XUID.
+ */
 export enum ChatType {
     RAW = 0,
     CHAT = 1,
@@ -20,6 +27,12 @@ export const CHAT_TEXT_TYPE: Record<ChatType, TextType> = {
     [ChatType.ANNOUNCEMENT]: TextType.Announcement
 };
 
+/**
+ * One message on its way to the players and the console.
+ *
+ * The type defaults to `RAW`, a line sent as written. Pass `CHAT` for a message a player
+ * typed: the sender is then its author on the client, so the message itself carries no name.
+ */
 export class Chat {
     private readonly channel: string;
     private readonly sender: CommandExecutor;
@@ -49,7 +62,7 @@ export class Chat {
         this.needsTranslation = needsTranslation ?? false;
         this.parameters = parameters ?? [];
         this.sender = sender;
-        this.type = type ?? ChatType.CHAT;
+        this.type = type ?? ChatType.RAW;
     }
 
     public getChannel(): string {

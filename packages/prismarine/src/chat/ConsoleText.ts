@@ -72,13 +72,18 @@ export const translateForConsole = (key: string, parameters: readonly string[]):
 /**
  * The line the console should print for a chat.
  *
- * Translated chats are rendered through {@link translateForConsole}; everything else is the
- * message as written, color codes included. The chat itself is not changed, so players still
- * receive the key and parameters and translate them client-side.
+ * Translated chats are rendered through {@link translateForConsole}. A player's chat gets
+ * `<name>` in front of it, as the client draws it from the packet's author. Everything else
+ * is the message as written, color codes included. The chat itself is not changed, so players
+ * still receive the key and parameters and translate them client-side.
  */
 export const consoleTextOf = (chat: Chat): string => {
     if (chat.getType() === ChatType.TRANSLATION || chat.isNeedsTranslation()) {
         return translateForConsole(chat.getMessage(), chat.getParameters());
+    }
+
+    if (chat.getType() === ChatType.CHAT) {
+        return `<${chat.getSender().getName()}> ${chat.getMessage()}`;
     }
 
     return chat.getMessage();

@@ -53,6 +53,13 @@ describe('ConsoleText', () => {
             expect(consoleTextOf(chat)).toBe('§a<filfat>§r hello %s');
         });
 
+        it("puts the author in front of a player's chat, as the client does", () => {
+            const player = stub<CommandExecutor>({ getName: () => 'filfat' });
+            const chat = new Chat({ sender: player, message: 'hello', type: ChatType.CHAT });
+
+            expect(consoleTextOf(chat)).toBe('<filfat> hello');
+        });
+
         it('has English for every death message the server can send', () => {
             const victim = entity('Steve', 'minecraft:player');
             const killers = [null, entity('Alex', 'minecraft:player'), entity('', 'minecraft:zombie')];

@@ -1,5 +1,6 @@
-import { Chat } from '../../chat/Chat';
+import { Chat, ChatType } from '../../chat/Chat';
 import Identifiers from '../Identifiers';
+import TextType from '../type/TextType';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
@@ -20,10 +21,9 @@ const FIRST_PRINTABLE = 0x20;
 /**
  * Whether a character is one a chat box could have produced.
  *
- * The message is relayed with nothing but the sender's name in front of it, so a newline or
- * a lone section sign lets a player draw a second line that looks like somebody else said
- * it. The rest of the C0 controls and the delete character go with them: nothing typed into
- * a chat box produces one.
+ * The message is relayed under the sender's name, so a newline or a lone section sign lets a
+ * player draw a second line that looks like somebody else said it. The rest of the C0
+ * controls and the delete character go with them: nothing typed into a chat box produces one.
  */
 const isTypeable = (character: string): boolean => {
     const code = character.codePointAt(0) ?? 0;
@@ -31,7 +31,13 @@ const isTypeable = (character: string): boolean => {
     return code >= FIRST_PRINTABLE && code !== DELETE && character !== '§';
 };
 
-/** Relays what a player typed to the chat manager. */
+/**
+ * Relays what a player typed to the chat manager.
+ *
+ * A client only ever sends `Chat`; the other eleven types are the server's to send, so a
+ * packet carrying one of them is dropped. The author, XUID and platform id the packet names
+ * are ignored as well: the relay takes all three from the server's record of the sender.
+ */
 export default class TextHandler implements PacketHandler<TextPacket> {
     public static NetID = Identifiers.TextPacket;
 
@@ -44,6 +50,16 @@ export default class TextHandler implements PacketHandler<TextPacket> {
     public async handle(packet: TextPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
 
+        if (packet.type !== TextType.Chat) {
+            server
+                .getLogger()
+                .verbose(
+                    `Dropped a text of type ${TextType[packet.type] ?? packet.type} from ${player.getName()}: a client only sends Chat`,
+                    'TextHandler/handle'
+                );
+            return;
+        }
+
         const message = [...packet.message.replace(FORMATTING_CODE, '')]
             .filter(isTypeable)
             .join('')
@@ -51,7 +67,7 @@ export default class TextHandler implements PacketHandler<TextPacket> {
             .slice(0, MAX_MESSAGE_LENGTH);
         if (message.length === 0) return;
 
-        const chat = new Chat({ sender: player, message: `${player.getFormattedUsername()} ${message}` });
+        const chat = new Chat({ sender: player, message, type: ChatType.CHAT });
         await server.getChatManager().send(chat);
     }
 }
