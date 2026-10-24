@@ -2,6 +2,7 @@ export * from './brarchive';
 export * from './diagnostics';
 export * from './filters';
 export * from './formatVersion';
+export * from './javaRegistries';
 export * from './lenientJson';
 export * from './load';
 export * from './manifest';

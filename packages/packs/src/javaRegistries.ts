@@ -1,0 +1,81 @@
+/**
+ * The registries a Java datapack fills and how a file routes into them. The
+ * folder under `data/<namespace>/` picks the registry, using the 26.3 singular
+ * directory names, and the identifier is the namespaced id derived from the
+ * path: `data/minecraft/loot_table/blocks/stone.json` is
+ * `minecraft:blocks/stone` in `lootTablesJava`.
+ */
+
+/** The Java-sourced registries a loaded datapack fills. */
+export const JAVA_REGISTRY_IDS = [
+    'lootTablesJava',
+    'recipesJava',
+    'advancements',
+    'tags',
+    'enchantments',
+    'damageTypes',
+    'predicates',
+    'itemModifiers'
+] as const;
+
+/** One Java-sourced registry. */
+export type JavaRegistryId = (typeof JAVA_REGISTRY_IDS)[number];
+
+/** The 26.3 directory under `data/<namespace>/` for each registry. */
+const DIRECTORIES: Record<string, Exclude<JavaRegistryId, 'tags'>> = {
+    loot_table: 'lootTablesJava',
+    recipe: 'recipesJava',
+    advancement: 'advancements',
+    enchantment: 'enchantments',
+    damage_type: 'damageTypes',
+    predicate: 'predicates',
+    item_modifier: 'itemModifiers'
+};
+
+/** Tag registry roots under `tags/` that span two path segments, such as `worldgen/biome`. */
+const TWO_SEGMENT_TAG_ROOTS = ['worldgen'];
+
+const NAMESPACE_PATTERN = /^[a-z0-9_.-]+$/;
+const PATH_PATTERN = /^[a-z0-9_./-]+$/;
+
+/** Where one datapack file routes: its registry and the id it registers under. */
+export interface JavaRoute {
+    registry: JavaRegistryId;
+    /**
+     * The namespaced id. Tag ids carry the tagged registry as a prefix, such
+     * as `block/minecraft:mineable/axe`, because one datapack tags many
+     * registries and ids repeat across them.
+     */
+    identifier: string;
+    /** The registry a tag file tags, such as `block` or `worldgen/biome`. Only set for tags. */
+    taggedRegistry?: string;
+}
+
+/**
+ * Routes a pack-relative path to its registry and identifier. Paths outside
+ * `data/`, non-JSON files, registries this loader does not consume, and the
+ * built-in packs nested under `data/<namespace>/datapacks/` return undefined.
+ */
+export const routeDatapackPath = (path: string): JavaRoute | undefined => {
+    if (!path.endsWith('.json') || !path.startsWith('data/')) return undefined;
+
+    const segments = path.slice('data/'.length, -'.json'.length).split('/');
+    const [namespace, folder, ...rest] = segments;
+    if (!namespace || !folder || rest.length === 0) return undefined;
+    if (!NAMESPACE_PATTERN.test(namespace)) return undefined;
+
+    if (folder === 'tags') {
+        const registrySegments = TWO_SEGMENT_TAG_ROOTS.includes(rest[0]!) ? 2 : 1;
+        const taggedRegistry = rest.slice(0, registrySegments).join('/');
+        const tagPath = rest.slice(registrySegments).join('/');
+        if (tagPath.length === 0 || !PATH_PATTERN.test(tagPath)) return undefined;
+        return { registry: 'tags', identifier: `${taggedRegistry}/${namespace}:${tagPath}`, taggedRegistry };
+    }
+
+    const registry = DIRECTORIES[folder];
+    if (!registry) return undefined;
+
+    const idPath = rest.join('/');
+    if (!PATH_PATTERN.test(idPath)) return undefined;
+    return { registry, identifier: `${namespace}:${idPath}` };
+};
