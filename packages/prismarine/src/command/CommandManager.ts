@@ -14,9 +14,11 @@ import { Chat } from '../chat/Chat';
 // module and the binding is not a constructor yet by the time `instanceof` runs.
 import Player from '../Player';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
+import { CommandEnum } from '../network/type/CommandEnum';
+import CommandParameter, { CommandParameterFlags } from '../network/type/CommandParameter';
 import Timer from '../utils/Timer';
 import type { CommandArgumentType } from './CommandArguments';
-import { isCommandArgument } from './CommandArguments';
+import { CommandArgument, isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import * as Commands from './Commands';
@@ -33,10 +35,29 @@ export type CommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandExec
  */
 export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
 
-/** An argument and whatever may follow it, as read off the command tree. */
-interface ArgumentTree {
-    item: CommandArgumentType;
-    children: ArgumentTree[];
+/** A literal encoded as a one-value hard enum for the Bedrock command packet. */
+class LiteralCommandArgument extends CommandArgument {
+    public constructor(private readonly literal: string) {
+        super();
+    }
+
+    public override getReadableType(): string {
+        return this.literal;
+    }
+
+    public override getParameters(): Set<CommandParameter> {
+        const literalEnum = new CommandEnum();
+        literalEnum.name = `Literal:${this.literal}`;
+        literalEnum.values = [this.literal];
+
+        return new Set([
+            new CommandParameter({
+                paramName: this.literal,
+                enum: literalEnum,
+                flags: CommandParameterFlags.FORCE_COLLAPSE_ENUM
+            })
+        ]);
+    }
 }
 
 export class CommandManager implements Service {
@@ -147,27 +168,28 @@ export class CommandManager implements Service {
      * This is EXCLUDING legacy commands.
      */
     public getCommandsList(): CommandListEntry[] {
-        const parseNode = (node: CommandTreeNode): ArgumentTree[] => {
-            // A nested literal has no argument type to list. The client is not told about it.
-            if (!(node instanceof ArgumentCommandNode)) return [];
+        const argumentFor = (node: CommandTreeNode): CommandArgumentType =>
+            node instanceof ArgumentCommandNode ? node.getType() : new LiteralCommandArgument(node.getName());
 
-            const item: CommandArgumentType = node.getType();
-            if (node.getChildrenCount() <= 0) return [{ item, children: [] }];
-
-            const subtrees = Array.from(node.getChildren()).map(parseNode).reverse();
-            const own: ArgumentTree[] = node.getCommand() ? [{ item, children: [] }] : [];
-
-            return [...own, ...subtrees.map((children) => ({ item, children }))];
-        };
-
-        const traverse = (
-            tree: ArgumentTree,
-            path: CommandArgumentType[] = [],
-            result: CommandArgumentType[][] = []
+        const flatten = (
+            node: CommandTreeNode,
+            path: CommandArgumentType[],
+            ancestors: ReadonlySet<CommandTreeNode>
         ): CommandArgumentType[][] => {
-            if (!tree.children.length) result.push([...path, tree.item]);
-            for (const child of tree.children) traverse(child, [...path, tree.item], result);
-            return result;
+            if (ancestors.has(node)) return [];
+
+            const nodePath = [...path, argumentFor(node)];
+            const descendants = new Set(Array.from(node.getChildren()));
+            const redirect = node.getRedirect();
+            if (redirect) {
+                for (const child of redirect.getChildren()) descendants.add(child);
+            }
+
+            const nextAncestors = new Set(ancestors).add(node);
+            const overloads = node.getCommand() ? [nodePath] : [];
+            for (const child of descendants) overloads.push(...flatten(child, nodePath, nextAncestors));
+
+            return overloads;
         };
 
         const res = Array.from(this.dispatcher.getRoot().getChildren()).map((command): CommandListEntry => {
@@ -175,8 +197,13 @@ export class CommandManager implements Service {
             // per top-level argument node, so `/tp` reached the client four times over and the
             // client, which keys commands by name, kept whichever copy it read last.
             const overloads: CommandArgumentType[][] = command.getCommand() ? [[]] : [];
-            for (const node of command.getChildren()) {
-                for (const branch of parseNode(node)) overloads.push(...traverse(branch));
+            const descendants = new Set(Array.from(command.getChildren()));
+            const redirect = command.getRedirect();
+            if (redirect) {
+                for (const child of redirect.getChildren()) descendants.add(child);
+            }
+            for (const node of descendants) {
+                overloads.push(...flatten(node, [], new Set([command])));
             }
 
             return [command.getName(), command, overloads];
