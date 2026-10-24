@@ -30,6 +30,7 @@ const LEVEL_COLOR: Record<LogLevel, string> = {
  */
 export class Logger {
     private readonly level: LogLevel;
+    private readonly consoleTransport = new PrismarineTransport();
     private readonly transports: LogTransport[];
     private readonly lineListeners: Array<(line: string) => void> = [];
     private closed = false;
@@ -42,7 +43,7 @@ export class Logger {
      */
     public constructor(level: LogLevel = 'info', transports: LogTransport[] = []) {
         this.level = level;
-        this.transports = [new PrismarineTransport(), ...transports];
+        this.transports = [this.consoleTransport, ...transports];
     }
 
     /**
@@ -79,7 +80,7 @@ export class Logger {
      */
     public setConsole(console?: ConsoleLike): void {
         if (!console) return;
-        (this.transports[0] as PrismarineTransport).console = console;
+        this.consoleTransport.console = console;
     }
 
     private isLevelEnabled(level: LogLevel): boolean {
@@ -115,7 +116,7 @@ export class Logger {
      * @internal
      */
     private getNamespace = () => {
-        const stack = (new Error().stack as string).replaceAll('\\', '/');
+        const stack = new Error().stack?.replaceAll('\\', '/');
         if (!stack) return '';
 
         const caller = (stack.split('\n')[3] || '').trim();
