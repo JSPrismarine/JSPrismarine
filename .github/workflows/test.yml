@@ -14,7 +14,7 @@ jobs:
                 os: [ubuntu-latest, macos-latest, windows-latest]
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v7
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   submodules: 'recursive'
 
@@ -22,7 +22,7 @@ jobs:
               uses: ./.github/common/install
 
             - name: Cache Vitest module transforms
-              uses: actions/cache@v6
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: node_modules/.cache/vitest
                   key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
@@ -40,18 +40,18 @@ jobs:
 
             - name: 🦺 Report Coverage to GitHub
               if: ${{ !cancelled() }}
-              uses: davelosert/vitest-coverage-report-action@v2.13.1
+              uses: davelosert/vitest-coverage-report-action@8f86cfb56ed6d5613ea8cdc5259f207fbfd51ece # v2.13.1
 
             - name: 🦺 Codecov Coverage Reports
               if: ${{ !cancelled() }}
-              uses: codecov/codecov-action@v7.1.1
+              uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
 
             - name: 🦺 Upload test results to Codecov
               if: ${{ !cancelled() }}
-              uses: codecov/test-results-action@v1
+              uses: codecov/test-results-action@0fa95f0e1eeaafde2c782583b36b28ad0d8c77d3 # v1
               with:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
