@@ -1303,6 +1303,6 @@ export default class Session {
     }
 
     public getAddress(): InetAddress {
-        return new InetAddress(this.rinfo.address, this.rinfo.port, 4);
+        return new InetAddress(this.rinfo.address, this.rinfo.port);
     }
 }

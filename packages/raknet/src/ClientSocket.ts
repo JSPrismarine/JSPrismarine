@@ -226,7 +226,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
     /** The local address the socket bound to, available once {@link connect} has begun. */
     public getAddress(): InetAddress {
         const address = this.socket.address();
-        return new InetAddress(address.address, address.port, 4);
+        return new InetAddress(address.address, address.port);
     }
 
     /** Says goodbye properly, so the server drops the session rather than timing it out. */
@@ -446,7 +446,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
         }
 
         const packet = new OpenConnectionRequest2();
-        packet.serverAddress = new InetAddress(attempt.rinfo.address, attempt.rinfo.port, 4);
+        packet.serverAddress = new InetAddress(attempt.rinfo.address, attempt.rinfo.port);
         packet.mtuSize = attempt.negotiatedMtu;
         packet.clientGUID = this.guid;
         this.sendPacket(packet, attempt.rinfo);

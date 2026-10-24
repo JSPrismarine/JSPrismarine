@@ -14,13 +14,13 @@ export default class InetAddress {
      * Constructs an InetAddress.
      * @param {string} address - The IP address.
      * @param {number} port - The port.
-     * @param {number} [version=4] - The IP version.
+     * @param {number} [version] - The IP version. Defaults to 6 when the address contains a colon, else 4.
      * @example
      * ```typescript
      * const address = new InetAddress('0.0.0.0', 19132);
      * ```
      */
-    public constructor(address: string, port: number, version = 4) {
+    public constructor(address: string, port: number, version = address.includes(':') ? 6 : 4) {
         this.address = address;
         this.port = port;
         this.version = version;

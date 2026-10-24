@@ -130,7 +130,7 @@ export class OfflineHandler {
 
                 const reply2 = new OpenConnectionReply2();
                 reply2.serverGuid = this.listener.getServerGuid();
-                reply2.clientAddress = new InetAddress(rinfo.address, rinfo.port, 4);
+                reply2.clientAddress = new InetAddress(rinfo.address, rinfo.port);
                 reply2.mtuSize = mtuSize;
 
                 if (addressInUse && guidInUse) {

@@ -57,6 +57,106 @@ describe('Packet', () => {
                 expect(new RawPacket(written.getBuffer()).readAddress().getPort()).toBe(port);
             }
         });
+
+        it('rejects text that is not an IPv4 address instead of writing garbage', () => {
+            const packet = new RawPacket();
+            expect(() => packet.writeAddress(new InetAddress('not an address', 1, 4))).toThrow('Invalid IPv4');
+            expect(() => packet.writeAddress(new InetAddress('1.2.3.256', 1, 4))).toThrow('Invalid IPv4');
+        });
+    });
+
+    describe('IPv6 address', () => {
+        // RakNet copies the sockaddr_in6 straight onto the wire, so the layout is the
+        // struct's: family (host order, 23 on the Windows the client is built for), port
+        // (network order), flow info, 16 address bytes, scope id.
+        // https://github.com/facebookarchive/RakNet/blob/master/Source/BitStream.h#L1142
+        const wire = Buffer.from([
+            6, // IPv6
+            0x17,
+            0x00, // AF_INET6 little endian
+            0x4a,
+            0xbc, // 19132 big endian
+            0x00,
+            0x00,
+            0x00,
+            0x00, // flow info
+            0x20,
+            0x01,
+            0x0d,
+            0xb8,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x00,
+            0x01,
+            0x00,
+            0x00,
+            0x00,
+            0x00 // scope id
+        ]);
+
+        it('writes the version, the family, the port, then the padded sockaddr_in6 fields', () => {
+            const packet = new RawPacket();
+            packet.writeAddress(new InetAddress('2001:db8::1', 19_132, 6));
+
+            expect(packet.getBuffer()).toEqual(wire);
+        });
+
+        it('reads the address back as text rather than as the raw bytes', () => {
+            // The 16 address bytes used to be decoded as a UTF-8 string, which for this
+            // address is a run of control characters, not an address anything could use.
+            const address = new RawPacket(wire).readAddress();
+
+            expect(address.getAddress()).toBe('2001:db8::1');
+            expect(address.getPort()).toBe(19_132);
+            expect(address.getVersion()).toBe(6);
+        });
+
+        it('round trips every textual form Node reports', () => {
+            for (const text of [
+                '::',
+                '::1',
+                'fe80::1',
+                '1:2:3:4:5:6:7:8',
+                '1:0:0:2::3', // the longer zero run wins the compression
+                '1::2:0:0:3', // and the first wins a tie
+                '2001:db8:0:1::', // a trailing run
+                '::ffff:192.0.2.1' // an IPv4-mapped address keeps its dotted tail
+            ]) {
+                const written = new RawPacket();
+                written.writeAddress(new InetAddress(text, 60_000, 6));
+
+                const address = new RawPacket(written.getBuffer()).readAddress();
+                expect(address.getAddress()).toBe(text);
+                expect(address.getPort()).toBe(60_000);
+            }
+        });
+
+        it('normalizes uppercase hex and a zone id on the way out', () => {
+            const written = new RawPacket();
+            written.writeAddress(new InetAddress('FE80::ABCD%en0', 1, 6));
+
+            expect(new RawPacket(written.getBuffer()).readAddress().getAddress()).toBe('fe80::abcd');
+        });
+
+        it('rejects text that is not an IPv6 address', () => {
+            for (const text of ['1::2::3', '1:2:3:4:5:6:7:8:9', '12345::', 'g::1', '::ffff:1.2.3']) {
+                const packet = new RawPacket();
+                expect(() => packet.writeAddress(new InetAddress(text, 1, 6))).toThrow('Invalid IPv6');
+            }
+        });
+
+        it('is the version InetAddress infers from a colon in the text', () => {
+            expect(new InetAddress('::1', 1).getVersion()).toBe(6);
+            expect(new InetAddress('127.0.0.1', 1).getVersion()).toBe(4);
+        });
     });
 
     describe('string', () => {
