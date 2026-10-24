@@ -133,7 +133,7 @@ export default class MinecraftSession {
             this.logger.warn(
                 `Packet §b${packet.getName()}§r to §b${this.rakSession
                     .getAddress()
-                    .toToken()}§r failed with: ${(error as Error).message}`
+                    .toToken()}§r failed with: ${error instanceof Error ? error.message : String(error)}`
             );
             return;
         }
