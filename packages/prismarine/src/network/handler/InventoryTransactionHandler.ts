@@ -51,7 +51,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 await this.handleUseItemOnEntity(packet, server, connection);
                 return;
 
-            case TransactionType.RELASE_ITEM:
+            case TransactionType.RELEASE_ITEM:
                 await this.handleReleaseItem(server, connection);
                 return;
 
@@ -62,52 +62,19 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
         }
     }
 
-    /** Items being moved around, between slots or in and out of a container. */
+    /**
+     * Items being moved around, between slots or in and out of a container.
+     *
+     * Decoded but not applied. The server's inventory is authoritative, and container moves
+     * reach it through the ItemStackRequest path, so a Normal transaction's actions are only
+     * logged. Applying them here would mean trusting the client's From Item and To Item over
+     * what the server holds.
+     */
     private async handleNormal(packet: InventoryTransactionPacket, server: Server): Promise<void> {
-        // TODO: refactor this crap.
-        // probably base it on https://github.com/pmmp/PocketMine-MP/blob/d19db5d2e44d0925798c288247c3bddb71d23975/src/pocketmine/Player.php#L2399 or something similar.
-        // let movedItem: ContainerEntry | null;
         for (const action of packet.inventoryActions) {
-            switch (action.sourceType) {
-                case ActionSource.CONTAINER: {
-                    // FIXME: Hack for creative inventory
-                    /*if (action.windowId === 124) {
-                        // from creative inventory
-                        if (player.gamemode !== 1) throw new Error(`Player isn't in creative mode`);
+            if (action.sourceType === ActionSource.CONTAINER) continue;
 
-                        // const id = action.oldItem.getId();
-                        // const meta = action.oldItem.meta;
-
-                        // const item =
-                        //    server.getItemManager().getItemById(id) ??
-                        //    server.getBlockManager().getBlockByIdAndMeta(id, meta);
-                        // const count = 64;
-
-                        // movedItem = new ContainerEntry({
-                        //    item,
-                        //    count
-                        // });
-                        return;
-                    }
-
-                    if (action.newItem.getId() === 0) {
-                        // movedItem = player.getInventory().getItem(action.targetSlot);
-                        player.getInventory().removeItem(action.targetSlot);
-                        return;
-                    }
-
-                    if (!movedItem) {
-                        server.getLogger().debug(`movedItem is undefined`);
-                        return;
-                    }
-
-                    player.getInventory().setItem(action.targetSlot, movedItem);*/
-                    break;
-                }
-
-                default:
-                    server.getLogger().debug(`Unknown source type: ${action.sourceType}`);
-            }
+            server.getLogger().debug(`Unknown source type: ${action.sourceType}`);
         }
     }
 
@@ -214,7 +181,13 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     player.beginItemUse(server.getTick());
                 }
 
-                // TODO: the rest of using an item on nothing - eating, throwing.
+                // Eating and throwing on a click at nothing are not implemented. Each needs
+                // the server to change the held slot and tell the client, and neither does yet.
+                return;
+
+            // A swing at nothing. Hitting an entity arrives as `USE_ITEM_ON_ENTITY` instead,
+            // so there is nothing here to apply.
+            case UseItemAction.USE_AS_ATTACK:
                 return;
 
             // Survival's route into a break. Creative announces the same thing through
