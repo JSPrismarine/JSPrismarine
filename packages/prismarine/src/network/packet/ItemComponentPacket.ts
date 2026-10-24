@@ -15,6 +15,18 @@ import DataPacket from './DataPacket';
 const ENTRY_VERSION = 1;
 
 /**
+ * The two fields of a table entry this packet writes.
+ *
+ * Named here rather than imported because `src/@types/bedrock-data.d.ts` declares the package as
+ * a shorthand ambient module, which types every export `any` inside this package and rejects
+ * `ItemTypeEntry` as a type. Once that file goes, `Object.entries(ItemTable)` infers this on its own.
+ */
+interface TableEntry {
+    runtime_id: number;
+    component_based: boolean;
+}
+
+/**
  * The item table: every name the client may be shown, and the number it travels as.
  *
  * This packet used to carry only the components of custom items while the definitions rode in
@@ -41,7 +53,7 @@ export default class ItemComponentPacket extends DataPacket {
         if (ItemComponentPacket.cached) return ItemComponentPacket.cached;
 
         const stream = new BinaryStream();
-        const entries = Object.entries(ItemTable) as Array<[string, (typeof ItemTable)[string]]>;
+        const entries = Object.entries<TableEntry>(ItemTable);
 
         stream.writeUnsignedVarInt(entries.length);
         for (const [name, entry] of entries) {

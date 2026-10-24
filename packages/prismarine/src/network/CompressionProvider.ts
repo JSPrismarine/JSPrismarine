@@ -27,7 +27,7 @@ export class CompressionProvider {
      * @returns {PacketCompressionAlgorithm} The algorithm, widened to the negotiated form.
      */
     public static fromBatchPrefix(prefix: number): PacketCompressionAlgorithm {
-        return prefix === UNCOMPRESSED_BATCH ? PacketCompressionAlgorithm.NONE : (prefix as PacketCompressionAlgorithm);
+        return prefix === UNCOMPRESSED_BATCH ? PacketCompressionAlgorithm.NONE : prefix;
     }
     /**
      * Create a new compression provider.

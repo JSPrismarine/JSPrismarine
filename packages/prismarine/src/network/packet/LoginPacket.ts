@@ -54,7 +54,7 @@ export default class LoginPacket extends DataPacket {
 
         // TODO: content length, to validate it's lenght...
         this.readUnsignedVarInt();
-        const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this)) as any;
+        const chainData = JSON.parse(NetworkUtil.readLELengthASCIIString(this));
         // The signature is checked against the identity chain elsewhere; here the
         // payload is only read, so a JWT is just three base64url segments.
         const decode = (token: string): any => {

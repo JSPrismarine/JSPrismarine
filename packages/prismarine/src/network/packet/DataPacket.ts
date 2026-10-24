@@ -44,6 +44,9 @@ export default class DataPacket extends BinaryStream {
     /** Overridden by every packet class; -1 marks the base class, which is never sent. */
     public static NetID = -1;
 
+    /** TypeScript types `this.constructor` as `Function`; this names the static side without emitting anything. */
+    declare ['constructor']: typeof DataPacket;
+
     /** Protected so a subclass encoding by another route - `BatchPacket.encodeAsync` - can say so. */
     protected encoded = false;
 
@@ -60,7 +63,7 @@ export default class DataPacket extends BinaryStream {
     }
 
     public getId(): number {
-        return (this.constructor as typeof DataPacket).NetID;
+        return this.constructor.NetID;
     }
 
     public getEncoded(): boolean {
