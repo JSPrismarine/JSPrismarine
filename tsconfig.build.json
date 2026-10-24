@@ -58,6 +58,7 @@
         { "path": "./packages/errors/tsconfig.json" },
         { "path": "./packages/leveldb/tsconfig.json" },
         { "path": "./packages/logger/tsconfig.json" },
+        { "path": "./packages/mapping/tsconfig.json" },
         { "path": "./packages/math/tsconfig.json" },
         { "path": "./packages/minecraft/tsconfig.json" },
         { "path": "./packages/nbt/tsconfig.json" },
