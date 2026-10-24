@@ -41,7 +41,7 @@ import DataPacket from './DataPacket';
  * | Player Property Data | Network NBT compound | Empty |
  * | Server Block Type Registry Checksum | LUnsignedLong | 0 |
  * | World Template ID | UUID | Nil |
- * | Server Enabled ClientSide Generation | Boolean | true |
+ * | Server Enabled ClientSide Generation | Boolean | false |
  * | BlockNetworkIds Are Hashes | Boolean | true |
  * | NetworkPermissions | Server Auth Sound Enabled (Boolean) | false |
  * | Server Configuration Join Info | Optional | Absent, a single false byte |
@@ -250,7 +250,11 @@ export default class StartGamePacket extends DataPacket {
         // is what a Bedrock Dedicated Server sends.
         new UUID(0, 0, 0, 0).networkSerialize(this);
 
-        this.writeBoolean(true); // Server Enabled ClientSide Generation
+        // Server Enabled ClientSide Generation. When this is on, the client generates vanilla
+        // terrain from the seed for any chunk missing from the saved-chunks list in
+        // NetworkChunkPublisherUpdate, which the server always sends empty. Our generators
+        // are not vanilla, so keep it off, as a Bedrock Dedicated Server does.
+        this.writeBoolean(false);
 
         // BlockNetworkIds Are Hashes. Block runtime ids are hashes of each block's name and
         // state rather than positions in the client's palette, which is what lets the server
