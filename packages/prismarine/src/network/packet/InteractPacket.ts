@@ -1,31 +1,45 @@
+import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/**
+ * What the client did to the target actor, written as a uint8.
+ *
+ * The docs call these Invalid, StopRiding (`LeaveVehicle`), InteractUpdate (`MouseOver`),
+ * NpcOpen (`OpenNPC`) and OpenInventory. The 1.26.50 docs page numbers them 1 to 4, but
+ * clients send 3 to 6, which is what the page's own 2207 changelog and gophertunnel record.
+ */
 export enum InteractAction {
+    Invalid = 0,
     LeaveVehicle = 3,
     MouseOver = 4,
     OpenNPC = 5,
     OpenInventory = 6
 }
 
+/**
+ * Sent by the client when it interacts with an actor, or presses the inventory button.
+ *
+ * Protocol 2193 layout: Action as a uint8, Target Runtime ID as a varuint64, then Position as
+ * an optional Vec3: a presence byte, followed by three little-endian floats when it is 0x01.
+ */
 export default class InteractPacket extends DataPacket {
     public static NetID = Identifiers.InteractPacket;
 
     public action!: number;
     public target!: bigint;
 
-    public x!: number;
-    public y!: number;
-    public z!: number;
+    /** The Position field. Null when the client sent the optional as absent. */
+    public position: Vector3 | null = null;
 
     public encodePayload(): void {
         this.writeByte(this.action);
         this.writeUnsignedVarLong(this.target);
 
-        if (this.action === InteractAction.MouseOver) {
-            this.writeFloatLE(this.x);
-            this.writeFloatLE(this.y);
-            this.writeFloatLE(this.z);
+        this.writeBoolean(this.position !== null);
+        if (this.position !== null) {
+            NetworkUtil.writeVector3(this, this.position);
         }
     }
 
@@ -33,13 +47,7 @@ export default class InteractPacket extends DataPacket {
         this.action = this.readByte();
         this.target = this.readUnsignedVarLong();
 
-        // The position is an optional now - a byte saying whether it is there - rather than
-        // something inferred from the action. Reading it off the action meant the presence byte
-        // was taken as the first byte of a float, and the decode ran off the end of the packet.
-        if (this.readBoolean()) {
-            this.x = this.readFloatLE();
-            this.y = this.readFloatLE();
-            this.z = this.readFloatLE();
-        }
+        // The position is an optional: a presence byte, then the three floats when it is set.
+        this.position = this.readBoolean() ? NetworkUtil.readVector3(this) : null;
     }
 }
