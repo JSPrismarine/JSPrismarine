@@ -74,7 +74,7 @@ describe('OfflineAuthProvider', () => {
         });
 
         expect(key.asymmetricKeyType).toBe('ec');
-        expect((key.asymmetricKeyDetails as any).namedCurve).toBe('secp384r1');
+        expect(key.asymmetricKeyDetails?.namedCurve).toBe('secp384r1');
         expect(await auth.getIdentityPrivateKey()).toContain('BEGIN PRIVATE KEY');
     });
 
