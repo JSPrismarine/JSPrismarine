@@ -382,7 +382,7 @@ export default class StartGamePacket extends NetworkPacket<StartGame> {
         for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
             const name = stream.readString();
             const editable = stream.readBoolean();
-            const type = stream.readUnsignedVarInt() as GameRuleType;
+            const type: GameRuleType = stream.readUnsignedVarInt();
             let value: boolean | number = false;
             switch (type) {
                 case GameRuleType.BOOL:

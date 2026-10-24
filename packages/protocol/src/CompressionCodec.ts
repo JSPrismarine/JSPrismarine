@@ -74,7 +74,7 @@ export class CompressionCodec {
      * @param prefix - the byte following the batch id.
      */
     public static fromPrefix(prefix: number): PacketCompressionAlgorithm {
-        return prefix === UNCOMPRESSED_BATCH ? PacketCompressionAlgorithm.NONE : (prefix as PacketCompressionAlgorithm);
+        return prefix === UNCOMPRESSED_BATCH ? PacketCompressionAlgorithm.NONE : prefix;
     }
 
     /** The inverse of {@link fromPrefix}: what to write for an algorithm. */
