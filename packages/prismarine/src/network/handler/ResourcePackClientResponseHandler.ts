@@ -14,6 +14,7 @@ import Flat from '../../world/generators/Flat';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
+import FeatureRegistryPacket from '../packet/FeatureRegistryPacket';
 import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '../packet/JigsawStructureDataPacket';
 import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
@@ -149,9 +150,10 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * 2. `StartGame`. Nothing game-related may precede it. A client still in its login state
      *    treats game packets as malformed and drops with `InitialConnection-90`.
      * 3. `ItemRegistry` (our `ItemRegistryPacket`), `AvailableActorIdentifiers`,
-     *    `BiomeDefinitionList`, `CreativeContent`, `CraftingData`, `AvailableCommands`. The
-     *    registries the client builds its world from; it needs them before anything that
-     *    references an item, an actor type or a biome.
+     *    `BiomeDefinitionList`, `FeatureRegistry`, `CreativeContent`, `CraftingData`,
+     *    `AvailableCommands`. The registries the client builds its world from; it needs them
+     *    before anything that references an item, an actor type or a biome. The feature
+     *    registry is empty, as a dedicated server's is for a world with no custom features.
      * 4. `PlayerList`. Added to everyone's list and sent the whole list. The client keys the
      *    list on uuids it only has after StartGame.
      * 5. `SetTime`, `SetSpawnPosition`. World state, once there is a world to apply it to.
@@ -225,6 +227,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         await connection.sendDataPacket(new ItemRegistryPacket());
         await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
         await connection.sendDataPacket(new BiomeDefinitionListPacket());
+        await connection.sendDataPacket(new FeatureRegistryPacket());
         await session.sendCreativeContents();
         await session.sendCraftingData();
         await session.sendAvailableCommands();

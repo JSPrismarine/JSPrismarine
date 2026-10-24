@@ -46,6 +46,7 @@ import DisconnectPacket from './packet/DisconnectPacket';
 import EducationSettingsPacket from './packet/EducationSettingsPacket';
 import EmoteListPacket from './packet/EmoteListPacket';
 import EmotePacket from './packet/EmotePacket';
+import FeatureRegistryPacket from './packet/FeatureRegistryPacket';
 import GameRulesChangedPacket from './packet/GameRulesChangedPacket';
 import GuiDataPickItemPacket from './packet/GuiDataPickItemPacket';
 import HurtArmorPacket from './packet/HurtArmorPacket';
@@ -223,6 +224,7 @@ export {
     EducationSettingsPacket,
     EmoteListPacket,
     EmotePacket,
+    FeatureRegistryPacket,
     GameRulesChangedPacket,
     GuiDataPickItemPacket,
     HurtArmorPacket,

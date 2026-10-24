@@ -151,6 +151,7 @@ describe('ResourcePackClientResponseHandler', () => {
             'ItemRegistryPacket',
             'AvailableActorIdentifiersPacket',
             'BiomeDefinitionListPacket',
+            'FeatureRegistryPacket',
             'CreativeContent',
             'CraftingData',
             'AvailableCommands',
