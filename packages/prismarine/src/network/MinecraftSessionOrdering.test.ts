@@ -6,7 +6,7 @@ import { stub } from '../testing/stub.test.helper';
 import MinecraftSession from './MinecraftSession';
 import BatchPacket from './packet/BatchPacket';
 import TextPacket from './packet/TextPacket';
-import TextType from './type/TextType';
+import TextPacketType from './type/TextPacketType';
 
 /**
  * The order frames reach RakNet in, which is the order the client applies them in.
@@ -18,7 +18,7 @@ import TextType from './type/TextType';
  */
 const message = (text: string) => {
     const packet = new TextPacket();
-    packet.type = TextType.Raw;
+    packet.type = TextPacketType.Raw;
     packet.needsTranslation = false;
     packet.message = text;
     packet.xuid = '';

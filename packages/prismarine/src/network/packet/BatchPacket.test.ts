@@ -4,11 +4,11 @@ import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { CompressionProvider, UNCOMPRESSED_BATCH } from '../CompressionProvider';
 import BatchPacket, { DEFAULT_COMPRESSION_LEVEL } from './BatchPacket';
 import TextPacket from './TextPacket';
-import TextType from '../type/TextType';
+import TextPacketType from '../type/TextPacketType';
 
 const message = (text: string) => {
     const packet = new TextPacket();
-    packet.type = TextType.Raw;
+    packet.type = TextPacketType.Raw;
     packet.needsTranslation = false;
     packet.message = text;
     packet.xuid = '';

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
-import TextPacket, { TextType } from './TextPacket';
+import TextPacket, { TextPacketType } from './TextPacket';
 
 import type { Text } from './TextPacket';
 
@@ -14,7 +14,7 @@ const str = (text: string): number[] => [text.length, ...Buffer.from(text, 'utf-
 const encode = (data: Text): Buffer => new TextPacket(data).serialize(new NetworkBinaryStream());
 
 const raw: Text = {
-    type: TextType.Raw,
+    type: TextPacketType.Raw,
     needsTranslation: false,
     message: 'hi',
     xuid: '',
@@ -23,7 +23,7 @@ const raw: Text = {
 };
 
 const chat: Text = {
-    type: TextType.Chat,
+    type: TextPacketType.Chat,
     needsTranslation: false,
     sourceName: 'Steve',
     message: 'hi',
@@ -33,7 +33,7 @@ const chat: Text = {
 };
 
 const translation: Text = {
-    type: TextType.Translation,
+    type: TextPacketType.Translate,
     needsTranslation: true,
     message: '%a',
     parameters: ['x', 'yz'],
@@ -89,8 +89,8 @@ describe('TextPacket', () => {
         });
 
         it('writes the Filtered Message as an optional: a presence byte, then the string only when present', () => {
-            const absent = encode({ ...raw, type: TextType.System, message: 'm' });
-            const present = encode({ ...raw, type: TextType.System, message: 'm', filtered: 'f' });
+            const absent = encode({ ...raw, type: TextPacketType.SystemMessage, message: 'm' });
+            const present = encode({ ...raw, type: TextPacketType.SystemMessage, message: 'm', filtered: 'f' });
 
             expect([...absent.subarray(-1)]).toEqual([0x00]);
             expect([...present.subarray(-3)]).toEqual([0x01, ...str('f')]);
@@ -99,12 +99,12 @@ describe('TextPacket', () => {
 
         it('writes every message-only type, textObjectAnnouncement included, as body variant 0', () => {
             const types = [
-                TextType.Raw,
-                TextType.Tip,
-                TextType.System,
-                TextType.JsonWhisper,
-                TextType.Json,
-                TextType.JsonAnnouncement
+                TextPacketType.Raw,
+                TextPacketType.Tip,
+                TextPacketType.SystemMessage,
+                TextPacketType.TextObjectWhisper,
+                TextPacketType.TextObject,
+                TextPacketType.TextObjectAnnouncement
             ];
 
             for (const type of types) {
@@ -112,11 +112,11 @@ describe('TextPacket', () => {
 
                 expect([...buffer]).toEqual([HEADER, 0x00, 0x00, type, ...str('m'), 0x00, 0x00, 0x00]);
             }
-            expect(TextType.JsonAnnouncement).toBe(11);
+            expect(TextPacketType.TextObjectAnnouncement).toBe(11);
         });
 
         it('writes a Popup and a JukeboxPopup with a Parameter List, like Translation', () => {
-            for (const type of [TextType.Popup, TextType.JukeboxPopup]) {
+            for (const type of [TextPacketType.Popup, TextPacketType.JukeboxPopup]) {
                 const buffer = encode({ ...raw, type, message: 'm', parameters: ['p'] });
 
                 expect([...buffer]).toEqual([
@@ -135,7 +135,7 @@ describe('TextPacket', () => {
         });
 
         it('writes a Whisper and an Announcement with a Player Name, like Chat', () => {
-            for (const type of [TextType.Whisper, TextType.Announcement]) {
+            for (const type of [TextPacketType.Whisper, TextPacketType.Announcement]) {
                 const buffer = encode({ ...chat, type, sourceName: 'S', message: 'm' });
 
                 expect([...buffer.subarray(0, 8)]).toEqual([HEADER, 0x00, 0x01, type, ...str('S'), ...str('m')]);
@@ -216,7 +216,7 @@ describe('TextPacket', () => {
             const data = new TextPacket().deserialize(stream);
 
             expect(data).toEqual({
-                type: TextType.Chat,
+                type: TextPacketType.Chat,
                 needsTranslation: false,
                 sourceName: 'runner',
                 message: 'hello',

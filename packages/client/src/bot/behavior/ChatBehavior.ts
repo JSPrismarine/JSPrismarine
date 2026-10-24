@@ -1,4 +1,4 @@
-import { TextPacket, TextType } from '@jsprismarine/protocol';
+import { TextPacket, TextPacketType } from '@jsprismarine/protocol';
 
 import type { Behavior, BehaviorContext } from './Behavior';
 
@@ -44,7 +44,7 @@ export default class ChatBehavior implements Behavior {
 
         await context.send(
             new TextPacket({
-                type: TextType.Chat,
+                type: TextPacketType.Chat,
                 needsTranslation: false,
                 sourceName: identity.displayName,
                 message: context.random.pick(PHRASES),

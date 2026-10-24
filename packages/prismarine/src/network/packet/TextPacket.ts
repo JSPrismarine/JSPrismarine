@@ -1,6 +1,6 @@
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
-import TextType from '../type/TextType';
+import TextPacketType from '../type/TextPacketType';
 import DataPacket from './DataPacket';
 
 /** The three shapes of the Body variant, as the docs name them. The value is the variant index on the wire. */
@@ -15,18 +15,18 @@ const enum BodyVariant {
  *
  * Derived rather than stored: it is a restatement of the type, and the two disagreeing is a
  * packet the client reads the wrong number of strings out of. Every type not listed here,
- * `JsonAnnouncement` (the docs' textObjectAnnouncement) included, is MessageOnly.
+ * `TextObjectAnnouncement` included, is MessageOnly.
  */
-const variantOf = (type: TextType): BodyVariant => {
+const variantOf = (type: TextPacketType): BodyVariant => {
     switch (type) {
-        case TextType.Chat:
-        case TextType.Whisper:
-        case TextType.Announcement:
+        case TextPacketType.Chat:
+        case TextPacketType.Whisper:
+        case TextPacketType.Announcement:
             return BodyVariant.AuthorAndMessage;
 
-        case TextType.Translation:
-        case TextType.Popup:
-        case TextType.JukeboxPopup:
+        case TextPacketType.Translate:
+        case TextPacketType.Popup:
+        case TextPacketType.JukeboxPopup:
             return BodyVariant.MessageAndParams;
 
         default:
@@ -45,15 +45,15 @@ const variantOf = (type: TextType): BodyVariant => {
  * "Filtered Message" as an optional: a presence boolean, then the string only when present.
  * The variant index and the "Message Type" are both on the wire: the docs draw each variant's
  * members from zero (translate as 0 inside MessageAndParams), but the byte carries the global
- * `TextType` number (translate as 2), which is what gophertunnel's `text.go` writes after its
+ * `TextPacketType` number (translate as 2), which is what gophertunnel's `text.go` writes after its
  * category byte and what a 1.26 client reads. Older protocols wrote the type first, no
  * variant index, and the filtered string unconditionally.
  */
 export default class TextPacket extends DataPacket {
     public static NetID = Identifiers.TextPacket;
 
-    /** "Message Type": a global `TextType` value, not an index within the body variant. */
-    public type!: TextType;
+    /** "Message Type": a global `TextPacketType` value, not an index within the body variant. */
+    public type!: TextPacketType;
     /** "Localize?": whether the client should run the message through its translations. */
     public needsTranslation!: boolean;
     /** "Player Name": only written for Chat, Whisper and Announcement. */

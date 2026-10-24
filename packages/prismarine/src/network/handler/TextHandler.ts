@@ -1,6 +1,6 @@
 import { Chat, ChatType } from '../../chat/Chat';
 import Identifiers from '../Identifiers';
-import TextType from '../type/TextType';
+import TextPacketType from '../type/TextPacketType';
 import type PacketHandler from './PacketHandler';
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
@@ -50,11 +50,11 @@ export default class TextHandler implements PacketHandler<TextPacket> {
     public async handle(packet: TextPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
 
-        if (packet.type !== TextType.Chat) {
+        if (packet.type !== TextPacketType.Chat) {
             server
                 .getLogger()
                 .verbose(
-                    `Dropped a text of type ${TextType[packet.type] ?? packet.type} from ${player.getName()}: a client only sends Chat`,
+                    `Dropped a text of type ${TextPacketType[packet.type] ?? packet.type} from ${player.getName()}: a client only sends Chat`,
                     'TextHandler/handle'
                 );
             return;

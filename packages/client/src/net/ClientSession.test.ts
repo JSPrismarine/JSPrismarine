@@ -1,6 +1,6 @@
 import { Logger } from '@jsprismarine/logger';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-import { BatchCodec, NetworkBinaryStream, PlayStatusPacket, TextPacket, TextType } from '@jsprismarine/protocol';
+import { BatchCodec, NetworkBinaryStream, PlayStatusPacket, TextPacket, TextPacketType } from '@jsprismarine/protocol';
 import { EventEmitter } from 'node:events';
 import { describe, expect, it, vi } from 'vitest';
 import ClientPacketRegistry from './ClientPacketRegistry';
@@ -43,7 +43,7 @@ const bigText = (size: number): NetworkPacket<any> => {
     for (let i = 0; message.length < size; i++) message += `${i.toString(36)} the quick brown fox `;
 
     return new TextPacket({
-        type: TextType.Raw,
+        type: TextPacketType.Raw,
         needsTranslation: false,
         message,
         xuid: '',

@@ -5,7 +5,7 @@ import BatchPacket from './packet/BatchPacket';
 import NetworkSettingsPacket, { CompressionThreshold } from './packet/NetworkSettingsPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
 import TextPacket from './packet/TextPacket';
-import TextType from './type/TextType';
+import TextPacketType from './type/TextPacketType';
 
 /**
  * The new codec in `@jsprismarine/protocol` and the server's own `BatchPacket` have to
@@ -38,7 +38,7 @@ const networkSettings = () => {
 
 const text = (message: string) => {
     const packet = new TextPacket();
-    packet.type = TextType.Raw;
+    packet.type = TextPacketType.Raw;
     packet.needsTranslation = false;
     packet.message = message;
     packet.xuid = '';

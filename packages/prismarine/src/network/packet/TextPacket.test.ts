@@ -2,7 +2,7 @@ import { NetworkBinaryStream, TextPacket as ProtocolTextPacket } from '@jsprisma
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
-import TextType from '../type/TextType';
+import TextPacketType from '../type/TextPacketType';
 import TextPacket from './TextPacket';
 
 /** The header: packet id 9 as a varuint, no subclient ids. */
@@ -12,7 +12,7 @@ const HEADER = 0x09;
 const str = (text: string): number[] => [Buffer.byteLength(text), ...Buffer.from(text, 'utf-8')];
 
 interface Fields {
-    type: TextType;
+    type: TextPacketType;
     needsTranslation?: boolean;
     sourceName?: string;
     message: string;
@@ -81,7 +81,7 @@ describe('network', () => {
 
             describe('encode', () => {
                 it('writes a Raw message as body variant 0, type after the variant index', () => {
-                    const buffer = encode({ type: TextType.Raw, message: 'hi' });
+                    const buffer = encode({ type: TextPacketType.Raw, message: 'hi' });
 
                     expect([...buffer]).toEqual([
                         HEADER,
@@ -97,7 +97,7 @@ describe('network', () => {
 
                 it('writes a Chat message as body variant 1 with the Player Name before the Message', () => {
                     const buffer = encode({
-                        type: TextType.Chat,
+                        type: TextPacketType.Chat,
                         sourceName: 'Steve',
                         message: 'hi',
                         xuid: '2535',
@@ -121,7 +121,7 @@ describe('network', () => {
 
                 it('writes a Translation as body variant 2 with the Parameter List after the Message', () => {
                     const buffer = encode({
-                        type: TextType.Translation,
+                        type: TextPacketType.Translate,
                         needsTranslation: true,
                         message: '%a',
                         parameters: ['x', 'yz']
@@ -143,8 +143,8 @@ describe('network', () => {
                 });
 
                 it('writes the Filtered Message as an optional: a presence byte, then the string only when present', () => {
-                    const absent = encode({ type: TextType.System, message: 'm' });
-                    const present = encode({ type: TextType.System, message: 'm', filtered: 'f' });
+                    const absent = encode({ type: TextPacketType.SystemMessage, message: 'm' });
+                    const present = encode({ type: TextPacketType.SystemMessage, message: 'm', filtered: 'f' });
 
                     expect([...absent.subarray(-1)]).toEqual([0x00]);
                     expect([...present.subarray(-3)]).toEqual([0x01, ...str('f')]);
@@ -152,7 +152,7 @@ describe('network', () => {
                 });
 
                 it('writes a Popup and a JukeboxPopup with a Parameter List, like Translation', () => {
-                    for (const type of [TextType.Popup, TextType.JukeboxPopup]) {
+                    for (const type of [TextPacketType.Popup, TextPacketType.JukeboxPopup]) {
                         const buffer = encode({ type, message: 'm', parameters: ['p'] });
 
                         expect([...buffer]).toEqual([
@@ -171,7 +171,7 @@ describe('network', () => {
                 });
 
                 it('writes a Whisper and an Announcement with a Player Name, like Chat', () => {
-                    for (const type of [TextType.Whisper, TextType.Announcement]) {
+                    for (const type of [TextPacketType.Whisper, TextPacketType.Announcement]) {
                         const buffer = encode({ type, sourceName: 'S', message: 'm' });
 
                         expect([...buffer.subarray(0, 8)]).toEqual([
@@ -187,7 +187,7 @@ describe('network', () => {
 
                 it('writes a textObjectAnnouncement as a MessageOnly body in docs order', () => {
                     const buffer = encode({
-                        type: TextType.JsonAnnouncement,
+                        type: TextPacketType.TextObjectAnnouncement,
                         message: announcement,
                         xuid: '2535428504464321'
                     });
@@ -212,7 +212,7 @@ describe('network', () => {
                     ]);
 
                     expect(pk.needsTranslation).toBe(false);
-                    expect(pk.type).toBe(TextType.Chat);
+                    expect(pk.type).toBe(TextPacketType.Chat);
                     expect(pk.sourceName).toBe('Steve');
                     expect(pk.message).toBe('hi');
                     expect(pk.parameters).toEqual([]);
@@ -238,7 +238,7 @@ describe('network', () => {
                     ]);
 
                     expect(pk.needsTranslation).toBe(true);
-                    expect(pk.type).toBe(TextType.Translation);
+                    expect(pk.type).toBe(TextPacketType.Translate);
                     expect(pk.message).toBe('%a');
                     expect(pk.parameters).toEqual(['x', 'yz']);
                     expect(pk.xuid).toBe('X');
@@ -250,7 +250,7 @@ describe('network', () => {
                 it('reads a Raw message with nothing optional', () => {
                     const pk = decode([HEADER, 0x00, 0x00, 0x00, ...str('hello'), 0x00, 0x00, 0x00]);
 
-                    expect(pk.type).toBe(TextType.Raw);
+                    expect(pk.type).toBe(TextPacketType.Raw);
                     expect(pk.message).toBe('hello');
                     expect(pk.feof()).toBe(true);
                 });
@@ -268,7 +268,7 @@ describe('network', () => {
                         0x00 // Filtered Message: absent
                     ]);
 
-                    expect(pk.type).toBe(TextType.Chat);
+                    expect(pk.type).toBe(TextPacketType.Chat);
                     expect(pk.sourceName).toBe('runner');
                     expect(pk.message).toBe('hello');
                     expect(pk.xuid).toBe('2535428504464321');
@@ -279,7 +279,7 @@ describe('network', () => {
                 it('reads a hand-built textObjectAnnouncement and consumes it all', () => {
                     const pk = decode(announcementWire);
 
-                    expect(pk.type).toBe(TextType.JsonAnnouncement);
+                    expect(pk.type).toBe(TextPacketType.TextObjectAnnouncement);
                     expect(pk.needsTranslation).toBe(false);
                     expect(pk.message).toBe(announcement);
                     expect(pk.parameters).toEqual([]);
@@ -298,10 +298,16 @@ describe('network', () => {
 
             it('produces the same bytes as the protocol package for every body variant', () => {
                 const cases: Fields[] = [
-                    { type: TextType.Raw, message: 'hi', filtered: 'hi' },
-                    { type: TextType.Chat, sourceName: 'Steve', message: 'hi', xuid: '2535', platformChatId: 'p1' },
-                    { type: TextType.Translation, needsTranslation: true, message: '%a', parameters: ['x', 'yz'] },
-                    { type: TextType.JsonAnnouncement, message: announcement }
+                    { type: TextPacketType.Raw, message: 'hi', filtered: 'hi' },
+                    {
+                        type: TextPacketType.Chat,
+                        sourceName: 'Steve',
+                        message: 'hi',
+                        xuid: '2535',
+                        platformChatId: 'p1'
+                    },
+                    { type: TextPacketType.Translate, needsTranslation: true, message: '%a', parameters: ['x', 'yz'] },
+                    { type: TextPacketType.TextObjectAnnouncement, message: announcement }
                 ];
 
                 for (const fields of cases) {

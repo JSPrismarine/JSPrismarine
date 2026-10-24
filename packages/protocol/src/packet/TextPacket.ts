@@ -3,32 +3,35 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** The "Message Type" of a text packet. The values are the global ones the wire carries. */
-export enum TextType {
+/**
+ * The docs' `TextPacketType`, the "Message Type" of a text packet. The values are the global
+ * ones the wire carries; member names are the docs' names in PascalCase.
+ */
+export enum TextPacketType {
     Raw,
     Chat,
-    Translation,
+    Translate,
     Popup,
     JukeboxPopup,
     Tip,
-    System,
+    SystemMessage,
     Whisper,
     Announcement,
-    JsonWhisper,
-    Json,
-    JsonAnnouncement
+    TextObjectWhisper,
+    TextObject,
+    TextObjectAnnouncement
 }
 
 /** The fields of a text packet. Which optional ones are written depends on `type`. */
 export interface Text {
-    type: TextType;
+    type: TextPacketType;
     /** "Localize?": whether the client should run the message through its translations. */
     needsTranslation: boolean;
     /** "Player Name". Only written for Chat, Whisper and Announcement. */
     sourceName?: string;
     /** "Message": the text, or a translation key for the parameterized types. */
     message: string;
-    /** "Parameter List". Only written for Translation, Popup and JukeboxPopup. */
+    /** "Parameter List". Only written for Translate, Popup and JukeboxPopup. */
     parameters?: string[];
     /** "Sender's XUID". */
     xuid: string;
@@ -46,16 +49,16 @@ const enum BodyVariant {
 }
 
 /** The body variant a message type is sent in. Every type not listed is MessageOnly. */
-const variantOf = (type: TextType): BodyVariant => {
+const variantOf = (type: TextPacketType): BodyVariant => {
     switch (type) {
-        case TextType.Chat:
-        case TextType.Whisper:
-        case TextType.Announcement:
+        case TextPacketType.Chat:
+        case TextPacketType.Whisper:
+        case TextPacketType.Announcement:
             return BodyVariant.AuthorAndMessage;
 
-        case TextType.Translation:
-        case TextType.Popup:
-        case TextType.JukeboxPopup:
+        case TextPacketType.Translate:
+        case TextPacketType.Popup:
+        case TextPacketType.JukeboxPopup:
             return BodyVariant.MessageAndParams;
 
         default:
@@ -123,7 +126,7 @@ export default class TextPacket extends NetworkPacket<Text> {
 
         // The variant index says which shape follows; the type is carried as sent.
         const variant = stream.readByte();
-        const type: TextType = stream.readByte();
+        const type: TextPacketType = stream.readByte();
 
         let sourceName: string | undefined;
         let message: string;

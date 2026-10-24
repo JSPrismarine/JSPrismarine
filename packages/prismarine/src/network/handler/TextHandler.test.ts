@@ -9,13 +9,13 @@ import type { ChatManager } from '../../chat/ChatManager';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import TextPacket from '../packet/TextPacket';
-import TextType from '../type/TextType';
+import TextPacketType from '../type/TextPacketType';
 import TextHandler from './TextHandler';
 
 /** A Chat text as a client sends it: its own name as the author, nothing filtered. */
 const chatPacket = (message: string): TextPacket => {
     const pk = new TextPacket();
-    pk.type = TextType.Chat;
+    pk.type = TextPacketType.Chat;
     pk.needsTranslation = false;
     pk.sourceName = 'runner';
     pk.message = message;
@@ -53,7 +53,13 @@ describe('network', () => {
             it('drops every type but Chat, which is the only one a client sends', async () => {
                 const { sent, dropped, server, session } = fakeChat();
 
-                for (const type of [TextType.Raw, TextType.System, TextType.Translation, TextType.Announcement, 200]) {
+                for (const type of [
+                    TextPacketType.Raw,
+                    TextPacketType.SystemMessage,
+                    TextPacketType.Translate,
+                    TextPacketType.Announcement,
+                    200
+                ]) {
                     const pk = chatPacket('server is down');
                     pk.type = type;
                     await new TextHandler().handle(pk, server, session);

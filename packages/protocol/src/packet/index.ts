@@ -44,7 +44,7 @@ export { PositionMode } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
 export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
-export { TextType } from './TextPacket';
+export { TextPacketType } from './TextPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
 export type { Disconnect } from './DisconnectPacket';

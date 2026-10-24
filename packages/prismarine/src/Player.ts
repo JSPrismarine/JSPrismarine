@@ -28,7 +28,7 @@ import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
 import PlayStatusType from './network/type/PlayStatusType';
-import TextType from './network/type/TextType';
+import TextPacketType from './network/type/TextPacketType';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
 import type UUID from './utils/UUID';
@@ -550,8 +550,8 @@ export default class Player extends Human {
     /**
      * Sends a line of text to this player's client.
      *
-     * `type` picks how the client renders it. A JSON text object goes as `TextType.Json`;
-     * a translation key with its parameters as `TextType.Translation`.
+     * `type` picks how the client renders it. A JSON text object goes as `TextPacketType.TextObject`;
+     * a translation key with its parameters as `TextPacketType.Translate`.
      * @param message - The text, or the translation key for a translated type.
      * @param type - How the client renders the message. Raw by default.
      * @param parameters - The values a translated type fills its key with.
@@ -559,7 +559,7 @@ export default class Player extends Human {
      */
     public async sendMessage(
         message: string,
-        type: TextType = TextType.Raw,
+        type: TextPacketType = TextPacketType.Raw,
         parameters: string[] = [],
         needsTranslation = false
     ): Promise<void> {

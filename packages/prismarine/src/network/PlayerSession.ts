@@ -66,7 +66,7 @@ import { CommandEnum } from './type/CommandEnum';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';
 import PositionMode from './type/PositionMode';
 import ChunkSender from './ChunkSender';
-import TextType from './type/TextType';
+import TextPacketType from './type/TextPacketType';
 
 /**
  * Chunks per batch, and the reason it is small.
@@ -1162,7 +1162,7 @@ export default class PlayerSession {
      * @param {string} [options.platformChatId=''] - The platform chat ID.
      * @param {string[]} [options.parameters=[]] - The parameters for the message.
      * @param {boolean} [options.needsTranslation=false] - Whether the message needs translation.
-     * @param {TextType} [options.type=TextType.Raw] - The type of the message.
+     * @param {TextPacketType} [options.type=TextPacketType.Raw] - The type of the message.
      * @returns {Promise<void>} A promise that resolves when the message is sent.
      */
     public async sendMessage({
@@ -1172,7 +1172,7 @@ export default class PlayerSession {
         platformChatId = '',
         parameters = [],
         needsTranslation = false,
-        type = TextType.Raw
+        type = TextPacketType.Raw
     }: {
         message: string;
         sourceName?: string;
@@ -1180,7 +1180,7 @@ export default class PlayerSession {
         platformChatId?: string;
         parameters?: string[];
         needsTranslation?: boolean;
-        type?: TextType;
+        type?: TextPacketType;
     }): Promise<void> {
         if (!message) throw new Error('A message is required');
 

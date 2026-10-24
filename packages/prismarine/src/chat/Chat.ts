@@ -1,8 +1,8 @@
 import type { CommandExecutor } from '../command/CommandExecutor';
-import TextType from '../network/type/TextType';
+import TextPacketType from '../network/type/TextPacketType';
 
 /**
- * How a chat is shown. The values are the `TextType` numbers the client reads.
+ * How a chat is shown. The values are the `TextPacketType` numbers the client reads.
  *
  * `RAW` is a line the server has already formatted. `CHAT` is a player's own message: the
  * client draws `<name>` in front of it from the author the packet names, and offers to mute
@@ -19,12 +19,12 @@ export enum ChatType {
 /**
  * The text packet type that carries each kind of chat to the client.
  */
-export const CHAT_TEXT_TYPE: Record<ChatType, TextType> = {
-    [ChatType.RAW]: TextType.Raw,
-    [ChatType.CHAT]: TextType.Chat,
-    [ChatType.TRANSLATION]: TextType.Translation,
-    [ChatType.SYSTEM]: TextType.System,
-    [ChatType.ANNOUNCEMENT]: TextType.Announcement
+export const CHAT_TEXT_TYPE: Record<ChatType, TextPacketType> = {
+    [ChatType.RAW]: TextPacketType.Raw,
+    [ChatType.CHAT]: TextPacketType.Chat,
+    [ChatType.TRANSLATION]: TextPacketType.Translate,
+    [ChatType.SYSTEM]: TextPacketType.SystemMessage,
+    [ChatType.ANNOUNCEMENT]: TextPacketType.Announcement
 };
 
 /**
