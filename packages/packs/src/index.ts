@@ -5,6 +5,7 @@ export * from './formatVersion';
 export * from './lenientJson';
 export * from './load';
 export * from './manifest';
+export * from './mcmeta';
 export * from './registries';
 export * from './sources';
 export * from './validation';
