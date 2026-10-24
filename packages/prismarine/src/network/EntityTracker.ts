@@ -172,9 +172,17 @@ export class EntityTracker {
         return this.tracked.delete(runtimeId);
     }
 
-    /** Forgets everything without implying a packet - the client is changing worlds. */
-    public clear(): void {
+    /**
+     * Forgets everything and hands back what was held, so the caller can despawn it.
+     *
+     * Records only; the client still has every one of these on screen until it is told
+     * otherwise, which is why the ids come back rather than vanishing.
+     * @returns {bigint[]} The runtime ids that were tracked, in no particular order.
+     */
+    public clear(): bigint[] {
+        const held = [...this.tracked];
         this.tracked.clear();
+        return held;
     }
 }
 

@@ -4,6 +4,7 @@ import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import type { Position } from '../world/Position';
 import { EntityTracker } from './EntityTracker';
+import RemoveActorPacket from './packet/RemoveActorPacket';
 import PlayerSession from './PlayerSession';
 
 /**
@@ -173,16 +174,32 @@ describe('network', () => {
             });
         });
 
-        describe('clearTrackedEntities', () => {
-            it('forgets everything without telling the client', async () => {
-                // A dimension change: the client drops its entities on its own.
+        describe('despawnAllTrackedEntities', () => {
+            it('takes every tracked entity off the client and forgets it', async () => {
+                // A world change. The client does not drop entities on a dimension change, so
+                // each one it holds has to be removed by name.
                 const { session, sent, entityAt } = trackingSession();
 
                 await session.considerEntity(entityAt(2n, 1));
-                session.clearTrackedEntities();
+                await session.considerEntity(entityAt(3n, 2));
+                await session.despawnAllTrackedEntities();
+
+                const removed = sent.filter((packet) => packet instanceof RemoveActorPacket);
+                expect(removed.map((packet) => packet.uniqueEntityId).sort()).toEqual([2n, 3n]);
+                expect(session.tracks(2n)).toBe(false);
+                expect(session.tracks(3n)).toBe(false);
+            });
+
+            it('sends nothing the second time', async () => {
+                const { session, sent, entityAt } = trackingSession();
+
+                await session.considerEntity(entityAt(2n, 1));
+                await session.despawnAllTrackedEntities();
+                sent.length = 0;
+
+                await session.despawnAllTrackedEntities();
 
                 expect(sent).toEqual([]);
-                expect(session.tracks(2n)).toBe(false);
             });
         });
     });
