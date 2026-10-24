@@ -16,6 +16,10 @@ import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 import SpawnSettings from './SpawnSettings';
+import SubChunkHeightmapData, { HeightMapDataType } from './SubChunkHeightmapData';
+import type { HeightMap } from './SubChunkHeightmapData';
+import SubChunkPos from './SubChunkPos';
+import SubChunkPosOffset from './SubChunkPosOffset';
 import SyncedPlayerMovementSettings from './SyncedPlayerMovementSettings';
 import UpdateSubChunkNetworkBlockInfo from './UpdateSubChunkNetworkBlockInfo';
 import UUID from './UUID';
@@ -39,10 +43,14 @@ export {
     SerializedAbilitiesData,
     SerializedAbilityLayer,
     SpawnSettings,
+    SubChunkHeightmapData,
+    HeightMapDataType,
+    SubChunkPos,
+    SubChunkPosOffset,
     SyncedPlayerMovementSettings,
     UpdateSubChunkNetworkBlockInfo,
     UUID,
     Vec2,
     Vec3
 };
-export type { EduSharedUriResourceData, ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };
+export type { EduSharedUriResourceData, HeightMap, ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };
