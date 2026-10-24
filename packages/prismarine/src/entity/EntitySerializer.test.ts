@@ -1,15 +1,17 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
+import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
+import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
-import type { World } from '../world/World';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
  * to answer for that as well as name itself.
  */
-const world = { getName: () => 'test', getServer: () => ({}) } as unknown as World;
+const world = stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
 
 const floats = (values: number[]) => new Set(values.map((value) => new Types.FloatVal(value)));
 
