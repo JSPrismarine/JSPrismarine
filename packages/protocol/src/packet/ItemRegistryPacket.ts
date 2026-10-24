@@ -39,7 +39,7 @@ export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
     }
 
     protected serializePayload(): void {
-        throw new Error('ItemRegistryPacket is decode-only: the component trees are not modelled');
+        throw new Error('ItemRegistryPacket is decode-only: the component trees are not modeled');
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ItemRegistry {

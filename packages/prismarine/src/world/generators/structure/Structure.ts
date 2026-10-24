@@ -185,7 +185,7 @@ export interface StructureOrigin {
  * Something world generation builds that is larger than a chunk.
  *
  * Chunks are generated in isolation and in no particular order, with no access to their
- * neighbours - which is the whole difficulty. A structure gets around it by being a pure function
+ * neighbors - which is the whole difficulty. A structure gets around it by being a pure function
  * of its origin: any chunk can work out on its own which structures reach it, plan each of them
  * from scratch, and draw the slice it owns. No chunk needs to have been generated first, and
  * generating one twice gives the same result.

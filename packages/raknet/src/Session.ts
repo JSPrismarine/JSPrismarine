@@ -75,12 +75,12 @@ export enum RakNetRole {
 enum DisconnectMode {
     /** We hung up: wait until nothing of ours is left unacknowledged. */
     ASAP,
-    /** The peer hung up: wait only until the acknowledgement we owe it has gone out. */
+    /** The peer hung up: wait only until the acknowledgment we owe it has gone out. */
     ON_NO_ACK
 }
 
 /**
- * A reliable message awaiting acknowledgement, with the deadline after which it is
+ * A reliable message awaiting acknowledgment, with the deadline after which it is
  * retransmitted. RakNet keeps the same three pieces of state on its `InternalPacket`.
  * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1925
  */
@@ -126,7 +126,7 @@ export default class Session {
     private readonly resendBuffer: Map<number, ResendEntry> = new Map();
 
     /**
-     * Which reliable message numbers travelled inside each datagram we sent, and when.
+     * Which reliable message numbers traveled inside each datagram we sent, and when.
      * Translates an incoming ACK/NACK sequence number into the messages it refers to,
      * and provides the send timestamp the RTT estimate is derived from.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.h#L351 (datagramHistory)
@@ -186,7 +186,7 @@ export default class Session {
     private disconnectMode = DisconnectMode.ASAP;
     /** Reported to the peer's owner when the session is finally forgotten. */
     private disconnectReason = 'connection lost';
-    /** When the linger gives up on an acknowledgement that is not coming. */
+    /** When the linger gives up on an acknowledgment that is not coming. */
     private disconnectDeadline = 0;
 
     // Packet pool is the best option to reduce allocations
@@ -239,7 +239,7 @@ export default class Session {
 
         this.active = false;
 
-        this.sendAcknowledgements();
+        this.sendAcknowledgments();
         this.expireSplitPackets(timestamp);
         this.resendTimedOutMessages(timestamp);
         this.sendFrameQueue();
@@ -256,7 +256,7 @@ export default class Session {
      *
      * The two questions RakNet asks of its reliability layer, one per mode: for a hang-up of
      * our own, whether anything of ours is still waiting to be acknowledged
-     * (`IsOutgoingDataWaiting`); for the peer's, whether we still owe it an acknowledgement
+     * (`IsOutgoingDataWaiting`); for the peer's, whether we still owe it an acknowledgment
      * (`AreAcksWaiting`). The deadline is the backstop for a peer that has stopped answering.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5875
      */
@@ -311,7 +311,7 @@ export default class Session {
     }
 
     /**
-     * A datagram sequence number only drives acknowledgement and loss detection. Ordering
+     * A datagram sequence number only drives acknowledgment and loss detection. Ordering
      * and duplicate suppression are message-level concerns, handled further down, so a
      * datagram arriving out of order is processed like any other rather than dropped.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/CCRakNetSlidingWindow.cpp#L128 (OnGotPacket)
@@ -344,7 +344,7 @@ export default class Session {
             this.lostFrameSequences.add((sequenceNumber - i + TRIAD_RANGE) % TRIAD_RANGE);
         }
 
-        // We have it now, so stop asking for it, and owe the peer an acknowledgement.
+        // We have it now, so stop asking for it, and owe the peer an acknowledgment.
         this.lostFrameSequences.delete(sequenceNumber);
         this.ackQueue.add(sequenceNumber);
 
@@ -375,7 +375,7 @@ export default class Session {
     }
 
     /**
-     * The datagrams of ours that an acknowledgement names, oldest sequence number first.
+     * The datagrams of ours that an acknowledgment names, oldest sequence number first.
      *
      * Resolved by walking our own history rather than the peer's records: the answer is
      * `records ∩ datagramHistory` either way, but the history is bounded by
@@ -384,7 +384,7 @@ export default class Session {
      *
      * The ascending order matters. `onRoundTripSample` folds each measurement into a
      * running estimate, and `handleNACK` re-queues in the order it iterates, so both
-     * depend on the sequence being walked the way a well formed acknowledgement lists it.
+     * depend on the sequence being walked the way a well formed acknowledgment lists it.
      */
     private matchDatagramHistory(packet: AcknowledgePacket): number[] {
         const matched: number[] = [];
@@ -762,7 +762,7 @@ export default class Session {
         }
 
         // The answer to a ping we sent. Nothing is derived from it - the RTT estimate comes
-        // from acknowledgement timing, which is measured against the monotonic clock rather
+        // from acknowledgment timing, which is measured against the monotonic clock rather
         // than the epoch timestamps this carries. It is swallowed here purely so it stops
         // being forwarded to the game layer as if it were a Minecraft packet.
         if (id === MessageIdentifiers.CONNECTED_PONG) {
@@ -1066,7 +1066,7 @@ export default class Session {
     }
 
     /**
-     * Retransmits everything whose acknowledgement is overdue. A NACK only arrives when the
+     * Retransmits everything whose acknowledgment is overdue. A NACK only arrives when the
      * peer notices a gap, which it cannot do for the last datagram of a burst - without
      * this pass that tail is simply lost.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L1908
@@ -1121,11 +1121,11 @@ export default class Session {
     }
 
     /**
-     * Flushes the pending acknowledgements, split across as many datagrams as the MTU
+     * Flushes the pending acknowledgments, split across as many datagrams as the MTU
      * needs. A single ACK naming thousands of sequence numbers would not fit in one.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L3649
      */
-    private sendAcknowledgements(): void {
+    private sendAcknowledgments(): void {
         if (this.ackQueue.size > 0) {
             this.sendAcknowledgePackets(this.ackQueue, () => new ACK());
             this.ackQueue.clear();
@@ -1191,7 +1191,7 @@ export default class Session {
      * along with whatever was framed beside it, which for a kick is the `DisconnectPacket`
      * carrying the reason. The peer would then sit out its own ten second timeout and show
      * the player nothing. So the session moves to {@link SessionStatus.DISCONNECTING} and is
-     * forgotten by {@link update} once the acknowledgement lands, which is RakNet's
+     * forgotten by {@link update} once the acknowledgment lands, which is RakNet's
      * DISCONNECT_ASAP: the system stays in the list until `IsOutgoingDataWaiting` goes false.
      *
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L3565
@@ -1223,9 +1223,9 @@ export default class Session {
      * The peer said goodbye.
      *
      * Nothing is sent back - RakNet answers a DISCONNECTION_NOTIFICATION with an
-     * acknowledgement and nothing else, and a goodbye of our own would only reach an address
+     * acknowledgment and nothing else, and a goodbye of our own would only reach an address
      * that has already forgotten us. The session is held open for one more pass so that
-     * acknowledgement actually goes out, which is DISCONNECT_ON_NO_ACK.
+     * acknowledgment actually goes out, which is DISCONNECT_ON_NO_ACK.
      * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L6095
      */
     private onRemoteDisconnect(): void {
@@ -1240,9 +1240,9 @@ export default class Session {
         this.disconnectReason = reason;
         this.disconnectDeadline = monotonicNow() + DISCONNECT_LINGER_TIMEOUT_MS;
 
-        // Flushed here rather than left to the next tick: the acknowledgement owed for the
+        // Flushed here rather than left to the next tick: the acknowledgment owed for the
         // datagram that carried the peer's goodbye is the one thing it is waiting for.
-        this.sendAcknowledgements();
+        this.sendAcknowledgments();
         this.sendFrameQueue();
     }
 
@@ -1287,7 +1287,7 @@ export default class Session {
 
     /**
      * The smoothed round trip time in milliseconds, or null before the first
-     * acknowledgement has been measured.
+     * acknowledgment has been measured.
      */
     public getRTT(): number | null {
         return this.estimatedRTT;

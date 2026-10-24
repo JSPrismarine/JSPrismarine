@@ -14,7 +14,7 @@ describe('block', () => {
         // name no longer exists has no runtime id, so it cannot be placed at all: this is
         // what turns the next rename into a failing test instead of a crash during world
         // generation, one block at a time.
-        it('all map to a state the catalogue knows', () => {
+        it('all map to a state the catalog knows', () => {
             const withoutSchema = registeredBlocks()
                 .map((block) => block.getStateName())
                 .filter((name: string) => BlockStateSchemas.get(name) === null)
@@ -35,8 +35,8 @@ describe('block', () => {
         });
 
         it('lets several blocks share one vanilla state, as the beds do', () => {
-            // Sixteen coloured beds are sixteen blocks here and one `minecraft:bed` on the
-            // wire, because Bedrock keeps the colour in the block entity rather than the
+            // Sixteen colored beds are sixteen blocks here and one `minecraft:bed` on the
+            // wire, because Bedrock keeps the color in the block entity rather than the
             // state. Separating the two names is what makes that expressible.
             const beds = registeredBlocks().filter(
                 (block) => block.getName().endsWith('_bed') || block.getName() === 'minecraft:bed'

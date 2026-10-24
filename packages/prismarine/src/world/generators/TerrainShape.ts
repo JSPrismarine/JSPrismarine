@@ -51,7 +51,7 @@ export const surfaceHeightAt = (
 ): number => {
     const shape = noise.fractal(worldX / TERRAIN_SCALE, worldZ / TERRAIN_SCALE);
 
-    // Centre the noise on zero so it raises and lowers the base height evenly.
+    // Center the noise on zero so it raises and lowers the base height evenly.
     const height = Math.round(BASE_HEIGHT + (shape - 0.5) * 2 * HEIGHT_VARIATION);
 
     // Never below the bedrock floor, never through the ceiling.

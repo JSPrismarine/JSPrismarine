@@ -92,7 +92,7 @@ export const tickEnvironment = async (mob: Mob, state: EnvironmentState): Promis
  * all, so nothing pays for it that would not catch fire anyway.
  *
  * Water saves you, which is why a drowned is safe in its river and alight the moment it climbs
- * out. A helmet would too, in vanilla; there are no armour slots yet, so that is not modelled.
+ * out. A helmet would too, in vanilla; there are no armor slots yet, so that is not modeled.
  * @param {Mob} mob - Who might be burning.
  * @param {EnvironmentState} state - Its bookkeeping, for the interval clock.
  * @param {number} x - Where it is standing.

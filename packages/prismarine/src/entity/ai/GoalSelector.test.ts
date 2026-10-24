@@ -115,7 +115,7 @@ describe('goal selector', () => {
     });
 
     it('takes a lane off a running goal when something more important wants it', () => {
-        // Behaviour must be interruptible: a mob that finished its stroll before reacting to being
+        // Behavior must be interruptible: a mob that finished its stroll before reacting to being
         // set on fire would be no use.
         const world = flatWorld();
         const mob = someMob(world);
@@ -170,7 +170,7 @@ describe('goal selector', () => {
 
 describe('a mob left to itself', () => {
     it('wanders about without leaving the ground or standing still forever', async () => {
-        // The default behaviour, end to end: a mob with no instructions should take itself
+        // The default behavior, end to end: a mob with no instructions should take itself
         // somewhere, on its own, and still be standing on the floor when it gets there.
         const world = flatWorld();
         const mob = someMob(world);

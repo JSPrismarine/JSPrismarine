@@ -49,9 +49,9 @@ const EXHAUSTION_PER_FOOD_POINT = 4;
  * @see https://minecraft.wiki/w/Hunger#Exhaustion_level_increase
  */
 export const EXHAUSTION = {
-    /** Per metre walked. */
+    /** Per meter walked. */
     walking: 0.01,
-    /** Per metre sprinted - ten times the cost of walking it. */
+    /** Per meter sprinted - ten times the cost of walking it. */
     sprinting: 0.1,
     /** Per jump. */
     jumping: 0.05,
@@ -304,7 +304,7 @@ export default class Player extends Human {
     }
 
     private async chatHandler(evt: ChatEvent): Promise<void> {
-        if (evt.isCancelled()) return;
+        if (evt.isCanceled()) return;
 
         // TODO: proper channel system
         if (
@@ -341,7 +341,7 @@ export default class Player extends Human {
 
         // One update to open the window the client will accept chunks in. It lists nothing:
         // `saved_chunks` describes chunks already sent, and at this point none have been.
-        // PlayerSession re-sends this every tick that carries chunks, keeping it centred on
+        // PlayerSession re-sends this every tick that carries chunks, keeping it centered on
         // the player as they move.
         await this.getNetworkSession().sendNetworkChunkPublisher(DEFAULT_VIEW_DISTANCE_CHUNKS, []);
 
@@ -522,7 +522,7 @@ export default class Player extends Human {
 
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.gamemode = event.getGamemode();
         await this.getNetworkSession().sendGamemode();
@@ -844,7 +844,7 @@ export default class Player extends Human {
      *
      * The one entity the server cannot simply move. A player's position comes from their own
      * client and is stored here as reported, so writing to it is overruled by the next movement
-     * packet and shows up as rubber-banding. A velocity is a request the client honours, and it
+     * packet and shows up as rubber-banding. A velocity is a request the client honors, and it
      * runs the shove through the same physics as everything else the player does.
      *
      * Not awaited: knockback is a consequence of a hit, not a step of it, and the damage
@@ -935,7 +935,7 @@ export default class Player extends Human {
      * @param {number} amount - Exhaustion to add.
      * @example
      * ```typescript
-     * player.addExhaustion(0.1); // one metre sprinted
+     * player.addExhaustion(0.1); // one meter sprinted
      * ```
      */
     public addExhaustion(amount: number): void {
@@ -984,7 +984,7 @@ export default class Player extends Human {
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
         this.server.post(['playerToggleSprint', event]);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.metadata.setSprinting(event.getIsSprinting());
         await this.getNetworkSession().sendMetadata();
@@ -1004,7 +1004,7 @@ export default class Player extends Human {
 
         const event = new PlayerToggleFlightEvent(this, flying);
         this.server.post(['playerToggleFlight', event]);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.flying = event.getIsFlying();
         await this.sendSettings();

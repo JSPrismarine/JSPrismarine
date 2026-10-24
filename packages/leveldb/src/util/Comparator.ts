@@ -18,7 +18,7 @@ export const sharedPrefixLength = (a: Buffer, b: Buffer): number => {
 
 /**
  * The shortest key that still sorts at or after `limit` and after `start`, used for a data block's
- * index entry. Shortening is only an optimisation - `start` itself is always a valid answer - but
+ * index entry. Shortening is only an optimization - `start` itself is always a valid answer - but
  * vanilla does it, and doing the same keeps our index blocks the same size as its.
  */
 export const findShortestSeparator = (start: Buffer, limit: Buffer): Buffer => {

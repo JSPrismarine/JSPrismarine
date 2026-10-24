@@ -13,7 +13,7 @@ import DataPacket from './DataPacket';
  *
  * This server defines no custom biomes, so it replays vanilla's - the exact payload a Bedrock
  * Dedicated Server 1.26.51.1 sends, recorded by `packages/client/tools/capture-server-data.mjs`.
- * Modelling the map field by field would only create ways to disagree with the client about a
+ * Modeling the map field by field would only create ways to disagree with the client about a
  * blob that is identical for every server of this version.
  *
  * **Bound To:** Client

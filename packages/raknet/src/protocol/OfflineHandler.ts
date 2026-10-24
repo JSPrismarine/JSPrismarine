@@ -172,7 +172,7 @@ export class OfflineHandler {
                 this.listener.emit('raw', msg, new InetAddress(rinfo.address, rinfo.port));
                 break;
             default:
-                // RakNet ignores traffic it does not recognise; anything reachable from
+                // RakNet ignores traffic it does not recognize; anything reachable from
                 // an unauthenticated UDP socket must never be able to raise.
                 // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5452
                 this.discard(msg, rinfo, 'unknown unconnected packet id');

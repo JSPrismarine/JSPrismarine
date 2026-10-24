@@ -1,0 +1,20 @@
+language js
+
+// GritQL sees JavaScript and TypeScript syntax nodes, but not comments or Markdown prose.
+or {
+    JsIdentifierBinding() as $token,
+    JsIdentifierExpression() as $token,
+    string() as $token
+} where {
+    $token <: or {
+        r"(?i).*(?:behaviour(?:s|al)?|colour(?:s|ed|ing|ful|less)?|favour(?:ite|ites|ed|ing|able|ably|s|itism)?|honour(?:able|ably|ed|ing|s)?|labour(?:ed|ing|er|ers|s)?|neighbour(?:hood|ing|ly|s)?|odour(?:less|s)?|rumour(?:ed|ing|s)?|humour(?:less|ous|s)?|flavour(?:ed|ing|less|s)?|harbour(?:ed|ing|s)?|savour(?:ed|ing|y|s)?|vigour|splendour|clamour|armour(?:ed|ing|s)?|unarmoured).*$",
+        r"(?i).*(?:organ|real|recogn|optim|standard|special|priorit|categor|author|util|initial|custom|summar|synchron|maxim|minim|general|emphas|critic|visual|normal|apolog|random)is(?:e|es|ed|ing|ation|ations).*",
+        r"(?i).*(?:analys(?:e|es|ed|ing|er|ers)|cent(?:re|res|red|ring)|catalogu(?:e|es|ed|ing)|metres?|litres?|theatres?).*",
+        r"(?i).*(?:travell(?:ed|ing|er|ers)|cancelled|cancelling|labelled|labelling|modelled|modelling|modeller|counsell(?:or|ors)|enrolment|fulfilment).*",
+        r"(?i).*(?:acknowledgements?|defence|offence|licence|practis(?:e|es|ed|ing)|grey|jewellery|jewellers?|cheques?|learnt|whilst|amongst|amidst|(?:^|[^a-z])programme(?:s)?(?:$|[^a-z])|mould(?:s|ed|ing)?|sulphur|plough(?:s|ed|ing)?|aeroplanes?|sceptics?|storeys?|aluminium|anaemia|anaemic|anaesthesia|anaesthetic|anaesthetist|anaesthetise|encyclopaedia|palaeontology|palaeolithic|paediatric|foetus|foetal|oestrogen|oesophagus|orthopaedic|leukaemia|haemoglobin|haemorrhage|haemorrhoids|haematology|haematoma|diarrhoea|faeces|faecal|manoeuvre|fibre(?:s|glass)?|gaol|(?:^|[^a-z])(?:tyres?|kerbs?)(?:$|[^a-z])).*"
+    },
+    register_diagnostic(
+        span = $token,
+        message = "Use American English spelling."
+    )
+}

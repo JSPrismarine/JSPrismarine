@@ -27,8 +27,8 @@ export interface ResourcePackStack {
 /**
  * The order the packs are applied in, sent once the client says it has them all.
  *
- * One list, not two. 748 sent the behaviour packs ahead of the texture packs, and a reader
- * that still expects them takes the texture pack count for the behaviour pack count and every
+ * One list, not two. 748 sent the behavior packs ahead of the texture packs, and a reader
+ * that still expects them takes the texture pack count for the behavior pack count and every
  * field after it is read from the wrong place - which on an empty stack means running off the
  * end of an eleven byte packet.
  */

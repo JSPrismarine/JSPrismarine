@@ -19,12 +19,12 @@ import { DamageCause } from './DamageCause';
  * @see https://minecraft.wiki/w/Armor#Damage_protection
  */
 
-/** Full sets, in armour points and toughness. */
+/** Full sets, in armor points and toughness. */
 const IRON = { points: 15, toughness: 0 };
 const DIAMOND = { points: 20, toughness: 8 };
 
 describe('damage reduction', () => {
-    describe('armour', () => {
+    describe('armor', () => {
         it('leaves a blow alone when nothing is worn', () => {
             expect(armorReduced(10, 0, 0)).toBe(10);
         });
@@ -47,14 +47,14 @@ describe('damage reduction', () => {
         });
 
         it('never protects less than a flat fifth of its points, however hard the blow', () => {
-            // Without the floor the softening term goes negative and armour would stop being
-            // armour at all somewhere around a twenty point hit.
+            // Without the floor the softening term goes negative and armor would stop being
+            // armor at all somewhere around a twenty point hit.
             expect(armorReduced(100, 20, 0)).toBeCloseTo(84);
         });
 
         it('cannot take off more than four fifths, so nobody is untouchable', () => {
-            // Absurd armour, still a fifth of every blow. There is no build in vanilla that makes
-            // armour alone enough, and the twenty point cap is the line that guarantees it.
+            // Absurd armor, still a fifth of every blow. There is no build in vanilla that makes
+            // armor alone enough, and the twenty point cap is the line that guarantees it.
             expect(armorReduced(10, 40, 40)).toBeCloseTo(2);
         });
     });
@@ -86,17 +86,17 @@ describe('damage reduction', () => {
     });
 
     describe('what each cause ignores', () => {
-        it('lets drowning and starving through armour', () => {
+        it('lets drowning and starving through armor', () => {
             expect(bypassesArmor(DamageCause.Drowning)).toBe(true);
             expect(bypassesArmor(DamageCause.Starvation)).toBe(true);
         });
 
-        it('reduces a burn, because armour does help with fire', () => {
+        it('reduces a burn, because armor does help with fire', () => {
             expect(bypassesArmor(DamageCause.Fire)).toBe(false);
             expect(bypassesArmor(DamageCause.Lava)).toBe(false);
         });
 
-        it('ignores armour points on a fall but not the enchantments on them', () => {
+        it('ignores armor points on a fall but not the enchantments on them', () => {
             // The whole reason anyone enchants boots. Folding the two lists together made Feather
             // Falling do nothing at all.
             expect(bypassesArmor(DamageCause.Fall)).toBe(true);
@@ -114,18 +114,18 @@ describe('damage reduction', () => {
             bypassesEnchantments: false
         };
 
-        it('applies armour, then enchantments, then resistance', () => {
+        it('applies armor, then enchantments, then resistance', () => {
             // Six after the iron, 4.8 after five points of protection, 3.84 after Resistance I.
             expect(
                 reduceDamage(10, { ...bare, defensePoints: IRON.points, enchantmentProtection: 5, resistance: 1 })
             ).toBeCloseTo(3.84);
         });
 
-        it('skips the armour step for the causes that bypass it', () => {
+        it('skips the armor step for the causes that bypass it', () => {
             expect(reduceDamage(10, { ...bare, defensePoints: 20, bypassesArmor: true })).toBeCloseTo(10);
         });
 
-        it('still applies the enchantments when only the armour is bypassed', () => {
+        it('still applies the enchantments when only the armor is bypassed', () => {
             expect(
                 reduceDamage(10, { ...bare, defensePoints: 20, enchantmentProtection: 10, bypassesArmor: true })
             ).toBeCloseTo(6);

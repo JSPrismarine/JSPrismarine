@@ -63,12 +63,12 @@ describe('the command line', () => {
         expect(err.join('')).toContain('--host is required');
     });
 
-    it('rejects a behaviour it does not know before connecting to anything', async () => {
+    it('rejects a behavior it does not know before connecting to anything', async () => {
         const { io, err } = capture();
 
         // A load test silently missing half its traffic is worse than one that will not start.
-        expect(await run(['bot', '--host', '127.0.0.1', '--count', '1', '--behaviour', 'teleport'], io)).toBe(1);
-        expect(err.join('')).toContain('Unknown behaviour "teleport"');
+        expect(await run(['bot', '--host', '127.0.0.1', '--count', '1', '--behavior', 'teleport'], io)).toBe(1);
+        expect(err.join('')).toContain('Unknown behavior "teleport"');
     });
 
     it('rejects a count of zero', async () => {
@@ -121,7 +121,7 @@ describe('against a real server', () => {
                 String(port),
                 '--count',
                 '3',
-                '--behaviour',
+                '--behavior',
                 'walk,chat',
                 '--duration',
                 '1s',

@@ -11,7 +11,7 @@ export const GameRules = {
     DoMobSpawning: 'domobspawning',
     DoTileDrops: 'dotiledrops',
     DoWeatherCycle: 'doweathercycle',
-    // Spelt correctly at last. The value was always right - the constant's *name* was missing an
+    // Spelled correctly at last. The value was always right - the constant's *name* was missing an
     // `n`, so anything reaching for `GameRules.DrowningDamage` got `undefined` and looked up a
     // gamerule called "undefined".
     DrowningDamage: 'drowningdamage',

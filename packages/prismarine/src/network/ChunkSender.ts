@@ -23,7 +23,7 @@ export class ChunkSender {
     private centerX = 0;
     private centerZ = 0;
 
-    /** Set when the centre moves, so the queue is re-sorted once rather than per insert. */
+    /** Set when the center moves, so the queue is re-sorted once rather than per insert. */
     private dirty = false;
 
     private static key(x: number, z: number): bigint {
@@ -43,7 +43,7 @@ export class ChunkSender {
     }
 
     /**
-     * Moves the player the queue is centred on.
+     * Moves the player the queue is centered on.
      *
      * Priorities are recomputed lazily, on the next {@link next}: a player walking produces
      * a position update every tick, and re-sorting on each one would cost more than the

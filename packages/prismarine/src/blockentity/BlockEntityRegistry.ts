@@ -24,7 +24,7 @@ const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =
 /**
  * Turns a block entity's NBT into an object.
  *
- * A type nobody has modelled becomes a {@link GenericBlockEntity} rather than an error, because
+ * A type nobody has modeled becomes a {@link GenericBlockEntity} rather than an error, because
  * the alternative - refusing the chunk - would make a world unopenable over one unfamiliar block,
  * and the generic form still round-trips it untouched.
  */
@@ -46,17 +46,17 @@ export class BlockEntityRegistry {
 
     public static fromNBT(nbt: NBTTagCompound): BlockEntity {
         const id = nbt.getString('id', '');
-        const modelled = this.classes().get(id);
+        const modeled = this.classes().get(id);
 
-        return modelled ? modelled.fromNBT(nbt) : GenericBlockEntity.fromNBT(nbt);
+        return modeled ? modeled.fromNBT(nbt) : GenericBlockEntity.fromNBT(nbt);
     }
 
-    /** Whether a type is modelled, as opposed to merely preserved. Used in tests and logs. */
-    public static isModelled(id: string): boolean {
+    /** Whether a type is modeled, as opposed to merely preserved. Used in tests and logs. */
+    public static isModeled(id: string): boolean {
         return this.classes().has(id);
     }
 
-    /** Every modelled id, for diagnostics. */
+    /** Every modeled id, for diagnostics. */
     public static ids(): string[] {
         return [...this.classes().keys()];
     }

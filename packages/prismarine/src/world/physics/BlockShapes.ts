@@ -29,7 +29,7 @@ export const PASSABLE = 0;
  * Fences, walls and closed gates.
  *
  * Half a block taller than they look, which is the entire point of them: a mob's jump peaks at
- * 1.252 blocks, so one and a half is exactly the height that cannot be cleared. Modelling a fence
+ * 1.252 blocks, so one and a half is exactly the height that cannot be cleared. Modeling a fence
  * as a cube - which is what happens when a block is only ever solid or not - lets every animal
  * in the pen hop out.
  */

@@ -85,7 +85,7 @@ export class Attribute {
      * The `default_min` / `default_max` pair is what the client falls back to when an
      * attribute is reset. We do not track bounds that differ from the live ones, so they
      * are sent as the live bounds - the same thing PocketMine does. Omitting them costs
-     * eight bytes per attribute and desynchronises everything after it, which the client
+     * eight bytes per attribute and desynchronizes everything after it, which the client
      * only notices once it reads a nonsensical string length further down the packet.
      * @see https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json
      */

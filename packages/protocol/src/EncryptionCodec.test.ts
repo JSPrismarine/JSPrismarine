@@ -69,7 +69,7 @@ describe('protocol', () => {
         });
 
         /**
-         * A batch that never arrives desynchronises the counters, and the failure surfaces on
+         * A batch that never arrives desynchronizes the counters, and the failure surfaces on
          * the *next* batch rather than the missing one - which is why it is worth a test.
          */
         it('rejects everything after a batch is skipped', () => {

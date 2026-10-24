@@ -230,7 +230,7 @@ const readFurnace = (recipe, id) => ({
  * The smithing table's three slots, in the order it presents them.
  *
  * Only the transform is read. `minecraft:recipe_smithing_trim` is the other kind and has no
- * `result` at all - the trim's output is the armour that went in, wearing the material that
+ * `result` at all - the trim's output is the armor that went in, wearing the material that
  * went in with it - so it is not a recipe with an output and does not fit a model that has
  * one. It stays counted among the skipped rather than being turned into something it is not.
  */
@@ -254,7 +254,7 @@ const READERS = {
     'minecraft:recipe_smithing_transform': readSmithing
 };
 
-/** A vanilla behaviour pack: the base one, or one of the per-release layers over it. */
+/** A vanilla behavior pack: the base one, or one of the per-release layers over it. */
 const VANILLA_LAYER = /^vanilla(?:_(\d+)\.(\d+)(?:\.(\d+))?)?$/;
 
 /** A layer's version, `[0, 0, 0]` for the base pack, or null if the name is not a layer. */
@@ -335,7 +335,8 @@ const composeLayers = (layers) => {
             for (const [kind, recipe] of Object.entries(contents)) {
                 if (kind === 'format_version') continue;
 
-                const id = recipe.description?.identifier ?? path.basename(file, '.json');
+                const sourceId = recipe.description?.identifier ?? path.basename(file, '.json');
+                const id = manifest.recipes.idAliases?.[sourceId] ?? sourceId;
                 definitions.set(id, { kind, recipe, id, layer: name });
             }
         }

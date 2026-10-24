@@ -7,7 +7,7 @@ import { BlockEntity } from './BlockEntity';
  * Any block entity this server does not model.
  *
  * It keeps the whole compound and writes it straight back, so a jukebox, a beacon or something
- * from a behaviour pack survives being loaded and saved untouched. Its reported id is the one the
+ * from a behavior pack survives being loaded and saved untouched. Its reported id is the one the
  * file gave it rather than a constant, so it still looks like what it is.
  */
 export class GenericBlockEntity extends BlockEntity {

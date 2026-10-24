@@ -118,7 +118,7 @@ export const runBot = async (values: Values, io: CliIo): Promise<number> => {
     const count = parseCount(requireString(values, 'count'), '--count');
     if (count === 0) throw new UsageError('--count must be at least 1');
 
-    const behaviours = (optionalString(values, 'behaviour') ?? '')
+    const behaviors = (optionalString(values, 'behavior') ?? '')
         .split(',')
         .map((name) => name.trim())
         .filter((name) => name.length > 0);
@@ -130,7 +130,7 @@ export const runBot = async (values: Values, io: CliIo): Promise<number> => {
         host,
         port: port(values),
         count,
-        behaviours,
+        behaviors,
         ramp,
         seed: optionalParsed(values, 'seed', (value) => parseCount(value, '--seed')) ?? 1,
         viewDistance: optionalParsed(values, 'view-distance', (value) => parseCount(value, '--view-distance')) ?? 4,

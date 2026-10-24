@@ -596,7 +596,7 @@ export default class PlayerSession {
         const hand = inventory.getEntry(inventory.getHandSlotIndex());
         if (hand) await this.sendHandItem(hand.toItemStack());
 
-        // The armour container is a window of its own, so the main inventory's contents say
+        // The armor container is a window of its own, so the main inventory's contents say
         // nothing about it and a player would open their screen to four empty slots.
         const armor = new InventoryContentPacket();
         armor.items = inventory.getArmor().getItems(true);
@@ -655,7 +655,7 @@ export default class PlayerSession {
      *
      * The range is not invented: `ContainerID` documents where a server's own windows begin
      * and end, and everything outside it is spoken for - zero is the player inventory, and
-     * the hundreds are the armour, the offhand and the player-only UI. Wrapping keeps a long
+     * the hundreds are the armor, the offhand and the player-only UI. Wrapping keeps a long
      * session inside it.
      */
     private nextWindowId(): number {
@@ -953,7 +953,7 @@ export default class PlayerSession {
      *
      * The only way to shove a player. Their position is theirs - the server stores what it is
      * told - so setting it from here is overruled by the next movement packet and read as
-     * rubber-banding. A velocity is a request the client is happy to honour.
+     * rubber-banding. A velocity is a request the client is happy to honor.
      * @param {Vector3} motion - Blocks per tick, in each axis.
      */
     public async sendMotion(motion: Vector3): Promise<void> {
@@ -1178,7 +1178,7 @@ export default class PlayerSession {
      *
      * All four pieces at once, empty ones included as air: the packet is positional and a client
      * that was sent three would read the next packet's bytes as the fourth.
-     * @param {Human} wearer - Whose armour it is.
+     * @param {Human} wearer - Whose armor it is.
      */
     public async sendArmorFor(wearer: Human): Promise<void> {
         const armor = wearer.getInventory().getArmor();
@@ -1371,7 +1371,7 @@ export default class PlayerSession {
         // client receiving it, so it has no place in a spawn at all.
         await player.getNetworkSession().sendAbilities(this.player);
 
-        // `AddPlayerPacket` carries the held item and nothing else, so armour has to follow the
+        // `AddPlayerPacket` carries the held item and nothing else, so armor has to follow the
         // player into view as a packet of its own - otherwise everybody else sees them in their
         // shirtsleeves however well equipped they are.
         await player.getNetworkSession().sendArmorFor(this.player);

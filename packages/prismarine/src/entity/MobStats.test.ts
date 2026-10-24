@@ -61,7 +61,7 @@ describe('mob stats', () => {
     });
 
     it('falls back to what an entity had before this table existed', () => {
-        // Deliberately the base attribute defaults, so an unmodelled entity behaves as it did
+        // Deliberately the base attribute defaults, so an unmodeled entity behaves as it did
         // rather than becoming accidentally weak or immortal.
         expect(statsOf('minecraft:allay_from_some_future_version')).toStrictEqual(DEFAULT_STATS);
         expect(DEFAULT_STATS).toStrictEqual({

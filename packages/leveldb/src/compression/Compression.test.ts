@@ -159,7 +159,7 @@ describe('leveldb', () => {
     describe('compression', () => {
         const payload = Buffer.from('minecraft:stone'.repeat(500));
 
-        it('recognises exactly the four types the format defines', () => {
+        it('recognizes exactly the four types the format defines', () => {
             expect([0, 1, 2, 4].every(isCompressionType)).toBe(true);
             expect([3, 5, 255, -1].some(isCompressionType)).toBe(false);
         });

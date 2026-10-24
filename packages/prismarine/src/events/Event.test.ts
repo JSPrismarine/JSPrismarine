@@ -10,13 +10,13 @@ describe('events', () => {
             event = new Event();
         });
 
-        it('should not be cancelled by default', () => {
-            expect(event.isCancelled()).toBe(false);
+        it('should not be canceled by default', () => {
+            expect(event.isCanceled()).toBe(false);
         });
 
         it('should be able to cancel the event', () => {
             event.preventDefault();
-            expect(event.isCancelled()).toBe(true);
+            expect(event.isCanceled()).toBe(true);
         });
     });
 });

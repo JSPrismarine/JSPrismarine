@@ -26,10 +26,10 @@ export enum DamageCause {
     Contact = 'contact',
     /** A solid block where the entity's head is. */
     Suffocation = 'suffocation',
-    /** Potions and the like, which armour does nothing about. */
+    /** Potions and the like, which armor does nothing about. */
     Magic = 'magic',
     Wither = 'wither',
-    /** Reflected back at an attacker by the armour they hit. */
+    /** Reflected back at an attacker by the armor they hit. */
     Thorns = 'thorns'
 }
 

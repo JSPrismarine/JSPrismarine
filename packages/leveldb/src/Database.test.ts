@@ -120,7 +120,7 @@ describe('leveldb', () => {
                 await db.close();
             });
 
-            it('honours a range', async () => {
+            it('honors a range', async () => {
                 const db = await Database.open(scratch());
                 for (const k of chunkKeys(100)) db.put(k, key('v'));
 

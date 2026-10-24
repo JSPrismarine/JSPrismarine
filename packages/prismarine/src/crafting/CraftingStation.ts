@@ -83,7 +83,7 @@ export class StationRegistry {
      *
      * Derived rather than listed, so that a station appears the moment a recipe names it -
      * including a plugin's - and nothing has to keep a second list in step. A block that
-     * needs behaviour of its own registers over the top afterwards.
+     * needs behavior of its own registers over the top afterwards.
      */
     public registerRecipeStations(server: StationServer): void {
         for (const recipe of server.getRecipeManager().getRecipes()) {

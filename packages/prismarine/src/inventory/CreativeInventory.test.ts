@@ -9,7 +9,7 @@ import CreativeInventory from './CreativeInventory';
  * Deliberately empty, because that is the whole point of what changed: the menu used to be
  * the intersection of the creative list and the blocks and items this server implements
  * classes for, which meant 1611 of the 1919 entries never reached the client. A class is what
- * gives an item behaviour once it is held; it is not what makes the client able to show it.
+ * gives an item behavior once it is held; it is not what makes the client able to show it.
  */
 const emptyServer = {
     getBlockManager: () => ({ getBlocks: () => [] }),

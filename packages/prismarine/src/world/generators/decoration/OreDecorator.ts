@@ -73,7 +73,7 @@ export class OreDecorator implements Decorator {
                     }
 
                     // Wander one block in some direction, staying inside the chunk so the
-                    // vein never silently spills into a neighbour that may already exist.
+                    // vein never silently spills into a neighbor that may already exist.
                     x = Math.min(15, Math.max(0, x + random.nextRange(-1, 1)));
                     z = Math.min(15, Math.max(0, z + random.nextRange(-1, 1)));
                     y = Math.min(ceiling, Math.max(veinFloor, y + random.nextRange(-1, 1)));

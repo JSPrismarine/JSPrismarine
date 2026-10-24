@@ -22,11 +22,11 @@ const SPECIES = [
  * Plants trees on grass.
  *
  * **Trees stay clear of the chunk border.** A canopy reaches two blocks out, and this
- * generator decorates a chunk in isolation with no access to its neighbours - so a tree
+ * generator decorates a chunk in isolation with no access to its neighbors - so a tree
  * planted at the edge would have its leaves sliced off at the boundary. Keeping trunks
  * within the inset means no tree is ever cut in half; the cost is a thin strip along each
  * chunk edge where trees never grow, which is invisible in play but real. Growing them
- * across the seam needs a population pass that revisits a chunk once its neighbours exist,
+ * across the seam needs a population pass that revisits a chunk once its neighbors exist,
  * which is a larger change to how chunks are loaded.
  */
 export class TreeDecorator implements Decorator {

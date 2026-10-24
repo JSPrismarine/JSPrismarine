@@ -10,7 +10,7 @@ import type { Entity } from './Entity';
  * these are `%`-prefixed keys rather than English, and why a German player sees German.
  *
  * Two tables rather than one, because most causes have two forms: dying in a fire is
- * "went up in flames", and dying in a fire somebody set is "was burnt to a crisp whilst
+ * "went up in flames", and dying in a fire somebody set is "was burnt to a crisp while
  * fighting Steve". The second table only holds the causes where a killer changes the wording.
  * @see https://minecraft.wiki/w/Death_messages
  */
@@ -57,7 +57,7 @@ const ATTRIBUTED: Partial<Record<DamageCause, string>> = {
     [DamageCause.Explosion]: '%death.attack.explosion.player',
     [DamageCause.Magic]: '%death.attack.indirectMagic',
     [DamageCause.Thorns]: '%death.attack.thorns',
-    // The `.player` suffix is vanilla's for "whilst fighting somebody", and pairs with the
+    // The `.player` suffix is vanilla's for "while fighting somebody", and pairs with the
     // unattributed key above rather than with `onFire`, which is a different death.
     [DamageCause.Fire]: '%death.attack.inFire.player'
 };

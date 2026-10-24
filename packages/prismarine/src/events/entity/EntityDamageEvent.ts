@@ -7,9 +7,9 @@ import { Event } from '../Event';
  *
  * Cancellable, and the amount is writable, so a plugin can make a region safe or a mob tougher
  * without having to intercept every source of damage separately. The amount here is the *raw*
- * blow: armour, enchantments and resistance have not been applied yet, which is what makes it
+ * blow: armor, enchantments and resistance have not been applied yet, which is what makes it
  * the useful number to change - doubling it doubles the hit as a player would understand it,
- * rather than undoing whatever their armour was about to do.
+ * rather than undoing whatever their armor was about to do.
  */
 export default class EntityDamageEvent extends Event {
     private readonly entity: Entity;

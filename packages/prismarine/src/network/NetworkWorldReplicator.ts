@@ -218,8 +218,8 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         const packet = new LevelSoundEventPacket();
         packet.sound = sound;
 
-        // Centre of the block, not its corner: the sound is placed in the world and a whole
-        // block off is audible when it is right next to you. Only the packet is centred - the
+        // Center of the block, not its corner: the sound is placed in the world and a whole
+        // block off is audible when it is right next to you. Only the packet is centered - the
         // audience is still resolved at the block itself, which is the position the world
         // named and the one that still carries which world it is in.
         packet.positionX = position.getX() + 0.5;

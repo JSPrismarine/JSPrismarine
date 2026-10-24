@@ -31,7 +31,7 @@ const EXPANSIONS_PER_BLOCK = 24;
 /** How far a mob will look for a route at all. Beyond this it is not worth the search. */
 const MAX_RANGE = 48;
 
-/** The biggest step up a mob will take without jumping being modelled as anything special. */
+/** The biggest step up a mob will take without jumping being modeled as anything special. */
 const STEP_UP = 1;
 
 /** The furthest a mob will drop on purpose. */
@@ -184,8 +184,8 @@ export const findPath = (
             const nextY = footingAt(view, nextX, current.y, nextZ, height, width);
             if (nextY === null) continue;
 
-            const neighbourKey = key(nextX, nextY, nextZ);
-            if (closed.has(neighbourKey)) continue;
+            const neighborKey = key(nextX, nextY, nextZ);
+            if (closed.has(neighborKey)) continue;
 
             let cost = dx !== 0 && dz !== 0 ? DIAGONAL_COST : 1;
             if (view.isLiquid(nextX, nextY, nextZ)) cost *= LIQUID_COST;
@@ -193,10 +193,10 @@ export const findPath = (
             cost += Math.abs(nextY - current.y) * 0.4;
 
             const g = current.g + cost;
-            const known = bestCost.get(neighbourKey);
+            const known = bestCost.get(neighborKey);
             if (known !== undefined && known <= g) continue;
 
-            bestCost.set(neighbourKey, g);
+            bestCost.set(neighborKey, g);
             open.push({
                 x: nextX,
                 y: nextY,
@@ -292,7 +292,7 @@ const smooth = (view: BlockView, path: Path, height: number, width: number): Pat
  * for the body itself. The second half of that is what stops the straightening from undoing the
  * search's work: the grid route only ever passes through cells the mob fits in, but the shortcut
  * between two of them is a diagonal across cell corners, and a body nearly a block wide clips
- * those corners even where its centre line does not. Testing the centre line alone is what had
+ * those corners even where its center line does not. Testing the center line alone is what had
  * sheep grinding their shoulders along every doorway they were sent through.
  */
 const walkableBetween = (view: BlockView, from: Vector3, to: Vector3, height: number, width: number): boolean => {
@@ -309,10 +309,10 @@ const walkableBetween = (view: BlockView, from: Vector3, to: Vector3, height: nu
 
     for (let step = 1; step <= steps; step++) {
         const t = step / steps;
-        const centreX = from.getX() + dx * t;
-        const centreZ = from.getZ() + dz * t;
-        const x = Math.floor(centreX);
-        const z = Math.floor(centreZ);
+        const centerX = from.getX() + dx * t;
+        const centerZ = from.getZ() + dz * t;
+        const x = Math.floor(centerX);
+        const z = Math.floor(centerZ);
         const y = Math.round(from.getY() + dy * t);
 
         // The straight line has to be walkable as a walk, not just as a line: no climbing more than
@@ -322,7 +322,7 @@ const walkableBetween = (view: BlockView, from: Vector3, to: Vector3, height: nu
         const footing = footingAt(view, x, previousY, z, height, width);
         if (footing === null || Math.abs(footing - y) > 1) return false;
 
-        if (view.blocksBox(centreX, footing + view.topAt(x, footing, z), centreZ, width, height)) return false;
+        if (view.blocksBox(centerX, footing + view.topAt(x, footing, z), centerZ, width, height)) return false;
 
         previousY = footing;
     }

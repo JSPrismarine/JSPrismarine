@@ -67,7 +67,7 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
                     const started = monotonicNow();
 
                     // Rescheduled from `finally`, and each session isolated from the next. This
-                    // is the only thing driving acknowledgements, retransmissions and timeouts
+                    // is the only thing driving acknowledgment, retransmissions and timeouts
                     // for *every* connection, so a single session throwing used to stop all of
                     // them permanently - the loop simply never reached its own next call.
                     try {
@@ -106,7 +106,7 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
     }
 
     private handleMessage(msg: Buffer, rinfo: RemoteInfo): void {
-        // Nothing RakNet can act on fits in two bytes - the shortest acknowledgement is
+        // Nothing RakNet can act on fits in two bytes - the shortest acknowledgment is
         // seven, the shortest datagram eight - so RakNet rejects them before the reliability
         // layer rather than letting the decoder discover it.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4582
@@ -118,7 +118,7 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
         // packets inline and keeps going.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/ReliabilityLayer.cpp#L888
         try {
-            // Offline traffic is recognised by its message id, the way RakNet recognises it,
+            // Offline traffic is recognized by its message id, the way RakNet recognizes it,
             // and not by the datagram header alone: QUERY is 0xfe, which has the VALID bit
             // set, so testing that bit on its own sent every query datagram down the
             // connected path to be dropped as sessionless - and the `raw` event the query

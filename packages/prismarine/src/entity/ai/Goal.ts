@@ -3,7 +3,7 @@ import type { Mob } from '../Mob';
 /**
  * One thing a mob might want to be doing.
  *
- * Behaviour is built out of small independent goals rather than one big state machine per mob,
+ * Behavior is built out of small independent goals rather than one big state machine per mob,
  * because the things a mob does overlap: it wanders, and it looks at you, and it panics when hurt,
  * and those are three separate concerns that a state machine would have to enumerate the product
  * of. A goal only has to answer "would I like to run" and "am I still going".

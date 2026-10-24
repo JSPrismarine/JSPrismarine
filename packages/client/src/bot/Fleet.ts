@@ -3,14 +3,14 @@ import Bot from './Bot';
 import type { FleetReport } from './Metrics';
 import { Samples } from './Metrics';
 import Random from './Random';
-import { createBehaviours } from './behaviour/Behaviours';
+import { createBehaviors } from './behavior/Behaviors';
 
 export interface FleetOptions {
     readonly host: string;
     readonly port?: number;
     readonly count: number;
-    /** Behaviour names, e.g. `['walk', 'chat']`. */
-    readonly behaviours?: readonly string[];
+    /** Behavior names, e.g. `['walk', 'chat']`. */
+    readonly behaviors?: readonly string[];
     /**
      * How many bots to connect per second.
      *
@@ -33,7 +33,7 @@ const DEFAULT_RAMP_PER_SECOND = 10;
  * A fleet of synthetic players, and the numbers they produce.
  *
  * The unit of a load test is the fleet rather than the bot: what is being measured is a
- * server's behaviour under N connections, and every number worth having - login latency
+ * server's behavior under N connections, and every number worth having - login latency
  * percentiles, throughput, how many made it - is a property of the population.
  *
  * Everything random is derived from one seed, so two runs against the same server differ
@@ -41,7 +41,7 @@ const DEFAULT_RAMP_PER_SECOND = 10;
  *
  * @example
  * ```typescript
- * const fleet = new Fleet({ host: '127.0.0.1', count: 50, behaviours: ['walk', 'chat'], seed: 1234 });
+ * const fleet = new Fleet({ host: '127.0.0.1', count: 50, behaviors: ['walk', 'chat'], seed: 1234 });
  * await fleet.connect();
  * await fleet.run(60_000);
  * console.log(formatReport(fleet.report()));
@@ -61,7 +61,7 @@ export default class Fleet {
         this.logger = options.logger ?? new Logger('error');
         this.seed = options.seed ?? 1;
 
-        const behaviourNames = options.behaviours ?? [];
+        const behaviorNames = options.behaviors ?? [];
         const prefix = options.namePrefix ?? 'Bot';
 
         for (let index = 0; index < options.count; index++) {
@@ -70,10 +70,10 @@ export default class Fleet {
                     host: options.host,
                     port: options.port ?? 19132,
                     displayName: `${prefix}${index}`,
-                    // Built per bot rather than shared: a behaviour holds state - which way
+                    // Built per bot rather than shared: a behavior holds state - which way
                     // it is walking, when it next speaks - and one instance across five
                     // hundred bots would have them move as one.
-                    behaviours: createBehaviours(behaviourNames),
+                    behaviors: createBehaviors(behaviorNames),
                     random: Random.forMember(this.seed, index),
                     logger: this.logger,
                     viewDistance: options.viewDistance ?? 4,

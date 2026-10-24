@@ -91,7 +91,7 @@ describe('crafting', () => {
 
         it('announces a registration, and a listener can refuse it', async () => {
             // There is no unregister on purpose - a net id is a position, so removing one
-            // would renumber everything after it - so cancelling is how a vanilla recipe goes.
+            // would renumber everything after it - so canceling is how a vanilla recipe goes.
             const cancel = vi.fn((_event: string, payload: unknown) => {
                 if (payload instanceof RecipeRegisterEvent) payload.preventDefault();
             });

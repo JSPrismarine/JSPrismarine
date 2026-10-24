@@ -127,7 +127,7 @@ describe('network', () => {
                 expect(replicator.getViewers(here)).toEqual([far]);
             });
 
-            it('still honours exclusions', () => {
+            it('still honors exclusions', () => {
                 const near = playerAt(3);
                 const { replicator } = fakeWorld({ players: [near], proximity: false });
 

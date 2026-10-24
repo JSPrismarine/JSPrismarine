@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`block > vanilla catalogue > keeps the ids of a sample of blocks stable across releases 1`] = `
+exports[`block > vanilla catalog > keeps the ids of a sample of blocks stable across releases 1`] = `
 {
   "minecraft:air": [
     "minecraft:air=-604749536",

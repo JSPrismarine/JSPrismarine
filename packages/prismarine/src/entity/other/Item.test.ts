@@ -145,7 +145,7 @@ describe('entity', () => {
                 return entities;
             };
 
-            it('draws a neighbouring stack of the same thing into one', async () => {
+            it('draws a neighboring stack of the same thing into one', async () => {
                 // Mining a seam leaves a dozen entities where there should be one, each
                 // ticking, each falling, each broadcast to everyone who comes near.
                 const world = fakeWorld(63);
@@ -176,7 +176,7 @@ describe('entity', () => {
                 expect(world.removed).not.toContain(dirt);
             });
 
-            it('reaches across the gap two neighbouring blocks drop at', async () => {
+            it('reaches across the gap two neighboring blocks drop at', async () => {
                 // Where the reach has to be. Breaking two blocks side by side leaves the drops
                 // exactly one block apart, and this server does not give them the horizontal
                 // drift that would bring them together - so at vanilla's half a block they

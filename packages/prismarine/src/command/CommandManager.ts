@@ -10,7 +10,7 @@ import {
 import type { Command, Entity, Server, Service } from '../';
 import { Chat } from '../chat/Chat';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
-// `./world/` before `Player`, so reaching for it via '../' lands in a half-initialised
+// `./world/` before `Player`, so reaching for it via '../' lands in a half-initialized
 // module and the binding is not a constructor yet by the time `instanceof` runs.
 import Player from '../Player';
 import CommandRegisterEvent from '../events/command/CommandRegisterEvent';
@@ -65,7 +65,7 @@ export class CommandManager implements Service {
 
                 const event = new CommandRegisterEvent(command);
                 await this.server.emit('commandRegister', event);
-                if (event.isCancelled()) return;
+                if (event.isCanceled()) return;
 
                 try {
                     await this.registerCommand(command);

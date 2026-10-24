@@ -7,7 +7,7 @@ import DataPacket from './DataPacket';
  *
  * The layout follows protocol {@link Identifiers.Protocol} (2168, Minecraft 1.26.40): four
  * flags, the world template's identity, then the texture pack list counted by a varint.
- * Earlier versions also carried a `forceServerPacks` flag, a separate behaviour pack
+ * Earlier versions also carried a `forceServerPacks` flag, a separate behavior pack
  * list and a trailing CDN url list; all three are gone, and the CDN url now lives on
  * each entry instead. Writing them anyway leaves four bytes the client cannot account
  * for, and it drops the connection right after this packet.

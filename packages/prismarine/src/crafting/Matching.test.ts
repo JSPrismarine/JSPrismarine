@@ -80,7 +80,7 @@ describe('crafting', () => {
             expect(sticks.matches(grid([P, P], ['.', '.']))).toBe(false);
         });
 
-        it('honours the holes in a pattern', () => {
+        it('honors the holes in a pattern', () => {
             // A hoe: two along the top, then one down the left of the row below.
             const hoe = new ShapedRecipe(
                 'hoe',

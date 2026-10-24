@@ -109,7 +109,7 @@ _existing() {
 ask() {
   local key="$1" prompt="$2" current input s=$'\001' e=$'\002' p rc=0
   current=$(_existing "$key" || true)
-  # Readline needs the colour codes wrapped in \001..\002 to place the cursor.
+  # Readline needs the color codes wrapped in \001..\002 to place the cursor.
   p="  $s$BOLD$e$prompt$s$RESET$e "
   [[ -n "$current" ]] && p+="$s$DIM$e[Enter keeps current]$s$RESET$e "
   read -e -r -p "$p" input || rc=1

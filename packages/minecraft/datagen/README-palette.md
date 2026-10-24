@@ -14,7 +14,7 @@ Neither source alone is the answer.
   *internal* blocks, where a flattened name still answers for its legacy states -
   `minecraft:purple_wool` comes back carrying a `color`. Taken whole it implies 56957 states
   against the 17487 the network has, and every extra one hashes to a runtime id no client
-  recognises. Nor can the extras be filtered by name: `minecraft:cardinal_direction` is legacy
+  recognizes. Nor can the extras be filtered by name: `minecraft:cardinal_direction` is legacy
   on a door and genuine on a shelf.
 - **A saved world has exactly the right thing.** A sub chunk stores its palette as NBT - each
   entry a name and the states that go with it - in the form the network uses.
@@ -92,5 +92,5 @@ and concrete stairs and slabs - and 123 with a changed property set, every one o
 release notes announced: `minecraft:corner` on 65 stairs, and the four `minecraft:connection_*`
 states on 58 fences, panes, bars and trip wires. No value set disagreed.
 
-Worth repeating against whatever the current catalogue is when you next capture: a silent
+Worth repeating against whatever the current catalog is when you next capture: a silent
 disagreement here does not fail a build, it produces runtime ids a client quietly ignores.

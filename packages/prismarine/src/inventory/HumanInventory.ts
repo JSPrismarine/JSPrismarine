@@ -37,7 +37,7 @@ export default class HumanInventory extends Inventory {
      * walks the inventory looking for space would otherwise offer to put a pickaxe on your head.
      *
      * Until this existed `getArmorDefensePoints` had nowhere to read from, so the twenty-four
-     * armour items that already declared their protection were declaring it to nobody and every
+     * armor items that already declared their protection were declaring it to nobody and every
      * blow landed as though the player were naked.
      */
     private readonly armor = new Inventory(ARMOR_SLOTS);
@@ -60,7 +60,7 @@ export default class HumanInventory extends Inventory {
     }
 
     /**
-     * Armour points worn, summed across the four pieces.
+     * Armor points worn, summed across the four pieces.
      *
      * The per-piece figures already live on the item classes - an iron chestplate has said it is
      * worth six since long before anything asked.
@@ -70,7 +70,7 @@ export default class HumanInventory extends Inventory {
         return this.sumArmor((item) => item.getArmorDefensePoints());
     }
 
-    /** Armour toughness worn, which only diamond and netherite have any of. */
+    /** Armor toughness worn, which only diamond and netherite have any of. */
     public getArmorToughness(): number {
         return this.sumArmor((item) => item.getArmorToughness());
     }

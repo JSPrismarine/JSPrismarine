@@ -34,7 +34,7 @@ const MULTIPLIERS: Readonly<Record<number, number>> = {
  * ```
  */
 export const scaleForDifficulty = (damage: number, difficulty: Difficulty): number => {
-    // An unrecognised setting is treated as normal rather than as nothing: a mob that stopped
+    // An unrecognized setting is treated as normal rather than as nothing: a mob that stopped
     // hurting anybody would be a far worse failure than one that hits at the usual rate.
     const multiplier = MULTIPLIERS[difficulty] ?? 1;
 

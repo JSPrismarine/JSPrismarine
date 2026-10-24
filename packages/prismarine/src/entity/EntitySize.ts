@@ -6,10 +6,10 @@
  * hitbox in the same place. When they disagreed - every entity was announced as `0.6 x 1.8`, the
  * player's size, while the server treated every mob as a zero-width point - a sheep walked half
  * way into a wall before anything stopped it, because the only thing that had to clear the wall
- * was its centre.
+ * was its center.
  *
  * The values are Bedrock's own, read out of the `minecraft:collision_box` component of the vanilla
- * behaviour packs, which is the same source the movement constants in `ai/Speed` are taken from.
+ * behavior packs, which is the same source the movement constants in `ai/Speed` are taken from.
  * @see https://github.com/Mojang/bedrock-samples/tree/main/behavior_pack/entities
  *
  * Written out by hand rather than generated, because there is nowhere to generate it from:
@@ -18,7 +18,7 @@
  * so the table cannot silently fall behind the classes.
  */
 
-/** A box centred on the entity's position, extending upwards from its feet. */
+/** A box centered on the entity's position, extending upwards from its feet. */
 export interface EntitySize {
     /** Blocks across, on both horizontal axes. The entity reaches half of this either side. */
     readonly width: number;
@@ -155,7 +155,7 @@ export const ENTITY_SIZES: Readonly<Record<string, EntitySize>> = {
     'minecraft:minecart': size(0.98, 0.7),
     'minecraft:tnt_minecart': size(0.98, 0.7),
 
-    // Objects and the rest. The ones with no behaviour pack of their own take Java's numbers,
+    // Objects and the rest. The ones with no behavior pack of their own take Java's numbers,
     // which for these is the same box either edition draws.
     'minecraft:area_effect_cloud': size(1, 0.5),
     'minecraft:armor_stand': size(0.5, 1.975),
@@ -173,7 +173,7 @@ export const ENTITY_SIZES: Readonly<Record<string, EntitySize>> = {
     'minecraft:lightning_bolt': NO_COLLISION,
     'minecraft:painting': NO_COLLISION,
 
-    // This server models a few entities vanilla has no behaviour pack for - the Education Edition
+    // This server models a few entities vanilla has no behavior pack for - the Education Edition
     // ones and its own internals. A block-sized box is the honest answer rather than a guess.
     'minecraft:balloon': DEFAULT_SIZE,
     'minecraft:chalkboard': DEFAULT_SIZE,

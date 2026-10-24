@@ -214,7 +214,7 @@ export class PermissionManager implements Service {
         if (!target) throw new PlayerNotFoundError(username);
         const event = new playerToggleOperatorEvent(target, op);
         this.server.post(['playerToggleOperator', event]);
-        if (event.isCancelled()) return false;
+        if (event.isCanceled()) return false;
 
         await target.getNetworkSession().sendAvailableCommands();
 

@@ -105,7 +105,7 @@ export default class LevelDB extends BaseProvider {
             encodeChunkKey({ x: cx, z: cz, dimension: dimension.id, tag, subChunk });
 
         // No version record means the chunk was never generated. Anything else - a version we do
-        // not recognise included - is a chunk that exists and must not be overwritten by a fresh
+        // not recognize included - is a chunk that exists and must not be overwritten by a fresh
         // one, so it is read as best we can.
         if (database.get(key(ChunkTag.Version)) === null && database.get(key(ChunkTag.LegacyVersion)) === null) {
             return generator.generateChunk(cx, cz, seed, config);

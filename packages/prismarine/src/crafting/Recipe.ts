@@ -19,7 +19,7 @@ export const SMITHING_TABLE: RecipeStation = 'smithing_table';
 /**
  * A recipe: what a station can turn one set of items into.
  *
- * Data, not behaviour. It knows what it needs and what it yields, and nothing about how a
+ * Data, not behavior. It knows what it needs and what it yields, and nothing about how a
  * player got there - which is what lets the same object be both matched against a grid and
  * written into `CraftingDataPacket`. Deciding *when* to apply one belongs to the station.
  */

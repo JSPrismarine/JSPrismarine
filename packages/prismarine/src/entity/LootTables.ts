@@ -43,7 +43,7 @@ export const MOB_LOOT: Readonly<Record<string, DropTable>> = {
     'minecraft:pig': new DropTable([{ name: 'minecraft:porkchop', min: 1, max: 3 }]),
     'minecraft:sheep': new DropTable([
         { name: 'minecraft:mutton', min: 1, max: 2 },
-        // Always white: this server does not model a sheep's colour, so the one wool it can
+        // Always white: this server does not model a sheep's color, so the one wool it can
         // honestly name is the default one.
         { name: 'minecraft:white_wool', min: 1, max: 1 }
     ]),

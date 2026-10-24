@@ -90,7 +90,7 @@ describe('melee', () => {
 
     describe('reach', () => {
         it('measures to the body, not to the position', () => {
-            // A cow is 0.9 across, so its body starts 0.45 from its centre.
+            // A cow is 0.9 across, so its body starts 0.45 from its center.
             const cow = stage.spawn(Cow, 0, 0);
 
             expect(distanceToBody(new Vector3(2, 64, 0), cow)).toBeCloseTo(2 - 0.45);

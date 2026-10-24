@@ -1,6 +1,6 @@
 import { TextPacket, TextType } from '@jsprismarine/protocol';
 
-import type { Behaviour, BehaviourContext } from './Behaviour';
+import type { Behavior, BehaviorContext } from './Behavior';
 
 /** Roughly one message every ten seconds at twenty ticks a second. */
 const MEAN_INTERVAL_TICKS = 200;
@@ -20,18 +20,18 @@ const PHRASES = [
  * Says something occasionally.
  *
  * Chat is the cheapest packet a client can send and the most expensive thing a server can
- * do with one: it fans out to every player, which makes this the behaviour that finds
+ * do with one: it fans out to every player, which makes this the behavior that finds
  * broadcast costs. Two hundred bots chatting once each is forty thousand deliveries.
  *
- * The interval is randomised per message rather than fixed, so a fleet does not synchronise
+ * The interval is randomized per message rather than fixed, so a fleet does not synchronize
  * into a drumbeat that measures burst handling instead of throughput.
  */
-export default class ChatBehaviour implements Behaviour {
+export default class ChatBehavior implements Behavior {
     public readonly name = 'chat';
 
     private nextAt = 0;
 
-    public async tick(context: BehaviourContext): Promise<void> {
+    public async tick(context: BehaviorContext): Promise<void> {
         if (context.tick < this.nextAt) return;
 
         this.nextAt = context.tick + context.random.nextInt(MEAN_INTERVAL_TICKS / 2, MEAN_INTERVAL_TICKS * 1.5);

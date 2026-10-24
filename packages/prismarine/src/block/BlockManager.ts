@@ -31,7 +31,7 @@ export default class BlockManager {
     }
 
     /**
-     * Names every registered block the state catalogue does not know about.
+     * Names every registered block the state catalog does not know about.
      *
      * Bedrock renames blocks between versions - `grass` became `grass_block`, `bricks`
      * became `brick_block` - and a registered block whose name no longer exists cannot be
@@ -78,7 +78,7 @@ export default class BlockManager {
     /**
      * Get block by namespaced ID, or `null` when nothing is registered under that name.
      *
-     * The state catalogue knows every block, but only those with a class of their own are
+     * The state catalog knows every block, but only those with a class of their own are
      * registered here, and names reach this from whatever a player happens to be holding or
      * looking at. A miss is the ordinary case rather than programmer error, so callers that
      * can carry on without the block ask with this instead of catching.
@@ -127,7 +127,7 @@ export default class BlockManager {
 
         const event = new BlockRegisterEvent(block);
         await this.server.emit('blockRegister', event);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.server.getLogger().debug(`Block with id §b${block.name}§r registered`);
         this.blocks.set(block.name, block);

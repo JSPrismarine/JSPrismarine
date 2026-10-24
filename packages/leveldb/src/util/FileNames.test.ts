@@ -39,12 +39,12 @@ describe('leveldb', () => {
             expect(parseFileName('000009.sst')).toEqual({ kind: FileKind.Table, number: 9 });
         });
 
-        it('recognises the info logs, which are not numbered', () => {
+        it('recognizes the info logs, which are not numbered', () => {
             expect(parseFileName('LOG')).toEqual({ kind: FileKind.Info });
             expect(parseFileName('LOG.old')).toEqual({ kind: FileKind.Info });
         });
 
-        it('ignores anything it does not recognise', () => {
+        it('ignores anything it does not recognize', () => {
             for (const name of ['', 'random.txt', '000001', 'MANIFEST-', 'MANIFEST-abc', '.ldb', 'abc.ldb']) {
                 expect(parseFileName(name)).toBeNull();
             }

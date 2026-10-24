@@ -9,7 +9,7 @@ export default class Wolf extends Mob {
      * A wild wolf minds its own business until somebody hits it.
      *
      * Not the guardian brain, which is what a *tamed* one gets in vanilla - and taming is not
-     * modelled here, so the honest behaviour is the untamed one.
+     * modeled here, so the honest behavior is the untamed one.
      */
     protected override createGoals(): GoalSelector {
         return neutralBrain();

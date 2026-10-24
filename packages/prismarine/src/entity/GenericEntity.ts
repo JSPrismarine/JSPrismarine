@@ -8,7 +8,7 @@ import type { Position } from '../world/Position';
  * this server does not model still says it is a llama - which is what the client needs in order to
  * render it. Everything else about it rides along in {@link Entity.persistentNbt}.
  *
- * Without this, loading a world would mean either dropping every unmodelled mob or refusing to
+ * Without this, loading a world would mean either dropping every unmodeled mob or refusing to
  * load at all; a wolf would vanish because nobody has written a Wolf class yet.
  */
 export class GenericEntity extends Entity {

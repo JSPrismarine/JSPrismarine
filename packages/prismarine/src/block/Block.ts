@@ -27,7 +27,7 @@ export class Block {
      * The vanilla block state this block is placed as, when that differs from {@link name}.
      *
      * Bedrock does not always have one block per thing JSPrismarine models: all sixteen
-     * coloured beds are `minecraft:bed` on the wire, with the colour living in the block
+     * colored beds are `minecraft:bed` on the wire, with the color living in the block
      * entity. Keeping the two apart lets the server register sixteen distinct blocks while
      * still giving them a runtime id the client can resolve.
      */

@@ -9,7 +9,7 @@ import { Entity } from '../Entity';
  * Something thrown or fired, on its way.
  *
  * A projectile is not a mob with the thinking removed: it has no goals, no pathfinding and no
- * business being shoved by its neighbours, and it needs one thing a mob does not - to notice what
+ * business being shoved by its neighbors, and it needs one thing a mob does not - to notice what
  * it passes *through* rather than only what it ends up inside. An arrow moving three blocks a tick
  * would step straight over a player standing between the two positions, so a check at the
  * destination alone finds nothing. Hence the sweep.
@@ -242,7 +242,7 @@ export abstract class Projectile extends Entity {
     /**
      * Nothing walks into an arrow, and an arrow shoves nothing aside.
      *
-     * Overriding this to `false` is not an optimisation: a projectile that occupied space would be
+     * Overriding this to `false` is not an optimization: a projectile that occupied space would be
      * pushed out of the way by everything it was about to hit.
      */
     public override occupiesSpace(): boolean {

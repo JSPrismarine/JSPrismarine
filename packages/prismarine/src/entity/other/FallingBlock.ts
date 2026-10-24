@@ -20,7 +20,7 @@ import { MetadataFlag } from '../Metadata';
  *
  * Vanilla's figures for a falling block, which are not the ones for an item or a mob: 0.04 and a
  * two percent drag settle at a terminal velocity a little under two blocks a tick, so a long drop
- * ends up travelling roughly forty blocks a second.
+ * ends up traveling roughly forty blocks a second.
  */
 const GRAVITY = 0.04;
 const DRAG = 0.02;
@@ -43,7 +43,7 @@ export default class FallingBlock extends Entity {
     /** Downward speed, in blocks per tick. Negative; accelerates as it falls. */
     private motionY = 0;
 
-    /** Where it started, so a fall with no end can be recognised as one. */
+    /** Where it started, so a fall with no end can be recognized as one. */
     private readonly startY: number;
 
     /** Set the moment it lands, so two ticks cannot both place the same block. */

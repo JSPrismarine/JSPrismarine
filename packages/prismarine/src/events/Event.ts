@@ -1,22 +1,22 @@
 export class Event {
     /**
-     * Set to true if a subscriber has cancelled the event.
+     * Set to true if a subscriber has canceled the event.
      * @private
      */
-    private cancelled = false;
+    private canceled = false;
 
     /**
-     * Is the event cancelled
-     * @returns {boolean} Whether the event is cancelled
+     * Is the event canceled
+     * @returns {boolean} Whether the event is canceled
      */
-    public isCancelled(): boolean {
-        return this.cancelled;
+    public isCanceled(): boolean {
+        return this.canceled;
     }
 
     /**
      * Cancel the event
      */
     public preventDefault(): void {
-        this.cancelled = true;
+        this.canceled = true;
     }
 }

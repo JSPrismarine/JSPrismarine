@@ -1,6 +1,6 @@
 import { BlockState } from './BlockState';
 import type { BlockStatePropertyType, BlockStateValue } from './BlockState';
-// The catalogue is generated and lives with the rest of the vanilla facts. It used to sit
+// The catalog is generated and lives with the rest of the vanilla facts. It used to sit
 // beside this file, produced by a script in a third package writing across package lines.
 import { blockSchemas as vanillaSchemas } from '@jsprismarine/minecraft';
 
@@ -21,7 +21,7 @@ export interface BlockStateSchemaData {
  * This is what makes blocks modular. A runtime id is a hash of a block's own name and
  * state, so a block is fully described by its schema alone - a plugin registering
  * `myplugin:cool_block` needs to agree with nobody, and cannot shift the ids of anyone
- * else's blocks. The vanilla catalogue below is just the schemas that ship by default.
+ * else's blocks. The vanilla catalog below is just the schemas that ship by default.
  */
 export class BlockStateSchema {
     public readonly name: string;
@@ -59,8 +59,8 @@ export class BlockStateSchema {
                 );
             }
 
-            const normalised = property.type === 'byte' && typeof value === 'boolean' ? Number(value) : value;
-            if (!property.values.includes(normalised)) {
+            const normalized = property.type === 'byte' && typeof value === 'boolean' ? Number(value) : value;
+            if (!property.values.includes(normalized)) {
                 throw new Error(
                     `Property ${this.name}.${key} does not accept ${String(value)} (accepts: ${property.values.join(', ')})`
                 );
@@ -94,7 +94,7 @@ export class BlockStateSchemas {
     private static loaded = false;
 
     /**
-     * Bumped whenever the catalogue changes. Lets caches keyed on it - the reverse index in
+     * Bumped whenever the catalog changes. Lets caches keyed on it - the reverse index in
      * `BlockRuntimeIds` - notice a plugin registration without this module having to know
      * they exist.
      */
@@ -141,7 +141,7 @@ export class BlockStateSchemas {
         return [...this.schemas.keys()];
     }
 
-    /** Drops plugin registrations and reloads the shipped catalogue. Used by tests. */
+    /** Drops plugin registrations and reloads the shipped catalog. Used by tests. */
     public static reset(): void {
         this.schemas.clear();
         this.loaded = false;

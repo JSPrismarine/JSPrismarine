@@ -106,7 +106,7 @@ export default class Console implements CommandExecutor, Service {
         });
 
         this.server.on('chat', async (evt: ChatEvent) => {
-            if (evt.isCancelled()) return;
+            if (evt.isCanceled()) return;
             this.sendMessage(evt.getChat().getMessage());
         });
         this.server.getLogger().setConsole(this);

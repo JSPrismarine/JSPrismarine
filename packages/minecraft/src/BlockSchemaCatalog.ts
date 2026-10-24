@@ -13,8 +13,8 @@ export interface BlockSchema {
     properties: Record<string, BlockSchemaProperty>;
 }
 
-/** The vanilla block state catalogue, as the data generator writes it. */
-export interface BlockSchemaCatalogue {
+/** The vanilla block state catalog, as the data generator writes it. */
+export interface BlockSchemaCatalog {
     $comment: string;
     source: string;
     minecraftVersion: string;

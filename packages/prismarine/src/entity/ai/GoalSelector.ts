@@ -12,7 +12,7 @@ import type { GoalLane } from './Goal';
  * going.
  *
  * A running goal is re-offered every tick and keeps its lanes until it either gives up or something
- * more important takes them, so behaviour does not flicker between two goals that both nearly want
+ * more important takes them, so behavior does not flicker between two goals that both nearly want
  * to run.
  */
 export class GoalSelector {

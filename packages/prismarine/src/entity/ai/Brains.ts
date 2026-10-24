@@ -13,7 +13,7 @@ import RangedAttackGoal from './goals/RangedAttackGoal';
 import { monsters, players } from './Targeting';
 
 /**
- * The behaviour a mob is built with.
+ * The behavior a mob is built with.
  *
  * Four of them cover nearly every mob that spawns, and a mob with something particular to do adds
  * its own goals to whichever it starts from - which is the point of goals being a list rather than

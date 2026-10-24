@@ -179,7 +179,7 @@ export default class LoginSequence {
     }
 
     /**
-     * Encryption is enabled *before* the acknowledgement goes out, mirroring the compression
+     * Encryption is enabled *before* the acknowledgment goes out, mirroring the compression
      * step above and for the same reason: the server turned its own on the instant it sent
      * this, so the `ClientToServerHandshake` that answers it is already an encrypted batch.
      * Sending it in the clear leaves the server decrypting plaintext, which fails as a bad
@@ -199,7 +199,7 @@ export default class LoginSequence {
     }
 
     /**
-     * Asking for a view distance is what finishes the join, not an optimisation.
+     * Asking for a view distance is what finishes the join, not an optimization.
      *
      * A server streams the world regardless, but it will not announce the spawn until the
      * client has said how much of it it wants - so a client that never asks waits at

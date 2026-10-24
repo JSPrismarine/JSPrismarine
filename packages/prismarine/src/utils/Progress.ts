@@ -92,7 +92,7 @@ export class Progress {
                 ? `, ~${formatDuration((elapsed / this.current) * (this.total - this.current))} left`
                 : '';
 
-        // Labels carry Minecraft colour codes, and this writes straight to the stream rather
+        // Labels carry Minecraft color codes, and this writes straight to the stream rather
         // than through the logger - so the translation the logger's transport does has to
         // happen here too, or the codes show up as a literal section sign in the console.
         const line = colorParser(

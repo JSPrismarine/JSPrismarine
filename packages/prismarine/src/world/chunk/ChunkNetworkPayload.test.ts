@@ -62,7 +62,7 @@ describe('world', () => {
             const payload = chunk.networkSerialize();
 
             // Deserialising with the declared count has to consume the sub chunk section exactly,
-            // leaving the biome and border trailer. A wrong count desynchronises the stream and
+            // leaving the biome and border trailer. A wrong count desynchronizes the stream and
             // the client renders whatever the misalignment produces.
             const stream = new BinaryStream(payload);
             Chunk.networkDeserialize(stream, 0, 0, chunk.getNetworkSubChunkCount(), Dimensions.Legacy);

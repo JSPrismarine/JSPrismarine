@@ -222,7 +222,7 @@ describe('world', () => {
 
                 expect(chest?.getId()).toBe('Chest');
                 expect(beacon?.getId()).toBe('Beacon');
-                // The unmodelled one kept its own fields.
+                // The unmodeled one kept its own fields.
                 expect(beacon?.toNBT().getNumber('primary', 0)).toBe(5);
                 await reopened.provider.disable();
             });

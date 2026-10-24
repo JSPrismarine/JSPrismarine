@@ -142,7 +142,7 @@ describe('village generation', () => {
 
     it('does not depend on which chunk is generated first', async () => {
         // Generating the far corner of a village before its middle must give the same world as the
-        // other way round - chunks have no access to their neighbours, and this is what proves it
+        // other way round - chunks have no access to their neighbors, and this is what proves it
         // is not accidentally relying on one.
         const origin = findVillage();
         const [cx, cz] = [origin.x >> 4, origin.z >> 4];
@@ -162,7 +162,7 @@ describe('village generation', () => {
 
     it('carries buildings across chunk borders instead of slicing them off', async () => {
         // A wall running into a chunk border must continue on the other side. If the two chunks
-        // planned the village differently, or one of them clipped it early, the neighbouring
+        // planned the village differently, or one of them clipped it early, the neighboring
         // column would be untouched terrain instead.
         const origin = findVillage();
         const [cx, cz] = [origin.x >> 4, origin.z >> 4];
@@ -213,7 +213,7 @@ describe('village generation', () => {
     }, 60_000);
 
     it('asks for mobs that can actually think', async () => {
-        // A village populated by entity classes with no behaviour attached would look right and be
+        // A village populated by entity classes with no behavior attached would look right and be
         // a village of statues. The trap is real: `minecraft:villager` still resolves, to the
         // legacy class kept for reading old worlds, which has no AI - the modern one is
         // `minecraft:villager_v2`.

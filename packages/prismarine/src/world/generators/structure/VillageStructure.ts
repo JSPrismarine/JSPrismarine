@@ -17,7 +17,7 @@ import { FarmPiece, HousePiece, LampPiece, RoadPiece, WellPiece, villageMaterial
 /** How far the streets run from the well, in blocks. */
 const ROAD_LENGTH = 32;
 
-/** The streets are this many blocks wide, centred on the axis. */
+/** The streets are this many blocks wide, centered on the axis. */
 const ROAD_HALF_WIDTH = 1;
 
 /** How far a building sits back from the middle of the road it faces. */
@@ -101,7 +101,7 @@ const PLACEMENT = new StructurePlacement({ spacing: 18, separation: 6, salt: 0x5
  * dozen or so chunks the village covers. Anything that varied between them would show up as a
  * house with two different roofs, or half a road.
  *
- * Slots are offered in a fixed order and taken if the terrain and the neighbours allow it, so the
+ * Slots are offered in a fixed order and taken if the terrain and the neighbors allow it, so the
  * randomness decides what a village looks like without deciding whether the pieces fit.
  */
 export class VillageStructure implements Structure {

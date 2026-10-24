@@ -12,7 +12,7 @@
  *
  * The merge checks what it can: every block the world saved must have been described by the
  * game, every network property must have a domain, and a block the game describes that the
- * world never saved is reported - it is a block the first pass lost, and the catalogue is
+ * world never saved is reported - it is a block the first pass lost, and the catalog is
  * short by one until it is placed somewhere it can stand.
  */
 

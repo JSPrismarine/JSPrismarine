@@ -244,7 +244,7 @@ export default class Server extends EventEmitter {
             const event = new RaknetConnectEvent(session);
             await this.emit('raknetConnect', event);
 
-            if (event.isCancelled()) {
+            if (event.isCanceled()) {
                 session.disconnect();
                 return;
             }

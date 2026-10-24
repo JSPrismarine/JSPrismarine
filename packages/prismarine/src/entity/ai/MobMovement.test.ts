@@ -95,7 +95,7 @@ class TestWorld {
     /** One named block, in world coordinates, for the shapes a wall of stone cannot express. */
     public place(x: number, y: number, z: number, name: string, states?: Record<string, BlockStateValue>): this {
         const runtimeId = states ? BlockRuntimeIds.tryGetByState(name, states) : BlockRuntimeIds.tryGetByName(name);
-        if (runtimeId === null) throw new Error(`the catalogue has no ${name}`);
+        if (runtimeId === null) throw new Error(`the catalog has no ${name}`);
 
         this.getLoadedChunk(x >> 4, z >> 4)?.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
         return this;
@@ -127,7 +127,7 @@ const positionIn = (world: TestWorld, x: number, y: number, z: number) => new Po
  */
 class InertMob extends Mob {
     // A sheep, and not an abstraction: 0.9 across and 1.3 tall, which is a body wide enough that
-    // the difference between colliding it and colliding its centre point is visible. It is also
+    // the difference between colliding it and colliding its center point is visible. It is also
     // the animal the whole thing was reported against.
     public static override MOB_ID = 'minecraft:sheep';
 
@@ -319,7 +319,7 @@ describe('mob movement', () => {
     });
 
     it('climbs a one-block step rather than bouncing off it', async () => {
-        // The behaviour the arc above exists for, and the one that was actually visible: the
+        // The behavior the arc above exists for, and the one that was actually visible: the
         // navigator happily routes over a one-block step - there is a test above proving it - so
         // the mob walks up to it and jumps. Whether it *arrives* is a question about the physics,
         // and nothing in the pathfinding tests could have caught it falling short.
@@ -510,7 +510,7 @@ describe('mob body', () => {
     };
 
     it('stops with its body against a wall, not with its body inside one', async () => {
-        // The reported bug, measured. A mob collided as a point walks until its *centre* meets the
+        // The reported bug, measured. A mob collided as a point walks until its *center* meets the
         // wall, which for a body 0.9 across leaves 0.45 of sheep inside the stone - and looks
         // exactly like what it is. The face of the wall at x = 10 is the only number here; where
         // the mob may stand follows from its own width.
@@ -544,7 +544,7 @@ describe('mob body', () => {
     });
 
     it('cannot get over a fence, and does not spend forever trying', async () => {
-        // A fence is a block and a half, which is precisely more than a jump clears. Modelled as
+        // A fence is a block and a half, which is precisely more than a jump clears. Modeled as
         // an ordinary cube - which is what it was - every animal in the pen hops straight out.
         world.barrier(6, -4, 8, FEET, 'minecraft:oak_fence');
 

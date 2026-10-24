@@ -6,7 +6,7 @@ import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import Fleet from './Fleet';
 import { formatReport } from './Metrics';
-import { createBehaviours } from './behaviour/Behaviours';
+import { createBehaviors } from './behavior/Behaviors';
 
 /**
  * The harness against a real server, which is the only way to know it generates load rather
@@ -87,7 +87,7 @@ describe('a fleet against a real server', () => {
     }, 60_000);
 
     it('actually walks and chats, and the server keeps them connected while it happens', async () => {
-        const fleet = newFleet({ namePrefix: 'Active', behaviours: ['walk', 'look'] });
+        const fleet = newFleet({ namePrefix: 'Active', behaviors: ['walk', 'look'] });
         await fleet.connect();
         await fleet.run(1_500);
 
@@ -103,7 +103,7 @@ describe('a fleet against a real server', () => {
     }, 60_000);
 
     it('moves the bots somewhere, rather than reporting moves it never made', async () => {
-        const fleet = newFleet({ namePrefix: 'Moved', behaviours: ['walk'] });
+        const fleet = newFleet({ namePrefix: 'Moved', behaviors: ['walk'] });
         await fleet.connect();
 
         const before = fleet.getBots().map((bot) => ({ ...bot.position }));
@@ -117,7 +117,7 @@ describe('a fleet against a real server', () => {
         // PlayerAction is the packet with the unsigned-y block position, which is the one
         // easiest to get subtly wrong: a bad encoding is decoded as a different action at a
         // different place, and nothing complains.
-        const fleet = newFleet({ namePrefix: 'Breaker', behaviours: ['break'] });
+        const fleet = newFleet({ namePrefix: 'Breaker', behaviors: ['break'] });
         await fleet.connect();
 
         // Slept through rather than `run`, which stops the fleet when it returns - the point
@@ -145,7 +145,7 @@ describe('a fleet against a real server', () => {
     }, 60_000);
 
     it('renders a report a human can read', async () => {
-        const fleet = newFleet({ namePrefix: 'Printed', behaviours: ['walk'] });
+        const fleet = newFleet({ namePrefix: 'Printed', behaviors: ['walk'] });
         await fleet.connect();
         await fleet.run(600);
 
@@ -156,15 +156,15 @@ describe('a fleet against a real server', () => {
     }, 60_000);
 });
 
-describe('behaviour selection', () => {
+describe('behavior selection', () => {
     it('refuses a name it does not know rather than running a quieter fleet', () => {
         // A load test silently missing half its traffic is worse than one that will not start.
-        expect(() => createBehaviours(['walk', 'teleport'])).toThrow(/Unknown behaviour "teleport"/);
+        expect(() => createBehaviors(['walk', 'teleport'])).toThrow(/Unknown behavior "teleport"/);
     });
 
-    it('builds a fresh instance per call, so bots do not share behaviour state', () => {
-        const [first] = createBehaviours(['walk']);
-        const [second] = createBehaviours(['walk']);
+    it('builds a fresh instance per call, so bots do not share behavior state', () => {
+        const [first] = createBehaviors(['walk']);
+        const [second] = createBehaviors(['walk']);
 
         expect(first).not.toBe(second);
     });

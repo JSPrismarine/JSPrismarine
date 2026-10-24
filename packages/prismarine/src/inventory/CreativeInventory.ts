@@ -26,7 +26,7 @@ export interface CreativeRegistries {
  *
  * An entry is shown when the **item table** names it, because that table is the registry the
  * client resolves against and a name missing from it is an item it cannot be handed. Having a
- * registered block or item class is not the test: a class is what gives an item behaviour once
+ * registered block or item class is not the test: a class is what gives an item behavior once
  * it is held, and requiring one kept 1611 of the 1919 entries out of the menu - everything
  * beyond the three hundred odd blocks this server implements.
  *

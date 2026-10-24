@@ -1,7 +1,7 @@
 /**
  * How fast things move, and how often they bother, in one place.
  *
- * The numbers and the ratios between them are taken from the vanilla Bedrock behaviour packs rather
+ * The numbers and the ratios between them are taken from the vanilla Bedrock behavior packs rather
  * than chosen, because the thing being matched is a feel rather than a figure - a cow that moves at
  * a plausible speed but sets off four times as often as a real one still reads as wrong.
  *
@@ -30,7 +30,7 @@ export const blocksPerSecond = (speed: number): number => speed / TICKS_PER_SECO
 export const WALK_SPEED = blocksPerSecond(2.4);
 
 /**
- * Goal speed multipliers, straight from the vanilla behaviour packs.
+ * Goal speed multipliers, straight from the vanilla behavior packs.
  *
  * A cow strolls at `speed_multiplier: 0.8` and panics at `1.25`, so wandering is deliberately
  * slower than the mob's own pace and only fear makes it hurry. Keeping them as multipliers rather

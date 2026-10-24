@@ -20,7 +20,7 @@ import Human from './Human';
  * whoever knows it. That is why the reach and the critical are options and not worked out here.
  */
 
-/** How far a player may reach in survival, measured to the target's body rather than its centre. */
+/** How far a player may reach in survival, measured to the target's body rather than its center. */
 export const SURVIVAL_REACH = 3;
 
 /** The same in creative, where vanilla is more generous. */
@@ -68,7 +68,7 @@ export interface MeleeOptions {
  * their eyes and every other entity's is its feet, so a straight point-to-point distance is
  * measuring between two things that are not the same kind of thing. Measured to the body, a
  * player standing on a cow and a player standing beside one are both within reach of it, which is
- * what a player would expect and what a centre-to-centre check gets wrong for anything tall.
+ * what a player would expect and what a center-to-center check gets wrong for anything tall.
  * @param {Vector3} from - Where the blow comes from; for a player, their eyes.
  * @param {Entity} target - Who is being reached for.
  * @returns {number} Blocks to the nearest point of the target's body; zero if inside it.
@@ -117,7 +117,7 @@ export const canHarm = (attacker: Entity, target: Entity): boolean => {
  * Swings at something, and hurts it if the swing connects.
  *
  * Returns `false` for every way a swing can fail to land - out of reach, refused by the rules,
- * absorbed by the target's grace period, cancelled by a listener - and the caller wants that,
+ * absorbed by the target's grace period, canceled by a listener - and the caller wants that,
  * because a swing that did not land costs no hunger and wears out no weapon.
  * @param {Entity} attacker - Who is swinging.
  * @param {Entity} target - Who at.

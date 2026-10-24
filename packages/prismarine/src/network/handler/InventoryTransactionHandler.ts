@@ -168,7 +168,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * The charge is measured rather than sent - see the `CLICK_AIR` branch above for why.
      *
      * The arrow is not taken out of the inventory and the bow is not worn down. Both need the same
-     * thing - telling the client that a slot has changed - and both are left with the armour work
+     * thing - telling the client that a slot has changed - and both are left with the armor work
      * where that lives, because a server that silently disagrees with the client about what is in
      * a player's hand is worse than one that has not got round to the accounting.
      */

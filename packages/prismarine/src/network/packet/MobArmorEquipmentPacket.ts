@@ -8,9 +8,9 @@ import DataPacket from './DataPacket';
  * Separate from `MobEquipmentPacket`, which carries one held item and names a slot; this one is
  * positional - helmet, chestplate, leggings, boots, in that order and always all of them. An empty
  * slot is an air stack rather than an omission, because the client reads four and would otherwise
- * read the next packet's bytes as the rest of the armour.
+ * read the next packet's bytes as the rest of the armor.
  *
- * The only way anybody but the wearer sees armour: `AddActorPacket` has no room for it, so this
+ * The only way anybody but the wearer sees armor: `AddActorPacket` has no room for it, so this
  * has to follow an entity into view the same way its held item does.
  * @see https://github.com/pmmp/BedrockProtocol/blob/master/src/MobArmorEquipmentPacket.php
  */
@@ -27,7 +27,7 @@ export default class MobArmorEquipmentPacket extends DataPacket {
     /**
      * The off hand, which the protocol carries here rather than with the held item.
      *
-     * Not armour by any reading, but it is what the packet holds and splitting it out would mean
+     * Not armor by any reading, but it is what the packet holds and splitting it out would mean
      * inventing a second packet the client does not send.
      */
     public body!: Item;

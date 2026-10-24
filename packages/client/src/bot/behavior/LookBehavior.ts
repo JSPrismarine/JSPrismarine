@@ -1,6 +1,6 @@
 import { MovePlayerPacket, MovementType } from '@jsprismarine/protocol';
 
-import type { Behaviour, BehaviourContext } from './Behaviour';
+import type { Behavior, BehaviorContext } from './Behavior';
 
 /** How often the head turns, in ticks. Faster than this is twitching, not looking. */
 const TURN_INTERVAL_TICKS = 10;
@@ -13,10 +13,10 @@ const TURN_INTERVAL_TICKS = 10;
  * broadcast path without touching the streaming one. Running it alone is how you find out
  * how much of a server's cost is simply *relaying* movement.
  */
-export default class LookBehaviour implements Behaviour {
+export default class LookBehavior implements Behavior {
     public readonly name = 'look';
 
-    public async tick(context: BehaviourContext): Promise<void> {
+    public async tick(context: BehaviorContext): Promise<void> {
         if (context.tick % TURN_INTERVAL_TICKS !== 0) return;
 
         const { bot, random } = context;

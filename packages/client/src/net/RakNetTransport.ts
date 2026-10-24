@@ -17,7 +17,7 @@ export interface RakNetTransportOptions {
  * The network transport: RakNet over UDP.
  *
  * A thin wrapper, and meant to stay that way. Everything hard about carrying bytes -
- * ordering, acknowledgement, fragmentation, retransmission - is `ClientSocket`'s and the
+ * ordering, acknowledgment, fragmentation, retransmission - is `ClientSocket`'s and the
  * session's, so what is left here is counting what went past and translating two event
  * names.
  */

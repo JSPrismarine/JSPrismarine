@@ -109,7 +109,7 @@ describe('BatchCodec interop with the server BatchPacket', () => {
 
     it('server side reads a batch we chose not to compress', async () => {
         // The one case the server cannot yet produce but must survive receiving: our codec
-        // honours a threshold, so a small packet goes out with a 0xff prefix.
+        // honors a threshold, so a small packet goes out with a 0xff prefix.
         const codec = BatchCodec.compressed({ algorithm: PacketCompressionAlgorithm.ZLIB, threshold: 4096 });
         const packets = [requestNetworkSettings(748).getBuffer()];
 

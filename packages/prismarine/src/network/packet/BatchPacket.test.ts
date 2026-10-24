@@ -138,7 +138,7 @@ describe('network', () => {
             expect(() => CompressionProvider.fromAlgorithm(PacketCompressionAlgorithm.NONE)).not.toThrow();
         });
 
-        it('honours the level it is given, and stays decodable at any of them', () => {
+        it('honors the level it is given, and stays decodable at any of them', () => {
             const text = 'compress me '.repeat(300);
 
             const high = batchOf(text);

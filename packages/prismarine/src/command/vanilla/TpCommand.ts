@@ -16,10 +16,10 @@ import type { CommandExecutor } from '../CommandExecutor';
  * @param {Vector3} position - The parsed destination.
  * @returns {Vector3} A new vector; the parsed one is left alone.
  */
-const toBlockCentre = (position: Vector3): Vector3 => {
-    const centre = (value: number) => (Number.isInteger(value) ? (value > 0 ? value - 0.5 : value + 0.5) : value);
+const toBlockCenter = (position: Vector3): Vector3 => {
+    const center = (value: number) => (Number.isInteger(value) ? (value > 0 ? value - 0.5 : value + 0.5) : value);
 
-    return new Vector3(centre(position.getX()), position.getY(), centre(position.getZ()));
+    return new Vector3(center(position.getX()), position.getY(), center(position.getZ()));
 };
 
 /**
@@ -52,7 +52,7 @@ export default class TpCommand extends Command {
                             if (!(source instanceof Player))
                                 throw new Error(`This command can't be run from the console`);
 
-                            const position = toBlockCentre(CommandArgumentPosition.getPosition(context, 'position'));
+                            const position = toBlockCenter(CommandArgumentPosition.getPosition(context, 'position'));
 
                             await teleport(source, position);
                             return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
@@ -65,7 +65,7 @@ export default class TpCommand extends Command {
                             argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                                 async (context) => {
                                     const targets = CommandArgumentEntity.getEntities(context, 'player');
-                                    const position = toBlockCentre(
+                                    const position = toBlockCenter(
                                         CommandArgumentPosition.getPosition(context, 'position')
                                     );
 

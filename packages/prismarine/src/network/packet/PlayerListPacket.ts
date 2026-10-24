@@ -61,9 +61,9 @@ export class PlayerListEntry {
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
         stream.writeBoolean(false); // is sub client
-        // The colour the client tints this player's name with, ARGB and big endian. New at
+        // The color the client tints this player's name with, ARGB and big endian. New at
         // 2168, and four bytes the entry after this one is read from without it.
-        stream.writeInt(PLAYER_COLOUR);
+        stream.writeInt(PLAYER_COLOR);
     }
 
     public getUUID(): UUID {
@@ -104,7 +104,7 @@ export class PlayerListEntry {
 }
 
 /** White: the client tints a name with this, and nothing here has an opinion about it. */
-const PLAYER_COLOUR = 0xff_ff_ff_ff | 0;
+const PLAYER_COLOR = 0xff_ff_ff_ff | 0;
 
 export enum PlayerListAction {
     TYPE_ADD,

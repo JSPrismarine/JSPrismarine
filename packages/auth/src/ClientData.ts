@@ -64,7 +64,7 @@ export interface ClientDataOptions {
     /**
      * The name to play under when nothing vouched for one.
      *
-     * Only an unauthenticated login needs it. Up to 1.26.10 the name travelled in the
+     * Only an unauthenticated login needs it. Up to 1.26.10 the name traveled in the
      * certificate chain's `extraData`, and this stayed empty; a login that carries a token
      * instead of a chain has nowhere else to put it.
      */

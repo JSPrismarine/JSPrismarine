@@ -39,7 +39,7 @@ export interface CreativeGroup {
  * without a heading. This server has no group data at all - `creativeitems.json` carries a
  * name and nothing else - so it sends a single anonymous group and puts everything in it.
  *
- * TODO: BDS behaviour packs carry `menu_category` per item, with both the tab and the group
+ * TODO: BDS behavior packs carry `menu_category` per item, with both the tab and the group
  * name. Extracting it would give this the real headings.
  *
  * **Bound To:** Client

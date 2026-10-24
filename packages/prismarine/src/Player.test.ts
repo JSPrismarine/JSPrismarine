@@ -97,7 +97,7 @@ const tick = async (player: Player, n: number, from = 1) => {
     for (let i = 0; i < n; i++) await player.update(from + i);
 };
 
-/** Walks the player `blocks` metres east, one metre at a time, as movement packets do. */
+/** Walks the player `blocks` meters east, one meter at a time, as movement packets do. */
 const move = async (player: Player, blocks: number, type = MovementType.Normal) => {
     for (let i = 0; i < blocks; i++) {
         const position = player.getPosition();
@@ -174,7 +174,7 @@ describe('Player', () => {
     });
 
     describe('exhaustion from movement', () => {
-        it('costs 0.1 per metre sprinted', async () => {
+        it('costs 0.1 per meter sprinted', async () => {
             const { player } = fakePlayer();
             player.metadata.setSprinting(true);
 

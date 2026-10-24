@@ -21,7 +21,7 @@ const keysOf = (compound: NBTTagCompound) => [...compound.entries()].map(([key])
 
 describe('blockentity', () => {
     describe('registry', () => {
-        it('builds the modelled type for an id it knows', () => {
+        it('builds the modeled type for an id it knows', () => {
             expect(BlockEntityRegistry.fromNBT(nbt('Chest'))).toBeInstanceOf(Chest);
             expect(BlockEntityRegistry.fromNBT(nbt('Sign'))).toBeInstanceOf(Sign);
             expect(BlockEntityRegistry.fromNBT(nbt('Furnace'))).toBeInstanceOf(Furnace);
@@ -36,8 +36,8 @@ describe('blockentity', () => {
         });
 
         it('knows which types it models', () => {
-            expect(BlockEntityRegistry.isModelled('Chest')).toBe(true);
-            expect(BlockEntityRegistry.isModelled('Beacon')).toBe(false);
+            expect(BlockEntityRegistry.isModeled('Chest')).toBe(true);
+            expect(BlockEntityRegistry.isModeled('Beacon')).toBe(false);
             expect(BlockEntityRegistry.ids()).toContain('MobSpawner');
         });
     });
@@ -79,7 +79,7 @@ describe('blockentity', () => {
             expect(written.getString('SomeFutureField', '')).toBe('kept');
         });
 
-        it('keeps the tags a modelled type does not model either', () => {
+        it('keeps the tags a modeled type does not model either', () => {
             const source = nbt('Chest', 0, 64, 0, (root) => {
                 root.addValue('CustomName', new Types.StringVal('Loot'));
                 root.addValue('Findable', new Types.ByteVal(1));
@@ -120,7 +120,7 @@ describe('blockentity', () => {
         });
     });
 
-    describe('modelled types', () => {
+    describe('modeled types', () => {
         it('reads a furnace and writes its timers back', () => {
             const furnace = BlockEntityRegistry.fromNBT(
                 nbt('Furnace', 0, 64, 0, (root) => {

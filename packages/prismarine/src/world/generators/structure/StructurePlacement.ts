@@ -7,7 +7,7 @@ import type { StructureOrigin } from './Structure';
  * The world is cut into square regions of `spacing` chunks, and each region gets at most one
  * structure, in a chunk picked from the region's own seed. That is how vanilla does it, and the
  * reason is not aesthetic: it means "is there a village near here" can be answered by arithmetic,
- * without generating or even knowing about a single neighbouring chunk. A chunk works out which
+ * without generating or even knowing about a single neighboring chunk. A chunk works out which
  * regions are close enough to reach it, asks each for its origin, and that is the complete list.
  *
  * `separation` keeps origins off the far edge of their region, so two structures in adjacent

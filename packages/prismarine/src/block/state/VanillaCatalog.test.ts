@@ -11,10 +11,10 @@ const allVanillaStates = () =>
         .flatMap((name) => BlockStateSchemas.get(name)!.getAllStates());
 
 describe('block', () => {
-    describe('vanilla catalogue', () => {
+    describe('vanilla catalog', () => {
         it('describes every block and state the dump contained', () => {
             // The counts are a fact about the captured version - 1.26.51, from a Bedrock
-            // Dedicated Server - and are written out so that a catalogue that quietly shrinks
+            // Dedicated Server - and are written out so that a catalog that quietly shrinks
             // is a failure rather than a smaller world. 1.21.40 had 1219 blocks and 14196
             // states, 1.26.40 had 1379 and 17487; 1.26.50 added 98 blocks - the wool and
             // concrete stairs and slabs - and gave every stair a corner state and every fence,
@@ -70,7 +70,7 @@ describe('block', () => {
             expect(schema.properties.pillar_axis!.type).toBe('string');
             // Sorted, because the order these arrive in is the order the source happened to
             // list them and nothing reads it: a runtime id is a hash of a name and a state, so
-            // two catalogues listing the same values differently produce the same ids.
+            // two catalogs listing the same values differently produce the same ids.
             expect([...schema.properties.pillar_axis!.values].sort()).toEqual(['x', 'y', 'z']);
             expect(schema.getDefaultState().get('pillar_axis')).toBe('y');
         });

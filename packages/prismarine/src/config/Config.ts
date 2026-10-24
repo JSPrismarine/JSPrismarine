@@ -205,7 +205,7 @@ export class Config {
      * How dangerous the monsters are.
      *
      * Named in the file rather than numbered, as the gamemode is, because `difficulty: 2` in a
-     * config nobody can read is how a server ends up on the wrong one. An unrecognised name falls
+     * config nobody can read is how a server ends up on the wrong one. An unrecognized name falls
      * back to normal instead of refusing to start - a typo should not take a server down.
      * @returns {Difficulty} The configured difficulty.
      */
@@ -283,7 +283,7 @@ export class Config {
      *
      * An escape hatch rather than a feature dial. Turning it off makes every positional
      * broadcast reach every player *in the same world* - it does not restore the server-wide
-     * fan-out some of them used to have, which was a bug and not a behaviour.
+     * fan-out some of them used to have, which was a bug and not a behavior.
      *
      * @returns Whether proximity filtering is on
      */

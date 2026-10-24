@@ -17,7 +17,7 @@ interface GeneratedItem {
 /**
  * An ingredient named by what it must carry rather than by what it is.
  *
- * Only the per-release behaviour pack layers write these; the 1.13 baseline the catalogue used
+ * Only the per-release behavior pack layers write these; the 1.13 baseline the catalog used
  * to be built from named every alternative out in full, which is why nothing vanilla loaded as
  * a tag before.
  */
@@ -99,7 +99,7 @@ const namesOf = (recipe: GeneratedRecipe): string[] =>
  *
  * A tag the item table has never heard of, or one whose every member is unknown, leaves an
  * ingredient nothing can match - so the recipe is left out for the same reason one naming an
- * unknown item is. The catalogue is generated from a newer server than the item table beside
+ * unknown item is. The catalog is generated from a newer server than the item table beside
  * it, so this is a real case rather than a defensive one: `minecraft:egg` and
  * `minecraft:metal_nuggets` are named by recipes and absent from the tags of 1.21.40.
  */
@@ -111,7 +111,7 @@ const tagsResolve = (recipe: GeneratedRecipe, known: KnownItem): boolean =>
 /**
  * The vanilla recipes, in the model the server reasons about.
  *
- * Read from the generated catalogue, which comes from Mojang's own files in a Bedrock
+ * Read from the generated catalog, which comes from Mojang's own files in a Bedrock
  * Dedicated Server. Recipes naming anything the server cannot resolve are left out, and that
  * is correctness before economy: a recipe whose output cannot be built is one a player is
  * invited to make and then cannot be given.

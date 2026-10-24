@@ -192,7 +192,7 @@ export default class Skin {
      * - The animation, persona-piece and tint counts were fixed 32-bit little-endian ints;
      *   they are unsigned varints, like every other list.
      * - The arm size was a string; it is a single byte (`slim` 0, `wide` 1).
-     * - The skin colour was a string; it is a big-endian ARGB uint32.
+     * - The skin color was a string; it is a big-endian ARGB uint32.
      * - The tail was missing two fields the client reads: `trusted`, sent as the string
      *   `"true"`/`"false"`, and a profile hash string. Without them the entry after this one
      *   in the player list is read from the wrong place, and the client drops the join.
@@ -263,11 +263,11 @@ export default class Skin {
     }
 
     /**
-     * A skin colour string as the big-endian ARGB integer the wire carries.
+     * A skin color string as the big-endian ARGB integer the wire carries.
      *
      * The client data gives it as `#rrggbbaa`, or `#0` when there is none. Anything that is
      * not parseable hex is sent as zero, which is what a Bedrock Dedicated Server puts on the
-     * wire for a skin that carries no colour - it tints nothing.
+     * wire for a skin that carries no color - it tints nothing.
      */
     private static colorToArgb(color: string): number {
         const hex = color.replace(/^#/, '');

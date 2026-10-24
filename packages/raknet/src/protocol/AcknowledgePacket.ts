@@ -45,8 +45,8 @@ export default class AcknowledgePacket extends Packet {
     }
 
     /**
-     * Whether this acknowledgement names the given datagram sequence number.
-     * Also honours {@link sequenceNumbers} so a packet built by hand still answers.
+     * Whether this acknowledgment names the given datagram sequence number.
+     * Also honors {@link sequenceNumbers} so a packet built by hand still answers.
      */
     public contains(sequenceNumber: number): boolean {
         for (const range of this.ranges) {

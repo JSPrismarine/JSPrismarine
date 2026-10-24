@@ -4,7 +4,7 @@ import { BinaryStream } from './BinaryStream';
 
 /**
  * Regression coverage for defects that the original suite could not catch, because it only
- * exercised small positive values. Each block names the behaviour that used to be wrong.
+ * exercised small positive values. Each block names the behavior that used to be wrong.
  */
 
 /** Independent reference LEB128 encoder, written from the spec rather than from the library. */
@@ -279,7 +279,7 @@ describe('Reuse API', () => {
         s.writeInt(0x2222_2222);
 
         expect(copy.toString('hex')).toBe('11111111');
-        expect(view.toString('hex')).toBe('22222222'); // documented aliasing behaviour
+        expect(view.toString('hex')).toBe('22222222'); // documented aliasing behavior
     });
 
     it('copyOut returns an exactly-sized standalone buffer', () => {
@@ -373,7 +373,7 @@ describe('Round-trip fuzz across every fixed-width accessor', () => {
     });
 
     it('still rejects the non-finite values the range check has always excluded', () => {
-        // Unchanged behaviour: the bounds are finite doubles, so +-Infinity fall outside them
+        // Unchanged behavior: the bounds are finite doubles, so +-Infinity fall outside them
         // and NaN fails both comparisons. Worth pinning, because the rewritten assertion uses
         // `!(a && b)` precisely to keep the NaN case throwing.
         for (const v of [Infinity, -Infinity, NaN]) {

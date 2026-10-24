@@ -11,7 +11,7 @@ import type { World } from '../world/World';
  *
  * Same rule as the block entities: the fields the server models are lifted out, and every other
  * tag is kept on {@link Entity.persistentNbt} and written back untouched. `definitions` is the one
- * that makes this mandatory rather than tidy - it names the behaviour pack component groups the
+ * that makes this mandatory rather than tidy - it names the behavior pack component groups the
  * actor was assembled from, and an actor saved without it comes back broken.
  */
 
@@ -30,7 +30,7 @@ export class EntitySerializer {
     /**
      * The classes an identifier can be restored as. Only those a position alone can build: a
      * falling block needs the block it is made of, which the actor NBT does not carry, so it loads
-     * as a {@link GenericEntity} like any other unmodelled actor.
+     * as a {@link GenericEntity} like any other unmodeled actor.
      */
     private static classes(): Map<string, SpawnableEntityClass> {
         if (this.index !== null) return this.index;
@@ -47,7 +47,7 @@ export class EntitySerializer {
      * Builds an entity from its stored NBT.
      *
      * An identifier with no class behind it becomes a {@link GenericEntity} carrying that
-     * identifier, so an unmodelled mob still loads and still renders as itself.
+     * identifier, so an unmodeled mob still loads and still renders as itself.
      */
     public static fromNBT(nbt: NBTTagCompound, world: World): Entity {
         const identifier = nbt.getString('identifier', '');
@@ -55,10 +55,10 @@ export class EntitySerializer {
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
 
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
-        const modelled = this.classes().get(identifier);
+        const modeled = this.classes().get(identifier);
 
-        const entity = modelled
-            ? new modelled({ position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 })
+        const entity = modeled
+            ? new modeled({ position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 })
             : new GenericEntity({ identifier, position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 });
 
         entity.persistentNbt = remainder(nbt);
@@ -86,7 +86,7 @@ export class EntitySerializer {
     }
 
     /** Whether the server has a class for an identifier, as opposed to merely preserving it. */
-    public static isModelled(identifier: string): boolean {
+    public static isModeled(identifier: string): boolean {
         return this.classes().has(identifier);
     }
 

@@ -33,7 +33,7 @@ const PICKUP_RANGE = 1.5;
  *
  * Wider than vanilla's, and deliberately. Vanilla merges stacks that are nearly touching, but
  * its dropped items are given a little horizontal speed and shove each other about, so two
- * from neighbouring blocks drift together within a second. This server drops items straight
+ * from neighboring blocks drift together within a second. This server drops items straight
  * down and leaves them where they land, so they sit exactly one block apart - for ever, at
  * half a block's reach. Until they move, the reach has to cover the spacing they are dropped
  * at, which is one block square and 1.41 diagonally.
@@ -117,7 +117,7 @@ export class Item extends Entity {
     }
 
     /**
-     * Draws a neighbouring stack of the same thing into this one.
+     * Draws a neighboring stack of the same thing into this one.
      *
      * Vanilla does this and it is not cosmetic: mining a seam of coal leaves a dozen separate
      * entities where there should be one, each ticking, each falling, each broadcast to every

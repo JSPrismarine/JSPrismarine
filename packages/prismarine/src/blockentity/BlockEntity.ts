@@ -7,11 +7,11 @@ import { Vector3 } from '@jsprismarine/math';
  * # Nothing is ever dropped
  *
  * `fromNBT` keeps the entire compound it was given. A subclass lifts out the fields it models and
- * deletes them from that copy; `toNBT` starts from what is left and puts the modelled fields back.
- * A type nobody has modelled becomes {@link GenericBlockEntity}, whose remainder is everything, so
+ * deletes them from that copy; `toNBT` starts from what is left and puts the modeled fields back.
+ * A type nobody has modeled becomes {@link GenericBlockEntity}, whose remainder is everything, so
  * it round-trips byte for byte.
  *
- * That is not tidiness. A world is full of blocks written by versions and behaviour packs this
+ * That is not tidiness. A world is full of blocks written by versions and behavior packs this
  * server knows nothing about, and a provider that quietly wrote back only the fields it understood
  * would erase a player's chests one save at a time, with nothing to say it had happened.
  */
@@ -80,7 +80,7 @@ export abstract class BlockEntity {
 }
 
 /**
- * A shallow copy. The children are shared, which is what makes retaining an unmodelled subtree
+ * A shallow copy. The children are shared, which is what makes retaining an unmodeled subtree
  * free - nothing here ever mutates one, it only adds and removes top level keys.
  */
 export const clone = (nbt: NBTTagCompound): NBTTagCompound => {

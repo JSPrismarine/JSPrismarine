@@ -15,7 +15,7 @@ import { stub } from '../testing/stub.test.helper';
  * The damage pipeline on `Entity`: grace periods, absorption, knockback and the events.
  *
  * The arithmetic itself is checked in `Damage.test.ts`. What is tested here is the order things
- * happen in and what gets skipped, which is where all the behaviour a player would notice lives.
+ * happen in and what gets skipped, which is where all the behavior a player would notice lives.
  */
 
 /** Records the shoves instead of moving, since a bare `Entity` has no velocity to move with. */
@@ -46,7 +46,7 @@ const scene = () => {
     const noises: Array<{ id: bigint; sound: LevelSoundEvent }> = [];
 
     // Stands in for a plugin's listener. It sees the same event object the pipeline goes on to
-    // read, which is what makes cancelling or changing the blow from a test work at all.
+    // read, which is what makes canceling or changing the blow from a test work at all.
     let listener = (_: EventTypes): void => {};
 
     const server = stub<Server>({
@@ -138,7 +138,7 @@ describe('the damage pipeline', () => {
     });
 
     describe('what reaches the health', () => {
-        it('is reduced by armour', async () => {
+        it('is reduced by armor', async () => {
             const victim = world.at(0, 0);
             victim.armorPoints = 15;
 
@@ -147,7 +147,7 @@ describe('the damage pipeline', () => {
             expect(victim.getHealth()).toBeCloseTo(14);
         });
 
-        it('ignores that armour when the cause does', async () => {
+        it('ignores that armor when the cause does', async () => {
             const victim = world.at(0, 0);
             victim.armorPoints = 15;
 
@@ -231,7 +231,7 @@ describe('the damage pipeline', () => {
     });
 
     describe('events', () => {
-        it('can be cancelled, and then nothing happens at all', async () => {
+        it('can be canceled, and then nothing happens at all', async () => {
             const victim = world.at(0, 0);
             const attacker = world.at(-3, 0);
 

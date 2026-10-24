@@ -42,7 +42,7 @@ export interface WorldChangeSink {
 
     /**
      * A block made a noise - it was placed, or broken.
-     * @param {Vector3} position - Where it happened, at the centre of the block.
+     * @param {Vector3} position - Where it happened, at the center of the block.
      * @param {LevelSoundEvent} sound - Which noise.
      * @param {number} blockRuntimeId - The block that made it.
      */

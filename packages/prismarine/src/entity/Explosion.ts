@@ -24,13 +24,13 @@ const REACH_MULTIPLIER = 2;
 /**
  * The curve, straight from vanilla.
  *
- * `((impact² + impact) / 2) * 7 * diameter + 1`, where impact runs from one at the centre to zero
+ * `((impact² + impact) / 2) * 7 * diameter + 1`, where impact runs from one at the center to zero
  * at the edge. It is steep on purpose: a creeper at point blank does forty-three half-hearts and
- * kills an unarmoured player outright, and one at four blocks does a couple.
+ * kills an unarmored player outright, and one at four blocks does a couple.
  */
 const DAMAGE_CURVE = 7;
 
-/** How hard a blast shoves, at the centre. */
+/** How hard a blast shoves, at the center. */
 const KNOCKBACK = 1.6;
 
 /** How far apart the samples are when checking whether something is behind cover. */
@@ -83,7 +83,7 @@ export interface ExplosionOptions {
 /**
  * Sets a blast off at a point.
  * @param {World} world - Where.
- * @param {Vector3} at - The centre.
+ * @param {Vector3} at - The center.
  * @param {ExplosionOptions} options - How hard, and whose fault.
  * @returns {Promise<void>} Resolves once everything has been hurt and the blocks are gone.
  * @example
@@ -157,7 +157,7 @@ const distanceFrom = (at: Vector3, entity: Entity): number => {
  *
  * Read through the entity's *own* `BlockView` rather than the world's, which is why anything
  * that is not a mob - a dropped item, an arrow - is simply counted as exposed. Nothing that lacks
- * a view has cover worth modelling.
+ * a view has cover worth modeling.
  */
 const exposure = (at: Vector3, entity: Entity): number => {
     if (!(entity instanceof Mob)) return 1;
@@ -172,8 +172,8 @@ const exposure = (at: Vector3, entity: Entity): number => {
     const length = Math.hypot(dx, dy, dz);
     if (length < SIGHT_STEP) return 1;
 
-    for (let travelled = SIGHT_STEP; travelled < length; travelled += SIGHT_STEP) {
-        const t = travelled / length;
+    for (let traveled = SIGHT_STEP; traveled < length; traveled += SIGHT_STEP) {
+        const t = traveled / length;
         const x = Math.floor(at.getX() + dx * t);
         const y = Math.floor(at.getY() + dy * t);
         const z = Math.floor(at.getZ() + dz * t);
@@ -204,24 +204,24 @@ const shove = (at: Vector3, entity: Entity, impact: number): void => {
  * Takes out everything soft within the blast's own power, as a sphere.
  *
  * A sphere rather than vanilla's rays, which is the visible simplification here: vanilla fires
- * rays out from the centre and lets each one spend itself against what it passes through, so a
+ * rays out from the center and lets each one spend itself against what it passes through, so a
  * blast is stopped by a wall and leaves the room behind it intact. This does not, so a creeper
  * against a one-block wall takes out a little more than it should.
  */
 const breakBlocks = async (world: World, at: Vector3, power: number): Promise<void> => {
     const radius = Math.floor(power);
-    const centreX = Math.floor(at.getX());
-    const centreY = Math.floor(at.getY());
-    const centreZ = Math.floor(at.getZ());
+    const centerX = Math.floor(at.getX());
+    const centerY = Math.floor(at.getY());
+    const centerZ = Math.floor(at.getZ());
 
     for (let x = -radius; x <= radius; x++) {
         for (let y = -radius; y <= radius; y++) {
             for (let z = -radius; z <= radius; z++) {
                 if (Math.hypot(x, y, z) > radius) continue;
 
-                const bx = centreX + x;
-                const by = centreY + y;
-                const bz = centreZ + z;
+                const bx = centerX + x;
+                const by = centerY + y;
+                const bz = centerZ + z;
 
                 const state = await world.getBlockState(bx, by, bz);
                 if (state.name === 'minecraft:air' || BLAST_PROOF.has(state.name)) continue;

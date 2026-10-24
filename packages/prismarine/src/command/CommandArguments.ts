@@ -243,7 +243,7 @@ export class CommandArgumentEntity implements CommandArgument {
  * `parse` write the parsed coordinates into `this` before returning it - but the instance is
  * built once, when the command is registered, and shared by every execution of it. Two
  * players teleporting at the same time therefore parsed into the same object and one of them
- * travelled to the other's destination.
+ * traveled to the other's destination.
  */
 export class CommandArgumentPosition implements CommandArgument {
     private name: string;

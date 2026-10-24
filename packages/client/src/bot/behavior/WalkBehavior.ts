@@ -1,6 +1,6 @@
 import { MovePlayerPacket, MovementType } from '@jsprismarine/protocol';
 
-import type { Behaviour, BehaviourContext } from './Behaviour';
+import type { Behavior, BehaviorContext } from './Behavior';
 
 /** How far a walking player covers in one server tick, in blocks. Vanilla is about this. */
 const BLOCKS_PER_TICK = 0.21;
@@ -21,13 +21,13 @@ const MAX_LEG_TICKS = 100;
  * means it can walk into a wall and the server will simply not agree - which is fine for
  * measuring, and would not be fine for anything else.
  */
-export default class WalkBehaviour implements Behaviour {
+export default class WalkBehavior implements Behavior {
     public readonly name = 'walk';
 
     private legTicksLeft = 0;
     private headingRadians = 0;
 
-    public async tick(context: BehaviourContext): Promise<void> {
+    public async tick(context: BehaviorContext): Promise<void> {
         const { bot, random } = context;
 
         if (this.legTicksLeft <= 0) {

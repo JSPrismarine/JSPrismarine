@@ -21,6 +21,6 @@ const credentials = await auth.createLoginCredentials({
 sends when it is not signed in. A server in online mode refuses it - there is no XUID to
 check - and a server with `online-mode` off accepts it.
 
-The default skin is generated, not shipped: flat colour blocks laid out over the regions the
+The default skin is generated, not shipped: flat color blocks laid out over the regions the
 classic humanoid geometry samples. Mojang's textures cannot be redistributed, and a client
 that refused to log in without one would be useless.

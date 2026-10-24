@@ -131,7 +131,7 @@ export class BlockPhysics {
     private async fall(name: string, x: number, y: number, z: number, now: number): Promise<void> {
         await this.world.setBlockByName(x, y, z, 'minecraft:air', now);
 
-        // Centred in the column it fell from, so it lands back in the same one.
+        // Centered in the column it fell from, so it lands back in the same one.
         const entity = new FallingBlock({
             position: new Position(x + 0.5, y, z + 0.5, this.world),
             blockName: name
@@ -199,14 +199,14 @@ export class BlockPhysics {
 
         const mine = spreadOf(depth);
         for (const [dx, dz] of SIDES) {
-            const neighbour = this.depthAt(x + dx, y, z + dz);
-            if (neighbour === null) continue;
+            const neighbor = this.depthAt(x + dx, y, z + dz);
+            if (neighbor === null) continue;
 
             const name = this.nameAt(x + dx, y, z + dz);
             if (name !== liquid.still && name !== liquid.flowing) continue;
 
             // Falling liquid beside it counts as a supply whatever its nominal spread.
-            if (isFalling(neighbour) || spreadOf(neighbour) < mine) return true;
+            if (isFalling(neighbor) || spreadOf(neighbor) < mine) return true;
         }
 
         return false;

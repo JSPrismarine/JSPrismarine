@@ -17,7 +17,7 @@ Entity visibility follows vanilla in being per type rather than one radius for e
 
 Each session now tracks which entities its client actually holds, reconciled when the player crosses a chunk boundary and every few ticks otherwise, with hysteresis between the radius at which an entity appears and the one at which it goes away — with a single radius a player standing on the boundary produces an `AddActor` and a `RemoveActor` for everything out there on alternating passes. Entities are recorded as tracked only after their spawn has reached the wire, so a failed spawn is retried rather than being remembered as delivered and never sent again. Movement is gated on that tracked set rather than on distance: a `MoveActorAbsolutePacket` for a runtime id a client was never given is discarded at the other end anyway, which makes tracking both the correct gate and a set lookup instead of arithmetic on the hottest path in the server.
 
-`proximity-broadcast: false` turns the filtering off. It restores world-wide delivery, not the server-wide fan-out, which was a bug rather than a behaviour. `entity-tracking-hysteresis` and `entity-tracking-interval` tune the rest.
+`proximity-broadcast: false` turns the filtering off. It restores world-wide delivery, not the server-wide fan-out, which was a bug rather than a behavior. `entity-tracking-hysteresis` and `entity-tracking-interval` tune the rest.
 
 Three bugs came out of the audit that had nothing to do with distance:
 

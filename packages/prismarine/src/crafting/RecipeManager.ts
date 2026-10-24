@@ -62,7 +62,7 @@ export class RecipeManager implements Service {
      *
      * The item table decides: it is what `StartGamePacket` declares and what every item
      * network id is resolved through, so a name absent from it is one the client would not
-     * recognise however carefully the server built it.
+     * recognize however carefully the server built it.
      */
     private isKnown(name: string): boolean {
         return ItemIdMap[name] !== undefined;
@@ -71,7 +71,7 @@ export class RecipeManager implements Service {
     /**
      * Adds a recipe, which is how a plugin contributes one.
      *
-     * Announced first, and a listener cancelling it is how a vanilla recipe gets removed -
+     * Announced first, and a listener canceling it is how a vanilla recipe gets removed -
      * see {@link RecipeRegisterEvent} for why there is no unregister.
      * @param {Recipe} recipe - the recipe.
      * @throws when its id is already taken, because ids have to be unique for the packet to
@@ -82,7 +82,7 @@ export class RecipeManager implements Service {
 
         const event = new RecipeRegisterEvent(recipe);
         await this.server.emit('recipeRegister', event);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.recipes.push(recipe);
         this.byId.set(recipe.id, recipe);

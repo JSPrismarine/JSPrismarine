@@ -115,5 +115,5 @@
             }
         }
     ],
-    "plugins": ["./.biome/no-barrel-imports.grit"]
+    "plugins": ["./.biome/no-barrel-imports.grit", "./.biome/no-british-spellings.grit"]
 }

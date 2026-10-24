@@ -184,7 +184,7 @@ export class ConfigBuilder {
      * Get a config value from a key, writing the default to the file when the key is absent.
      *
      * A stored value of a different kind than the default (a string where a number is
-     * expected, say) is ignored in favour of the default, and the file is left alone.
+     * expected, say) is ignored in favor of the default, and the file is left alone.
      *
      * @param key - the config key
      * @param defaults - the value to use, and persist, when the key is missing

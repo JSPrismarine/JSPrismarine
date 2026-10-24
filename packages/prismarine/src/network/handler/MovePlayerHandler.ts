@@ -35,8 +35,8 @@ export const applyClientMovement = async (
 
     const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? MovementType.Normal);
     server.post(['playerMove', event]);
-    if (event.isCancelled()) {
-        // Since we're cancelling the event, we should reset the player's position.
+    if (event.isCanceled()) {
+        // Since we're canceling the event, we should reset the player's position.
         await session.sendMove(player, MovementType.Reset);
         return;
     }

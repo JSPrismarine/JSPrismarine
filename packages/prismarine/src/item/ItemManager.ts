@@ -68,7 +68,7 @@ export default class ItemManager {
     public registerItem = async (item: Item) => {
         const event = new ItemRegisterEvent(item);
         await this.server.emit('itemRegister', event);
-        if (event.isCancelled()) return;
+        if (event.isCanceled()) return;
 
         this.server.getLogger().debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
         this.items.set(item.getName(), item);

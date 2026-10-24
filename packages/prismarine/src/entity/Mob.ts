@@ -28,7 +28,7 @@ import { WALK_SPEED } from './ai/Speed';
  *
  * Everything here exists to answer one requirement: that mobs move fluidly rather than in jerks.
  * A server that decides "the mob is now one block north" and tells the client so produces exactly
- * the stuttering everyone recognises, and no amount of work on the client can hide it. Smooth
+ * the stuttering everyone recognizes, and no amount of work on the client can hide it. Smooth
  * movement has to be smooth on the server first, which means three things, all of them here:
  *
  * - **Velocity, not teleportation.** A mob has a speed and a heading, integrated every tick into a
@@ -102,8 +102,8 @@ const UNSTICK_SPEED = 0.2;
  * How far past its own front a mob looks for something to jump, in blocks.
  *
  * Added to the half-width, so it is a distance from the *body* and not from the position. A jump
- * decided from the centre is a jump decided too late for anything but a point: a sheep is 0.9
- * across, so by the time its centre is a fraction from the wall its shoulders are already in it.
+ * decided from the center is a jump decided too late for anything but a point: a sheep is 0.9
+ * across, so by the time its center is a fraction from the wall its shoulders are already in it.
  */
 const PROBE_REACH = 0.25;
 
@@ -160,7 +160,7 @@ export class Mob extends Entity {
      * altogether. Written directly, a blow that landed after the physics had already run would
      * spend the next tick being smoothed away before it was ever integrated - so a mob hit while
      * charging barely moved. Queued, every blow is spent at the same point in the tick, next to
-     * the shove from neighbours and for the same reason.
+     * the shove from neighbors and for the same reason.
      */
     private pendingKnockback: { impulse: Vector3; damping: number } | null = null;
 
@@ -214,9 +214,9 @@ export class Mob extends Entity {
     /**
      * Built on first use rather than in the constructor.
      *
-     * {@link createGoals} is meant to be overridden, and a subclass's own field initialisers do not
+     * {@link createGoals} is meant to be overridden, and a subclass's own field initializers do not
      * run until after `super()` has returned - so a brain built in the constructor would be built
-     * from a half-initialised mob. By the first tick everything exists.
+     * from a half-initialized mob. By the first tick everything exists.
      */
     private brain: GoalSelector | null = null;
 
@@ -317,7 +317,7 @@ export class Mob extends Entity {
     /**
      * The base attributes, with this species' own figures written over them.
      *
-     * Runs during `Entity`'s field initialisation - before this class's own fields exist - so it
+     * Runs during `Entity`'s field initialization - before this class's own fields exist - so it
      * reads nothing but the type, which is a static and is already bound to the subclass. That is
      * the same guarantee `applySize` relies on.
      * @returns {Attribute[]} The attributes, freshly built.
@@ -650,7 +650,7 @@ export class Mob extends Entity {
      *
      * Scaled here rather than in the attribute, so the number a plugin reads off a zombie is the
      * zombie's own and not one that silently depends on a server setting.
-     * @returns {number} The damage, before the target's armour.
+     * @returns {number} The damage, before the target's armor.
      */
     public getAttackDamage(): number {
         return scaleForDifficulty(
@@ -806,9 +806,9 @@ export class Mob extends Entity {
     /**
      * Whether the thing in the mob's way is worth jumping at.
      *
-     * Probed from the *front of the body* rather than from its centre, which is the difference
+     * Probed from the *front of the body* rather than from its center, which is the difference
      * between jumping while still walking and jumping after having already been stopped dead.
-     * Sampling one point out from the centre missed obstacles entirely on a diagonal - the point
+     * Sampling one point out from the center missed obstacles entirely on a diagonal - the point
      * landed in the open cell beside the corner - so the mob walked into the corner instead, lost
      * its speed to the wall, and only then noticed. Testing the whole body cannot miss a corner it
      * is about to hit.
@@ -881,7 +881,7 @@ export class Mob extends Entity {
         // the acceleration model on its way through. A shove is something happening *to* the mob;
         // the smoothing is about how the mob changes its own mind. A blow is the same kind of
         // thing, and is spent in the same place.
-        const shove = this.pushFromNeighbours();
+        const shove = this.pushFromNeighbors();
         const blow = this.pendingKnockback;
         this.pendingKnockback = null;
 
@@ -916,15 +916,15 @@ export class Mob extends Entity {
      * towards a wall is stopped by the wall like anything else.
      * @returns {Vector3} A horizontal nudge, at most {@link MAX_PUSH} long.
      */
-    private pushFromNeighbours(): Vector3 {
+    private pushFromNeighbors(): Vector3 {
         const position = this.getPosition();
         const feet = this.getFeetY();
-        const neighbours = this.getWorld().getEntityGrid().near(position.getX(), position.getZ());
+        const neighbors = this.getWorld().getEntityGrid().near(position.getX(), position.getZ());
 
         let pushX = 0;
         let pushZ = 0;
 
-        for (const other of neighbours) {
+        for (const other of neighbors) {
             if (other === this || !other.occupiesSpace()) continue;
 
             const at = other.getPosition();
@@ -1024,7 +1024,7 @@ export class Mob extends Entity {
                 y = this.view.groundUnder(x, y, z, this.bodyWidth, Math.max(1, y - nextY + 1)) ?? y;
                 this.onGround = true;
             } else {
-                // Head into a ceiling: the rise is simply cancelled.
+                // Head into a ceiling: the rise is simply canceled.
                 this.onGround = false;
             }
 

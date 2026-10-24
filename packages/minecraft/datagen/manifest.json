@@ -4,7 +4,7 @@
         "",
         "Everything here is a choice: which release to read, which enums are part of this",
         "package's public API, and what they are called. The generator makes none of them - it",
-        "only applies them - so a change in behaviour is a change in this file, reviewable on",
+        "only applies them - so a change in behavior is a change in this file, reviewable on",
         "its own.",
         "",
         "Two sources, because Mojang changed how it publishes. `schemas` is the release this",
@@ -289,7 +289,8 @@
                 "NoWiFi": "NO_WIFI",
                 "DisconnectPacket": "DISCONNECT_PACKET_DEPRECATED",
                 "ReasonNotSet": "REASON_NOT_SET_DEPRECATED",
-                "INTERNAL_RequestServerShutdown": "REQUEST_SERVER_SHUTDOWN"
+                "INTERNAL_RequestServerShutdown": "REQUEST_SERVER_SHUTDOWN",
+                "ClientGameSetupCancelled": "CLIENT_GAME_SETUP_CANCELED"
             }
         },
         "LevelSoundEvent": {
@@ -298,7 +299,7 @@
     },
     "blocks": {
         "$comment": [
-            "Where the block state catalogue comes from and goes.",
+            "Where the block state catalog comes from and goes.",
             "",
             "Captured from a Bedrock Dedicated Server, in two halves, because neither half alone",
             "is the answer. The network palette is not on the wire - with hashed runtime ids",
@@ -340,7 +341,7 @@
         ],
         "bedrockServer": "/path/to/bedrock-server-1.26.51.1",
         "$source": [
-            "The behaviour pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
+            "The behavior pack directory, not one pack's recipes: BDS ships a 1.13 baseline in",
             "`vanilla` and a layer per release on top, and the game composes them. The generator",
             "reads `vanilla` and every `vanilla_<version>` up to the version pinned above, later",
             "layers winning. `chemistry` and `experimental_` are not layers and are excluded."
@@ -362,6 +363,14 @@
                 "the thing this override stands in for."
             ],
             "minecraft:chain": "minecraft:iron_chain"
+        },
+        "idAliases": {
+            "$comment": [
+                "Source recipe IDs used as public IDs in the game packet. These are renamed here",
+                "so source updates keep the server's American spellings without changing item names."
+            ],
+            "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_blaze_powder_coal_sulfur_recipeId",
+            "crafting_table/minecraft:FireCharge_coal_sulphur_recipeId": "crafting_table/minecraft:FireCharge_coal_sulfur_recipeId"
         },
         "target": "../src/generated/recipes.json"
     }

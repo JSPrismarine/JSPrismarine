@@ -281,7 +281,7 @@ const run = async (
     ticks: number,
     options: Options = {}
 ): Promise<void> => {
-    // Warm up: build the reverse state index and let the physics paths reach their optimised tier.
+    // Warm up: build the reverse state index and let the physics paths reach their optimized tier.
     await once(2, 1, 60, {});
 
     const runs: Result[] = [];

@@ -14,6 +14,10 @@ utilities.
 
 When a message asks for an explanation, feasibility assessment, or recommendation, answer without editing files. Treat a direct request to implement a change as authorization to edit.
 
+## Writing
+
+Use American English spelling in prose and documentation. Do not use British spellings.
+
 ## Before work
 
 - Read [Contributing](CONTRIBUTING.md) for the project's contribution and pull request guidance.

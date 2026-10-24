@@ -11,7 +11,7 @@ import Timer from '../utils/Timer';
 import UUID from '../utils/UUID';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
 // `./world/` before `Player`, so reaching for it via '../' lands back in a module that is
-// still initialising and the binding is not a constructor yet when `instanceof` runs.
+// still initializing and the binding is not a constructor yet when `instanceof` runs.
 import Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
@@ -330,7 +330,7 @@ export class World implements Service {
 
         // Also before them, and for the same reason: every mob asks who it is touching, and it has
         // to be answered from where everything was at the top of the tick. Rebuilding it inside
-        // the loop would let a mob be pushed by a neighbour that had already moved and not by one
+        // the loop would let a mob be pushed by a neighbor that had already moved and not by one
         // that had not, which makes the shove depend on map iteration order.
         this.entityGrid.rebuild(entities);
 
@@ -382,7 +382,7 @@ export class World implements Service {
         try {
             return this.server.getBlockManager().getBlock(state.name);
         } catch {
-            // The chunk holds a block nobody registered a behaviour for; it still exists as
+            // The chunk holds a block nobody registered a behavior for; it still exists as
             // a state, but there is no Block to hand back.
             return this.server.getBlockManager().getBlock('minecraft:air');
         }
@@ -421,7 +421,7 @@ export class World implements Service {
     /**
      * Generates the chunks around spawn before the world opens for business.
      *
-     * Centred on spawn, because the point is to have ready what the first player will
+     * Centered on spawn, because the point is to have ready what the first player will
      * actually see - the previous version walked a square from chunk (0,0) outwards, which
      * for a spawn anywhere else was mostly work nobody would ever look at.
      *
@@ -608,7 +608,7 @@ export class World implements Service {
      * player up, but spawning in a treetop is not what anyone means by a spawn point.
      *
      * The search widens in rings and steps several blocks at a time, because each candidate
-     * may generate a chunk and terrain does not change meaningfully between neighbours.
+     * may generate a chunk and terrain does not change meaningfully between neighbors.
      */
     private async findSurfaceSpawn(): Promise<Vector3> {
         for (let radius = 0; radius <= SPAWN_SEARCH_RADIUS; radius += SPAWN_SEARCH_STEP) {
@@ -671,9 +671,9 @@ export class World implements Service {
         // server placed nothing at all, ever. The client predicts the placement and plays the
         // sound locally, which is why a block appeared to go down and then was not there.
         //
-        // A name the block registry does not know still places nothing: the state catalogue
+        // A name the block registry does not know still places nothing: the state catalog
         // has all 1219 blocks, but only the 260 with a class of their own can be given
-        // behaviour, and the creative menu now offers every one of the 1919 items.
+        // behavior, and the creative menu now offers every one of the 1919 items.
         const blockManager = this.server.getBlockManager();
         const block = itemInHand instanceof Item ? blockManager.findBlock(itemInHand.getName()) : itemInHand;
         const clickedState = (await this.getChunkAt(blockPosition)).getBlock(blockPosition);
@@ -728,7 +728,7 @@ export class World implements Service {
             // `clickedBlock`'s state - and then dropped on the floor, never sent, for as long
             // as the code has existed. The packet is gone rather than the intent: what belongs
             // here is `this.changes.blockChanged(placedPosition, ...)`, which would actually
-            // send it, and turning that on is a behaviour change rather than a move.
+            // send it, and turning that on is a behavior change rather than a move.
             return;
         }
 
@@ -771,7 +771,7 @@ export class World implements Service {
         const brokenRuntimeId = BlockRuntimeIds.get(state);
 
         // Read before the block goes, and through `getBlock` so that a state nobody
-        // registered a behaviour for costs the drops rather than the whole break.
+        // registered a behavior for costs the drops rather than the whole break.
         const broken = await this.getBlock(x, y, z);
 
         // TODO: run a function from block.getBreakConsequences() because the broken block may
@@ -823,7 +823,7 @@ export class World implements Service {
      * @param {number} z - World z.
      * @param {number} runtimeId - The block state to put there.
      * @param {number} [now] - The tick to schedule the resulting updates from.
-     * @param {number} [delay=1] - Ticks before the neighbours are looked at.
+     * @param {number} [delay=1] - Ticks before the neighbors are looked at.
      * @returns {Promise<boolean>} `false` if nothing changed - the position is outside the world,
      * its chunk is not loaded, or that block is already there.
      */
@@ -840,7 +840,7 @@ export class World implements Service {
 
         // Idempotent, which matters more than it looks: physics re-examines positions constantly,
         // and a write that changed nothing would still cost a packet to every player and another
-        // round of neighbour updates - so a settled pool of water would never stop working.
+        // round of neighbor updates - so a settled pool of water would never stop working.
         if (chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf) === runtimeId) return false;
 
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
@@ -858,7 +858,7 @@ export class World implements Service {
      * @param {number} z - World z.
      * @param {string} name - The block's namespace id.
      * @param {number} [now] - The tick to schedule the resulting updates from.
-     * @param {number} [delay=1] - Ticks before the neighbours are looked at.
+     * @param {number} [delay=1] - Ticks before the neighbors are looked at.
      * @returns {Promise<boolean>} `false` if nothing changed, or this server has no such block.
      */
     public async setBlockByName(

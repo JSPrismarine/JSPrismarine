@@ -14,7 +14,7 @@ import IronGolem from './neutral/IronGolem';
 /**
  * Blasts.
  *
- * The curve is vanilla's: a creeper at point blank kills an unarmoured player outright and one at
+ * The curve is vanilla's: a creeper at point blank kills an unarmored player outright and one at
  * four blocks costs a couple of half-hearts. That steepness is the mob, so it is what is checked.
  */
 const scene = ({ griefing = true, solid = false } = {}) => {
@@ -108,7 +108,7 @@ describe('explosions', () => {
         expect(cow.getLastDamageSource()?.attacker).toBe(creeper);
     });
 
-    it('throws what it hurts away from the centre', async () => {
+    it('throws what it hurts away from the center', async () => {
         const cow = stage.spawn(Cow, 3, 0);
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 

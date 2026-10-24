@@ -18,4 +18,4 @@ Sprinting is worth one knockback level, the same as one level of the enchantment
 
 `SetActorMotionPacket` and the PvP gamerule both do something for the first time: knockback on a *player* has to be a request rather than a move, since their position is their own client's, and `canHarm` is the one place the rules about who may hit whom are stated.
 
-Weapon durability is not decremented yet. It is left with the armour work, where the machinery for telling a client that a held item has changed lives - decrementing it here would drift the server's number away from the one the client is drawing, which is worse than not doing it.
+Weapon durability is not decremented yet. It is left with the armor work, where the machinery for telling a client that a held item has changed lives - decrementing it here would drift the server's number away from the one the client is drawing, which is worse than not doing it.

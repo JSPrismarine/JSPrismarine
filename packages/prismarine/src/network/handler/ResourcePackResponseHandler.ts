@@ -40,7 +40,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             // Emit playerSpawn event
             const spawnEvent = new PlayerSpawnEvent(player);
             server.post(['playerSpawn', spawnEvent]);
-            if (spawnEvent.isCancelled()) return;
+            if (spawnEvent.isCanceled()) return;
 
             // TODO: send inventory slots
             const world = player.getWorld();
@@ -144,7 +144,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
             const chatSpawnEvent = new ChatEvent(
                 new Chat({
                     sender: server.getConsole()!,
-                    // The bare translation key: a colour code in front of the `%` stops the
+                    // The bare translation key: a color code in front of the `%` stops the
                     // client resolving it, and it renders the unresolved string instead.
                     message: `%multiplayer.player.joined`,
                     parameters: [player.getName()],

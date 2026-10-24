@@ -38,7 +38,7 @@ import { SpawnBiome } from './SpawnBiome';
 import type { StackPack } from './StackPack';
 
 /**
- * The vanilla block state catalogue: which properties each block has and which values they
+ * The vanilla block state catalog: which properties each block has and which values they
  * accept. Not an ordered palette - runtime ids are hashes of a block's own name and state.
  */
 /** Every vanilla recipe, from Mojang's own files in a Bedrock Dedicated Server. */

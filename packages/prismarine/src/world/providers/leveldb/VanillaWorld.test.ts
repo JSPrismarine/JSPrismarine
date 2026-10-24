@@ -25,7 +25,7 @@ import { Dimensions } from '../../Dimension';
  *
  * **The fixture must be 1.21.40**, the version whose block states this server ships. Byte
  * exactness is only meaningful against a matching version: a palette entry carries the state
- * version it was written at, and an older world's states are normalised to ours on the way in -
+ * version it was written at, and an older world's states are normalized to ours on the way in -
  * which is the right thing to do, and is not byte-identical. Checked against a 1.16 world, the
  * packed block data matches exactly and only the palette differs: `version` is rewritten, a
  * property that version no longer has is dropped, and a block since renamed (`minecraft:grass`,
@@ -34,7 +34,7 @@ import { Dimensions } from '../../Dimension';
  *
  * To make one: launch Minecraft Bedrock 1.21.40, create a **flat creative** world called
  * `JSPRoundTrip` (flat keeps it small and deterministic), place a chest with something in it and a
- * sign with text on it, spawn a cow and an armour stand, put a block at roughly y=-60 and another
+ * sign with text on it, spawn a cow and an armor stand, put a block at roughly y=-60 and another
  * at roughly y=300, then save and quit. Copy the folder out of `minecraftWorlds`, and trim it to
  * `db/CURRENT`, `db/MANIFEST-*`, `db/*.ldb`, `level.dat` and `levelname.txt` - the `.log` and
  * `LOCK` files are not wanted and the whole thing should come in under a megabyte.

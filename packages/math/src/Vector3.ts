@@ -160,7 +160,7 @@ export class Vector3 extends Vector2 {
      * @returns {number} The distance.
      * @example
      * ```typescript
-     * const metres = player.getPosition().distanceTo(target.getPosition());
+     * const meters = player.getPosition().distanceTo(target.getPosition());
      * ```
      */
     public distanceTo(vector: Vector3): number {

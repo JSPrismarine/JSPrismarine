@@ -6,7 +6,7 @@ import type { Cipheriv } from 'node:crypto';
 const CHECKSUM_LENGTH = 8;
 
 /**
- * The cipher both ends agree on, and the initialisation vector built from the key itself.
+ * The cipher both ends agree on, and the initialization vector built from the key itself.
  *
  * Not a random IV, and not the key's first sixteen bytes either: twelve bytes of key followed
  * by a counter block of `00 00 00 02`. There is nothing to derive it from - it is simply the
@@ -25,12 +25,12 @@ const streamFor = (key: Buffer): Cipheriv =>
  *
  * A batch arrives here already framed and compressed - `0xFE`, the algorithm byte, the
  * compressed packets - and everything after the `0xFE` is encrypted. The header stays in the
- * clear because RakNet has to keep recognising the frame, and because the checksum is computed
+ * clear because RakNet has to keep recognizing the frame, and because the checksum is computed
  * over what follows it rather than over the whole thing.
  *
  * Two things make this unforgiving. The stream is *continuous*: one keystream runs across
  * every batch in a direction, so a batch that is dropped, reordered or encrypted twice
- * desynchronises everything after it and there is no resynchronising. And each direction keeps
+ * desynchronizes everything after it and there is no resynchronizing. And each direction keeps
  * its own counter, which is hashed into the checksum but never sent - so the only way a peer
  * learns the counters disagree is that every checksum from then on is wrong.
  *

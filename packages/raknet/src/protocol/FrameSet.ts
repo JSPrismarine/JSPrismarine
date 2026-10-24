@@ -50,7 +50,7 @@ export default class FrameSet extends Packet {
         }
 
         // getByteLength and writeInto have to agree on every field, or a datagram goes out
-        // with a tail of uninitialised memory. Cheap to check once per datagram, and it
+        // with a tail of uninitialized memory. Cheap to check once per datagram, and it
         // turns a silent wire corruption into a loud failure.
         assert(offset === out.byteLength, `FrameSet encoded ${offset} bytes, expected ${out.byteLength}`);
 

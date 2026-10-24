@@ -106,7 +106,7 @@ export class OfflineClientHandler {
                 this.socket.onOfflineFailure('banned from this server');
                 break;
             default:
-                // RakNet ignores traffic it does not recognise, and so must anything
+                // RakNet ignores traffic it does not recognize, and so must anything
                 // reachable from an unauthenticated UDP socket.
                 // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L5452
                 this.discard(msg, rinfo, 'unknown unconnected packet id');

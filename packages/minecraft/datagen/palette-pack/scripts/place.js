@@ -2,7 +2,7 @@
  * Puts one of every block type into the world, so that the save carries their network states.
  *
  * A saved sub chunk stores its palette as NBT: a block's name and the states that go with it,
- * in the form the *network* uses. That is the half of the catalogue the Script API cannot be
+ * in the form the *network* uses. That is the half of the catalog the Script API cannot be
  * asked for - it reports a flattened block's legacy properties as well, and from inside the
  * game there is no way to tell which of them the wire carries.
  *
@@ -10,7 +10,7 @@
  * a block cannot be written into a chunk nobody has loaded, and at server start nothing is.
  *
  * Placed three times, in three settings, because a block placed where it cannot stand pops
- * before the world is saved and is then simply not in the catalogue. Which blocks those are
+ * before the world is saved and is then simply not in the catalog. Which blocks those are
  * depends on the tick order and changed from one run to the next - seventeen went missing
  * once, seven another time. Every block is happy in at least one of the three:
  *
@@ -20,7 +20,7 @@
  * - on stone directly under a roof: the vines, which hang, and the buttons, which by default
  *   are attached to the block above them;
  * - on stone with a stone block to the west of each: the wall fans, which attach to a side,
- *   and had been losing theirs to whatever neighbour the grid happened to give them.
+ *   and had been losing theirs to whatever neighbor the grid happened to give them.
  *
  * The extractor merges by name, so a block that survived anywhere is in.
  */

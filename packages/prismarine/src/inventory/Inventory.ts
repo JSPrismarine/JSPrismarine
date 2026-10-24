@@ -14,7 +14,7 @@ export default class Inventory {
      * An empty *stack*, not a block of air. `new Air()` is a `Block`, and the two `as any`
      * casts it used to be forced through hid that a Block has no `networkSerialize` - so
      * anything writing a slot straight to the wire threw the moment the slot was empty, which
-     * for armour is every player who has just joined.
+     * for armor is every player who has just joined.
      *
      * A fresh one each time rather than one shared: these go into slots, and a slot's contents
      * get mutated.

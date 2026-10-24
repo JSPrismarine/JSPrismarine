@@ -1,7 +1,7 @@
 language js
 
 // Value imports from a package's own barrel (`.`, `..`, `../..`, with or without `/index`)
-// pull the whole package into a module that is still initialising, which is how runtime
+// pull the whole package into a module that is still initializing, which is how runtime
 // import cycles and TDZ errors start. Type-only imports are erased and stay allowed.
 `import $imports from $source` as $statement where {
     $source <: r"^['\"](?:\.{1,2}(?:/\.\.)*/?(?:index)?)['\"]$",

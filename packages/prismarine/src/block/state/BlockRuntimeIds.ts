@@ -140,7 +140,7 @@ export class BlockRuntimeIds {
             const schema = BlockStateSchemas.get(name);
             if (schema) runtimeId = this.get(states ? schema.createState({ ...states }) : schema.getDefaultState());
         } catch {
-            // A property this server's catalogue does not accept; left null.
+            // A property this server's catalog does not accept; left null.
         }
 
         this.statedCache.set(key, runtimeId);
@@ -150,9 +150,9 @@ export class BlockRuntimeIds {
     /**
      * The state an id came from, for reading a chunk back.
      *
-     * A hash cannot be inverted, so this indexes every state the catalogue can produce and
+     * A hash cannot be inverted, so this indexes every state the catalog can produce and
      * looks the id up. Building it costs a pass over ~14k states, so it is deferred until
-     * something actually reads a block, and rebuilt when a plugin changes the catalogue.
+     * something actually reads a block, and rebuilt when a plugin changes the catalog.
      */
     public static getState(runtimeId: number): BlockState | null {
         if (this.reverseIndex === null || this.indexedRevision !== BlockStateSchemas.getRevision()) {

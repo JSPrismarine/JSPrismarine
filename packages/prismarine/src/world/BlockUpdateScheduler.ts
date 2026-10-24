@@ -9,7 +9,7 @@
  *
  * Three properties earn this its own class:
  *
- * - **Deduplication.** Breaking one block queues its six neighbours, and each of those may queue
+ * - **Deduplication.** Breaking one block queues its six neighbors, and each of those may queue
  *   theirs; without collapsing repeats, a column of falling sand queues the same positions over and
  *   over and the queue grows faster than it drains.
  * - **Delay.** Water spreads on a timer rather than instantly, and a falling block descends a block

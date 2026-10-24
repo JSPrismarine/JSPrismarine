@@ -10,11 +10,11 @@ import { DamageCause } from './DamageCause';
 import Human from './Human';
 
 /**
- * Armour, finally doing something.
+ * Armor, finally doing something.
  *
- * Both ends of this were complete long before the middle was: two dozen armour items have declared
+ * Both ends of this were complete long before the middle was: two dozen armor items have declared
  * their protection since they were written, and the damage formula has known what to do with it
- * since the pipeline was laid - but there were no armour slots to read, so every blow landed as
+ * since the pipeline was laid - but there were no armor slots to read, so every blow landed as
  * though the player were naked.
  */
 const scene = () => {
@@ -46,7 +46,7 @@ const wear = (human: Human, slot: number, piece: any) =>
         .getArmor()
         .setItem(slot, new ContainerEntry({ item: piece, count: 1 }));
 
-describe('armour', () => {
+describe('armor', () => {
     let stage: ReturnType<typeof scene>;
 
     beforeEach(() => {
@@ -76,7 +76,7 @@ describe('armour', () => {
         expect(human.getArmorDefensePoints()).toBe(helmet + chest);
     });
 
-    it('carries toughness, which only the good armour has', () => {
+    it('carries toughness, which only the good armor has', () => {
         const iron = stage.wearer();
         wear(iron, 1, new IronChestplate());
 
@@ -89,24 +89,24 @@ describe('armour', () => {
     describe('in a fight', () => {
         it('takes the edge off a blow', async () => {
             const bare = stage.wearer();
-            const armoured = stage.wearer();
-            wear(armoured, 1, new IronChestplate());
+            const armored = stage.wearer();
+            wear(armored, 1, new IronChestplate());
 
             await bare.damage(10);
-            await armoured.damage(10);
+            await armored.damage(10);
 
-            expect(armoured.getHealth()).toBeGreaterThan(bare.getHealth());
+            expect(armored.getHealth()).toBeGreaterThan(bare.getHealth());
         });
 
         it('does nothing against drowning, which is not a blow', async () => {
             const bare = stage.wearer();
-            const armoured = stage.wearer();
-            wear(armoured, 1, new IronChestplate());
+            const armored = stage.wearer();
+            wear(armored, 1, new IronChestplate());
 
             await bare.damage(6, DamageCause.Drowning);
-            await armoured.damage(6, DamageCause.Drowning);
+            await armored.damage(6, DamageCause.Drowning);
 
-            expect(armoured.getHealth()).toBe(bare.getHealth());
+            expect(armored.getHealth()).toBe(bare.getHealth());
         });
 
         it('protects less as the blow gets harder, which is what toughness softens', async () => {

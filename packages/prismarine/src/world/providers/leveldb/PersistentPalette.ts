@@ -44,7 +44,7 @@ export const encodePaletteEntry = (runtimeId: number, stream: BinaryStream): voi
  * Reads one palette entry back to a runtime id.
  *
  * A state the server has no schema for - a block from a version we do not know, or from a
- * behaviour pack - resolves to `UNKNOWN_RUNTIME_ID` rather than throwing, so one unrecognised
+ * behavior pack - resolves to `UNKNOWN_RUNTIME_ID` rather than throwing, so one unrecognized
  * block cannot make a whole world unopenable.
  */
 export const decodePaletteEntry = (stream: BinaryStream): number => {

@@ -30,7 +30,7 @@ const keysOf = (compound: NBTTagCompound) => [...compound.entries()].map(([key])
 
 describe('entity', () => {
     describe('EntitySerializer', () => {
-        it('builds the modelled class for an identifier it knows', () => {
+        it('builds the modeled class for an identifier it knows', () => {
             const cow = EntitySerializer.fromNBT(actor('minecraft:cow'), world);
 
             expect(cow.getType()).toBe('minecraft:cow');
@@ -148,8 +148,8 @@ describe('entity', () => {
         });
 
         it('knows which identifiers it models', () => {
-            expect(EntitySerializer.isModelled('minecraft:cow')).toBe(true);
-            expect(EntitySerializer.isModelled('minecraft:some_future_mob')).toBe(false);
+            expect(EntitySerializer.isModeled('minecraft:cow')).toBe(true);
+            expect(EntitySerializer.isModeled('minecraft:some_future_mob')).toBe(false);
         });
     });
 });

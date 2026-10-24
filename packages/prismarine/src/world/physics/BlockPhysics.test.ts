@@ -427,7 +427,7 @@ describe('water', () => {
         world.updates.scheduleAround(8, GROUND + 1, 8, 0);
         await settle(world, physics, 400);
 
-        // Where it lands it spreads, which is the half of the behaviour that must survive.
+        // Where it lands it spreads, which is the half of the behavior that must survive.
         expect(world.nameAt(9, CAVE_BOTTOM, 8)).toBe('minecraft:flowing_water');
         expect(world.nameAt(10, CAVE_BOTTOM, 8)).toBe('minecraft:flowing_water');
     });
@@ -548,7 +548,7 @@ describe('the update scheduler', () => {
         expect(scheduler.due(8)).toHaveLength(1);
     });
 
-    it('queues the six neighbours as well as the block itself', () => {
+    it('queues the six neighbors as well as the block itself', () => {
         const scheduler = new BlockUpdateScheduler();
         scheduler.scheduleAround(0, 0, 0, 0);
 

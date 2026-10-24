@@ -161,7 +161,7 @@ describe('world', () => {
             // The material the client plays comes from this id.
             expect(sound.extraData).toBe(BlockRuntimeIds.get(log));
             expect(sound.extraData).not.toBe(BlockRuntimeIds.getByName('minecraft:oak_log'));
-            // Centre of the block, so the sound has somewhere to come from.
+            // Center of the block, so the sound has somewhere to come from.
             expect([sound.positionX, sound.positionY, sound.positionZ]).toEqual([10.5, 64.5, -19.5]);
 
             // Read back off the wire, where a runtime id is an unsigned varint: the ids are FNV
@@ -200,7 +200,7 @@ describe('world', () => {
             const [drop] = world.spawned;
             expect(drop.getType()).toBe('minecraft:item');
             expect(drop.getItem()!.getItem().getName()).toBe('minecraft:oak_log');
-            // Centre of the block, so it does not land inside the one next door.
+            // Center of the block, so it does not land inside the one next door.
             const at = drop.getPosition();
             expect([at.getX(), at.getY(), at.getZ()]).toEqual([10.5, 64.5, -19.5]);
         });

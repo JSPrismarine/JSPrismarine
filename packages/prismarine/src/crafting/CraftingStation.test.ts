@@ -105,7 +105,7 @@ describe('crafting', () => {
             expect(registry.get('nowhere')).toBeNull();
         });
 
-        it('lets a station be replaced, which is how a block gets behaviour of its own', () => {
+        it('lets a station be replaced, which is how a block gets behavior of its own', () => {
             // The anvil is why this interface exists: it has no recipes, it computes.
             const registry = new StationRegistry();
             const custom = { block: 'anvil', match: () => null };

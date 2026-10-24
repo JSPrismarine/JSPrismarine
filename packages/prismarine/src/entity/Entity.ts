@@ -130,7 +130,7 @@ export class Entity {
     /**
      * Everything the world file said about this entity that the server does not model.
      *
-     * Vanilla actor NBT carries a `definitions` list naming the behaviour pack component groups
+     * Vanilla actor NBT carries a `definitions` list naming the behavior pack component groups
      * the entity was built from, along with its attributes, tags and variant. An actor written
      * back without them spawns broken or despawns on sight, so the remainder is kept here and
      * written out again by `EntitySerializer`. Null for an entity that was never read from disk.
@@ -145,7 +145,7 @@ export class Entity {
      *
      * Kept because vanilla's rule is not "ignore everything for half a second" but "ignore
      * anything no worse than what you already took" - so a zombie punching a burning player
-     * still lands, for the difference. The raw blow is stored, before armour: that is the number
+     * still lands, for the difference. The raw blow is stored, before armor: that is the number
      * the next hit is compared against.
      */
     protected lastDamageTaken = 0;
@@ -213,7 +213,7 @@ export class Entity {
     /**
      * The attributes this kind of entity has, used to build {@link Entity.attributes}.
      *
-     * Called during field initialisation, so it must not read any instance state - it
+     * Called during field initialization, so it must not read any instance state - it
      * describes the type, not the individual.
      * @returns {Attribute[]} The attributes, freshly built.
      */
@@ -408,7 +408,7 @@ export class Entity {
      * Hurt the entity.
      *
      * The whole pipeline, in vanilla's order: grace period, then the cancellable event, then
-     * armour and its enchantments, then resistance, then absorption, and only what is left of
+     * armor and its enchantments, then resistance, then absorption, and only what is left of
      * all that comes off the health.
      *
      * Takes a bare {@link DamageCause} as readily as a full {@link DamageSource}, which is what
@@ -437,12 +437,12 @@ export class Entity {
 
         const event = new EntityDamageEvent(this, amount, damageSource);
         this.server.post(['entityDamage', event]);
-        if (event.isCancelled()) return false;
+        if (event.isCanceled()) return false;
 
         const raw = event.getAmount();
         if (raw <= 0) return false;
 
-        // Raw blows are what the grace period compares, before armour: it is measuring how hard
+        // Raw blows are what the grace period compares, before armor: it is measuring how hard
         // something hit, not how well this entity happened to be dressed for it.
         const landed = fresh ? raw : raw - this.lastDamageTaken;
         this.lastDamageTaken = raw;
@@ -469,7 +469,7 @@ export class Entity {
     }
 
     /**
-     * What armour, enchantments and effects leave of a blow.
+     * What armor, enchantments and effects leave of a blow.
      *
      * Split out so a subclass can change how well something is protected without reimplementing
      * the order the reductions happen in - see {@link Damage.reduceDamage} for why that order is
@@ -494,7 +494,7 @@ export class Entity {
      *
      * Extra hearts sit in front of the real ones and are not restored when they run out, which
      * is what makes a golden apple a one-off rather than a bigger health bar.
-     * @param {number} amount - What got past the armour.
+     * @param {number} amount - What got past the armor.
      * @returns {number} What is left for the health to take.
      */
     private absorb(amount: number): number {
@@ -539,7 +539,7 @@ export class Entity {
         if (distance < Number.EPSILON) {
             // Standing exactly inside whatever hit it. Any direction will do so long as it is
             // the same one each time, or the shove would jitter - the runtime id gives that for
-            // free, which is the trick `Mob.pushFromNeighbours` already uses.
+            // free, which is the trick `Mob.pushFromNeighbors` already uses.
             const angle = (Number(this.runtimeId % 8n) / 8) * Math.PI * 2;
             dx = Math.cos(angle);
             dz = Math.sin(angle);
@@ -569,12 +569,12 @@ export class Entity {
         _damping: number = SINGLE_DAMPING
     ): void {}
 
-    /** Armour points worn. Nothing but a player wears any, yet. */
+    /** Armor points worn. Nothing but a player wears any, yet. */
     public getArmorDefensePoints(): number {
         return 0;
     }
 
-    /** Armour toughness worn, which softens what a hard blow does to that armour. */
+    /** Armor toughness worn, which softens what a hard blow does to that armor. */
     public getArmorToughness(): number {
         return 0;
     }

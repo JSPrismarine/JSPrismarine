@@ -20,7 +20,7 @@ const candidates = (name, fallback) => {
  *
  * `age` is declared 0..15 and cocoa takes 0..2; a palette built from the declaration has
  * thirteen states cocoa does not have, and every one of them hashes to a runtime id no client
- * will ever recognise. Asking the game to resolve each value is the only way to tell.
+ * will ever recognize. Asking the game to resolve each value is the only way to tell.
  */
 const accepted = (blockId, property, values) =>
     values.filter((value) => {

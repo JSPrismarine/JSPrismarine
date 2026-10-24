@@ -46,7 +46,7 @@ const encodePacket = (s: BinaryStream): void => {
     s.writeUnsignedVarInt(9001);
 };
 
-describe('Allocation behaviour', () => {
+describe('Allocation behavior', () => {
     it('a reused pre-sized stream reaches a zero-allocation steady state', () => {
         const s = new BinaryStream(undefined, 0, 4096);
         const arena = Buffer.alloc(1 << 16);

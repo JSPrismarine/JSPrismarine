@@ -4,7 +4,7 @@
 
 Give skeletons bows, and arrows something to hit.
 
-**`Projectile`** is not a mob with the thinking removed. It has no goals, no pathfinding and no business being shoved by its neighbours, and it needs one thing a mob does not: to notice what it passes *through* rather than only what it ends up inside. An arrow crossing three blocks in a tick steps clean over anybody standing between the two positions, so a check at the destination alone finds nothing at all. Hence the sweep - the flight is walked in quarter-block samples, entities before blocks, so somebody standing in a doorway is hit rather than the wall behind them.
+**`Projectile`** is not a mob with the thinking removed. It has no goals, no pathfinding and no business being shoved by its neighbors, and it needs one thing a mob does not: to notice what it passes *through* rather than only what it ends up inside. An arrow crossing three blocks in a tick steps clean over anybody standing between the two positions, so a check at the destination alone finds nothing at all. Hence the sweep - the flight is walked in quarter-block samples, entities before blocks, so somebody standing in a doorway is hit rather than the wall behind them.
 
 The shooter is immune for the first few ticks, because an arrow starts inside the bow that fired it and nothing would ever leave the string otherwise. An arrow that cannot hurt what it meets - a creative player, something inside its grace period - carries on through rather than stopping dead in mid-air against them.
 
@@ -24,4 +24,4 @@ The pose took three goes to get right, and the first two were reasonable and wro
 
 @see https://github.com/Mojang/bedrock-samples/blob/main/resource_pack/animation_controllers/skeleton.animation_controllers.json
 
-Arrows are not taken out of the quiver and the bow is not worn down. Both need the same thing - telling a client that a slot has changed - and both are left with the armour work where that machinery lives, because a server that silently disagrees with the client about what is in a player's hand is worse than one that has not got round to the accounting.
+Arrows are not taken out of the quiver and the bow is not worn down. Both need the same thing - telling a client that a slot has changed - and both are left with the armor work where that machinery lives, because a server that silently disagrees with the client about what is in a player's hand is worse than one that has not got round to the accounting.

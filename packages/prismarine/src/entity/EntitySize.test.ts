@@ -27,7 +27,7 @@ describe('entity sizes', () => {
     });
 
     it('is Bedrock’s numbers, not a guess', () => {
-        // Spot checks against `minecraft:collision_box` in the vanilla behaviour packs, chosen to
+        // Spot checks against `minecraft:collision_box` in the vanilla behavior packs, chosen to
         // cover the shapes that behave differently: wider than tall, taller than wide, and the
         // player, whose size everything used to be announced as.
         expect(sizeOf('minecraft:sheep')).toStrictEqual({ width: 0.9, height: 1.3 });

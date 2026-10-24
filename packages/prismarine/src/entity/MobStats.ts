@@ -10,7 +10,7 @@
  * twenty health and one point of attack, and a bat took as long to kill as a wither.
  *
  * The values are Bedrock's, from the `minecraft:health`, `minecraft:attack` and
- * `minecraft:knockback_resistance` components of the vanilla behaviour packs - the same source
+ * `minecraft:knockback_resistance` components of the vanilla behavior packs - the same source
  * `EntitySize` and `ai/Speed` are read from.
  * @see https://github.com/Mojang/bedrock-samples/tree/main/behavior_pack/entities
  *

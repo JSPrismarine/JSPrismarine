@@ -120,12 +120,12 @@ export class DamageSource {
         });
     }
 
-    /** Whether armour points do anything about this. */
+    /** Whether armor points do anything about this. */
     public bypassesArmor(): boolean {
         return bypassesArmor(this.cause);
     }
 
-    /** Whether the enchantments on that armour do either. */
+    /** Whether the enchantments on that armor do either. */
     public bypassesEnchantments(): boolean {
         return bypassesEnchantments(this.cause);
     }

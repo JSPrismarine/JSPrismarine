@@ -6,7 +6,7 @@ import { Event } from '../Event';
  * Fired once, when an entity's health has reached zero.
  *
  * Not cancellable: by the time this runs the health is already gone and the client has been told,
- * so a listener that "cancelled" it would leave a corpse walking around with no hearts. What it
+ * so a listener that "canceled" it would leave a corpse walking around with no hearts. What it
  * is for is reacting - loot, statistics, an announcement - and for that, knowing who did it is
  * the whole point, which is why the source is carried rather than only the cause.
  */

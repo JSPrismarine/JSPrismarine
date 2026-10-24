@@ -246,7 +246,7 @@ describe('combat goals', () => {
             expect(scaleForDifficulty(7, Difficulty.PEACEFUL)).toBe(0);
         });
 
-        it('treats an unrecognised setting as normal rather than as harmless', () => {
+        it('treats an unrecognized setting as normal rather than as harmless', () => {
             expect(scaleForDifficulty(3, Difficulty.UNKNOWN)).toBe(3);
         });
 

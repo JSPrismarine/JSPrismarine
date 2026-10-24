@@ -45,7 +45,7 @@ export interface LoopbackOptions {
 /**
  * One end of a loopback pair: a {@link RakNetPeer} whose "socket" is the other end.
  *
- * Everything above this - framing, ordering, acknowledgement, reassembly, the connected
+ * Everything above this - framing, ordering, acknowledgment, reassembly, the connected
  * handshake - is the ordinary {@link RakNetSession}, unmodified. That is the entire point,
  * and it is worth being explicit about the alternative that was not taken: handing frames
  * across directly, skipping the reliability layer, would have meant reimplementing

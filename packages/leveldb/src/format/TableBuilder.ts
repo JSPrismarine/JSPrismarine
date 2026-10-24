@@ -23,7 +23,7 @@ export interface TableBuilderOptions {
 /**
  * Writes a table file: data blocks, then an index over them, then the footer.
  *
- * No filter block. A bloom filter is an optimisation LevelDB looks for in the metaindex and does
+ * No filter block. A bloom filter is an optimization LevelDB looks for in the metaindex and does
  * without when it is absent - the same path it takes for databases written before filters existed
  * - so omitting one costs a few wasted block reads and nothing else. Tables the game wrote keep
  * their filters; we simply never consult them.

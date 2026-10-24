@@ -327,7 +327,7 @@ describe('world', () => {
             }
         });
 
-        it('does not correlate neighbouring chunks', async () => {
+        it('does not correlate neighboring chunks', async () => {
             // Seeds are mixed rather than added, so adjacent chunks are not near-copies.
             const a = await generate(10, 10, 4242);
             const b = await generate(11, 10, 4242);

@@ -39,7 +39,7 @@ export interface VillagePiece {
  * The villager to put in a village.
  *
  * `minecraft:villager_v2`, not `minecraft:villager` - the plain name still resolves, to the legacy
- * villager the server keeps for reading old worlds, which has no behaviour attached to it. A
+ * villager the server keeps for reading old worlds, which has no behavior attached to it. A
  * village built out of those would be a village of statues.
  */
 const VILLAGER = 'minecraft:villager_v2';
@@ -455,7 +455,7 @@ export class HousePiece implements VillagePiece {
 }
 
 /**
- * A ploughed field with a water channel down the middle.
+ * A plow field with a water channel down the middle.
  *
  * Farmland dries out and reverts unless it stays next to water, so the channel is part of the
  * piece rather than decoration on it.
@@ -498,7 +498,7 @@ export class FarmPiece implements VillagePiece {
 
         levelArea(context, minX, minZ, maxX, maxZ, y, dirt, dirt, air);
 
-        // A low kerb of logs, so the field reads as a field and not as a puddle.
+        // A low curb of logs, so the field reads as a field and not as a puddle.
         canvas.fill(minX, y, minZ, maxX, y, minZ, log);
         canvas.fill(minX, y, maxZ, maxX, y, maxZ, log);
         canvas.fill(minX, y, minZ, minX, y, maxZ, log);

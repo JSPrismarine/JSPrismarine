@@ -182,7 +182,7 @@ describe('LevelChunk', () => {
         expect(decoded.payload.equals(payload)).toBe(true);
     });
 
-    it('recognises the sub chunk request sentinel rather than reading it as a count', () => {
+    it('recognizes the sub chunk request sentinel rather than reading it as a count', () => {
         const server = new ServerLevelChunkPacket();
         server.chunkX = 0;
         server.chunkZ = 0;

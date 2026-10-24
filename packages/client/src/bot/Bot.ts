@@ -6,7 +6,7 @@ import type { Identity } from '@jsprismarine/auth';
 import type { Logger } from '@jsprismarine/logger';
 import type { NetworkPacket } from '@jsprismarine/protocol';
 import type Random from './Random';
-import type { Behaviour } from './behaviour/Behaviour';
+import type { Behavior } from './behavior/Behavior';
 
 /** The server's own rate, and therefore the rate a client's input is meaningful at. */
 export const TICK_INTERVAL_MS = 50;
@@ -15,7 +15,7 @@ export interface BotOptions {
     readonly host: string;
     readonly port: number;
     readonly displayName: string;
-    readonly behaviours: readonly Behaviour[];
+    readonly behaviors: readonly Behavior[];
     readonly random: Random;
     readonly logger: Logger;
     readonly viewDistance: number;
@@ -23,7 +23,7 @@ export interface BotOptions {
 }
 
 /**
- * One synthetic player: a client, a position it believes in, and the behaviours driving it.
+ * One synthetic player: a client, a position it believes in, and the behaviors driving it.
  *
  * The position is the bot's own rather than the client's because the client core has no game
  * state layer yet - it knows where it started, from `StartGame`, and nothing after that. For
@@ -92,7 +92,7 @@ export default class Bot {
         );
     }
 
-    /** Starts ticking the behaviours. Idempotent. */
+    /** Starts ticking the behaviors. Idempotent. */
     public start(): void {
         if (this.ticker !== undefined || this.stopped) return;
 
@@ -114,9 +114,9 @@ export default class Bot {
     }
 
     /**
-     * Runs one tick of every behaviour.
+     * Runs one tick of every behavior.
      *
-     * Behaviours run in sequence rather than concurrently: two of them sending a move in the
+     * Behaviors run in sequence rather than concurrently: two of them sending a move in the
      * same tick would have the server apply whichever framed first, and a bot that
      * teleported between two positions every tick is not a player.
      */
@@ -131,14 +131,14 @@ export default class Bot {
             record: (action: string) => this.actions.set(action, (this.actions.get(action) ?? 0) + 1)
         };
 
-        for (const behaviour of this.options.behaviours) {
+        for (const behavior of this.options.behaviors) {
             try {
-                await behaviour.tick(context);
+                await behavior.tick(context);
             } catch (error: unknown) {
-                // A behaviour that throws must not take the connection out of the fleet:
+                // A behavior that throws must not take the connection out of the fleet:
                 // losing a bot silently changes what is being measured.
                 this.options.logger.debug(
-                    `Behaviour ${behaviour.name} failed for ${this.options.displayName}: ${
+                    `Behavior ${behavior.name} failed for ${this.options.displayName}: ${
                         error instanceof Error ? error.message : String(error)
                     }`
                 );

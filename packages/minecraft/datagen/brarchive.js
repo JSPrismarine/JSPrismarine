@@ -1,5 +1,5 @@
 /**
- * Reads a `.brarchive`, the container Mojang packs a behaviour pack's folders into.
+ * Reads a `.brarchive`, the container Mojang packs a behavior pack's folders into.
  *
  * From 1.26.50 a Bedrock Dedicated Server ships its vanilla packs "optimized": the recipes,
  * blocks, entities and the rest of each layer are no longer loose JSON files but one archive

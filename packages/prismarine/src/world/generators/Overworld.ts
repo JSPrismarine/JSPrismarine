@@ -55,7 +55,7 @@ const PALETTE_BLOCKS = [
  * has already built, and vegetation goes last so it can see what everything else left. Each
  * pass draws from a random generator seeded from the world seed and the chunk's own
  * coordinates, which is what makes a chunk come out the same however many times it is
- * generated and whatever its neighbours did.
+ * generated and whatever its neighbors did.
  */
 export default class Overworld extends BaseGenerator {
     /** Walked in order for every chunk; a plugin can extend this list. */
@@ -133,8 +133,8 @@ export default class Overworld extends BaseGenerator {
     /**
      * Resolves every block the generator can place.
      *
-     * A block missing from the catalogue is left out rather than throwing: a decorator that
-     * cannot find its block skips itself, so an incomplete catalogue costs some scenery
+     * A block missing from the catalog is left out rather than throwing: a decorator that
+     * cannot find its block skips itself, so an incomplete catalog costs some scenery
      * instead of taking world generation down.
      */
     private resolvePalette(): BlockPalette {

@@ -18,7 +18,7 @@ import { BREAKS_A_FALL } from '../Environment';
  *
  * Everything here is asked in terms of a *box* rather than a point, because a mob is a box: the
  * questions are "does this body fit here" and "what is holding it up", not "is this one column
- * solid". Asking about the column the mob's centre is in is what let a sheep bury half of itself
+ * solid". Asking about the column the mob's center is in is what let a sheep bury half of itself
  * in a wall before anything objected.
  */
 
@@ -47,7 +47,7 @@ const LIQUID_NAMES: ReadonlySet<string> = new Set([
  * Keyed by what each one does rather than being a bare set, because the pathfinder and the damage
  * code want different things from the same list: one only asks "would this hurt", and the other
  * has to say *how* - burning to death and being pricked by a cactus are different deaths, and
- * armour helps with one of them and not the other.
+ * armor helps with one of them and not the other.
  */
 const HAZARDS: ReadonlyMap<string, DamageCause> = new Map([
     ['minecraft:lava', DamageCause.Lava],
@@ -103,10 +103,10 @@ const factsFor = (runtimeId: number): BlockFacts => {
     return resolved;
 };
 
-/** The cells a box of this width, centred here, reaches into. */
-const spanOf = (centre: number, width: number): { min: number; max: number } => ({
-    min: Math.floor(centre - width / 2),
-    max: Math.floor(centre + width / 2 - EPSILON)
+/** The cells a box of this width, centered here, reaches into. */
+const spanOf = (center: number, width: number): { min: number; max: number } => ({
+    min: Math.floor(center - width / 2),
+    max: Math.floor(center + width / 2 - EPSILON)
 });
 
 export class BlockView {
@@ -149,7 +149,7 @@ export class BlockView {
      * What standing in this block does to something, if anything.
      *
      * The pathfinder only needs {@link isHazard}; the damage code needs to know which kind, since
-     * burning and being pricked are different deaths with different rules about armour.
+     * burning and being pricked are different deaths with different rules about armor.
      * @param {number} x - Block x.
      * @param {number} y - Block y.
      * @param {number} z - Block z.
@@ -218,9 +218,9 @@ export class BlockView {
      * The continuous form, in world coordinates, and the one the physics asks: every cell the box
      * reaches into is tested against the part of it the block actually fills, so a mob may stand
      * with its feet inside a carpet and its head under a fence rail without either counting.
-     * @param {number} x - Centre of the box.
+     * @param {number} x - Center of the box.
      * @param {number} feet - The bottom of the box, which is where an entity's position is.
-     * @param {number} z - Centre of the box.
+     * @param {number} z - Center of the box.
      * @param {number} width - Blocks across.
      * @param {number} height - Blocks tall.
      * @returns {boolean} Whether anything solid overlaps it.
@@ -255,9 +255,9 @@ export class BlockView {
      *
      * What a mob lands on, and what tells a step from a wall. Surfaces above the box's feet are
      * ignored: this answers "what is holding it up", not "what is it stuck in".
-     * @param {number} x - Centre of the box.
+     * @param {number} x - Center of the box.
      * @param {number} feet - The bottom of the box, in world coordinates.
-     * @param {number} z - Centre of the box.
+     * @param {number} z - Center of the box.
      * @param {number} width - Blocks across.
      * @param {number} reach - How far down to look, in blocks.
      * @returns {number | null} A world height, not an offset within a cell.
@@ -297,7 +297,7 @@ export class BlockView {
      * @param {number} y - World y of the cell the feet are in.
      * @param {number} z - World z of the cell.
      * @param {number} height - How tall the mob is.
-     * @param {number} width - Blocks across; the box is centred in the cell.
+     * @param {number} width - Blocks across; the box is centered in the cell.
      * @returns {boolean} Whether the body fits.
      */
     public hasRoomAt(x: number, y: number, z: number, height = 2, width = 1): boolean {

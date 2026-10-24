@@ -236,7 +236,7 @@ describe('hanging up', () => {
         expect(closed).toEqual(['kicked']);
     });
 
-    it('answers the peer goodbye with an acknowledgement and nothing else', async () => {
+    it('answers the peer goodbye with an acknowledgment and nothing else', async () => {
         const harness = await start();
         const { server, send, inbox, settle, until } = harness;
 

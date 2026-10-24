@@ -309,7 +309,7 @@ describe('H1 - retransmission on timeout', () => {
         expect(sent.length).toBe(2);
     });
 
-    it('derives an RTT estimate from acknowledgements', () => {
+    it('derives an RTT estimate from acknowledgments', () => {
         const { session, sent } = makeSession();
         expect(session.getRTT()).toBeNull();
 
@@ -403,7 +403,7 @@ describe('H5 - split message limits', () => {
     });
 });
 
-describe('P4 - acknowledgements are resolved without expanding ranges', () => {
+describe('P4 - acknowledgments are resolved without expanding ranges', () => {
     /** Builds an ACK/NACK datagram naming [start..end] as a single range record. */
     const rangeDatagram = (id: number, start: number, end: number) => {
         const stream = new BinaryStream();
@@ -495,7 +495,7 @@ describe('P4 - acknowledgements are resolved without expanding ranges', () => {
     });
 });
 
-describe('P7 - acknowledgement encoding', () => {
+describe('P7 - acknowledgment encoding', () => {
     // Expected bytes written out by hand from the RakNet record format, so the test pins
     // the wire format itself rather than just "whatever the encoder did last time".
     // Layout: [id][recordCount:uint16 BE]{ [1|0][triadLE start] (+[triadLE end] if range) }
@@ -752,7 +752,7 @@ describe('P1 - split reassembly is byte-exact', () => {
         return { session, received };
     };
 
-    /** A payload where every byte differs from its neighbours, so misordering shows up. */
+    /** A payload where every byte differs from its neighbors, so misordering shows up. */
     const patterned = (byteLength: number) => {
         const payload = Buffer.allocUnsafe(byteLength);
         for (let i = 0; i < byteLength; i++) payload[i] = (i * 31 + 7) & 0xff;
@@ -912,13 +912,13 @@ describe('M3 - datagram header is a bitfield', () => {
     });
 });
 
-describe('M4 - acknowledgements respect the MTU', () => {
-    it('splits a large acknowledgement set across datagrams', () => {
+describe('M4 - acknowledgments respect the MTU', () => {
+    it('splits a large acknowledgment set across datagrams', () => {
         const { session, sent } = makeSession(576);
         // Non consecutive, so nothing collapses into ranges.
         for (let i = 0; i < 2000; i += 2) session['ackQueue'].add(i);
 
-        session['sendAcknowledgements']();
+        session['sendAcknowledgments']();
 
         expect(sent.length).toBeGreaterThan(1);
         for (const buffer of sent) {

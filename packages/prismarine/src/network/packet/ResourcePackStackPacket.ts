@@ -16,7 +16,7 @@ export default class ResourcePackStackPacket extends DataPacket {
     public encodePayload(): void {
         this.writeBoolean(this.texturePackRequired);
 
-        // One list, not two. The behaviour pack list that used to come first is gone; a
+        // One list, not two. The behavior pack list that used to come first is gone; a
         // client on the newer layout reads its count as the texture pack count and every
         // field after it from the wrong place.
         this.writeUnsignedVarInt(this.texturePackList.length);

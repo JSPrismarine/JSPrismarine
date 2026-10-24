@@ -110,13 +110,13 @@ describe('world', () => {
             expect(spawn!.item.getNetworkId()).toBeGreaterThan(0);
         });
 
-        it('lands the drop at the centre of the block that broke', async () => {
+        it('lands the drop at the center of the block that broke', async () => {
             const { world, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket)!;
-            // Off-centre and the stack visibly sits inside the neighbouring block.
+            // Off-center and the stack visibly sits inside the neighboring block.
             expect([spawn.position.getX(), spawn.position.getY(), spawn.position.getZ()]).toEqual([10.5, 64.5, -19.5]);
         });
 

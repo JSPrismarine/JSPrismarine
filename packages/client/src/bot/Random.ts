@@ -4,7 +4,7 @@
  * `Math.random()` cannot be seeded, and a load run that cannot be repeated is not a
  * measurement: two runs against the same server have to differ because the *server*
  * behaved differently, not because the bots decided to walk somewhere else. Every choice a
- * behaviour makes comes from here.
+ * behavior makes comes from here.
  *
  * Mulberry32 - thirty-two bits of state, a handful of operations, and a period long enough
  * that a bot would have to run for weeks to notice it. The point is reproducibility, not

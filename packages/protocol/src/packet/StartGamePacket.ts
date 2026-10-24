@@ -44,7 +44,7 @@ export interface WireUUID {
  *
  * Since 1.26.50 this is not only a plugin's blocks: vanilla itself defines some of its blocks
  * in data - the wool stairs and slabs, the concrete slabs - and a real server declares those
- * here too, ninety-odd of them. The definition is carried as bytes rather than modelled: it is
+ * here too, ninety-odd of them. The definition is carried as bytes rather than modeled: it is
  * network NBT that the server hands on verbatim and the client alone interprets.
  */
 export interface BlockProperty {
@@ -182,7 +182,7 @@ export const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
  * - An integer game rule is four little endian bytes, not a varint.
  *
  * The NBT this carries - each block definition, the player property data - is kept as bytes.
- * The client alone interprets it, so modelling it here would be work that only creates ways
+ * The client alone interprets it, so modeling it here would be work that only creates ways
  * to disagree with the server that produced it.
  */
 export default class StartGamePacket extends NetworkPacket<StartGame> {

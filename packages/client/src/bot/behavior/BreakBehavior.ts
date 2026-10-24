@@ -1,6 +1,6 @@
 import { PlayerActionPacket, PlayerActionType } from '@jsprismarine/protocol';
 
-import type { Behaviour, BehaviourContext } from './Behaviour';
+import type { Behavior, BehaviorContext } from './Behavior';
 
 /** Ticks between one break attempt and the next. */
 const INTERVAL_TICKS = 40;
@@ -20,10 +20,10 @@ const BLOCK_FACE_TOP = 1;
  * shortcut worth not taking: a server that tracks break progress would see a destroy for a
  * block nobody had started on, which is a rejection path rather than the one being measured.
  */
-export default class BreakBehaviour implements Behaviour {
+export default class BreakBehavior implements Behavior {
     public readonly name = 'break';
 
-    public async tick(context: BehaviourContext): Promise<void> {
+    public async tick(context: BehaviorContext): Promise<void> {
         if (context.tick % INTERVAL_TICKS !== 0 || context.tick === 0) return;
 
         const { bot } = context;

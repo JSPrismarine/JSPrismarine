@@ -154,7 +154,7 @@ describe('world', () => {
         });
 
         it('reports a block it has never heard of rather than throwing', () => {
-            // A block from a newer version, or from a behaviour pack. One of them must not make
+            // A block from a newer version, or from a behavior pack. One of them must not make
             // the whole world unreadable.
             const compound = new NBTTagCompound('');
             compound.addValue('name', new Types.StringVal('minecraft:some_future_block'));

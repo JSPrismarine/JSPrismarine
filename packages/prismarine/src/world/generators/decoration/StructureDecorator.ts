@@ -20,12 +20,12 @@ const PLAN_CACHE_SIZE = 32;
  * Builds villages, and whatever structures come after them, into the chunks they cover.
  *
  * The awkward part of world generation is that a chunk is generated alone: it cannot see its
- * neighbours, may be generated before or after any of them, and has to come out the same either
+ * neighbors, may be generated before or after any of them, and has to come out the same either
  * way. A structure larger than a chunk therefore cannot be "placed" by one chunk and continued by
  * the next.
  *
  * So it is not. Every chunk works out for itself which structures reach it - which is arithmetic
- * on the world seed, needing no neighbours - plans each one in full, and draws the whole thing
+ * on the world seed, needing no neighbors - plans each one in full, and draws the whole thing
  * through a canvas that throws away everything outside its own sixteen blocks. Each of the chunks
  * a village covers does the same work and keeps a different slice of it, and the slices fit
  * because they came from the same plan.

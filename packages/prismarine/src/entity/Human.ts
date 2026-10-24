@@ -54,19 +54,19 @@ export default class Human extends Entity {
     }
 
     /**
-     * Armour points worn.
+     * Armor points worn.
      *
      * The last link in a chain that was complete at both ends and joined in the middle by nothing:
-     * twenty-four armour items have declared their protection since long before this, and the
+     * twenty-four armor items have declared their protection since long before this, and the
      * damage formula has known what to do with it since the pipeline was written - but there were
-     * no armour slots to read, so every blow landed as though the player were naked.
+     * no armor slots to read, so every blow landed as though the player were naked.
      * @returns {number} Points, out of twenty for a full diamond set.
      */
     public override getArmorDefensePoints(): number {
         return this.inventory.getArmorDefensePoints();
     }
 
-    /** Armour toughness worn, which softens what a hard blow does to that armour. */
+    /** Armor toughness worn, which softens what a hard blow does to that armor. */
     public override getArmorToughness(): number {
         return this.inventory.getArmorToughness();
     }

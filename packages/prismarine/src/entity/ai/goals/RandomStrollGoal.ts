@@ -7,7 +7,7 @@ import { STROLL_CHANCE, STROLL_HEIGHT, STROLL_MULTIPLIER, STROLL_RANGE } from '.
 /**
  * Wandering about with no particular purpose.
  *
- * Modelled on vanilla's `minecraft:behavior.random_stroll`, and the part worth copying exactly is
+ * Modeled on vanilla's `minecraft:behavior.random_stroll`, and the part worth copying exactly is
  * *when* it runs rather than what it does: a one in a hundred and twenty chance every tick, which
  * makes the wait between strolls geometric with a mean of six seconds and a long tail. A mob
  * therefore sometimes sets off immediately and sometimes stands about for half a minute.

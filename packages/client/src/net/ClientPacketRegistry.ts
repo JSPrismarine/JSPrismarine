@@ -55,7 +55,7 @@ export const isPacket = <K extends keyof ClientboundPacketData>(
  * take it as their second argument - which is exactly why the client could not reuse it.
  * This one maps ids to codecs and stops there; what to *do* with a decoded packet is the
  * caller's business, and on the client that answer differs between the login sequence, the
- * game session and a bot's behaviour script.
+ * game session and a bot's behavior script.
  *
  * An id with no class registered is not an error. A client meets packets it has no use for
  * from its first join - the server sends crafting data and biome definitions before the

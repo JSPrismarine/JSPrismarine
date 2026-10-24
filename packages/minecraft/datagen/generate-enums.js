@@ -5,7 +5,7 @@
  * writing anything - which is how a version bump gets reviewed before it is taken.
  *
  * Nothing here decides anything. Which release to read, which enums are public and what they
- * are called all live in `manifest.json`; this only applies them. A change in behaviour
+ * are called all live in `manifest.json`; this only applies them. A change in behavior
  * should be a change in that file.
  *
  * Two documents are read. `snapshot/enums.json` is the release this package targets, as
@@ -143,7 +143,7 @@ const render = (name, mojangName, members, provenance, rules = {}) => {
         if (skip.includes(member.name)) continue;
 
         const identifier = aliases[member.name] ?? toIdentifier(member.name);
-        // Vanilla gives several members the same name once normalised - and sometimes the
+        // Vanilla gives several members the same name once normalized - and sometimes the
         // same name twice outright. The first wins, and the rest are recorded rather than
         // dropped in silence.
         if (seen.has(identifier)) {

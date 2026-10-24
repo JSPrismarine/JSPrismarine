@@ -3,7 +3,7 @@
  *
  * The file is machine generated and rigidly regular, so it is read with expressions rather
  * than a parser dependency. That is a deliberate trade: an HTML parser would be more
- * forgiving of a layout change, and being forgiving is the wrong behaviour here. A layout
+ * forgiving of a layout change, and being forgiving is the wrong behavior here. A layout
  * change means the input is no longer what this was written against, and the only safe
  * answer is to stop - so {@link parseEnums} throws rather than returning a plausible subset,
  * and the caller checks the counts on top of that.

@@ -17,7 +17,7 @@ interface Region {
     readonly y: number;
     readonly width: number;
     readonly height: number;
-    readonly colour: readonly [number, number, number];
+    readonly color: readonly [number, number, number];
 }
 
 const SKIN_TONE: readonly [number, number, number] = [0xc8, 0x9f, 0x7b];
@@ -27,21 +27,21 @@ const HAIR: readonly [number, number, number] = [0x4a, 0x36, 0x28];
 
 const REGIONS: readonly Region[] = [
     // Head: the top strip is hair, the rest is face.
-    { x: 0, y: 0, width: 32, height: 8, colour: HAIR },
-    { x: 0, y: 8, width: 32, height: 8, colour: SKIN_TONE },
+    { x: 0, y: 0, width: 32, height: 8, color: HAIR },
+    { x: 0, y: 8, width: 32, height: 8, color: SKIN_TONE },
     // Body and arms.
-    { x: 16, y: 16, width: 24, height: 16, colour: SHIRT },
-    { x: 40, y: 16, width: 16, height: 16, colour: SHIRT },
-    { x: 32, y: 48, width: 16, height: 16, colour: SHIRT },
+    { x: 16, y: 16, width: 24, height: 16, color: SHIRT },
+    { x: 40, y: 16, width: 16, height: 16, color: SHIRT },
+    { x: 32, y: 48, width: 16, height: 16, color: SHIRT },
     // Legs.
-    { x: 0, y: 16, width: 16, height: 16, colour: TROUSERS },
-    { x: 16, y: 48, width: 16, height: 16, colour: TROUSERS }
+    { x: 0, y: 16, width: 16, height: 16, color: TROUSERS },
+    { x: 16, y: 48, width: 16, height: 16, color: TROUSERS }
 ];
 
 /**
  * The skin the client wears when nothing else has been supplied.
  *
- * Generated rather than shipped as a PNG, and generated from flat colour blocks that are
+ * Generated rather than shipped as a PNG, and generated from flat color blocks that are
  * ours: Mojang's textures cannot be redistributed, and a client that refuses to log in
  * without one would be useless. It is deliberately plain - the point is a valid, original
  * 16 KiB of RGBA, not a good-looking character.
@@ -58,9 +58,9 @@ export const createDefaultSkinImage = (): Buffer => {
                 // A touch of vertical shading, so the model is not a flat silhouette. Cheap,
                 // deterministic, and it keeps the generated sheet from looking like an error.
                 const shade = 1 - ((y - region.y) / region.height) * 0.15;
-                image[offset] = Math.round(region.colour[0] * shade);
-                image[offset + 1] = Math.round(region.colour[1] * shade);
-                image[offset + 2] = Math.round(region.colour[2] * shade);
+                image[offset] = Math.round(region.color[0] * shade);
+                image[offset + 1] = Math.round(region.color[1] * shade);
+                image[offset + 2] = Math.round(region.color[2] * shade);
                 image[offset + 3] = 0xff;
             }
         }

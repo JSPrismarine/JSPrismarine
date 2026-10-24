@@ -27,7 +27,7 @@ export default class WhiteBed extends Solid {
     public constructor(name = 'minecraft:bed', type: BedType = BedType.White) {
         super({
             name,
-            // Bedrock has a single bed block; the colour lives in the block entity, not in
+            // Bedrock has a single bed block; the color lives in the block entity, not in
             // the state. All sixteen stay distinct blocks here and place as the same state.
             stateName: 'minecraft:bed',
             id: BlockIdsType.Bed,

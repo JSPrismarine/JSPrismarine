@@ -9,7 +9,7 @@ import DataPacket from './DataPacket';
  * The name 1.26.50 carries a command's permission level under.
  *
  * The level itself is still a small integer everywhere else; only the wire spells it out.
- * Anything unrecognised is `unknown`, which is what the client's own table falls back to.
+ * Anything unrecognized is `unknown`, which is what the client's own table falls back to.
  * @param {number} level - The permission level.
  * @returns {string} The name the client reads.
  */

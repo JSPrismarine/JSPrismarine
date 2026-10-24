@@ -1,6 +1,6 @@
 import type { ParseArgsConfig } from 'node:util';
 import { parseArgs } from 'node:util';
-import { BEHAVIOUR_NAMES } from '../bot/behaviour/Behaviours';
+import { BEHAVIOR_NAMES } from '../bot/behavior/Behaviors';
 import { runBot, runConnect, runPing } from './commands';
 
 /**
@@ -53,7 +53,7 @@ const OPTIONS: ParseArgsConfig['options'] = {
     ramp: { type: 'string' },
     duration: { type: 'string', short: 'd' },
     seed: { type: 'string' },
-    behaviour: { type: 'string', short: 'b' },
+    behavior: { type: 'string', short: 'b' },
     'view-distance': { type: 'string' },
     report: { type: 'string' },
     timeout: { type: 'string' },
@@ -73,7 +73,7 @@ const HELP = `jsp-client - a Minecraft: Bedrock Edition client
       Runs a fleet of synthetic players against a server and reports what happened.
 
       --count, -c        how many bots                          (required)
-      --behaviour, -b    comma separated: ${BEHAVIOUR_NAMES.join(', ')}
+      --behavior, -b    comma separated: ${BEHAVIOR_NAMES.join(', ')}
       --duration, -d     how long to run for, e.g. 10m          (default 60s)
       --ramp             connections per second, 0 for all at once  (default 10)
       --seed             makes the run reproducible             (default 1)

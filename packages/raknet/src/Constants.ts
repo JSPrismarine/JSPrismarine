@@ -98,7 +98,7 @@ export const CONNECTED_PING_INTERVAL_MS = 2_500;
 /**
  * The largest datagram that cannot possibly mean anything, and so is dropped unread.
  *
- * The shortest acknowledgement is seven bytes (id, record count, flag, triad) and the
+ * The shortest acknowledgment is seven bytes (id, record count, flag, triad) and the
  * shortest data datagram eight, so two bytes is comfortably below anything legitimate.
  * RakNet draws the line in the same place, before its reliability layer rather than inside
  * the decoder.
