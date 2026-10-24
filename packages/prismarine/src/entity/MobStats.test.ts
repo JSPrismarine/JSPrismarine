@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Entities from './Entities';
+import { allEntities } from './Entities';
 import { DEFAULT_STATS, MOB_STATS, statsOf } from './MobStats';
 import { MOB_LOOT } from './LootTables';
 import { Mob } from './Mob';
@@ -11,7 +11,7 @@ describe('mob stats', () => {
         // in step, exactly as with `EntitySize`. Without it, adding a mob and forgetting its
         // figures is silent: it quietly gets a player's twenty health and one point of attack,
         // which is how a chicken came to be as hard to kill as a zombie.
-        const missing = Object.values(Entities)
+        const missing = allEntities()
             .filter((entity): entity is typeof Mob => typeof entity === 'function' && entity.prototype instanceof Mob)
             .map((entity) => (entity as unknown as { MOB_ID?: string }).MOB_ID)
             .filter((type): type is string => typeof type === 'string')

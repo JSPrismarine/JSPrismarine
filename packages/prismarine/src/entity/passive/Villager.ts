@@ -5,6 +5,10 @@ import type GoalSelector from '../ai/GoalSelector';
 export default class Villager extends Mob {
     public static MOB_ID = 'minecraft:villager_v2';
 
+    public override getType(): string {
+        return Villager.MOB_ID;
+    }
+
     protected override createGoals(): GoalSelector {
         return villagerBrain();
     }

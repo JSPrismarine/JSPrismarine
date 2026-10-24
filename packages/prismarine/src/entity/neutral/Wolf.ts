@@ -5,6 +5,10 @@ import type GoalSelector from '../ai/GoalSelector';
 export default class Wolf extends Mob {
     public static MOB_ID = 'minecraft:wolf';
 
+    public override getType(): string {
+        return Wolf.MOB_ID;
+    }
+
     /**
      * A wild wolf minds its own business until somebody hits it.
      *

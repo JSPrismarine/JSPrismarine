@@ -1,3 +1,4 @@
+import { Vector3 } from '@jsprismarine/math';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import { NetworkUtil } from '../network/NetworkUtil';
 
@@ -52,6 +53,21 @@ export enum FlagType {
     LONG,
     VECTOR
 }
+
+/** The enum member's name for an error message, spelled out because enums only index by constants. */
+const FLAG_TYPE_NAMES: Record<number, string> = {
+    [FlagType.BYTE]: 'BYTE',
+    [FlagType.SHORT]: 'SHORT',
+    [FlagType.INT]: 'INT',
+    [FlagType.FLOAT]: 'FLOAT',
+    [FlagType.STRING]: 'STRING',
+    [FlagType.ITEM]: 'ITEM',
+    [FlagType.POSITION]: 'POSITION',
+    [FlagType.LONG]: 'LONG',
+    [FlagType.VECTOR]: 'VECTOR'
+};
+
+const flagTypeName = (type: FlagType): string => FLAG_TYPE_NAMES[type] ?? String(type);
 
 /**
  * How long an entity can stay underwater, in ticks - fifteen seconds, as in vanilla.
@@ -197,7 +213,7 @@ export class MetadataWriter {
                     stream.writeVarLong(value[1]);
                     break;
                 case FlagType.STRING:
-                    NetworkUtil.writeString(stream, value[1]);
+                    NetworkUtil.writeString(stream, String(value[1]));
                     break;
                 case FlagType.SHORT:
                     stream.writeUnsignedShortLE(value[1]);
@@ -211,6 +227,7 @@ export class MetadataWriter {
                     break;
                 case FlagType.VECTOR: {
                     const vector = value[1];
+                    if (!(vector instanceof Vector3)) throw new TypeError('A VECTOR metadata entry needs a Vector3');
                     stream.writeFloatLE(vector.getX());
                     stream.writeFloatLE(vector.getY());
                     stream.writeFloatLE(vector.getZ());
@@ -220,6 +237,8 @@ export class MetadataWriter {
                     // Three signed varints. Unlike a block position elsewhere in the protocol,
                     // this one's height is signed like the other two.
                     const position = value[1];
+                    if (!(position instanceof Vector3))
+                        throw new TypeError('A POSITION metadata entry needs a Vector3');
                     stream.writeVarInt(position.getX());
                     stream.writeVarInt(position.getY());
                     stream.writeVarInt(position.getZ());
@@ -229,9 +248,7 @@ export class MetadataWriter {
                     // `ITEM` is the remaining one, and it carries an NBT compound this has no
                     // writer for. Named rather than numbered, because a number here cost an
                     // afternoon.
-                    throw new Error(
-                        `Metadata type ${FlagType[value[0]] ?? value[0]} (${value[0]}) cannot be written yet`
-                    );
+                    throw new Error(`Metadata type ${flagTypeName(value[0])} (${value[0]}) cannot be written yet`);
             }
         }
     }

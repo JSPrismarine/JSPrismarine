@@ -180,7 +180,8 @@ export class Entity {
         yaw?: number;
         headYaw?: number;
     }) {
-        this.runtimeId = Entity.runtimeIdCount += 1n;
+        Entity.runtimeIdCount += 1n;
+        this.runtimeId = Entity.runtimeIdCount;
         this.position = position;
         this.server = position.getWorld().getServer();
 
@@ -224,7 +225,7 @@ export class Entity {
      * ```
      */
     public getType(): string {
-        return (this.constructor as any).MOB_ID;
+        return Entity.MOB_ID;
     }
 
     /**
@@ -822,7 +823,7 @@ export class Entity {
             this.metadata.getString(MetadataFlag.NAMETAG) ||
             // Replace all '_' with a ' ' and capitalize each word afterwards,
             // should probably be replaced with regex.
-            (((this.constructor as any)?.MOB_ID as string) || 'Unknown Entity')
+            (this.getType() || 'Unknown Entity')
                 .split(':')[1]!
                 .replaceAll('_', ' ')
                 .split(' ')

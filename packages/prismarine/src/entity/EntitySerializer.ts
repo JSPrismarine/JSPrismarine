@@ -1,6 +1,6 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-import * as Entities from './Entities';
+import { allEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Position } from '../world/Position';
@@ -36,7 +36,7 @@ export class EntitySerializer {
         if (this.index !== null) return this.index;
 
         this.index = new Map();
-        for (const candidate of Object.values(Entities)) {
+        for (const candidate of allEntities()) {
             if (typeof candidate !== 'function') continue;
 
             const identifier = (candidate as unknown as EntityClass).MOB_ID;
