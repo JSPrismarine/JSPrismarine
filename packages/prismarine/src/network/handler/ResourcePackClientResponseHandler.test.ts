@@ -12,14 +12,17 @@ import type { Event } from '../../events/Event';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '../../utils/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
+import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
+import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
+import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
 /**
@@ -29,8 +32,16 @@ import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandl
  * builds itself are named by the session method, since the double stands in for the method
  * and never builds the packet.
  */
-const harness = ({ cancelSpawn = false }: { cancelSpawn?: boolean } = {}) => {
+const harness = ({
+    cancelSpawn = false,
+    joinSpawn = null
+}: {
+    cancelSpawn?: boolean;
+    /** Where the player was placed on joining; null, the default, is a returning player. */
+    joinSpawn?: PlayerSpawn | null;
+} = {}) => {
     const sent: string[] = [];
+    const packets: DataPacket[] = [];
     const record = (name: string) => async () => void sent.push(name);
 
     const world = stub<World>({
@@ -53,11 +64,15 @@ const harness = ({ cancelSpawn = false }: { cancelSpawn?: boolean } = {}) => {
         gamemode: Gametype.SURVIVAL,
         pitch: 0,
         yaw: 0,
-        sendSettings: record('Settings')
+        sendSettings: record('Settings'),
+        getJoinSpawn: () => joinSpawn
     });
 
     const connection = stub<ClientConnection>({
-        sendDataPacket: async (packet: DataPacket) => void sent.push(packet.constructor.name)
+        sendDataPacket: async (packet: DataPacket) => {
+            sent.push(packet.constructor.name);
+            packets.push(packet);
+        }
     });
 
     const session = stub<PlayerSession>({
@@ -87,7 +102,7 @@ const harness = ({ cancelSpawn = false }: { cancelSpawn?: boolean } = {}) => {
         emit
     });
 
-    return { sent, emit, server, session };
+    return { sent, packets, emit, server, session };
 };
 
 const response = (status: ResourcePackStatusType) => Object.assign(new ResourcePackClientResponsePacket(), { status });
@@ -141,9 +156,8 @@ describe('ResourcePackClientResponseHandler', () => {
         ]);
     });
 
-    it('sends no Respawn during the join', async () => {
-        // Three went out here, one of them `CLIENT_READY_TO_SPAWN` - a state only a client
-        // sends. No vanilla server sends a Respawn at login.
+    it('sends no Respawn when the player returns to a saved position', async () => {
+        // What BDS sends then has not been measured, so nothing is invented for it.
         const { sent, server, session } = harness();
 
         await new ResourcePackClientResponseHandler().handle(
@@ -153,6 +167,44 @@ describe('ResourcePackClientResponseHandler', () => {
         );
 
         expect(sent).not.toContain('RespawnPacket');
+    });
+
+    it('sends a placed player the three Respawns BDS sends, after the inventory', async () => {
+        // Measured on BDS 1.26.52: searching at the requested spot's eyes, searching at its
+        // feet, then ready at the final spot's eyes, all with runtime id 0. It used to send one
+        // packet object three times, which encodes once, so all three said "searching".
+        const joinSpawn = {
+            requested: new Vector3(4.5, 69, -6.5),
+            position: new Vector3(7.5, 70, -8.5),
+            relocated: true
+        };
+        const { sent, packets, server, session } = harness({ joinSpawn });
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        expect(sent.slice(sent.indexOf('InventoryContent') + 1)).toEqual([
+            'RespawnPacket',
+            'RespawnPacket',
+            'RespawnPacket'
+        ]);
+
+        const respawns = packets.filter((packet) => packet instanceof RespawnPacket);
+        expect(respawns.map(({ state }) => state)).toEqual([
+            RespawnState.SERVER_SEARCHING_FOR_SPAWN,
+            RespawnState.SERVER_SEARCHING_FOR_SPAWN,
+            RespawnState.SERVER_READY_TO_SPAWN
+        ]);
+        expect(respawns.map(({ runtimeEntityId }) => runtimeEntityId)).toEqual([0n, 0n, 0n]);
+        expect(respawns.map(({ position }) => position?.getY())).toEqual([69 + 1.62, 69, 70 + 1.62]);
+        expect(respawns[2]?.position?.getX()).toBe(7.5);
+
+        // StartGame reports the requested spot, not the final one.
+        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
+        expect(startGame?.playerPos).toEqual(new Vector3(4.5, 69 + 1.62, -6.5));
     });
 
     it('sends nothing game-related before StartGame', async () => {

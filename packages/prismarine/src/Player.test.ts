@@ -12,6 +12,7 @@ import type { Block } from './block/Block';
 import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
 import type { Entity } from './entity/Entity';
+import { EYE_HEIGHT } from './entity/Human';
 import type { PermissionManager } from './permission/PermissionManager';
 import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import type ClientConnection from './network/ClientConnection';
@@ -68,6 +69,12 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         removeEntity: async () => {},
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
+        // Feet one block above the stored spawn, centered, as a Bedrock server places them.
+        placePlayerSpawn: async () => ({
+            requested: new Vector3(0.5, 65, 0.5),
+            position: new Vector3(0.5, 65, 0.5),
+            relocated: false
+        }),
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
         getBlock: async () => stub<Block>({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
@@ -454,7 +461,9 @@ describe('Player', () => {
             expect(player.getFood()).toBe(20);
             expect(player.metadata.air).toBe(MAX_AIR_TICKS);
             expect(player.metadata.breathing).toBe(true);
-            expect(player.getPosition().getY()).toBe(64);
+            // The placed feet, with the eyes 1.62 above them: a player's position is their eyes.
+            const { x, y, z } = player.getPosition();
+            expect({ x, y, z }).toEqual({ x: 0.5, y: 65 + EYE_HEIGHT, z: 0.5 });
         });
 
         it('leaves a living player as they are', async () => {

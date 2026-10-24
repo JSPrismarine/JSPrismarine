@@ -1,8 +1,11 @@
 import { Chat, ChatType } from '../../chat/Chat';
+import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
+import type { Vector3 } from '@jsprismarine/math';
 import { getGametypeId } from '@jsprismarine/minecraft';
-import type { PlayerSession } from '../../';
+import type { Player, PlayerSession } from '../../';
+import { eyePositionAt } from '../../entity/Human';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -23,6 +26,29 @@ import type PacketHandler from './PacketHandler';
  */
 export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
     public static NetID = Identifiers.ResourcePackClientResponsePacket;
+
+    /**
+     * The `Respawn` packets that end a join, as `[position, state, runtime id]`.
+     *
+     * For a player placed at the spawn, the three a Bedrock Dedicated Server sends: searching
+     * at the requested spot's eyes, searching at its feet, then ready at the final spot's eyes,
+     * all with runtime id 0. BDS sends the ready one about a third of a second later, once its
+     * search is done and before the client has asked for a chunk radius; this server has
+     * finished placing the player already.
+     *
+     * None for a player returning to a saved position. What BDS sends then has not been
+     * measured, and this server sent none before.
+     */
+    private static joinRespawns(player: Player): Array<[Vector3, RespawnState, bigint]> {
+        const joinSpawn = player.getJoinSpawn();
+        if (joinSpawn === null) return [];
+
+        return [
+            [eyePositionAt(joinSpawn.requested), RespawnState.SERVER_SEARCHING_FOR_SPAWN, 0n],
+            [joinSpawn.requested, RespawnState.SERVER_SEARCHING_FOR_SPAWN, 0n],
+            [eyePositionAt(joinSpawn.position), RespawnState.SERVER_READY_TO_SPAWN, 0n]
+        ];
+    }
 
     /**
      * Answers `HaveAllPacks` with the stack and `Completed` with the join.
@@ -65,11 +91,12 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
      * 6. `SetPlayerGameType`, `UpdateAdventureSettings`, `UpdateAbilities`, `UpdateAttributes`,
      *    `SetActorData`. The local player, which the client creates when it handles StartGame.
      * 7. `InventoryContent`. Needs the item registry from step 3 and a player from step 6.
-     * 8. The join message, as the last thing so it lands on a client that can show it.
+     * 8. `Respawn`, three of them, for a player placed at the spawn: see {@link joinRespawns}.
+     *    BDS 1.26.52 sends them right after `AvailableCommands`, at the end of its own burst.
+     * 9. The join message, as the last thing so it lands on a client that can show it.
      *
      * Not sent here, on purpose:
-     * - `Respawn`. This sent three of them, including `CLIENT_READY_TO_SPAWN`, which only a
-     *   client sends. No vanilla server sends a Respawn at login; see `PlayerSession.sendRespawn`.
+     * - `CLIENT_READY_TO_SPAWN`. This used to send it, and only a client sends that state.
      * - `LevelChunk` and `PlayStatus(PlayerSpawn)`. The client discards terrain that arrives
      *   before it has asked for a radius and been answered - see `PlayerSession.setViewDistance`.
      * - The entity spawns. They follow PlayerSpawn, from `announceSpawnIfReady`.
@@ -106,7 +133,10 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         const worldSpawnPos = await world.getSpawnPosition();
         startGame.worldSpawnPos = worldSpawnPos;
 
-        startGame.playerPos = player.getPosition();
+        // BDS reports where the spawn point asked for, not where the player ended up; the
+        // final spot follows in the Respawn that releases the client.
+        const joinSpawn = player.getJoinSpawn();
+        startGame.playerPos = joinSpawn ? eyePositionAt(joinSpawn.requested) : player.getPosition();
         startGame.pitch = player.pitch;
         startGame.yaw = player.yaw;
 
@@ -145,6 +175,15 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         await session.sendMetadata();
 
         await session.sendInventory();
+
+        // A packet object encodes once and keeps its bytes, so each of these is its own.
+        for (const [position, state, runtimeEntityId] of ResourcePackClientResponseHandler.joinRespawns(player)) {
+            const respawn = new RespawnPacket();
+            respawn.position = position;
+            respawn.state = state;
+            respawn.runtimeEntityId = runtimeEntityId;
+            await connection.sendDataPacket(respawn);
+        }
 
         const chatSpawnEvent = new ChatEvent(
             new Chat({

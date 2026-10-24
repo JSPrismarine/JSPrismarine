@@ -29,9 +29,11 @@ import type { WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions } from './Dimension';
 import MobSpawner from './MobSpawner';
+import { placePlayerSpawn } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
 import { Position } from './Position';
+import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import type { Generator } from './Generator';
@@ -590,7 +592,10 @@ export class World implements Service {
     }
 
     /**
-     * Returns the world default spawn position.
+     * Returns the world spawn, in block coordinates.
+     *
+     * The height is the one `level.dat` stores, which is one block below where a player's feet
+     * go: see {@link placePlayerSpawn} for where a player actually starts.
      */
     public async getSpawnPosition(): Promise<Vector3> {
         if (this.spawn) return this.spawn;
@@ -620,7 +625,9 @@ export class World implements Service {
                 const surface = chunk.getBlock(x & 0xf, y, z & 0xf).name;
                 if (UNSUITABLE_SPAWN_SURFACES.has(surface)) continue;
 
-                return new Vector3(x, y + 1, z);
+                // The surface block itself, which is how a Bedrock world stores it: players
+                // are placed one block above the stored height.
+                return new Vector3(x, y, z);
             }
         }
 
@@ -628,6 +635,29 @@ export class World implements Service {
         // refuse to start at all.
         this.server.getLogger().warn(`No dry spawn found for ${this.getFormattedName()}, falling back to the origin`);
         return new Vector3(0, 100, 0);
+    }
+
+    /**
+     * Where a player with no saved position starts, chosen the way a Bedrock Dedicated Server
+     * chooses it.
+     *
+     * A block nothing registered a behavior for reads as air, so it does not obstruct.
+     * @param random - picks the offset when the spawn has to move; for tests.
+     */
+    public async placePlayerSpawn(random?: RelocationOffset): Promise<PlayerSpawn> {
+        const { minY, height } = this.dimension;
+
+        return placePlayerSpawn(
+            await this.getSpawnPosition(),
+            {
+                minY,
+                maxY: minY + height,
+                isObstructed: async (x, y, z) => (await this.getBlock(x, y, z)).isSolid(),
+                getBlockName: async (x, y, z) => (await this.getBlockState(x, y, z)).name,
+                getHighestBlock: async (x, z) => (await this.getChunkAt(x, z)).getHighestBlockAt(x, z)
+            },
+            random
+        );
     }
 
     /** The positions at exactly `radius` from the origin, sampled every `step` blocks. */
@@ -1229,18 +1259,9 @@ export class World implements Service {
                     }`
                 );
 
-            const spawn = await this.getSpawnPosition();
-            return {
-                gamemode: this.server.getConfig().getGamemode(),
-                position: {
-                    x: spawn.getX(),
-                    y: spawn.getY(),
-                    z: spawn.getZ(),
-                    pitch: 0,
-                    yaw: 0,
-                    headYaw: 0
-                }
-            };
+            // No position: a player who has never been here is placed by `placePlayerSpawn`,
+            // which needs to know that rather than be handed the raw spawn point.
+            return { gamemode: this.server.getConfig().getGamemode() };
         }
     }
     /**
