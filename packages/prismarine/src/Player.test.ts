@@ -18,6 +18,7 @@ import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from './network/packet/ActorEventPacket';
 import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
+import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import RemoveActorPacket from './network/packet/RemoveActorPacket';
 import RespawnPacket, { PlayerRespawnState } from './network/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
@@ -488,6 +489,24 @@ describe('Player', () => {
             const respawns = sent.filter((packet) => packet instanceof RespawnPacket);
             expect(respawns).toHaveLength(1);
             expect(respawns[0]?.state).toBe(PlayerRespawnState.SearchingForSpawn);
+        });
+
+        it('tells the dying client why, for its death screen, after the respawn', async () => {
+            // The same key and parameters as the chat line, minus the `%` the chat packet
+            // wants: `DeathInfo` takes the bare key, as PocketMine sends it.
+            const { player, sent } = fakePlayer({ underwater: true });
+            player.setFood(10);
+            await player.setHealth(1);
+
+            await tick(player, MAX_AIR_TICKS + 20);
+
+            const deaths = sent.filter((packet) => packet instanceof DeathInfoPacket);
+            expect(deaths).toHaveLength(1);
+            expect(deaths[0]?.cause).toBe('death.attack.drown');
+            expect(deaths[0]?.messages).toEqual(['Tester']);
+            expect(sent.indexOf(deaths[0])).toBeGreaterThan(
+                sent.findIndex((packet) => packet instanceof RespawnPacket)
+            );
         });
 
         it('sends no respawn packet when the button is pressed', async () => {

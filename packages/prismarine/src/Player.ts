@@ -24,6 +24,7 @@ import PlayerToggleSprintEvent from './events/player/PlayerToggleSprintEvent';
 import { ChangeDimensionPacket } from './network/Packets';
 import { PlayerRespawnState } from './network/packet/RespawnPacket';
 import { ActorEvent } from './network/packet/ActorEventPacket';
+import DeathInfoPacket from './network/packet/DeathInfoPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
 import PositionMode from './network/type/PositionMode';
@@ -829,6 +830,14 @@ export default class Player extends Human {
         // it in its own language. Which key it is depends on whether anybody is to blame - see
         // `DeathMessages`.
         const { key, parameters } = deathMessage(this, source);
+
+        // The death screen's own copy of the cause, sent after the Respawn as PocketMine's
+        // `DeathPacketHandler` does. `DeathInfo` takes the key without the `%` the chat packet
+        // wants; see `DeathInfoPacket`.
+        const deathInfo = new DeathInfoPacket();
+        deathInfo.cause = key.replace(/^%/, '');
+        deathInfo.messages = parameters;
+        await this.getNetworkSession().getConnection().sendDataPacket(deathInfo);
 
         const event = new ChatEvent(
             new Chat({
