@@ -41,7 +41,8 @@ export default class DataPacket extends BinaryStream {
     /**
      * The packet's network ID.
      */
-    public static NetID: number;
+    /** Overridden by every packet class; -1 marks the base class, which is never sent. */
+    public static NetID = -1;
 
     /** Protected so a subclass encoding by another route - `BatchPacket.encodeAsync` - can say so. */
     protected encoded = false;
@@ -58,8 +59,12 @@ export default class DataPacket extends BinaryStream {
         return super.getBuffer();
     }
 
+    /**
+     * The packet's network id. Every packet class overrides this with its own `NetID`;
+     * the base class has no id of its own.
+     */
     public getId(): number {
-        return (this.constructor as any).NetID;
+        return DataPacket.NetID;
     }
 
     public getEncoded(): boolean {
@@ -72,7 +77,7 @@ export default class DataPacket extends BinaryStream {
      * @returns The packet's name
      */
     public getName(): string {
-        return this.constructor.name;
+        return 'DataPacket';
     }
 
     public decode(): void {

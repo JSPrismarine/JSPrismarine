@@ -23,6 +23,14 @@ import DataPacket from './DataPacket';
 export default class AddItemActorPacket extends DataPacket {
     public static NetID = Identifiers.AddItemActorPacket;
 
+    public override getId(): number {
+        return AddItemActorPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'AddItemActorPacket';
+    }
+
     public uniqueEntityId!: bigint;
     public runtimeEntityId!: bigint;
     public item!: Item;

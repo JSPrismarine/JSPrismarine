@@ -19,6 +19,14 @@ import DataPacket from './DataPacket';
 export default class InventorySlotPacket extends DataPacket {
     public static NetID = Identifiers.InventorySlotPacket;
 
+    public override getId(): number {
+        return InventorySlotPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'InventorySlotPacket';
+    }
+
     /** Which window; the crafting grid lives in the player's own UI, which is 124. */
     public windowId!: number;
 

@@ -21,6 +21,14 @@ const MESSAGES_ABSENT = 1;
 export default class DisconnectPacket extends DataPacket {
     public static NetID = Identifiers.DisconnectPacket;
 
+    public override getId(): number {
+        return DisconnectPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'DisconnectPacket';
+    }
+
     public reason!: number;
     public skipMessage!: boolean;
     public message!: string;

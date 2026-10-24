@@ -11,6 +11,14 @@ export interface ChunkCoord {
 export default class NetworkChunkPublisherUpdatePacket extends DataPacket {
     public static NetID = Identifiers.NetworkChunkPublisherUpdatePacket;
 
+    public override getId(): number {
+        return NetworkChunkPublisherUpdatePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'NetworkChunkPublisherUpdatePacket';
+    }
+
     public position!: BlockPosition;
     public radius!: number;
     public savedChunks!: ChunkCoord[];

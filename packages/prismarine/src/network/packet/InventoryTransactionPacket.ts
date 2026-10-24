@@ -118,13 +118,18 @@ export class InventoryAction {
     }
 }
 
+/** Which transaction body a packet carries; the field every reader narrows on. */
+export type TransactionKind = 'useItem' | 'useItemOnEntity' | 'releaseItem';
+
 export interface TransactionData {
+    kind: TransactionKind;
     actionType: number;
     hotbarSlot: number;
     itemInHand: Item;
 }
 
 export interface UseItemData extends TransactionData {
+    kind: 'useItem';
     /** What set the use off - a tap, a hold, the item being equipped. */
     triggerType: number;
     blockPosition: BlockPosition;
@@ -148,6 +153,7 @@ export interface UseItemData extends TransactionData {
  * surrounds this. Property order is read order, so these lines are the wire layout.
  */
 export const readUseItemData = (stream: BinaryStream): UseItemData => ({
+    kind: 'useItem',
     actionType: stream.readVarInt(),
     triggerType: stream.readByte(),
     blockPosition: NetworkUtil.readBlockPosition(stream),
@@ -163,17 +169,27 @@ export const readUseItemData = (stream: BinaryStream): UseItemData => ({
 });
 
 export interface UseItemOnEntityData extends TransactionData {
+    kind: 'useItemOnEntity';
     entityRuntimeId: bigint;
     playerPosition: Vector3;
     clickPosition: Vector3;
 }
 
 export interface RelaseItemData extends TransactionData {
+    kind: 'releaseItem';
     headRotation: Vector3;
 }
 
 export default class InventoryTransactionPacket extends DataPacket {
     public static NetID = Identifiers.InventoryTransactionPacket;
+
+    public override getId(): number {
+        return InventoryTransactionPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'InventoryTransactionPacket';
+    }
 
     public legacyRequestId!: number;
     public legacySlotChanges!: LegacySlotChange[];
@@ -181,7 +197,7 @@ export default class InventoryTransactionPacket extends DataPacket {
     public transactionType!: TransactionType;
     public inventoryActions!: InventoryAction[];
 
-    public transactionData!: TransactionData;
+    public transactionData: UseItemData | UseItemOnEntityData | RelaseItemData | null = null;
 
     /**
      * The layout is protocol 2193's. Two things about it are not what they were at 748:
@@ -221,7 +237,8 @@ export default class InventoryTransactionPacket extends DataPacket {
                 }
                 break;
             case TransactionType.USE_ITEM_ON_ENTITY:
-                this.transactionData = <UseItemOnEntityData>{
+                this.transactionData = {
+                    kind: 'useItemOnEntity',
                     entityRuntimeId: this.readUnsignedVarLong(),
                     actionType: this.readVarInt(),
                     hotbarSlot: this.readVarInt(),
@@ -231,7 +248,8 @@ export default class InventoryTransactionPacket extends DataPacket {
                 };
                 break;
             case TransactionType.RELASE_ITEM:
-                this.transactionData = <RelaseItemData>{
+                this.transactionData = {
+                    kind: 'releaseItem',
                     actionType: this.readVarInt(),
                     hotbarSlot: this.readVarInt(),
                     itemInHand: Item.networkDeserialize(this),
@@ -264,11 +282,17 @@ export default class InventoryTransactionPacket extends DataPacket {
             case TransactionType.NORMAL:
             case TransactionType.MISMATCH:
                 break;
-            case TransactionType.USE_ITEM:
-                writeUseItemData(this, this.transactionData as UseItemData);
+            case TransactionType.USE_ITEM: {
+                const data = this.transactionData;
+                if (data?.kind !== 'useItem') throw new TypeError('A use-item transaction needs use-item data');
+                writeUseItemData(this, data);
                 break;
+            }
             case TransactionType.USE_ITEM_ON_ENTITY: {
-                const data = this.transactionData as UseItemOnEntityData;
+                const data = this.transactionData;
+                if (data?.kind !== 'useItemOnEntity') {
+                    throw new TypeError('A use-item-on-entity transaction needs use-item-on-entity data');
+                }
                 this.writeUnsignedVarLong(data.entityRuntimeId);
                 this.writeVarInt(data.actionType);
                 this.writeVarInt(data.hotbarSlot);
@@ -278,7 +302,9 @@ export default class InventoryTransactionPacket extends DataPacket {
                 break;
             }
             case TransactionType.RELASE_ITEM: {
-                const data = this.transactionData as RelaseItemData;
+                const data = this.transactionData;
+                if (data?.kind !== 'releaseItem')
+                    throw new TypeError('A release-item transaction needs release-item data');
                 this.writeVarInt(data.actionType);
                 this.writeVarInt(data.hotbarSlot);
                 data.itemInHand.networkSerialize(this);

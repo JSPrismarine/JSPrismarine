@@ -7,6 +7,14 @@ import DataPacket from './DataPacket';
 export default class SetHealthPacket extends DataPacket {
     public static NetID = Identifiers.SetHealthPacket;
 
+    public override getId(): number {
+        return SetHealthPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'SetHealthPacket';
+    }
+
     /**
      * The health value (between 0 and 20 by default).
      *

@@ -141,6 +141,7 @@ describe('InventoryTransactionPacket', () => {
         packet.transactionType = TransactionType.USE_ITEM;
         packet.inventoryActions = [new InventoryAction(ActionSource.WORLD, null, 0, 0, Item.air(), Item.air())];
         packet.transactionData = <UseItemData>{
+            kind: 'useItem',
             actionType: UseItemAction.CLICK_BLOCK,
             triggerType: 1,
             blockPosition: new BlockPosition(-1, -64, 1),

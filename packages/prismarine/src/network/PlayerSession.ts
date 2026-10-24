@@ -1,6 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
-import Heap from 'heap';
+import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
 import type { CommandArgument } from '../command/CommandArguments';
@@ -472,7 +472,7 @@ export default class PlayerSession {
 
         const viewDistance = this.player.viewDistance || dist || 0;
 
-        const chunksToSendHeap = new Heap((a: number[], b: number[]) => {
+        const chunksToSendHeap = new BinaryHeap<number[]>((a, b) => {
             const distXFirst = Math.abs(a[0]! - currentXChunk);
             const distXSecond = Math.abs(b[0]! - currentXChunk);
 

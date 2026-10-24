@@ -4,6 +4,14 @@ import Identifiers from '../Identifiers';
 export default class UpdateAdventureSettingsPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAdventureSettingsPacket;
 
+    public override getId(): number {
+        return UpdateAdventureSettingsPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'UpdateAdventureSettingsPacket';
+    }
+
     public noAttackingMobs!: boolean;
     public noAttackingPlayers!: boolean;
     public worldImmutable!: boolean;

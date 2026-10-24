@@ -18,6 +18,14 @@ import DataPacket from './DataPacket';
 export default class SetActorMotionPacket extends DataPacket {
     public static NetID = Identifiers.SetActorMotionPacket;
 
+    public override getId(): number {
+        return SetActorMotionPacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'SetActorMotionPacket';
+    }
+
     public runtimeEntityId!: bigint;
     public motion!: Vector3;
 

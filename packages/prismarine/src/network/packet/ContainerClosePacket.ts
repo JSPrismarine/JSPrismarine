@@ -4,6 +4,14 @@ import DataPacket from './DataPacket';
 export default class ContainerClosePacket extends DataPacket {
     public static NetID = Identifiers.ContainerClosePacket;
 
+    public override getId(): number {
+        return ContainerClosePacket.NetID;
+    }
+
+    public override getName(): string {
+        return 'ContainerClosePacket';
+    }
+
     public containerId!: number;
     public containerType!: number;
     public serverInitiatedClose!: boolean;
