@@ -1,0 +1,164 @@
+import {
+    BuildPlatform,
+    CommandPermissionLevel,
+    Gametype,
+    PlayerPermissionLevel,
+    WindowIds
+} from '@jsprismarine/minecraft';
+import { describe, expect, it } from 'vitest';
+
+import type Player from '../Player';
+import type Human from '../entity/Human';
+import ContainerEntry from '../inventory/ContainerEntry';
+import HumanInventory from '../inventory/HumanInventory';
+import { Item } from '../item/Item';
+import { stub } from '../testing/stub.test.helper';
+import Device from '../utils/Device';
+import UUID from '../utils/UUID';
+import type { Position } from '../world/Position';
+import type ClientConnection from './ClientConnection';
+import type DataPacket from './packet/DataPacket';
+import AddPlayerPacket from './packet/AddPlayerPacket';
+import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
+import MobEquipmentPacket from './packet/MobEquipmentPacket';
+import PlayerSession from './PlayerSession';
+
+/**
+ * What another client is told about a player: what they wear, what they hold in the off hand,
+ * and who they are when they first come into view.
+ */
+
+/** A session whose connection records what goes out, speaking for `player`. */
+const sessionFor = (player: Player) => {
+    const sent: DataPacket[] = [];
+    const connection = stub<ClientConnection>({
+        sendDataPacket: async (packet) => void sent.push(packet)
+    });
+
+    const session: PlayerSession = Object.assign(Object.create(PlayerSession.prototype), { connection, player });
+
+    return { session, sent };
+};
+
+/** A human wearing a chestplate and holding a shield in the off hand. */
+const equippedHuman = () => {
+    const inventory = new HumanInventory();
+    const chestplate = new Item({ id: 0, name: 'minecraft:diamond_chestplate' });
+    const shield = new Item({ id: 0, name: 'minecraft:shield' });
+    inventory.getArmor().setItem(1, new ContainerEntry({ item: chestplate, count: 1 }));
+    inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
+
+    return stub<Human>({ getRuntimeId: () => 7n, getInventory: () => inventory });
+};
+
+const position = () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 2 });
+
+/** The player being shown, with the pieces `sendSpawn` reads. */
+const shownPlayer = ({ op = false, device = null }: { op?: boolean; device?: Device | null } = {}) =>
+    stub<Player>({
+        getUUID: () => UUID.fromRandom(),
+        getRuntimeId: () => 7n,
+        getName: () => 'Shown',
+        getPosition: position,
+        pitch: 0,
+        yaw: 0,
+        headYaw: 0,
+        gamemode: Gametype.SURVIVAL,
+        getInventory: () => new HumanInventory(),
+        device,
+        platformChatId: '',
+        isOp: () => op
+    });
+
+/** The player being shown to, recording the packets its session was asked to send. */
+const viewer = () => {
+    const sent: DataPacket[] = [];
+    const session = stub<PlayerSession>({
+        send: async (packet) => void sent.push(packet),
+        sendAbilities: async () => {},
+        sendArmorFor: async () => {}
+    });
+
+    return { player: stub<Player>({ getNetworkSession: () => session }), sent };
+};
+
+describe('network', () => {
+    describe('PlayerSession', () => {
+        describe('sendArmorFor', () => {
+            it('sends the off hand as equipment for the offhand container, not as body armor', async () => {
+                // `Body` is the body armor slot. Putting the shield there dressed the player in
+                // it; the client reads off-hand changes from `MobEquipment` with container 119.
+                const { session, sent } = sessionFor(stub<Player>());
+
+                await session.sendArmorFor(equippedHuman());
+
+                expect(sent).toHaveLength(2);
+                const [armor, offhand] = sent;
+
+                expect(armor).toBeInstanceOf(MobArmorEquipmentPacket);
+                if (!(armor instanceof MobArmorEquipmentPacket)) return;
+                expect(armor.runtimeEntityId).toBe(7n);
+                expect(armor.chest.getName()).toBe('minecraft:diamond_chestplate');
+                expect(armor.body.getName()).toBe('minecraft:air');
+
+                expect(offhand).toBeInstanceOf(MobEquipmentPacket);
+                if (!(offhand instanceof MobEquipmentPacket)) return;
+                expect(offhand.runtimeEntityId).toBe(7n);
+                expect(offhand.item.getName()).toBe('minecraft:shield');
+                expect(offhand.windowId).toBe(WindowIds.OFFHAND);
+                expect(offhand.inventorySlot).toBe(0);
+                expect(offhand.hotbarSlot).toBe(0);
+            });
+        });
+
+        describe('sendSpawn', () => {
+            const spawn = async (shown: Player) => {
+                const other = viewer();
+                const { session } = sessionFor(shown);
+
+                await session.sendSpawn(other.player);
+
+                const [packet] = other.sent;
+                expect(packet).toBeInstanceOf(AddPlayerPacket);
+                return packet instanceof AddPlayerPacket ? packet : new AddPlayerPacket();
+            };
+
+            it('names the platform the player logged in from', async () => {
+                const device = new Device({
+                    id: 'abc',
+                    model: 'Pixel',
+                    os: BuildPlatform.GOOGLE,
+                    inputMode: 1,
+                    guiScale: 0
+                });
+
+                const packet = await spawn(shownPlayer({ device }));
+
+                expect(packet.buildPlatform).toBe(BuildPlatform.GOOGLE);
+                expect(packet.deviceId).toBe('abc');
+                expect(packet.platformChatId).toBe('');
+            });
+
+            it('falls back to an unknown platform without a device', async () => {
+                const packet = await spawn(shownPlayer());
+
+                expect(packet.buildPlatform).toBe(BuildPlatform.UNKNOWN);
+                expect(packet.deviceId).toBe('');
+            });
+
+            it('shows a member with no command permission for an ordinary player', async () => {
+                const packet = await spawn(shownPlayer());
+
+                expect(packet.playerPermission).toBe(PlayerPermissionLevel.MEMBER);
+                expect(packet.commandPermission).toBe(CommandPermissionLevel.ANY);
+            });
+
+            it('shows an operator with game director permission for an op', async () => {
+                const packet = await spawn(shownPlayer({ op: true }));
+
+                expect(packet.playerPermission).toBe(PlayerPermissionLevel.OPERATOR);
+                expect(packet.commandPermission).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+            });
+        });
+    });
+});

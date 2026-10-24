@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import { CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
@@ -14,7 +14,7 @@ import { Projectile } from '../entity/other/Projectile';
 import CreativeInventory from '../inventory/CreativeInventory';
 import { WindowIds } from '../inventory/WindowIds';
 import { WindowTypes } from '../inventory/WindowTypes';
-import type { Item } from '../item/Item';
+import { Item } from '../item/Item';
 import BlockPosition from '../world/BlockPosition';
 import CoordinateUtils from '../world/CoordinateUtils';
 import { effectiveViewDistance, toChunk } from '../world/Proximity';
@@ -1182,15 +1182,20 @@ export default class PlayerSession {
     }
 
     /**
-     * Tells this client what a human is wearing.
+     * Tells this client what a human is wearing and holding in the off hand.
      *
-     * All four pieces at once, empty ones included as air: the packet is positional and a client
-     * that was sent three would read the next packet's bytes as the fourth.
+     * All four armor pieces at once, empty ones included as air: the packet is positional and
+     * a client that was sent three would read the next packet's bytes as the fourth. `Body` is
+     * the body armor slot, which `HumanInventory` does not model, so it is always air. It used
+     * to carry the off-hand item, which the client took for body armor.
+     *
+     * The off hand goes out as a `MobEquipmentPacket` for the offhand container, the way the
+     * client reports its own off-hand changes.
      * @param {Human} wearer - Whose armor it is.
      */
     public async sendArmorFor(wearer: Human): Promise<void> {
-        const armor = wearer.getInventory().getArmor();
-        const offhand = wearer.getInventory().getOffhand();
+        const inventory = wearer.getInventory();
+        const armor = inventory.getArmor();
 
         const packet = new MobArmorEquipmentPacket();
         packet.runtimeEntityId = wearer.getRuntimeId();
@@ -1198,9 +1203,19 @@ export default class PlayerSession {
         packet.chest = armor.getItem(1);
         packet.legs = armor.getItem(2);
         packet.feet = armor.getItem(3);
-        packet.body = offhand.getItem(0);
+        packet.body = Item.air();
 
         await this.send(packet);
+
+        const offhand = new MobEquipmentPacket();
+        offhand.runtimeEntityId = wearer.getRuntimeId();
+        offhand.item = inventory.getOffhand().getItem(0);
+        // The offhand container has a single slot, so both slot fields are zero.
+        offhand.inventorySlot = 0;
+        offhand.hotbarSlot = 0;
+        offhand.windowId = WindowIds.OFFHAND;
+
+        await this.send(offhand);
     }
 
     /**
@@ -1369,7 +1384,18 @@ export default class PlayerSession {
         pk.item = this.player.getInventory().getItemInHand();
 
         pk.deviceId = this.player.device?.id ?? '';
+        pk.buildPlatform = this.player.device?.os ?? BuildPlatform.UNKNOWN;
         pk.metadata = this.player.metadata;
+
+        // `Player.platformChatId` is still empty because the login handler does not read the
+        // client's platform online id yet. This sends what the player list sends.
+        pk.platformChatId = this.player.platformChatId;
+
+        // Mirrors `sendAbilities`. Without these every player showed up to everybody else as
+        // a visitor on an unknown platform.
+        const op = this.player.isOp();
+        pk.playerPermission = op ? PlayerPermissionLevel.OPERATOR : PlayerPermissionLevel.MEMBER;
+        pk.commandPermission = op ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
 
         await player.getNetworkSession().send(pk);
 
