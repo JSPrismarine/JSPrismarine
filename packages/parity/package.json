@@ -1,0 +1,36 @@
+{
+    "name": "@jsprismarine/parity",
+    "version": "0.0.0",
+    "description": "The parity test suite: registry comparisons against the captured goldens, with a dashboard",
+    "private": true,
+    "sideEffects": false,
+    "type": "module",
+    "scripts": {
+        "clean": "rimraf dist *.tsbuildinfo .turbo",
+        "test": "vitest run",
+        "typecheck": "tsc-ts --noEmit",
+        "dashboard": "node scripts/dashboard.mts"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "jsprismarine",
+        "parity"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/parity",
+    "devDependencies": {
+        "@jsprismarine/bedrock-data": "workspace:*",
+        "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/minecraft": "workspace:*",
+        "@jsprismarine/nbt": "workspace:*",
+        "@types/node": "24.19.2",
+        "rimraf": "6.1.3",
+        "typescript": "7.0.2",
+        "vite": "8.3.5",
+        "vitest": "5.0.5"
+    }
+}
