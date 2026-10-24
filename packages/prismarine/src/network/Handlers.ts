@@ -24,6 +24,7 @@ import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import MovePlayerHandler from './handler/MovePlayerHandler';
+import MultiplayerSettingsHandler from './handler/MultiplayerSettingsHandler';
 import NetworkStackLatencyHandler from './handler/NetworkStackLatencyHandler';
 import NpcRequestHandler from './handler/NpcRequestHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
@@ -54,6 +55,7 @@ import SetPlayerGameTypeHandler from './handler/SetPlayerGameTypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
 import SettingsCommandHandler from './handler/SettingsCommandHandler';
 import ShowCreditsHandler from './handler/ShowCreditsHandler';
+import SimpleEventHandler from './handler/SimpleEventHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
 import TextHandler from './handler/TextHandler';
@@ -87,6 +89,7 @@ export {
     MobEquipmentHandler,
     ModalFormResponseHandler,
     MovePlayerHandler,
+    MultiplayerSettingsHandler,
     NetworkStackLatencyHandler,
     NpcRequestHandler,
     PacketViolationWarningHandler,
@@ -117,6 +120,7 @@ export {
     SetPlayerInventoryOptionsHandler,
     SettingsCommandHandler,
     ShowCreditsHandler,
+    SimpleEventHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
     TextHandler,

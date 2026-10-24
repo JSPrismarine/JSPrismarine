@@ -18,6 +18,7 @@ import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
 import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
+import ClientboundDebugRendererPacket from './packet/ClientboundDebugRendererPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandOutputPacket from './packet/CommandOutputPacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
@@ -25,6 +26,7 @@ import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
 import CreativeContentPacket from './packet/CreativeContentPacket';
 import DataPacket from './packet/DataPacket';
+import DebugInfoPacket from './packet/DebugInfoPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
 import EmoteListPacket from './packet/EmoteListPacket';
 import EmotePacket from './packet/EmotePacket';
@@ -37,6 +39,7 @@ import ItemStackRequestPacket from './packet/ItemStackRequestPacket';
 import ItemStackResponsePacket from './packet/ItemStackResponsePacket';
 import JigsawStructureDataPacket from './packet/JigsawStructureDataPacket';
 import LecternUpdatePacket from './packet/LecternUpdatePacket';
+import LegacyTelemetryEventPacket from './packet/LegacyTelemetryEventPacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
@@ -48,6 +51,7 @@ import ModalFormRequestPacket from './packet/ModalFormRequestPacket';
 import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
+import MultiplayerSettingsPacket from './packet/MultiplayerSettingsPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
 import NetworkStackLatencyPacket from './packet/NetworkStackLatencyPacket';
 import NpcRequestPacket from './packet/NpcRequestPacket';
@@ -95,6 +99,7 @@ import SetTitlePacket from './packet/SetTitlePacket';
 import ShowCreditsPacket from './packet/ShowCreditsPacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import ShowStoreOfferPacket from './packet/ShowStoreOfferPacket';
+import SimpleEventPacket from './packet/SimpleEventPacket';
 import StartGamePacket from './packet/StartGamePacket';
 import SubChunkRequestPacket from './packet/SubChunkRequestPacket';
 import SubClientLoginPacket from './packet/SubClientLoginPacket';
@@ -134,6 +139,7 @@ export {
     ClientCacheStatusPacket,
     ClientMovementPredictionSyncPacket,
     ClientboundMapItemDataPacket,
+    ClientboundDebugRendererPacket,
     CommandBlockUpdatePacket,
     CommandOutputPacket,
     CommandRequestPacket,
@@ -144,6 +150,7 @@ export {
      * @group Special Packets
      */
     DataPacket,
+    DebugInfoPacket,
     DisconnectPacket,
     EmoteListPacket,
     EmotePacket,
@@ -156,6 +163,7 @@ export {
     ItemStackResponsePacket,
     JigsawStructureDataPacket,
     LecternUpdatePacket,
+    LegacyTelemetryEventPacket,
     LevelChunkPacket,
     LevelSoundEventPacket,
     LoginPacket,
@@ -167,6 +175,7 @@ export {
     ModalFormResponsePacket,
     MoveActorAbsolutePacket,
     MovePlayerPacket,
+    MultiplayerSettingsPacket,
     NetworkChunkPublisherUpdatePacket,
     NetworkStackLatencyPacket,
     NpcRequestPacket,
@@ -214,6 +223,7 @@ export {
     ShowCreditsPacket,
     ShowProfilePacket,
     ShowStoreOfferPacket,
+    SimpleEventPacket,
     StartGamePacket,
     SubChunkRequestPacket,
     SubClientLoginPacket,
