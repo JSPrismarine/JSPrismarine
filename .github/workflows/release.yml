@@ -63,7 +63,7 @@ jobs:
                   publish-script: pnpm run release
                   push-with-git-cli: true
                   commit-message: |
-                      changeset: Increment package & dependency versions.
+                      chore(changeset): release packages
 
                       Congratulations on the new release! 🎉
                       This is an automated commit triggered by the `release` workflow.
