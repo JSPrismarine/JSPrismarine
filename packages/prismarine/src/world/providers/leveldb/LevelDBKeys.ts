@@ -7,7 +7,7 @@
  *
  * That index byte is *signed*: 0xfc is -4, the Overworld's bottom sub chunk. Reading it unsigned
  * is the classic way to end up with terrain stacked in the wrong order.
- * @see https://minecraft.wiki/w/Bedrock_Edition_level_format
+ * @see https://learn.microsoft.com/en-us/minecraft/creator/documents/actorstorage?view=minecraft-bedrock-stable
  */
 
 export enum ChunkTag {
@@ -37,9 +37,14 @@ export enum ChunkTag {
     RandomTicks = 0x3a,
     /** xxHash checksums of the other records. Dropped in 1.18. */
     Checksums = 0x3b,
-    MetaDataHash = 0x3d,
-    GeneratedPreCavesAndCliffsBlending = 0x3e,
-    BlendingBiomeHeight = 0x3f,
+    /** The seed used to generate this chunk. */
+    GenerationSeed = 0x3c,
+    /** Kept for compatibility. Mojang marks this tag as unused. */
+    GeneratedPreCavesAndCliffsBlending = 0x3d,
+    /** Kept for compatibility. Mojang marks this tag as unused. */
+    BlendingBiomeHeight = 0x3e,
+    /** Hash of the chunk's metadata. */
+    MetaDataHash = 0x3f,
     BlendingData = 0x40,
     ActorDigestVersion = 0x41,
     /** Where the chunk version lived before 1.16.100. */
