@@ -166,11 +166,14 @@ const Identifiers = {
     ToastRequestPacket: 0xba,
     TickingAreasLoadStatusPacket: 0xb3,
     SetPlayerInventoryOptionsPacket: 0x133,
+    ServerboundLoadingScreenPacket: 0x138,
     /**
      * The jigsaw structure rules, which a client at 2193 refuses to join without: it
      * disconnects with `MissingStructureData` if `StartGamePacket` arrives before this.
      */
     JigsawStructureDataPacket: 0x139,
+    ServerboundDiagnosticsPacket: 0x13b,
+    UpdateClientOptionsPacket: 0x143,
     SetPlayerFurnaceOptionsPacket: 0x15f,
     RecordStartedPacket: 0x160
 };

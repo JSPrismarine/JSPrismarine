@@ -9,6 +9,7 @@ import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
+import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
@@ -33,6 +34,7 @@ import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import MovePlayerPacket from './packet/MovePlayerPacket';
 import NetworkChunkPublisherUpdatePacket from './packet/NetworkChunkPublisherUpdatePacket';
+import NetworkStackLatencyPacket from './packet/NetworkStackLatencyPacket';
 import OnScreenTextureAnimationPacket from './packet/OnScreenTextureAnimationPacket';
 import PacketViolationWarningPacket from './packet/PacketViolationWarningPacket';
 import PlaySoundPacket from './packet/PlaySoundPacket';
@@ -44,11 +46,14 @@ import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
+import ResourcePackChunkRequestPacket from './packet/ResourcePackChunkRequestPacket';
 import ResourcePackResponsePacket from './packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './packet/ResourcePacksInfoPacket';
 import RespawnPacket from './packet/RespawnPacket';
 import ServerSettingsRequestPacket from './packet/ServerSettingsRequestPacket';
+import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket';
+import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetDefaultGametypePacket from './packet/SetDefaultGametypePacket';
@@ -66,6 +71,7 @@ import TransferPacket from './packet/TransferPacket';
 import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
+import UpdateClientOptionsPacket from './packet/UpdateClientOptionsPacket';
 import WorldEventPacket from './packet/WorldEventPacket';
 
 export {
@@ -84,6 +90,7 @@ export {
     BiomeDefinitionListPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
+    ClientCacheBlobStatusPacket,
     ClientCacheStatusPacket,
     CommandRequestPacket,
     ContainerClosePacket,
@@ -111,6 +118,7 @@ export {
     MoveActorAbsolutePacket,
     MovePlayerPacket,
     NetworkChunkPublisherUpdatePacket,
+    NetworkStackLatencyPacket,
     OnScreenTextureAnimationPacket,
     PacketViolationWarningPacket,
     PlaySoundPacket,
@@ -122,11 +130,14 @@ export {
     RemoveActorPacket,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
+    ResourcePackChunkRequestPacket,
     ResourcePackResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
     RespawnPacket,
     ServerSettingsRequestPacket,
+    ServerboundDiagnosticsPacket,
+    ServerboundLoadingScreenPacket,
     SetActorDataPacket,
     SetActorMotionPacket,
     SetDefaultGametypePacket,
@@ -143,5 +154,6 @@ export {
     TransferPacket,
     UpdateAttributesPacket,
     UpdateBlockPacket,
+    UpdateClientOptionsPacket,
     WorldEventPacket
 };
