@@ -21,7 +21,7 @@ export enum PackSettingValueType {
  * PackSettingName as a string, then PackSettingValue as a `oneOf`: a varuint32 selector
  * (see {@link PackSettingValueType}) followed by a float LE, a boolean, a string, or a
  * varuint32 count of strings.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/serverbound-pack-setting-change-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-pack-setting-change-packet/
  */
 export default class ServerboundPackSettingChangePacket extends DataPacket {
     public static NetID = Identifiers.ServerboundPackSettingChangePacket;

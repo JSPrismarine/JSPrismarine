@@ -49,7 +49,7 @@ export interface WhiskerScopeDataSummary {
  * Wire layout at protocol 2193: nine float LE averages, then five lists each prefixed by a
  * varuint32 count. Strings are varuint32 length prefixed UTF-8, 64-bit counters are uint64 LE,
  * the entity position is three float LE.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/serverbound-diagnostics-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/serverbound-diagnostics-packet/
  */
 export default class ServerboundDiagnosticsPacket extends DataPacket {
     public static NetID = Identifiers.ServerboundDiagnosticsPacket;

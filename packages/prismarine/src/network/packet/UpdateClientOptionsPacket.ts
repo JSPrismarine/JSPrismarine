@@ -12,20 +12,27 @@ export enum GraphicsMode {
 /**
  * A change to one of the client settings it first reported in the login connection request.
  *
- * Wire layout at protocol 2193: Graphics Mode Change as an optional uint8, then Filter
- * Profanity Change as an optional boolean. Each optional is a presence byte followed by the
- * value. The 1.26.50 page draws both as plain values, but the client has written the presence
- * bytes since the packet appeared, which is how gophertunnel reads it at 2193 and how the
- * 2207 page lists it.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/update-client-options-packet/
+ * **Bound To:** Server
+ *
+ * Protocol 2193 layout (docs id 323), in wire order:
+ *
+ * | Name | Type | Notes |
+ * | ---- |:----:|:-----:|
+ * | Graphics Mode Change | optional uint8 | A presence byte, then one of {@link GraphicsMode} when set |
+ * | Filter Profanity Change | optional boolean | A presence byte, then the value when set |
+ *
+ * The 1.26.51 page draws both fields as plain values and its 1.26.60-preview.21 changelog then
+ * marks them optional. The presence bytes are not new: gophertunnel and PocketMine read them at
+ * protocol 2193, and the client has written them since the packet appeared.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-client-options-packet/
  */
 export default class UpdateClientOptionsPacket extends DataPacket {
     public static NetID = Identifiers.UpdateClientOptionsPacket;
 
-    /** The new graphics mode, or `null` when it did not change. */
+    /** Graphics Mode Change: the new graphics mode, or `null` when it did not change. */
     public graphicsMode: GraphicsMode | null = null;
 
-    /** The new profanity filter setting, or `null` when it did not change. */
+    /** Filter Profanity Change: the new profanity filter setting, or `null` when it did not change. */
     public filterProfanity: boolean | null = null;
 
     /** Reads the two optional settings. */
