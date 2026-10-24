@@ -1,9 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
-import type Player from '../../Player';
-import { PlayerArgumentCommand } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { PlayerArgumentCommand, getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class PardonCommand extends Command {
     public constructor() {
@@ -14,14 +13,15 @@ export default class PardonCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('pardon').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' })).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    await source.getServer().getBanManager().setUnbanned(context.getArgument('player'));
+                    const source = context.getSource();
+                    const username = getString(context, 'player');
+                    await source.getServer().getBanManager().setUnbanned(username);
 
-                    return `Unbanned ${context.getArgument('player')}`;
+                    return `Unbanned ${username}`;
                 })
             )
         );

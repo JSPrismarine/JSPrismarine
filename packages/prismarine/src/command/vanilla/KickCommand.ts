@@ -1,8 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { greedyString } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { PlayerArgumentCommand, getString } from '../CommandArguments';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class KickCommand extends Command {
@@ -14,16 +14,16 @@ export default class KickCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('kick').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' }))
                     .then(
                         argument('reason', greedyString()).executes(async (context) => {
-                            const reason = context.getArgument('reason') as string;
+                            const reason = getString(context, 'reason');
                             return this.kick(
-                                context.getSource() as CommandExecutor,
-                                context.getArgument('player') as string,
+                                context.getSource(),
+                                getString(context, 'player'),
                                 `You have been kicked from the server due to: \n\n${reason}!`,
                                 ` due to: ${reason}!`
                             );
@@ -31,8 +31,8 @@ export default class KickCommand extends Command {
                     )
                     .executes(async (context) =>
                         this.kick(
-                            context.getSource() as CommandExecutor,
-                            context.getArgument('player') as string,
+                            context.getSource(),
+                            getString(context, 'player'),
                             'You have been kicked from the server!'
                         )
                     )

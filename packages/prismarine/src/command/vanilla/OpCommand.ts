@@ -1,12 +1,11 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 
 import { PlayerNotFoundError } from '@jsprismarine/errors';
-import type Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Command } from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { PlayerArgumentCommand, getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class OpCommand extends Command {
     public constructor() {
@@ -17,12 +16,12 @@ export default class OpCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('op').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' })).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    const username = context.getArgument('player');
+                    const source = context.getSource();
+                    const username = getString(context, 'player');
 
                     const target = source.getServer().getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
                     if (!target) throw new PlayerNotFoundError(username);
