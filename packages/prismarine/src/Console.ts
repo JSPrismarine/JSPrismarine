@@ -1,5 +1,6 @@
 import type { Server, Service } from './';
 import type { CommandExecutor } from './command/CommandExecutor';
+import { consoleTextOf } from './chat/ConsoleText';
 import type ChatEvent from './events/chat/ChatEvent';
 
 import process from 'node:process';
@@ -107,7 +108,7 @@ export default class Console implements CommandExecutor, Service {
 
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCanceled()) return;
-            this.sendMessage(evt.getChat().getMessage());
+            this.sendMessage(consoleTextOf(evt.getChat()));
         });
         this.server.getLogger().setConsole(this);
 

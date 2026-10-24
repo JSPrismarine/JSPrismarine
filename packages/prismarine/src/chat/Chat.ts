@@ -45,7 +45,8 @@ export class Chat {
     }) {
         this.channel = channel ?? '*.everyone';
         this.message = message;
-        this.needsTranslation = needsTranslation ?? false; // TODO: handle translations.
+        // Clients translate for themselves; the console renders through `consoleTextOf`.
+        this.needsTranslation = needsTranslation ?? false;
         this.parameters = parameters ?? [];
         this.sender = sender;
         this.type = type ?? ChatType.CHAT;
