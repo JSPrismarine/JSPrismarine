@@ -6,7 +6,7 @@ import NetworkBinaryStream from '../NetworkBinaryStream';
 import StartGamePacket, { GameRuleType } from '../packet/StartGamePacket';
 import BlockPos from './BlockPos';
 import Experiments from './Experiments';
-import LevelSettings, { ServerEditorConnectionPolicy, SocialGamePublishSettings } from './LevelSettings';
+import LevelSettings, { ServerEditorConnectionPolicy, GamePublishSetting } from './LevelSettings';
 import SpawnSettings from './SpawnSettings';
 
 import type { GameRule } from '../packet/StartGamePacket';
@@ -135,8 +135,8 @@ describe('LevelSettings', () => {
                 gamemode: Gametype.SURVIVAL,
                 generator: Generator.FLAT,
                 hardcore: true,
-                xblBroadcastSettings: SocialGamePublishSettings.PUBLIC,
-                platformBroadcastSettings: SocialGamePublishSettings.FRIENDS_OF_FRIENDS,
+                xblBroadcastSettings: GamePublishSetting.PUBLIC,
+                platformBroadcastSettings: GamePublishSetting.FRIENDS_OF_FRIENDS,
                 ...(forceOverrideExperimentalGameplay === undefined ? {} : { forceOverrideExperimentalGameplay }),
                 ...(policy === undefined ? {} : { serverEditorConnectionPolicy: policy }),
                 ...(drops === undefined ? {} : { allowAnonymousBlockDropsInEditorWorlds: drops })

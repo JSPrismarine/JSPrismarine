@@ -24,8 +24,8 @@ export enum EducationEditionOffer {
     CHINA_DEPRECATED = 2
 }
 
-/** The docs' GamePublishSetting: who a broadcast of the world is visible to. */
-export enum SocialGamePublishSettings {
+/** The docs' `GamePublishSetting`: who a broadcast of the world is visible to. */
+export enum GamePublishSetting {
     NO_MULTI_PLAY = 0,
     INVITE_ONLY = 1,
     FRIENDS_ONLY = 2,
@@ -61,8 +61,8 @@ interface LevelSettingsConfig {
     eduFeaturesEnabled?: boolean;
     eduProductId?: string;
     confirmedPlatformLockedContent?: boolean;
-    xblBroadcastSettings?: SocialGamePublishSettings;
-    platformBroadcastSettings?: SocialGamePublishSettings;
+    xblBroadcastSettings?: GamePublishSetting;
+    platformBroadcastSettings?: GamePublishSetting;
     texturePacksRequired?: boolean;
     serverChunkTickRange?: number;
     lockedBehaviorPack?: boolean;
@@ -149,8 +149,8 @@ export default class LevelSettings extends NetworkStructure {
     private readonly confirmedPlatformLockedContent: boolean;
     private readonly multiplayerGame = true;
     private readonly broadcastToLAN = true;
-    private readonly xblBroadcastSettings: SocialGamePublishSettings;
-    private readonly platformBroadcastSettings: SocialGamePublishSettings;
+    private readonly xblBroadcastSettings: GamePublishSetting;
+    private readonly platformBroadcastSettings: GamePublishSetting;
     private readonly texturePacksRequired: boolean;
     private readonly serverChunkTickRange: number;
     private readonly lockedBehaviorPack: boolean;
@@ -203,8 +203,8 @@ export default class LevelSettings extends NetworkStructure {
         this.eduFeaturesEnabled = config.eduFeaturesEnabled ?? false;
         this.eduProductId = config.eduProductId ?? '';
         this.confirmedPlatformLockedContent = config.confirmedPlatformLockedContent ?? false;
-        this.xblBroadcastSettings = config.xblBroadcastSettings ?? SocialGamePublishSettings.PUBLIC;
-        this.platformBroadcastSettings = config.platformBroadcastSettings ?? SocialGamePublishSettings.PUBLIC;
+        this.xblBroadcastSettings = config.xblBroadcastSettings ?? GamePublishSetting.PUBLIC;
+        this.platformBroadcastSettings = config.platformBroadcastSettings ?? GamePublishSetting.PUBLIC;
         this.texturePacksRequired = config.texturePacksRequired ?? false;
         this.serverChunkTickRange = config.serverChunkTickRange ?? 4;
         this.lockedBehaviorPack = config.lockedBehaviorPack ?? false;
