@@ -85,6 +85,8 @@ export interface BedrockTemplateBlock {
     readonly extraState: number;
     /** The block entity NBT, left as read. */
     readonly nbt?: NBTTagCompound;
+    /** Scheduled tick delays a `.mcstructure` saved for this position, in ticks. */
+    readonly tickDelays?: readonly number[];
 }
 
 /**
@@ -98,4 +100,11 @@ export interface BedrockStructureTemplate {
     readonly entities: readonly TemplateEntity[];
     /** The world position the template was saved from, when the file records one. */
     readonly worldOrigin?: TemplatePosition;
+    /**
+     * The block state version stamp a `.mcstructure` palette carries for each
+     * entry, parallel to {@link BedrockStructureTemplate.palette}. States
+     * saved by an older game version need upgrading before placement, and
+     * this is the only record of which version wrote them.
+     */
+    readonly paletteVersions?: readonly number[];
 }

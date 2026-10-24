@@ -1,3 +1,4 @@
+export { MCSTRUCTURE_FORMAT_VERSION, mcStructureIndex, mcStructurePosition, readMcStructure } from './bedrockTemplate';
 export { PALETTE_KEY_RENAME_DATA_VERSION, isGzip, readJavaStructureTemplate } from './javaTemplate';
 export {
     NO_BLOCK,

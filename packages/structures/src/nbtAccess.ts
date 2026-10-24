@@ -49,11 +49,12 @@ export const listAt = (compound: NBTTagCompound, key: string): readonly unknown[
 export const compoundListAt = (compound: NBTTagCompound, key: string): NBTTagCompound[] =>
     listAt(compound, key).filter((entry): entry is NBTTagCompound => entry instanceof NBTTagCompound);
 
+/** Returns the numeric entries of already-read list entries, skipping entries of another type. */
+export const numbersOf = (entries: readonly unknown[]): number[] =>
+    entries.filter(isNumeric).map((entry) => entry.getValue());
+
 /** Returns the numeric entries of a list child, skipping entries of another type. */
-export const numberListAt = (compound: NBTTagCompound, key: string): number[] =>
-    listAt(compound, key)
-        .filter(isNumeric)
-        .map((entry) => entry.getValue());
+export const numberListAt = (compound: NBTTagCompound, key: string): number[] => numbersOf(listAt(compound, key));
 
 /**
  * Reads a three-number list, which both formats use for sizes and positions.
