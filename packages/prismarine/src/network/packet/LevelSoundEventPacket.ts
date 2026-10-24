@@ -1,35 +1,44 @@
+import type { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEventName } from '@jsprismarine/minecraft';
-import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
+
+/** The `LevelSoundEvent` number behind each name the wire carries, built once. */
+const soundByName = new Map(Object.entries(LevelSoundEventName).map(([value, name]) => [name, Number(value)]));
 
 /**
  * A sound played somewhere in the world.
  *
- * Wire order at protocol 2193: `Sound Event` (a `SoundEventIdentifier`, which travels as a
- * string), `Position` (a `Vec3` of three floats), `Data` (varint32), `Actor Identifier`
- * (string), `Is Baby` (boolean), `Is Global` (boolean), `Actor Unique Id` (int64 little
- * endian, not a varint), and `Fire At Position` as an optional `Vec3`.
+ * Wire order at protocol 2193: `Sound Event` as a `SoundEventIdentifier`, `Position` as a
+ * `Vec3` of three little-endian floats, `Data` as a ZigZag varint32, `Actor Identifier` as a
+ * string, `Is Baby` and `Is Global` as one byte each, `Actor Unique Id` as a little-endian
+ * int64 (not a varint), then `Fire At Position` as a presence byte followed by a `Vec3` when
+ * the byte is set.
  *
- * The docs page types `Fire At Position` as a plain `Vec3` at 2193 and only records the
- * optional from 2207 on. gophertunnel at 2193 writes the presence byte, and so does this: a
- * bare `Vec3` would be eleven bytes the client is not reading.
+ * `SoundEventIdentifier` is the tagged variant Mojang's 1.26.51 notes describe, either a
+ * `LevelSoundEvent` member or a free sound name. The metadata types it as one string and
+ * nothing precedes it: the enum member travels as its name (`step`, `break`), so a reader
+ * cannot tell the two alternatives apart and does not need to. This class keeps the
+ * `LevelSoundEvent` number in `sound` and maps it to its name on the way out.
  *
- * Three things here were years out of date, and together they left the packet at least nine
- * bytes short - which a real client reads as running off the end of a malformed packet, and
- * answers by hanging up with `initialconnection-90`. One of these goes out for every block
- * broken, so mining a single block ended the session.
+ * The docs page types `Fire At Position` as a plain `Vec3` at 2193 and records the optional
+ * from 2207 on. Clients have read a presence byte there since 1.21.70, gophertunnel and
+ * PocketMine both write one, and the 2207 entry is the metadata catching up. A bare `Vec3`
+ * here would hand the client eleven bytes it does not expect.
  *
- * - The sound is a **string** and has been since 1.21.130. Written as the number it used to
- *   be, the client reads that number as a string *length* and eats the position that follows.
- * - `Actor Unique Id` was never written at all.
- * - `Fire At Position` was added after it, the same trailing shape that `ActorEventPacket`
- *   and `ChangeDimensionPacket` were each missing.
+ * Clients send this packet for the sounds they start themselves, such as steps and attacks,
+ * and `LevelSoundEventHandler` relays those.
  */
 export default class LevelSoundEventPacket extends DataPacket {
     public static NetID = Identifiers.LevelSoundEventPacket;
 
-    /** `Sound Event`, held as a `LevelSoundEvent` number and written as its name. */
+    /**
+     * `Sound Event`, held as a `LevelSoundEvent` number and written as its name.
+     *
+     * Reading a name outside the enum leaves -1 here; the client's own bytes still carry it,
+     * so a relay of the decoded packet keeps the name.
+     */
     public sound!: number;
 
     /** The X of `Position`. */
@@ -56,12 +65,12 @@ export default class LevelSoundEventPacket extends DataPacket {
     /** `Actor Unique Id`: the entity the sound belongs to, or -1 for the world's own. */
     public entityUniqueId: bigint = -1n;
 
-    /** Reads the eight fields in docs order; `Fire At Position` is read and dropped. */
+    /** `Fire At Position`: where a projectile sound was fired from, or null when absent. */
+    public fireAtPosition: Vector3 | null = null;
+
+    /** Reads the eight fields in docs order. */
     public decodePayload(): void {
-        // Read back as a name, and mapped to the number the rest of this server speaks in.
-        const name = NetworkUtil.readString(this);
-        const entry = Object.entries(LevelSoundEventName).find(([, value]) => value === name);
-        this.sound = entry ? Number(entry[0]) : -1;
+        this.sound = soundByName.get(NetworkUtil.readString(this)) ?? -1;
 
         this.positionX = this.readFloatLE();
         this.positionY = this.readFloatLE();
@@ -72,14 +81,10 @@ export default class LevelSoundEventPacket extends DataPacket {
         this.isBabyMob = this.readBoolean();
         this.disableRelativeVolume = this.readBoolean();
         this.entityUniqueId = this.readLongLE();
-        if (this.readBoolean()) {
-            this.readFloatLE();
-            this.readFloatLE();
-            this.readFloatLE();
-        }
+        this.fireAtPosition = this.readBoolean() ? NetworkUtil.readVector3(this) : null;
     }
 
-    /** Writes the eight fields in docs order, with no `Fire At Position`. */
+    /** Writes the eight fields in docs order. */
     public encodePayload(): void {
         NetworkUtil.writeString(this, LevelSoundEventName[this.sound] ?? '');
 
@@ -92,6 +97,8 @@ export default class LevelSoundEventPacket extends DataPacket {
         this.writeBoolean(this.isBabyMob);
         this.writeBoolean(this.disableRelativeVolume);
         this.writeLongLE(this.entityUniqueId);
-        this.writeBoolean(false); // No fire-at position.
+
+        this.writeBoolean(this.fireAtPosition !== null);
+        if (this.fireAtPosition !== null) NetworkUtil.writeVector3(this, this.fireAtPosition);
     }
 }
