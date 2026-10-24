@@ -9,8 +9,6 @@ import {
     ResourcePackStatus,
     SetLocalPlayerAsInitializedPacket
 } from '@jsprismarine/protocol';
-import type { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
-
 import type { IAuthProvider } from '@jsprismarine/auth';
 import type { Logger } from '@jsprismarine/logger';
 import type {
@@ -22,6 +20,7 @@ import type {
 } from '@jsprismarine/protocol';
 import { deriveEncryptionKey, readHandshake } from './Handshake';
 import type ClientSession from '../net/ClientSession';
+import { isPacket } from '../net/ClientPacketRegistry';
 import type { DecodedPacket } from '../net/ClientPacketRegistry';
 
 /** How far a login has got. Every step is driven by a packet, never by a timer. */
@@ -135,30 +134,20 @@ export default class LoginSequence {
     };
 
     private async dispatch(packet: DecodedPacket): Promise<void> {
-        switch (packet.id) {
-            case PacketIdentifier.NETWORK_SETTINGS:
-                await this.onNetworkSettings(packet.data as NetworkSettings);
-                break;
-            case PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE:
-                await this.onServerToClientHandshake(packet.data as ServerToClientHandshake);
-                break;
-            case PacketIdentifier.PLAY_STATUS:
-                await this.onPlayStatus(packet.data as PlayStatusData);
-                break;
-            case PacketIdentifier.RESOURCE_PACKS_INFO:
-                await this.sendResourcePackResponse(ResourcePackStatus.HaveAllPacks);
-                break;
-            case PacketIdentifier.RESOURCE_PACK_STACK:
-                await this.sendResourcePackResponse(ResourcePackStatus.Completed);
-                break;
-            case PacketIdentifier.START_GAME:
-                await this.onStartGame(packet.data as StartGame);
-                break;
-            case PacketIdentifier.DISCONNECT:
-                this.onDisconnect(packet.data as Disconnect);
-                break;
-            default:
-                break;
+        if (isPacket(packet, PacketIdentifier.NETWORK_SETTINGS)) {
+            await this.onNetworkSettings(packet.data);
+        } else if (isPacket(packet, PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE)) {
+            await this.onServerToClientHandshake(packet.data);
+        } else if (isPacket(packet, PacketIdentifier.PLAY_STATUS)) {
+            await this.onPlayStatus(packet.data);
+        } else if (isPacket(packet, PacketIdentifier.START_GAME)) {
+            await this.onStartGame(packet.data);
+        } else if (isPacket(packet, PacketIdentifier.DISCONNECT)) {
+            this.onDisconnect(packet.data);
+        } else if (packet.id === PacketIdentifier.RESOURCE_PACKS_INFO) {
+            await this.sendResourcePackResponse(ResourcePackStatus.HaveAllPacks);
+        } else if (packet.id === PacketIdentifier.RESOURCE_PACK_STACK) {
+            await this.sendResourcePackResponse(ResourcePackStatus.Completed);
         }
     }
 
@@ -169,7 +158,7 @@ export default class LoginSequence {
      */
     private async onNetworkSettings(settings: NetworkSettings): Promise<void> {
         this.session.enableCompression({
-            algorithm: settings.compressionAlgorithm as PacketCompressionAlgorithm,
+            algorithm: settings.compressionAlgorithm,
             threshold: settings.compressionThreshold
         });
 

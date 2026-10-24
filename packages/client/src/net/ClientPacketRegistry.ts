@@ -1,6 +1,14 @@
-import { NetworkBinaryStream } from '@jsprismarine/protocol';
+import { NetworkBinaryStream, PacketIdentifier } from '@jsprismarine/protocol';
 
-import type { NetworkPacket } from '@jsprismarine/protocol';
+import type {
+    Disconnect,
+    NetworkPacket,
+    NetworkSettings,
+    PlayStatusData,
+    ServerToClientHandshake,
+    StartGame,
+    Text
+} from '@jsprismarine/protocol';
 
 /** A packet class that can be built with no arguments, i.e. for decoding into. */
 export type PacketConstructor = new () => NetworkPacket<any>;
@@ -13,6 +21,32 @@ export interface DecodedPacket {
     readonly name: string;
     readonly data: unknown;
 }
+
+/**
+ * The decoded payload each clientbound packet id carries, for the ids the client reads.
+ *
+ * This is a promise about registration, not something the registry enforces: `isPacket`
+ * narrows on the id alone, so it is only right while each id here is registered to the
+ * packet class whose data type is listed. `Client` registers that set.
+ */
+export interface ClientboundPacketData {
+    [PacketIdentifier.NETWORK_SETTINGS]: NetworkSettings;
+    [PacketIdentifier.SERVER_TO_CLIENT_HANDSHAKE]: ServerToClientHandshake;
+    [PacketIdentifier.PLAY_STATUS]: PlayStatusData;
+    [PacketIdentifier.START_GAME]: StartGame;
+    [PacketIdentifier.DISCONNECT]: Disconnect;
+    [PacketIdentifier.TEXT]: Text;
+}
+
+/**
+ * Narrows a decoded packet to the data type its id is registered with.
+ *
+ * Checks the id only; see `ClientboundPacketData` for why that is enough.
+ */
+export const isPacket = <K extends keyof ClientboundPacketData>(
+    packet: DecodedPacket,
+    id: K
+): packet is DecodedPacket & { readonly id: K; readonly data: ClientboundPacketData[K] } => packet.id === id;
 
 /**
  * Which packet class handles which id, with no server anywhere in the signature.
