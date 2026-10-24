@@ -5,6 +5,8 @@ import type RequestNetworkSettingsPacket from '../packet/RequestNetworkSettingsP
 import type PreLoginPacketHandler from './PreLoginPacketHandler';
 import type ClientConnection from '../ClientConnection';
 import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSettingsPacket';
+import PlayStatusPacket from '../packet/PlayStatusPacket';
+import PlayStatusType from '../type/PlayStatusType';
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
@@ -12,11 +14,11 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
 
     public async handle(
         packet: RequestNetworkSettingsPacket,
-        _server: Server,
+        server: Server,
         connection: ClientConnection
     ): Promise<void> {
         if (packet.protocolVersion !== Identifiers.Protocol) {
-            await connection.disconnect(`Unsupported protocol version: ${packet.protocolVersion}`);
+            await RequestNetworkSettingsHandler.refuseProtocol(packet.protocolVersion, server, connection);
             return;
         }
 
@@ -31,5 +33,37 @@ export default class RequestNetworkSettingsHandler implements PreLoginPacketHand
 
         // Send as uncompressed, this will initialize compression
         await connection.sendDataPacket(networkSettings, false);
+    }
+
+    /**
+     * Tells a client on the wrong protocol which side is behind, then hangs up.
+     *
+     * This is the first packet a client sends, so a mismatch is caught here and never reaches
+     * `LoginHandler`. A bare disconnect at this point shows "Disconnected from Server" and
+     * nothing else (#1586). The client renders a failed `PlayStatus` as "Outdated client" or
+     * "Outdated server", so it goes first, and the disconnect that follows carries a reason
+     * the player can read.
+     *
+     * The status is sent uncompressed: compression is only agreed by the `NetworkSettings`
+     * this client is not going to get.
+     */
+    private static async refuseProtocol(protocol: number, server: Server, connection: ClientConnection): Promise<void> {
+        const outdatedClient = protocol < Identifiers.Protocol;
+
+        server
+            .getLogger()
+            .info(
+                `Refused a client on protocol ${protocol}: this server speaks ${Identifiers.Protocol}`,
+                'RequestNetworkSettingsHandler/handle'
+            );
+
+        const playStatus = new PlayStatusPacket();
+        playStatus.status = outdatedClient ? PlayStatusType.LoginFailedClient : PlayStatusType.LoginFailedServer;
+        await connection.sendDataPacket(playStatus, false);
+
+        await connection.disconnect(
+            outdatedClient ? `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}` : 'Outdated server!',
+            false
+        );
     }
 }
