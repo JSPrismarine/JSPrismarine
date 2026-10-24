@@ -1,19 +1,34 @@
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import fs from 'node:fs';
-
 import { Logger } from '@jsprismarine/logger';
-import { withCwd } from '../utils/cwd';
 import BanManager from './BanManager';
 import type { BanManagerServer } from './BanManager';
+
+const BAN_FILE = [
+    '[',
+    '    // Griefed spawn twice; appeal denied.',
+    '    { "name": "player1", "reason": "reason1" },',
+    '    { "name": "player2", "reason": "" }',
+    ']',
+    ''
+].join('\n');
 
 describe('ban', () => {
     describe('BanManager', () => {
         let logger: Logger;
         let server: BanManagerServer;
         let banManager: BanManager;
+        let directory: string;
+        let file: string;
 
         beforeEach(() => {
+            directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-ban-test-'));
+            vi.stubEnv('JSP_DIR', directory);
+            file = path.join(directory, 'banned-players.json');
+
             logger = new Logger();
             vi.spyOn(logger, 'warn').mockImplementation(() => {});
             vi.spyOn(logger, 'error').mockImplementation(() => {});
@@ -23,54 +38,110 @@ describe('ban', () => {
         });
 
         afterEach(() => {
+            vi.unstubAllEnvs();
             vi.restoreAllMocks();
+            rmSync(directory, { recursive: true, force: true });
         });
 
         describe('onEnable', () => {
             it('should load the ban list from file', async () => {
-                const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-                vi.spyOn(fs.promises, 'readFile').mockResolvedValue(
-                    Buffer.from(JSON.stringify([{ name: 'player1', reason: 'reason1' }]))
-                );
+                writeFileSync(file, BAN_FILE);
 
                 await banManager.enable();
 
-                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
                 expect(banManager.isBanned({ getName: () => 'player1' })).toBe('reason1');
+                // A ban with no reason still reads as banned.
+                expect(banManager.isBanned({ getName: () => 'player2' })).not.toBe(false);
+                expect(banManager.isBanned({ getName: () => 'player3' })).toBe(false);
+            });
+
+            it('should create ban list file if it does not exist', async () => {
+                await banManager.enable();
+
+                expect(logger.warn).toHaveBeenCalledWith('Failed to load ban list!');
+                expect(readFileSync(file, 'utf8')).toBe('[]');
+                expect(banManager['banned'].size).toBe(0);
+            });
+
+            it('should skip entries that are not bans and keep the rest', async () => {
+                writeFileSync(file, '[{ "name": "player1", "reason": "r" }, "junk", { "reason": "no name" }]');
+
+                await banManager.enable();
+
+                expect(banManager.isBanned({ getName: () => 'player1' })).toBe('r');
+                expect(banManager['banned'].size).toBe(1);
+            });
+
+            it('should report a file that does not parse without throwing', async () => {
+                writeFileSync(file, '[{ "name": ');
+
+                await banManager.enable();
+
+                expect(logger.error).toHaveBeenCalled();
+                expect(banManager['banned'].size).toBe(0);
             });
         });
 
         describe('onDisable', () => {
             it('should clear the banned map', async () => {
-                banManager.disable();
+                banManager['banned'].set('player1', { reason: 'reason1' });
+                await banManager.disable();
                 expect(banManager['banned'].size).toBe(0);
             });
         });
 
-        describe('parseBanned', () => {
-            it.skip('should load ban list from file', async () => {
-                const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
-                const getLoggerSpy = vi.spyOn(banManager['server'], 'getLogger');
-                const readFileSyncSpy = vi.spyOn(fs, 'readFileSync').mockReturnValue('[]');
-                const parseSpy = vi.spyOn(JSON, 'parse').mockReturnValue([]);
-                await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
-                expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(readFileSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
-                expect(parseSpy).toHaveBeenCalledWith('[]');
-                expect(banManager['banned'].size).toBe(0);
+        describe('setBanned', () => {
+            it('should add the ban to the file without touching the other lines', async () => {
+                writeFileSync(file, BAN_FILE);
+                await banManager.enable();
+
+                await banManager.setBanned('player3', 'alts');
+
+                const text = readFileSync(file, 'utf8');
+                expect(banManager.isBanned({ getName: () => 'player3' })).toBe('alts');
+                expect(text).toContain('// Griefed spawn twice; appeal denied.');
+                expect(text).toContain('{ "name": "player1", "reason": "reason1" },');
+                expect(JSON.parse(text.replace(/\/\/.*$/gm, ''))).toStrictEqual([
+                    { name: 'player1', reason: 'reason1' },
+                    { name: 'player2', reason: '' },
+                    { name: 'player3', reason: 'alts' }
+                ]);
             });
 
-            it('should create ban list file if it does not exist', async () => {
-                const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(false);
-                const getLoggerSpy = vi.spyOn(banManager['server'], 'getLogger');
-                const writeFileSyncSpy = vi.spyOn(fs, 'writeFileSync');
-                await banManager['parseBanned']();
-                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
-                expect(getLoggerSpy).toHaveBeenCalledWith();
-                expect(logger.warn).toHaveBeenCalledWith('Failed to load ban list!');
-                expect(writeFileSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'), '[]');
-                expect(banManager['banned'].size).toBe(0);
+            it('should replace an existing ban in place', async () => {
+                writeFileSync(file, BAN_FILE);
+                await banManager.enable();
+
+                await banManager.setBanned('player1', 'again');
+
+                const text = readFileSync(file, 'utf8');
+                expect(text).toContain('// Griefed spawn twice; appeal denied.');
+                expect(JSON.parse(text.replace(/\/\/.*$/gm, ''))).toStrictEqual([
+                    { name: 'player1', reason: 'again' },
+                    { name: 'player2', reason: '' }
+                ]);
+            });
+
+            it('should start a file from nothing', async () => {
+                await banManager.setBanned('player1');
+
+                expect(JSON.parse(readFileSync(file, 'utf8'))).toStrictEqual([{ name: 'player1', reason: '' }]);
+            });
+        });
+
+        describe('setUnbanned', () => {
+            it('should remove only that player and keep the comments', async () => {
+                writeFileSync(file, BAN_FILE);
+                await banManager.enable();
+
+                await banManager.setUnbanned('player2');
+
+                const text = readFileSync(file, 'utf8');
+                expect(banManager.isBanned({ getName: () => 'player2' })).toBe(false);
+                expect(text).toContain('// Griefed spawn twice; appeal denied.');
+                expect(JSON.parse(text.replace(/\/\/.*$/gm, ''))).toStrictEqual([
+                    { name: 'player1', reason: 'reason1' }
+                ]);
             });
         });
 
