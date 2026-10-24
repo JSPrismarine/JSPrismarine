@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import type { Logger } from '@jsprismarine/logger';
+import { describe, expect, it, vi } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
@@ -17,10 +18,28 @@ import ContainerCloseHandler from './ContainerCloseHandler';
 
 const planks = (count: number) => new Item({ id: 5, name: 'minecraft:oak_planks', count });
 
-/** Runs the handler against one close, and reports what it sent and what it dropped. */
-const run = async (craftingInput: CraftingInput, inventory: HumanInventory) => {
+/** What a test may change about the close and the session it lands on. */
+interface Scenario {
+    craftingInput?: CraftingInput;
+    inventory?: HumanInventory;
+    /** The window ids the session has open; the handler's close is checked against them. */
+    openWindows?: number[];
+    /** The three fields the client sent. */
+    packet?: Partial<ContainerClosePacket>;
+}
+
+/** Runs the handler against one close, and reports what it sent, closed, dropped and logged. */
+const run = async ({
+    craftingInput = new CraftingInput(),
+    inventory = new HumanInventory(),
+    openWindows = [3],
+    packet: fields = {}
+}: Scenario = {}) => {
     const sent: DataPacket[] = [];
     const dropped: string[] = [];
+    const closed: number[] = [];
+    const windows = new Set(openWindows);
+    const debug = vi.fn();
 
     const world: World = stub<World>({
         dropContents: async (_position, contents) => {
@@ -34,33 +53,62 @@ const run = async (craftingInput: CraftingInput, inventory: HumanInventory) => {
         getConnection: () => stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) }),
         getPlayer: () =>
             stub<Player>({
+                getName: () => 'Steve',
                 getInventory: () => inventory,
                 getCraftingInput: () => craftingInput,
                 getWorld: () => world,
                 getPosition: () => new Position(1, 2, 3, world)
             }),
+        closeWindow: (windowId) => {
+            if (!windows.delete(windowId)) return false;
+            closed.push(windowId);
+            return true;
+        },
         sendInventory: async () => {}
     });
 
-    const packet = Object.assign(new ContainerClosePacket(), {
-        containerId: 3,
-        containerType: 0,
-        serverInitiatedClose: false
-    });
+    const server = stub<Server>({ getLogger: () => stub<Logger>({ debug }) });
 
-    await new ContainerCloseHandler().handle(packet, stub<Server>({}), session);
+    const packet = Object.assign(
+        new ContainerClosePacket(),
+        { containerId: 3, containerType: 0, serverInitiatedClose: false },
+        fields
+    );
 
-    return { sent, dropped };
+    await new ContainerCloseHandler().handle(packet, server, session);
+
+    return { sent, dropped, closed, debug };
 };
 
 describe('network', () => {
     describe('ContainerCloseHandler', () => {
-        it('echoes the close back with the three fields it was sent', async () => {
-            const { sent } = await run(new CraftingInput(), new HumanInventory());
+        it('closes the window on the server and answers with the id and type the client sent', async () => {
+            const { sent, closed, debug } = await run();
+
+            expect(closed).toEqual([3]);
+            expect(debug).not.toHaveBeenCalled();
 
             const [reply] = sent;
             expect(reply).toBeInstanceOf(ContainerClosePacket);
             expect(reply).toMatchObject({ containerId: 3, containerType: 0, serverInitiatedClose: false });
+        });
+
+        it('answers with Server Initiated Close false even when the client claimed otherwise', async () => {
+            const { sent } = await run({ packet: { serverInitiatedClose: true } });
+
+            expect(sent[0]).toMatchObject({ containerId: 3, serverInitiatedClose: false });
+        });
+
+        it('logs a close for a window it never opened, and still answers it', async () => {
+            const { sent, closed, debug } = await run({ openWindows: [3], packet: { containerId: 9 } });
+
+            expect(closed).toEqual([]);
+            expect(debug).toHaveBeenCalledWith(
+                'Steve closed container 9, which it did not have open',
+                'ContainerCloseHandler/handle'
+            );
+            expect(sent).toHaveLength(1);
+            expect(sent[0]).toMatchObject({ containerId: 9, serverInitiatedClose: false });
         });
 
         it('gives the crafting grid back to the inventory', async () => {
@@ -68,7 +116,7 @@ describe('network', () => {
             craftingInput.set(0, planks(4));
 
             const inventory = new HumanInventory();
-            const { dropped } = await run(craftingInput, inventory);
+            const { dropped } = await run({ craftingInput, inventory });
 
             expect(craftingInput.isEmpty()).toBe(true);
             expect(inventory.getItem(0).getName()).toBe('minecraft:oak_planks');
@@ -87,7 +135,7 @@ describe('network', () => {
             const craftingInput = new CraftingInput();
             craftingInput.set(0, planks(4));
 
-            const { dropped } = await run(craftingInput, inventory);
+            const { dropped } = await run({ craftingInput, inventory });
 
             expect(dropped).toEqual(['minecraft:oak_planks x4']);
             expect(craftingInput.isEmpty()).toBe(true);

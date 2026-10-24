@@ -138,6 +138,15 @@ export default class PlayerSession {
     private windowId = 0;
 
     /**
+     * The container windows this session has opened on the client and not yet seen closed,
+     * by window id, each holding the `Container Type` it was opened as.
+     *
+     * The server's side of what the docs call the container manager: a `ContainerClose` from
+     * the client is checked against it, see {@link PlayerSession.closeWindow}.
+     */
+    private readonly openWindows = new Map<number, number>();
+
+    /**
      * The tick of the last `PlayerAuthInputPacket` handled for this client, or `0n` before the
      * first one.
      *
@@ -683,9 +692,23 @@ export default class PlayerSession {
         packet.containerType = WindowTypes.INVENTORY;
         // No position: a container an actor carries is named by the actor, not by a block.
         packet.containerEntityId = this.player.getRuntimeId();
+        this.openWindows.set(packet.windowId, packet.containerType);
         await this.connection.sendDataPacket(packet);
 
         await this.sendInventory(packet.windowId);
+    }
+
+    /**
+     * Forgets a window the client reports closed.
+     *
+     * The docs have the server delete its container manager when the client's `ContainerClose`
+     * arrives, before answering it. Only a window this session opened can be closed here; any
+     * other id is left alone and reported through the return value so the handler can log it.
+     * @param {number} windowId - the `Container Id` the client sent.
+     * @returns {boolean} whether a window with that id was open.
+     */
+    public closeWindow(windowId: number): boolean {
+        return this.openWindows.delete(windowId);
     }
 
     /**

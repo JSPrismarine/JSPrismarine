@@ -10,19 +10,37 @@ import type PacketHandler from './PacketHandler';
 /**
  * Answers a client that closed a container, and clears what the close left behind.
  *
- * The packet goes both ways and carries the same three fields each way: Container Id (uint8),
- * Container Type (uint8) and Server Initiated Close (boolean). The client sends it once its
- * own container manager is gone; the server sends one back, which is what closes the screen.
+ * The packet goes both ways and carries the same three fields each way: `Container Id`
+ * (a `ContainerID` as a uint8), `Container Type` (a `ContainerType` as a uint8) and
+ * `Server Initiated Close` (boolean). The client sends it once its own container manager is
+ * gone; the server deletes its own and sends one back, which is what closes the screen.
  */
 export default class ContainerCloseHandler implements PacketHandler<ContainerClosePacket> {
     public static NetID = Identifiers.ContainerClosePacket;
 
-    /** Echoes the close back to the client, then empties the crafting grid. */
-    public async handle(packet: ContainerClosePacket, _server: Server, session: PlayerSession): Promise<void> {
+    /**
+     * Closes the window on the server, answers the client, then empties the crafting grid.
+     *
+     * The answer says `Server Initiated Close` false whatever the client wrote, since the
+     * player closed this one. A `Container Id` the session never opened is logged and still
+     * answered: the client has already taken the screen down and waits for the answer before
+     * it opens the next container, and the same packet is what it sends back after a close
+     * the server forced.
+     */
+    public async handle(packet: ContainerClosePacket, server: Server, session: PlayerSession): Promise<void> {
+        if (!session.closeWindow(packet.containerId)) {
+            server
+                .getLogger()
+                .debug(
+                    `${session.getPlayer().getName()} closed container ${packet.containerId}, which it did not have open`,
+                    'ContainerCloseHandler/handle'
+                );
+        }
+
         const pk = new ContainerClosePacket();
         pk.containerId = packet.containerId;
         pk.containerType = packet.containerType;
-        pk.serverInitiatedClose = packet.serverInitiatedClose;
+        pk.serverInitiatedClose = false;
         await session.getConnection().sendDataPacket(pk);
 
         await this.emptyCraftingGrid(session);
