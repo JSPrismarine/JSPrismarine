@@ -1,0 +1,347 @@
+/**
+ * Chunker's five property tests, adopted per
+ * docs/research/hybrid-format-prior-art.md section 10 and run one way:
+ *
+ * 1. every Java palette entry maps;
+ * 2. every output carries exactly the declared Bedrock state set;
+ * 3. the mapping composed with the reverse index is identity, except for
+ *    entries on the reviewed loss list, which must all occur;
+ * 4. every output identifier exists in the real Bedrock palette for the
+ *    pinned version;
+ * 5. every output state value is in that state's real domain.
+ *
+ * The Bedrock side of truth is this repository's own BDS 1.26.51.1 captures:
+ * the block palette snapshot under packages/minecraft/datagen/, and the item
+ * table and actor identifier list from @jsprismarine/bedrock-data. The loss
+ * lists fail in both directions, as Chunker's do: an unlisted loss fails, and
+ * a listed loss that stops occurring fails too.
+ */
+import { readFileSync } from 'node:fs';
+
+import { entity_identifiers, item_table } from '@jsprismarine/bedrock-data';
+import { describe, expect, it } from 'vitest';
+
+import { javaBlockStateToBedrock } from './blockMapping';
+import {
+    BLOCK_LOSSES,
+    BLOCK_MERGES,
+    DROPPED_BLOCK_PROPERTIES,
+    ENTITY_LOSSES,
+    ENTITY_MERGES,
+    ITEM_LOSSES,
+    ITEM_MERGES,
+    PARTIAL_BLOCK_PROPERTY_COLLAPSES,
+    REGISTRY_LOSSES
+} from './lossList';
+import { blocksTable, entitiesTable, itemsTable, registriesTable } from './tables';
+
+// Documented totals for the pinned versions, from
+// docs/research/java-to-bedrock-translation.md sections 2, 3, 4 and 6.
+const JAVA_BLOCKS = 1286;
+const JAVA_BLOCK_STATES = 35723;
+const DISTINCT_BEDROCK_TARGETS = 15953;
+const JAVA_ITEMS = 1658;
+const JAVA_ENTITY_TYPES = 161;
+const JAVA_BIOMES = 67;
+const JAVA_ENCHANTMENTS = 43;
+
+interface PaletteFile {
+    states: Record<string, Record<string, string | number>>;
+    domains: Record<string, Record<string, { values: (string | number | boolean)[] }>>;
+}
+// The repository's own BDS capture is parsed JSON.
+const bedrockPalette = JSON.parse(
+    readFileSync(new URL('../../minecraft/datagen/snapshot/block-palette.json', import.meta.url), 'utf8')
+) as PaletteFile;
+
+const normalize = (value: string | number | boolean): string | number =>
+    typeof value === 'boolean' ? Number(value) : value;
+
+// Flatten the table's grouped palette into [name, states] targets.
+const paletteTargets = blocksTable.statePalette.flatMap(([name, keys, tuples]) =>
+    tuples.map((values) => ({
+        name: `minecraft:${name}`,
+        states: Object.fromEntries(keys.map((key, axis) => [key, values[axis] ?? '']))
+    }))
+);
+
+// Expand each block's run-length encoded targets into flat palette indices.
+const flatTargets = new Map<string, number[]>();
+for (const [javaId, entry] of Object.entries(blocksTable.blocks)) {
+    const flat: number[] = [];
+    for (const run of entry.targets) {
+        if (typeof run === 'number') flat.push(run);
+        else for (let count = 0; count < run[1]; count++) flat.push(run[0]);
+    }
+    flatTargets.set(javaId, flat);
+}
+
+/** The Java property combination at one in-block state index, in axis order. */
+const javaStateAt = (axes: [string, string[]][], index: number): Record<string, string> => {
+    const properties: Record<string, string> = {};
+    let remainder = index;
+    for (let axis = axes.length - 1; axis >= 0; axis--) {
+        const [property, values] = axes[axis] ?? ['', []];
+        properties[property] = values[remainder % values.length] ?? '';
+        remainder = Math.floor(remainder / values.length);
+    }
+    return properties;
+};
+
+describe('property 1: every Java palette entry maps', () => {
+    it('covers all 1286 blocks and 35723 states with a mapped or reviewed-loss result', () => {
+        expect(Object.keys(blocksTable.blocks)).toHaveLength(JAVA_BLOCKS);
+        let states = 0;
+        let losses = 0;
+        for (const [javaId, entry] of Object.entries(blocksTable.blocks)) {
+            const axes = Object.entries(entry.properties ?? {});
+            const stateCount = axes.reduce((product, [, values]) => product * values.length, 1);
+            expect(flatTargets.get(javaId)).toHaveLength(stateCount);
+            for (let index = 0; index < stateCount; index++) {
+                const result = javaBlockStateToBedrock(javaId, javaStateAt(axes, index));
+                if (result.kind === 'loss') losses += 1;
+                else expect(result.kind).toBe('mapped');
+                states += 1;
+            }
+        }
+        expect(states).toBe(JAVA_BLOCK_STATES);
+        // The two test blocks: 4 states plus 1 state.
+        expect(losses).toBe(5);
+    });
+
+    it('covers all 1658 items, 161 entity types, 67 biomes and 43 enchantments', () => {
+        expect(Object.keys(itemsTable.items)).toHaveLength(JAVA_ITEMS);
+        expect(Object.keys(entitiesTable.entities)).toHaveLength(JAVA_ENTITY_TYPES - ENTITY_LOSSES.length);
+        expect(Object.keys(registriesTable.biome)).toHaveLength(JAVA_BIOMES);
+        const enchantmentLosses = REGISTRY_LOSSES.filter((loss) => loss.registry === 'enchantment');
+        expect(Object.keys(registriesTable.enchantment)).toHaveLength(JAVA_ENCHANTMENTS - enchantmentLosses.length);
+        // The loss list never shadows a table entry.
+        for (const loss of ENTITY_LOSSES) expect(entitiesTable.entities).not.toHaveProperty(loss.javaId);
+        for (const loss of enchantmentLosses) expect(registriesTable.enchantment).not.toHaveProperty(loss.javaId);
+    });
+});
+
+describe('property 2: every output carries exactly the declared Bedrock state set', () => {
+    it('matches the pinned palette key set for each of the distinct targets', () => {
+        expect(paletteTargets).toHaveLength(DISTINCT_BEDROCK_TARGETS);
+        for (const target of paletteTargets) {
+            const declared = bedrockPalette.states[target.name];
+            expect(declared, target.name).toBeDefined();
+            expect(Object.keys(target.states).sort()).toEqual(Object.keys(declared ?? {}).sort());
+        }
+    });
+});
+
+describe('property 3: the mapping composed with the reverse index is identity except for reviewed losses', () => {
+    // The reverse index: each Bedrock target's first Java (block, state index).
+    const reverse = new Map<number, { javaId: string; index: number }>();
+    for (const [javaId, flat] of flatTargets) {
+        flat.forEach((target, index) => {
+            if (!reverse.has(target)) reverse.set(target, { javaId, index });
+        });
+    }
+
+    const droppedByBlock = new Map<string, Set<string>>();
+    it('drops exactly the (block, property) pairs on the reviewed list', () => {
+        // A property is dropped for a block when, for every pair of its states
+        // that differ only in that property, the Bedrock target is the same.
+        const computed = new Map<string, string[]>();
+        for (const [javaId, entry] of Object.entries(blocksTable.blocks)) {
+            const axes = Object.entries(entry.properties ?? {});
+            const flat = flatTargets.get(javaId) ?? [];
+            for (const [property] of axes) {
+                const groups = new Map<string, Set<number>>();
+                flat.forEach((target, index) => {
+                    const state = javaStateAt(axes, index);
+                    const key = JSON.stringify({ ...state, [property]: '' });
+                    let group = groups.get(key);
+                    if (group === undefined) groups.set(key, (group = new Set()));
+                    group.add(target);
+                });
+                if ([...groups.values()].every((targets) => targets.size === 1)) {
+                    computed.set(property, [...(computed.get(property) ?? []), javaId]);
+                    let dropped = droppedByBlock.get(javaId);
+                    if (dropped === undefined) droppedByBlock.set(javaId, (dropped = new Set()));
+                    dropped.add(property);
+                }
+            }
+        }
+        expect([...computed.keys()].sort()).toEqual(
+            DROPPED_BLOCK_PROPERTIES.map((declared) => declared.property).sort()
+        );
+        for (const declared of DROPPED_BLOCK_PROPERTIES) {
+            const blocks = computed.get(declared.property) ?? [];
+            if (Array.isArray(declared.blocks)) expect(blocks.sort(), declared.property).toEqual([...declared.blocks]);
+            else expect(blocks, declared.property).toHaveLength(declared.blocks.count);
+        }
+    });
+
+    it('round-trips every state to itself or a reviewed loss', () => {
+        const mergeTargets = new Set(BLOCK_MERGES.map((merge) => merge.bedrockId));
+        const partialByBlock = new Map(PARTIAL_BLOCK_PROPERTY_COLLAPSES.map((entry) => [entry.block, entry]));
+
+        // Merges are an identifier-level fact: a Bedrock identifier receiving
+        // more than one Java block, whether or not their states collide.
+        const javaBlocksByTarget = new Map<string, Set<string>>();
+        for (const [javaId, flat] of flatTargets) {
+            for (const target of flat) {
+                const name = paletteTargets[target]?.name ?? '';
+                let blocks = javaBlocksByTarget.get(name);
+                if (blocks === undefined) javaBlocksByTarget.set(name, (blocks = new Set()));
+                blocks.add(javaId);
+            }
+        }
+        const observedMerges = [...javaBlocksByTarget.entries()]
+            .filter(([, blocks]) => blocks.size > 1)
+            .map(([name]) => name);
+        expect(observedMerges.sort()).toEqual(BLOCK_MERGES.map((merge) => merge.bedrockId).sort());
+
+        const partialHits = new Set<string>();
+        let identity = 0;
+        for (const [javaId, entry] of Object.entries(blocksTable.blocks)) {
+            const axes = Object.entries(entry.properties ?? {});
+            const flat = flatTargets.get(javaId) ?? [];
+            flat.forEach((target, index) => {
+                const back = reverse.get(target);
+                expect(back).toBeDefined();
+                if (back === undefined) return;
+                if (back.javaId === javaId && back.index === index) {
+                    identity += 1;
+                    return;
+                }
+                if (back.javaId !== javaId) {
+                    const targetName = paletteTargets[target]?.name ?? '';
+                    expect(mergeTargets, `${javaId} -> ${targetName} <- ${back.javaId}`).toContain(targetName);
+                    return;
+                }
+                const mine = javaStateAt(axes, index);
+                const theirs = javaStateAt(axes, back.index);
+                const dropped = droppedByBlock.get(javaId) ?? new Set();
+                const partial = partialByBlock.get(javaId);
+                for (const property of Object.keys(mine)) {
+                    if (mine[property] === theirs[property]) continue;
+                    const allowed = dropped.has(property) || partial?.properties.includes(property) === true;
+                    expect(allowed, `${javaId}: undeclared collapse of ${property}`).toBe(true);
+                    if (!dropped.has(property)) partialHits.add(javaId);
+                }
+            });
+        }
+        expect(identity).toBe(DISTINCT_BEDROCK_TARGETS);
+        // The loss lists fail in both directions: every declared partial
+        // collapse must actually occur.
+        expect([...partialHits].sort()).toEqual(PARTIAL_BLOCK_PROPERTY_COLLAPSES.map((entry) => entry.block).sort());
+        // And every block loss is a real table entry mapping onto its fallback.
+        for (const loss of BLOCK_LOSSES) {
+            const result = javaBlockStateToBedrock(loss.javaId);
+            expect(result.kind).toBe('loss');
+            if (result.kind === 'loss') expect(result.bedrock.name).toBe(loss.bedrockFallback);
+        }
+    });
+
+    it('round-trips items, entities, biomes and enchantments except for reviewed merges and losses', () => {
+        const javaItemsByIdentifier = new Map<string, Set<string>>();
+        for (const [javaId, entry] of Object.entries(itemsTable.items)) {
+            let items = javaItemsByIdentifier.get(entry.bedrockIdentifier);
+            if (items === undefined) javaItemsByIdentifier.set(entry.bedrockIdentifier, (items = new Set()));
+            items.add(javaId);
+        }
+        const observedItemMerges = [...javaItemsByIdentifier.entries()]
+            .filter(([, items]) => items.size > 1)
+            .map(([identifier]) => identifier);
+        expect(observedItemMerges.sort()).toEqual(ITEM_MERGES.map((merge) => merge.bedrockId).sort());
+        for (const loss of ITEM_LOSSES) {
+            expect(itemsTable.items[loss.javaId]?.bedrockIdentifier).toBe(loss.bedrockFallback);
+        }
+
+        const entityReverse = new Map<string, string>();
+        const entityMerges = new Set<string>();
+        for (const [javaId, bedrockId] of Object.entries(entitiesTable.entities)) {
+            const first = entityReverse.get(bedrockId);
+            if (first === undefined) entityReverse.set(bedrockId, javaId);
+            else {
+                expect(
+                    ENTITY_MERGES.map((merge) => merge.bedrockId),
+                    `${javaId} and ${first}`
+                ).toContain(bedrockId);
+                entityMerges.add(bedrockId);
+            }
+        }
+        expect([...entityMerges].sort()).toEqual(ENTITY_MERGES.map((merge) => merge.bedrockId).sort());
+
+        const biomeReverse = new Map<string, string>();
+        const biomeLossIds = new Set(
+            REGISTRY_LOSSES.filter((loss) => loss.registry === 'biome').map((loss) => loss.javaId)
+        );
+        for (const [javaId, bedrockId] of Object.entries(registriesTable.biome)) {
+            // Prefer the identically named Java biome as the canonical reverse.
+            if (!biomeReverse.has(bedrockId) || javaId.endsWith(bedrockId.split(':')[1] ?? '')) {
+                biomeReverse.set(bedrockId, javaId);
+            }
+        }
+        for (const [javaId, bedrockId] of Object.entries(registriesTable.biome)) {
+            if (biomeReverse.get(bedrockId) !== javaId) {
+                expect(biomeLossIds, `${javaId} -> ${bedrockId}`).toContain(javaId);
+            }
+        }
+        for (const loss of REGISTRY_LOSSES.filter((entry) => entry.registry === 'biome')) {
+            expect(registriesTable.biome[loss.javaId]).toBe(loss.bedrockFallback);
+        }
+
+        const enchantmentReverse = new Map<string, string>();
+        for (const [javaId, bedrockId] of Object.entries(registriesTable.enchantment)) {
+            expect(enchantmentReverse.has(bedrockId), bedrockId).toBe(false);
+            enchantmentReverse.set(bedrockId, javaId);
+        }
+    });
+});
+
+describe('property 4: every output identifier exists in the real Bedrock data for the pinned version', () => {
+    it('block identifiers are in the 1.26.51 palette', () => {
+        for (const [name] of blocksTable.statePalette) {
+            expect(bedrockPalette.states, name).toHaveProperty(`minecraft:${name}`);
+        }
+    });
+
+    it('item identifiers are in the 1.26.51 item table', () => {
+        for (const entry of Object.values(itemsTable.items)) {
+            expect(item_table, entry.bedrockIdentifier).toHaveProperty(entry.bedrockIdentifier);
+        }
+        for (const loss of ITEM_LOSSES) expect(item_table).toHaveProperty(loss.bedrockFallback);
+    });
+
+    it('entity identifiers are in the 1.26.51 actor identifier list', () => {
+        // The capture is AvailableActorIdentifiersPacket NBT; the identifier
+        // strings are pulled by pattern, the way the research note measured
+        // them, because the file is not a plain NBT flavor this repo parses.
+        const captured = new Set(entity_identifiers.toString('latin1').match(/minecraft:[a-z0-9_.]+/g));
+        expect(entitiesTable.bedrockIdentifiers.sort()).toEqual([...captured].sort());
+        for (const bedrockId of Object.values(entitiesTable.entities)) {
+            expect(captured, bedrockId).toContain(bedrockId);
+        }
+        for (const loss of ENTITY_LOSSES) {
+            if (loss.kind === 'rerender') expect(captured, loss.javaId).toContain(loss.bedrockFallback ?? '');
+        }
+    });
+
+    it('biome and enchantment identifiers are in the pinned Bedrock name sets', () => {
+        for (const bedrockId of Object.values(registriesTable.biome)) {
+            expect(registriesTable.bedrock.biome, bedrockId).toContain(bedrockId);
+        }
+        for (const bedrockId of Object.values(registriesTable.enchantment)) {
+            expect(registriesTable.bedrock.enchantment, bedrockId).toContain(bedrockId);
+        }
+    });
+});
+
+describe("property 5: every output state value is in that state's real domain", () => {
+    it('block state values are inside the 1.26.51 palette domains', () => {
+        for (const target of paletteTargets) {
+            const domains = bedrockPalette.domains[target.name];
+            expect(domains, target.name).toBeDefined();
+            for (const [key, value] of Object.entries(target.states)) {
+                const domain = (domains?.[key]?.values ?? []).map(normalize);
+                expect(domain, `${target.name} ${key}=${value}`).toContain(value);
+            }
+        }
+    });
+});
