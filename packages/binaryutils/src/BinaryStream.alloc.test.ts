@@ -16,16 +16,16 @@ function countAllocations(fn: () => void): { calls: number; bytes: number } {
     const realSlow = Buffer.allocUnsafeSlow;
     let calls = 0;
     let bytes = 0;
-    Buffer.allocUnsafe = ((size: number) => {
+    Buffer.allocUnsafe = (size: number) => {
         calls++;
         bytes += size;
         return realUnsafe.call(Buffer, size);
-    }) as typeof Buffer.allocUnsafe;
-    Buffer.allocUnsafeSlow = ((size: number) => {
+    };
+    Buffer.allocUnsafeSlow = (size: number) => {
         calls++;
         bytes += size;
         return realSlow.call(Buffer, size);
-    }) as typeof Buffer.allocUnsafeSlow;
+    };
     try {
         fn();
     } finally {
