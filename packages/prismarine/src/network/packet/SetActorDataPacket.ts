@@ -6,10 +6,11 @@ import DataPacket from './DataPacket';
 /**
  * Sends a delta of an entity's metadata to clients that can see it.
  *
- * Protocol 2193 layout, in order: Target Runtime ID as a varuint64, Actor Data as a
- * `SynchedActorDataList` (varuint32 count, then per entry the ID as a varuint32, the type as a
- * varuint32 selector, the same type again as a uint8, and the value), Synched Properties as a
- * `PropertySyncData`, and Tick as a varuint64. Server to client only.
+ * Protocol 2193 layout, in order: `Target Runtime ID` as a varuint64, `Actor Data` as a
+ * `SynchedActorDataList` (varuint32 count, then per `DataItemEntry` the `ID` as a varuint32,
+ * the `Type` as one uint8 `DataItemType`, and the `Value` in that type's encoding), `Synched
+ * Properties` as a `PropertySyncData` (int entries, then float entries), and `Tick` as a
+ * varuint64. Server to client only.
  */
 export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;

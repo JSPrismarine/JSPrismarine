@@ -1,6 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { ByteOrder } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../network/NetworkUtil';
 
 /**
@@ -58,6 +59,10 @@ export enum MetadataFlag {
     AFFECTED_BY_GRAVITY = 49
 }
 
+/**
+ * The wire type of a data item, numbered as the docs' `DataItemType`. Four carry older names
+ * here: `ITEM` is `CompoundTag`, `POSITION` is `Pos`, `LONG` is `Int64`, and `VECTOR` is `Vec3`.
+ */
 export enum FlagType {
     BYTE,
     SHORT,
@@ -87,8 +92,7 @@ const FLAGS_TWO = 92;
  * One stored metadata property: the wire type it is sent as, paired with the value that type carries.
  *
  * Each `FlagType` pairs with exactly one value type, so a `switch` on the first element narrows the
- * second. `ITEM` is listed so that an entry of that type can be stored; `networkSerialize` has no
- * writer for it yet.
+ * second. `ITEM` carries the docs' `CompoundTag`, written as network NBT.
  */
 export type MetadataEntry =
     | [FlagType.BYTE, number]
@@ -250,8 +254,7 @@ export class MetadataWriter {
      * Writes the properties as a `SynchedActorDataList`.
      *
      * A varuint32 count, then one `DataItemEntry` per property: the `ID` as a varuint32, the
-     * payload's `Type` as a varuint32 selector, the same type again as the alternative's own
-     * uint8 first field, and the value.
+     * payload's `Type` as one uint8 `DataItemType`, and the `Value` in that type's encoding.
      *
      * The entries go out in ascending id order rather than in the order they were set. The
      * client reads some properties as a group and expects them to arrive in order - an NPC
@@ -266,15 +269,18 @@ export class MetadataWriter {
         for (const [index, value] of entries) {
             stream.writeUnsignedVarInt(index);
 
-            // The type twice. An entry is now a tagged variant - a varint selector, then the
-            // alternative it selected - and the alternative's own first field is the same
-            // type as a byte. Writing only the byte, as 748 did, leaves the client reading
-            // the value as the type and every entry after it from the wrong place.
-            stream.writeUnsignedVarInt(value[0]);
-            stream.writeSignedByte(value[0]);
+            // Once. The docs draw the payload as a one-of whose every alternative opens with
+            // `Type`, and that byte is the discriminator itself: the single type byte a Bedrock
+            // server has always put between the id and the value. For a while this also wrote
+            // a varuint selector ahead of it, so the client took the repeated byte as the
+            // start of the value and read every entry after it from the wrong place. A retail
+            // 1.26.51 client stalled on that during the join, before it ever reported itself
+            // initialized; the server's own bot, which does not validate, got through.
+            stream.writeByte(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:
-                    stream.writeByte(value[1]);
+                    // An int8, per `DataItemBytePayload`.
+                    stream.writeSignedByte(value[1]);
                     break;
                 case FlagType.FLOAT:
                     stream.writeFloatLE(value[1]);
@@ -313,13 +319,10 @@ export class MetadataWriter {
                     stream.writeVarInt(position.getZ());
                     break;
                 }
-                default:
-                    // `ITEM` is the remaining one, and it carries an NBT compound this has no
-                    // writer for. Named rather than numbered, because a number here cost an
-                    // afternoon.
-                    throw new Error(
-                        `Metadata type ${FlagType[value[0]] ?? value[0]} (${value[0]}) cannot be written yet`
-                    );
+                case FlagType.ITEM:
+                    // `CompoundTag`: network NBT, little endian with varint lengths.
+                    value[1].writeToStream(stream, ByteOrder.LITTLE_ENDIAN, true);
+                    break;
             }
         }
     }

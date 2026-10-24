@@ -1,5 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
-import { NBTTagCompound } from '@jsprismarine/nbt';
+import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag, MetadataWriter } from './Metadata';
 
@@ -142,15 +142,11 @@ describe('Metadata.networkSerialize', () => {
         for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
             stream.readUnsignedVarInt(); // The key.
 
-            // The type arrives twice: a varint selecting the alternative, then the same type
-            // as a byte because that is the alternative's own first field. A reader that
-            // takes only one of them reads the value as the other.
-            const selector = stream.readUnsignedVarInt();
-            const type = stream.readSignedByte();
-            expect(type).toBe(selector);
+            // The type once, as the single `DataItemType` byte between the id and the value.
+            const type = stream.readByte();
             const value =
                 type === FlagType.BYTE
-                    ? stream.readByte()
+                    ? stream.readSignedByte()
                     : type === FlagType.SHORT
                       ? stream.readUnsignedShortLE()
                       : type === FlagType.INT
@@ -207,8 +203,7 @@ describe('Metadata.networkSerialize', () => {
         for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
             ids.push(stream.readUnsignedVarInt());
 
-            const type = stream.readUnsignedVarInt();
-            expect(stream.readSignedByte()).toBe(type);
+            const type = stream.readByte();
             if (type === FlagType.FLOAT) stream.readFloatLE();
             else if (type === FlagType.SHORT) stream.readShortLE();
             else stream.read(stream.readUnsignedVarInt());
@@ -218,10 +213,20 @@ describe('Metadata.networkSerialize', () => {
         expect(stream.feof()).toBe(true);
     });
 
-    it('names the type it cannot write, rather than only numbering it', () => {
-        const metadata = new Metadata();
-        metadata.setPropertyValue(1, FlagType.ITEM, new NBTTagCompound());
+    it('writes a compound tag as network NBT and nothing after it', () => {
+        const tag = new NBTTagCompound('');
+        tag.addValue('name', new Types.StringVal('steve'));
+        const metadata = new Metadata(false);
+        metadata.setPropertyValue(40, FlagType.ITEM, tag);
+        const written = new BinaryStream();
+        metadata.networkSerialize(written);
+        const stream = new BinaryStream(written.getBuffer());
 
-        expect(() => metadata.networkSerialize(new BinaryStream())).toThrow(/ITEM/);
+        expect(stream.readUnsignedVarInt()).toBe(1);
+        expect(stream.readUnsignedVarInt()).toBe(40);
+        expect(stream.readByte()).toBe(FlagType.ITEM);
+        const read = NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, true);
+        expect(read.getString('name', '')).toBe('steve');
+        expect(stream.feof()).toBe(true);
     });
 });

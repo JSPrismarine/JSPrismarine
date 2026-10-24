@@ -166,8 +166,8 @@ describe('network', () => {
                 expect(pk.getBuffer()).toEqual(
                     expectedBytes({
                         targetActorId: [0x01], // -1 zigzags to 1
-                        // One entry: ID 3 (COLOR), Type selector 0 (Byte), Type 0 again, Value 7.
-                        actorData: [0x01, 0x03, 0x00, 0x00, 0x07],
+                        // One entry: ID 3 (COLOR), Type 0 (Byte), Value 7.
+                        actorData: [0x01, 0x03, 0x00, 0x07],
                         // One link: Target A 2 (zigzag 4), Target B 9 (zigzag 18), Type Riding,
                         // Immediate, not Passenger Initiated, Vehicle Angular Velocity 0.5.
                         actorLinks: [0x01, 0x04, 0x12, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x3f]
