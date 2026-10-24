@@ -80,6 +80,19 @@ describe('world', () => {
             expect(payload.subarray(0, 8)).toEqual(Buffer.from([8, 0, 8, 0, 8, 0, 8, 0]));
         });
 
+        it('writes one single-value biome section per sub chunk, then an empty border list', () => {
+            // The trailer, byte for byte. Each biome section is a paletted store with
+            // bitsPerBlock 0: the header is `(0 << 1) | 1`, there is no word data and no palette
+            // count, and the single value follows as a ZigZag varint - plains (1) is 0x02.
+            // Clearing the network flag names the on-disk palette, whose entries are NBT, and
+            // writing the value unsigned turns plains into -1.
+            const payload = build().networkSerialize();
+            const sections = subChunkCount(Dimensions.Overworld);
+            const trailer = payload.subarray(payload.byteLength - (sections * 2 + 1));
+
+            expect([...trailer]).toEqual([...Array.from({ length: sections }, () => [0x01, 0x02]).flat(), 0x00]);
+        });
+
         it('caches the payload until a block changes', () => {
             const chunk = build();
             const first = chunk.networkSerialize();
