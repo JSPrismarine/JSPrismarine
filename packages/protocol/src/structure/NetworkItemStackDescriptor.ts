@@ -1,18 +1,28 @@
 import type { NetworkBinaryStream } from '../';
 import NetworkStructure from '../NetworkStructure';
 
-interface NetworkItemStackDescriptorConfig {
+/** The optional parts of a stack descriptor. */
+export interface NetworkItemStackDescriptorConfig {
+    /** `Net Id Variant`, written only when `includeNetid` is true. */
     netIdVariant?: number;
+    /** `User Data Buffer`, a serialized `ItemInstanceUserData`. Defaults to an empty blob. */
     userDataBuffer?: Buffer;
 }
 
 /**
- * Represents a network structure of a item stack descriptor.
+ * An item stack as an inventory, an equipped hand or a transaction carries it.
+ *
+ * Wire layout, in docs order: `Id` (int16 little endian, `0` for an empty stack), `Stack size`
+ * (uint16 little endian), `Aux value` (varuint32), `Net Id Variant` (optional: a boolean,
+ * then a varint32 when true), `Block Runtime Id` (varuint32) and `User Data Buffer` (a
+ * varuint32 length, then the `ItemInstanceUserData` bytes).
  * {@link https://mojang.github.io/bedrock-protocol-docs/html/NetworkItemStackDescriptor.html}
  */
 export default class NetworkItemStackDescriptor extends NetworkStructure {
+    /** `Net Id Variant`, meaningful only when `includeNetid` is true. */
     public netIdVariant: number;
-    public userDataBuffer: Buffer; // serialized ItemInstanceUserData
+    /** `User Data Buffer`, a serialized `ItemInstanceUserData`. */
+    public userDataBuffer: Buffer;
 
     /**
      * The id of the empty stack.
@@ -25,6 +35,15 @@ export default class NetworkItemStackDescriptor extends NetworkStructure {
      */
     private readonly INVALID_ITEM_STACK_ID = 0;
 
+    /**
+     * Creates a descriptor.
+     * @param id - `Id`, the item's network id, or `0` for an empty stack.
+     * @param stackSize - `Stack size`.
+     * @param auxValue - `Aux value`, the item's metadata.
+     * @param includeNetid - Whether `Net Id Variant` is present.
+     * @param blockRuntimeId - `Block Runtime Id`, or `0` when the item places no block.
+     * @param config - The net id variant and the user data blob.
+     */
     public constructor(
         public id: number,
         public stackSize: number,
@@ -35,9 +54,10 @@ export default class NetworkItemStackDescriptor extends NetworkStructure {
     ) {
         super();
         this.netIdVariant = config.netIdVariant ?? 0;
-        this.userDataBuffer = config.userDataBuffer = Buffer.allocUnsafe(0);
+        this.userDataBuffer = config.userDataBuffer ?? Buffer.alloc(0);
     }
 
+    /** Writes the descriptor in docs order. An empty stack writes zeroes for every field after the id. */
     public serialize(stream: NetworkBinaryStream): void {
         const empty = this.id === this.INVALID_ITEM_STACK_ID;
 
@@ -48,19 +68,24 @@ export default class NetworkItemStackDescriptor extends NetworkStructure {
         stream.writeUnsignedVarInt(empty ? 0 : this.auxValue);
 
         stream.writeBoolean(this.includeNetid);
-        this.includeNetid && stream.writeVarInt(this.netIdVariant);
+        if (this.includeNetid) {
+            stream.writeVarInt(this.netIdVariant);
+        }
 
         stream.writeUnsignedVarInt(empty ? 0 : this.blockRuntimeId);
-        stream.writeLengthPrefixed(empty ? Buffer.allocUnsafe(0) : this.userDataBuffer);
+        stream.writeLengthPrefixed(empty ? Buffer.alloc(0) : this.userDataBuffer);
     }
 
+    /** Reads the descriptor in docs order. The user data blob is kept as bytes, not parsed. */
     public deserialize(stream: NetworkBinaryStream): void {
         this.id = stream.readShortLE();
         this.stackSize = stream.readUnsignedShortLE();
         this.auxValue = stream.readUnsignedVarInt();
 
         this.includeNetid = stream.readBoolean();
-        this.includeNetid && (this.netIdVariant = stream.readVarInt());
+        if (this.includeNetid) {
+            this.netIdVariant = stream.readVarInt();
+        }
 
         this.blockRuntimeId = stream.readUnsignedVarInt();
         this.userDataBuffer = stream.readLengthPrefixed();
