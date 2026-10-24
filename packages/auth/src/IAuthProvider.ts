@@ -8,8 +8,12 @@
  */
 export interface LoginCredentials {
     /**
-     * `{"chain": [...]}` - one JWT per link. Offline that is a single self-signed token;
-     * authenticated it is the client's own token followed by Mojang's.
+     * The chain JSON. For a server from 1.26.10 on this is the envelope
+     * `{"Certificate": "<json>", "AuthenticationType": n, "Token": "<JWT>"}`, where
+     * `Certificate` holds `{"chain": [...]}` as a string and `Token` carries the identity.
+     * Older servers take `{"chain": [...]}` directly, one JWT per link. Offline that is a
+     * single self-signed link; authenticated it is the client's own token followed by
+     * Mojang's.
      */
     readonly chainData: string;
     /** One JWT: skin, device, language, and the address the client thinks it dialled. */
