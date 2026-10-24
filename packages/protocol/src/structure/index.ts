@@ -23,6 +23,7 @@ import type {
 import CameraPreset, { AimAssistTargetMode, CameraAudioListener, ControlScheme } from './CameraPreset';
 import type { CameraAimAssistDefinition, CameraPresetData } from './CameraPreset';
 import { ChunkPos } from './ChunkPos';
+import ClientStoreEntryPointConfig from './ClientStoreEntryPointConfig';
 import { DataItem } from './DataItem';
 import DataStoreUpdate, { DataStoreValueType } from './DataStoreUpdate';
 import type { DataStoreUpdateData, DataStoreValue } from './DataStoreUpdate';
@@ -66,6 +67,7 @@ export {
     CameraInstruction,
     CameraPreset,
     ChunkPos,
+    ClientStoreEntryPointConfig,
     ControlScheme,
     DataItem,
     DataStoreUpdate,
