@@ -7,7 +7,8 @@ import Fleet from '../bot/Fleet';
 import { formatReport } from '../bot/Metrics';
 import { UsageError, parseCount, parseDuration, parseRate } from './Cli';
 
-import type { Text } from '@jsprismarine/protocol';
+import { isPacket } from '../net/ClientPacketRegistry';
+
 import type { DecodedPacket } from '../net/ClientPacketRegistry';
 import type { CliIo, Values } from './Cli';
 
@@ -23,6 +24,12 @@ const requireString = (values: Values, flag: string): string => {
 const optionalString = (values: Values, flag: string): string | undefined => {
     const value = values[flag];
     return typeof value === 'string' ? value : undefined;
+};
+
+/** Parses a flag when it was given and is not empty; an absent or empty flag is undefined. */
+const optionalParsed = <T>(values: Values, flag: string, parse: (value: string) => T): T | undefined => {
+    const value = optionalString(values, flag);
+    return value ? parse(value) : undefined;
 };
 
 const port = (values: Values): number => {
@@ -53,13 +60,13 @@ export const runConnect = async (values: Values, io: CliIo): Promise<number> => 
         port: port(values),
         displayName: optionalString(values, 'name') ?? 'Player',
         logger: logger(values),
-        loginTimeoutMs: optionalString(values, 'timeout') ? parseDuration(values.timeout as string) : undefined
+        loginTimeoutMs: optionalParsed(values, 'timeout', parseDuration)
     });
 
     client.on('packet', (packet: DecodedPacket) => {
-        if (packet.id !== PacketIdentifier.TEXT) return;
+        if (!isPacket(packet, PacketIdentifier.TEXT)) return;
 
-        const text = packet.data as Text;
+        const text = packet.data;
         io.out(text.sourceName ? `<${text.sourceName}> ${text.message}` : text.message);
     });
 
@@ -125,13 +132,11 @@ export const runBot = async (values: Values, io: CliIo): Promise<number> => {
         count,
         behaviours,
         ramp,
-        seed: optionalString(values, 'seed') ? parseCount(values.seed as string, '--seed') : 1,
-        viewDistance: optionalString(values, 'view-distance')
-            ? parseCount(values['view-distance'] as string, '--view-distance')
-            : 4,
+        seed: optionalParsed(values, 'seed', (value) => parseCount(value, '--seed')) ?? 1,
+        viewDistance: optionalParsed(values, 'view-distance', (value) => parseCount(value, '--view-distance')) ?? 4,
         namePrefix: optionalString(values, 'name-prefix') ?? 'Bot',
         logger: logger(values),
-        loginTimeoutMs: optionalString(values, 'timeout') ? parseDuration(values.timeout as string) : undefined
+        loginTimeoutMs: optionalParsed(values, 'timeout', parseDuration)
     });
 
     io.out(`Connecting ${count} bot(s) to ${host}:${port(values)}${ramp > 0 ? ` at ${ramp}/s` : ' all at once'}…`);
