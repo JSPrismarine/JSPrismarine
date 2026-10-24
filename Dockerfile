@@ -1,6 +1,6 @@
 # Runs the dedicated server from source, the same way `pnpm run start` does.
 # The build context must include the bedrock-data resources submodule.
-FROM node:26-slim
+FROM node:26-slim@sha256:36793bcbb160a6a16cede1e62b93f84e26b78a972a8a4c0b879c1c12f22761ec
 
 WORKDIR /app
 
