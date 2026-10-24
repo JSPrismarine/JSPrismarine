@@ -3,6 +3,7 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** The "Message Type" of a text packet. The values are the global ones the wire carries. */
 export enum TextType {
     Raw,
     Chat,
@@ -14,32 +15,63 @@ export enum TextType {
     Whisper,
     Announcement,
     JsonWhisper,
-    Json
+    Json,
+    JsonAnnouncement
 }
 
+/** The fields of a text packet. Which optional ones are written depends on `type`. */
 export interface Text {
     type: TextType;
+    /** "Localize?": whether the client should run the message through its translations. */
     needsTranslation: boolean;
-    /** Only present for the three types that name a speaker. */
+    /** "Player Name". Only written for Chat, Whisper and Announcement. */
     sourceName?: string;
+    /** "Message": the text, or a translation key for the parameterized types. */
     message: string;
-    /** Only present for the three translated types. */
+    /** "Parameter List". Only written for Translation, Popup and JukeboxPopup. */
     parameters?: string[];
+    /** "Sender's XUID". */
     xuid: string;
+    /** "Platform Id". */
     platformChatId: string;
+    /** "Filtered Message". An empty string is sent as absent and read back from absent. */
     filtered: string;
 }
 
-/** Which types carry a speaker, and which carry translation parameters. */
-const WITH_SOURCE = new Set([TextType.Chat, TextType.Whisper, TextType.Announcement]);
-const WITH_PARAMETERS = new Set([TextType.Translation, TextType.Popup, TextType.JukeboxPopup]);
+/** The three shapes of the Body variant, as the docs name them. The value is the variant index on the wire. */
+const enum BodyVariant {
+    MessageOnly = 0,
+    AuthorAndMessage = 1,
+    MessageAndParams = 2
+}
+
+/** The body variant a message type is sent in. Every type not listed is MessageOnly. */
+const variantOf = (type: TextType): BodyVariant => {
+    switch (type) {
+        case TextType.Chat:
+        case TextType.Whisper:
+        case TextType.Announcement:
+            return BodyVariant.AuthorAndMessage;
+
+        case TextType.Translation:
+        case TextType.Popup:
+        case TextType.JukeboxPopup:
+            return BodyVariant.MessageAndParams;
+
+        default:
+            return BodyVariant.MessageOnly;
+    }
+};
 
 /**
- * Chat, system messages, popups and translations, all down one packet whose shape depends on
- * its first byte.
+ * Chat, system messages, popups and translations (docs id 9).
  *
- * The three groups are not a formality: reading a `Chat` as if it were `Raw` leaves the
- * speaker's name in the stream and every field after it comes out shifted.
+ * Protocol 2193 layout, after the header: "Localize?" boolean (`needsTranslation`), then the
+ * "Body" oneOf as a one-byte variant index followed by the one-byte "Message Type" (`type`)
+ * and the variant's fields. MessageOnly (0) carries "Message"; AuthorAndMessage (1) carries
+ * "Player Name" (`sourceName`) then "Message"; MessageAndParams (2) carries "Message" then a
+ * "Parameter List" of varuint count and strings. Then "Sender's XUID", "Platform Id", and
+ * "Filtered Message" as an optional: a presence boolean, then the string only when present.
  */
 export default class TextPacket extends NetworkPacket<Text> {
     public get id(): number {
@@ -47,41 +79,78 @@ export default class TextPacket extends NetworkPacket<Text> {
     }
 
     protected serializePayload(stream: NetworkBinaryStream, data: Text): void {
-        stream.writeByte(data.type);
         stream.writeBoolean(data.needsTranslation);
 
-        if (WITH_SOURCE.has(data.type)) stream.writeString(data.sourceName ?? '');
+        const variant = variantOf(data.type);
+        stream.writeByte(variant);
+        stream.writeByte(data.type);
 
-        stream.writeString(data.message);
+        switch (variant) {
+            case BodyVariant.MessageOnly:
+                stream.writeString(data.message);
+                break;
 
-        if (WITH_PARAMETERS.has(data.type)) {
-            const parameters = data.parameters ?? [];
-            stream.writeUnsignedVarInt(parameters.length);
-            for (const parameter of parameters) {
-                stream.writeString(parameter);
+            case BodyVariant.AuthorAndMessage:
+                stream.writeString(data.sourceName ?? '');
+                stream.writeString(data.message);
+                break;
+
+            case BodyVariant.MessageAndParams: {
+                stream.writeString(data.message);
+                const parameters = data.parameters ?? [];
+                stream.writeUnsignedVarInt(parameters.length);
+                for (const parameter of parameters) {
+                    stream.writeString(parameter);
+                }
+                break;
             }
         }
 
         stream.writeString(data.xuid);
         stream.writeString(data.platformChatId);
-        stream.writeString(data.filtered);
+
+        stream.writeBoolean(data.filtered.length > 0);
+        if (data.filtered.length > 0) stream.writeString(data.filtered);
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): Text {
-        const type: TextType = stream.readByte();
         const needsTranslation = stream.readBoolean();
 
-        const sourceName = WITH_SOURCE.has(type) ? stream.readString() : undefined;
-        const message = stream.readString();
+        // The variant index says which shape follows; the type is carried as sent.
+        const variant = stream.readByte();
+        const type: TextType = stream.readByte();
 
+        let sourceName: string | undefined;
+        let message: string;
         let parameters: string[] | undefined;
-        if (WITH_PARAMETERS.has(type)) {
-            parameters = [];
-            let count = stream.readUnsignedVarInt();
-            while (count-- > 0) {
-                parameters.push(stream.readString());
+
+        switch (variant) {
+            case BodyVariant.MessageOnly:
+                message = stream.readString();
+                break;
+
+            case BodyVariant.AuthorAndMessage:
+                sourceName = stream.readString();
+                message = stream.readString();
+                break;
+
+            case BodyVariant.MessageAndParams: {
+                message = stream.readString();
+                parameters = [];
+                let count = stream.readUnsignedVarInt();
+                while (count-- > 0) {
+                    parameters.push(stream.readString());
+                }
+                break;
             }
+
+            default:
+                throw new Error(`Unknown TextPacket body variant ${variant}`);
         }
+
+        const xuid = stream.readString();
+        const platformChatId = stream.readString();
+        const filtered = stream.readBoolean() ? stream.readString() : '';
 
         return {
             type,
@@ -89,9 +158,9 @@ export default class TextPacket extends NetworkPacket<Text> {
             ...(sourceName === undefined ? {} : { sourceName }),
             message,
             ...(parameters === undefined ? {} : { parameters }),
-            xuid: stream.readString(),
-            platformChatId: stream.readString(),
-            filtered: stream.readString()
+            xuid,
+            platformChatId,
+            filtered
         };
     }
 }
