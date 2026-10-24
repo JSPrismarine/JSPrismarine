@@ -1,3 +1,5 @@
+export { EMPTY_CONTEXT, type RecipeContext } from './context';
+export { cropGrid, filledSlots, gridAt, type CraftingGrid, type CroppedGrid } from './grid';
 export {
     ingredientAccepts,
     isEmptyIngredient,
@@ -16,7 +18,9 @@ export {
     type ItemStackTemplate,
     type RecipeItemStack
 } from './itemStack';
+export { matchRecipe, type RecipeInput, type RecipeMatch } from './match';
 export { parseRecipe, type RecipeDiagnostic, type RecipeParseResult } from './parse';
+export { shapedPatternMatches } from './shaped';
 export {
     RECIPE_STATIONS,
     RECIPE_TYPES,
