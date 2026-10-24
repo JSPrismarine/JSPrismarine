@@ -1,36 +1,39 @@
 import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
-import { NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
- * The version tag on an entry, telling the client how to read the components that follow.
+ * The `Item Version` of every entry we send, from the docs enum `ItemVersion`
+ * (0 `Legacy`, 1 `DataDriven`, 2 `None`).
  *
- * `1` is the shape every current client understands. It is not the protocol version and it
- * does not move with it.
+ * We send `DataDriven` with an empty `Item Component Data` compound for every entry. The
+ * captured item table (`required_item_list.json` in `@jsprismarine/bedrock-data`, written by
+ * `packages/client/tools/capture-server-data.mjs`) records no per-item version or components,
+ * and the client accepts that.
  */
 const ENTRY_VERSION = 1;
 
 /**
  * The item table: every name the client may be shown, and the number it travels as.
  *
- * This packet used to carry only the components of custom items while the definitions rode in
- * `StartGame`. At 1.21.60 they swapped: the definitions moved here and `StartGame` lost them,
- * so a server that still writes them there sends seventeen hundred entries where the client
- * expects a correlation id, and one that leaves this empty gives the client nothing to resolve
- * a single item id against.
+ * The docs call this `ItemRegistryPacket` (id 162). It goes out right after `StartGame`.
+ * Since 1.21.60 it carries the item definitions that `StartGame` used to carry. A client that
+ * does not receive it falls back to its own built-in table, which disagrees with ours for
+ * part of the items, so it shows the wrong item for those ids.
  *
- * What an item network id *means* is decided here. Sent empty - as it was - the client falls
- * back to its own built-in table, which agrees with this server for some items and quietly
- * disagrees for the rest: an oak log goes out under whatever item shares its legacy block id.
+ * Wire layout: `Item Data` is a varuint32 count followed by one `ItemData` per entry:
+ * `Item Name` (string), `Item Id` (int16 little endian, negative for a block's item form),
+ * `Is Component Based` (boolean), `Item Version` (varint32, see {@link ENTRY_VERSION}), and
+ * `Item Component Data` (network NBT compound with varint lengths, little endian).
  */
 export default class ItemComponentPacket extends DataPacket {
     public static NetID = Identifiers.ItemComponentPacket;
 
-    /** Built once and kept: two thousand entries, identical for every player and every join. */
+    /** Built once and kept. The table is identical for every player and every join. */
     private static cached: Buffer | null = null;
 
     public encodePayload(): void {
@@ -50,10 +53,9 @@ export default class ItemComponentPacket extends DataPacket {
             stream.writeBoolean(entry.component_based);
             stream.writeVarInt(ENTRY_VERSION);
 
-            // The components themselves, which this server has none of. An empty compound is
-            // still three bytes and still has to be there - the entry after it is read from
-            // wherever this one stops.
-            const components = new NBTWriter(stream, 1);
+            // This server has no components, but the compound is positional. An empty one is
+            // three bytes (0x0a 0x00 0x00) and the next entry starts right after it.
+            const components = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
             components.setUseVarint(true);
             components.writeCompound(new NBTTagCompound());
         }
