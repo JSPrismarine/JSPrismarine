@@ -51,7 +51,7 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/protocol",
     "devDependencies": {
-        "@types/node": "24.13.6",
+        "@types/node": "24.19.2",
         "glob": "13.0.6",
         "typescript": "7.0.2",
         "vite": "8.3.3",
