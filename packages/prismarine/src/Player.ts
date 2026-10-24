@@ -303,7 +303,7 @@ export default class Player extends Human {
         this.server.removeListener('chat', this.boundChatHandler);
     }
 
-    private async chatHandler(evt: ChatEvent) {
+    private async chatHandler(evt: ChatEvent): Promise<void> {
         if (evt.isCancelled()) return;
 
         // TODO: proper channel system
@@ -358,7 +358,7 @@ export default class Player extends Human {
      * Change the player's current world.
      * @param {World} world - the new world
      */
-    public async setWorld(world: World) {
+    public async setWorld(world: World): Promise<void> {
         const dim0 = new ChangeDimensionPacket();
         dim0.dimension = 0;
         dim0.position = this.getPosition();
@@ -397,7 +397,7 @@ export default class Player extends Human {
         await this.getNetworkSession().sendPlayStatus(PlayStatusType.PlayerSpawn);
     }
 
-    public isOnline() {
+    public isOnline(): boolean {
         return this.connected;
     }
 
@@ -518,7 +518,7 @@ export default class Player extends Human {
     }
 
     public async setGamemode(mode?: Gametype): Promise<void> {
-        mode ??= this.gamemode;
+        if (mode === undefined || mode === null) mode = this.gamemode;
 
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
@@ -549,7 +549,7 @@ export default class Player extends Human {
         return this.networkSession;
     }
 
-    public getAddress() {
+    public getAddress(): InetAddress {
         return this.address;
     }
 
@@ -853,7 +853,7 @@ export default class Player extends Human {
      * @param {number} directionZ - Unit vector away from the blow, z.
      * @param {number} strength - How hard, with knockback resistance already taken off.
      */
-    public override applyKnockback(directionX: number, directionZ: number, strength: number): void {
+    public override applyKnockback(directionX: number, directionZ: number, strength: number, _damping = 0.5): void {
         if (!this.connected) return;
 
         void this.getNetworkSession().sendMotion(
@@ -979,7 +979,7 @@ export default class Player extends Human {
         this.addExhaustion(this.metadata.sprinting ? EXHAUSTION.sprintJumping : EXHAUSTION.jumping);
     }
 
-    public async setSprinting(sprinting: boolean) {
+    public async setSprinting(sprinting: boolean): Promise<void> {
         if (sprinting === this.metadata.sprinting) return;
 
         const event = new PlayerToggleSprintEvent(this, sprinting);
@@ -990,10 +990,10 @@ export default class Player extends Human {
         await this.getNetworkSession().sendMetadata();
     }
 
-    public isFlying() {
+    public isFlying(): boolean {
         return this.flying;
     }
-    public async setFlying(flying: boolean) {
+    public async setFlying(flying: boolean): Promise<void> {
         if (flying === this.isFlying()) return;
 
         if (!this.metadata.canFly) {
@@ -1010,18 +1010,18 @@ export default class Player extends Human {
         await this.sendSettings();
     }
 
-    public isSneaking() {
+    public isSneaking(): boolean {
         return this.sneaking;
     }
-    public async setSneaking(val: boolean) {
+    public async setSneaking(val: boolean): Promise<void> {
         if (val === this.sneaking) return;
         this.sneaking = val;
     }
 
-    public isOnGround() {
+    public isOnGround(): boolean {
         return this.onGround;
     }
-    public async setOnGround(val: boolean) {
+    public async setOnGround(val: boolean): Promise<void> {
         if (val === this.onGround) return;
         this.onGround = val;
 

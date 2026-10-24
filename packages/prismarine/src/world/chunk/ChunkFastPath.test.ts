@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Blocks from '../../block/Blocks';
+import { allBlocks } from '../../block/Blocks';
 import type { Block } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockStateSchema, BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import Chunk from './Chunk';
 
 const blockOf = (name: string): Block =>
-    Object.values(Blocks)
+    allBlocks()
         .map((B) => new (B as any)())
         .find((block: Block) => block.getName() === name)!;
 

@@ -1,9 +1,10 @@
+import type { WorldConfig } from '../World';
 import BaseGenerator from '../BaseGenerator';
 import type { Block } from '../../block/Block';
 import Chunk from '../chunk/Chunk';
 
 export default class Flat extends BaseGenerator {
-    public async generateChunk(cx: number, cz: number, seed?: number, config?: any): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed?: number, config?: WorldConfig): Promise<Chunk> {
         return new Promise((resolve) => {
             const chunk = new Chunk(cx, cz);
 
@@ -26,7 +27,7 @@ export default class Flat extends BaseGenerator {
             ];
 
             const blocks: Block[] = [];
-            layers.forEach((layer: any) => {
+            layers.forEach((layer) => {
                 let block: Block;
                 try {
                     if (!layer.block.startsWith('minecraft:')) {

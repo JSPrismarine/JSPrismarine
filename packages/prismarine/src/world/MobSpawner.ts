@@ -1,5 +1,5 @@
 import { Vector3 } from '@jsprismarine/math';
-import * as Entities from '../entity/Entities';
+import { allEntities } from '../entity/Entities';
 import { spawnsMonsters } from '../entity/Difficulty';
 import type { Entity, SpawnableEntityClass } from '../entity/Entity';
 import { sizeOf } from '../entity/EntitySize';
@@ -195,7 +195,7 @@ export class MobSpawner {
 
     /** Spawns a few of one species around a spot, skipping any that will not fit. */
     private async spawnGroup(species: SpawnEntry, center: Vector3, hostile: boolean): Promise<number> {
-        const Species = Object.values(Entities).find((candidate) => candidate.MOB_ID === species.type) as
+        const Species = allEntities().find((candidate) => candidate.MOB_ID === species.type) as
             SpawnableEntityClass | undefined;
         if (!Species) return 0;
 

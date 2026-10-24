@@ -25,7 +25,7 @@ export class CommandManager implements Service {
 
     public constructor(server: Server) {
         this.server = server;
-        this.dispatcher = new CommandDispatcher();
+        this.dispatcher = new CommandDispatcher<Player>();
     }
 
     /**

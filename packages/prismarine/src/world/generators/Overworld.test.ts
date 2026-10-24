@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Blocks from '../../block/Blocks';
+import { allBlocks } from '../../block/Blocks';
 import type { Block } from '../../block/Block';
 import Noise from './Noise';
 import Overworld from './Overworld';
@@ -8,7 +8,7 @@ import Overworld from './Overworld';
 /** A BlockManager stand-in: the generator only ever looks blocks up by name. */
 const blockManager: any = {
     getBlock: (name: string) => {
-        const found = Object.values(Blocks)
+        const found = allBlocks()
             .map((B) => new (B as any)())
             .find((block: Block) => block.getName() === name);
         if (!found) throw new Error(`invalid block with id ${name}`);

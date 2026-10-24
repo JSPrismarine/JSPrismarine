@@ -1,4 +1,4 @@
-import * as Entities from '../../entity/Entities';
+import { allEntities } from '../../entity/Entities';
 
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { argument, literal } from '@jsprismarine/brigadier';
@@ -29,11 +29,9 @@ export default class SummonCommand extends Command {
                         let Entity: any | undefined;
 
                         if (!entityId.includes(':')) {
-                            Entity = Object.entries(Entities).find(
-                                ([, value]) => value.MOB_ID === `minecraft:${entityId}`
-                            )?.[1];
+                            Entity = allEntities().find((value) => value.MOB_ID === `minecraft:${entityId}`);
                         } else {
-                            Entity = Object.entries(Entities).find(([, value]) => value.MOB_ID === entityId)?.[1];
+                            Entity = allEntities().find((value) => value.MOB_ID === entityId);
                         }
 
                         if (!Entity) throw new Error(`No such entity "${entityId}"!`);

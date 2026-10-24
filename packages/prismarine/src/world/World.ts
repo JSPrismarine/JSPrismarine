@@ -15,7 +15,8 @@ import UUID from '../utils/UUID';
 import Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
-import * as Entities from '../entity/Entities';
+import { allEntities } from '../entity/Entities';
+import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity, SpawnableEntityClass } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -94,6 +95,20 @@ const CRACK_PARTICLES: readonly LevelEvent[] = [
 const LEVEL_DATA_FILE_NAME = 'level.json';
 const WORLDS_FOLDER_NAME = 'worlds';
 
+/** One layer of a flat world, bottom first. */
+export interface FlatLayer {
+    block: string;
+    size: number;
+}
+
+/** What a world's config section may carry, as the generator and provider read it. */
+export interface WorldConfig {
+    seed?: number;
+    provider?: string;
+    generator?: string;
+    layers?: FlatLayer[];
+}
+
 export interface WorldData {
     name: string;
     path: string;
@@ -101,7 +116,7 @@ export interface WorldData {
     provider: BaseProvider;
     seed: number;
     generator: Generator;
-    config?: any;
+    config?: WorldConfig;
     /** Defaults to the Overworld, which is the only one the server generates today. */
     dimension?: DimensionDefinition;
 }
@@ -169,7 +184,7 @@ export class World implements Service {
     private readonly server: Server;
     private readonly seed: number;
     private readonly generator: Generator;
-    private readonly config: Object;
+    private readonly config: WorldConfig;
     private readonly dimension: DimensionDefinition;
     private spawn: Vector3 | null = null;
 
@@ -246,7 +261,7 @@ export class World implements Service {
         }
         if (level.entities) {
             for (const entityData of level.entities) {
-                const Entity = Array.from(Object.values(Entities)).find((e) => e.MOB_ID === entityData.type) as
+                const Entity = allEntities().find((e) => e.MOB_ID === entityData.type) as
                     SpawnableEntityClass | undefined;
                 if (!Entity) {
                     this.server.getLogger().warn(`Entity type ${entityData.type} not found`);
@@ -475,7 +490,7 @@ export class World implements Service {
         if (spawns.length === 0) return;
 
         for (const spawn of spawns) {
-            const Entity = Object.values(Entities).find((candidate) => candidate.MOB_ID === spawn.type) as
+            const Entity = allEntities().find((candidate) => candidate.MOB_ID === spawn.type) as
                 SpawnableEntityClass | undefined;
             if (!Entity) {
                 this.server.getLogger().debug(`World generation asked for ${spawn.type}, which has no entity class`);
@@ -915,7 +930,7 @@ export class World implements Service {
 
         // Built where it lands, so nothing has to be moved into place afterwards and no
         // client is told about a position the entity never actually held.
-        const entity = new Entities.Item({
+        const entity = new ItemEntity({
             item: new ContainerEntry({ item, count: item.getAmount() }),
             position: Position.fromVector3(position, this)
         });
@@ -1193,9 +1208,9 @@ export class World implements Service {
         try {
             const raw = await fs.promises.readFile(
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
-                { flag: 'r', encoding: 'utf-8' }
+                'utf8'
             );
-            return JSON5.parse(raw.toString()) as Partial<WorldPlayerData>;
+            return JSON5.parse(raw) as Partial<WorldPlayerData>;
         } catch (error: unknown) {
             // Missing player data is the ordinary case - it is what a first join looks like -
             // so this is a debug line and not an error. It used to raise "Player has no XUID"
@@ -1258,7 +1273,7 @@ export class World implements Service {
                 // FIXME: This overwrites comments in the file.
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
                 JSON.stringify(data, null, 4),
-                { flag: 'w+', encoding: 'utf-8', flush: true }
+                'utf8'
             );
         } catch (error: unknown) {
             this.server.getLogger().error(`Failed to save player data`);

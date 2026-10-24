@@ -1,3 +1,4 @@
+import type { WorldConfig } from '../World';
 import type { Service } from '../../utils';
 import type { Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
@@ -16,7 +17,7 @@ export default interface Provider extends Service {
      * @param generator - chunk generator.
      * @param config - config object.
      */
-    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: any): Promise<Chunk>;
+    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: WorldConfig): Promise<Chunk>;
 
     /**
      * Writes a chunk
