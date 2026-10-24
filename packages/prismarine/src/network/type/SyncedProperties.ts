@@ -1,20 +1,44 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 
-export class SyncedProperties {
-    public intProps: number[] = [];
-    public floatProps: number[] = [];
+/**
+ * One entity property update: the property's index in the entity definition and its new value.
+ */
+export interface PropertySyncEntry {
+    /** Property Index, written as a varuint32. */
+    index: number;
+    /** Data. Written as a ZigZag varint32 for int properties and a little-endian float for float properties. */
+    value: number;
+}
 
+/**
+ * The 2193 `PropertySyncData` structure carried by `SetActorDataPacket`, `AddActorPacket` and
+ * `AddPlayerPacket`.
+ *
+ * On the wire it is two lists. The Int Entries List is a varuint32 count followed by one
+ * `Property Index` varuint32 and `Data` ZigZag varint32 per entry. The Float Entries List is a
+ * varuint32 count followed by one `Property Index` varuint32 and `Data` little-endian float per
+ * entry. Both lists are empty until the server defines entity properties.
+ */
+export class SyncedProperties {
+    /** Int Entries List, in the order they are written. */
+    public intProps: PropertySyncEntry[] = [];
+    /** Float Entries List, in the order they are written. */
+    public floatProps: PropertySyncEntry[] = [];
+
+    /**
+     * Write both lists in docs order: int entries, then float entries.
+     */
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedVarInt(this.intProps.length);
-        this.intProps.forEach((index, value) => {
+        for (const { index, value } of this.intProps) {
             stream.writeUnsignedVarInt(index);
             stream.writeVarInt(value);
-        });
+        }
 
         stream.writeUnsignedVarInt(this.floatProps.length);
-        this.floatProps.forEach((index, value) => {
+        for (const { index, value } of this.floatProps) {
             stream.writeUnsignedVarInt(index);
-            stream.writeVarInt(value);
-        });
+            stream.writeFloatLE(value);
+        }
     }
 }
