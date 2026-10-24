@@ -10,16 +10,27 @@ export type BannedPlayerEntry = {
     reason: string | '';
 };
 
+/**
+ * The part of the server the ban manager uses. A test can hand in a logger
+ * without building the rest.
+ */
+export type BanManagerServer = Pick<Server, 'getLogger'>;
+
+/**
+ * The part of a player a ban check reads. Bans are keyed by name only.
+ */
+export type BanSubject = Pick<Player, 'getName'>;
+
 const FILE_NAME = 'banned-players.json';
 
 /**
  * Ban manager.
  */
 export default class BanManager {
-    private readonly server: Server;
+    private readonly server: BanManagerServer;
     private readonly banned: Map<string, Omit<BannedPlayerEntry, 'name'>> = new Map();
 
-    public constructor(server: Server) {
+    public constructor(server: BanManagerServer) {
         this.server = server;
     }
 
@@ -93,10 +104,10 @@ export default class BanManager {
 
     /**
      * Check if player is banned.
-     * @param {Player} player - Player to check.
+     * @param {BanSubject} player - Player to check.
      * @returns {string | boolean} Reason if banned, false if not banned.
      */
-    public isBanned(player: Player): string | boolean {
+    public isBanned(player: BanSubject): string | boolean {
         if (this.banned.has(player.getName())) {
             return this.banned.get(player.getName())?.reason || true;
         }

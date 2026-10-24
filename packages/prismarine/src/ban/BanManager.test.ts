@@ -2,35 +2,41 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import fs from 'node:fs';
 
-import type Server from '../Server';
+import { Logger } from '@jsprismarine/logger';
 import { withCwd } from '../utils/cwd';
 import BanManager from './BanManager';
+import type { BanManagerServer } from './BanManager';
 
 describe('ban', () => {
     describe('BanManager', () => {
-        let server: Server;
+        let logger: Logger;
+        let server: BanManagerServer;
         let banManager: BanManager;
 
         beforeEach(() => {
-            server = {
-                getLogger: vi.fn().mockReturnValue({
-                    warn: vi.fn(),
-                    error: vi.fn()
-                })
-            } as unknown as Server;
+            logger = new Logger();
+            vi.spyOn(logger, 'warn').mockImplementation(() => {});
+            vi.spyOn(logger, 'error').mockImplementation(() => {});
+            server = { getLogger: () => logger };
 
             banManager = new BanManager(server);
         });
 
         afterEach(() => {
-            vi.clearAllMocks();
+            vi.restoreAllMocks();
         });
 
         describe('onEnable', () => {
-            it('should call parseBanned', async () => {
-                const parseBannedSpy = vi.spyOn(banManager, 'parseBanned' as const as keyof BanManager);
+            it('should load the ban list from file', async () => {
+                const existsSyncSpy = vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+                vi.spyOn(fs.promises, 'readFile').mockResolvedValue(
+                    Buffer.from(JSON.stringify([{ name: 'player1', reason: 'reason1' }]))
+                );
+
                 await banManager.enable();
-                expect(parseBannedSpy).toHaveBeenCalled();
+
+                expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
+                expect(banManager.isBanned({ getName: () => 'player1' })).toBe('reason1');
             });
         });
 
@@ -62,6 +68,7 @@ describe('ban', () => {
                 await banManager['parseBanned']();
                 expect(existsSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'));
                 expect(getLoggerSpy).toHaveBeenCalledWith();
+                expect(logger.warn).toHaveBeenCalledWith('Failed to load ban list!');
                 expect(writeFileSyncSpy).toHaveBeenCalledWith(withCwd('banned-players.json'), '[]');
                 expect(banManager['banned'].size).toBe(0);
             });
@@ -70,14 +77,14 @@ describe('ban', () => {
         describe('isBanned', () => {
             it('should return the reason if player is banned', () => {
                 banManager['banned'].set('player1', { reason: 'reason1' });
-                const player = { getName: vi.fn().mockReturnValue('player1') };
-                const result = banManager.isBanned(player as any);
+                const player = { getName: vi.fn(() => 'player1') };
+                const result = banManager.isBanned(player);
                 expect(result).toBe('reason1');
             });
 
             it('should return false if player is not banned', () => {
-                const player = { getName: vi.fn().mockReturnValue('player1') };
-                const result = banManager.isBanned(player as any);
+                const player = { getName: vi.fn(() => 'player1') };
+                const result = banManager.isBanned(player);
                 expect(result).toBe(false);
             });
         });
