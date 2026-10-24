@@ -27,6 +27,13 @@ describe('network', () => {
             expect(filter.shouldLog(new UpdateBlockPacket())).toBe(true);
         });
 
+        it('answers by name for a batch that kept only names', () => {
+            const filter = new PacketLogFilter(['SetTimePacket']);
+
+            expect(filter.shouldLogName('SetTimePacket')).toBe(false);
+            expect(filter.shouldLogName('LevelChunkPacket')).toBe(true);
+        });
+
         it('reports what it is dropping', () => {
             const filter = new PacketLogFilter(['SetTimePacket', 'MoveActorAbsolutePacket']);
 

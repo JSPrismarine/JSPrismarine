@@ -20,7 +20,16 @@ export class PacketLogFilter {
      * @returns {boolean} `false` if its name is excluded.
      */
     public shouldLog(packet: object): boolean {
-        return !this.excluded.has(packet.constructor.name);
+        return this.shouldLogName(packet.constructor.name);
+    }
+
+    /**
+     * The same check by class name, for a batch that kept only the names of what it holds.
+     * @param {string} name - the packet class name, as `BatchPacket.getPacketNames` reports it.
+     * @returns {boolean} `false` if the name is excluded.
+     */
+    public shouldLogName(name: string): boolean {
+        return !this.excluded.has(name);
     }
 
     /** The names being dropped, for reporting the filter back to whoever set it. */

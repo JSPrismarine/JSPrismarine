@@ -25,6 +25,14 @@ const batchOf = (text: string) => {
 
 describe('network', () => {
     describe('BatchPacket', () => {
+        it('names the packets it holds, in order', () => {
+            const batch = new BatchPacket();
+            batch.addPacket(message('one'));
+            batch.addPacket(message('two'));
+
+            expect(batch.getPacketNames()).toEqual(['TextPacket', 'TextPacket']);
+        });
+
         it('compresses asynchronously to exactly the same bytes', async () => {
             // The async path exists to move work off the main thread, not to change what
             // goes on the wire. If these ever differ, the client sees a different packet.

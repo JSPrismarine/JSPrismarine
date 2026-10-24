@@ -27,6 +27,9 @@ export default class BatchPacket extends DataPacket {
      */
     public compressionLevel = DEFAULT_COMPRESSION_LEVEL;
 
+    /** See {@link getPacketNames}. */
+    private readonly packetNames: string[] = [];
+
     public decodeHeader(): void {
         const pid = this.readByte();
         if (pid !== this.getId()) {
@@ -116,6 +119,19 @@ export default class BatchPacket extends DataPacket {
 
         this.payload.writeUnsignedVarInt(packet.getBuffer().byteLength);
         this.payload.write(packet.getBuffer());
+        this.packetNames.push(packet.getName());
+    }
+
+    /**
+     * The class names of the packets added so far, in the order they were added.
+     *
+     * The payload keeps only bytes, so this is the one record of what a batch carries that
+     * the traffic log can name. A chunk batch sent through `MinecraftSession.sendBatchAsync`
+     * left no `Sent` line at all, which hid every `LevelChunkPacket` from a join trace.
+     * @returns {readonly string[]} One name per packet.
+     */
+    public getPacketNames(): readonly string[] {
+        return this.packetNames;
     }
 
     public getPackets(): Buffer[] {

@@ -85,6 +85,12 @@ export default class MinecraftSession {
             await this.chain(async () => {
                 await batch.encodeAsync();
                 this.frameBatch(batch, direct);
+
+                // One line per packet, as `sendDataPacket` writes, so a join trace shows the
+                // chunks between the publisher updates instead of a gap where they went out.
+                for (const name of batch.getPacketNames()) {
+                    if (this.logFilter.shouldLogName(name)) this.logger.silly(`Sent §b${name}§r packet`);
+                }
             });
         } finally {
             this.pendingAsyncSends--;
