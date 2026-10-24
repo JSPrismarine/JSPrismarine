@@ -53,7 +53,43 @@ const BYTES = Buffer.from([
     ...[0x1c, ...Buffer.from('https://cdn.example/pack.zip', 'utf8')] // CDN URL, 28 bytes
 ]);
 
+/** What a server with no packs configured sends: every flag off, no world template, zero packs. */
+const NO_PACKS: ResourcePacksInfo = {
+    resourcePackRequired: false,
+    hasAddonPacks: false,
+    hasScripts: false,
+    forceDisableVibrantVisuals: false,
+    worldTemplate: { uuidMostSignificant: 0n, uuidLeastSignificant: 0n, version: '' },
+    packs: []
+};
+
+/** `NO_PACKS` on the wire: the header, four flag bytes, 16 zero uuid bytes, an empty version, a zero count. */
+const NO_PACKS_BYTES = Buffer.from([
+    0x06,
+    0x00,
+    0x00,
+    0x00,
+    0x00,
+    ...Array.from({ length: 16 }, () => 0x00),
+    0x00,
+    0x00
+]);
+
 describe('ResourcePacksInfoPacket', () => {
+    it('writes a server with no packs as 22 payload bytes', () => {
+        const buffer = new ResourcePacksInfoPacket(NO_PACKS).serialize(new NetworkBinaryStream());
+
+        expect([...buffer]).toEqual([...NO_PACKS_BYTES]);
+    });
+
+    it('reads a server with no packs to the end of the buffer', () => {
+        const stream = new NetworkBinaryStream(NO_PACKS_BYTES);
+        const data = new ResourcePacksInfoPacket().deserialize(stream);
+
+        expect(data).toEqual(NO_PACKS);
+        expect(stream.feof()).toBe(true);
+    });
+
     it('writes every field in the order protocol 2193 defines', () => {
         const buffer = new ResourcePacksInfoPacket(DATA).serialize(new NetworkBinaryStream());
 

@@ -9,12 +9,19 @@ export interface ResourcePackEntry {
     id: PackIdVersion;
     /** `Pack Size` in bytes. */
     sizeBytes: bigint;
+    /** `Content Key`, the decryption key for an encrypted pack. Empty for an unencrypted one. */
     contentKey: string;
+    /** `Subpack Name`. Empty when no subpack is selected. */
     subPackName: string;
+    /** `Content Identity`, the marketplace identity string. */
     contentIdentity: string;
+    /** `Has Scripts`. */
     hasScripts: boolean;
+    /** `Is Addon Pack`. */
     isAddonPack: boolean;
+    /** `Is Ray Tracing Capable`. */
     isRayTracingCapable: boolean;
+    /** `CDN URL` the client may download the pack from. Empty when the server serves the chunks. */
     cdnUrl: string;
 }
 
