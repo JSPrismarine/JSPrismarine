@@ -193,6 +193,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
         const packet = new UnconnectedPing();
         packet.timestamp = BigInt(Date.now());
+        packet.clientGUID = this.guid;
 
         const sentAt = monotonicNow();
 
