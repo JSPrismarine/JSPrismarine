@@ -207,6 +207,42 @@ describe('utils', () => {
                 ]);
             });
 
+            it('keys a tint by the lower-case enum member name, not the client data spelling', () => {
+                // A 1.26.51 client with a bearded character-creator skin closed the connection
+                // on the player list: its `persona_facial_hair` tint went out as `facial_hair`,
+                // and the enum member is `FacialHair`. Cereal writes string enums in lower case
+                // with the member's own spelling, so `High_Pants` keeps its underscore.
+                const skin = readBack(
+                    Skin.fromJWT(
+                        clientData({
+                            PersonaPieces: [
+                                {
+                                    IsDefault: false,
+                                    PackId: PACK_ID,
+                                    PieceId: 'piece-beard',
+                                    PieceType: 'persona_facial_hair',
+                                    ProductId: ''
+                                },
+                                {
+                                    IsDefault: false,
+                                    PackId: PACK_ID,
+                                    PieceId: 'piece-glasses',
+                                    PieceType: 'persona_face_accessory',
+                                    ProductId: ''
+                                }
+                            ],
+                            PieceTintColors: [
+                                { PieceType: 'persona_facial_hair', Colors: ['#ff0e182e', '#0', '#0', '#0'] },
+                                { PieceType: 'persona_high_pants', Colors: ['#0', '#0', '#0', '#0'] }
+                            ]
+                        })
+                    )
+                );
+
+                expect(skin.pieces.map((piece) => piece.type)).toEqual([11, 17]);
+                expect(skin.tints.map((tint) => tint.type)).toEqual(['facialhair', 'high_pants']);
+            });
+
             it('sends a piece type it does not know as unknown and a bad pack id as zeroes', () => {
                 const skin = readBack(
                     Skin.fromJWT(

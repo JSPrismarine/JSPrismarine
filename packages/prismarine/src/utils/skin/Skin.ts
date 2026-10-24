@@ -70,56 +70,89 @@ const text = (value: unknown): string => (typeof value === 'string' ? value : ''
 const decode = (value: unknown): string => Buffer.from(text(value), 'base64').toString();
 
 /**
- * The persona piece types protocol 2193 numbers, in wire order. The index is the id.
+ * The members of the docs' `persona::PieceType` enum, in wire order. The index is the value.
  *
- * From gophertunnel's `protocol/skin.go` (`PieceTypeUnknown` through `PieceTypeUnsupported`).
- * A piece type the client data names and this list does not is sent as `unknown`.
+ * The same enum travels two ways in a `SerializedSkin`. A persona piece's `PieceType` is
+ * `Enum-as-Value`, a uint32 of the index. A tint's key is not: the schema types it as the enum
+ * without that option, and Cereal then writes the member's name in lower case, as it does for
+ * every string enum (`any` for `CommandPermissionLevel::Any`, `itemname` for
+ * `ItemDescriptorType::ItemName`). So `FacialHair` goes out as `facialhair` and `High_Pants`
+ * as `high_pants`. A 1.26.51 client given `facial_hair`, the client data's spelling with the
+ * `persona_` prefix cut off, treats the player list as malformed and closes the connection.
+ *
+ * `Unknown` at 0 is new in 1.26.44; the members below it moved up by one then.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/persona-piece-type/
  */
-const PIECE_TYPES = [
-    'unknown',
-    'skeleton',
-    'body',
-    'skin',
-    'bottom',
-    'feet',
-    'dress',
-    'top',
-    'high_pants',
-    'hands',
-    'outerwear',
-    'facial_hair',
-    'mouth',
-    'eyes',
-    'hair',
-    'hood',
-    'back',
-    'face_accessory',
-    'head',
-    'legs',
-    'left_leg',
-    'right_leg',
-    'arms',
-    'left_arm',
-    'right_arm',
-    'capes',
-    'classic_skin',
-    'emote',
-    'unsupported'
+const PIECE_TYPE_NAMES = [
+    'Unknown',
+    'Skeleton',
+    'Body',
+    'Skin',
+    'Bottom',
+    'Feet',
+    'Dress',
+    'Top',
+    'High_Pants',
+    'Hands',
+    'Outerwear',
+    'FacialHair',
+    'Mouth',
+    'Eyes',
+    'Hair',
+    'Hood',
+    'Back',
+    'FaceAccessory',
+    'Head',
+    'Legs',
+    'LeftLeg',
+    'RightLeg',
+    'Arms',
+    'LeftArm',
+    'RightArm',
+    'Capes',
+    'ClassicSkin',
+    'Emote',
+    'Unsupported'
 ] as const;
 
-const PIECE_TYPE_IDS: ReadonlyMap<string, number> = new Map(PIECE_TYPES.map((name, id) => [name, id]));
+/**
+ * A piece type name with everything but its letters removed, so that the client data's
+ * `persona_facial_hair`, the wire's `facialhair` and the docs' `FacialHair` all meet.
+ */
+const pieceTypeKey = (pieceType: string): string =>
+    pieceType
+        .toLowerCase()
+        .replace(/^persona_/, '')
+        .replaceAll('_', '');
+
+const PIECE_TYPE_IDS: ReadonlyMap<string, number> = new Map(
+    PIECE_TYPE_NAMES.map((name, id): [string, number] => [pieceTypeKey(name), id])
+);
+
+/**
+ * The `persona::PieceType` value of a piece type, however it is spelled.
+ *
+ * Accepts the client data's `persona_*` names, the wire's lower-case member names and the
+ * docs' member names. The hands are the one irregular case: `persona_hand` in the client
+ * data, `Hands` in the enum. A name this server does not know is `Unknown`, 0.
+ * @param {string} pieceType - A piece type in any of those spellings.
+ * @returns {number} The enum value.
+ */
+const pieceTypeId = (pieceType: string): number => {
+    const key = pieceTypeKey(pieceType);
+    return PIECE_TYPE_IDS.get(key === 'hand' ? 'hands' : key) ?? 0;
+};
+
+/**
+ * The string a `persona::PieceType` travels as where it is not `Enum-as-Value`: the member
+ * name in lower case.
+ * @param {string} pieceType - A piece type in any spelling {@link pieceTypeId} accepts.
+ * @returns {string} The wire name, `unknown` for one this server does not know.
+ */
+const pieceTypeWireName = (pieceType: string): string => PIECE_TYPE_NAMES[pieceTypeId(pieceType)]!.toLowerCase();
 
 /** Every tint carries this many colors on the wire, whatever the client data listed. */
 const TINT_COLORS = 4;
-
-/**
- * The wire name of a persona piece type.
- *
- * The client data calls a piece `persona_eyes`; the wire calls it `eyes`. The hands are the
- * one irregular case: `persona_hand` in the client data, `hands` on the wire.
- */
-const pieceWireType = (pieceType: string): string =>
-    pieceType === 'persona_hand' ? 'hands' : pieceType.replace(/^persona_/, '');
 
 /**
  * A pack id as the UUID the wire carries, or the zero UUID when it is not one.
@@ -298,7 +331,8 @@ export default class Skin {
      * with a character-creator skin dropping the join with `InitialConnection-90` (#2582).
      * A piece's type and pack id went out as strings; the type is a uint32 and the pack id a
      * 16-byte UUID. A tint's colors went out as a counted list of strings; they are exactly
-     * four colors of four bytes each, with no count, under the piece's short wire name.
+     * four colors of four bytes each, with no count, under the piece type's lower-case member
+     * name (`facialhair`, not the client data's `facial_hair`; see {@link PIECE_TYPE_NAMES}).
      */
     public networkSerialize(stream: BinaryStream): void {
         NetworkUtil.writeString(stream, this.getId());
@@ -336,17 +370,18 @@ export default class Skin {
             stream.writeUnsignedVarInt(persona.getPieces().size);
             for (const piece of persona.getPieces()) {
                 NetworkUtil.writeString(stream, piece.getPieceId());
-                stream.writeUnsignedIntLE(PIECE_TYPE_IDS.get(pieceWireType(piece.getPieceType())) ?? 0);
+                stream.writeUnsignedIntLE(pieceTypeId(piece.getPieceType()));
                 packIdToUuid(piece.getPackId()).networkSerialize(stream);
                 stream.writeBoolean(piece.isDefault());
                 NetworkUtil.writeString(stream, piece.getProductId());
             }
 
-            // Four colors per tint, no count. A tint the client data gave fewer is padded
-            // with no color; one it gave more is cut to four.
+            // A map keyed by the piece type's lower-case member name, then four colors per
+            // tint with no count. A tint the client data gave fewer is padded with no color;
+            // one it gave more is cut to four.
             stream.writeUnsignedVarInt(persona.getTintColors().size);
             for (const tint of persona.getTintColors()) {
-                NetworkUtil.writeString(stream, pieceWireType(tint.getPieceType()));
+                NetworkUtil.writeString(stream, pieceTypeWireName(tint.getPieceType()));
                 for (let index = 0; index < TINT_COLORS; index++) {
                     writeColor(stream, colorToArgb(tint.getColors()[index] ?? '#0'));
                 }
@@ -410,7 +445,7 @@ export default class Skin {
         const persona = new SkinPersona();
         for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
             const pieceId = NetworkUtil.readString(stream);
-            const pieceType = PIECE_TYPES[stream.readUnsignedIntLE()] ?? 'unknown';
+            const pieceType = PIECE_TYPE_NAMES[stream.readUnsignedIntLE()]?.toLowerCase() ?? 'unknown';
             const packId = UUID.networkDeserialize(stream).toString();
             const def = stream.readBoolean();
             const productId = NetworkUtil.readString(stream);
