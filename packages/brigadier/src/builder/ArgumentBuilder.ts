@@ -55,7 +55,11 @@ abstract class ArgumentBuilder<S, T extends ArgumentBuilder<S, T>> {
     }
 
     public redirect(target: CommandNode<S>, modifier?: SingleRedirectModifier<S>): T {
-        return this.forward(target, modifier == null ? null : (o: CommandContext<S>) => [modifier.apply(o)], false);
+        return this.forward(
+            target,
+            modifier == null ? null : { apply: (context: CommandContext<S>) => [modifier.apply(context)] },
+            false
+        );
     }
 
     public fork(target: CommandNode<S>, modifier: RedirectModifier<S>): T {

@@ -5,6 +5,9 @@ import ArgumentBuilder from '../builder/ArgumentBuilder';
 import { literal } from '../builder/LiteralArgumentBuilder';
 import { argument } from '../builder/RequiredArgumentBuilder';
 import CommandNode from '../tree/CommandNode';
+import CommandDispatcher from '../CommandDispatcher';
+import CommandContextBuilder from '../context/CommandContextBuilder';
+import type SingleRedirectModifier from '../SingleRedirectModifier';
 
 const { integer } = DefaultType;
 
@@ -37,6 +40,19 @@ describe('ArgumentBuilderTest', () => {
         const target = instance(mock(CommandNode));
         builder.redirect(target);
         assert.deepEqual(builder.getRedirect(), target);
+    });
+
+    it('passes the redirect context to a single redirect modifier', () => {
+        const dispatcher = new CommandDispatcher<Object>();
+        const source = {};
+        const context = new CommandContextBuilder(dispatcher, source, dispatcher.getRoot(), 0).build('');
+        const singleModifier: SingleRedirectModifier<Object> = {
+            apply: (redirectContext) => redirectContext.getSource()
+        };
+
+        builder.redirect(instance(mock(CommandNode)), singleModifier);
+
+        expect(builder.getRedirectModifier()?.apply(context)).toEqual([source]);
     });
 
     it('testRedirect_withChild', () => {
