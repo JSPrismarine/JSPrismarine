@@ -600,8 +600,8 @@ importers:
         specifier: workspace:*
         version: link:../raknet
       js-yaml:
-        specifier: 4.1.0
-        version: 4.1.0
+        specifier: 4.3.2
+        version: 4.3.2
       json5:
         specifier: 2.2.3
         version: 2.2.3
@@ -2354,8 +2354,8 @@ packages:
   js-tokens@4.0.0:
     resolution: {integrity: sha512-RdJUflcE3cUzKiMqQgsCu06FPu9UdIJO0beYbPhHN4k6apgJtifcoCtT9bcxOpYBtpD2kCM6Sbzg4CausW/PKQ==}
 
-  js-yaml@4.1.0:
-    resolution: {integrity: sha512-wpxZs9NoxZaJESJGIZTyDEaYpl0FKSA+FB9aJiyemKhMwkxQg63h4T1KJgUGHpTqPDNRcmmYLugrRjJlBtWvRA==}
+  js-yaml@4.3.2:
+    resolution: {integrity: sha512-SFNOvSJ+Dgf/9An904Yx+CgSlIPCkIpao4qo51lpee25TIRejdH3rhR4EZMGoNx3/TP3O+wzWuiTFl4sqbltzA==}
     hasBin: true
 
   json-parse-even-better-errors@2.3.1:
@@ -4266,7 +4266,7 @@ snapshots:
     dependencies:
       env-paths: 2.2.1
       import-fresh: 3.3.1
-      js-yaml: 4.1.0
+      js-yaml: 4.3.2
       parse-json: 5.2.0
     optionalDependencies:
       typescript: 7.0.2
@@ -4463,7 +4463,7 @@ snapshots:
 
   js-tokens@4.0.0: {}
 
-  js-yaml@4.1.0:
+  js-yaml@4.3.2:
     dependencies:
       argparse: 2.0.1
 
