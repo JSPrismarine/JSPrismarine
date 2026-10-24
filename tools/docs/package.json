@@ -2,17 +2,19 @@
     "name": "@jsprismarine/docs",
     "version": "0.0.0",
     "private": true,
-    "description": "Builds the API documentation site with TypeDoc, which still needs TypeScript 6",
+    "description": "Builds the documentation site with VitePress; the API reference comes from TypeDoc, which still needs TypeScript 6",
     "type": "module",
     "scripts": {
-        "docs": "typedoc --options ../../typedoc.json"
+        "docs": "node assemble.mts && typedoc && vitepress build site",
+        "docs:dev": "node assemble.mts && typedoc && vitepress dev site"
     },
     "devDependencies": {
         "typedoc": "0.28.20",
-        "typedoc-material-theme": "1.4.1",
-        "typedoc-plugin-extras": "4.0.1",
+        "typedoc-plugin-markdown": "4.14.1",
         "typedoc-plugin-merge-modules": "7.0.0",
         "typedoc-plugin-rename-defaults": "0.7.3",
-        "typescript": "6.0.3"
+        "typedoc-vitepress-theme": "1.1.4",
+        "typescript": "6.0.3",
+        "vitepress": "2.0.0-alpha.20"
     }
 }

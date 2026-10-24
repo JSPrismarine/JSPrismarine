@@ -1,7 +1,26 @@
 {
     "$schema": "https://typedoc.org/schema.json",
     "name": "JSPrismarine",
-    "customTitle": "JSPrismarine",
+    "plugin": [
+        "typedoc-plugin-markdown",
+        "typedoc-vitepress-theme",
+        "typedoc-plugin-merge-modules",
+        "typedoc-plugin-rename-defaults"
+    ],
+    "entryPoints": ["../../packages/*"],
+    "entryPointStrategy": "packages",
+    "tsconfig": "../../tsconfig.json",
+    "out": "./site/api",
+    "docsRoot": "./site",
+    "readme": "none",
+    "excludeExternals": true,
+    "excludeInternal": true,
+    "excludePrivate": true,
+    "excludeProtected": true,
+    "externalPattern": ["**/node_modules/**"],
+    "exclude": ["**/node_modules/**"],
+    "mergeModulesRenameDefaults": true,
+    "mergeModulesMergeMode": "module",
     "blockTags": [
         "@alpha",
         "@beta",
@@ -56,27 +75,5 @@
         "@typedef",
         "@typeParam",
         "@virtual"
-    ],
-    "entryPoints": ["packages/*"],
-    "entryPointStrategy": "packages",
-    "excludeExternals": true,
-    "excludeInternal": true,
-    "excludePrivate": true,
-    "excludeProtected": true,
-    "externalPattern": ["**/node_modules/**", ".*packages(/[^/]+)/.*"],
-    "footerLastModified": true,
-    "out": "./dist",
-    "plugin": [
-        "typedoc-material-theme",
-        "typedoc-plugin-extras",
-        "typedoc-plugin-merge-modules",
-        "typedoc-plugin-rename-defaults"
-    ],
-    "projectDocuments": ["README.md", "docs/*.md"],
-    "exclude": ["**/node_modules/**", "node_modules/**"],
-    "readme": "./README.md",
-    "themeColor": "#5CA48A",
-    "tsconfig": "./tsconfig.json",
-    "mergeModulesRenameDefaults": true,
-    "mergeModulesMergeMode": "module"
+    ]
 }
