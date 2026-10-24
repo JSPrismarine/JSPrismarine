@@ -1,5 +1,5 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
-import { NetworkBinaryStream, NetworkItemStackDescriptor } from '@jsprismarine/protocol';
+import { ItemInstanceUserData, NetworkBinaryStream, NetworkItemStackDescriptor } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -71,26 +71,32 @@ describe('item', () => {
             return stream.getBuffer();
         };
 
-        /**
-         * Everything the descriptor writes before its user data blob. The two disagree past
-         * that point for a reason that is not a fault on either side: `Item` writes the empty
-         * `ItemInstanceUserData` structure the client expects - no nbt, no can-place-on, no
-         * can-break, ten bytes of it - while the descriptor here carries a blob given to it,
-         * and there is no way to hand it one.
-         */
-        const descriptorHead = (descriptor: NetworkItemStackDescriptor): Buffer =>
-            descriptorBytes(descriptor).subarray(0, -1);
+        /** The empty `ItemInstanceUserData` a stack without NBT or block lists carries. */
+        const emptyUserData = (shield = false): Buffer => {
+            const stream = new NetworkBinaryStream();
+            new ItemInstanceUserData(null, shield ? { blockingTick: 0n } : {}).serialize(stream);
+            return stream.getBuffer();
+        };
 
-        it('writes the same bytes the protocol package would, up to the user data', () => {
+        it('writes the same bytes the protocol package would, user data included', () => {
             const item = new Item({ id: 1, name: 'minecraft:stone', meta: 0 });
             const blockRuntimeId = BlockRuntimeIds.getByName('minecraft:stone');
-            const head = descriptorHead(
-                new NetworkItemStackDescriptor(item.getNetworkId(), 1, 0, false, blockRuntimeId)
-            );
+            const descriptor = new NetworkItemStackDescriptor(item.getNetworkId(), 1, 0, false, blockRuntimeId, {
+                userDataBuffer: emptyUserData()
+            });
 
             // The flag between the aux value and the runtime id used to be left to a closure
             // no caller passed, so every item the server sent was a byte short of this.
-            expect(serialized(item).subarray(0, head.byteLength)).toEqual(head);
+            expect(serialized(item)).toEqual(descriptorBytes(descriptor));
+        });
+
+        it('ends a shield with its blocking tick', () => {
+            const shield = new Item({ id: 355, name: 'minecraft:shield', meta: 0 });
+            const descriptor = new NetworkItemStackDescriptor(shield.getNetworkId(), 1, 0, false, 0, {
+                userDataBuffer: emptyUserData(true)
+            });
+
+            expect(serialized(shield)).toEqual(descriptorBytes(descriptor));
         });
 
         it('writes the stack net id when there is one', () => {
@@ -107,10 +113,12 @@ describe('item', () => {
             // `BlockRuntimeIds.getByName` has no answer for a sword, and raised - taking the
             // whole packet, and so the entire inventory, down with it.
             const sword = new Item({ id: 308, name: 'minecraft:diamond_sword', meta: 0 });
-            const head = descriptorHead(new NetworkItemStackDescriptor(sword.getNetworkId(), 1, 0, false, 0));
+            const descriptor = new NetworkItemStackDescriptor(sword.getNetworkId(), 1, 0, false, 0, {
+                userDataBuffer: emptyUserData()
+            });
 
             expect(() => serialized(sword)).not.toThrow();
-            expect(serialized(sword).subarray(0, head.byteLength)).toEqual(head);
+            expect(serialized(sword)).toEqual(descriptorBytes(descriptor));
         });
 
         it('writes a body for an item whose numeric id is zero but whose name resolves', () => {

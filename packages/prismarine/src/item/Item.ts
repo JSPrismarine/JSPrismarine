@@ -1,5 +1,6 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
-import BinaryStream from '@jsprismarine/binaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
+import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockToolType } from '../block/BlockToolType';
 import type { ItemEnchantmentType } from './ItemEnchantmentType';
@@ -210,10 +211,12 @@ export class Item {
     }
 
     /**
-     * The length prefixed blob holding the nbt and the can-place-on / can-break lists.
+     * The length prefixed `User Data Buffer`: the stack's `ItemInstanceUserData`, which
+     * `@jsprismarine/protocol` lays out.
      *
-     * An empty stack writes a bare zero length rather than an empty blob - the client reads
-     * no further into a slot that holds nothing.
+     * No stack here carries NBT or a can-place-on or can-destroy list yet, so the blob is the
+     * empty structure: a zero marker and two empty lists, plus the blocking tick a shield ends
+     * with. An empty stack writes a bare zero length instead of the structure.
      * @param {BinaryStream} stream - the stream to write to.
      * @param {boolean} present - whether this stack holds anything at all.
      */
@@ -223,22 +226,12 @@ export class Item {
             return;
         }
 
-        const str = new BinaryStream();
+        const blob = new NetworkBinaryStream();
+        const shield = this.getName() === 'minecraft:shield';
+        new ItemInstanceUserData(null, shield ? { blockingTick: 0n } : {}).serialize(blob);
 
-        // TODO: proper NBT. A length of -1 followed by a version byte introduces one.
-        str.writeShortLE(0);
-
-        // CanPlace and canBreak
-        str.writeIntLE(0);
-        str.writeIntLE(0);
-
-        // The tick a shield started blocking on, and only a shield has one.
-        if (this.getName() === 'minecraft:shield') {
-            str.writeLongLE(BigInt(0));
-        }
-
-        stream.writeUnsignedVarInt(str.getBuffer().byteLength);
-        stream.write(new Uint8Array(str.getBuffer()));
+        stream.writeUnsignedVarInt(blob.getBuffer().byteLength);
+        stream.write(new Uint8Array(blob.getBuffer()));
     }
 
     /**
