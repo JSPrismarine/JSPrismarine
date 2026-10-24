@@ -13,14 +13,12 @@ export enum ErrorKind {
     GAMETYPE_INVALID = 'GAMETYPE_INVALID'
 }
 
-export class Error<T = ErrorKind> extends BuiltinError {
+export class Error extends BuiltinError {
     public readonly name: string = 'Error';
-    public readonly message!: string;
-    public readonly code!: T;
+    public readonly code: ErrorKind = ErrorKind.GENERIC_NAMESPACE_INVALID;
 
     public constructor() {
-        super(...arguments);
-        Object.setPrototypeOf(this, BuiltinError.prototype);
+        super();
         Object.setPrototypeOf(this, Error.prototype);
     }
 }
