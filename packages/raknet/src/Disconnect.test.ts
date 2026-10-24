@@ -40,7 +40,7 @@ const start = async () => {
     client.on('message', (msg) => inbox.push(msg));
     await new Promise<void>((resolve) => client.bind(0, '127.0.0.1', resolve));
 
-    const socket = (server as any).socket as Dgram.Socket;
+    const socket = server['socket'];
     const port = await new Promise<number>((resolve, reject) => {
         try {
             resolve(socket.address().port);
