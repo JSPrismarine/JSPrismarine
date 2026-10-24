@@ -3,8 +3,11 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
+/** One `PackInfoData` entry of the `Resource Packs` list. */
 export interface ResourcePackEntry {
+    /** `Pack Id Version`. */
     id: PackIdVersion;
+    /** `Pack Size` in bytes. */
     sizeBytes: bigint;
     contentKey: string;
     subPackName: string;
@@ -15,35 +18,48 @@ export interface ResourcePackEntry {
     cdnUrl: string;
 }
 
-/** A pack's identity: the uuid as two halves of a 128 bit number, and a semantic version. */
+/**
+ * A `PackIdVersion`: the `Pack UUID` as two little-endian uint64 halves, then the
+ * `Pack Version` string.
+ */
 export interface PackIdVersion {
+    /** `Most Significant Bits` of the uuid. */
     uuidMostSignificant: bigint;
+    /** `Least Significant Bits` of the uuid. */
     uuidLeastSignificant: bigint;
+    /** The semantic version string, for example "1.2.3". */
     version: string;
 }
 
+/** The fields of a `ResourcePacksInfoPacket`, in wire order. */
 export interface ResourcePacksInfo {
+    /** `Resource Pack Required`: the client must apply the server's packs to join. */
     resourcePackRequired: boolean;
+    /** `Has Addon Packs`: at least one pack is an add-on pack. */
     hasAddonPacks: boolean;
+    /** `Has Scripts`: at least one pack carries client scripts. */
     hasScripts: boolean;
-    /** Turns deferred rendering off for the session, whatever the client would prefer. */
+    /** `Force Disable Vibrant Visuals`: turns deferred rendering off for the session, whatever the client would prefer. */
     forceDisableVibrantVisuals: boolean;
-    /** The world template this world came from. All zeroes when it came from none. */
+    /** `World Template Id And Version`. All zeroes and an empty version when the world came from no template. */
     worldTemplate: PackIdVersion;
+    /** `Resource Packs`, one entry per pack the client needs. */
     packs: ResourcePackEntry[];
 }
 
 /**
  * Which packs the client has to fetch before it may join.
  *
- * Four flags, the world template's identity, then the packs. Two things moved at 2168: a
- * fourth flag appeared after the three that were there, and the world template - a uuid
- * written as two 64 bit halves rather than a string, followed by its version - was inserted
- * ahead of the list. A reader that predates either of them takes the flag for the start of
- * the template and the connection drops right here.
+ * Protocol 2193 layout, in wire order: `Resource Pack Required`, `Has Addon Packs`,
+ * `Has Scripts` and `Force Disable Vibrant Visuals` as one byte each, then
+ * `World Template Id And Version` as a {@link PackIdVersion}, then `Resource Packs` as a
+ * varuint32 count followed by one {@link ResourcePackEntry} per pack. Each entry is its
+ * `Pack Id Version`, `Pack Size` as a little-endian uint64, `Content Key`, `Subpack Name`,
+ * `Content Identity`, the `Has Scripts`, `Is Addon Pack` and `Is Ray Tracing Capable` bytes,
+ * then `CDN URL`. Strings are a varuint32 byte length followed by UTF-8.
  *
- * Each entry now identifies its pack the same way, where 748 wrote the uuid and version as
- * two strings.
+ * The fourth flag and the world template arrived at 2168; a reader without them takes the
+ * flag for the start of the template and drops the connection.
  */
 export default class ResourcePacksInfoPacket extends NetworkPacket<ResourcePacksInfo> {
     public get id(): number {
