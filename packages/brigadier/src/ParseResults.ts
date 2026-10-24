@@ -1,5 +1,4 @@
 import type CommandContextBuilder from './context/CommandContextBuilder';
-import type CommandSyntaxException from './exceptions/CommandSyntaxException';
 import type CommandNode from './tree/CommandNode';
 import type ImmutableStringReader from './ImmutableStringReader';
 import StringReader from './StringReader';
@@ -7,18 +6,18 @@ import StringReader from './StringReader';
 export default class ParseResults<S> {
     private context: CommandContextBuilder<S>;
 
-    private exceptions: Map<CommandNode<S>, CommandSyntaxException>;
+    private exceptions: Map<CommandNode<S>, Error>;
 
     private reader: ImmutableStringReader;
 
     public constructor(
         context: CommandContextBuilder<S>,
         reader?: ImmutableStringReader,
-        exceptions?: Map<CommandNode<S>, CommandSyntaxException>
+        exceptions?: Map<CommandNode<S>, Error>
     ) {
         this.context = context;
         this.reader = reader || new StringReader('');
-        this.exceptions = exceptions || new Map<CommandNode<S>, CommandSyntaxException>();
+        this.exceptions = exceptions || new Map<CommandNode<S>, Error>();
     }
 
     public getContext(): CommandContextBuilder<S> {
@@ -29,7 +28,12 @@ export default class ParseResults<S> {
         return this.reader;
     }
 
-    public getExceptions(): Map<CommandNode<S>, CommandSyntaxException> {
+    /**
+     * Returns the error each child node raised while parsing, keyed by node.
+     * Brigadier's own parsers throw `CommandSyntaxException`; argument types
+     * supplied by callers may throw any `Error`.
+     */
+    public getExceptions(): Map<CommandNode<S>, Error> {
         return this.exceptions;
     }
 }
