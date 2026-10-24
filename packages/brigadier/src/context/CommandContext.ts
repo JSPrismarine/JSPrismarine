@@ -63,10 +63,10 @@ export default class CommandContext<S> {
         return this.child;
     }
 
-    public getLastChild(): CommandContext<S> | null {
+    public getLastChild(): CommandContext<S> {
         let result: CommandContext<S> = this;
-        while (result.getChild()) {
-            result = result.getChild() as any; // FIXME
+        for (let child = result.getChild(); child !== null; child = child.getChild()) {
+            result = child;
         }
         return result;
     }

@@ -148,16 +148,13 @@ export default class CommandContextBuilder<S> {
                     return new SuggestionContext(this.rootNode, this.range.getStart());
                 }
             } else {
-                let prev: CommandNode<S> | null = this.rootNode as any;
+                let prev: CommandNode<S> = this.rootNode;
                 for (let node of this.nodes) {
                     let nodeRange: StringRange = node.getRange();
                     if (nodeRange.getStart() <= cursor && cursor <= nodeRange.getEnd()) {
-                        return new SuggestionContext(prev as any /* FIXME: */, nodeRange.getStart());
+                        return new SuggestionContext(prev, nodeRange.getStart());
                     }
                     prev = node.getNode();
-                }
-                if (prev == null) {
-                    throw new Error("Can't find node before cursor");
                 }
                 return new SuggestionContext(prev, this.range.getStart());
             }
