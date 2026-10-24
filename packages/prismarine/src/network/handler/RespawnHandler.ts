@@ -6,25 +6,23 @@ import { PlayerRespawnState } from '../packet/RespawnPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
- * The client's half of the respawn exchange, and the end of it.
+ * The client's half of the respawn exchange.
  *
  * Three states across two sides. The docs number them `SearchingForSpawn` (0) and
- * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client:
+ * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client. A Bedrock
+ * Dedicated Server 1.26.52 runs a death like this, recorded through the proxy:
  *
  * 1. the player dies, and the server sends `SearchingForSpawn` with where they will
  *    reappear - the client will not offer the respawn button until it has this;
- * 2. the player presses it, and the client sends a `Respawn` player action, which is where
- *    the server puts them back together;
- * 3. the client sends `ClientReadyToSpawn` once it has loaded, and the server answers
- *    `ReadyToSpawn` - which is this, and which is what lets go of the screen.
+ * 2. the player presses it, and the client sends `ClientReadyToSpawn`;
+ * 3. the server answers at once with `SearchingForSpawn` at the spawn block, then
+ *    `ReadyToSpawn` at the eyes above it, and the client puts its player there;
+ * 4. the client sends a `Respawn` player action, and the server sends the living player:
+ *    see `Player.respawn`.
  *
- * Getting the order wrong is not a small mistake. Sending the third at step one leaves the
- * client on "Respawning" for ever, and sending nothing at step three leaves it there too,
- * repeating the request once a second.
- *
- * Steps 2 and 3 are the client's to order, so the answer does not assume one. Its `Position`
- * is where the player comes back: where they stand once `Player.respawn` has moved them, and
- * the world spawn while they are still dead.
+ * Getting step 3 wrong leaves the client frozen. Answered with `ReadyToSpawn` alone, at the
+ * spawn block's height rather than the eyes', and followed by the dead player's health, the
+ * client sent nothing more: no movement, no input, for as long as it stayed connected.
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
 export default class RespawnHandler implements PacketHandler<RespawnPacket> {
@@ -45,15 +43,17 @@ export default class RespawnHandler implements PacketHandler<RespawnPacket> {
         // for anything.
         if (packet.state !== PlayerRespawnState.ClientReadyToSpawn) return;
 
-        const position = player.isAlive() ? player.getPosition() : await player.getWorld().getSpawnPosition();
-        await session.sendRespawn(position, PlayerRespawnState.ReadyToSpawn);
+        if (!player.isAlive()) {
+            const point = await player.getRespawnPoint();
+            await session.sendRespawn(point.block, PlayerRespawnState.SearchingForSpawn);
+            await session.sendRespawn(point.eyes, PlayerRespawnState.ReadyToSpawn);
+            return;
+        }
 
-        // And then the player, described again from scratch.
-        //
-        // The client rebuilds its local player across this exchange and comes back with the
-        // one it had before - which is a corpse: no health, no held item, lying down. What was
-        // sent when the button was pressed went to a client that was still on its death screen
-        // and threw it away. This is the first moment it will keep any of it.
+        // Already alive: the respawn action came first. How a Bedrock Dedicated Server answers
+        // this order has not been recorded, so the player is told where they stand and
+        // described again, as this server did before.
+        await session.sendRespawn(player.getPosition(), PlayerRespawnState.ReadyToSpawn);
         await session.sendAttributes();
         await session.sendMetadata();
         await session.sendAbilities();

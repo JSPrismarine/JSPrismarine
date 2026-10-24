@@ -63,6 +63,8 @@ import PlayerListPacket, { PlayerListAction, PlayerListEntry } from './packet/Pl
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import type { PlayerRespawnState } from './packet/RespawnPacket';
 import RespawnPacket from './packet/RespawnPacket';
+import ActorEventPacket, { ActorEvent } from './packet/ActorEventPacket';
+import SetHealthPacket from './packet/SetHealthPacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetPlayerGameTypePacket from './packet/SetPlayerGameTypePacket';
@@ -1212,9 +1214,26 @@ export default class PlayerSession {
     }
 
     /**
-     * Tells the client it may put its dead player back into the world, and where.
-     * @param {Vector3} position - Where the player comes back.
+     * Tells the client its player is alive again, as a Bedrock Dedicated Server 1.26.52 does
+     * when the respawn button is pressed: `ActorEvent(SPAWN_ALIVE)` for the player, its
+     * health, then its attributes and actor data.
+     *
+     * No `MovePlayer`: the client has put itself at the `ReadyToSpawn` position already.
      */
+    public async sendRespawned(): Promise<void> {
+        const event = new ActorEventPacket();
+        event.runtimeEntityId = this.player.getRuntimeId();
+        event.event = ActorEvent.SPAWN_ALIVE;
+        await this.connection.sendDataPacket(event);
+
+        const health = new SetHealthPacket();
+        health.health = Math.ceil(this.player.getHealth());
+        await this.connection.sendDataPacket(health);
+
+        await this.sendAttributes();
+        await this.sendMetadata();
+    }
+
     /**
      * One of the server's two halves of the respawn exchange.
      *
@@ -1225,13 +1244,16 @@ export default class PlayerSession {
      *
      * Sending the second in place of the first leaves the client on "Respawning" for ever:
      * it is waiting to be told where it will come back before it will even offer the button.
+     *
+     * `Player Runtime Id` is always 0, as in every `Respawn` a Bedrock Dedicated Server 1.26.52
+     * sends, at the join and after a death.
      * @param {Vector3} position - Where the player will reappear.
      * @param {PlayerRespawnState} state - Which half of the exchange this is.
      * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
      */
     public async sendRespawn(position: Vector3, state: PlayerRespawnState): Promise<void> {
         const packet = new RespawnPacket();
-        packet.runtimeEntityId = this.player.getRuntimeId();
+        packet.runtimeEntityId = 0n;
         packet.position = position;
         packet.state = state;
         await this.connection.sendDataPacket(packet);

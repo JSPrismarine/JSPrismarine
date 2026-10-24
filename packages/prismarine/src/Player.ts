@@ -15,7 +15,7 @@ import {
     isAllowed,
     WATER_BLOCKS
 } from './entity/Environment';
-import Human, { eyePositionAt } from './entity/Human';
+import Human, { EYE_HEIGHT, eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import ChatEvent from './events/chat/ChatEvent';
 import PlayerSetGamemodeEvent from './events/player/PlayerSetGamemodeEvent';
@@ -37,7 +37,7 @@ import type Skin from './utils/skin/Skin';
 import type { World } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
-import { requestedSpawnPosition } from './world/SpawnPlacement';
+import { respawnPoint } from './world/SpawnPlacement';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
@@ -822,7 +822,7 @@ export default class Player extends Human {
         // the respawn button until it knows, which is why a death screen that never became a
         // respawn screen was stuck on "Respawning" - it was still waiting for this.
         await this.getNetworkSession().sendRespawn(
-            eyePositionAt(requestedSpawnPosition(await this.getWorld().getSpawnPosition())),
+            (await this.getRespawnPoint()).announced,
             PlayerRespawnState.SearchingForSpawn
         );
 
@@ -852,10 +852,20 @@ export default class Player extends Human {
     }
 
     /**
+     * Where this player comes back after a death: the world spawn, given as a Bedrock
+     * Dedicated Server gives it. See {@link respawnPoint}.
+     */
+    public async getRespawnPoint(): Promise<ReturnType<typeof respawnPoint>> {
+        return respawnPoint(await this.getWorld().getSpawnPosition(), EYE_HEIGHT);
+    }
+
+    /**
      * Brings the player back after a death, at the world spawn and in one piece.
      *
      * @remarks Called when the client asks, not when the player dies - the death screen is
-     * the client's, and it decides how long it stays up.
+     * the client's, and it decides how long it stays up. The client reports
+     * `ClientReadyToSpawn` before it sends this, and has already put itself where the answer
+     * to that said: see `RespawnHandler`.
      */
     public async respawn(): Promise<void> {
         // A player the server does not consider dead is put back where they already are, and
@@ -878,19 +888,15 @@ export default class Player extends Human {
             this.sneaking = false;
             this.flying = false;
 
-            await this.setPosition({
-                position: eyePositionAt((await this.getWorld().placePlayerSpawn()).position),
-                type: PositionMode.Respawn
-            });
+            // Where the `ReadyToSpawn` put the client, and without a `MovePlayer`: a Bedrock
+            // Dedicated Server sends none here, and the client is already there.
+            await this.setPosition(
+                { position: (await this.getRespawnPoint()).eyes, type: PositionMode.Respawn },
+                false
+            );
         }
 
-        // No `RespawnPacket` here, and nothing that describes the fresh body either. This
-        // runs when the player presses the button, and at that moment the client is still on
-        // its death screen and throws away anything it is told about itself. The packet that
-        // ends the exchange, and everything that has to survive it, belong to the answer to
-        // the client's own `ClientReadyToSpawn` - see `RespawnHandler`.
-        await this.getNetworkSession().sendAttributes();
-        await this.getNetworkSession().sendMetadata();
+        await this.getNetworkSession().sendRespawned();
     }
 
     /**

@@ -7,10 +7,10 @@ import DataPacket from './DataPacket';
  * The whole payload is the docs' `Health` field, a ZigZag varint32. It describes the
  * receiving client and names no actor, so it cannot be used for anybody else.
  *
- * Nothing sends one. The health attribute carries both the value and its maximum, which is
- * why Mojang's own docs call this packet superseded, and `PlayerSession.sendAttributes` is
- * what the server uses instead. The packet is kept decodable for the bot harness and for
- * packet logging.
+ * The health attribute carries both the value and its maximum, which is why Mojang's own
+ * docs call this packet superseded, and `PlayerSession.sendAttributes` is what the server
+ * uses for health otherwise. A Bedrock Dedicated Server 1.26.52 still sends one when a player
+ * respawns, so `PlayerSession.sendRespawned` does too.
  *
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-health-packet/
