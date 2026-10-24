@@ -151,6 +151,25 @@ describe('network', () => {
                     expect(present.length).toBe(absent.length + 2);
                 });
 
+                it('writes a Popup and a JukeboxPopup with a Parameter List, like Translation', () => {
+                    for (const type of [TextType.Popup, TextType.JukeboxPopup]) {
+                        const buffer = encode({ type, message: 'm', parameters: ['p'] });
+
+                        expect([...buffer]).toEqual([
+                            HEADER,
+                            0x00, // Localize?
+                            0x02, // Body variant: MessageAndParams
+                            type,
+                            ...str('m'), // Message
+                            0x01, // Parameter List count
+                            ...str('p'),
+                            ...str(''), // Sender's XUID
+                            ...str(''), // Platform Id
+                            0x00 // Filtered Message: absent
+                        ]);
+                    }
+                });
+
                 it('writes a Whisper and an Announcement with a Player Name, like Chat', () => {
                     for (const type of [TextType.Whisper, TextType.Announcement]) {
                         const buffer = encode({ type, sourceName: 'S', message: 'm' });
@@ -228,11 +247,32 @@ describe('network', () => {
                     expect(pk.feof()).toBe(true);
                 });
 
-                it('reads a Raw message the way the client sends chat: variant 0, nothing optional', () => {
+                it('reads a Raw message with nothing optional', () => {
                     const pk = decode([HEADER, 0x00, 0x00, 0x00, ...str('hello'), 0x00, 0x00, 0x00]);
 
                     expect(pk.type).toBe(TextType.Raw);
                     expect(pk.message).toBe('hello');
+                    expect(pk.feof()).toBe(true);
+                });
+
+                it('reads a Chat the way a client sends one: its own name as the author, nothing filtered', () => {
+                    const pk = decode([
+                        HEADER,
+                        0x00, // Localize?: false
+                        0x01, // Body: AuthorAndMessage
+                        0x01, // Message Type: chat
+                        ...str('runner'), // Player Name
+                        ...str('hello'), // Message
+                        ...str('2535428504464321'), // Sender's XUID
+                        ...str(''), // Platform Id
+                        0x00 // Filtered Message: absent
+                    ]);
+
+                    expect(pk.type).toBe(TextType.Chat);
+                    expect(pk.sourceName).toBe('runner');
+                    expect(pk.message).toBe('hello');
+                    expect(pk.xuid).toBe('2535428504464321');
+                    expect(pk.filtered).toBe('');
                     expect(pk.feof()).toBe(true);
                 });
 
