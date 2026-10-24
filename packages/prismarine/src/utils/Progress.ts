@@ -42,7 +42,7 @@ export class Progress {
         private readonly total: number,
         private readonly log: ProgressLogger,
         /** Injectable so tests can drive both renderings without a terminal. */
-        private readonly stream: NodeJS.WriteStream | undefined = process.stdout,
+        private readonly stream: { write(chunk: string): unknown } | undefined = process.stdout,
         isInteractive: boolean = Boolean(process.stdout.isTTY)
     ) {
         this.startedAt = Date.now();
