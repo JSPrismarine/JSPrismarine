@@ -39,6 +39,7 @@ import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
+import type Provider from './providers/Provider';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
@@ -187,7 +188,7 @@ export class World implements Service {
 
     /** Two minutes at the server's twenty ticks per second. */
     private static readonly AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
-    private readonly provider: BaseProvider;
+    private readonly provider: BaseProvider & Provider;
     private readonly server: Server;
     private readonly seed: number;
     private readonly generator: Generator;
@@ -1318,8 +1319,18 @@ export class World implements Service {
      * @returns {Promise<WorldPlayerData>} The player data.
      */
     public async getPlayerData(player: Player): Promise<Partial<WorldPlayerData>> {
+        const key = World.playerDataKey(player);
+
         try {
-            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`);
+            const data = await this.provider.readPlayerData?.(key);
+            if (data) return data;
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to read player data for ${key}`);
+            this.server.getLogger().error(error);
+        }
+
+        try {
+            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${key}.json`);
             await fs.promises.access(file);
             // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
             const data: unknown = (await readJsonFile(file, '{}')).get([]);
@@ -1333,9 +1344,7 @@ export class World implements Service {
             this.server
                 .getLogger()
                 .debug(
-                    `PlayerData is missing for player ${World.playerDataKey(player)}: ${
-                        error instanceof Error ? error.message : String(error)
-                    }`
+                    `PlayerData is missing for player ${key}: ${error instanceof Error ? error.message : String(error)}`
                 );
 
             // No position: a player who has never been here is placed by `placePlayerSpawn`,
@@ -1373,7 +1382,13 @@ export class World implements Service {
         } satisfies WorldPlayerData;
 
         try {
-            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`);
+            const key = World.playerDataKey(player);
+            if (this.provider.writePlayerData) {
+                await this.provider.writePlayerData(key, data);
+                return;
+            }
+
+            const file = withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${key}.json`);
             const document = await readJsonFile(file, '{}');
             for (const [key, value] of Object.entries(data)) document.set([key], value);
             await writeJsonFile(file, document);

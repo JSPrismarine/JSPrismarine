@@ -1,4 +1,4 @@
-import type { WorldConfig } from '../../World';
+import type { WorldConfig, WorldPlayerData } from '../../World';
 import { randomBytes } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -6,7 +6,7 @@ import path from 'node:path';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { Database, WriteBatch } from '@jsprismarine/leveldb';
-import { blockSchemas } from '@jsprismarine/minecraft';
+import { blockSchemas, getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import EntitySerializer from '../../../entity/EntitySerializer';
@@ -18,7 +18,8 @@ import {
     encodeActorKey,
     encodeChunkKey,
     encodeDigest,
-    encodeDigestKey
+    encodeDigestKey,
+    encodePlayerServerKey
 } from './LevelDBKeys';
 import { LEVEL_DAT_STORAGE_VERSION, readLevelDat, readLevelName, writeLevelDat, writeLevelName } from './LevelDat';
 import { decodeData3D, encodeData3D, uniformData3D } from './BiomeCodec';
@@ -101,6 +102,70 @@ export default class LevelDB extends BaseProvider {
 
     private dimension(): DimensionDefinition {
         return this.getWorld().getDimension();
+    }
+
+    // --------------------------------------------------------------- player data
+
+    /** Reads the stored data for a player, or null when the LevelDB has no record for them. */
+    public async readPlayerData(identifier: string): Promise<Partial<WorldPlayerData> | null> {
+        const value = this.requireDatabase().get(encodePlayerServerKey(identifier));
+        return value === null ? null : this.readPlayerNbt(value);
+    }
+
+    /** Writes the player's persistent state as Bedrock NBT under its server-side player key. */
+    public async writePlayerData(identifier: string, data: WorldPlayerData): Promise<void> {
+        const batch = new WriteBatch();
+        batch.put(encodePlayerServerKey(identifier), this.writePlayerNbt(data));
+        this.requireDatabase().write(batch);
+    }
+
+    private readPlayerNbt(value: Buffer): WorldPlayerData {
+        const nbt = this.readActorNbt(value);
+        const saved = nbt.getCompound('JSPrismarine', false);
+        const savedPosition = saved?.getCompound('position', false);
+        const position = readList(nbt, 'Pos');
+        const rotation = readList(nbt, 'Rotation');
+        const gameMode = saved?.getString('gamemode', '') || gamemodeName(nbt.getNumber('PlayerGameType', 0));
+        const username = saved?.getString('username', nbt.getString('NameTag', '')) ?? '';
+
+        return {
+            ...(saved?.has('uuid') ? { uuid: saved.getString('uuid', '') } : {}),
+            ...(username.length > 0 ? { username } : {}),
+            gamemode: gameMode,
+            position: {
+                x: savedPosition?.getDouble('x', position[0] ?? 0) ?? position[0] ?? 0,
+                y: savedPosition?.getDouble('y', position[1] ?? 0) ?? position[1] ?? 0,
+                z: savedPosition?.getDouble('z', position[2] ?? 0) ?? position[2] ?? 0,
+                pitch: savedPosition?.getDouble('pitch', rotation[1] ?? 0) ?? rotation[1] ?? 0,
+                yaw: savedPosition?.getDouble('yaw', rotation[0] ?? 0) ?? rotation[0] ?? 0,
+                headYaw: savedPosition?.getDouble('headYaw', rotation[0] ?? 0) ?? rotation[0] ?? 0
+            }
+        };
+    }
+
+    private writePlayerNbt(data: WorldPlayerData): Buffer {
+        const root = new NBTTagCompound('');
+        root.addValue('NameTag', new Types.StringVal(data.username ?? ''));
+        root.addValue('PlayerGameType', new Types.NumberVal(getGametypeId(data.gamemode)));
+        root.addValue('Pos', floatList([data.position.x, data.position.y, data.position.z]));
+        root.addValue('Rotation', floatList([data.position.yaw, data.position.pitch]));
+
+        const saved = new NBTTagCompound('JSPrismarine');
+        if (data.uuid !== undefined) saved.addValue('uuid', new Types.StringVal(data.uuid));
+        if (data.username !== undefined) saved.addValue('username', new Types.StringVal(data.username));
+        saved.addValue('gamemode', new Types.StringVal(data.gamemode));
+
+        const position = new NBTTagCompound('position');
+        position.addValue('x', new Types.DoubleVal(data.position.x));
+        position.addValue('y', new Types.DoubleVal(data.position.y));
+        position.addValue('z', new Types.DoubleVal(data.position.z));
+        position.addValue('pitch', new Types.DoubleVal(data.position.pitch));
+        position.addValue('yaw', new Types.DoubleVal(data.position.yaw));
+        position.addValue('headYaw', new Types.DoubleVal(data.position.headYaw));
+        saved.addChild(position);
+        root.addChild(saved);
+
+        return this.writeActorNbt(root);
     }
 
     // ------------------------------------------------------------------ chunks
@@ -458,6 +523,21 @@ export default class LevelDB extends BaseProvider {
 
 const versionList = (): Set<Types.NumberVal> =>
     new Set([...blockSchemas.minecraftVersion.split('.').map(Number), 0, 0].map((part) => new Types.NumberVal(part)));
+
+const floatList = (values: number[]): Set<Types.FloatVal> => new Set(values.map((value) => new Types.FloatVal(value)));
+
+const readList = (nbt: NBTTagCompound, name: string): number[] => {
+    const values = nbt.getList(name, false);
+    return values ? Array.from(values, (value) => Number(value?.getValue?.() ?? value ?? 0)) : [];
+};
+
+const gamemodeName = (value: number): string => {
+    try {
+        return getGametypeName(value);
+    } catch {
+        return 'Survival';
+    }
+};
 
 const actorIdBytes = (uniqueId: bigint): Buffer => {
     const actorId = Buffer.allocUnsafe(8);
