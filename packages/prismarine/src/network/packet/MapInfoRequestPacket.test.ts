@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import MapInfoRequestPacket from './MapInfoRequestPacket';
+import MapInfoRequestPacket, { MAX_CLIENT_PIXELS } from './MapInfoRequestPacket';
 
 describe('MapInfoRequestPacket', () => {
     it('decodes the map id and a uint32 LE counted pixel list, consuming the whole buffer', () => {
@@ -27,6 +27,14 @@ describe('MapInfoRequestPacket', () => {
         expect(packet.mapUniqueId).toBe(1n);
         expect(packet.clientPixels).toEqual([]);
         expect(packet.feof()).toBe(true);
+    });
+
+    it('rejects a count above the docs limit before reading any pixel', () => {
+        // Count 16385 as uint32 LE, then nothing. Without the check the reader would loop
+        // until the buffer ran out.
+        const packet = new MapInfoRequestPacket(Buffer.from([0x44, 0x02, 0x01, 0x40, 0x00, 0x00]));
+
+        expect(() => packet.decode()).toThrow(`MapInfoRequest claims ${MAX_CLIENT_PIXELS + 1} client pixels`);
     });
 
     it('encodes the same bytes', () => {
