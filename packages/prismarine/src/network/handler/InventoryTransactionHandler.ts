@@ -1,14 +1,19 @@
+import type { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
+import type Player from '../../Player';
 import { EXHAUSTION } from '../../Player';
 import type Server from '../../Server';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
+import HumanInventory from '../../inventory/HumanInventory';
 import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
-
+import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
 import {
     ActionSource,
+    HandSlot,
+    ReleaseItemAction,
     TransactionType,
     UseItemAction,
     UseItemOnEntityAction
@@ -18,64 +23,180 @@ import type PacketHandler from './PacketHandler';
 /**
  * What sprinting is worth in knockback levels.
  *
- * One, the same as a level of the Knockback enchantment - which is why a sprint-hit sends
+ * One, the same as a level of the Knockback enchantment, which is why a sprint-hit sends
  * somebody flying and a standing one nudges them.
  */
 const SPRINT_KNOCKBACK = 1;
 
+/**
+ * How far from the player a block an item use names may be.
+ *
+ * The bound `PlayerActionHandler` puts on block actions: the furthest any player may reach,
+ * plus a block for the distance from the eyes to the feet and from a block's corner to its
+ * middle. A bound on nonsense rather than an anti-cheat reach check.
+ */
+const MAX_BLOCK_DISTANCE = CREATIVE_REACH + 1;
+
+/** A block has six faces, and the docs' Face names one of them. */
+const FACE_COUNT = 6;
+
+const isFiniteVector = (vector: Vector3): boolean =>
+    Number.isFinite(vector.getX()) && Number.isFinite(vector.getY()) && Number.isFinite(vector.getZ());
+
+const isFace = (face: number): boolean => Number.isInteger(face) && face >= 0 && face < FACE_COUNT;
+
+/**
+ * Why a transaction cannot be acted on, or null when every value is one a client can send.
+ *
+ * The packet stores what is on the wire; this is where the values are held against the docs:
+ * the type a {@link TransactionType}, every action's source an {@link ActionSource}, the
+ * body present for a type that has one and absent for one that does not, its action type a
+ * member of the enum for that body, the hand a {@link HandSlot}, the hotbar slot inside the
+ * hotbar, the face one of a block's six when a block is clicked, and every position finite.
+ *
+ * A reason is returned rather than thrown because a thrown error reaches the log at error
+ * level, and a client that disagrees with the server is ordinary traffic.
+ */
+export const rejectionReason = (packet: InventoryTransactionPacket): string | null => {
+    const type = packet.transactionType;
+    if (!(type in TransactionType)) return `transaction type ${type} is not one the packet may carry`;
+
+    for (const action of packet.inventoryActions) {
+        if (!(action.sourceType in ActionSource)) return `action source ${action.sourceType} does not exist`;
+    }
+
+    const data = packet.transactionData;
+    if (type === TransactionType.NORMAL || type === TransactionType.MISMATCH) {
+        return data === null ? null : `a ${TransactionType[type]} transaction carries a ${data.kind} body`;
+    }
+
+    if (data === null) return `a ${TransactionType[type]} transaction has no body`;
+    if (!HumanInventory.isHotbarSlot(data.hotbarSlot)) return `hotbar slot ${data.hotbarSlot} is outside the hotbar`;
+
+    switch (data.kind) {
+        case 'useItem':
+            if (type !== TransactionType.USE_ITEM)
+                return `a ${TransactionType[type]} transaction carries a use-item body`;
+            if (!(data.actionType in UseItemAction)) return `item use action ${data.actionType} does not exist`;
+            if (!(data.hand in HandSlot)) return `hand ${data.hand} does not exist`;
+            if (data.actionType === UseItemAction.CLICK_BLOCK && !isFace(data.blockFace)) {
+                return `face ${data.blockFace} is not one of a block's six`;
+            }
+            if (!isFiniteVector(data.playerPosition) || !isFiniteVector(data.clickPosition)) {
+                return 'a position is not finite';
+            }
+            return null;
+
+        case 'useItemOnEntity':
+            if (type !== TransactionType.USE_ITEM_ON_ENTITY) {
+                return `a ${TransactionType[type]} transaction carries a use-item-on-entity body`;
+            }
+            if (!(data.actionType in UseItemOnEntityAction)) {
+                return `item use on entity action ${data.actionType} does not exist`;
+            }
+            if (!isFiniteVector(data.playerPosition) || !isFiniteVector(data.clickPosition)) {
+                return 'a position is not finite';
+            }
+            return null;
+
+        case 'releaseItem':
+            if (type !== TransactionType.RELEASE_ITEM)
+                return `a ${TransactionType[type]} transaction carries a release body`;
+            if (!(data.actionType in ReleaseItemAction)) return `item release action ${data.actionType} does not exist`;
+            if (!isFiniteVector(data.playerPosition)) return 'a position is not finite';
+            return null;
+    }
+};
+
+/**
+ * The client's item use, attack and release, acted on against the server's own state.
+ *
+ * The server's inventory, position and entity list decide what happens. The transaction says
+ * which slot, item and position the client believes in, and those are checked against the
+ * server's copy rather than trusted: the item placed or swung is the one the server has in
+ * the player's hand, the reach is measured from where the server has the player, and the
+ * entity hit is looked up by the runtime id the server assigned.
+ *
+ * A transaction with a value no client can send is dropped at debug level before anything
+ * is done with it. See {@link rejectionReason}. One whose hotbar slot is not the one the
+ * server has selected is dropped at verbose level: the client selects a slot through
+ * `MobEquipmentPacket` before it uses it, so a disagreement means the two have come apart.
+ *
+ * `PlayerAuthInputHandler` hands the item use carried inside an input to this same handler,
+ * wrapped in the packet it would have arrived in on its own.
+ */
 export default class InventoryTransactionHandler implements PacketHandler<InventoryTransactionPacket> {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
     public async handle(packet: InventoryTransactionPacket, server: Server, connection: PlayerSession): Promise<void> {
         const player = connection.getPlayer();
         if (!player.isOnline()) return;
-        if (player.gamemode === Gametype.SPECTATOR) return; // Spectators shouldn't be able to interact with the world.
+        if (player.gamemode === Gametype.SPECTATOR) return; // Spectators pass through the world without touching it.
 
-        switch (packet.transactionType) {
-            case TransactionType.NORMAL:
-                await this.handleNormal(packet, server);
-                return;
+        const reason = rejectionReason(packet);
+        if (reason !== null) {
+            server
+                .getLogger()
+                .debug(
+                    `Dropped an inventory transaction from ${player.getName()}: ${reason}`,
+                    'InventoryTransactionHandler/handle'
+                );
+            return;
+        }
 
-            case TransactionType.USE_ITEM:
-                await this.handleUseItem(packet, server, connection);
-                return;
-
+        const data = packet.transactionData;
+        if (data === null) {
             // The client's idea of an inventory did not match what it was sent. Nothing here
-            // can be applied - the answer is to send the inventory back - but a client saying
-            // so is ordinary traffic, not a fault, and it used to be thrown on.
-            case TransactionType.MISMATCH:
+            // can be applied, but a client saying so is ordinary traffic, not a fault, and it
+            // used to be thrown on.
+            if (packet.transactionType === TransactionType.MISMATCH) {
                 server.getLogger().verbose(`${player.getName()} reported an inventory mismatch`);
-                return;
+            } else {
+                this.handleNormal(packet, server, player);
+            }
+            return;
+        }
 
-            case TransactionType.USE_ITEM_ON_ENTITY:
-                await this.handleUseItemOnEntity(packet, server, connection);
-                return;
+        const handSlot = player.getInventory().getHandSlotIndex();
+        if (data.hotbarSlot !== handSlot) {
+            server
+                .getLogger()
+                .verbose(
+                    `Dropped an inventory transaction from ${player.getName()}: it names hotbar slot ${data.hotbarSlot} and the server has ${handSlot} selected`,
+                    'InventoryTransactionHandler/handle'
+                );
+            return;
+        }
 
-            case TransactionType.RELEASE_ITEM:
-                await this.handleReleaseItem(server, connection);
+        switch (data.kind) {
+            case 'useItem':
+                await this.handleUseItem(data, server, player);
                 return;
-
-            default:
-                // Unreachable in practice: the packet refuses to decode a type it does not
-                // know, so anything arriving here is one this switch has not caught up with.
-                server.getLogger().verbose(`Unknown inventory transaction type: ${packet.transactionType}`);
+            case 'useItemOnEntity':
+                await this.handleUseItemOnEntity(data, server, player);
+                return;
+            case 'releaseItem':
+                await this.handleReleaseItem(data, server, player);
+                return;
         }
     }
 
     /**
      * Items being moved around, between slots or in and out of a container.
      *
-     * Decoded but not applied. The server's inventory is authoritative, and container moves
-     * reach it through the ItemStackRequest path, so a Normal transaction's actions are only
-     * logged. Applying them here would mean trusting the client's From Item and To Item over
-     * what the server holds.
+     * Decoded but not applied. The server's inventory is authoritative, and a 2193 client
+     * moves items through the ItemStackRequest path, so a Normal transaction is a legacy
+     * client's and its actions are only logged. Applying them would mean trusting the
+     * client's From Item and To Item over what the server holds.
      */
-    private async handleNormal(packet: InventoryTransactionPacket, server: Server): Promise<void> {
-        for (const action of packet.inventoryActions) {
-            if (action.sourceType === ActionSource.CONTAINER) continue;
-
-            server.getLogger().debug(`Unknown source type: ${action.sourceType}`);
-        }
+    private handleNormal(packet: InventoryTransactionPacket, server: Server, player: Player): void {
+        const sources = packet.inventoryActions.map((action) => ActionSource[action.sourceType]).join(', ');
+        server
+            .getLogger()
+            .debug(
+                `Ignored a Normal inventory transaction from ${player.getName()} with ${packet.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
+                'InventoryTransactionHandler/handleNormal'
+            );
     }
 
     /**
@@ -83,30 +204,27 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      *
      * Not through `InteractPacket`, which is what its name suggests and which is why this sat
      * unimplemented for so long: `InteractPacket` carries mounting, dismounting and opening a
-     * villager's trades, and a swing comes through here instead. The packet was already decoded
-     * in full - only this branch was missing, so every attack a client ever sent was logged and
-     * thrown away.
+     * villager's trades, and a swing comes through here instead.
+     *
+     * The target is looked up by runtime id in the world's own map. A runtime id the world
+     * does not track is ordinary traffic, since a client can swing at something the server
+     * removed in the same tick, and it is logged at verbose level and dropped. The reach is
+     * measured by `meleeAttack` from the server's position for the player, not from the
+     * From Position the client sent.
      */
-    private async handleUseItemOnEntity(
-        packet: InventoryTransactionPacket,
-        server: Server,
-        connection: PlayerSession
-    ): Promise<void> {
-        const player = connection.getPlayer();
-        const data = packet.transactionData;
-        if (data?.kind !== 'useItemOnEntity') return;
-
-        // Interacting and using an item on something are not attacks - shearing a sheep, putting a
-        // saddle on a pig - and are not handled yet.
+    private async handleUseItemOnEntity(data: UseItemOnEntityData, server: Server, player: Player): Promise<void> {
+        // Interacting and using an item on something are not attacks (shearing a sheep, putting
+        // a saddle on a pig) and are not handled yet.
         if (data.actionType !== UseItemOnEntityAction.ATTACK) return;
 
-        // By runtime id through the world's own map. Walking `getEntities()` would be a linear
-        // scan of everything in the world on every swing of every player.
         const target = player.getWorld().getEntity(data.entityRuntimeId);
         if (!target) {
-            // Ordinary traffic rather than a fault: a client can swing at something the server
-            // removed in the same tick.
-            server.getLogger().verbose(`${player.getName()} swung at an entity that is no longer here`);
+            server
+                .getLogger()
+                .verbose(
+                    `${player.getName()} swung at runtime id ${data.entityRuntimeId}, which is not an entity here`,
+                    'InventoryTransactionHandler/handleUseItemOnEntity'
+                );
             return;
         }
 
@@ -117,7 +235,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             // number, and an empty hand is one point rather than none.
             damage: player.getInventory().getItemInHand().getAttackDamage(),
 
-            // Falling, and actually descending - a player on the way up through a jump is off the
+            // Falling, and actually descending: a player on the way up through a jump is off the
             // ground too, and vanilla does not let them crit from there.
             critical: !player.isOnGround() && player.getFallDistance() > 0 && !player.isFlying(),
 
@@ -132,49 +250,69 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     /**
      * A held item let go of, which for a bow means the arrow leaves.
      *
-     * The charge is measured rather than sent - see the `CLICK_AIR` branch above for why.
+     * The charge is measured rather than sent; see the `CLICK_AIR` branch of
+     * {@link handleUseItem} for why. The docs' Use action, a crossbow finishing its charge, is
+     * taken and does nothing, since crossbows are not implemented.
      *
-     * The arrow is not taken out of the inventory and the bow is not worn down. Both need the same
-     * thing - telling the client that a slot has changed - and both are left with the armor work
-     * where that lives, because a server that silently disagrees with the client about what is in
-     * a player's hand is worse than one that has not got round to the accounting.
+     * The arrow is not taken out of the inventory and the bow is not worn down. Both need the
+     * same thing, telling the client that a slot has changed, and both are left with the armor
+     * work where that lives, because a server that silently disagrees with the client about
+     * what is in a player's hand is worse than one that has not got round to the accounting.
      */
-    private async handleReleaseItem(server: Server, connection: PlayerSession): Promise<void> {
-        const player = connection.getPlayer();
+    private async handleReleaseItem(data: ReleaseItemData, server: Server, player: Player): Promise<void> {
         const drawn = player.takeItemUseTicks(server.getTick());
 
+        if (data.actionType !== ReleaseItemAction.RELEASE) return;
         if (player.getInventory().getItemInHand().getName() !== BOW) return;
 
         await loose(player, drawn);
     }
 
-    /** The item in hand being used: on a block, on nothing, or to break a block. */
-    private async handleUseItem(
-        packet: InventoryTransactionPacket,
-        server: Server,
-        connection: PlayerSession
-    ): Promise<void> {
-        const player = connection.getPlayer();
-        const useItemData = packet.transactionData;
-        if (useItemData?.kind !== 'useItem') return;
+    /**
+     * The item in hand being used: on a block, on nothing, or to break a block.
+     *
+     * The block the client names has to be within {@link MAX_BLOCK_DISTANCE} of where the
+     * server has the player, or the transaction is dropped at verbose level. What is placed is
+     * the item the server has in the player's hand, not the Item the client sent: the client's
+     * copy says what it believes it holds, and the server's inventory is the one that decides.
+     */
+    private async handleUseItem(data: UseItemData, server: Server, player: Player): Promise<void> {
+        const world = player.getWorld();
 
-        switch (useItemData.actionType) {
+        switch (data.actionType) {
             case UseItemAction.CLICK_BLOCK:
-                await player
-                    .getWorld()
-                    .useItemOn(
-                        server
-                            .getBlockManager()
-                            .getBlockByIdAndMeta(useItemData.itemInHand.getId(), useItemData.itemInHand.meta),
-                        useItemData.blockPosition,
-                        useItemData.blockFace,
-                        useItemData.clickPosition,
+            case UseItemAction.BREAK_BLOCK: {
+                const distance = player.getPosition().distanceTo(data.blockPosition);
+                if (!Number.isFinite(distance) || distance > MAX_BLOCK_DISTANCE) {
+                    server
+                        .getLogger()
+                        .verbose(
+                            `Dropped item use ${UseItemAction[data.actionType]} from ${player.getName()} on a block ${distance.toFixed(1)} away`,
+                            'InventoryTransactionHandler/handleUseItem'
+                        );
+                    return;
+                }
+
+                if (data.actionType === UseItemAction.CLICK_BLOCK) {
+                    await world.useItemOn(
+                        player.getInventory().getItemInHand(),
+                        data.blockPosition,
+                        data.blockFace,
+                        data.clickPosition,
                         player
                     );
+                    return;
+                }
+
+                // Survival's route into a break. Creative announces the same thing through
+                // PlayerAction instead, and both end up in `breakBlock`, which does nothing the
+                // second time round.
+                await world.breakBlock(data.blockPosition, player);
                 return;
+            }
 
             case UseItemAction.CLICK_AIR:
-                // Bedrock never says how long a bow was drawn for - it says "started" here and
+                // Bedrock never says how long a bow was drawn for. It says "started" here and
                 // "released" in another transaction entirely, and the gap between the two is the
                 // charge. So the clock starts here.
                 if (player.getInventory().getItemInHand().getName() === BOW) {
@@ -189,16 +327,6 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             // so there is nothing here to apply.
             case UseItemAction.USE_AS_ATTACK:
                 return;
-
-            // Survival's route into a break. Creative announces the same thing through
-            // PlayerAction instead, and both end up in `breakBlock`, which does nothing the
-            // second time round.
-            case UseItemAction.BREAK_BLOCK:
-                await player.getWorld().breakBlock(useItemData.blockPosition, player);
-                return;
-
-            default:
-                server.getLogger().debug(`Unknown action type: ${useItemData.actionType}`);
         }
     }
 }
