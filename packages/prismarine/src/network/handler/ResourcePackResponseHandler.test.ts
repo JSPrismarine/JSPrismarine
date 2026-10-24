@@ -14,6 +14,7 @@ import UUID from '../../utils/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
@@ -34,6 +35,7 @@ const harness = ({ cancelSpawn = false }: { cancelSpawn?: boolean } = {}) => {
 
     const world = stub<World>({
         getTicks: () => 6000,
+        getDimension: () => Dimensions.Overworld,
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',

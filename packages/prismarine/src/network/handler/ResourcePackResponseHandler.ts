@@ -118,7 +118,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
         await session.sendTime(world.getTicks());
 
         const setSpawnPos = new SetSpawnPositionPacket();
-        setSpawnPos.dimension = 0; // TODO: enum
+        setSpawnPos.dimension = world.getDimension().id;
         setSpawnPos.position = worldSpawnPos;
         setSpawnPos.blockPosition = setSpawnPos.position;
         setSpawnPos.type = SpawnType.PLAYER_SPAWN;
