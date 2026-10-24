@@ -79,36 +79,45 @@ export class Attribute {
     }
 
     /**
-     * Writes one attribute in the layout protocol {@link Identifiers.Protocol} defines:
-     * `min, max, current, default_min, default_max, default, name, modifiers`.
+     * Writes one attribute as the `AttributeData` that `UpdateAttributesPacket` carries.
      *
-     * The `default_min` / `default_max` pair is what the client falls back to when an
-     * attribute is reset. We do not track bounds that differ from the live ones, so they
-     * are sent as the live bounds - the same thing PocketMine does. Omitting them costs
-     * eight bytes per attribute and desynchronizes everything after it, which the client
-     * only notices once it reads a nonsensical string length further down the packet.
-     * @see https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json
+     * Protocol 2193 order: `Min Value`, `Max Value`, `Current Value`, `Default Min Value`,
+     * `Default Max Value` and `Default Value` as little-endian floats, `Name` as a
+     * `hashed_string` (a varuint-prefixed UTF-8 string on the wire), then `Modifiers` as a
+     * varuint32 count and that many `AttributeModifier`.
+     *
+     * The default bounds are what the client falls back to when an attribute is reset. No
+     * bounds other than the live ones are tracked here, so they are sent as the live bounds -
+     * the same thing PocketMine does. Omitting them costs eight bytes per attribute and
+     * desynchronizes everything after it, which the client only notices once it reads a
+     * nonsensical string length further down the packet.
+     *
+     * The modifier count is always zero: a modifier is a timed buff, and status effects are
+     * not modelled, so there is never one to send.
+     * @param stream - The network stream.
+     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
      */
     public networkSerialize(stream: BinaryStream): void {
         stream.writeFloatLE(this.min);
         stream.writeFloatLE(this.max);
         stream.writeFloatLE(this.value);
-        stream.writeFloatLE(this.min); // default_min
-        stream.writeFloatLE(this.max); // default_max
+        stream.writeFloatLE(this.min); // Default Min Value
+        stream.writeFloatLE(this.max); // Default Max Value
         stream.writeFloatLE(this.default);
         NetworkUtil.writeString(stream, this.name);
-        stream.writeUnsignedVarInt(0); // TODO: modifier count
+        stream.writeUnsignedVarInt(0); // Modifiers
     }
 
     /**
-     * Writes one attribute in the *other* layout the protocol has for them, the one
-     * `AddActor` carries: `name, min, current, max`, with no defaults and no modifiers.
+     * Writes one attribute as the `SyncedAttribute` that `AddActorPacket` carries:
+     * `Attribute Name`, `Min Value`, `Current Value`, `Max Value`, with no defaults and no
+     * modifiers.
      *
      * Note the order - the current value sits between the bounds here, where
      * {@link Attribute.networkSerialize} puts it after them. Getting the two confused
      * silently swaps an entity's health with its upper bound.
      * @param {BinaryStream} stream - The network stream.
-     * @see https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json `EntityAttributes`
+     * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/add-actor-packet/
      */
     public networkSerializeInitial(stream: BinaryStream): void {
         NetworkUtil.writeString(stream, this.name);
@@ -127,16 +136,35 @@ export class Attribute {
         return new Attribute({ name, min, max, value, def: value });
     }
 
+    /**
+     * Reads one `AttributeData`, the inverse of {@link Attribute.networkSerialize}.
+     *
+     * Modifiers are read past rather than kept, because nothing here applies one. Reading
+     * past them is the part that matters: taking only the count left the stream in the middle
+     * of the first modifier, so the attribute after it - or the packet's trailing `Tick` -
+     * was read from the wrong place.
+     * @param stream - The network stream.
+     * @returns The attribute.
+     */
     public static networkDeserialize(stream: BinaryStream): Attribute {
         const min = stream.readFloatLE();
         const max = stream.readFloatLE();
         const value = stream.readFloatLE();
-        stream.readFloatLE(); // default_min, folded into min above
-        stream.readFloatLE(); // default_max, folded into max above
+        stream.readFloatLE(); // Default Min Value, folded into min above
+        stream.readFloatLE(); // Default Max Value, folded into max above
         const def = stream.readFloatLE();
 
         const attr = new Attribute({ min, max, value, def, name: NetworkUtil.readString(stream) });
-        stream.readUnsignedVarInt(); // TODO: skip modifiers for now
+
+        for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
+            NetworkUtil.readString(stream); // Id
+            NetworkUtil.readString(stream); // Name
+            stream.readFloatLE(); // Amount
+            stream.readIntLE(); // Operation
+            stream.readIntLE(); // Operand
+            stream.readBoolean(); // Is Serializable?
+        }
+
         return attr;
     }
 
