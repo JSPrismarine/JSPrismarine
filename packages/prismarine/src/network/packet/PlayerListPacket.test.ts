@@ -42,6 +42,31 @@ const personaSkin = () =>
         PieceTintColors: [{ PieceType: 'persona_hand', Colors: ['#ffa12722', '#0', '#0', '#0'] }]
     });
 
+/** A classic skin with no persona data and no color of its own. */
+const classicSkin = () =>
+    Skin.fromJWT({
+        SkinId: 'classic-skin',
+        CapeId: '',
+        SkinResourcePatch: '',
+        PlayFabId: '',
+        SkinImageHeight: 1,
+        SkinImageWidth: 1,
+        SkinGeometryData: '',
+        SkinAnimationData: '',
+        CapeImageHeight: 0,
+        CapeImageWidth: 0,
+        CapeOnClassicSkin: false,
+        SkinData: Buffer.from([0, 0, 0, 255]).toString('base64'),
+        CapeData: '',
+        PremiumSkin: false,
+        PersonaSkin: false,
+        SkinColor: '#0',
+        ArmSize: 'wide',
+        AnimatedImageData: [],
+        PersonaPieces: [],
+        PieceTintColors: []
+    });
+
 const serialize = (skin: Skin): Buffer => {
     const stream = new BinaryStream();
     skin.networkSerialize(stream);
@@ -53,6 +78,20 @@ const encode = (packet: PlayerListPacket): BinaryStream => {
     const stream = new BinaryStream(packet.getBuffer());
     expect(stream.readUnsignedVarInt()).toBe(Identifiers.PlayerListPacket); // Header.
     return stream;
+};
+
+/** Reads one Add entry up to and including its skin, leaving the three booleans next. */
+const skipToFlags = (stream: BinaryStream, skin: Skin): void => {
+    stream.readUnsignedVarInt(); // Entries.
+    stream.readUnsignedVarInt(); // Selector.
+    stream.readByte(); // Action.
+    UUID.networkDeserialize(stream);
+    stream.readVarLong();
+    NetworkUtil.readString(stream);
+    NetworkUtil.readString(stream);
+    NetworkUtil.readString(stream);
+    stream.readIntLE();
+    stream.read(serialize(skin).byteLength);
 };
 
 describe('network', () => {
@@ -111,6 +150,81 @@ describe('network', () => {
                 expect(stream.readByte()).toBe(PlayerListAction.TYPE_REMOVE);
                 expect(UUID.networkDeserialize(stream).toString()).toBe(PLAYER_UUID);
                 expect(stream.feof()).toBe(true);
+            });
+
+            it('writes an added entry as the PlayerListAddEntry bytes in docs order', () => {
+                const skin = classicSkin();
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_ADD;
+                packet.entries.push(
+                    new PlayerListEntry({
+                        uuid: UUID.fromString(PLAYER_UUID),
+                        runtimeId: 7n,
+                        name: 'Steve',
+                        xuid: '2535400000000000',
+                        platformChatId: '',
+                        buildPlatform: 1,
+                        skin,
+                        isTeacher: false,
+                        isHost: false,
+                        color: 0xff112233
+                    })
+                );
+                packet.encode();
+
+                const stream = new BinaryStream(packet.getBuffer());
+                const expectBytes = (length: number, hex: string): void => {
+                    expect(stream.read(length).toString('hex')).toBe(hex);
+                };
+
+                expectBytes(1, '3f'); // Header: packet id 63.
+                expectBytes(1, '01'); // Entries: one.
+                expectBytes(1, '01'); // Variant selector: Add.
+                expectBytes(1, '00'); // Action: Add.
+                expectBytes(16, '78695a4b3c2d1e0ff0e1d2c3b4a59687'); // UUID.
+                expectBytes(1, '0e'); // Actor Unique ID: 7, ZigZag.
+                expectBytes(6, '055374657665'); // Player Name: "Steve".
+                expectBytes(17, '1032353335343030303030303030303030'); // XBL XUID.
+                expectBytes(1, '00'); // Platform Online ID: empty.
+                expectBytes(4, '01000000'); // Build Platform: iOS, little-endian.
+
+                const skinBytes = serialize(skin);
+                expect(stream.read(skinBytes.byteLength).equals(skinBytes)).toBe(true); // Serialized Skin.
+
+                expectBytes(3, '000000'); // Is Teacher, Is Host, Is SubClient.
+                expectBytes(4, '332211ff'); // Player Color: ARGB 0xff112233, little-endian.
+                expect(stream.feof()).toBe(true);
+            });
+
+            it('writes a sub client as the third boolean', () => {
+                const skin = classicSkin();
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_ADD;
+                packet.entries.push(
+                    new PlayerListEntry({
+                        uuid: UUID.fromString(PLAYER_UUID),
+                        skin,
+                        isTeacher: false,
+                        isHost: false,
+                        isSubClient: true
+                    })
+                );
+
+                const stream = encode(packet);
+                skipToFlags(stream, skin);
+                expect(stream.readBoolean()).toBe(false); // Is Teacher.
+                expect(stream.readBoolean()).toBe(false); // Is Host.
+                expect(stream.readBoolean()).toBe(true); // Is SubClient.
+                expect(stream.read(4).toString('hex')).toBe('ffffffff'); // Player Color.
+                expect(stream.feof()).toBe(true);
+            });
+
+            it('refuses to add an entry that has no skin', () => {
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_ADD;
+                packet.entries.push(new PlayerListEntry({ uuid: UUID.fromString(PLAYER_UUID), name: 'Steve' }));
+
+                expect(() => packet.encode()).toThrow(PLAYER_UUID);
             });
         });
     });
