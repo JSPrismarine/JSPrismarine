@@ -1,9 +1,9 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { greedyString } from '@jsprismarine/brigadier';
 
-import type Player from '../../Player';
-import { Command } from '../Command';
-import { PlayerArgumentCommand } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { PlayerArgumentCommand, getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 /**
  * Ban a player.
@@ -18,15 +18,15 @@ export default class BanCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('ban').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' }))
                     .then(
                         argument('reason', greedyString()).executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const reason = context.getArgument('reason') as string;
-                            const target = context.getArgument('player');
+                            const source = context.getSource();
+                            const reason = getString(context, 'reason');
+                            const target = getString(context, 'player');
                             const player = source
                                 .getServer()
                                 .getSessionManager()
@@ -36,7 +36,7 @@ export default class BanCommand extends Command {
                             if (player) {
                                 try {
                                     await player.kick(`You have been banned from the server due to: \n\n${reason}!`);
-                                } catch (error: any) {
+                                } catch (error: unknown) {
                                     source.getServer().getLogger().error(error);
                                 }
                             }
@@ -46,8 +46,8 @@ export default class BanCommand extends Command {
                         })
                     )
                     .executes(async (context) => {
-                        const source = context.getSource() as Player;
-                        const target = context.getArgument('player');
+                        const source = context.getSource();
+                        const target = getString(context, 'player');
                         const player = source
                             .getServer()
                             .getSessionManager()
@@ -57,7 +57,7 @@ export default class BanCommand extends Command {
                         if (player) {
                             try {
                                 await player.kick(`You have been banned!`);
-                            } catch (error: any) {
+                            } catch (error: unknown) {
                                 source.getServer().getLogger().error(error);
                             }
                         }

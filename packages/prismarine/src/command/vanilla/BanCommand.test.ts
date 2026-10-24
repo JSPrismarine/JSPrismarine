@@ -1,62 +1,45 @@
-import { describe, expect, it, vi } from 'vitest';
+import { CommandDispatcher } from '@jsprismarine/brigadier';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import type Player from '../../Player';
+import type Server from '../../Server';
+import type BanManager from '../../ban/BanManager';
+import type SessionManager from '../../SessionManager';
+import { stub } from '../../testing/stub.test.helper';
+import type { CommandExecutor } from '../CommandExecutor';
 import BanCommand from './BanCommand';
 
 describe('command', () => {
     describe('vanilla', () => {
-        describe.skip('BanCommand', () => {
-            const mockExecute = vi.fn().mockImplementation(() => Promise.resolve());
+        describe('BanCommand', () => {
+            let dispatcher: CommandDispatcher<CommandExecutor>;
+            let setBanned: ReturnType<typeof vi.fn<BanManager['setBanned']>>;
+            let kick: ReturnType<typeof vi.fn<Player['kick']>>;
+            let source: CommandExecutor;
 
-            const dispatcher = {
-                register: vi.fn().mockImplementation((command) => {
-                    command.execute = mockExecute;
-                })
-            };
+            beforeEach(async () => {
+                setBanned = vi.fn<BanManager['setBanned']>(async () => true);
+                kick = vi.fn<Player['kick']>(async () => {});
 
-            const banManager = {
-                setBanned: vi.fn()
-            };
+                const target = stub<Player>({
+                    getName: () => 'testPlayer',
+                    getFormattedUsername: () => 'testPlayer',
+                    kick
+                });
+                const server = stub<Server>({
+                    getBanManager: () => stub<BanManager>({ setBanned }),
+                    getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => [target] })
+                });
+                source = {
+                    sendMessage: () => {},
+                    getName: () => 'console',
+                    getFormattedUsername: () => 'console',
+                    getServer: () => server
+                };
 
-            const playerRes = {
-                getName: vi.fn().mockReturnValue('testPlayer'),
-                getServer: vi.fn().mockReturnValue({
-                    getSessionManager: vi.fn().mockReturnValue({
-                        getAllPlayers: vi.fn().mockReturnValue([
-                            {
-                                getName: vi.fn().mockReturnValue('testPlayer')
-                            }
-                        ])
-                    }),
-                    getLogger: vi.fn().mockReturnValue({
-                        error: vi.fn()
-                    })
-                }),
-                kick: vi.fn()
-            };
-            const player = {
-                getServer: vi.fn().mockReturnValue({
-                    getBanManager: vi.fn().mockReturnValue(banManager),
-                    getSessionManager: vi.fn().mockReturnValue({
-                        getAllPlayers: vi.fn().mockReturnValue([playerRes])
-                    }),
-                    getLogger: vi.fn().mockReturnValue({
-                        error: vi.fn()
-                    })
-                })
-            };
-
-            const context = {
-                getSource: vi.fn().mockReturnValue(player),
-                getArgument: vi.fn().mockImplementation((argName) => {
-                    if (argName === 'player') {
-                        return 'testPlayer';
-                    } else if (argName === 'reason') {
-                        return 'testReason';
-                    }
-
-                    return '';
-                })
-            };
+                dispatcher = new CommandDispatcher();
+                await new BanCommand().register(dispatcher);
+            });
 
             it('should have correct properties', () => {
                 const banCommand = new BanCommand();
@@ -66,47 +49,17 @@ describe('command', () => {
             });
 
             it('should ban a player with reason', async () => {
-                // Create an instance of BanCommand
-                const banCommand = new BanCommand();
+                await dispatcher.execute('ban testPlayer testReason', source);
 
-                // Call the register method with the mock dispatcher
-                await banCommand.register(dispatcher as any);
-
-                // Call the execute method with the mock context
-                await dispatcher.register.mock.calls[0][0].execute(context);
-
-                // Assertions
-                /*expect(playerRes.kick).toHaveBeenCalledWith(
-                    'You have been banned from the server due to: \n\ntestReason!'
-                );*/
-                expect(banManager.setBanned).toHaveBeenCalledWith('testPlayer', 'testReason');
+                expect(kick).toHaveBeenCalledWith('You have been banned from the server due to: \n\ntestReason!');
+                expect(setBanned).toHaveBeenCalledWith('testPlayer', 'testReason');
             });
 
             it('should ban a player without reason', async () => {
-                // Create a mock context
-                const context = {
-                    getSource: vi.fn().mockReturnValue(player),
-                    getArgument: vi.fn().mockImplementation((argName) => {
-                        if (argName === 'player') {
-                            return 'testPlayer';
-                        }
+                await dispatcher.execute('ban testPlayer', source);
 
-                        return '';
-                    })
-                };
-
-                // Create an instance of BanCommand
-                const banCommand = new BanCommand();
-
-                // Call the register method with the mock dispatcher
-                await banCommand.register(dispatcher as any);
-
-                // Call the execute method with the mock context
-                await dispatcher.register.mock.calls[0][0].execute(context);
-
-                // Assertions
-                //expect(playerRes.kick).toHaveBeenCalledWith('You have been banned!');
-                expect(banManager.setBanned).toHaveBeenCalledWith('testPlayer');
+                expect(kick).toHaveBeenCalledWith('You have been banned!');
+                expect(setBanned).toHaveBeenCalledWith('testPlayer');
             });
         });
     });

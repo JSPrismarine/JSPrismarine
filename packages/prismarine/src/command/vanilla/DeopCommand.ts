@@ -1,10 +1,9 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 import { Chat } from '../../chat/Chat';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Command } from '../Command';
-import type Player from '../../Player';
-import { PlayerArgumentCommand } from '../CommandArguments';
+import { Command, argument, literal } from '../Command';
+import { PlayerArgumentCommand, getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class DeopCommand extends Command {
     public constructor() {
@@ -15,17 +14,15 @@ export default class DeopCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('deop').then(
                 argument('player', new PlayerArgumentCommand({ name: 'player' })).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    const target = source
-                        .getServer()
-                        .getSessionManager()
-                        .getPlayerByExactName(context.getArgument('player')); // TODO: by name not exact
+                    const source = context.getSource();
+                    const username = getString(context, 'player');
+                    const target = source.getServer().getSessionManager().getPlayerByExactName(username); // TODO: by name not exact
 
-                    await source.getServer().getPermissionManager().setOp(context.getArgument('player'), false);
+                    await source.getServer().getPermissionManager().setOp(username, false);
 
                     if (target) {
                         const event = new ChatEvent(
@@ -38,7 +35,7 @@ export default class DeopCommand extends Command {
                         await target.getServer().emit('chat', event);
                     }
 
-                    return `Made ${context.getArgument('player')} no longer a server operator`;
+                    return `Made ${username} no longer a server operator`;
                 })
             )
         );
