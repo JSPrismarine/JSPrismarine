@@ -8,7 +8,33 @@ const wire = Buffer.from([
     0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 ]);
 
+/**
+ * `00112233-4455-6677-8899-aabbccddeeff`: `Most Significant Bits` 0x0011223344556677 little
+ * endian, then `Least Significant Bits` 0x8899aabbccddeeff little endian. The same sixteen
+ * bytes gophertunnel's `Writer.UUID` produces, which moves the low half in front of the high
+ * one and reverses all sixteen.
+ * {@link https://raw.githubusercontent.com/Sandertv/gophertunnel/master/minecraft/protocol/writer.go}
+ */
+const known = Buffer.from([
+    0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0x00, 0xff, 0xee, 0xdd, 0xcc, 0xbb, 0xaa, 0x99, 0x88
+]);
+
 describe('UUID', () => {
+    it('writes a known uuid as two little endian halves, most significant first', () => {
+        const stream = new NetworkBinaryStream();
+
+        new UUID(0x0011_2233_4455_6677n, 0x8899_aabb_ccdd_eeffn).serialize(stream);
+
+        expect(stream.getWriteBuffer()).toEqual(known);
+    });
+
+    it('reads a known uuid back into its two halves', () => {
+        const uuid = UUID.deserialize(new NetworkBinaryStream(known));
+
+        expect(uuid.most).toBe(0x0011_2233_4455_6677n);
+        expect(uuid.least).toBe(0x8899_aabb_ccdd_eeffn);
+    });
+
     it('writes a half at or above 2^63 without throwing', () => {
         const stream = new NetworkBinaryStream();
 
