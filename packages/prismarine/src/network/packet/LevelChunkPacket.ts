@@ -1,25 +1,58 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+/**
+ * Sends one chunk column to the client. Protocol 2193 writes it as:
+ *
+ * 1. Chunk Position: X varint32 then Z varint32, both ZigZag.
+ * 2. Dimension Id: varint32.
+ * 3. Sub-chunks Count: varuint32.
+ * 4. Client Request SubChunk Limit: optional varint32. One presence byte, then the value
+ *    only when present. Present only in request mode, where the count above is 0.
+ * 5. Cache Enabled: boolean.
+ * 6. Cache Metadata: varuint32 count, then one Blob Id uint64 per entry. Always written,
+ *    empty when the cache is off.
+ * 7. Serialized Chunk Data: varuint32 byte length, then the raw bytes.
+ *
+ * The server only sends this packet, so there is no `decodePayload`.
+ */
 export default class LevelChunkPacket extends DataPacket {
     public static NetID = Identifiers.LevelChunkPacket;
 
-    public chunkX!: number;
-    public chunkZ!: number;
-    public subChunkCount!: number;
-    public clientSubChunkRequestsEnabled!: boolean;
-    public data: any;
+    /** Chunk Position X, in chunks. */
+    public chunkX = 0;
+
+    /** Chunk Position Z, in chunks. */
+    public chunkZ = 0;
+
+    /** Dimension Id of the chunk. 0 is the Overworld, 1 the Nether, 2 the End. */
+    public dimension = 0;
+
+    /**
+     * Sub-chunks Count in plain mode. In request mode this is the Client Request SubChunk
+     * Limit instead, the highest sub-chunk the client may ask for, and the count goes out as 0.
+     */
+    public subChunkCount = 0;
+
+    /**
+     * Whether the client fetches the sub-chunks itself through `SubChunkRequestPacket`.
+     * Controls whether the Client Request SubChunk Limit is present.
+     */
+    public clientSubChunkRequestsEnabled = false;
+
+    /** Serialized Chunk Data, the bytes `Chunk.networkSerialize` produces. */
+    public data: Buffer = Buffer.alloc(0);
 
     public encodePayload(): void {
         this.writeVarInt(this.chunkX);
         this.writeVarInt(this.chunkZ);
 
-        this.writeVarInt(0); // DimensionID
+        this.writeVarInt(this.dimension);
 
-        // A plain count, and then a separate optional limit. The count used to double as a
-        // signal: `-2` meant "the client will ask for subchunks itself" and was followed by
-        // the highest one it may ask for. At 2168 the sentinel is gone - a count is only ever
-        // a count - and the limit is an optional field of its own.
+        // A plain count, then a separate optional limit. The count used to double as a signal.
+        // A count of -2 meant the client would ask for sub-chunks itself and was followed by
+        // the highest one it could ask for. Since 2168 a count is only a count and the limit
+        // is an optional field of its own.
         if (this.clientSubChunkRequestsEnabled) {
             this.writeUnsignedVarInt(0);
             this.writeBoolean(true);
@@ -29,14 +62,14 @@ export default class LevelChunkPacket extends DataPacket {
             this.writeBoolean(false);
         }
 
-        this.writeBoolean(false); // Cache enabled
+        // Cache Enabled. The server does not use the client blob cache.
+        this.writeBoolean(false);
 
-        // The blob hashes, now written unconditionally rather than only when the cache is on.
-        // Empty is still a length, and leaving it out costs the client the first byte of the
-        // payload that follows.
+        // Cache Metadata. The list goes out even when the cache is off. An empty list is still
+        // a count byte, and leaving it out makes the client read the payload length as a count.
         this.writeUnsignedVarInt(0);
 
-        this.writeUnsignedVarInt(Buffer.byteLength(this.data));
+        this.writeUnsignedVarInt(this.data.byteLength);
         this.write(this.data);
     }
 }

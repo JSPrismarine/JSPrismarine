@@ -370,6 +370,7 @@ export default class PlayerSession {
         for (const chunk of chunksToSend) {
             const pk = new LevelChunkPacket();
             pk.chunkX = chunk.getX();
+            pk.dimension = chunk.getDimension().id;
             pk.chunkZ = chunk.getZ();
             pk.clientSubChunkRequestsEnabled = false;
             pk.subChunkCount = chunk.getNetworkSubChunkCount();
