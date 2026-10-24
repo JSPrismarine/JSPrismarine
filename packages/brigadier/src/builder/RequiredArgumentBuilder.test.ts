@@ -12,7 +12,7 @@ describe('LiteralArgumentBuilderTest', () => {
     const command: Command<Object> = async () => 0;
 
     beforeEach(() => {
-        builder = argument('foo', type) as any;
+        builder = argument('foo', type);
     });
 
     it('testBuild', () => {
@@ -31,8 +31,8 @@ describe('LiteralArgumentBuilderTest', () => {
     });
 
     it('testBuildWithChildren', () => {
-        builder.then(argument('bar', type) as any);
-        builder.then(argument('baz', type) as any);
+        builder.then(argument('bar', type));
+        builder.then(argument('baz', type));
         const node = builder.build();
 
         assert.equal(node.getChildrenCount(), 2);
