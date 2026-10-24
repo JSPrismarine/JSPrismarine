@@ -81,7 +81,6 @@ export default class CommandDispatcher<S> {
                 if (context && child) {
                     forked = forked || context.isForked();
                     if (child.hasNodes()) {
-                        foundCommand = true;
                         let modifier = context.getRedirectModifier();
                         if (!modifier) {
                             if (!next) next = [];
@@ -95,6 +94,8 @@ export default class CommandDispatcher<S> {
                                     for (let source of results) {
                                         next.push(child.copyFor(source));
                                     }
+                                } else {
+                                    foundCommand = true;
                                 }
                             } catch (ex: any) {
                                 this.consumer.onCommandComplete(context, false, 0);
@@ -119,7 +120,7 @@ export default class CommandDispatcher<S> {
             next = null;
         }
 
-        if (!foundCommand) {
+        if (!foundCommand && !forked) {
             this.consumer.onCommandComplete(original, false, 0);
             throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().createWithContext(
                 parse.getReader()

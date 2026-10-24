@@ -312,6 +312,28 @@ describe('CommandDispatcherTest', () => {
         assert.include(executedSources, source2);
     });
 
+    it('throws for an incomplete redirected command', () => {
+        const target = subject.register(
+            literal('foo')
+                .then(literal('bar').then(argument('value', integer()).executes(command)))
+                .then(literal('awa').executes(command))
+        );
+        subject.register(literal('baz').redirect(target));
+
+        expect(() => subject.execute('baz bar', source)).toThrow(CommandSyntaxException);
+    });
+
+    it('returns no executions when a fork modifier matches no sources', () => {
+        const target = subject.register(
+            literal('foo').then(literal('bar').then(argument('value', integer()).executes(command)))
+        );
+        const modifier: RedirectModifier<Object> = { apply: () => [] };
+        subject.register(literal('baz').fork(target, modifier));
+
+        assert.deepEqual(subject.execute('baz bar 100', source), []);
+        assert.equal(command.verify('anything'), 0);
+    });
+
     it('testExecuteOrphanedSubcommand', async () => {
         subject.register(literal('foo').then(argument('bar', integer())).executes(command));
 
