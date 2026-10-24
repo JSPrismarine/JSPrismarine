@@ -30,16 +30,19 @@ export const MAX_BLOCK_ACTIONS = 100;
 /**
  * `InputMode`: the input device the player is using, as `Input Mode` numbers it.
  *
- * The 1.26.51 docs page lists four members and `Count` as 4; the 1.26.60 docs corrected
- * `Count` to 5. Member 4 is the motion controller the field's own description mentions, which
- * the docs' member list leaves out and gophertunnel names `InputModeMotionController`.
+ * The 1.26.51 docs list four modes and `Count`, which the rendered page numbers 4; the
+ * 1.26.60 docs corrected `Count` to 5. The datagen snapshot in `packages/minecraft` has the
+ * member the docs' list drops, `MotionController_Deprecated = 4`, and that is why `Count` is
+ * 5. It stays here under the snapshot's name because a client can still write 4, and the
+ * handler's range check accepts every value below `Count`.
  */
 export enum InputMode {
     Undefined = 0,
     Mouse = 1,
     Touch = 2,
     GamePad = 3,
-    MotionController = 4,
+    /** The motion controller the docs' member list leaves out. gophertunnel names it `InputModeMotionController`. */
+    MotionController_Deprecated = 4,
     /** One past the last mode; not a mode a client can send. */
     Count = 5
 }

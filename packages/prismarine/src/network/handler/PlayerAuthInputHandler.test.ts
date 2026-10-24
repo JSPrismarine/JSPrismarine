@@ -228,7 +228,7 @@ describe('PlayerAuthInputHandler', () => {
 
         await new PlayerAuthInputHandler().handle(
             input((packet) => {
-                packet.inputMode = InputMode.MotionController;
+                packet.inputMode = InputMode.MotionController_Deprecated;
                 packet.playMode = ClientPlayMode.ExitLevel;
                 packet.interactionModel = NewInteractionModel.Touch;
             }),
