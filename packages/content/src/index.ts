@@ -4,6 +4,7 @@ export * from './definitions';
 export * from './diagnostics';
 export * from './errors';
 export * from './hooks';
+export * from './instances';
 export * from './registry';
 export * from './tags';
 export * from './types';
