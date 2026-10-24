@@ -1,6 +1,7 @@
 import {
     BuildPlatform,
     CommandPermissionLevel,
+    ContainerUiId,
     Gametype,
     PlayerPermissionLevel,
     WindowIds
@@ -19,6 +20,7 @@ import type { Position } from '../world/Position';
 import type ClientConnection from './ClientConnection';
 import type DataPacket from './packet/DataPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
+import InventoryContentPacket from './packet/InventoryContentPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import PlayerSession from './PlayerSession';
@@ -84,6 +86,33 @@ const viewer = () => {
 
 describe('network', () => {
     describe('PlayerSession', () => {
+        describe('sendInventory', () => {
+            /** The player's own session, holding `equippedHuman`'s inventory. */
+            const ownSession = () => {
+                const inventory = equippedHuman().getInventory();
+                return sessionFor(stub<Player>({ getRuntimeId: () => 7n, getInventory: () => inventory }));
+            };
+
+            it('names the armor container in the armor window, not the hotbar and inventory', async () => {
+                // Window 120 is the armor; its `Full Container Name` said container 12, the
+                // combined hotbar and inventory, which is the packet's default.
+                const { session, sent } = ownSession();
+
+                await session.sendInventory();
+
+                const contents = sent.filter((packet) => packet instanceof InventoryContentPacket);
+                expect(contents).toHaveLength(2);
+                const [inventory, armor] = contents;
+
+                expect(inventory.windowId).toBe(WindowIds.INVENTORY);
+                expect(inventory.containerId).toBe(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY);
+
+                expect(armor.windowId).toBe(WindowIds.ARMOR);
+                expect(armor.containerId).toBe(ContainerUiId.ARMOR_CONTAINER);
+                expect(armor.items.map((entry) => entry.getItem().getName())).toContain('minecraft:diamond_chestplate');
+            });
+        });
+
         describe('sendArmorFor', () => {
             it('sends the off hand as equipment for the offhand container, not as body armor', async () => {
                 // `Body` is the body armor slot. Putting the shield there dressed the player in

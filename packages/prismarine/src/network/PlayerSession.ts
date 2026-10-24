@@ -1,5 +1,11 @@
 import { Vector3 } from '@jsprismarine/math';
-import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
+import {
+    BuildPlatform,
+    CommandPermissionLevel,
+    ContainerUiId,
+    Gametype,
+    PlayerPermissionLevel
+} from '@jsprismarine/minecraft';
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
@@ -653,10 +659,13 @@ export default class PlayerSession {
         if (hand) await this.sendHandItem(hand.toItemStack());
 
         // The armor container is a window of its own, so the main inventory's contents say
-        // nothing about it and a player would open their screen to four empty slots.
+        // nothing about it and a player would open their screen to four empty slots. Its
+        // `Full Container Name` has to say armor too: the packet defaults to the player's
+        // combined hotbar and inventory, which named the wrong container for window 120.
         const armor = new InventoryContentPacket();
         armor.items = inventory.getArmor().getItems(true);
         armor.windowId = WindowIds.ARMOR;
+        armor.containerId = ContainerUiId.ARMOR_CONTAINER;
         await this.connection.sendDataPacket(armor);
 
         await this.sendArmorFor(this.player);
