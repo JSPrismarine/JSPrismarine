@@ -1,8 +1,7 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { literal } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
-import type Player from '../../Player';
+import { Command, literal } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class TpsCommand extends Command {
     public constructor() {
@@ -22,10 +21,10 @@ export default class TpsCommand extends Command {
         return `${color}${tps.toFixed(2)}§r`;
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('tps').executes(async (context) => {
-                const source = context.getSource() as Player;
+                const source = context.getSource();
                 const tps = source.getServer().getTPS();
                 const tick = source.getServer().getTick();
 

@@ -1,8 +1,8 @@
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { literal } from '@jsprismarine/brigadier';
+import type { CommandContext, CommandDispatcher } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
-import type { Player } from '../../';
+import Player from '../../Player';
+import { Command, literal } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class HelpCommand extends Command {
     public constructor() {
@@ -11,19 +11,21 @@ export default class HelpCommand extends Command {
             description: 'Get helpful information about commands.',
             permission: 'minecraft.command.help',
             aliases: ['?']
-        } as any);
+        });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
-        const execute = async (context: any) => {
-            const source = context.getSource() as Player;
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
+        const execute = async (context: CommandContext<CommandExecutor>) => {
+            const source = context.getSource();
+            const permissionManager = source.getServer().getPermissionManager();
 
             source
                 .getServer()
                 .getCommandManager()
                 .getCommands()
                 .forEach(async (command) => {
-                    if (!source.getServer().getPermissionManager().can(source).execute(command.permission)) return;
+                    // Only players are permission-gated, matching `CommandManager.dispatchCommand`.
+                    if (source instanceof Player && !permissionManager.can(source).execute(command.permission)) return;
 
                     const usage = command.usage(dispatcher);
 
@@ -34,6 +36,6 @@ export default class HelpCommand extends Command {
                 });
         };
 
-        dispatcher.register(literal('help').executes(execute as any));
+        dispatcher.register(literal('help').executes(execute));
     }
 }

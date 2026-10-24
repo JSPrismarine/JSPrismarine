@@ -1,9 +1,10 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, greedyString, literal } from '@jsprismarine/brigadier';
+import { greedyString } from '@jsprismarine/brigadier';
 
 import { Chat } from '../../chat/Chat';
-import { Command } from '../Command';
-import type Player from '../../Player';
+import { Command, argument, literal } from '../Command';
+import { getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class SayCommand extends Command {
     public constructor() {
@@ -14,12 +15,12 @@ export default class SayCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('say').then(
                 argument('message', greedyString()).executes(async (context) => {
-                    const source = context.getSource() as Player;
-                    const message = context.getArgument('message') as string;
+                    const source = context.getSource();
+                    const message = getString(context, 'message');
 
                     const chat = new Chat({ sender: source, message: `§5[${source.getName()}] ${message}` });
                     await source.getServer().getChatManager().send(chat);

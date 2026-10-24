@@ -1,9 +1,8 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { literal } from '@jsprismarine/brigadier';
 
-import { Command } from '../Command';
 import Identifiers from '../../network/Identifiers';
-import type Player from '../../Player';
+import { Command, literal } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class VersionCommand extends Command {
     public constructor() {
@@ -15,10 +14,10 @@ export default class VersionCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('version').executes(async (context) => {
-                const source = context.getSource() as Player;
+                const source = context.getSource();
                 const serverVersion = source.getServer().getVersion();
                 const protocolVersion = Identifiers.Protocol;
                 const advertisedVersion =

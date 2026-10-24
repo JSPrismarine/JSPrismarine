@@ -1,8 +1,7 @@
-import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { literal } from '@jsprismarine/brigadier';
+import type { CommandContext, CommandDispatcher } from '@jsprismarine/brigadier';
 
-import type Player from '../../Player';
-import { Command } from '../Command';
+import { Command, literal } from '../Command';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class ReloadCommand extends Command {
     public constructor() {
@@ -13,10 +12,9 @@ export default class ReloadCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
-        const execute = async (context: any) => {
-            const source: Player | null = context?.getSource() || null;
-            if (!source) throw new Error('Context/source is null or undefined');
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
+        const execute = async (context: CommandContext<CommandExecutor>) => {
+            const source = context.getSource();
 
             await source.sendMessage(
                 '§cPlease note that this command is not supported and may cause issues when using plugins or other modifications.'
@@ -30,6 +28,6 @@ export default class ReloadCommand extends Command {
             return 'Reloaded the server';
         };
 
-        dispatcher.register(literal('reload').executes(execute as any));
+        dispatcher.register(literal('reload').executes(execute));
     }
 }
