@@ -100,10 +100,10 @@ export default class RakNetTransport extends EventEmitter implements ITransport 
     }
 
     public override on<E extends keyof TransportEvents>(event: E, listener: TransportEvents[E]): this {
-        return super.on(event, listener as (...args: any[]) => void);
+        return super.on(event, listener);
     }
 
     public override off<E extends keyof TransportEvents>(event: E, listener: TransportEvents[E]): this {
-        return super.off(event, listener as (...args: any[]) => void);
+        return super.off(event, listener);
     }
 }
