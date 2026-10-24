@@ -219,6 +219,31 @@ describe('network', () => {
                 expect(stream.feof()).toBe(true);
             });
 
+            it('writes every entry with its own variant selector and action', () => {
+                const packet = new PlayerListPacket();
+                packet.type = PlayerListAction.TYPE_REMOVE;
+                packet.entries.push(
+                    new PlayerListEntry({ uuid: UUID.fromString(PLAYER_UUID) }),
+                    new PlayerListEntry({ uuid: UUID.fromString('11111111-1111-4111-8111-111111111111') })
+                );
+                packet.encode();
+
+                // The action is not written once for the packet: each entry is a variant of
+                // its own, selected by a varuint and tagged with the Action byte.
+                expect(packet.getBuffer().toString('hex')).toBe(
+                    [
+                        '3f', // Header: packet id 63.
+                        '02', // Entries: two.
+                        '00', // Variant selector: Remove.
+                        '01', // Action: Remove.
+                        '78695a4b3c2d1e0ff0e1d2c3b4a59687', // UUID.
+                        '00', // Variant selector: Remove.
+                        '01', // Action: Remove.
+                        '11411111111111111111111111111181' // UUID: both uint64 halves little-endian.
+                    ].join('')
+                );
+            });
+
             it('refuses to add an entry that has no skin', () => {
                 const packet = new PlayerListPacket();
                 packet.type = PlayerListAction.TYPE_ADD;

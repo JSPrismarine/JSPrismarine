@@ -1,20 +1,24 @@
 import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
-import { Metadata } from '../../entity/Metadata';
+import { Metadata, MetadataFlag } from '../../entity/Metadata';
 import { Item } from '../../item/Item';
 import UUID from '../../utils/UUID';
 import AddPlayerPacket from './AddPlayerPacket';
 
 /**
- * The 2193 layout written out by hand, one docs field per line and in docs order. The four
- * parameters are the slots the second test changes; everything else is fixed so a shifted
- * field fails the whole comparison.
+ * The 2193 layout written out by hand, one docs field per line and in docs order. The
+ * parameters are the slots the tests change; everything else is fixed so a shifted field
+ * fails the whole comparison.
  */
 const expectedBytes = (slots: {
     gameType: number[];
     playerPermission: number;
     commandPermission: number;
     buildPlatform: number[];
+    /** Entity Data; no entries unless a test adds one. */
+    entityData?: number[];
+    /** Abilities Data's Target Player Raw Id, int64 LE; 1 unless a test changes it. */
+    rawId?: number[];
 }): Buffer =>
     Buffer.concat([
         Buffer.from([0x0c]), // Header: packet id 12.
@@ -31,20 +35,21 @@ const expectedBytes = (slots: {
         // Carried Item, air: int16 id, uint16 count, varuint aux, no stack net id, varuint block runtime id, varuint user data length.
         Buffer.from([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]),
         Buffer.from(slots.gameType), // Player Game Type.
-        Buffer.from([0x00]), // Entity Data: no entries.
+        Buffer.from(slots.entityData ?? [0x00]), // Entity Data.
         Buffer.from([0x00, 0x00]), // Synched Properties: no int entries, no float entries.
-        Buffer.from([0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), // Abilities Data: Target Player Raw Id 1.
+        Buffer.from(slots.rawId ?? [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]), // Abilities Data: Target Player Raw Id.
         Buffer.from([slots.playerPermission, slots.commandPermission, 0x00]), // Player Permissions, Command Permissions, no Layers.
         Buffer.from([0x00]), // Actor Links: none.
         Buffer.from([0x06, 0x64, 0x65, 0x76, 0x69, 0x63, 0x65]), // Device Id "device".
         Buffer.from(slots.buildPlatform) // Build Platform int32 LE.
     ]);
 
-const buildPacket = (): AddPlayerPacket => {
+/** A packet with every field set, or without a unique id when `uniqueEntityId` is omitted. */
+const buildPacket = ({ uniqueEntityId }: { uniqueEntityId?: bigint } = { uniqueEntityId: 1n }): AddPlayerPacket => {
     const pk = new AddPlayerPacket();
     pk.uuid = UUID.fromString('12345678-1234-1234-1234-123456789abc');
     pk.name = 'Steve';
-    pk.uniqueEntityId = 1n;
+    if (uniqueEntityId !== undefined) pk.uniqueEntityId = uniqueEntityId;
     pk.runtimeEntityId = 2n;
     pk.platformChatId = '';
     pk.positionX = 1;
@@ -90,6 +95,26 @@ describe('network', () => {
                         playerPermission: 0x02,
                         commandPermission: 0x04,
                         buildPlatform: [0x08, 0x00, 0x00, 0x00]
+                    })
+                );
+            });
+
+            it('writes a data item as its id, the type twice and the value, and targets the runtime id without a unique id', () => {
+                // `sendSpawn` never sets a unique id; the server uses the runtime id for both.
+                const pk = buildPacket({});
+                pk.metadata.setFloat(MetadataFlag.SCALE, 1);
+                pk.encode();
+
+                expect(pk.getBuffer()).toEqual(
+                    expectedBytes({
+                        gameType: [0x00],
+                        playerPermission: 0x00,
+                        commandPermission: 0x00,
+                        buildPlatform: [0xff, 0xff, 0xff, 0xff],
+                        // One DataItemEntry: ID 38 as a varuint, the Float alternative selected as
+                        // varuint 3, DataItemType Float as a byte, then the Value 1.0 as a float LE.
+                        entityData: [0x01, 0x26, 0x03, 0x03, 0x00, 0x00, 0x80, 0x3f],
+                        rawId: [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
                     })
                 );
             });
