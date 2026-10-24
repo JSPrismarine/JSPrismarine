@@ -52,3 +52,7 @@ tools/docs/site/.vitepress/.temp/
 # Local environment overrides the server loads from its working directory; never shared.
 .env.local
 .env.*.local
+
+# Java bundler extraction from the worldgen and data generator oracles
+/libraries/
+/versions/
