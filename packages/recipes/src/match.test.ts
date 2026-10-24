@@ -206,6 +206,29 @@ describe('remainder items', () => {
 });
 
 describe('the single-slot and multi-slot stations', () => {
+    it.each([
+        ['minecraft:smelting', 'smelting'],
+        ['minecraft:blasting', 'blasting'],
+        ['minecraft:smoking', 'smoking'],
+        ['minecraft:campfire_cooking', 'campfire_cooking']
+    ] as const)('matches %s only at the %s station', (type, station) => {
+        const cooking = recipeOf({
+            type,
+            cookingtime: 100,
+            experience: 0.1,
+            ingredient: 'minecraft:beef',
+            result: { id: 'minecraft:cooked_beef' }
+        });
+
+        expect(matchRecipe(cooking, { station, item: item('minecraft:beef') })).toMatchObject({
+            result: { id: 'minecraft:cooked_beef', count: 1 },
+            experience: 0.1,
+            cookingTime: 100
+        });
+        expect(matchRecipe(cooking, { station, item: item('minecraft:porkchop') })).toBeUndefined();
+        expect(matchRecipe(cooking, { station: 'stonecutting', item: item('minecraft:beef') })).toBeUndefined();
+    });
+
     it('matches a cooking recipe and reports its experience and time', () => {
         const smelting = recipeOf({
             type: 'minecraft:smelting',
