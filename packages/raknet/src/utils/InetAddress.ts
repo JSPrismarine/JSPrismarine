@@ -6,10 +6,6 @@ export default class InetAddress {
     private readonly port: number;
     private readonly version: number;
 
-    public get [Symbol.toStringTag](): string {
-        return `InetAddress(${this.toString()})`;
-    }
-
     /**
      * Constructs an InetAddress.
      * @param {string} address - The IP address.
