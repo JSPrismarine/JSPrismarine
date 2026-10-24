@@ -68,7 +68,7 @@ export default class TextPacket extends NetworkPacket<Text> {
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): Text {
-        const type = stream.readByte() as TextType;
+        const type: TextType = stream.readByte();
         const needsTranslation = stream.readBoolean();
 
         const sourceName = WITH_SOURCE.has(type) ? stream.readString() : undefined;

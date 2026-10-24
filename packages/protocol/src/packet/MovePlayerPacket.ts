@@ -74,7 +74,7 @@ export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
         const pitch = stream.readFloatLE();
         const yaw = stream.readFloatLE();
         const headYaw = stream.readFloatLE();
-        const mode = stream.readByte() as MovementType;
+        const mode: MovementType = stream.readByte();
         const onGround = stream.readBoolean();
         const ridingEntityRuntimeId = stream.readUnsignedVarLong();
 
