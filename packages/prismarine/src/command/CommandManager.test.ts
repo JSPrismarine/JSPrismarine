@@ -1,4 +1,5 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
+import { integer } from '@jsprismarine/brigadier';
 import { describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
 import Console from '../Console';
@@ -8,8 +9,10 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
+import { CommandParameterFlags } from '../network/type/CommandParameter';
 import * as Commands from './Commands';
-import { Command, literal } from './Command';
+import { Command, argument, literal } from './Command';
+import { isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
 import { CommandManager } from './CommandManager';
 
@@ -154,6 +157,35 @@ describe('command', () => {
             expect(overloadsOf('time')?.map((overload) => overload.length)).toEqual([0, 2]);
             // `/list` runs bare and takes nothing else.
             expect(overloadsOf('list')).toEqual([[]]);
+        });
+
+        it('should flatten nested literals and redirect targets into hard enums', () => {
+            const commandManager = new CommandManager(server);
+            const dispatcher = commandManager.getDispatcher();
+            const destination = dispatcher.register(
+                literal('destination').then(literal('child').then(argument('value', integer()).executes(() => 0)))
+            );
+            dispatcher.register(
+                literal('nested').then(literal('sub').then(argument('value', integer()).executes(() => 0)))
+            );
+            dispatcher.register(literal('alias').redirect(destination));
+
+            const overloadsOf = (name: string) =>
+                commandManager.getCommandsList().find(([entry]) => entry === name)?.[2];
+            const nestedKeyword = overloadsOf('nested')?.[0]?.[0];
+            const redirectedKeyword = overloadsOf('alias')?.[0]?.[0];
+
+            if (!nestedKeyword || !isCommandArgument(nestedKeyword)) throw new Error('Expected a literal parameter');
+            if (!redirectedKeyword || !isCommandArgument(redirectedKeyword))
+                throw new Error('Expected a redirected literal parameter');
+
+            const [nestedParameter] = nestedKeyword.getParameters();
+            const [redirectedParameter] = redirectedKeyword.getParameters();
+            expect(nestedParameter?.enum?.values).toEqual(['sub']);
+            expect(nestedParameter?.enum?.soft).toBe(false);
+            expect(nestedParameter?.flags).toBe(CommandParameterFlags.FORCE_COLLAPSE_ENUM);
+            expect(redirectedParameter?.enum?.values).toEqual(['child']);
+            expect(redirectedParameter?.enum?.soft).toBe(false);
         });
 
         it('should dispatch /gamerule to its executor', async () => {
