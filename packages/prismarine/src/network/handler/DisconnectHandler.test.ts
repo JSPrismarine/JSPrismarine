@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { Logger } from '@jsprismarine/logger';
@@ -42,27 +43,41 @@ const goodbye = (reason: number, message?: string): DisconnectPacket =>
     });
 
 describe('DisconnectHandler', () => {
-    it('logs the reason and message with who sent them', async () => {
+    it('logs the reason by number and name, and the message, with who sent them', async () => {
         const { info, server, session } = harness();
 
-        await new DisconnectHandler().handle(goodbye(3, 'Disconnected'), server, session);
+        await new DisconnectHandler().handle(
+            goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'),
+            server,
+            session
+        );
 
         expect(info).toHaveBeenCalledOnce();
         const [line] = info.mock.calls[0]!;
         expect(line).toContain('runner');
         expect(line).toContain('127.0.0.1:19133');
-        expect(line).toContain('reason 3');
+        expect(line).toContain('reason 3 (UNRECOVERABLE_ERROR)');
         expect(line).toContain('"Disconnected"');
     });
 
     it('logs a goodbye that carries no message without inventing one', async () => {
         const { info, server, session } = harness();
 
-        await new DisconnectHandler().handle(goodbye(0), server, session);
+        await new DisconnectHandler().handle(goodbye(DisconnectReason.UNKNOWN), server, session);
 
         const [line] = info.mock.calls[0]!;
-        expect(line).toContain('reason 0');
+        expect(line).toContain('reason 0 (UNKNOWN)');
         expect(line).not.toContain('message');
+    });
+
+    it('logs a reason the enum does not list as its bare number', async () => {
+        // A newer client may send a member added after protocol 2193.
+        const { info, server, session } = harness();
+
+        await new DisconnectHandler().handle(goodbye(150), server, session);
+
+        const [line] = info.mock.calls[0]!;
+        expect(line).toMatch(/reason 150$/);
     });
 
     it('hangs up on RakNet after logging', async () => {
@@ -70,7 +85,11 @@ describe('DisconnectHandler', () => {
         // player, and it does so once, through the same path a timeout takes.
         const { forceDisconnect, server, session } = harness();
 
-        await new DisconnectHandler().handle(goodbye(3, 'Disconnected'), server, session);
+        await new DisconnectHandler().handle(
+            goodbye(DisconnectReason.UNRECOVERABLE_ERROR, 'Disconnected'),
+            server,
+            session
+        );
 
         expect(forceDisconnect).toHaveBeenCalledOnce();
     });

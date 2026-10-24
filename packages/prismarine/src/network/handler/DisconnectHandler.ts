@@ -1,3 +1,4 @@
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
@@ -17,15 +18,22 @@ import type PacketHandler from './PacketHandler';
 export default class DisconnectHandler implements PacketHandler<DisconnectPacket> {
     public static NetID = Identifiers.DisconnectPacket;
 
-    /** Logs the reason the client gave at info level, then starts the RakNet goodbye. */
+    /**
+     * Logs the reason the client gave at info level, then starts the RakNet goodbye.
+     *
+     * The reason is logged as its number and, when the number is a `DisconnectReason` member,
+     * its name. A bare number out of 150 members says little to whoever reads the log.
+     */
     public async handle(packet: DisconnectPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
+        const name = DisconnectReason[packet.reason];
+        const reason = name === undefined ? `${packet.reason}` : `${packet.reason} (${name})`;
         const message = packet.skipMessage ? '' : ` and message "${packet.message}"`;
 
         server
             .getLogger()
             .info(
-                `${player.getName()} (${player.getAddress().toToken()}) disconnected with reason ${packet.reason}${message}`,
+                `${player.getName()} (${player.getAddress().toToken()}) disconnected with reason ${reason}${message}`,
                 'DisconnectHandler/handle'
             );
 
