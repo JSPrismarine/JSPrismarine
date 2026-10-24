@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 import { FlagType, MAX_AIR_TICKS, Metadata, MetadataFlag, MetadataWriter } from './Metadata';
 
@@ -194,7 +195,7 @@ describe('Metadata.networkSerialize', () => {
 
     it('names the type it cannot write, rather than only numbering it', () => {
         const metadata = new Metadata();
-        (metadata as any).setPropertyValue(1, FlagType.ITEM, null);
+        metadata.setPropertyValue(1, FlagType.ITEM, new NBTTagCompound());
 
         expect(() => metadata.networkSerialize(new BinaryStream())).toThrow(/ITEM/);
     });

@@ -1,5 +1,6 @@
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import type BinaryStream from '@jsprismarine/binaryutils';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../network/NetworkUtil';
 
 // TODO: Still missing flags
@@ -59,16 +60,57 @@ export enum FlagType {
  */
 export const MAX_AIR_TICKS = 300;
 
-export type MetadataContainer = Map<number, [number, bigint | number | boolean | string]>;
+/**
+ * One stored metadata property: the wire type it is sent as, paired with the value that type carries.
+ *
+ * Each `FlagType` pairs with exactly one value type, so a `switch` on the first element narrows the
+ * second. `ITEM` is listed so that an entry of that type can be stored; `networkSerialize` has no
+ * writer for it yet.
+ */
+export type MetadataEntry =
+    | [FlagType.BYTE, number]
+    | [FlagType.SHORT, number]
+    | [FlagType.INT, number]
+    | [FlagType.FLOAT, number]
+    | [FlagType.STRING, string]
+    | [FlagType.ITEM, NBTTagCompound]
+    | [FlagType.POSITION, Vector3]
+    | [FlagType.LONG, bigint]
+    | [FlagType.VECTOR, Vector3];
+
+/** Any value a metadata property can hold. */
+export type MetadataValue = MetadataEntry[1];
+
+/** Metadata properties by id. */
+export type MetadataContainer = Map<number, MetadataEntry>;
+
 export class MetadataWriter {
     private readonly metadata: MetadataContainer = new Map();
 
-    public getPropertyValue(key: number): bigint | number | boolean | string | null {
-        return this.metadata.has(key) ? this.metadata.get(key)![1] : null;
+    public getPropertyValue(key: number): MetadataValue | null {
+        return this.metadata.get(key)?.[1] ?? null;
     }
 
-    public setPropertyValue(key: number, type: number, value: bigint | number | boolean | string): void {
-        this.metadata.set(key, [type, value]);
+    public setPropertyValue(key: number, ...entry: MetadataEntry): void {
+        this.metadata.set(key, entry);
+    }
+
+    /** The property's value when it holds a string, otherwise `fallback`. */
+    protected stringAt(key: number, fallback: string): string {
+        const value = this.getPropertyValue(key);
+        return typeof value === 'string' ? value : fallback;
+    }
+
+    /** The property's value when it holds a number, otherwise `fallback`. */
+    protected numberAt(key: number, fallback: number): number {
+        const value = this.getPropertyValue(key);
+        return typeof value === 'number' ? value : fallback;
+    }
+
+    /** The property's value when it holds a long, otherwise `0n`. */
+    protected longAt(key: number): bigint {
+        const value = this.getPropertyValue(key);
+        return typeof value === 'bigint' ? value : 0n;
     }
 
     public setLong(key: number, value: bigint): void {
@@ -107,7 +149,7 @@ export class MetadataWriter {
         // The map holds [type, value] pairs, so the value has to be picked out of the
         // pair. Returning the pair produced a name that stringified as "4,HerryYT" - the
         // 4 being FlagType.STRING - everywhere a name reached a template literal.
-        return (this.getPropertyValue(key) ?? '') as string;
+        return this.stringAt(key, '');
     }
 
     /**
@@ -124,7 +166,7 @@ export class MetadataWriter {
      * @returns {number}
      */
     public getFloat(key: number): number {
-        return (this.getPropertyValue(key) ?? 0) as number;
+        return this.numberAt(key, 0);
     }
 
     /**
@@ -132,15 +174,20 @@ export class MetadataWriter {
      * @param {number} propertyId - The property id.
      * @param {number} flagId - The flag id.
      * @param {boolean} [value=true] - The flag value.
-     * @param {FlagType} [propertyType=FlagType.LONG] - The property type.
+     * @param {FlagType.LONG} [propertyType=FlagType.LONG] - The property type. Only `LONG` is
+     * accepted: the flags are one 64-bit field, and any other type truncates it on the wire.
      */
-    public setDataFlag(propertyId: number, flagId: number, value = true, propertyType = FlagType.LONG): void {
+    public setDataFlag(
+        propertyId: number,
+        flagId: number,
+        value = true,
+        propertyType: FlagType.LONG = FlagType.LONG
+    ): void {
         // All generic flags are written as Longs (bigints) 64bit
         const flagId64 = BigInt(flagId);
         // Check if the same value is already set
         if (this.getDataFlag(propertyId, flagId64) !== value) {
-            const flags = (this.getPropertyValue(propertyId) as bigint | null) ?? 0n;
-            this.setPropertyValue(propertyId, propertyType, flags ^ (1n << flagId64));
+            this.setPropertyValue(propertyId, propertyType, this.longAt(propertyId) ^ (1n << flagId64));
         }
     }
     /**
@@ -150,7 +197,7 @@ export class MetadataWriter {
      * @returns {boolean} The flag value.
      */
     public getDataFlag(propertyId: number, flagId: bigint): boolean {
-        return (((this.getPropertyValue(propertyId) as bigint | null) ?? 0n) & (1n << flagId)) > 0;
+        return (this.longAt(propertyId) & (1n << flagId)) > 0n;
     }
 
     /**
@@ -178,7 +225,7 @@ export class MetadataWriter {
 
     public networkSerialize(stream: BinaryStream): void {
         stream.writeUnsignedVarInt(this.getData().size);
-        for (const [index, value] of this.getData() as any) {
+        for (const [index, value] of this.getData()) {
             stream.writeUnsignedVarInt(index);
 
             // The type twice. An entry is now a tagged variant - a varint selector, then the
@@ -189,7 +236,7 @@ export class MetadataWriter {
             stream.writeSignedByte(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:
-                    stream.writeByte(Number(value[1]));
+                    stream.writeByte(value[1]);
                     break;
                 case FlagType.FLOAT:
                     stream.writeFloatLE(value[1]);
@@ -198,7 +245,7 @@ export class MetadataWriter {
                     stream.writeVarLong(value[1]);
                     break;
                 case FlagType.STRING:
-                    NetworkUtil.writeString(stream, String(value[1]));
+                    NetworkUtil.writeString(stream, value[1]);
                     break;
                 case FlagType.SHORT:
                     stream.writeUnsignedShortLE(value[1]);
@@ -208,11 +255,10 @@ export class MetadataWriter {
                     // block carries its own block state in - so every sand or gravel that
                     // started to fall threw here instead of appearing, and went on throwing
                     // for every player who came near it.
-                    stream.writeVarInt(Number(value[1]));
+                    stream.writeVarInt(value[1]);
                     break;
                 case FlagType.VECTOR: {
                     const vector = value[1];
-                    if (!(vector instanceof Vector3)) throw new TypeError('A VECTOR metadata entry needs a Vector3');
                     stream.writeFloatLE(vector.getX());
                     stream.writeFloatLE(vector.getY());
                     stream.writeFloatLE(vector.getZ());
@@ -222,8 +268,6 @@ export class MetadataWriter {
                     // Three signed varints. Unlike a block position elsewhere in the protocol,
                     // this one's height is signed like the other two.
                     const position = value[1];
-                    if (!(position instanceof Vector3))
-                        throw new TypeError('A POSITION metadata entry needs a Vector3');
                     stream.writeVarInt(position.getX());
                     stream.writeVarInt(position.getY());
                     stream.writeVarInt(position.getZ());
@@ -321,7 +365,7 @@ export class Metadata extends MetadataWriter {
      * @returns {number} Ticks of breath remaining.
      */
     public get air(): number {
-        return (this.getPropertyValue(MetadataFlag.AIR) ?? 0) as number;
+        return this.numberAt(MetadataFlag.AIR, 0);
     }
 
     /**
@@ -351,7 +395,7 @@ export class Metadata extends MetadataWriter {
      * @returns {number} The maximum breath, in ticks.
      */
     public get maxAir(): number {
-        return (this.getPropertyValue(MetadataFlag.MAX_AIR) ?? MAX_AIR_TICKS) as number;
+        return this.numberAt(MetadataFlag.MAX_AIR, MAX_AIR_TICKS);
     }
 
     /**
@@ -378,10 +422,10 @@ export class Metadata extends MetadataWriter {
     }
     /**
      * Get the entity's scale.
-     * @returns {number} The entity's scale.
+     * @returns {number} The entity's scale, or `1` when none has been set.
      */
     public getScale(): number {
-        return this.getPropertyValue(MetadataFlag.SCALE) as number;
+        return this.numberAt(MetadataFlag.SCALE, 1);
     }
 
     /**
@@ -450,7 +494,7 @@ export class Metadata extends MetadataWriter {
 
     /** What the entity is attacking, or `0n`. */
     public get targetEntityId(): bigint {
-        return (this.getPropertyValue(MetadataFlag.TARGET_ENTITY_ID) as bigint | null) ?? 0n;
+        return this.longAt(MetadataFlag.TARGET_ENTITY_ID);
     }
 
     /**
