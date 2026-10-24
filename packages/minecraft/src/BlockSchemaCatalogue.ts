@@ -1,6 +1,9 @@
+/** The NBT tag a block state property is written as. */
+export type BlockSchemaPropertyType = 'byte' | 'int' | 'string';
+
 /** One block state property: how it is written, what it accepts, and its default. */
 export interface BlockSchemaProperty {
-    type: string;
+    type: BlockSchemaPropertyType;
     values: Array<string | number | boolean>;
     default: string | number | boolean;
 }
