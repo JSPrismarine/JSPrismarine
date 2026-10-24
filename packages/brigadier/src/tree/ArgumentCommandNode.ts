@@ -59,7 +59,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
 
     public parse(reader: StringReader, contextBuilder: CommandContextBuilder<S>) {
         let start = reader.getCursor();
-        let result: T = this.type.parse(reader, contextBuilder as any);
+        let result: T = this.type.parse(reader, contextBuilder);
         let parsed: ParsedArgument<S, T> = new ParsedArgument(start, reader.getCursor(), result);
         contextBuilder.withArgument(this.name, parsed);
         contextBuilder.withNode(this, parsed.getRange());
@@ -75,10 +75,7 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
     }
 
     public createBuilder(): RequiredArgumentBuilder<S, T> {
-        let builder: RequiredArgumentBuilder<S, T> = RequiredArgumentBuilder.argument(
-            this.name,
-            this.type
-        ) as RequiredArgumentBuilder<S, T>;
+        let builder = RequiredArgumentBuilder.argument<S, T>(this.name, this.type);
         builder.requires(this.getRequirement());
         builder.forward(this.getRedirect()!, this.getRedirectModifier(), this.isFork());
         if (this.customSuggestions) builder.suggests(this.customSuggestions);
