@@ -11,13 +11,15 @@ import type { CommandExecutor } from '../CommandExecutor';
 /**
  * Nudges whole coordinates to the middle of the block they name.
  *
- * `/tp 10 64 10` means that block, and standing in the middle of it is 10.5 - away from the
- * origin on both axes, which is why the sign is consulted rather than just adding a half.
+ * `/tp 10 64 10` means that block, and the block at x=10 spans 10 to 11, so its middle is 10.5.
+ * The same holds for negative coordinates: block -5 spans -5 to -4 and its middle is -4.5.
+ * Fractional coordinates are taken as written. Y is left alone so the player lands on top of
+ * the block rather than inside it.
  * @param {Vector3} position - The parsed destination.
  * @returns {Vector3} A new vector; the parsed one is left alone.
  */
 const toBlockCenter = (position: Vector3): Vector3 => {
-    const center = (value: number) => (Number.isInteger(value) ? (value > 0 ? value - 0.5 : value + 0.5) : value);
+    const center = (value: number) => (Number.isInteger(value) ? value + 0.5 : value);
 
     return new Vector3(center(position.getX()), position.getY(), center(position.getZ()));
 };

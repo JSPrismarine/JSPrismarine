@@ -38,7 +38,7 @@ const CONSOLE_TEXT: Record<string, string> = {
     'death.attack.explosion.player': '%1$s was blown up by %2$s',
     'death.attack.indirectMagic': '%1$s was killed by %2$s using magic',
     'death.attack.thorns': '%1$s was killed trying to hurt %2$s',
-    'death.attack.inFire.player': '%1$s walked into fire whilst fighting %2$s'
+    'death.attack.inFire.player': '%1$s walked into fire while fighting %2$s'
 };
 
 /**
