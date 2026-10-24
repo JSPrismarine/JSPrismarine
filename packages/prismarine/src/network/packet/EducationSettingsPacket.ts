@@ -27,7 +27,7 @@ export interface ExternalLinkSettings {
  * The three optionals are consecutive, and the docs do not mark them optional until the 2207
  * changelog. gophertunnel writes their presence bytes at 2193 and the deprecated boolean sits
  * between the second and the third, so leaving one out shifts everything after it.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/education-settings-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/education-settings-packet/
  */
 export default class EducationSettingsPacket extends DataPacket {
     public static NetID = Identifiers.EducationSettingsPacket;
