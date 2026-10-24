@@ -149,6 +149,12 @@ point it at the TypeScript 7 package in `node_modules`, which works on every pla
 extension picks the native binary for your OS itself. `tsc-ts` has no language server mode yet, so
 the editor runs the official TypeScript 7 server while the command line uses `tsc-ts`.
 
+Declaration files come from `scripts/emit-dts.mts`, which also runs on `tsc-ts`. `vite-plugin-dts`
+cannot replace it yet: as of `unplugin-dts` 1.1.2 it still drives the old TypeScript JavaScript API
+and falls back to the side-by-side `@typescript/typescript6` package in a TypeScript 7 repository,
+so declarations would come out of TypeScript 6 again. Revisit once Volar reads the TypeScript 7.1
+API (tracked in vuejs/language-tools#5381).
+
 -   Prefer the object spread operator (`{...anotherObj}`) to `Object.assign()`
 
 [beginner]: https://github.com/search?utf8=%E2%9C%93&q=is%3Aopen+is%3Aissue+label%3Abeginner+label%3Ahelp-wanted+user%3Ajsprismarine+sort%3Acomments-desc
