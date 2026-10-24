@@ -1,7 +1,17 @@
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
 import type Server from '../../Server';
+import type SessionManager from '../../SessionManager';
+import type BanManager from '../../ban/BanManager';
+import type { Config } from '../../config/Config';
+import type { PermissionManager } from '../../permission/PermissionManager';
+import { stub } from '../../testing/stub.test.helper';
+import type { ChunkScheduler } from '../../world/ChunkScheduler';
+import type { World } from '../../world/World';
+import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
 import LoginPacket from '../packet/LoginPacket';
@@ -13,74 +23,72 @@ const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
 describe('network', () => {
     describe('handler', () => {
         describe('LoginHandler', () => {
-            const server: Server = {
-                // `createConnectedPlayer` enables the session, which is what puts it in the
-                // chunk rotation - the constructor no longer does it.
-                getChunkScheduler: () => ({ add: () => {}, remove: () => {} }),
-                getLogger: () => ({
-                    debug: () => {},
-                    verbose: () => {},
-                    // A refusal says what it refused, so a handler that turns one down logs.
-                    warn: () => {}
-                }),
-                getSessionManager: () => ({
+            // `createConnectedPlayer` enables the session, which is what puts it in the
+            // chunk rotation - the constructor no longer does it.
+            const chunkScheduler = (): ChunkScheduler => stub<ChunkScheduler>({ add: () => {}, remove: () => {} });
+
+            // A refusal says what it refused, so a handler that turns one down logs.
+            const logger = (): Logger => stub<Logger>({ debug: () => {}, verbose: () => {}, warn: () => {} });
+
+            const sessionManager = (): SessionManager =>
+                stub<SessionManager>({
                     getAllPlayers: () => [],
                     findPlayer: () => null,
                     getPlayerByExactName: () => null
-                }),
-                getWorldManager: () => ({
-                    getDefaultWorld: () => ({
-                        addEntity: () => {},
-                        getPlayers: () => [],
-                        // The handler resolves where the player starts before building one,
-                        // now that an entity has to be given somewhere to be.
-                        getSpawnPosition: async () => new Vector3(0, 64, 0),
-                        getName: () => 'test-world',
-                        getServer: () => server,
-                        // Announcing a move is the world's job now, not the entity's.
-                        broadcastMove: async () => {},
-                        getPlayerData(_player: any) {
-                            return { position: { x: 0, y: 0, z: 0 }, inventory: [] };
-                        }
-                    })
-                }),
-                getConfig: () => ({
+                });
+
+            const world = (): World =>
+                stub<World>({
+                    addEntity: async () => {},
+                    getPlayers: () => [],
+                    // The handler resolves where the player starts before building one,
+                    // now that an entity has to be given somewhere to be.
+                    getSpawnPosition: async () => new Vector3(0, 64, 0),
+                    getName: () => 'test-world',
+                    getServer: () => server,
+                    // Announcing a move is the world's job now, not the entity's.
+                    broadcastMove: async () => {},
+                    getPlayerData: async () => ({ position: { x: 0, y: 0, z: 0, pitch: 0, yaw: 0, headYaw: 0 } })
+                });
+
+            const config = (): Config =>
+                stub<Config>({
                     getOnlineMode: () => false,
                     getGamemode: () => 'survival',
                     getProximityBroadcast: () => true,
                     getEntityTrackingHysteresis: () => 2,
                     getEntityTrackingInterval: () => 4
-                }),
-                getPermissionManager: () => ({
-                    getPermissions(_player: any) {
-                        return null;
-                    },
-                    isOp: (_username: string) => false
-                }),
-                getBanManager: () => ({
-                    isBanned: (_player: any) => {
-                        return false;
-                    }
-                }),
+                });
+
+            const permissionManager = (): PermissionManager =>
+                stub<PermissionManager>({ getPermissions: async () => [], isOp: () => false });
+
+            const banManager = (): BanManager => stub<BanManager>({ isBanned: () => false });
+
+            const server: Server = stub<Server>({
+                getChunkScheduler: chunkScheduler,
+                getLogger: logger,
+                getSessionManager: sessionManager,
+                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),
+                getConfig: config,
+                getPermissionManager: permissionManager,
+                getBanManager: banManager,
                 getTick: () => 0,
                 on: vi.fn(),
                 post: vi.fn(),
-                emit: vi.fn().mockResolvedValue({})
-            } as any;
+                emit: async () => {}
+            });
 
             // The session is built by `createConnectedPlayer` now, not mocked in: the
             // connection is handed the real one and only has to accept it.
-            const connection: ClientConnection = {
-                getRakNetSession: vi.fn().mockReturnValue({
-                    getAddress: () => ({
-                        toToken: vi.fn().mockReturnValue('token')
-                    })
-                }),
-                sendDataPacket: vi.fn().mockResolvedValue({}),
+            const connection: ClientConnection = stub<ClientConnection>({
+                getRakNetSession: () =>
+                    stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                sendDataPacket: async () => {},
                 attachPlayerSession: vi.fn(),
-                closePlayerSession: vi.fn().mockResolvedValue({}),
-                disconnect: vi.fn()
-            } as any;
+                closePlayerSession: async () => {},
+                disconnect: async () => {}
+            });
 
             it('handle with non-banned', async () => {
                 const pk = new LoginPacket();
@@ -132,10 +140,11 @@ describe('network', () => {
                 pk.displayName = 'runner';
                 pk.protocol = Identifiers.Protocol;
 
-                const rejected = { disconnect: vi.fn() } as any;
+                const disconnect = vi.fn();
+                const rejected = stub<ClientConnection>({ disconnect });
                 await new LoginHandler().handle(pk, server, rejected);
 
-                expect(rejected.disconnect).toHaveBeenCalledWith('Invalid identity!', false);
+                expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false);
             });
 
             it('handle outdated client', async () => {
@@ -152,9 +161,7 @@ describe('network', () => {
                 pk.displayName = '';
                 pk.protocol = Identifiers.Protocol + 10;
 
-                const connection = {
-                    sendDataPacket: (_packet: any) => {}
-                } as any;
+                const connection = stub<ClientConnection>({ sendDataPacket: async () => {} });
 
                 const handler = new LoginHandler();
                 await handler.handle(pk, server, connection);

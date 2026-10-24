@@ -1,8 +1,16 @@
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { PlayerAuthInputData } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
+import type Player from '../../Player';
+import type Server from '../../Server';
+import type { Block } from '../../block/Block';
+import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
+import { Position } from '../../world/Position';
+import type { World } from '../../world/World';
+import type PlayerSession from '../PlayerSession';
 import { PlayerAction } from '../packet/PlayerActionPacket';
 import PlayerAuthInputPacket from '../packet/PlayerAuthInputPacket';
 import PlayerAuthInputHandler from './PlayerAuthInputHandler';
@@ -16,29 +24,30 @@ import PlayerAuthInputHandler from './PlayerAuthInputHandler';
  */
 const fake = () => {
     const calls: string[] = [];
-    const player = {
+    const world = stub<World>({
+        getPlayers: () => [],
+        hitBlock: async (position, face) =>
+            void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
+        getBlock: async () => stub<Block>({ getBreakTime: () => 0 })
+    });
+    const player = stub<Player>({
         isOnline: () => true,
-        getPosition: () => new Vector3(0, 64, 0),
+        getPosition: () => new Position(0, 64, 0, world),
         setPosition: vi.fn(
             async ({ position }: { position: Vector3 }) =>
                 void calls.push(`move ${position.getX()},${position.getY()},${position.getZ()}`)
         ),
         setOnGround: vi.fn(async (onGround: boolean) => void calls.push(`ground ${onGround}`)),
-        addJumpExhaustion: () => calls.push('jump'),
-        setSprinting: async (sprinting: boolean) => void calls.push(`sprint ${sprinting}`),
-        setSneaking: async (sneaking: boolean) => void calls.push(`sneak ${sneaking}`),
+        addJumpExhaustion: () => void calls.push('jump'),
+        setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`),
+        setSneaking: async (sneaking) => void calls.push(`sneak ${sneaking}`),
         getRuntimeId: () => 1n,
-        getWorld: () => ({
-            getPlayers: () => [],
-            hitBlock: async (position: BlockPosition, face: number) =>
-                void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
-            getBlock: async () => ({ getBreakTime: () => 0 })
-        })
-    };
-    const session = { getPlayer: () => player, sendMove: vi.fn() } as any;
-    const server = { post: () => {}, getLogger: () => ({ verbose: () => {} }) } as any;
+        getWorld: () => world
+    });
+    const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn() });
+    const server = stub<Server>({ post: () => 0, getLogger: () => stub<Logger>({ verbose: () => {} }) });
 
-    return { calls, session, server };
+    return { calls, player, session, server };
 };
 
 const input = (configure: (packet: PlayerAuthInputPacket) => void = () => {}): PlayerAuthInputPacket => {
@@ -53,12 +62,12 @@ const input = (configure: (packet: PlayerAuthInputPacket) => void = () => {}): P
 
 describe('PlayerAuthInputHandler', () => {
     it('moves the player to where the input says they are', async () => {
-        const { calls, session, server } = fake();
+        const { calls, player, session, server } = fake();
 
         await new PlayerAuthInputHandler().handle(input(), server, session);
 
         expect(calls[0]).toBe('move 3,70,-4');
-        expect(session.getPlayer().setPosition).toHaveBeenCalledWith(
+        expect(player.setPosition).toHaveBeenCalledWith(
             { position: new Vector3(3, 70, -4), pitch: 5, yaw: 90, headYaw: 85 },
             false
         );
@@ -114,8 +123,8 @@ describe('PlayerAuthInputHandler', () => {
     });
 
     it('does nothing for a player who has not finished joining', async () => {
-        const { calls, session, server } = fake();
-        session.getPlayer().isOnline = () => false;
+        const { calls, player, session, server } = fake();
+        player.isOnline = () => false;
 
         await new PlayerAuthInputHandler().handle(input(), server, session);
 

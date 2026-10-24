@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { RespawnState } from '../packet/RespawnPacket';
+import type Player from '../../Player';
+import type Server from '../../Server';
+import { stub } from '../../testing/stub.test.helper';
+import { Position } from '../../world/Position';
+import type { World } from '../../world/World';
+import type PlayerSession from '../PlayerSession';
+import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import RespawnHandler from './RespawnHandler';
 
 /**
@@ -12,20 +18,22 @@ import RespawnHandler from './RespawnHandler';
  * - or not at all - the player watches "Respawning" for ever.
  */
 const fakeSession = () => {
-    const done: Array<{ state?: number; what?: string }> = [];
+    const done: Array<{ state?: RespawnState; what?: string }> = [];
 
     return {
         done,
-        session: {
-            sendRespawn: async (_position: unknown, state: number) => void done.push({ state }),
+        session: stub<PlayerSession>({
+            sendRespawn: async (_position, state) => void done.push({ state }),
             sendAttributes: async () => void done.push({ what: 'attributes' }),
             sendMetadata: async () => void done.push({ what: 'metadata' }),
             sendAbilities: async () => void done.push({ what: 'abilities' }),
             sendInventory: async () => void done.push({ what: 'inventory' }),
-            getPlayer: () => ({ getPosition: () => ({}) })
-        } as any
+            getPlayer: () => stub<Player>({ getPosition: () => new Position(0, 64, 0, stub<World>()) })
+        })
     };
 };
+
+const respawn = (state: RespawnState): RespawnPacket => Object.assign(new RespawnPacket(), { state });
 
 describe('RespawnHandler', () => {
     it('answers the client with the state that ends the exchange', async () => {
@@ -33,7 +41,7 @@ describe('RespawnHandler', () => {
         // a log filling with `RespawnPacket`.
         const { done, session } = fakeSession();
 
-        await new RespawnHandler().handle({ state: RespawnState.CLIENT_READY_TO_SPAWN } as any, {} as any, session);
+        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN), stub<Server>(), session);
 
         expect(done[0]).toEqual({ state: RespawnState.SERVER_READY_TO_SPAWN });
     });
@@ -44,7 +52,7 @@ describe('RespawnHandler', () => {
         // while it was still on the death screen was thrown away.
         const { done, session } = fakeSession();
 
-        await new RespawnHandler().handle({ state: RespawnState.CLIENT_READY_TO_SPAWN } as any, {} as any, session);
+        await new RespawnHandler().handle(respawn(RespawnState.CLIENT_READY_TO_SPAWN), stub<Server>(), session);
 
         expect(done.map((step) => step.what).filter(Boolean)).toEqual([
             'attributes',
@@ -56,11 +64,11 @@ describe('RespawnHandler', () => {
         expect(done[0]!.state).toBe(RespawnState.SERVER_READY_TO_SPAWN);
     });
 
-    it('ignores the states that are the server\u2019s to send', async () => {
+    it('ignores the states that are the server’s to send', async () => {
         const { done, session } = fakeSession();
 
         for (const state of [RespawnState.SERVER_SEARCHING_FOR_SPAWN, RespawnState.SERVER_READY_TO_SPAWN]) {
-            await new RespawnHandler().handle({ state } as any, {} as any, session);
+            await new RespawnHandler().handle(respawn(state), stub<Server>(), session);
         }
 
         expect(done).toHaveLength(0);
