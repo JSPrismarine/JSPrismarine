@@ -19,12 +19,14 @@ export default class SubChunkPosOffset extends NetworkStructure {
         super();
     }
 
+    /** Writes X, Y, then Z, each a signed byte. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeSignedByte(this.x);
         stream.writeSignedByte(this.y);
         stream.writeSignedByte(this.z);
     }
 
+    /** Reads X, Y, then Z, each a signed byte. */
     public deserialize(stream: NetworkBinaryStream): void {
         this.x = stream.readSignedByte();
         this.y = stream.readSignedByte();

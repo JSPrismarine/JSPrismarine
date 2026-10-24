@@ -25,11 +25,13 @@ export default class EduSharedUriResource extends NetworkStructure implements Ed
         super();
     }
 
+    /** Writes `Button Name`, then `Link Uri`. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeString(this.buttonName);
         stream.writeString(this.linkUri);
     }
 
+    /** Reads `Button Name`, then `Link Uri`. */
     public deserialize(stream: NetworkBinaryStream): void {
         this.buttonName = stream.readString();
         this.linkUri = stream.readString();

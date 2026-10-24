@@ -90,6 +90,11 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         return heightMap;
     }
 
+    /**
+     * Writes `Height Map Type`, the optional `Subchunk Height Map`, `Render Height Map Type`, then
+     * the optional `Subchunk Render Height Map`.
+     * @throws when a present heightmap is not 16 rows of 16 heights.
+     */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeByte(this.heightMapType);
         SubChunkHeightmapData.writeHeightMap(stream, this.heightMap);
@@ -97,6 +102,10 @@ export default class SubChunkHeightmapData extends NetworkStructure {
         SubChunkHeightmapData.writeHeightMap(stream, this.renderHeightMap);
     }
 
+    /**
+     * Reads the two type bytes and the heightmaps whose presence bytes say they follow.
+     * @throws when a heightmap row does not carry 16 heights.
+     */
     public deserialize(stream: NetworkBinaryStream): void {
         this.heightMapType = stream.readByte();
         this.heightMap = SubChunkHeightmapData.readHeightMap(stream);

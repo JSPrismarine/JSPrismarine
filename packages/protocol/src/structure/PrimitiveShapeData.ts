@@ -332,6 +332,10 @@ export default class PrimitiveShapeData extends NetworkStructure implements Prim
         }
     }
 
+    /**
+     * Writes a shape entry: `Network ID`, then each optional field behind its presence byte,
+     * then the `Extra Shape Data` variant.
+     */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeUnsignedVarLong(this.networkId);
         PrimitiveShapeData.writeOptional(stream, this.shapeType, (v) => stream.writeByte(v));

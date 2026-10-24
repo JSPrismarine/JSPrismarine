@@ -21,12 +21,14 @@ export default class SubChunkPos extends NetworkStructure {
         super();
     }
 
+    /** Writes X, Y, then Z, each a little-endian int32. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeIntLE(this.x);
         stream.writeIntLE(this.y);
         stream.writeIntLE(this.z);
     }
 
+    /** Reads X, Y, then Z, each a little-endian int32. */
     public deserialize(stream: NetworkBinaryStream): void {
         this.x = stream.readIntLE();
         this.y = stream.readIntLE();

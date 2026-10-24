@@ -26,12 +26,17 @@ export default class FullContainerName extends NetworkStructure {
         super();
     }
 
+    /**
+     * Writes the `Container Name` byte, then the `Dynamic ID` presence byte and, when set, the id
+     * as a little-endian uint32.
+     */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeByte(this.containerId);
         stream.writeBoolean(this.dynamicId !== null);
         if (this.dynamicId !== null) stream.writeUnsignedIntLE(this.dynamicId);
     }
 
+    /** Reads the `Container Name` byte, then `Dynamic ID` when its presence byte says one follows. */
     public deserialize(stream: NetworkBinaryStream): void {
         this.containerId = stream.readByte();
         this.dynamicId = stream.readBoolean() ? stream.readUnsignedIntLE() : null;
