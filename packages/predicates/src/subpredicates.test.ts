@@ -100,14 +100,23 @@ describe('item predicates', () => {
         ]);
     });
 
-    it('reports a data component predicate type that is not in the registry', () => {
-        const { collector } = parse(itemPredicate, { predicates: { 'minecraft:nonsense': {} } });
+    it('checks only presence for a key that names a component rather than a predicate type', () => {
+        const { matcher, collector } = parse(itemPredicate, { predicates: { 'minecraft:map_id': {} } });
 
-        expect(collector.errors).toEqual([
+        expect(collector.entries).toEqual([]);
+        expect(matcher(stack('minecraft:filled_map', [['minecraft:map_id', 3]]), evaluation())).toBe(true);
+        expect(matcher(stack('minecraft:map'), evaluation())).toBe(false);
+    });
+
+    it('warns that the body of a presence check is ignored', () => {
+        const { collector } = parse(itemPredicate, { predicates: { 'minecraft:map_id': { value: 3 } } });
+
+        expect(collector.entries).toEqual([
             {
-                severity: 'error',
-                path: 'root.predicates.minecraft:nonsense',
-                message: 'unknown data component predicate type minecraft:nonsense'
+                severity: 'warning',
+                path: 'root.predicates.minecraft:map_id',
+                message:
+                    'minecraft:map_id is not a data component predicate type, so only the presence of the component is checked'
             }
         ]);
     });
