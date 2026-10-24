@@ -43,5 +43,12 @@ describe('utils', () => {
         ])('adds a negative offset on %s', (type, expected) => {
             expect(ParseTildeCaretNotation({ input: '~-2', type, source: source() })).toBe(expected);
         });
+
+        // `/tp @s @s` used to parse the selector as a position and send the player to NaN.
+        it.each(['@s', 'filfat', '', '1abc', 'Infinity', '~abc', '^x'])('refuses "%s"', (input) => {
+            expect(() => ParseTildeCaretNotation({ input, type: 'x', source: source() })).toThrow(
+                `Expected a coordinate, got "${input}"`
+            );
+        });
     });
 });
