@@ -9,7 +9,7 @@ import Overworld from './Overworld';
 const blockManager: any = {
     getBlock: (name: string) => {
         const found = allBlocks()
-            .map((B) => new (B as any)())
+            .map((B) => new B())
             .find((block: Block) => block.getName() === name);
         if (!found) throw new Error(`invalid block with id ${name}`);
         return found;

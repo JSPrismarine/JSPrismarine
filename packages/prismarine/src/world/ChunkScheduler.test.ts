@@ -68,7 +68,7 @@ describe('world', () => {
 
             const players = Array.from({ length: 10 }, () =>
                 fakeRecipient(
-                    Array.from({ length: 50 }, (_, i) => [i, 0] as [number, number]),
+                    Array.from({ length: 50 }, (_, i): [number, number] => [i, 0]),
                     1,
                     clock
                 )
