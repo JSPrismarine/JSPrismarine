@@ -18,7 +18,7 @@ describe('ArgumentCommandNodeTest', () => {
     let node: ArgumentCommandNode<Object, number>;
 
     beforeEach(() => {
-        node = argument('foo', integer()).build() as any;
+        node = argument<Object, number>('foo', integer()).build();
         contextBuilder = new CommandContextBuilder(new CommandDispatcher(), new Object(), new RootCommandNode(), 0);
     });
 

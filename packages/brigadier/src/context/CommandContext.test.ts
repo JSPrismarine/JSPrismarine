@@ -7,8 +7,8 @@ import RootCommandNode from '../tree/RootCommandNode';
 describe('CommandContextTest', () => {
     let builder: CommandContextBuilder<Object>;
     const source = {};
-    const rootNode = new RootCommandNode() as any;
-    const dispatcher = new CommandDispatcher<Object>(rootNode) as any;
+    const rootNode = new RootCommandNode<Object>();
+    const dispatcher = new CommandDispatcher<Object>(rootNode);
 
     beforeEach(() => {
         builder = new CommandContextBuilder(dispatcher, source, rootNode, 0);
