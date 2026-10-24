@@ -3,6 +3,14 @@ import NetworkStructure from '../NetworkStructure';
 import type { CommandPermissionLevel, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 
+/**
+ * The "SerializedAbilitiesData" structure carried by `UpdateAbilitiesPacket` and `AddPlayerPacket`.
+ *
+ * Wire order: "Target Player Raw Id" int64 LE, "Player Permissions" `PlayerPermissionLevel`
+ * as int8, "Command Permissions" `CommandPermissionLevel` as uint8, then "Layers" as a
+ * varuint32 count followed by that many `SerializedAbilityLayer` entries.
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/update-abilities-packet/}
+ */
 export default class SerializedAbilitiesData extends NetworkStructure {
     public layers: Array<SerializedAbilityLayer>;
 
