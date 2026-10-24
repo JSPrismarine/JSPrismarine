@@ -8,7 +8,8 @@ import type PacketHandler from './PacketHandler';
 /**
  * The client's half of the respawn exchange, and the end of it.
  *
- * Three states across two sides, in this order:
+ * Three states across two sides. The docs number them `SearchingForSpawn` (0) and
+ * `ReadyToSpawn` (1) for the server and `ClientReadyToSpawn` (2) for the client:
  *
  * 1. the player dies, and the server sends `SERVER_SEARCHING_FOR_SPAWN` with where they will
  *    reappear - the client will not offer the respawn button until it has this;
@@ -20,17 +21,32 @@ import type PacketHandler from './PacketHandler';
  * Getting the order wrong is not a small mistake. Sending the third at step one leaves the
  * client on "Respawning" for ever, and sending nothing at step three leaves it there too,
  * repeating the request once a second.
+ *
+ * Steps 2 and 3 are the client's to order, so the answer does not assume one. Its `Position`
+ * is where the player comes back: where they stand once `Player.respawn` has moved them, and
+ * the world spawn while they are still dead.
  * @see https://github.com/pmmp/PocketMine-MP/blob/stable/src/network/mcpe/handler/DeathPacketHandler.php
  */
 export default class RespawnHandler implements PacketHandler<RespawnPacket> {
     public static NetID = Identifiers.RespawnPacket;
 
-    public async handle(packet: RespawnPacket, _server: Server, session: PlayerSession): Promise<void> {
+    public async handle(packet: RespawnPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
+
+        // `Player Runtime Id` names the player respawning, and a client only respawns itself.
+        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+            server
+                .getLogger()
+                .debug(`${player.getName()} sent a Respawn for runtime id ${packet.runtimeEntityId}, dropped`);
+            return;
+        }
+
         // The other two states are the server's own; a client echoing one back is not asking
         // for anything.
         if (packet.state !== RespawnState.CLIENT_READY_TO_SPAWN) return;
 
-        await session.sendRespawn(session.getPlayer().getPosition(), RespawnState.SERVER_READY_TO_SPAWN);
+        const position = player.isAlive() ? player.getPosition() : await player.getWorld().getSpawnPosition();
+        await session.sendRespawn(position, RespawnState.SERVER_READY_TO_SPAWN);
 
         // And then the player, described again from scratch.
         //
