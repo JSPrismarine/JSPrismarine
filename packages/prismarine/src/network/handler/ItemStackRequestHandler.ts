@@ -7,7 +7,11 @@ import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
-import type { ItemStackResponse, ItemStackResponseSlotInfo } from '../packet/ItemStackResponsePacket';
+import type {
+    ItemStackResponse,
+    ItemStackResponseContainerInfo,
+    ItemStackResponseSlotInfo
+} from '../packet/ItemStackResponsePacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
 import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
@@ -32,6 +36,17 @@ const PLAYER_CONTAINERS = new Set<number>([
  */
 let nextStackId = 1;
 
+/** Amount, as the docs bound it: a request moves between one item and a full stack of 64. */
+const MIN_AMOUNT = 1;
+const MAX_AMOUNT = 64;
+
+/**
+ * Whether an id is one a client makes up: negative and odd. A positive value is a stack id
+ * the server handed out and a negative even one is a legacy request id, so either in this
+ * position is a request from something other than the game client.
+ */
+const isClientRequestId = (id: number): boolean => Number.isInteger(id) && id < 0 && id % 2 !== 0;
+
 export default class ItemStackRequestHandler implements PacketHandler<ItemStackRequestPacket> {
     public static NetID = Identifiers.ItemStackRequestPacket;
 
@@ -41,7 +56,8 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
      * Every request is answered, accepted or not. With the new inventory system the client
      * holds its change back until the server agrees, so silence is what left a creative pick
      * refusing to go anywhere - and an answer of `ERROR` is a clean refusal, the client
-     * putting back what it had rather than drifting out of step.
+     * putting back what it had rather than drifting out of step. A step that throws is
+     * answered the same way, once the request has been rolled back.
      */
     public async handle(packet: ItemStackRequestPacket, server: Server, session: PlayerSession): Promise<void> {
         const player = session.getPlayer();
@@ -129,253 +145,274 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             return this.reject(request);
         };
 
-        for (const action of request.actions) {
-            switch (action.type) {
-                case ItemStackRequestActionType.CREATIVE_CREATE: {
-                    created = CreativeInventory.get(server, action.creativeItemNetId!);
-                    if (!created) return deny(`no creative entry ${action.creativeItemNetId}`);
-                    break;
+        // Malformed before anything is looked at. Mojang's 2193 note lists these among what
+        // its own decoder refuses: an id a client could not have made up, and a request that
+        // asks for nothing. Each is still answered, so the client lets go of its prediction.
+        if (!isClientRequestId(request.requestId)) {
+            return deny(`request id ${request.requestId} is not a negative odd client request id`);
+        }
+        if (request.actions.length === 0) return deny('no actions');
+
+        try {
+            for (const action of request.actions) {
+                // Amount is a byte on the wire and 1 to 64 in the docs. A zero would move nothing
+                // and claim a slot changed; anything above a stack is a request no client sent.
+                if (action.count !== undefined && (action.count < MIN_AMOUNT || action.count > MAX_AMOUNT)) {
+                    return deny(`amount ${action.count} is outside ${MIN_AMOUNT} to ${MAX_AMOUNT}`);
                 }
 
-                case ItemStackRequestActionType.TAKE:
-                case ItemStackRequestActionType.PLACE: {
-                    if (created) {
-                        // A creative pick: the source is the menu, which holds nothing to
-                        // take from, so the conjured stack simply lands - and where it lands
-                        // is usually the pointer, not a slot, because that is what dragging
-                        // one out of the menu means.
-                        const to = this.locate(action.destination!, craftingInput);
-                        if (!to)
-                            return deny(
-                                `creative pick has nowhere to land: container ${action.destination!.container.containerId} slot ${action.destination!.slotId}`
-                            );
-
-                        // Built fresh rather than handed over: the creative list is one set
-                        // of items shared by every player, and putting one of them in an
-                        // inventory would give everybody the same object to mutate.
-                        const count = Math.max(1, action.count ?? 1);
-                        const stack = new Item({
-                            id: created.getId(),
-                            name: created.getName(),
-                            meta: created.meta,
-                            count
-                        });
-
-                        if (to[0] === ContainerUiId.CURSOR) {
-                            inventory.setCursor(stack);
-                            cursorTouched = true;
-                        } else if (to[0] === ContainerUiId.CRAFTING_INPUT) {
-                            craftingInput.set(to[1], stack);
-                            craftingTouched.add(to[1]);
-                        } else {
-                            // Added to what is there when it is the same thing, not written
-                            // over it: crafting twice onto the same slot replaced the first
-                            // four planks with the second four, and a creative pick dropped
-                            // onto an occupied slot destroyed what it landed on.
-                            //
-                            // Known gap: what will not fit in the slot is capped away rather
-                            // than carried to the next free one. The request named one
-                            // destination slot, and spilling into a slot the client did not
-                            // name means answering for a slot the client is not expecting -
-                            // which needs the response to describe both, so it is left until
-                            // the response is built from what changed rather than from what
-                            // was asked for.
-                            const held = inventory.getEntry(to[1]);
-                            const sameThing =
-                                held !== null &&
-                                held.getItem().getName() === stack.getName() &&
-                                held.getItem().getName() !== 'minecraft:air' &&
-                                held.getItem().meta === stack.meta;
-
-                            if (sameThing) {
-                                held.setCount(Math.min(stack.getMaxAmount(), held.getCount() + count));
-                            } else {
-                                inventory.setItem(to[1], new ContainerEntry({ item: stack, count }));
-                            }
-
-                            touched.add(to[1]);
-                        }
-
-                        created = null;
+                switch (action.type) {
+                    case ItemStackRequestActionType.CREATIVE_CREATE: {
+                        created = CreativeInventory.get(server, action.creativeItemNetId!);
+                        if (!created) return deny(`no creative entry ${action.creativeItemNetId}`);
                         break;
                     }
 
-                    const moved = this.moveBetween(
-                        action.source!,
-                        action.destination!,
-                        inventory,
-                        craftingInput,
-                        action.count
-                    );
-                    if (!moved)
-                        return deny(
-                            `cannot move ${action.source!.container.containerId}/${action.source!.slotId} -> ${action.destination!.container.containerId}/${action.destination!.slotId}`
+                    case ItemStackRequestActionType.TAKE:
+                    case ItemStackRequestActionType.PLACE: {
+                        if (created) {
+                            // A creative pick: the source is the menu, which holds nothing to
+                            // take from, so the conjured stack simply lands - and where it lands
+                            // is usually the pointer, not a slot, because that is what dragging
+                            // one out of the menu means.
+                            const to = this.locate(action.destination!, craftingInput);
+                            if (!to)
+                                return deny(
+                                    `creative pick has nowhere to land: container ${action.destination!.container.containerId} slot ${action.destination!.slotId}`
+                                );
+
+                            // Built fresh rather than handed over: the creative list is one set
+                            // of items shared by every player, and putting one of them in an
+                            // inventory would give everybody the same object to mutate.
+                            const count = action.count ?? 1;
+                            const stack = new Item({
+                                id: created.getId(),
+                                name: created.getName(),
+                                meta: created.meta,
+                                count
+                            });
+
+                            if (to[0] === ContainerUiId.CURSOR) {
+                                inventory.setCursor(stack);
+                                cursorTouched = true;
+                            } else if (to[0] === ContainerUiId.CRAFTING_INPUT) {
+                                craftingInput.set(to[1], stack);
+                                craftingTouched.add(to[1]);
+                            } else {
+                                // Added to what is there when it is the same thing, not written
+                                // over it: crafting twice onto the same slot replaced the first
+                                // four planks with the second four, and a creative pick dropped
+                                // onto an occupied slot destroyed what it landed on.
+                                //
+                                // Known gap: what will not fit in the slot is capped away rather
+                                // than carried to the next free one. The request named one
+                                // destination slot, and spilling into a slot the client did not
+                                // name means answering for a slot the client is not expecting -
+                                // which needs the response to describe both, so it is left until
+                                // the response is built from what changed rather than from what
+                                // was asked for.
+                                const held = inventory.getEntry(to[1]);
+                                const sameThing =
+                                    held !== null &&
+                                    held.getItem().getName() === stack.getName() &&
+                                    held.getItem().getName() !== 'minecraft:air' &&
+                                    held.getItem().meta === stack.meta;
+
+                                if (sameThing) {
+                                    held.setCount(Math.min(stack.getMaxAmount(), held.getCount() + count));
+                                } else {
+                                    inventory.setItem(to[1], new ContainerEntry({ item: stack, count }));
+                                }
+
+                                touched.add(to[1]);
+                            }
+
+                            created = null;
+                            break;
+                        }
+
+                        const moved = this.moveBetween(
+                            action.source!,
+                            action.destination!,
+                            inventory,
+                            craftingInput,
+                            action.count
                         );
+                        if (!moved)
+                            return deny(
+                                `cannot move ${action.source!.container.containerId}/${action.source!.slotId} -> ${action.destination!.container.containerId}/${action.destination!.slotId}`
+                            );
 
-                    for (const [container, slot] of moved) {
-                        if (container === ContainerUiId.CURSOR) cursorTouched = true;
-                        else if (container === ContainerUiId.CRAFTING_INPUT) craftingTouched.add(slot);
-                        else touched.add(slot);
-                    }
-                    break;
-                }
-
-                case ItemStackRequestActionType.SWAP: {
-                    const first = this.slotOf(action.source!);
-                    const second = this.slotOf(action.destination!);
-                    if (first === null || second === null)
-                        return deny(
-                            `cannot swap ${action.source!.container.containerId}/${action.source!.slotId} <-> ${action.destination!.container.containerId}/${action.destination!.slotId}`
-                        );
-
-                    const held = inventory.getItem(first);
-                    inventory.setItem(first, new ContainerEntry({ item: inventory.getItem(second) }));
-                    inventory.setItem(second, new ContainerEntry({ item: held }));
-                    touched.add(first).add(second);
-                    break;
-                }
-
-                case ItemStackRequestActionType.DROP:
-                case ItemStackRequestActionType.DESTROY: {
-                    // Known gap: a Drop takes the stack out of the inventory but puts nothing
-                    // on the ground, so the two act alike where only Destroy should discard.
-                    // Spawning the entity needs `World.dropContents`, which is async, and this
-                    // whole method is synchronous so that a refusal can roll the request back
-                    // before anything else has run. A drop would have to be collected here and
-                    // made after the request is answered.
-                    //
-                    // Located rather than looked up as an inventory slot: throwing away what
-                    // is on the pointer is the ordinary way to get rid of a creative pick,
-                    // and refusing it leaves the stack stuck to the mouse.
-                    const from = this.locate(action.source!, craftingInput);
-                    if (!from)
-                        return deny(
-                            `cannot drop from ${action.source!.container.containerId}/${action.source!.slotId}`
-                        );
-
-                    if (from[0] === ContainerUiId.CURSOR) {
-                        inventory.setCursor(null);
-                        cursorTouched = true;
-                    } else if (from[0] === ContainerUiId.CRAFTING_INPUT) {
-                        craftingInput.set(from[1], null);
-                        craftingTouched.add(from[1]);
-                    } else {
-                        inventory.removeItem(from[1]);
-                        touched.add(from[1]);
-                    }
-                    break;
-                }
-
-                case ItemStackRequestActionType.CRAFTING_RECIPE: {
-                    // The client says which recipe it believes it is making. Believing it
-                    // would let a player craft anything by naming its number, so the grid is
-                    // matched against that recipe before anything is handed over.
-                    const recipe = server.getRecipeManager().getByNetId(action.recipeNetId!);
-                    if (!recipe) return deny(`no recipe with net id ${action.recipeNetId}`);
-
-                    const station = server.getStationRegistry().get(recipe.station);
-                    if (!station) return deny(`no station for recipe ${action.recipeNetId}`);
-
-                    const grid = craftingInput.toGrid(craftingInput.gridSize());
-                    const matched = station.match(grid);
-                    if (matched !== recipe) {
-                        // Said in full, because "does not match" is true of an empty grid, of
-                        // the wrong recipe and of the right one read as the wrong size, and
-                        // those want different fixes.
-                        const held = Array.from({ length: grid.width * grid.height }, (_, index) =>
-                            grid.at(index % grid.width, Math.floor(index / grid.width))
-                        )
-                            .map((item) => item?.getName().replace('minecraft:', '') ?? '-')
-                            .join(' ');
-
-                        return deny(
-                            `the grid does not make ${recipe.id}: ${grid.width}x${grid.height} holding [${held}], ` +
-                                `matched ${matched?.id ?? 'nothing'}`
-                        );
+                        for (const [container, slot] of moved) {
+                            if (container === ContainerUiId.CURSOR) cursorTouched = true;
+                            else if (container === ContainerUiId.CRAFTING_INPUT) craftingTouched.add(slot);
+                            else touched.add(slot);
+                        }
+                        break;
                     }
 
-                    created = recipe.getOutputs()[0] ?? null;
-                    if (!created) return deny('the recipe yields nothing');
+                    case ItemStackRequestActionType.SWAP: {
+                        const first = this.slotOf(action.source!);
+                        const second = this.slotOf(action.destination!);
+                        if (first === null || second === null)
+                            return deny(
+                                `cannot swap ${action.source!.container.containerId}/${action.source!.slotId} <-> ${action.destination!.container.containerId}/${action.destination!.slotId}`
+                            );
 
-                    // Spent here, by the server that just matched the grid.
-                    //
-                    // A real server leaves this to the `CRAFTING_CONSUME_INPUT` actions that
-                    // follow, and this was written that way to match - but this client does
-                    // not send them for a craft in the inventory. Waiting for them meant
-                    // either taking the output for nothing, or, once that was guarded against,
-                    // refusing every craft. The server matched the grid, so the server knows
-                    // exactly what the craft costs and takes it.
-                    for (const slot of this.spendGrid(craftingInput)) craftingTouched.add(slot);
-                    break;
+                        const held = inventory.getItem(first);
+                        inventory.setItem(first, new ContainerEntry({ item: inventory.getItem(second) }));
+                        inventory.setItem(second, new ContainerEntry({ item: held }));
+                        touched.add(first).add(second);
+                        break;
+                    }
+
+                    case ItemStackRequestActionType.DROP:
+                    case ItemStackRequestActionType.DESTROY: {
+                        // Known gap: a Drop takes the stack out of the inventory but puts nothing
+                        // on the ground, so the two act alike where only Destroy should discard.
+                        // Spawning the entity needs `World.dropContents`, which is async, and this
+                        // whole method is synchronous so that a refusal can roll the request back
+                        // before anything else has run. A drop would have to be collected here and
+                        // made after the request is answered.
+                        //
+                        // Located rather than looked up as an inventory slot: throwing away what
+                        // is on the pointer is the ordinary way to get rid of a creative pick,
+                        // and refusing it leaves the stack stuck to the mouse.
+                        const from = this.locate(action.source!, craftingInput);
+                        if (!from)
+                            return deny(
+                                `cannot drop from ${action.source!.container.containerId}/${action.source!.slotId}`
+                            );
+
+                        if (from[0] === ContainerUiId.CURSOR) {
+                            inventory.setCursor(null);
+                            cursorTouched = true;
+                        } else if (from[0] === ContainerUiId.CRAFTING_INPUT) {
+                            craftingInput.set(from[1], null);
+                            craftingTouched.add(from[1]);
+                        } else {
+                            inventory.removeItem(from[1]);
+                            touched.add(from[1]);
+                        }
+                        break;
+                    }
+
+                    case ItemStackRequestActionType.CRAFTING_RECIPE: {
+                        // The client says which recipe it believes it is making. Believing it
+                        // would let a player craft anything by naming its number, so the grid is
+                        // matched against that recipe before anything is handed over.
+                        const recipe = server.getRecipeManager().getByNetId(action.recipeNetId!);
+                        if (!recipe) return deny(`no recipe with net id ${action.recipeNetId}`);
+
+                        const station = server.getStationRegistry().get(recipe.station);
+                        if (!station) return deny(`no station for recipe ${action.recipeNetId}`);
+
+                        const grid = craftingInput.toGrid(craftingInput.gridSize());
+                        const matched = station.match(grid);
+                        if (matched !== recipe) {
+                            // Said in full, because "does not match" is true of an empty grid, of
+                            // the wrong recipe and of the right one read as the wrong size, and
+                            // those want different fixes.
+                            const held = Array.from({ length: grid.width * grid.height }, (_, index) =>
+                                grid.at(index % grid.width, Math.floor(index / grid.width))
+                            )
+                                .map((item) => item?.getName().replace('minecraft:', '') ?? '-')
+                                .join(' ');
+
+                            return deny(
+                                `the grid does not make ${recipe.id}: ${grid.width}x${grid.height} holding [${held}], ` +
+                                    `matched ${matched?.id ?? 'nothing'}`
+                            );
+                        }
+
+                        created = recipe.getOutputs()[0] ?? null;
+                        if (!created) return deny('the recipe yields nothing');
+
+                        // Spent here, by the server that just matched the grid.
+                        //
+                        // A real server leaves this to the `CRAFTING_CONSUME_INPUT` actions that
+                        // follow, and this was written that way to match - but this client does
+                        // not send them for a craft in the inventory. Waiting for them meant
+                        // either taking the output for nothing, or, once that was guarded against,
+                        // refusing every craft. The server matched the grid, so the server knows
+                        // exactly what the craft costs and takes it.
+                        for (const slot of this.spendGrid(craftingInput)) craftingTouched.add(slot);
+                        break;
+                    }
+
+                    case ItemStackRequestActionType.CRAFTING_CONSUME_INPUT: {
+                        // What the craft costs, spent one action per slot and by the count the
+                        // client names - which is how a real server does it, rather than the
+                        // server deciding for itself.
+                        //
+                        // It used to empty the slot outright, so crafting once with sixty-four
+                        // logs in the grid would have destroyed all sixty-four.
+                        const slot = this.craftingSlotOf(action.source!, craftingInput);
+                        if (slot === null)
+                            return deny(
+                                `not a crafting slot: ${action.source!.container.containerId}/${action.source!.slotId}`
+                            );
+
+                        // Acknowledged, not acted on: the craft above already spent the grid.
+                        // Spending again here would take twice what the recipe asked for.
+                        craftingTouched.add(slot);
+                        break;
+                    }
+
+                    case ItemStackRequestActionType.CRAFTING_CREATE_SPECIFIC_RESULT:
+                        // Which of several results was picked. Nothing here makes more than one.
+                        break;
+
+                    case ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED:
+                        // The client restating what it expects, after the fact. Nothing to do.
+                        break;
+
+                    case ItemStackRequestActionType.MINE_BLOCK:
+                        // Nothing to move: the break itself is handled where the block is.
+                        break;
+
+                    default:
+                        // Crafting, beacons, looms - read so the packet stays aligned, refused
+                        // because acting on half of one would be worse than not acting.
+                        return deny(`action type ${action.type} is not acted on`);
                 }
-
-                case ItemStackRequestActionType.CRAFTING_CONSUME_INPUT: {
-                    // What the craft costs, spent one action per slot and by the count the
-                    // client names - which is how a real server does it, rather than the
-                    // server deciding for itself.
-                    //
-                    // It used to empty the slot outright, so crafting once with sixty-four
-                    // logs in the grid would have destroyed all sixty-four.
-                    const slot = this.craftingSlotOf(action.source!, craftingInput);
-                    if (slot === null)
-                        return deny(
-                            `not a crafting slot: ${action.source!.container.containerId}/${action.source!.slotId}`
-                        );
-
-                    // Acknowledged, not acted on: the craft above already spent the grid.
-                    // Spending again here would take twice what the recipe asked for.
-                    craftingTouched.add(slot);
-                    break;
-                }
-
-                case ItemStackRequestActionType.CRAFTING_CREATE_SPECIFIC_RESULT:
-                    // Which of several results was picked. Nothing here makes more than one.
-                    break;
-
-                case ItemStackRequestActionType.CRAFTING_RESULTS_DEPRECATED:
-                    // The client restating what it expects, after the fact. Nothing to do.
-                    break;
-
-                case ItemStackRequestActionType.MINE_BLOCK:
-                    // Nothing to move: the break itself is handled where the block is.
-                    break;
-
-                default:
-                    // Crafting, beacons, looms - read so the packet stays aligned, refused
-                    // because acting on half of one would be worse than not acting.
-                    return deny(`action type ${action.type} is not acted on`);
             }
+        } catch (error) {
+            // A step that throws is still a refusal, not a request left hanging. Unanswered,
+            // the client keeps its prediction for a move the server never made.
+            return deny(`a step threw: ${error instanceof Error ? error.message : String(error)}`);
         }
 
         for (const slot of craftingTouched) craftingChanged.add(slot);
 
-        return {
-            result: ItemStackResponseResult.OK,
-            requestId: request.requestId,
-            containers: [
-                {
-                    container: { containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, dynamicId: null },
-                    slots: Array.from(touched).map((slot) => this.describe(inventory, slot))
-                },
-                // The crafting slots are a container of their own, and a client told nothing
-                // about them keeps showing what it spent.
-                {
-                    container: { containerId: ContainerUiId.CRAFTING_INPUT, dynamicId: null },
-                    slots: Array.from(craftingTouched).map((slot) => this.describeCrafting(craftingInput, slot))
-                },
-                // Only when something moved through it. The pointer is what the player is
-                // looking at mid-drag, so an answer that leaves it out is one that makes the
-                // stack vanish from under the mouse.
-                ...(cursorTouched
-                    ? [
-                          {
-                              container: { containerId: ContainerUiId.CURSOR, dynamicId: null },
-                              slots: [this.describeItem(0, inventory.getCursor())]
-                          }
-                      ]
-                    : [])
-            ]
-        };
+        // Only the containers something changed in. A container with no slots is legal on the
+        // wire but says nothing, and it named both kept stores in every answer whether or not
+        // the request went near them.
+        const containers: ItemStackResponseContainerInfo[] = [
+            {
+                container: { containerId: ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, dynamicId: null },
+                slots: Array.from(touched).map((slot) => this.describe(inventory, slot))
+            },
+            // The crafting slots are a container of their own, and a client told nothing
+            // about them keeps showing what it spent.
+            {
+                container: { containerId: ContainerUiId.CRAFTING_INPUT, dynamicId: null },
+                slots: Array.from(craftingTouched).map((slot) => this.describeCrafting(craftingInput, slot))
+            },
+            // Only when something moved through it. The pointer is what the player is
+            // looking at mid-drag, so an answer that leaves it out is one that makes the
+            // stack vanish from under the mouse.
+            ...(cursorTouched
+                ? [
+                      {
+                          container: { containerId: ContainerUiId.CURSOR, dynamicId: null },
+                          slots: [this.describeItem(0, inventory.getCursor())]
+                      }
+                  ]
+                : [])
+        ].filter((container) => container.slots.length > 0);
+
+        return { result: ItemStackResponseResult.OK, requestId: request.requestId, containers };
     }
 
     /**

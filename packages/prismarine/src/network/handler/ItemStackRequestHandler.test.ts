@@ -95,7 +95,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 7,
+                        requestId: -7,
                         actions: [
                             { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
                             {
@@ -119,7 +119,7 @@ describe('network', () => {
             // Answered, and answered about the slot that changed - the client holds its own
             // change back until it hears this.
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
-            expect(response.responses[0]?.requestId).toBe(7);
+            expect(response.responses[0]?.requestId).toBe(-7);
             expect(response.responses[0]?.containers[0]?.slots.map((s) => s.slot)).toEqual([3]);
         });
 
@@ -133,7 +133,7 @@ describe('network', () => {
                 run(
                     [
                         {
-                            requestId: 1,
+                            requestId: -1,
                             actions: [
                                 {
                                     type: ItemStackRequestActionType.CREATIVE_CREATE,
@@ -172,7 +172,7 @@ describe('network', () => {
             await run(
                 [
                     {
-                        requestId: 2,
+                        requestId: -3,
                         actions: [
                             {
                                 type: ItemStackRequestActionType.PLACE,
@@ -222,7 +222,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 5,
+                        requestId: -5,
                         actions: [
                             // This one would work...
                             {
@@ -256,7 +256,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 4,
+                        requestId: -9,
                         actions: [{ type: ItemStackRequestActionType.CRAFTING_LOOM }],
                         filterStrings: [],
                         filterStringCause: 0
@@ -267,7 +267,7 @@ describe('network', () => {
             );
 
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
-            expect(response.responses[0]?.requestId).toBe(4);
+            expect(response.responses[0]?.requestId).toBe(-9);
             expect(response.responses[0]?.containers).toHaveLength(0);
         });
 
@@ -277,7 +277,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 5,
+                        requestId: -5,
                         actions: [
                             {
                                 type: ItemStackRequestActionType.PLACE,
@@ -326,7 +326,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 3,
+                        requestId: -3,
                         actions: [
                             { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 },
                             { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(0) },
@@ -376,7 +376,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 4,
+                        requestId: -9,
                         actions: [{ type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 }],
                         filterStrings: [],
                         filterStringCause: 0
@@ -398,7 +398,7 @@ describe('network', () => {
             await run(
                 [
                     {
-                        requestId: 5,
+                        requestId: -5,
                         actions: [
                             {
                                 type: ItemStackRequestActionType.PLACE,
@@ -426,7 +426,7 @@ describe('network', () => {
             const response = await run(
                 [
                     {
-                        requestId: 1,
+                        requestId: -1,
                         actions: [
                             { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
                             {
@@ -446,6 +446,157 @@ describe('network', () => {
 
             expect(() => response.encode()).not.toThrow();
             expect(response.getBuffer().byteLength).toBeGreaterThan(0);
+        });
+
+        it('refuses a request id no client makes up, and answers under that same id', async () => {
+            // A client's ids are negative and odd. Positive ones are the server's own stack
+            // ids and negative even ones are legacy request ids, so either here is a request
+            // from something other than the game.
+            const server = fakeServer([]);
+            const inventory = new HumanInventory();
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+
+            for (const requestId of [4, -2]) {
+                const response = await run(
+                    [
+                        {
+                            requestId,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: slot(0),
+                                    destination: slot(5)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server
+                );
+
+                expect(response.responses[0]).toEqual({
+                    result: ItemStackResponseResult.ERROR,
+                    requestId,
+                    containers: []
+                });
+                expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
+            }
+        });
+
+        it('refuses a request with no actions', async () => {
+            const response = await run(
+                [{ requestId: -1, actions: [], filterStrings: [], filterStringCause: 0 }],
+                new HumanInventory(),
+                fakeServer([])
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(response.responses[0]?.requestId).toBe(-1);
+        });
+
+        it('refuses an amount outside one to sixty-four', async () => {
+            const server = fakeServer([]);
+
+            for (const count of [0, 65]) {
+                const inventory = new HumanInventory();
+                inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+
+                const response = await run(
+                    [
+                        {
+                            requestId: -1,
+                            actions: [
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count,
+                                    source: slot(0),
+                                    destination: slot(5)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+                expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
+            }
+        });
+
+        it('answers a request whose step threw, and puts things back', async () => {
+            // The exception used to escape the handler, so nothing was sent and the client
+            // kept its prediction for a move the server never made.
+            class Broken extends HumanInventory {
+                public override removeItem(slot: number): never {
+                    throw new Error(`cannot empty slot ${slot}`);
+                }
+            }
+            const inventory = new Broken();
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -1,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(5)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(response.responses[0]).toEqual({
+                result: ItemStackResponseResult.ERROR,
+                requestId: -1,
+                containers: []
+            });
+            expect(inventory.getItem(0).getName()).toBe('minecraft:stone');
+            expect(inventory.getItem(5).getName()).toBe('minecraft:air');
+        });
+
+        it('names only the containers something changed in', async () => {
+            // The two kept stores used to be listed in every answer, slots or no slots.
+            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })]);
+
+            const response = await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 64,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                new HumanInventory(),
+                server
+            );
+
+            expect(response.responses[0]?.containers.map((container) => container.container.containerId)).toEqual([
+                ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY
+            ]);
         });
     });
 });
