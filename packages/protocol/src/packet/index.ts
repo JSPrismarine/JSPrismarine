@@ -11,7 +11,7 @@ import PlayerActionPacket from './PlayerActionPacket';
 import RequestChunkRadiusPacket from './RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './RequestNetworkSettingsPacket';
 import ServerToClientHandshakePacket from './ServerToClientHandshakePacket';
-import ResourcePackResponsePacket from './ResourcePackResponsePacket';
+import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 import ResourcePacksInfoPacket from './ResourcePacksInfoPacket';
 import SetLocalPlayerAsInitializedPacket from './SetLocalPlayerAsInitializedPacket';
@@ -32,7 +32,7 @@ export {
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
     ServerToClientHandshakePacket,
-    ResourcePackResponsePacket,
+    ResourcePackClientResponsePacket,
     ResourcePackStackPacket,
     ResourcePacksInfoPacket,
     SetLocalPlayerAsInitializedPacket,
@@ -43,7 +43,7 @@ export {
 export { MovementType } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
-export { ResourcePackStatus } from './ResourcePackResponsePacket';
+export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { TextType } from './TextPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
@@ -56,7 +56,7 @@ export type { Login } from './LoginPacket';
 export type { NetworkSettings } from './NetworkSettingsPacket';
 export type { PlayStatusData } from './PlayStatusPacket';
 export type { RequestNetworkSettings } from './RequestNetworkSettingsPacket';
-export type { ResourcePackResponse } from './ResourcePackResponsePacket';
+export type { ResourcePackResponse } from './ResourcePackClientResponsePacket';
 export type { Experiment, ResourcePackStack, ResourcePackStackEntry } from './ResourcePackStackPacket';
 export type { PackIdVersion, ResourcePackEntry, ResourcePacksInfo } from './ResourcePacksInfoPacket';
 export type { SetLocalPlayerAsInitialized } from './SetLocalPlayerAsInitializedPacket';

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import ResourcePackResponsePacket from './ResourcePackResponsePacket';
+import ResourcePackClientResponsePacket from './ResourcePackClientResponsePacket';
 
 /** The packet id header, a varuint32 holding 8 with both subclient ids zero. */
 const HEADER = 0x08;
@@ -22,7 +22,7 @@ const DOWNLOADING_ONE_PACK = [
 ];
 
 const encode = (status: ResourcePackStatusType, packIds: string[] = []) => {
-    const pk = new ResourcePackResponsePacket();
+    const pk = new ResourcePackClientResponsePacket();
     pk.status = status;
     pk.packIds = packIds;
     pk.encode();
@@ -30,7 +30,7 @@ const encode = (status: ResourcePackStatusType, packIds: string[] = []) => {
 };
 
 const decode = (bytes: number[]) => {
-    const pk = new ResourcePackResponsePacket();
+    const pk = new ResourcePackClientResponsePacket();
     pk.setReadBuffer(Buffer.from(bytes));
     pk.decode();
     return pk;
@@ -38,10 +38,10 @@ const decode = (bytes: number[]) => {
 
 describe('network', () => {
     describe('packet', () => {
-        describe('ResourcePackResponsePacket', () => {
+        describe('ResourcePackClientResponsePacket', () => {
             it('uses the network id the client expects', () => {
-                expect(ResourcePackResponsePacket.NetID).toBe(Identifiers.ResourcePackResponsePacket);
-                expect(ResourcePackResponsePacket.NetID).toBe(HEADER);
+                expect(ResourcePackClientResponsePacket.NetID).toBe(Identifiers.ResourcePackClientResponsePacket);
+                expect(ResourcePackClientResponsePacket.NetID).toBe(HEADER);
             });
 
             it('encodes HaveAllPacks as alternative 2 with its name and nothing else', () => {
@@ -63,14 +63,14 @@ describe('network', () => {
                 // The enum has no zero member, so the test reaches it through `number`, which
                 // numeric enums accept. This is the value a caller gets from a `None` elsewhere.
                 const noAnswer: number = 0;
-                const pk = new ResourcePackResponsePacket();
+                const pk = new ResourcePackClientResponsePacket();
                 pk.status = noAnswer;
 
                 expect(() => pk.encode()).toThrow('No resource pack response alternative for status 0');
             });
 
             it('refuses to encode a packet whose status was never set', () => {
-                expect(() => new ResourcePackResponsePacket().encode()).toThrow(
+                expect(() => new ResourcePackClientResponsePacket().encode()).toThrow(
                     'No resource pack response alternative for status undefined'
                 );
             });

@@ -30,18 +30,18 @@ const ENTRY_VERSION = 1;
  * `Is Component Based` (boolean), `Item Version` (varint32, see {@link ENTRY_VERSION}), and
  * `Item Component Data` (network NBT compound with varint lengths, little endian).
  */
-export default class ItemComponentPacket extends DataPacket {
-    public static NetID = Identifiers.ItemComponentPacket;
+export default class ItemRegistryPacket extends DataPacket {
+    public static NetID = Identifiers.ItemRegistryPacket;
 
     /** Built once and kept. The table is identical for every player and every join. */
     private static cached: Buffer | null = null;
 
     public encodePayload(): void {
-        this.write(ItemComponentPacket.getTable());
+        this.write(ItemRegistryPacket.getTable());
     }
 
     private static getTable(): Buffer {
-        if (ItemComponentPacket.cached) return ItemComponentPacket.cached;
+        if (ItemRegistryPacket.cached) return ItemRegistryPacket.cached;
 
         const stream = new BinaryStream();
         const entries = Object.entries(ItemTable);
@@ -60,7 +60,7 @@ export default class ItemComponentPacket extends DataPacket {
             components.writeCompound(new NBTTagCompound());
         }
 
-        ItemComponentPacket.cached = stream.getBuffer();
-        return ItemComponentPacket.cached;
+        ItemRegistryPacket.cached = stream.getBuffer();
+        return ItemRegistryPacket.cached;
     }
 }

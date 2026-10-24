@@ -294,7 +294,7 @@ export default class Player extends Human {
         const event = new ChatEvent(
             new Chat({
                 sender: this.server.getConsole()!,
-                // The bare translation key, for the reason given in ResourcePackResponseHandler.
+                // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
                 message: `%multiplayer.player.left`,
                 parameters: [this.getName()],
                 needsTranslation: true,

@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
 import { PacketIdentifier } from '../PacketIdentifier';
-import ResourcePackResponsePacket, { ResourcePackStatus } from './ResourcePackResponsePacket';
+import ResourcePackClientResponsePacket, { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 
-import type { ResourcePackResponse } from './ResourcePackResponsePacket';
+import type { ResourcePackResponse } from './ResourcePackClientResponsePacket';
 
 /** The packet id header, a varuint32 holding 8 with both subclient ids zero. */
 const HEADER = 0x08;
@@ -24,19 +24,19 @@ const DOWNLOADING_ONE_PACK = [
 ];
 
 const encode = (data: ResourcePackResponse) => [
-    ...new ResourcePackResponsePacket(data).serialize(new NetworkBinaryStream())
+    ...new ResourcePackClientResponsePacket(data).serialize(new NetworkBinaryStream())
 ];
 
 const decode = (bytes: number[]) => {
     const stream = new NetworkBinaryStream(Buffer.from(bytes));
-    const data = new ResourcePackResponsePacket().deserialize(stream);
+    const data = new ResourcePackClientResponsePacket().deserialize(stream);
     return { data, stream };
 };
 
-describe('ResourcePackResponsePacket', () => {
+describe('ResourcePackClientResponsePacket', () => {
     it('uses packet id 8', () => {
-        expect(new ResourcePackResponsePacket().id).toBe(PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE);
-        expect(new ResourcePackResponsePacket().id).toBe(HEADER);
+        expect(new ResourcePackClientResponsePacket().id).toBe(PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE);
+        expect(new ResourcePackClientResponsePacket().id).toBe(HEADER);
     });
 
     it('encodes HaveAllPacks as alternative 2 with its name and nothing else', () => {

@@ -1,5 +1,5 @@
 /**
- * The client's answer in a `ResourcePackResponsePacket`, numbered one above the wire's
+ * The client's answer in a `ResourcePackClientResponsePacket`, numbered one above the wire's
  * alternative index.
  *
  * Mojang's docs name the alternatives differently: `Refused` is `Cancel`, `SendPacks` is

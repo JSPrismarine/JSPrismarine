@@ -15,8 +15,8 @@ import DataPacket from './DataPacket';
  * expects 2001, and since 2001 is what makes it play the break sound and spawn the destroy
  * particles, both went missing.
  */
-export default class WorldEventPacket extends DataPacket {
-    public static NetID = Identifiers.WorldEventPacket;
+export default class LevelEventPacket extends DataPacket {
+    public static NetID = Identifiers.LevelEventPacket;
 
     public eventId!: LevelEvent;
     public position!: Vector3 | null;

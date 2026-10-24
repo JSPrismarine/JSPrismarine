@@ -9,18 +9,22 @@ import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
-import ItemComponentPacket from '../packet/ItemComponentPacket';
+import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import JigsawStructureDataPacket from '../packet/JigsawStructureDataPacket';
-import type ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
+import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import type PacketHandler from './PacketHandler';
 
-export default class ResourcePackResponseHandler implements PacketHandler<ResourcePackResponsePacket> {
-    public static NetID = Identifiers.ResourcePackResponsePacket;
+export default class ResourcePackClientResponseHandler implements PacketHandler<ResourcePackClientResponsePacket> {
+    public static NetID = Identifiers.ResourcePackClientResponsePacket;
 
-    public async handle(packet: ResourcePackResponsePacket, server: Server, session: PlayerSession): Promise<void> {
+    public async handle(
+        packet: ResourcePackClientResponsePacket,
+        server: Server,
+        session: PlayerSession
+    ): Promise<void> {
         if (packet.status === ResourcePackStatusType.HaveAllPacks) {
             const resourcePackStack = new ResourcePackStackPacket();
             resourcePackStack.texturePackRequired = false;
@@ -39,7 +43,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
      *    StartGame without the jigsaw rules disconnects with `MissingStructureData`.
      * 2. `StartGame`. Nothing game-related may precede it. A client still in its login state
      *    treats game packets as malformed and drops with `InitialConnection-90`.
-     * 3. `ItemRegistry` (our `ItemComponentPacket`), `AvailableActorIdentifiers`,
+     * 3. `ItemRegistry` (our `ItemRegistryPacket`), `AvailableActorIdentifiers`,
      *    `BiomeDefinitionList`, `CreativeContent`, `CraftingData`, `AvailableCommands`. The
      *    registries the client builds its world from; it needs them before anything that
      *    references an item, an actor type or a biome.
@@ -105,7 +109,7 @@ export default class ResourcePackResponseHandler implements PacketHandler<Resour
         startGame.gameRules = world.getGameRuleManager();
         await connection.sendDataPacket(startGame);
 
-        await connection.sendDataPacket(new ItemComponentPacket());
+        await connection.sendDataPacket(new ItemRegistryPacket());
         await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
         await connection.sendDataPacket(new BiomeDefinitionListPacket());
         await session.sendCreativeContents();

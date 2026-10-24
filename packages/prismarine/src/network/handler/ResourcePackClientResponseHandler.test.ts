@@ -18,9 +18,9 @@ import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
-import ResourcePackResponsePacket from '../packet/ResourcePackResponsePacket';
+import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
-import ResourcePackResponseHandler from './ResourcePackResponseHandler';
+import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
 /**
  * Records everything the join sends, in order, under one name per packet.
@@ -90,13 +90,17 @@ const harness = ({ cancelSpawn = false }: { cancelSpawn?: boolean } = {}) => {
     return { sent, emit, server, session };
 };
 
-const response = (status: ResourcePackStatusType) => Object.assign(new ResourcePackResponsePacket(), { status });
+const response = (status: ResourcePackStatusType) => Object.assign(new ResourcePackClientResponsePacket(), { status });
 
-describe('ResourcePackResponseHandler', () => {
+describe('ResourcePackClientResponseHandler', () => {
     it('answers "have all packs" with the pack stack and nothing else', async () => {
         const { sent, server, session } = harness();
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.HaveAllPacks), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.HaveAllPacks),
+            server,
+            session
+        );
 
         expect(sent).toEqual(['ResourcePackStackPacket']);
     });
@@ -106,7 +110,11 @@ describe('ResourcePackResponseHandler', () => {
         // 1.26.51 client accepts, and a reordering anywhere in it is worth a failing test.
         const { sent, server, session } = harness();
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.Completed), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
 
         expect(sent).toEqual([
             // Before StartGame: a client that reaches StartGame without it disconnects with
@@ -114,7 +122,7 @@ describe('ResourcePackResponseHandler', () => {
             'JigsawStructureDataPacket',
             'StartGamePacket',
             // The registries.
-            'ItemComponentPacket',
+            'ItemRegistryPacket',
             'AvailableActorIdentifiersPacket',
             'BiomeDefinitionListPacket',
             'CreativeContent',
@@ -138,7 +146,11 @@ describe('ResourcePackResponseHandler', () => {
         // sends. No vanilla server sends a Respawn at login.
         const { sent, server, session } = harness();
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.Completed), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
 
         expect(sent).not.toContain('RespawnPacket');
     });
@@ -148,7 +160,11 @@ describe('ResourcePackResponseHandler', () => {
         // StartGame has no world to apply them to.
         const { sent, server, session } = harness();
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.Completed), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
 
         expect(sent.slice(0, sent.indexOf('StartGamePacket'))).toEqual(['JigsawStructureDataPacket']);
     });
@@ -156,7 +172,11 @@ describe('ResourcePackResponseHandler', () => {
     it('announces the join once, after everything else', async () => {
         const { sent, emit, server, session } = harness();
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.Completed), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
 
         expect(emit).toHaveBeenCalledOnce();
         expect(emit.mock.calls[0]?.[0]).toBe('chat');
@@ -166,7 +186,11 @@ describe('ResourcePackResponseHandler', () => {
     it('sends nothing when a subscriber cancels the spawn', async () => {
         const { sent, emit, server, session } = harness({ cancelSpawn: true });
 
-        await new ResourcePackResponseHandler().handle(response(ResourcePackStatusType.Completed), server, session);
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
 
         expect(sent).toEqual([]);
         expect(emit).not.toHaveBeenCalled();

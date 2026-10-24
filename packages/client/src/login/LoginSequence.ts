@@ -5,7 +5,7 @@ import {
     PlayStatus,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
-    ResourcePackResponsePacket,
+    ResourcePackClientResponsePacket,
     ResourcePackStatus,
     SetLocalPlayerAsInitializedPacket
 } from '@jsprismarine/protocol';
@@ -248,7 +248,7 @@ export default class LoginSequence {
         // No packs are ever downloaded: this client ships its own and does not accept a
         // server's. Saying "I have them all" is what a client with the packs already
         // cached says, and it is true in the only sense the server checks.
-        await this.session.sendImmediate(new ResourcePackResponsePacket({ status, packIds: [] }));
+        await this.session.sendImmediate(new ResourcePackClientResponsePacket({ status, packIds: [] }));
     }
 
     private async onPlayerSpawn(): Promise<void> {

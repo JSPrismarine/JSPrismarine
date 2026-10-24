@@ -8,8 +8,8 @@ import { canExecute } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
-import SetPlayerGametypePacket from '../packet/SetPlayerGametypePacket';
-import SetPlayerGametypeHandler from './SetPlayerGametypeHandler';
+import SetPlayerGameTypePacket from '../packet/SetPlayerGameTypePacket';
+import SetPlayerGameTypeHandler from './SetPlayerGameTypeHandler';
 
 /**
  * The permission check used to be inverted: a player with `minecraft.command.gamemode` was
@@ -35,14 +35,14 @@ const fakeSession = (permissions: string[]) => {
     };
 };
 
-const request = (gametype: Gametype): SetPlayerGametypePacket =>
-    Object.assign(new SetPlayerGametypePacket(), { gametype });
+const request = (gametype: Gametype): SetPlayerGameTypePacket =>
+    Object.assign(new SetPlayerGameTypePacket(), { gametype });
 
-describe('SetPlayerGametypeHandler', () => {
+describe('SetPlayerGameTypeHandler', () => {
     it('applies the requested game type for a player who may run the gamemode command', async () => {
         const { applied, resent, server, session } = fakeSession(['minecraft.command.gamemode']);
 
-        await new SetPlayerGametypeHandler().handle(request(Gametype.CREATIVE), server, session);
+        await new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), server, session);
 
         expect(applied).toEqual([Gametype.CREATIVE]);
         expect(resent).toEqual([]);
@@ -51,7 +51,7 @@ describe('SetPlayerGametypeHandler', () => {
     it('resends the current game type to a player who may not', async () => {
         const { applied, resent, server, session } = fakeSession([]);
 
-        await new SetPlayerGametypeHandler().handle(request(Gametype.CREATIVE), server, session);
+        await new SetPlayerGameTypeHandler().handle(request(Gametype.CREATIVE), server, session);
 
         expect(applied).toEqual([]);
         expect(resent).toEqual([undefined]);
@@ -61,10 +61,10 @@ describe('SetPlayerGametypeHandler', () => {
         const { applied, resent, server, session } = fakeSession(['minecraft.command.gamemode']);
 
         // 42 is not a `Gametype`, so it has to come in off the wire: ZigZag of 42 is 0x54.
-        const packet = new SetPlayerGametypePacket(Buffer.from([Identifiers.SetPlayerGametypePacket, 0x54]));
+        const packet = new SetPlayerGameTypePacket(Buffer.from([Identifiers.SetPlayerGameTypePacket, 0x54]));
         packet.decode();
 
-        await new SetPlayerGametypeHandler().handle(packet, server, session);
+        await new SetPlayerGameTypeHandler().handle(packet, server, session);
 
         expect(applied).toEqual([]);
         expect(resent).toEqual([undefined]);
