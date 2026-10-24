@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import * as Blocks from './Blocks';
+import { allBlocks } from './Blocks';
 import { BlockRuntimeIds } from './state/BlockRuntimeIds';
 import { BlockStateSchemas } from './state/BlockStateSchema';
 
 /** Every block class JSPrismarine registers at startup, instantiated as BlockManager does. */
-const registeredBlocks = () => Object.values(Blocks).map((Block) => new (Block as any)());
+const registeredBlocks = () => allBlocks().map((Block) => new (Block as any)());
 
 describe('block', () => {
     describe('registered blocks', () => {

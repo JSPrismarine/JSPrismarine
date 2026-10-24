@@ -10,7 +10,7 @@ export class Liquid extends Block {
         return 100;
     }
 
-    public getDropsForCompatibleTool(_item: Item, _server: Server) {
+    public getDropsForCompatibleTool(_item: Item | null, _server: Server): Array<Block | Item | null> {
         return [];
     }
 

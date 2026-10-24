@@ -100,7 +100,7 @@ export class BlockStateSchemas {
      */
     private static revisionCounter = 0;
 
-    public static get revision(): number {
+    public static getRevision(): number {
         this.load();
         return this.revisionCounter;
     }

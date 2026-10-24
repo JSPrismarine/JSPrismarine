@@ -1,3 +1,4 @@
+import type { Block } from '../Block';
 import { BlockIdsType } from '../BlockIdsType';
 import { BlockToolType } from '../BlockToolType';
 import type { Item } from '../../item/Item';
@@ -34,7 +35,7 @@ export default class Stone extends Solid {
         return ItemTieredToolType.Wood;
     }
 
-    public getDropsForCompatibleTool(item: Item, server: Server) {
+    public getDropsForCompatibleTool(_item: Item | null, server: Server): Array<Block | Item | null> {
         return [server.getBlockManager().getBlock('minecraft:cobblestone')];
     }
 }
