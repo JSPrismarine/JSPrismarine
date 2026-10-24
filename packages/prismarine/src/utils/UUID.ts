@@ -84,14 +84,30 @@ export default class UUID {
         return this.parts;
     }
 
-    public networkSerialize(stream: any): void {
-        stream.writeIntLE(this.parts[1]);
-        stream.writeIntLE(this.parts[0]);
-        stream.writeIntLE(this.parts[3]);
-        stream.writeIntLE(this.parts[2]);
+    /**
+     * Writes this uuid as an `mce::UUID`: `Most Significant Bits` then `Least Significant
+     * Bits`, each a uint64 little endian.
+     *
+     * Each half goes out as its two halves in little-endian order, which is the same sixteen
+     * bytes a uint64 writer would produce and keeps the parts as the int32s they are read as.
+     * {@link https://mojang.github.io/bedrock-protocol-docs/html/mce__UUID.html}
+     * @param stream - The network stream.
+     */
+    public networkSerialize(stream: BinaryStream): void {
+        const [part0 = 0, part1 = 0, part2 = 0, part3 = 0] = this.parts;
+
+        stream.writeIntLE(part1);
+        stream.writeIntLE(part0);
+        stream.writeIntLE(part3);
+        stream.writeIntLE(part2);
     }
 
-    public static networkDeserialize(stream: any): UUID {
+    /**
+     * Reads an `mce::UUID` written by {@link networkSerialize}.
+     * @param stream - The network stream.
+     * @returns The uuid.
+     */
+    public static networkDeserialize(stream: BinaryStream): UUID {
         const part1 = stream.readIntLE();
         const part0 = stream.readIntLE();
         const part3 = stream.readIntLE();
