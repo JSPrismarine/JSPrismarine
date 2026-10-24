@@ -1,7 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
-import { Attribute } from '../../entity/Attribute';
+import { Attribute, Attributes } from '../../entity/Attribute';
 import UpdateAttributesPacket from './UpdateAttributesPacket';
 
 /**
@@ -104,5 +104,115 @@ describe('UpdateAttributesPacket', () => {
         expect(attribute?.getDefault()).toBe(20);
         expect(packet.tick).toBe(12345n);
         expect(packet.feof()).toBe(true);
+    });
+
+    it('reads past a modifier whose Operation and Operand are plain int32, not varints', () => {
+        // AttributeModifier in docs order. Neither int32 carries the Compression option, so an
+        // operation of 1 is four bytes, not one; a varint reader would land three bytes early.
+        const input = new BinaryStream();
+        input.writeUnsignedVarInt(HEADER);
+        input.writeUnsignedVarInt(300); // Target Runtime ID, two bytes as a varuint.
+        input.writeUnsignedVarInt(1);
+        input.writeFloatLE(0);
+        input.writeFloatLE(20);
+        input.writeFloatLE(7);
+        input.writeFloatLE(0);
+        input.writeFloatLE(20);
+        input.writeFloatLE(20);
+        const name = Buffer.from('minecraft:health', 'utf-8');
+        input.writeUnsignedVarInt(name.byteLength);
+        input.write(name);
+        input.writeUnsignedVarInt(1); // Modifiers count.
+        input.writeUnsignedVarInt(2); // Id.
+        input.write(Buffer.from('id'));
+        input.writeUnsignedVarInt(4); // Name.
+        input.write(Buffer.from('name'));
+        input.writeFloatLE(2.5); // Amount.
+        input.write(Buffer.from([0x01, 0x00, 0x00, 0x00])); // Operation, int32 LE.
+        input.write(Buffer.from([0x02, 0x00, 0x00, 0x00])); // Operand, int32 LE.
+        input.writeBoolean(true); // Is Serializable?
+        input.writeUnsignedVarLong(1_000_000n); // Tick, three bytes as a varuint64.
+
+        const packet = new UpdateAttributesPacket(input.getBuffer());
+        packet.decode();
+
+        expect(packet.runtimeEntityId).toBe(300n);
+        expect(packet.attributes.map((attribute) => attribute.getName())).toEqual(['minecraft:health']);
+        expect(packet.attributes[0]?.getValue()).toBe(7);
+        expect(packet.tick).toBe(1_000_000n);
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('sends the player defaults as vanilla names with sane bounds, read back by an independent reader', () => {
+        // The reader below walks the bytes by offset and never calls Attribute.networkDeserialize,
+        // so a writer and reader that agree on the wrong layout cannot pass it together. A client
+        // that gets a NaN, a current value outside its bounds, or an attribute name it does not
+        // know drops the whole list, which is why each entry is checked and not only the shape.
+        const packet = new UpdateAttributesPacket();
+        packet.runtimeEntityId = 1n;
+        packet.attributes = Attributes.getPlayerDefaults();
+        packet.tick = 0n;
+        packet.encode();
+        const buffer = packet.getBuffer();
+
+        let offset = 0;
+        const varuint = (): bigint => {
+            let result = 0n;
+            let shift = 0n;
+            for (;;) {
+                const byte = buffer[offset++];
+                if (byte === undefined) throw new Error('ran off the end of the packet');
+                result |= BigInt(byte & 0x7f) << shift;
+                if ((byte & 0x80) === 0) return result;
+                shift += 7n;
+            }
+        };
+        const float = (): number => {
+            const value = buffer.readFloatLE(offset);
+            offset += 4;
+            return value;
+        };
+        const string = (): string => {
+            const length = Number(varuint());
+            const value = buffer.subarray(offset, offset + length).toString('utf-8');
+            offset += length;
+            return value;
+        };
+
+        expect(varuint()).toBe(BigInt(HEADER));
+        expect(varuint()).toBe(1n);
+        const count = Number(varuint());
+        expect(count).toBe(Attributes.getPlayerDefaults().length);
+
+        const names: string[] = [];
+        for (let index = 0; index < count; index++) {
+            const [min, max, current, defaultMin, defaultMax, defaultValue] = [
+                float(),
+                float(),
+                float(),
+                float(),
+                float(),
+                float()
+            ];
+            const name = string();
+            names.push(name);
+
+            for (const value of [min, max, current, defaultMin, defaultMax, defaultValue]) {
+                expect(Number.isFinite(value), `${name} carries a non-finite float`).toBe(true);
+            }
+            expect(min <= current && current <= max, `${name} current ${current} outside [${min}, ${max}]`).toBe(true);
+            expect(defaultMin <= defaultValue && defaultValue <= defaultMax, `${name} default out of bounds`).toBe(
+                true
+            );
+            expect(name.startsWith('minecraft:'), `${name} is not a vanilla attribute name`).toBe(true);
+            expect(varuint(), `${name} should carry no modifiers`).toBe(0n);
+        }
+
+        expect(names).toContain('minecraft:health');
+        expect(names).toContain('minecraft:player.hunger');
+        expect(new Set(names).size).toBe(names.length);
+
+        expect(varuint()).toBe(0n); // Tick.
+        expect(offset).toBe(buffer.byteLength);
     });
 });

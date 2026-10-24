@@ -18,7 +18,9 @@ import Identifiers from '../Identifiers';
  * `Attribute.networkSerialize` writes each entry and `Attribute.networkDeserialize` reads one
  * back. The server sends the live bounds as the default bounds and an empty Modifiers list,
  * since it models no timed buffs. `PlayerSession.sendAttributesFor` fills Tick with the
- * current server tick.
+ * client's last input tick for its own player and zero for any other entity.
+ *
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-attributes-packet/
  */
 export default class UpdateAttributesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAttributesPacket;
@@ -26,7 +28,12 @@ export default class UpdateAttributesPacket extends DataPacket {
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];
 
-    public tick!: bigint;
+    /**
+     * The `PlayerInputTick`: the tick of the last `PlayerAuthInputPacket` the server handled
+     * for this client, so it can line the update up with its own prediction. Zero when the
+     * attributes are not the receiving player's, or before the client has sent any input.
+     */
+    public tick = 0n;
 
     public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeEntityId);
