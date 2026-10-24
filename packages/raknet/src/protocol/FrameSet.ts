@@ -21,6 +21,13 @@ export default class FrameSet extends Packet {
     public sequenceNumber!: number;
     public frames: Frame[] = [];
 
+    /**
+     * The header byte has already been consumed by {@link Packet.decode}, and its low bits
+     * are not consulted: `CONTINUOUS_SEND`, `NEEDS_B_AND_AS` and the packet pair bit are
+     * hints for RakNet's congestion control that the sliding window variant Bedrock uses
+     * reads and discards. They are not set on the way out for the same reason.
+     * @see https://github.com/facebookarchive/RakNet/blob/master/Source/CCRakNetSlidingWindow.cpp#L128
+     */
     public decodePayload(): void {
         this.sequenceNumber = this.readUnsignedTriadLE();
         this.frames = [];
@@ -56,9 +63,6 @@ export default class FrameSet extends Packet {
 
         this.setBuffer(out);
     }
-
-    // TODO: for continuos flag
-    // public addFrame(): boolean {}
 
     public getByteLength(): number {
         let length = 4; // header (1 byte) + triad (3 bytes)
