@@ -10,10 +10,10 @@ import DataPacket from './DataPacket';
  * identifier), `bid` (the base identifier), `hasspawnegg` and `summonable`. There is no length
  * prefix, so the compound runs to the end of the packet.
  *
- * This server defines no custom actors, so it replays vanilla's list: the payload a Bedrock
- * Dedicated Server 1.26.51.1 sends, recorded by `packages/client/tools/capture-server-data.mjs`.
- * A client that never receives it falls back to an empty table and cannot resolve the runtime
- * ids in `AddActorPacket`.
+ * This server defines no custom actors, so it replays vanilla's list: CloudburstMC's dump of the
+ * compound a 1.26.50 server sends (`entity_identifiers.dat` in the `bedrock-data` resources
+ * submodule), which shares protocol 2193 with 1.26.51. A client that never receives it falls
+ * back to an empty table and cannot resolve the runtime ids in `AddActorPacket`.
  *
  * **Bound To:** Client
  */

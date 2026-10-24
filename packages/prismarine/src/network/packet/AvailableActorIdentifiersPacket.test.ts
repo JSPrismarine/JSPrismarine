@@ -1,6 +1,6 @@
 import { entity_identifiers } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import Identifiers from '../Identifiers';
@@ -32,6 +32,34 @@ describe('network', () => {
                 expect(stream.feof()).toBe(true);
                 expect(root.has('idlist')).toBe(true);
                 expect(root.getList('idlist', false)?.size).toBeGreaterThan(0);
+            });
+
+            it('lists ActorInfo entries with the fields the docs name', () => {
+                // Each `idlist` element carries `rid` (int), `id` and `bid` (strings),
+                // `hasspawnegg` and `summonable` (bools, stored as bytes).
+                const reader = new NBTReader(new BinaryStream(entity_identifiers), ByteOrder.LITTLE_ENDIAN);
+                reader.setUseVarint(true);
+                const idlist = [...(reader.parse().getList('idlist', false) ?? [])];
+
+                const ids = new Set<string>();
+                for (const entry of idlist) {
+                    expect(entry).toBeInstanceOf(NBTTagCompound);
+                    if (!(entry instanceof NBTTagCompound)) continue;
+
+                    for (const key of ['rid', 'id', 'bid', 'hasspawnegg', 'summonable']) {
+                        expect(entry.has(key)).toBe(true);
+                    }
+                    expect(entry.getString('id', '')).toMatch(/^minecraft:/);
+                    expect(Number.isInteger(entry.getNumber('rid', Number.NaN))).toBe(true);
+                    expect([0, 1]).toContain(entry.getByte('hasspawnegg', -1));
+                    expect([0, 1]).toContain(entry.getByte('summonable', -1));
+                    ids.add(entry.getString('id', ''));
+                }
+
+                // Runtime ids are unique, and the list covers the actors the server spawns.
+                expect(ids.size).toBe(idlist.length);
+                expect(ids).toContain('minecraft:player');
+                expect(ids).toContain('minecraft:item');
             });
 
             it('reads a hand-built buffer to its end', () => {
