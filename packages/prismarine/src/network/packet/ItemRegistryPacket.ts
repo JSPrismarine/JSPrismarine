@@ -1,21 +1,18 @@
-import { item_table as ItemTable } from '@jsprismarine/bedrock-data';
+import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
- * The `Item Version` of every entry we send, from the docs enum `ItemVersion`
- * (0 `Legacy`, 1 `DataDriven`, 2 `None`).
+ * An empty network NBT compound: TAG_Compound, an empty name, TAG_End.
  *
- * We send `DataDriven` with an empty `Item Component Data` compound for every entry. The
- * captured item table (`required_item_list.json` in `@jsprismarine/bedrock-data`, written by
- * `packages/client/tools/capture-server-data.mjs`) records no per-item version or components,
- * and the client accepts that.
+ * `Item Component Data` is positional, so an item without components still needs one, and the
+ * next entry starts right after it. A Bedrock Dedicated Server writes exactly this for the
+ * 1998 vanilla items that `@jsprismarine/bedrock-data` has no compound for.
  */
-const ENTRY_VERSION = 1;
+const EMPTY_COMPOUND = Buffer.from([0x0a, 0x00, 0x00]);
 
 /**
  * The item table: every name the client may be shown, and the number it travels as.
@@ -25,11 +22,19 @@ const ENTRY_VERSION = 1;
  * does not receive it falls back to its own built-in table, which disagrees with ours for
  * part of the items, so it shows the wrong item for those ids.
  *
+ * Every entry is what a Bedrock Dedicated Server 1.26.51.1 sends for the item: its id and
+ * component flag from the capture, its `Item Version` from the same dump the components come
+ * from. The 31 `DataDriven` items (the bundles, the spears, the trial keys, the apple) travel
+ * with the compound the client builds them from; the rest, including 44 `component_based`
+ * items the client already knows such as the arrow and the music discs, travel with the empty
+ * compound, as they do from a Bedrock Dedicated Server.
+ *
  * Wire layout: `Item Data` is a varuint count followed by one `ItemData` per entry:
  * `Item Name` (a `hashed_string`, which travels as an ordinary string), `Item Id` (int16
  * little endian, negative for a block's item form), `Is Component Based` (boolean),
- * `Item Version` (varint32, see {@link ENTRY_VERSION}), and `Item Component Data` (network
- * NBT compound with varint lengths, little endian).
+ * `Item Version` (ZigZag varint32 of the docs enum `ItemVersion`: 0 `Legacy`, 1 `DataDriven`,
+ * 2 `None`), and `Item Component Data` (network NBT compound with varint lengths, little
+ * endian).
  */
 export default class ItemRegistryPacket extends DataPacket {
     public static NetID = Identifiers.ItemRegistryPacket;
@@ -53,13 +58,8 @@ export default class ItemRegistryPacket extends DataPacket {
             NetworkUtil.writeString(stream, name);
             stream.writeShortLE(entry.runtime_id);
             stream.writeBoolean(entry.component_based);
-            stream.writeVarInt(ENTRY_VERSION);
-
-            // This server has no components, but the compound is positional. An empty one is
-            // three bytes (0x0a 0x00 0x00) and the next entry starts right after it.
-            const components = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-            components.setUseVarint(true);
-            components.writeCompound(new NBTTagCompound());
+            stream.writeVarInt(entry.version);
+            stream.write(ItemComponents[name] ?? EMPTY_COMPOUND);
         }
 
         ItemRegistryPacket.cached = stream.getBuffer();
