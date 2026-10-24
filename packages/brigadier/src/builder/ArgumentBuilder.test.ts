@@ -13,7 +13,7 @@ class TestableArgumentBuilder<S> extends ArgumentBuilder<S, TestableArgumentBuil
         return this;
     }
     public build(): CommandNode<S> {
-        return null as any; // FIXME
+        throw new Error('not built in these tests');
     }
 }
 
@@ -25,12 +25,12 @@ describe('ArgumentBuilderTest', () => {
     });
 
     it('testArguments', () => {
-        const arg = argument('bar', integer());
+        const arg = argument<Object, number>('bar', integer());
 
-        builder.then(arg as any); // FIXME
+        builder.then(arg);
 
         assert.equal([...builder.getArguments()].length, 1);
-        expect([...builder.getArguments()][0].equals(arg.build())).to.equal(true);
+        expect([...builder.getArguments()][0]?.equals(arg.build())).to.equal(true);
     });
 
     it('testRedirect', () => {

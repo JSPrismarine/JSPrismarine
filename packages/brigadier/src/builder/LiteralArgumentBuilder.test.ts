@@ -27,8 +27,8 @@ describe('LiteralArgumentBuilderTest', () => {
     });
 
     it('testBuildWithChildren', () => {
-        builder.then(argument('bar', integer()) as any);
-        builder.then(argument('baz', integer()) as any);
+        builder.then(argument('bar', integer()));
+        builder.then(argument('baz', integer()));
         const node = builder.build();
 
         assert.equal(node.getChildrenCount(), 2);
