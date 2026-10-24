@@ -38,7 +38,8 @@
         "format:biome": "biome lint --write .",
         "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",
         "package:scriptc:coverage": "scriptc coverage ./packages/server/src/Server.ts",
-        "lint:jsdoc": "node scripts/check-jsdoc.mts"
+        "lint:jsdoc": "node scripts/check-jsdoc.mts",
+        "lint:encoding": "node scripts/check-unicode-escapes.mts"
     },
     "repository": {
         "type": "git",
@@ -55,7 +56,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandstr\u00f6m",
+            "name": "Filiph Sandström",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
