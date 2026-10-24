@@ -9,14 +9,14 @@ import type PacketHandler from './PacketHandler';
  *
  * The one correct answer is `ServerSettingsResponsePacket`, which carries a form id and the
  * form's UI JSON, and a server with no form to offer answers nothing at all. The request is
- * recorded at debug level and dropped. Known gap: neither that packet nor the form system
- * behind it exists here, so the settings tab stays empty.
+ * recorded at debug level and dropped. Known gap: the packet exists, but there is no form
+ * system to build a form with, so the settings tab stays empty.
  *
  * This used to call `PlayerSession.sendSettings`, which despite the name builds an
- * `UpdateAdventureSettingsPacket` - the flags that decide whether a player may attack or
+ * `UpdateAdventureSettingsPacket`, the flags that decide whether a player may attack or
  * change the world. So opening the settings tab reapplied the client's adventure settings
  * and never put anything in the tab.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/server-settings-request-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-request-packet/
  */
 export default class ServerSettingsRequestHandler implements PacketHandler<ServerSettingsRequestPacket> {
     public static NetID = Identifiers.ServerSettingsRequestPacket;

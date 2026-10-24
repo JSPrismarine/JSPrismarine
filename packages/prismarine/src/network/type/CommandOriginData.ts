@@ -4,12 +4,15 @@ import { NetworkUtil } from '../NetworkUtil';
 import CommandOriginType from './CommandOriginType';
 
 /**
- * The name each origin travels under, keyed in lower case so the lookup ignores the client's
+ * The name each origin travels under, keyed in lower case so the lookup ignores the sender's
  * casing.
  *
- * "Type" is a string on the wire. Reading a varint there takes the length prefix as the value
- * and the name's bytes as the UUID, which is how a command from a real client once failed with
- * "cannot read 101 bytes", 101 being whatever the name happened to start with.
+ * `Type` is a string on the wire, not the enum's number. The 1.26.51 schema gives the field no
+ * `Enum-as-Value` option, the rendered docs type it `string`, and gophertunnel at protocol
+ * 2193 writes these lower case names. A reader that takes a varint there gets the string's
+ * length prefix as the type and the name's bytes as the start of the UUID. The schema lists
+ * four names for the field (Player, DevConsole, Test, AutomationPlayer); the reader accepts
+ * all sixteen members of `CommandOriginType`.
  */
 const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
     player: CommandOriginType.Player,
@@ -34,16 +37,25 @@ const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
 const ORIGIN_NAME_BY_TYPE = new Map(Object.entries(ORIGIN_NAMES).map(([name, type]) => [type, name]));
 
 /**
- * The "Origin" of a `CommandRequestPacket` and the "Origin Data" a `CommandOutputPacket`
+ * The `Origin` of a `CommandRequestPacket` and the `Origin Data` a `CommandOutputPacket`
  * sends back, Mojang's `CommandOriginData`.
  *
- * Wire order at 2193: "Type" string, "UUID" as two uint64 LE halves, "RequestId" string,
- * "PlayerId" int64 LE. "PlayerId" is always present; it is not conditional on the origin.
+ * Wire order at protocol 2193: `Type` string, `UUID` as two uint64 LE halves with the most
+ * significant first, `RequestId` string, `PlayerId` int64 LE. All four are always present;
+ * `PlayerId` is not conditional on the origin.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/command-origin-data/
  */
 export default class CommandOriginData {
+    /** `Type`: who or what issued the command. A client's own commands carry `Player`. */
     public type: CommandOriginType;
+
+    /** `UUID`: identifies this run of the command. The reply carries the same one. */
     public uuid: UUID;
+
+    /** `RequestId`: the request's id, as the sender chose it. */
     public requestId: string;
+
+    /** `PlayerId`: the unique entity id of the player the origin stands for. */
     public uniqueEntityId: bigint;
 
     public constructor(type: CommandOriginType, uuid: UUID, requestId: string, uniqueEntityId: bigint) {
@@ -70,7 +82,7 @@ export default class CommandOriginData {
      * Writes one origin to the stream, so that a `CommandOutputPacket` can carry back the
      * origin its request arrived with.
      *
-     * "Type" goes out in lower case, the form gophertunnel and Dragonfly send. The reader above
+     * `Type` goes out in lower case, the form gophertunnel and Dragonfly send. The reader above
      * matches a name in any casing.
      */
     public networkSerialize(stream: BinaryStream): void {

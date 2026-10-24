@@ -3,7 +3,11 @@ import { NetworkUtil } from '../NetworkUtil';
 import type BlockPosition from '../../world/BlockPosition';
 import DataPacket from './DataPacket';
 
-/** How a command block fires, as the Command Block Mode varuint32 numbers it. */
+/**
+ * How a command block fires, as the `Command Block Mode` varuint32 numbers it. The docs'
+ * `CommandBlockMode` enum calls the first member `Normal`; the command block screen calls it
+ * Impulse.
+ */
 export enum CommandBlockMode {
     Impulse = 0,
     Repeating = 1,
@@ -24,13 +28,16 @@ export type CommandBlockTarget =
 /**
  * The contents of the command block screen when the client closes it.
  *
- * Wire layout at protocol 2193: Target as a `oneOf` whose varuint32 selector is the legacy
- * "Is Block?" boolean (0 for an `EntityCommandTarget`, 1 for `BlockCommandData`). The entity
- * alternative is Target Runtime ID as a varuint64. The block alternative is Block Position
- * (three ZigZag varint32), Command Block Mode as a varuint32, Redstone Mode and Is
- * Conditional as booleans. Then Command, Last Output, Name, and FilteredName as strings,
- * Track Output as a boolean, Tick Delay as an int32 LE, and Execute On First Tick as a boolean.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/command-block-update-packet/
+ * Wire layout at protocol 2193: `Target` as a `oneOf` whose varuint32 selector is the legacy
+ * "Is Block?" boolean (0 for an `EntityCommandTarget`, 1 for `BlockCommandData`), so a single
+ * byte either way. The entity alternative is `Target Runtime ID` as a varuint64. The block
+ * alternative is `Block Position` (three ZigZag varint32), `Command Block Mode` as a varuint32,
+ * `Redstone Mode` and `Is Conditional` as booleans. Then `Command`, `Last Output`, `Name`, and
+ * `FilteredName` as strings, `Track Output` as a boolean, `Tick Delay` as an int32 LE, and
+ * `Execute On First Tick` as a boolean.
+ *
+ * **Bound To:** Server
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/command-block-update-packet/
  */
 export default class CommandBlockUpdatePacket extends DataPacket {
     public static NetID = Identifiers.CommandBlockUpdatePacket;

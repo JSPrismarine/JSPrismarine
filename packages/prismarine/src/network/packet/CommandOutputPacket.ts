@@ -8,7 +8,8 @@ import DataPacket from './DataPacket';
 /**
  * How the client should treat the output, as `CommandOutputType` orders its members.
  *
- * The wire carries the member name as a string, not the number.
+ * The wire carries the member name as a string, not the number: the 1.26.51 docs give the
+ * enum one wire format, "serialized as string", and its schema no `Enum-as-Value` option.
  */
 export enum CommandOutputType {
     None = 0,
@@ -70,11 +71,13 @@ export default class CommandOutputPacket extends DataPacket {
     /** The origin of the request this answers. Send back the one the request arrived with. */
     public originData = new CommandOriginData(CommandOriginType.Player, new UUID(), '', 0n);
 
+    /** `Output Type`: how the client should treat the messages. */
     public outputType: CommandOutputType = CommandOutputType.AllOutput;
 
     /** How many times the command succeeded. A function may run one command many times. */
     public successCount = 0;
 
+    /** `Output Messages`: the lines to show, in order. */
     public outputMessages: CommandOutputMessage[] = [];
 
     /** The `Data Set` string, or null when the field is absent. */

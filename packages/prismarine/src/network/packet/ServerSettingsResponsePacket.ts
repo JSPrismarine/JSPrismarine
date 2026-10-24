@@ -12,7 +12,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  *
  * Wire layout at protocol 2193: Form ID as a varuint32, then Form UI JSON as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/server-settings-response-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/server-settings-response-packet/
  */
 export default class ServerSettingsResponsePacket extends DataPacket {
     public static NetID = Identifiers.ServerSettingsResponsePacket;
