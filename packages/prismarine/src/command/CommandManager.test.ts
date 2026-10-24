@@ -113,6 +113,41 @@ describe('command', () => {
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('do not have permission'));
         });
 
+        it('should register every command under the name its id gives it', async () => {
+            // The client's command list is built by matching each dispatcher root literal
+            // against `Command.name`, so a literal spelled differently from the id suffix
+            // drops the command from the client and leaves neither spelling dispatchable.
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+
+            const root = commandManager.getDispatcher().getRoot();
+            const unregistered = Array.from(commandManager.getCommands().values())
+                .filter((command) => root.getChild(command.name) === undefined)
+                .map((command) => command.id);
+            expect(unregistered).toEqual([]);
+
+            const names = new Set(Array.from(commandManager.getCommands().values(), (command) => command.name));
+            const orphaned = commandManager
+                .getCommandsList()
+                .map(([literal]) => literal)
+                .filter((literal) => !names.has(literal));
+            expect(orphaned).toEqual([]);
+        });
+
+        it('should dispatch /gamerule to its executor', async () => {
+            // The executor refuses non-player sources, and that refusal reaching the
+            // console proves the dispatcher found the command under the name `/help` lists.
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await commandManager.dispatchCommand(console, console, '/gamerule');
+
+            expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining("can't be run from the console"));
+        });
+
         it('should refuse an unknown command without throwing at the caller', async () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();
