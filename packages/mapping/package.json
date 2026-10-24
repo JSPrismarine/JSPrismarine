@@ -38,6 +38,7 @@
     },
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "generate:block-properties": "node utils/generate/generate-block-properties.ts",
         "generate:tables": "node utils/generate/generate-tables.ts",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
