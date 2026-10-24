@@ -111,6 +111,11 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
         // Joined to its connection only once it is going to be let in, and torn down as a
         // pair if the join itself fails - otherwise the session would keep its place in the
         // chunk rotation with nothing on the other end of it.
+        //
+        // `enable` sends nothing. Until the client has `PlayStatus(LoginSuccess)` below it is
+        // still logging in, and a retail client handed a game packet in that state drops the
+        // connection with `InitialConnection-90`. Nothing but PlayStatus and ResourcePacksInfo
+        // leaves here; the rest waits for `ResourcePackResponseHandler`.
         const session = createConnectedPlayer({ server, connection, player });
         try {
             await player.enable();

@@ -104,6 +104,31 @@ describe('network', () => {
                 expect(connection.attachPlayerSession).toHaveBeenCalledOnce();
             });
 
+            it('sends nothing but PlayStatus and ResourcePacksInfo during login', async () => {
+                // The settings, abilities and a MovePlayer per player used to go out from
+                // `Player.enable`, here, before the client had even been told it was in. A
+                // retail client at 2193 drops that with `InitialConnection-90`: it is still
+                // logging in and treats a game packet as malformed.
+                const pk = new LoginPacket();
+                pk.displayName = 'runner';
+                pk.identity = IDENTITY;
+                pk.protocol = Identifiers.Protocol;
+
+                const sent: string[] = [];
+                const quiet = stub<ClientConnection>({
+                    getRakNetSession: () =>
+                        stub<RakNetSession>({ getAddress: () => stub<InetAddress>({ toToken: () => 'token' }) }),
+                    sendDataPacket: async (packet) => void sent.push(packet.constructor.name),
+                    attachPlayerSession: vi.fn(),
+                    closePlayerSession: async () => {},
+                    disconnect: async () => {}
+                });
+
+                await new LoginHandler().handle(pk, server, quiet);
+
+                expect(sent).toEqual(['PlayStatusPacket', 'ResourcePacksInfoPacket']);
+            });
+
             it('handle with banned without reason', async () => {
                 const pk = new LoginPacket();
                 pk.displayName = 'runner';
