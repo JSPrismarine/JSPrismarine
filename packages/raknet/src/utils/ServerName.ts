@@ -1,9 +1,21 @@
+/**
+ * The server state a `ServerName` reads when it is created.
+ *
+ * `getIdentifiers().MinecraftVersions` must hold at least one version; the first entry is advertised.
+ */
+export interface ServerNameSource {
+    /** Returns the configuration the advertised MOTD, gamemode, and player cap come from. */
+    getConfig(): { getMotd(): string; getGamemode(): string; getMaxPlayers(): number };
+    /** Returns the protocol number and supported game versions. */
+    getIdentifiers(): { Protocol: number; MinecraftVersions: readonly string[] };
+}
+
 export class ServerName {
-    private readonly server: any;
+    private readonly server: ServerNameSource;
     private motd: string;
     private name = 'JSRakNet';
-    private protocol;
-    private version;
+    private protocol: number;
+    private version: string;
     private maxPlayers: number;
     private onlinePlayers: number = 0;
     private gamemode: string;
@@ -11,15 +23,15 @@ export class ServerName {
 
     /**
      * Create a new server name for a RakNet server.
-     * @param {any} server - The server instance.
+     * @param server - The server instance.
      */
-    public constructor(server: any) {
+    public constructor(server: ServerNameSource) {
         this.server = server;
         this.motd = server.getConfig().getMotd();
         this.gamemode = server.getConfig().getGamemode();
         this.maxPlayers = server.getConfig().getMaxPlayers();
-        this.protocol = (server as any).getIdentifiers().Protocol;
-        this.version = (server as any).getIdentifiers().MinecraftVersions.at(0)!;
+        this.protocol = server.getIdentifiers().Protocol;
+        this.version = server.getIdentifiers().MinecraftVersions.at(0)!;
     }
 
     /**
