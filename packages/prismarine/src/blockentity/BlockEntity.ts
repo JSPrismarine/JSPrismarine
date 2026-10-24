@@ -16,6 +16,12 @@ import { Vector3 } from '@jsprismarine/math';
  * would erase a player's chests one save at a time, with nothing to say it had happened.
  */
 export abstract class BlockEntity {
+    /**
+     * TypeScript types `this.constructor` as `Function`. Declaring it as the class itself lets
+     * {@link BlockEntity.getId} read the static `ID` the subclass set. Emits nothing.
+     */
+    declare ['constructor']: typeof BlockEntity;
+
     /** Vanilla's `id` string - `Chest`, `Sign`, `Furnace`. Not a namespaced identifier. */
     public static readonly ID: string = 'jsprismarine:unknown';
 
@@ -30,7 +36,7 @@ export abstract class BlockEntity {
     }
 
     public getId(): string {
-        return (this.constructor as typeof BlockEntity).ID;
+        return this.constructor.ID;
     }
 
     public getPosition(): Vector3 {
