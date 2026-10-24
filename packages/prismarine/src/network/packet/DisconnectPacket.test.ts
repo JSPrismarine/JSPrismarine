@@ -44,6 +44,13 @@ describe('network', () => {
                 expect([...pk.getBuffer()]).toEqual([...HEADER, 0xaa, 0x02, 0x01]); // 149 as ZigZag 298
             });
 
+            it('defaults to reason Unknown, Skip Message false and two empty strings', () => {
+                const pk = new DisconnectPacket();
+                pk.encode();
+
+                expect([...pk.getBuffer()]).toEqual([...HEADER, 0x00, 0x00, 0x00, 0x00]);
+            });
+
             it('reads a hand-built buffer with both strings to its end', () => {
                 const pk = new DisconnectPacket();
                 pk.setReadBuffer(Buffer.from([...HEADER, 0x56, 0x00, 0x03, 0x42, 0x79, 0x65, 0x02, 0x42, 0x2a]));

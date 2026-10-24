@@ -26,6 +26,19 @@ describe('network', () => {
                 expect(pk.feof()).toBe(true);
             });
 
+            it('numbers the statuses as the protocol 2193 docs list them', () => {
+                expect(PlayStatusType.LoginSuccess).toBe(0);
+                expect(PlayStatusType.LoginFailedClient).toBe(1);
+                expect(PlayStatusType.LoginFailedServer).toBe(2);
+                expect(PlayStatusType.PlayerSpawn).toBe(3);
+                expect(PlayStatusType.LoginFailedInvalidTenant).toBe(4);
+                expect(PlayStatusType.LoginFailedVanillaEdu).toBe(5);
+                expect(PlayStatusType.LoginFailedEduVanilla).toBe(6);
+                expect(PlayStatusType.LoginFailedServerFull).toBe(7);
+                expect(PlayStatusType.LoginFailedEditorVanilla).toBe(8);
+                expect(PlayStatusType.LoginFailedVanillaEditor).toBe(9);
+            });
+
             it('uses the network id the client expects', () => {
                 expect(PlayStatusPacket.NetID).toBe(Identifiers.PlayStatusPacket);
                 expect(PlayStatusPacket.NetID).toBe(0x02);
