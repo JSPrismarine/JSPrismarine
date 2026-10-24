@@ -1,14 +1,15 @@
-import { NetworkUtil } from '../../network/NetworkUtil';
+import type BinaryStream from '@jsprismarine/binaryutils';
 import UUID from '../../utils/UUID';
+import { NetworkUtil } from '../NetworkUtil';
 import CommandOriginType from './CommandOriginType';
 
 /**
- * The name each origin travels under.
+ * The name each origin travels under, keyed in lower case so the lookup ignores the client's
+ * casing.
  *
- * The origin used to be the enum's number. It is a name now, and reading a varint where the
- * client writes a length prefixed string takes the length as the value and then reads the
- * name's bytes as the UUID - which is why a command from a real client failed to decode with
- * "cannot read 101 bytes", 101 being whatever the string happened to start with.
+ * "Type" is a string on the wire. Reading a varint there takes the length prefix as the value
+ * and the name's bytes as the UUID, which is how a command from a real client once failed with
+ * "cannot read 101 bytes", 101 being whatever the name happened to start with.
  */
 const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
     player: CommandOriginType.Player,
@@ -22,29 +23,42 @@ const ORIGIN_NAMES: Readonly<Record<string, CommandOriginType>> = {
     entity: CommandOriginType.Entity,
     virtual: CommandOriginType.Virtual,
     gameargument: CommandOriginType.GameArgument,
-    entityserver: CommandOriginType.EntityServer
+    entityserver: CommandOriginType.EntityServer,
+    precompiled: CommandOriginType.Precompiled,
+    gamedirectorentityserver: CommandOriginType.GameDirectorEntityServer,
+    scripting: CommandOriginType.Scripting,
+    executecontext: CommandOriginType.ExecuteContext
 };
 
+/**
+ * The "Origin" of a `CommandRequestPacket`, Mojang's `CommandOriginData`.
+ *
+ * Wire order at 2193: "Type" string, "UUID" as two uint64 LE halves, "RequestId" string,
+ * "PlayerId" int64 LE. "PlayerId" is always present; it is not conditional on the origin.
+ */
 export default class CommandOriginData {
-    public type!: number;
-    public uuid!: UUID;
-    public requestId!: string;
-    public uniqueEntityId!: bigint;
+    public type: CommandOriginType;
+    public uuid: UUID;
+    public requestId: string;
+    public uniqueEntityId: bigint;
 
-    public static networkDeserialize(stream: any): CommandOriginData {
-        const data = new CommandOriginData();
+    public constructor(type: CommandOriginType, uuid: UUID, requestId: string, uniqueEntityId: bigint) {
+        this.type = type;
+        this.uuid = uuid;
+        this.requestId = requestId;
+        this.uniqueEntityId = uniqueEntityId;
+    }
 
+    /**
+     * Reads one origin from the stream. A "Type" name this server does not know decodes as
+     * `Player`.
+     */
+    public static networkDeserialize(stream: BinaryStream): CommandOriginData {
         const origin = NetworkUtil.readString(stream);
-        data.type = ORIGIN_NAMES[origin] ?? CommandOriginType.Player;
-
-        data.uuid = UUID.networkDeserialize(stream);
-        data.requestId = NetworkUtil.readString(stream);
-
-        // Always present, and a fixed width 64 bit integer rather than a varint. It used to be
-        // written only for the dev console and the test origin; skipping it for a player's own
-        // command left eight bytes unread and the rest of the packet unreadable.
-        data.uniqueEntityId = stream.readLongLE();
-
-        return data;
+        const type = ORIGIN_NAMES[origin.toLowerCase()] ?? CommandOriginType.Player;
+        const uuid = UUID.networkDeserialize(stream);
+        const requestId = NetworkUtil.readString(stream);
+        const uniqueEntityId = stream.readLongLE();
+        return new CommandOriginData(type, uuid, requestId, uniqueEntityId);
     }
 }
