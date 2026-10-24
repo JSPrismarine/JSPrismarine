@@ -14,6 +14,7 @@
  *     pnpm --filter @jsprismarine/bedrock-data run fetch:sources
  *     pnpm --filter @jsprismarine/structures run generate:transforms
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -22,6 +23,7 @@ import { TRANSFORM_NAMES } from '../../src/tableShape.ts';
 import { dumpBlockTransforms } from '../java-dump/run.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
+const repoRoot = resolve(here, '../../../..');
 const tablePath = resolve(here, '../../src/tables/stateTransforms.json');
 
 // Node cannot load another package's TypeScript sources, which import each
@@ -178,6 +180,11 @@ const table = {
 };
 
 writeFileSync(tablePath, `${JSON.stringify(table)}\n`);
+// The table is committed, and the repository checks every file against
+// Prettier, so the generator leaves it in the shape Prettier wants.
+execFileSync('node', [resolve(repoRoot, 'node_modules/prettier/bin/prettier.cjs'), '--write', tablePath], {
+    stdio: 'inherit'
+});
 
 const byIdentifier = new Map<string, number>();
 for (const entry of ambiguous) byIdentifier.set(entry.identifier, (byIdentifier.get(entry.identifier) ?? 0) + 1);
