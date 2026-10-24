@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/leveldb",
-    "version": "0.14.1",
+    "version": "0.15.0",
     "description": "LevelDB reader/writer for Minecraft: Bedrock Edition worlds, in pure TypeScript",
     "sideEffects": false,
     "publishConfig": {
