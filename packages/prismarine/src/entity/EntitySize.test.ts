@@ -13,8 +13,7 @@ describe('entity sizes', () => {
         // It would also have caught `minecraft:sliverfish`, which sat misspelt in the class for
         // long enough that the client had never once been told what a silverfish was.
         const missing = allEntities()
-            .map((entity) => (entity as { MOB_ID?: string }).MOB_ID)
-            .filter((type): type is string => typeof type === 'string')
+            .map((entity) => entity.MOB_ID)
             .filter((type) => !(type in ENTITY_SIZES));
 
         expect(missing).toStrictEqual([]);

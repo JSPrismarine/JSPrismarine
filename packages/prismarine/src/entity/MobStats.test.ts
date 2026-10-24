@@ -12,9 +12,8 @@ describe('mob stats', () => {
         // figures is silent: it quietly gets a player's twenty health and one point of attack,
         // which is how a chicken came to be as hard to kill as a zombie.
         const missing = allEntities()
-            .filter((entity): entity is typeof Mob => typeof entity === 'function' && entity.prototype instanceof Mob)
-            .map((entity) => (entity as unknown as { MOB_ID?: string }).MOB_ID)
-            .filter((type): type is string => typeof type === 'string')
+            .filter((entity) => entity.prototype instanceof Mob)
+            .map((entity) => entity.MOB_ID)
             .filter((type) => !(type in MOB_STATS));
 
         expect(missing).toStrictEqual([]);
