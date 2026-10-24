@@ -1,4 +1,5 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
+import { BuildPlatform } from '@jsprismarine/minecraft';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import type UUID from '../../utils/UUID';
 import type Skin from '../../utils/skin/Skin';
@@ -23,9 +24,6 @@ interface PlayerListData {
 
 /** White. The client tints the name with this, and nothing here has an opinion about it. */
 const DEFAULT_PLAYER_COLOR = 0xff_ff_ff_ff;
-
-/** Build Platform for a device the session does not know. The session passes the same value. */
-const UNKNOWN_BUILD_PLATFORM = -1;
 
 /**
  * One player in a Player List packet.
@@ -91,7 +89,7 @@ export class PlayerListEntry {
         NetworkUtil.writeString(stream, this.getName() ?? '');
         NetworkUtil.writeString(stream, this.getXUID());
         NetworkUtil.writeString(stream, this.getPlatformChatId() ?? '');
-        stream.writeIntLE(this.getBuildPlatform() ?? UNKNOWN_BUILD_PLATFORM);
+        stream.writeIntLE(this.getBuildPlatform() ?? BuildPlatform.UNKNOWN);
         skin.networkSerialize(stream);
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
