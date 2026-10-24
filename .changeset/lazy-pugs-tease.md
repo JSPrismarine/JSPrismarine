@@ -1,9 +1,9 @@
 ---
-'@jsprismarine/logger': minor
+'@jsprismarine/logger': patch
 '@jsprismarine/color-parser': minor
 '@jsprismarine/prismarine': minor
 '@jsprismarine/brigadier': patch
-'@jsprismarine/math': minor
+'@jsprismarine/math': patch
 '@jsprismarine/server': patch
 ---
 

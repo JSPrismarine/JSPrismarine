@@ -1,13 +1,13 @@
 ---
-'@jsprismarine/bedrock-data': minor
+'@jsprismarine/bedrock-data': patch
 '@jsprismarine/brigadier': patch
 '@jsprismarine/color-parser': patch
 '@jsprismarine/errors': minor
-'@jsprismarine/math': minor
-'@jsprismarine/minecraft': minor
+'@jsprismarine/math': patch
+'@jsprismarine/minecraft': patch
 '@jsprismarine/nbt': patch
 '@jsprismarine/prismarine': minor
-'@jsprismarine/raknet': patch
+'@jsprismarine/raknet': minor
 ---
 
 Remove constructs that ahead-of-time compilation with scriptc cannot lower, keeping runtime behavior the same.

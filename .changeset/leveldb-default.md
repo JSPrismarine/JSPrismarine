@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Make `LevelDB` the default world provider, so a new install stores its world in the format Minecraft: Bedrock Edition uses rather than in one only this server understands.

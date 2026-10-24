@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Add the `LevelDB` world provider, which stores a world the way Minecraft: Bedrock Edition does — a `db` directory of LevelDB files, a `level.dat` and a `levelname.txt` beside it. A world written by the server opens in the game, and a world made in the game opens on the server.

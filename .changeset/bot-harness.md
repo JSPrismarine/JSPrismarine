@@ -1,6 +1,6 @@
 ---
-'@jsprismarine/client': minor
-'@jsprismarine/protocol': minor
+'@jsprismarine/client': patch
+'@jsprismarine/protocol': patch
 '@jsprismarine/raknet': patch
 ---
 

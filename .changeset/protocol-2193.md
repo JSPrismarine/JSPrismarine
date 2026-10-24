@@ -1,9 +1,9 @@
 ---
-'@jsprismarine/prismarine': minor
-'@jsprismarine/protocol': minor
-'@jsprismarine/client': minor
-'@jsprismarine/minecraft': minor
-'@jsprismarine/bedrock-data': minor
+'@jsprismarine/prismarine': patch
+'@jsprismarine/protocol': patch
+'@jsprismarine/client': patch
+'@jsprismarine/minecraft': patch
+'@jsprismarine/bedrock-data': patch
 '@jsprismarine/auth': patch
 ---
 

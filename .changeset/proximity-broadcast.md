@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': patch
+'@jsprismarine/prismarine': minor
 '@jsprismarine/math': patch
 ---
 
