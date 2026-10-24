@@ -10,7 +10,7 @@ them when a declaration already exists and callers should get compile errors for
 contain. Don't add type machinery that nothing derives from; a plain interface is easier to read and
 to change.
 
-Code samples follow [`biome.json`](../../../biome.json) and [ESLint](../../../eslint.config.js). Use
+Code samples follow [`biome.json`](../../../biome.json). Use
 `import type` for type-only imports. Prefer `unknown` for untrusted values when callers should narrow
 them. The [TypeScript handbook](https://www.typescriptlang.org/docs/handbook/2/types-from-types.html)
 covers the language features themselves.
