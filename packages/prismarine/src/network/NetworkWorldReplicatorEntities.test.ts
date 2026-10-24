@@ -1,9 +1,13 @@
+import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
 import Player from '../Player';
 import type Server from '../Server';
+import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
+import type PlayerSession from './PlayerSession';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
 /**
@@ -31,50 +35,47 @@ const fakeSession = () => {
         get flushes() {
             return flushes;
         },
-        session: {
+        session: stub<PlayerSession>({
             considerEntity: async (entity: Entity) => void considered.push(entity.getRuntimeId()),
             dropEntity: async (entity: Entity) => void dropped.push(entity.getRuntimeId()),
-            reconcileTrackedEntities: async (entities: Entity[]) =>
-                void reconciled.push(entities.map((one) => one.getRuntimeId())),
+            reconcileTrackedEntities: async (entities: Iterable<Entity> = []) =>
+                void reconciled.push([...entities].map((one) => one.getRuntimeId())),
             queueMoveActor: (entity: Entity) => void queued.push(entity.getRuntimeId()),
             flushQueuedMoves: async () => void flushes++,
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
-        }
+        })
     };
 };
 
 /** A player-controlled entity, real enough for `instanceof Player` to hold. */
 const fakePlayer = (runtimeId: bigint) => {
     const spy = fakeSession();
-    const player: any = Object.create(Player.prototype);
-
-    Object.assign(player, {
+    const player = stubOf(Player, {
         getRuntimeId: () => runtimeId,
         getNetworkSession: () => spy.session,
         isOnline: () => true
     });
 
-    return { player: player as Player, spy };
+    return { player, spy };
 };
 
 /** A mob: in the world, but nobody's client. */
-const fakeMob = (runtimeId: bigint): Entity => ({ getRuntimeId: () => runtimeId }) as unknown as Entity;
+const fakeMob = (runtimeId: bigint) => stub<Entity>({ getRuntimeId: () => runtimeId });
 
-const replicatorOver = ({ players = [] as Player[], entities = [] as Entity[] } = {}) => {
-    const world = {
+const replicatorOver = ({ players = [], entities = [] }: { players?: Player[]; entities?: Entity[] } = {}) => {
+    const world = stub<World>({
         getName: () => 'test',
         getPlayers: () => players,
         getEntities: () => entities
-    } as unknown as World;
+    });
 
-    const server = {
-        getConfig: () => ({ getProximityBroadcast: () => true }),
-        getLogger: () => ({ verbose: () => {}, error: () => {} })
-    } as unknown as Server;
+    const server = stub<Server>({
+        getConfig: () => stub<Config>({ getProximityBroadcast: () => true }),
+        getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
+    });
 
     return new NetworkWorldReplicator(world, server);
 };
-
 describe('network', () => {
     describe('NetworkWorldReplicator entities', () => {
         describe('entityAdded', () => {
