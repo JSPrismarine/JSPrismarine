@@ -83,8 +83,6 @@
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "evt": "2.5.9",
-        "heap": "0.2.7",
         "js-yaml": "4.1.0",
         "json5": "2.2.3"
     }
