@@ -24,10 +24,10 @@ export default class SetActorDataPacket extends DataPacket {
     public syncedProperties = new SyncedProperties();
 
     /**
-     * Tick: the most recently processed `PlayerAuthInputPacket` tick of the receiving player, so
-     * the client can reconcile its prediction. Zero is acceptable when the packet is not about the
-     * receiving player or a vehicle they predict, and also for players at the cost of minor
-     * visual flicker.
+     * `Tick`, a `PlayerInputTick`: the tick of the receiving player's most recently processed
+     * `PlayerAuthInputPacket`, so the client can reconcile what it predicted while the packet
+     * was in flight. `PlayerSession` sends its `lastInputTick` when the entity is the receiving
+     * player and zero for any other entity, which is what the docs ask for.
      */
     public tick: bigint = 0n;
 

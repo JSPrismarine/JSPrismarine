@@ -1032,7 +1032,9 @@ export default class PlayerSession {
         const packet = new SetActorDataPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.metadata = metadata ?? entity.metadata;
-        packet.tick = BigInt(this.player.getServer().getTick());
+        // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
+        // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
+        packet.tick = entity === this.player ? this.lastInputTick : 0n;
         await this.connection.sendDataPacket(packet);
     }
 
