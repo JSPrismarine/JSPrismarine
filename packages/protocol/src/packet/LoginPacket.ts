@@ -4,25 +4,30 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 export interface Login {
     protocolVersion: number;
-    /** `{"chain": [...]}`, one JWT per link, as JSON. Not parsed here. */
+    /**
+     * The chain JSON. Either `{"chain": [...]}` with one JWT per link, or from 1.26.10 the
+     * envelope `{"Certificate": "<that JSON>", "AuthenticationType": n, "Token": "<JWT>"}`.
+     * Not parsed here.
+     */
     chainData: string;
-    /** One JWT: skin, device, language, and the address the client dialled. */
+    /** One JWT: skin, device, language, and the address the client dialed. */
     clientData: string;
 }
 
 /**
  * Who is connecting, and as what.
  *
- * The two JWT blobs are carried, not interpreted: this packet is a codec, and deciding
- * whether a chain is *trustworthy* is a policy question that belongs where the policy is.
- * What it does enforce is the framing - and the framing has a quirk worth naming, because
- * it is the reason this was write-only for so long.
+ * The two JWT blobs are carried, not interpreted. This packet is a codec, and deciding
+ * whether a chain is trustworthy is a policy question that belongs where the policy is.
+ * What it does enforce is the framing.
  *
- * After the protocol version comes a varint holding the byte length of everything that
- * follows, and then the two blobs, each with its own little endian 32 bit length. The outer
- * length is redundant with the two inner ones and JSPrismarine's server ignores it, so a
- * packet with a wrong one still logs in here. A real server checks it, which is precisely
- * the sort of thing that only shows up when you finally point the client at one.
+ * Wire layout at protocol 2193: `Client Network Version` as a big endian int32, then
+ * `Connection Request` as a varuint byte length over the two blobs, each with its own little
+ * endian uint32 length. The outer length is redundant with the two inner ones, and servers
+ * check it anyway: the reader here takes the request as a sub-buffer of that length, so a
+ * request claiming more than it carries fails here rather than consuming the next packet in
+ * the batch. JSPrismarine's server reads it the same way and also refuses a request with
+ * bytes left after the second blob.
  */
 export default class LoginPacket extends NetworkPacket<Login> {
     public get id(): number {
