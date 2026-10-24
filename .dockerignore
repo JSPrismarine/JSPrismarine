@@ -1,0 +1,10 @@
+**/node_modules
+**/dist
+**/coverage
+**/.turbo
+**/*.log
+.git
+.env
+.env.*
+jsp
+packages/proxy/captures
