@@ -1,6 +1,6 @@
 ---
-'@jsprismarine/protocol': minor
-'@jsprismarine/raknet': minor
+'@jsprismarine/protocol': patch
+'@jsprismarine/raknet': patch
 ---
 
 Add the batch layer to `@jsprismarine/protocol`, and a socketless RakNet pair to `@jsprismarine/raknet`.

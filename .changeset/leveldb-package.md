@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/leveldb': minor
+'@jsprismarine/leveldb': patch
 ---
 
 Add `@jsprismarine/leveldb`, a LevelDB implementation in pure TypeScript that reads and writes the databases Minecraft: Bedrock Edition keeps its worlds in.

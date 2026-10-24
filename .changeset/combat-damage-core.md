@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Give damage an attacker, a grace period and a way of reaching the client.

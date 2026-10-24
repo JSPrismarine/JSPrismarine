@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': patch
+'@jsprismarine/prismarine': minor
 ---
 
 Remove the `Filesystem` world provider. `LevelDB` is the only default.

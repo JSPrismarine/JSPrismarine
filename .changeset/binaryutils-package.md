@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/binaryutils': minor
+'@jsprismarine/binaryutils': patch
 '@jsprismarine/prismarine': patch
 '@jsprismarine/protocol': patch
 '@jsprismarine/raknet': patch

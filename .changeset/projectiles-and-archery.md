@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Give skeletons bows, and arrows something to hit.

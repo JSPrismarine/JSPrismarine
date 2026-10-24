@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Put villages and wildlife into the overworld, and give mobs an AI that moves them smoothly.

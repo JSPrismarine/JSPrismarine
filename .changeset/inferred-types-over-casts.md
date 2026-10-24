@@ -1,6 +1,6 @@
 ---
 '@jsprismarine/brigadier': minor
-'@jsprismarine/client': minor
+'@jsprismarine/client': patch
 '@jsprismarine/leveldb': patch
 '@jsprismarine/logger': patch
 '@jsprismarine/minecraft': minor

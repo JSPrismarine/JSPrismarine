@@ -1,7 +1,7 @@
 ---
-'@jsprismarine/auth': minor
-'@jsprismarine/client': minor
-'@jsprismarine/protocol': minor
+'@jsprismarine/auth': patch
+'@jsprismarine/client': patch
+'@jsprismarine/protocol': patch
 '@jsprismarine/prismarine': patch
 ---
 

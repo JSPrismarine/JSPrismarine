@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 '@jsprismarine/bedrock-data': patch
 ---
 

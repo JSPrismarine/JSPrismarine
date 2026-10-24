@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Give players somewhere to put armor, so the armor they already had starts working.

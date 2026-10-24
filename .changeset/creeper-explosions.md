@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/prismarine': minor
+'@jsprismarine/prismarine': patch
 ---
 
 Make creepers explode, and align knockback with vanilla's.

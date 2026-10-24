@@ -1,5 +1,5 @@
 ---
-'@jsprismarine/raknet': minor
+'@jsprismarine/raknet': patch
 ---
 
 Add RakNet's outgoing half, so the library can make connections as well as accept them.
