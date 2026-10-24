@@ -58,7 +58,10 @@ jobs:
               id: changesets
               uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
               with:
-                  create-github-releases: true
+                  # GitHub rejects release bodies longer than 125,000 characters.
+                  # Create bounded releases in the next step instead.
+                  create-github-releases: false
+                  push-git-tags: true
                   version-script: pnpm run version
                   publish-script: pnpm run release
                   push-with-git-cli: true
@@ -69,6 +72,12 @@ jobs:
                       This is an automated commit triggered by the `release` workflow.
                   pr-title: 🚀 Release packages
                   github-token: ${{ secrets.MACHINE_USER }}
+
+            - name: 📝 Create GitHub Releases
+              if: steps.changesets.outputs.published == 'true'
+              env:
+                  PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
+              run: node .github/scripts/create-github-releases.mjs
 
             - name: 🫨 Create Unstable Release
               if: steps.changesets.outputs.published != 'true'
