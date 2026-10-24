@@ -11,6 +11,7 @@ import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
+import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
 import ContainerOpenPacket from './packet/ContainerOpenPacket';
@@ -18,6 +19,7 @@ import CreativeContentPacket from './packet/CreativeContentPacket';
 import DataPacket from './packet/DataPacket';
 import DisconnectPacket from './packet/DisconnectPacket';
 import EmoteListPacket from './packet/EmoteListPacket';
+import EmotePacket from './packet/EmotePacket';
 import InteractPacket from './packet/InteractPacket';
 import InventoryContentPacket from './packet/InventoryContentPacket';
 import InventorySlotPacket from './packet/InventorySlotPacket';
@@ -42,10 +44,13 @@ import PlayStatusPacket from './packet/PlayStatusPacket';
 import PlayerActionPacket from './packet/PlayerActionPacket';
 import PlayerAuthInputPacket from './packet/PlayerAuthInputPacket';
 import PlayerListPacket from './packet/PlayerListPacket';
+import PlayerLocationPacket from './packet/PlayerLocationPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
+import RequestAbilityPacket from './packet/RequestAbilityPacket';
 import RequestChunkRadiusPacket from './packet/RequestChunkRadiusPacket';
 import RequestNetworkSettingsPacket from './packet/RequestNetworkSettingsPacket';
+import RequestPermissionsPacket from './packet/RequestPermissionsPacket';
 import ResourcePackChunkRequestPacket from './packet/ResourcePackChunkRequestPacket';
 import ResourcePackResponsePacket from './packet/ResourcePackResponsePacket';
 import ResourcePackStackPacket from './packet/ResourcePackStackPacket';
@@ -57,6 +62,7 @@ import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPac
 import SetActorDataPacket from './packet/SetActorDataPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetDefaultGametypePacket from './packet/SetDefaultGametypePacket';
+import SetDifficultyPacket from './packet/SetDifficultyPacket';
 import SetHealthPacket from './packet/SetHealthPacket';
 import SetLocalPlayerAsInitializedPacket from './packet/SetLocalPlayerAsInitializedPacket';
 import SetPlayerGametypePacket from './packet/SetPlayerGametypePacket';
@@ -92,6 +98,7 @@ export {
     ChunkRadiusUpdatedPacket,
     ClientCacheBlobStatusPacket,
     ClientCacheStatusPacket,
+    ClientMovementPredictionSyncPacket,
     CommandRequestPacket,
     ContainerClosePacket,
     ContainerOpenPacket,
@@ -102,6 +109,7 @@ export {
     DataPacket,
     DisconnectPacket,
     EmoteListPacket,
+    EmotePacket,
     InteractPacket,
     InventoryContentPacket,
     InventorySlotPacket,
@@ -126,10 +134,13 @@ export {
     PlayerActionPacket,
     PlayerAuthInputPacket,
     PlayerListPacket,
+    PlayerLocationPacket,
     PlayerSkinPacket,
     RemoveActorPacket,
+    RequestAbilityPacket,
     RequestChunkRadiusPacket,
     RequestNetworkSettingsPacket,
+    RequestPermissionsPacket,
     ResourcePackChunkRequestPacket,
     ResourcePackResponsePacket,
     ResourcePackStackPacket,
@@ -141,6 +152,7 @@ export {
     SetActorDataPacket,
     SetActorMotionPacket,
     SetDefaultGametypePacket,
+    SetDifficultyPacket,
     SetHealthPacket,
     SetLocalPlayerAsInitializedPacket,
     SetPlayerGametypePacket,

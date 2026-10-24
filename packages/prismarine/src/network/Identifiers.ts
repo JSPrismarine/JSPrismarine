@@ -160,6 +160,8 @@ const Identifiers = {
     ItemComponentPacket: 0xa2,
     FilterTextPacket: 0xa3,
     ClientBoundDebugRendererPacket: 0xa4,
+    RequestAbilityPacket: 0xb8,
+    RequestPermissionsPacket: 0xb9,
     RequestNetworkSettingsPacket: 0xc1,
     UpdateAdventureSettingsPacket: 0xbc,
     UpdateAbilitiesPacket: 0xbb,
@@ -173,7 +175,9 @@ const Identifiers = {
      */
     JigsawStructureDataPacket: 0x139,
     ServerboundDiagnosticsPacket: 0x13b,
+    ClientMovementPredictionSyncPacket: 0x142,
     UpdateClientOptionsPacket: 0x143,
+    PlayerLocationPacket: 0x146,
     SetPlayerFurnaceOptionsPacket: 0x15f,
     RecordStartedPacket: 0x160
 };
