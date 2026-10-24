@@ -6,7 +6,7 @@ import { stub } from '../testing/stub.test.helper';
 import type MovePlayerPacket from './packet/MovePlayerPacket';
 import type SetActorMotionPacket from './packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
-import MovementType from './type/MovementType';
+import PositionMode from './type/PositionMode';
 
 /**
  * The `Tick` of a `MovePlayerPacket` or `SetActorMotionPacket` is a `PlayerInputTick`. For the
@@ -45,7 +45,7 @@ describe('network', () => {
         it('sends a zero tick before the client has sent any input', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player, MovementType.Teleport);
+            await session.sendMove(player, PositionMode.Teleport);
 
             expect(sent[0]?.tick).toBe(0n);
         });
@@ -54,7 +54,7 @@ describe('network', () => {
             const { session, sent, player } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(player, MovementType.Reset);
+            await session.sendMove(player, PositionMode.Respawn);
 
             expect(sent[0]?.runtimeEntityId).toBe(1n);
             expect(sent[0]?.tick).toBe(42n);
@@ -64,7 +64,7 @@ describe('network', () => {
             const { session, sent } = movementSession();
 
             session.recordInputTick(42n);
-            await session.sendMove(playerAt(2n), MovementType.Normal);
+            await session.sendMove(playerAt(2n), PositionMode.Normal);
 
             expect(sent[0]?.runtimeEntityId).toBe(2n);
             expect(sent[0]?.tick).toBe(0n);
@@ -73,10 +73,10 @@ describe('network', () => {
         it('fills a teleport with an unknown cause and leaves the riding id at zero', async () => {
             const { session, sent, player } = movementSession();
 
-            await session.sendMove(player, MovementType.Teleport);
+            await session.sendMove(player, PositionMode.Teleport);
 
             const [packet] = sent;
-            expect(packet).toHaveProperty('mode', MovementType.Teleport);
+            expect(packet).toHaveProperty('mode', PositionMode.Teleport);
             expect(packet).toHaveProperty('teleportCause', 0);
             expect(packet).toHaveProperty('teleportItemId', 0);
             expect(packet).toHaveProperty('ridingEntityRuntimeId', 0n);

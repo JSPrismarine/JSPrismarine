@@ -40,7 +40,7 @@ export {
     TextPacket
 };
 
-export { MovementType } from './MovePlayerPacket';
+export { PositionMode } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
 export { ResourcePackStatus } from './ResourcePackClientResponsePacket';

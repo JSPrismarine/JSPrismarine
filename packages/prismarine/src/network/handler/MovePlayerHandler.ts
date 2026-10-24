@@ -4,7 +4,7 @@ import type Server from '../../Server';
 import PlayerMoveEvent from '../../events/player/PlayerMoveEvent';
 import Identifiers from '../Identifiers';
 import type MovePlayerPacket from '../packet/MovePlayerPacket';
-import MovementType from '../type/MovementType';
+import PositionMode from '../type/PositionMode';
 import type PacketHandler from './PacketHandler';
 
 /** Where a client says its player is, and which way it is facing. */
@@ -15,17 +15,17 @@ export interface ClientMovement {
     headYaw: number;
     onGround: boolean;
     /** What the client says the move is. Only `MovePlayerPacket` carries one; input is always a normal move. */
-    mode?: MovementType;
+    mode?: PositionMode;
 }
 
 /**
  * The `Position Mode` values the docs allow on a packet sent to the server.
  *
  * "When sent to the server this is always 'Normal' except when in a vehicle then it's
- * 'OnlyHeadRot'." `MovementType` calls the second one `Pitch`. Respawn and Teleport are the
- * server's to send; a client asking for either is asking to be moved without walking there.
+ * 'OnlyHeadRot'." Respawn and Teleport are the server's to send; a client asking for either
+ * is asking to be moved without walking there.
  */
-const CLIENT_MODES: ReadonlySet<MovementType> = new Set([MovementType.Normal, MovementType.Pitch]);
+const CLIENT_MODES: ReadonlySet<PositionMode> = new Set([PositionMode.Normal, PositionMode.OnlyHeadRot]);
 
 /**
  * Applies a position the client reported, and shows the move to everyone who can see it.
@@ -42,11 +42,11 @@ export const applyClientMovement = async (
 ): Promise<void> => {
     const player = session.getPlayer();
 
-    const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? MovementType.Normal);
+    const event = new PlayerMoveEvent(player, movement.position, movement.mode ?? PositionMode.Normal);
     server.post(['playerMove', event]);
     if (event.isCanceled()) {
         // Since we're canceling the event, we should reset the player's position.
-        await session.sendMove(player, MovementType.Reset);
+        await session.sendMove(player, PositionMode.Respawn);
         return;
     }
 
@@ -73,7 +73,7 @@ export const applyClientMovement = async (
             // Tracking rather than distance: a client that was never sent a spawn for this
             // player has nothing to move, and discards the packet anyway.
             .filter((target) => target.getNetworkSession().tracks(player.getRuntimeId()))
-            .map((target) => target.getNetworkSession().sendMove(player, MovementType.Normal))
+            .map((target) => target.getNetworkSession().sendMove(player, PositionMode.Normal))
     );
 };
 

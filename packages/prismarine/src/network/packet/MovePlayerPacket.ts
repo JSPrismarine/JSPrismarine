@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
-import MovementType from '../type/MovementType';
+import PositionMode from '../type/PositionMode';
 import DataPacket from './DataPacket';
 
 /**
@@ -16,8 +16,6 @@ import DataPacket from './DataPacket';
  * when Position Mode is Teleport. When present it is Teleportation Cause and Source Actor
  * Type, both int32 LE. A reader that skips the presence byte takes it for the first byte of
  * the tick.
- *
- * `MovementType` names Respawn and OnlyHeadRot `Reset` and `Pitch`.
  */
 export default class MovePlayerPacket extends DataPacket {
     public static NetID = Identifiers.MovePlayerPacket;
@@ -36,11 +34,11 @@ export default class MovePlayerPacket extends DataPacket {
 
     public ridingEntityRuntimeId!: bigint;
 
-    /** The docs' Teleportation Cause. Set only when `mode` is `MovementType.Teleport`. */
+    /** The docs' Teleportation Cause. Set only when `mode` is `PositionMode.Teleport`. */
     public teleportCause!: number;
     /**
      * The docs' Source Actor Type: the actor type that caused the teleport. The name is
-     * historical. Set only when `mode` is `MovementType.Teleport`.
+     * historical. Set only when `mode` is `PositionMode.Teleport`.
      */
     public teleportItemId!: number;
 
@@ -80,7 +78,7 @@ export default class MovePlayerPacket extends DataPacket {
         this.writeBoolean(this.onGround);
         this.writeUnsignedVarLong(this.ridingEntityRuntimeId);
 
-        const teleporting = this.mode === MovementType.Teleport;
+        const teleporting = this.mode === PositionMode.Teleport;
         this.writeBoolean(teleporting);
         if (teleporting) {
             this.writeIntLE(this.teleportCause);

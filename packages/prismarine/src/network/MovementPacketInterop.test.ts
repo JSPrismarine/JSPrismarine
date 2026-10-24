@@ -2,7 +2,7 @@ import {
     ChunkRadiusUpdatedPacket,
     LevelChunkPacket,
     MovePlayerPacket,
-    MovementType,
+    PositionMode,
     NetworkBinaryStream,
     PlayerActionPacket,
     PlayerActionType,
@@ -38,7 +38,7 @@ describe('MovePlayer', () => {
         pitch: 12.5,
         yaw: -45,
         headYaw: 30,
-        mode: MovementType.Normal,
+        mode: PositionMode.Normal,
         onGround: true,
         ridingEntityRuntimeId: 0n,
         tick: 1234n
@@ -76,7 +76,7 @@ describe('MovePlayer', () => {
     it('carries the teleport fields only when the move is a teleport', () => {
         // The packet's length depends on one of its own bytes. Read them unconditionally and
         // the tick comes out as whatever the next four bytes happened to be.
-        const teleport = { ...data, mode: MovementType.Teleport, teleportCause: 3, teleportItemId: 7 };
+        const teleport = { ...data, mode: PositionMode.Teleport, teleportCause: 3, teleportItemId: 7 };
 
         const withTeleport = encode(new MovePlayerPacket(teleport));
         const without = encode(new MovePlayerPacket(data));

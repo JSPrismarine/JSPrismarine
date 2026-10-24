@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
-import MovementType from '../../network/type/MovementType';
+import PositionMode from '../../network/type/PositionMode';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -89,58 +89,58 @@ describe('command', () => {
             it.each(['tp @s @s', 'tp filfat filfat'])('"%s" keeps the player where they stand', async (input) => {
                 await run(input);
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: 10, y: 64, z: 20 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: 10, y: 64, z: 20 });
                 expect(moveOther).not.toHaveBeenCalled();
             });
 
             it('teleports a player to another player', async () => {
                 await run('tp filfat Steve');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: -5, y: 70, z: 3 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: -5, y: 70, z: 3 });
                 expect(moveOther).not.toHaveBeenCalled();
             });
 
             it('teleports the source to a named player', async () => {
                 await run('tp Steve');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: -5, y: 70, z: 3 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: -5, y: 70, z: 3 });
             });
 
             it('teleports the source to itself with a bare selector', async () => {
                 await run('tp @s');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: 10, y: 64, z: 20 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: 10, y: 64, z: 20 });
             });
 
             // Numbers used to be tried as a player name first, and "1" is nobody.
             it('teleports to absolute coordinates, centered on the block', async () => {
                 await run('tp 1 2 3');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: 1.5, y: 2, z: 3.5 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: 1.5, y: 2, z: 3.5 });
             });
 
             it('centers negative coordinates towards positive infinity too', async () => {
                 await run('tp -5 70 -3');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: -4.5, y: 70, z: -2.5 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: -4.5, y: 70, z: -2.5 });
             });
 
             it('leaves fractional coordinates as written', async () => {
                 await run('tp 1.25 2 3.75');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: 1.25, y: 2, z: 3.75 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: 1.25, y: 2, z: 3.75 });
             });
 
             it('resolves relative coordinates against the source', async () => {
                 await run('tp ~ ~ ~');
 
-                expect(destination(moveSelf)).toEqual({ type: MovementType.Teleport, x: 10.5, y: 64, z: 20.5 });
+                expect(destination(moveSelf)).toEqual({ type: PositionMode.Teleport, x: 10.5, y: 64, z: 20.5 });
             });
 
             it('teleports another player to coordinates', async () => {
                 await run('tp Steve ~ ~10 ~');
 
-                expect(destination(moveOther)).toEqual({ type: MovementType.Teleport, x: 10.5, y: 74, z: 20.5 });
+                expect(destination(moveOther)).toEqual({ type: PositionMode.Teleport, x: 10.5, y: 74, z: 20.5 });
                 expect(moveSelf).not.toHaveBeenCalled();
             });
 

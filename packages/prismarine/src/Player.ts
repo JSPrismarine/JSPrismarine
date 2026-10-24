@@ -26,7 +26,7 @@ import { RespawnState } from './network/packet/RespawnPacket';
 import { ActorEvent } from './network/packet/ActorEventPacket';
 import type PlayerSession from './network/PlayerSession';
 import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePacket';
-import MovementType from './network/type/MovementType';
+import PositionMode from './network/type/PositionMode';
 import PlayStatusType from './network/type/PlayStatusType';
 import TextType from './network/type/TextType';
 import type Device from './utils/Device';
@@ -276,7 +276,7 @@ export default class Player extends Human {
                 pitch: playerData.position?.pitch || 0,
                 yaw: playerData.position?.yaw || 0,
                 headYaw: playerData.position?.headYaw || 0,
-                type: MovementType.Reset
+                type: PositionMode.Respawn
             },
             false
         );
@@ -871,7 +871,7 @@ export default class Player extends Human {
 
             await this.setPosition({
                 position: eyePositionAt((await this.getWorld().placePlayerSpawn()).position),
-                type: MovementType.Reset
+                type: PositionMode.Respawn
             });
         }
 
@@ -1210,7 +1210,7 @@ export default class Player extends Human {
      * Set the position.
      * @param {object} options - The options to set the position.
      * @param {Vector3} options.position - The new position.
-     * @param {MovementType} [options.type=MovementType.Normal] - The movement type.
+     * @param {PositionMode} [options.type=PositionMode.Normal] - The position mode.
      * @param {number} [options.pitch=this.pitch] - The new pitch.
      * @param {number} [options.yaw=this.yaw] - The new yaw.
      * @param {number} [options.headYaw=this.headYaw] - The new head yaw.
@@ -1220,13 +1220,13 @@ export default class Player extends Human {
     public async setPosition(
         {
             position,
-            type = MovementType.Normal,
+            type = PositionMode.Normal,
             pitch = this.pitch,
             yaw = this.yaw,
             headYaw = this.headYaw
         }: {
             position: Vector3;
-            type?: MovementType;
+            type?: PositionMode;
             pitch?: number;
             yaw?: number;
             headYaw?: number;
@@ -1239,7 +1239,7 @@ export default class Player extends Human {
 
         // A reset or a teleport is not the player walking, so it costs nothing - and it must not
         // count as a fall either, or arriving anywhere below where you left would hurt.
-        if (type === MovementType.Normal) {
+        if (type === PositionMode.Normal) {
             this.addMovementExhaustion(previous, position);
             this.trackFall(previous, position);
         } else {

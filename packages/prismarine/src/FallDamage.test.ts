@@ -4,7 +4,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import Player from './Player';
 import { DamageCause } from './entity/Entity';
-import MovementType from './network/type/MovementType';
+import PositionMode from './network/type/PositionMode';
 import { Position } from './world/Position';
 
 /**
@@ -56,7 +56,7 @@ const fallingPlayer = ({ gamemode = Gametype.SURVIVAL, landingOn = 'minecraft:st
         player['position'] = new Position(0, from, 0, world);
 
         for (let y = from - 1; y >= to; y--) {
-            await player.setPosition({ position: new Vector3(0, y, 0), type: MovementType.Normal }, false);
+            await player.setPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
         }
 
         await player.setOnGround(true);
@@ -98,7 +98,7 @@ describe('fall damage', () => {
         const { player, hits } = fallingPlayer();
 
         for (const y of [100, 101, 102, 101, 100, 99]) {
-            await player.setPosition({ position: new Vector3(0, y, 0), type: MovementType.Normal }, false);
+            await player.setPosition({ position: new Vector3(0, y, 0), type: PositionMode.Normal }, false);
         }
         await player.setOnGround(true);
 
@@ -133,7 +133,7 @@ describe('fall damage', () => {
 
         // Walk along the ground and land again.
         await player.setOnGround(false);
-        await player.setPosition({ position: new Vector3(0, 90, 1), type: MovementType.Normal }, false);
+        await player.setPosition({ position: new Vector3(0, 90, 1), type: PositionMode.Normal }, false);
         await player.setOnGround(true);
 
         expect(hits).toHaveLength(1);
@@ -143,7 +143,7 @@ describe('fall damage', () => {
         // A world change or a `/tp` is not a fall, however far down it lands.
         const { player, hits } = fallingPlayer();
 
-        await player.setPosition({ position: new Vector3(0, 20, 0), type: MovementType.Teleport }, false);
+        await player.setPosition({ position: new Vector3(0, 20, 0), type: PositionMode.Teleport }, false);
         await player.setOnGround(true);
 
         expect(hits).toEqual([]);

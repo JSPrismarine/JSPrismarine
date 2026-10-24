@@ -9,7 +9,7 @@ import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import MovePlayerPacket from '../packet/MovePlayerPacket';
-import MovementType from '../type/MovementType';
+import PositionMode from '../type/PositionMode';
 import MovePlayerHandler from './MovePlayerHandler';
 
 /**
@@ -48,7 +48,7 @@ const move = (configure: (packet: MovePlayerPacket) => void = () => {}): MovePla
     packet.pitch = 5;
     packet.yaw = 90;
     packet.headYaw = 85;
-    packet.mode = MovementType.Normal;
+    packet.mode = PositionMode.Normal;
     packet.onGround = true;
     packet.ridingEntityRuntimeId = 0n;
     packet.tick = 300n;
@@ -75,7 +75,7 @@ describe('MovePlayerHandler', () => {
 
         await new MovePlayerHandler().handle(
             move((packet) => {
-                packet.mode = MovementType.Pitch;
+                packet.mode = PositionMode.OnlyHeadRot;
             }),
             server,
             session
@@ -114,7 +114,7 @@ describe('MovePlayerHandler', () => {
         expect(dropped).toHaveLength(1);
     });
 
-    it.each([MovementType.Teleport, MovementType.Reset])('drops a move in server-only mode %i', async (mode) => {
+    it.each([PositionMode.Teleport, PositionMode.Respawn])('drops a move in server-only mode %i', async (mode) => {
         // Respawn and Teleport are the server's modes. A client sending one is asking to be
         // put somewhere without walking there, and its Teleport Data is never read.
         const { dropped, player, session, server } = fake();

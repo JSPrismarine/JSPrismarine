@@ -3,15 +3,12 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/**
- * The docs' Position Mode. `Reset` is the docs' Respawn and `Pitch` is the docs' OnlyHeadRot;
- * the values match.
- */
-export enum MovementType {
+/** The docs' `PositionMode`, written as the Position Mode byte. */
+export enum PositionMode {
     Normal,
-    Reset,
+    Respawn,
     Teleport,
-    Pitch
+    OnlyHeadRot
 }
 
 export interface MovePlayer {
@@ -20,14 +17,14 @@ export interface MovePlayer {
     pitch: number;
     yaw: number;
     headYaw: number;
-    mode: MovementType;
+    mode: PositionMode;
     onGround: boolean;
     ridingEntityRuntimeId: bigint;
-    /** The docs' Teleportation Cause. Present only when `mode` is {@link MovementType.Teleport}. */
+    /** The docs' Teleportation Cause. Present only when `mode` is {@link PositionMode.Teleport}. */
     teleportCause?: number;
     /**
      * The docs' Source Actor Type: the actor type that caused the teleport. The name is
-     * historical. Present only when `mode` is {@link MovementType.Teleport}.
+     * historical. Present only when `mode` is {@link PositionMode.Teleport}.
      */
     teleportItemId?: number;
     tick: bigint;
@@ -71,7 +68,7 @@ export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
         stream.writeUnsignedVarLong(data.ridingEntityRuntimeId);
 
         // Teleport Data is an optional with a presence byte of its own, written on every move.
-        const teleporting = data.mode === MovementType.Teleport;
+        const teleporting = data.mode === PositionMode.Teleport;
         stream.writeBoolean(teleporting);
         if (teleporting) {
             stream.writeIntLE(data.teleportCause ?? 0);
@@ -87,7 +84,7 @@ export default class MovePlayerPacket extends NetworkPacket<MovePlayer> {
         const pitch = stream.readFloatLE();
         const yaw = stream.readFloatLE();
         const headYaw = stream.readFloatLE();
-        const mode: MovementType = stream.readByte();
+        const mode: PositionMode = stream.readByte();
         const onGround = stream.readBoolean();
         const ridingEntityRuntimeId = stream.readUnsignedVarLong();
 

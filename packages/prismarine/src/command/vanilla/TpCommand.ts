@@ -4,7 +4,7 @@ import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArgume
 import { Vector3 } from '@jsprismarine/math';
 import Player from '../../Player';
 import type { Entity } from '../../entity/Entity';
-import MovementType from '../../network/type/MovementType';
+import PositionMode from '../../network/type/PositionMode';
 import { Command, argument, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
@@ -26,11 +26,11 @@ const toBlockCenter = (position: Vector3): Vector3 => {
 
 /**
  * Moves an entity to a position. Only players distinguish a teleport from walking, so the
- * movement type is passed to them alone.
+ * position mode is passed to them alone.
  */
 const teleport = (entity: Entity, position: Vector3): Promise<void> =>
     entity instanceof Player
-        ? entity.setPosition({ position, type: MovementType.Teleport })
+        ? entity.setPosition({ position, type: PositionMode.Teleport })
         : entity.setPosition({ position });
 
 export default class TpCommand extends Command {

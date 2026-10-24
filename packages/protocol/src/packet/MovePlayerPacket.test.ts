@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
-import MovePlayerPacket, { MovementType } from './MovePlayerPacket';
+import MovePlayerPacket, { PositionMode } from './MovePlayerPacket';
 
 import type { MovePlayer } from './MovePlayerPacket';
 
@@ -12,7 +12,7 @@ import type { MovePlayer } from './MovePlayerPacket';
  * is 300, which takes two varuint bytes, so a reader that eats the presence byte as the
  * tick's first byte gets a different number.
  */
-const wire = (mode: MovementType, teleport?: { cause: number; sourceActorType: number }): Buffer => {
+const wire = (mode: PositionMode, teleport?: { cause: number; sourceActorType: number }): Buffer => {
     const out = new NetworkBinaryStream();
     out.writeUnsignedVarInt(19); // Header: the packet id, no subclient ids.
     out.writeUnsignedVarLong(42n); // Player Runtime ID.
@@ -42,13 +42,13 @@ const normal: MovePlayer = {
     pitch: 12.5,
     yaw: -45,
     headYaw: 30,
-    mode: MovementType.Normal,
+    mode: PositionMode.Normal,
     onGround: true,
     ridingEntityRuntimeId: 9n,
     tick: 300n
 };
 
-const teleport: MovePlayer = { ...normal, mode: MovementType.Teleport, teleportCause: 3, teleportItemId: 7 };
+const teleport: MovePlayer = { ...normal, mode: PositionMode.Teleport, teleportCause: 3, teleportItemId: 7 };
 
 const encode = (data: MovePlayer): Buffer => new MovePlayerPacket(data).serialize(new NetworkBinaryStream());
 
@@ -56,7 +56,7 @@ describe('MovePlayerPacket', () => {
     it('writes a normal move with an absent Teleport Data before the tick', () => {
         const buffer = encode(normal);
 
-        expect(buffer).toEqual(wire(MovementType.Normal));
+        expect(buffer).toEqual(wire(PositionMode.Normal));
         // The tail, byte for byte: presence 0x00, then 300 as a varuint.
         expect([...buffer.subarray(-3)]).toEqual([0x00, 0xac, 0x02]);
     });
@@ -64,19 +64,19 @@ describe('MovePlayerPacket', () => {
     it('writes a teleport with its cause and source actor type as int32 LE', () => {
         const buffer = encode(teleport);
 
-        expect(buffer).toEqual(wire(MovementType.Teleport, { cause: 3, sourceActorType: 7 }));
+        expect(buffer).toEqual(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }));
         expect([...buffer.subarray(-11)]).toEqual([0x01, 3, 0, 0, 0, 7, 0, 0, 0, 0xac, 0x02]);
     });
 
     it('reads a teleport and nothing past it', () => {
-        const stream = new NetworkBinaryStream(wire(MovementType.Teleport, { cause: 3, sourceActorType: 7 }));
+        const stream = new NetworkBinaryStream(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }));
 
         expect(new MovePlayerPacket().deserialize(stream)).toEqual(teleport);
         expect(stream.feof()).toBe(true);
     });
 
     it('reads a normal move without taking the presence byte for the tick', () => {
-        const stream = new NetworkBinaryStream(wire(MovementType.Normal));
+        const stream = new NetworkBinaryStream(wire(PositionMode.Normal));
         const data = new MovePlayerPacket().deserialize(stream);
 
         expect(data).toEqual(normal);

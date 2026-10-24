@@ -64,7 +64,7 @@ import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import CommandData from './type/CommandData';
 import { CommandEnum } from './type/CommandEnum';
 import CommandParameter, { CommandParameterType } from './type/CommandParameter';
-import MovementType from './type/MovementType';
+import PositionMode from './type/PositionMode';
 import ChunkSender from './ChunkSender';
 import TextType from './type/TextType';
 
@@ -1209,9 +1209,9 @@ export default class PlayerSession {
      * there. For any other player the packet is what this client sees of them, and the tick is
      * zero because it relates to none of this client's inputs.
      * @param {Player} player - The player that moved.
-     * @param {MovementType} [mode=MovementType.Normal] - What produced the movement.
+     * @param {PositionMode} [mode=PositionMode.Normal] - What produced the movement.
      */
-    public async sendMove(player: Player, mode = MovementType.Normal): Promise<void> {
+    public async sendMove(player: Player, mode = PositionMode.Normal): Promise<void> {
         const packet = new MovePlayerPacket();
         packet.runtimeEntityId = player.getRuntimeId();
 
@@ -1226,7 +1226,7 @@ export default class PlayerSession {
 
         // The server does not model why a teleport happened, so Teleportation Cause is
         // Unknown (0) and Source Actor Type is 0.
-        if (mode === MovementType.Teleport) {
+        if (mode === PositionMode.Teleport) {
             packet.teleportCause = 0;
             packet.teleportItemId = 0;
         }

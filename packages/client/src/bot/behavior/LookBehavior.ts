@@ -1,4 +1,4 @@
-import { MovePlayerPacket, MovementType } from '@jsprismarine/protocol';
+import { MovePlayerPacket, PositionMode } from '@jsprismarine/protocol';
 
 import type { Behavior, BehaviorContext } from './Behavior';
 
@@ -34,7 +34,7 @@ export default class LookBehavior implements Behavior {
                 pitch: bot.pitch,
                 yaw: bot.yaw,
                 headYaw: bot.headYaw,
-                mode: MovementType.Normal,
+                mode: PositionMode.Normal,
                 onGround: true,
                 ridingEntityRuntimeId: 0n,
                 tick: BigInt(context.tick)

@@ -23,7 +23,7 @@ import RespawnPacket, { RespawnState } from './network/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from './network/packet/UpdateAttributesPacket';
 import { createConnectedPlayer } from './network/createConnectedPlayer';
-import MovementType from './network/type/MovementType';
+import PositionMode from './network/type/PositionMode';
 import { stub } from './testing/stub.test.helper';
 import UUID from './utils/UUID';
 import type { ChunkScheduler } from './world/ChunkScheduler';
@@ -117,7 +117,7 @@ const tick = async (player: Player, n: number, from = 1) => {
 };
 
 /** Walks the player `blocks` meters east, one meter at a time, as movement packets do. */
-const move = async (player: Player, blocks: number, type = MovementType.Normal) => {
+const move = async (player: Player, blocks: number, type = PositionMode.Normal) => {
     for (let i = 0; i < blocks; i++) {
         const position = player.getPosition();
         await player.setPosition({ position: new Vector3(position.getX() + 1, 64, 0), type }, false);
@@ -258,7 +258,7 @@ describe('Player', () => {
             const { player } = fakePlayer();
             player.metadata.setSprinting(true);
 
-            await move(player, 40, MovementType.Teleport);
+            await move(player, 40, PositionMode.Teleport);
 
             expect(player.attributes.getValue(AttributeIds.PlayerExhaustion)).toBe(0);
         });

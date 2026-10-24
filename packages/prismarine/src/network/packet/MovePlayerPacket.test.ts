@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
-import MovementType from '../type/MovementType';
+import PositionMode from '../type/PositionMode';
 import MovePlayerPacket from './MovePlayerPacket';
 
 /**
@@ -12,7 +12,7 @@ import MovePlayerPacket from './MovePlayerPacket';
  * is 300, which takes two varuint bytes, so a reader that eats the presence byte as the
  * tick's first byte gets a different number.
  */
-const wire = (mode: MovementType, teleport?: { cause: number; sourceActorType: number }): Buffer => {
+const wire = (mode: PositionMode, teleport?: { cause: number; sourceActorType: number }): Buffer => {
     const out = new BinaryStream();
     out.writeUnsignedVarInt(19); // Header: the packet id, no subclient ids.
     out.writeUnsignedVarLong(42n); // Player Runtime ID.
@@ -36,7 +36,7 @@ const wire = (mode: MovementType, teleport?: { cause: number; sourceActorType: n
     return out.getBuffer();
 };
 
-const move = (mode: MovementType): MovePlayerPacket => {
+const move = (mode: PositionMode): MovePlayerPacket => {
     const packet = new MovePlayerPacket();
     packet.runtimeEntityId = 42n;
     packet.position = new Vector3(1.5, 64.25, -3.75);
@@ -58,26 +58,26 @@ const decode = (buffer: Buffer): MovePlayerPacket => {
 
 describe('MovePlayerPacket', () => {
     it('writes a normal move with an absent Teleport Data before the tick', () => {
-        const packet = move(MovementType.Normal);
+        const packet = move(PositionMode.Normal);
         packet.encode();
 
-        expect(packet.getBuffer()).toEqual(wire(MovementType.Normal));
+        expect(packet.getBuffer()).toEqual(wire(PositionMode.Normal));
         // The tail, byte for byte: presence 0x00, then 300 as a varuint.
         expect([...packet.getBuffer().subarray(-3)]).toEqual([0x00, 0xac, 0x02]);
     });
 
     it('writes a teleport with its cause and source actor type as int32 LE', () => {
-        const packet = move(MovementType.Teleport);
+        const packet = move(PositionMode.Teleport);
         packet.teleportCause = 3;
         packet.teleportItemId = 7;
         packet.encode();
 
-        expect(packet.getBuffer()).toEqual(wire(MovementType.Teleport, { cause: 3, sourceActorType: 7 }));
+        expect(packet.getBuffer()).toEqual(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }));
         expect([...packet.getBuffer().subarray(-11)]).toEqual([0x01, 3, 0, 0, 0, 7, 0, 0, 0, 0xac, 0x02]);
     });
 
     it('reads a teleport and nothing past it', () => {
-        const packet = decode(wire(MovementType.Teleport, { cause: 3, sourceActorType: 7 }));
+        const packet = decode(wire(PositionMode.Teleport, { cause: 3, sourceActorType: 7 }));
 
         expect(packet.runtimeEntityId).toBe(42n);
         expect(packet.position.getX()).toBe(1.5);
@@ -86,7 +86,7 @@ describe('MovePlayerPacket', () => {
         expect(packet.pitch).toBe(12.5);
         expect(packet.yaw).toBe(-45);
         expect(packet.headYaw).toBe(30);
-        expect(packet.mode).toBe(MovementType.Teleport);
+        expect(packet.mode).toBe(PositionMode.Teleport);
         expect(packet.onGround).toBe(true);
         expect(packet.ridingEntityRuntimeId).toBe(9n);
         expect(packet.teleportCause).toBe(3);
@@ -96,9 +96,9 @@ describe('MovePlayerPacket', () => {
     });
 
     it('reads a normal move without taking the presence byte for the tick', () => {
-        const packet = decode(wire(MovementType.Normal));
+        const packet = decode(wire(PositionMode.Normal));
 
-        expect(packet.mode).toBe(MovementType.Normal);
+        expect(packet.mode).toBe(PositionMode.Normal);
         expect(packet.teleportCause).toBeUndefined();
         expect(packet.teleportItemId).toBeUndefined();
         expect(packet.tick).toBe(300n);
