@@ -17,7 +17,7 @@ import DataPacket from './DataPacket';
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
  * | Block Position | BlockPos | Three ZigZag varint32 |
- * | Actor Data Tags | compound | Network NBT: little endian with varint lengths |
+ * | Actor Data Tags | compound | Network NBT: little endian with varint lengths, empty root name |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/block-actor-data-packet/
  */
 export default class BlockActorDataPacket extends DataPacket {
@@ -38,12 +38,27 @@ export default class BlockActorDataPacket extends DataPacket {
         this.actorDataTags = reader.parse();
     }
 
-    /** Writes the position and the network NBT compound that follows it. */
+    /**
+     * Writes the position and the network NBT compound that follows it.
+     *
+     * The root is written under an empty name whatever the compound calls itself. A vanilla
+     * compound has no name of its own, so the server always sends an empty one, and a block
+     * entity loaded from a world file may carry one.
+     */
     public encodePayload(): void {
         NetworkUtil.writeBlockPosition(this, this.blockPosition);
 
         const writer = new NBTWriter(this, ByteOrder.LITTLE_ENDIAN);
         writer.setUseVarint(true);
-        writer.writeCompound(this.actorDataTags);
+        writer.writeCompound(unnamed(this.actorDataTags));
     }
 }
+
+/** The same tags under an empty root name, without touching the caller's compound. */
+const unnamed = (tags: NBTTagCompound): NBTTagCompound => {
+    if (!tags.getName()) return tags;
+
+    const root = new NBTTagCompound('');
+    for (const [name, value] of tags.children) root.children.set(name, value);
+    return root;
+};

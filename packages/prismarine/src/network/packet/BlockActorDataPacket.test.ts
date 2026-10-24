@@ -30,4 +30,16 @@ describe('BlockActorDataPacket', () => {
 
         expect(packet.getBuffer()).toEqual(encoded);
     });
+
+    it('writes an empty root name whatever the compound is called', () => {
+        // A vanilla compound has no name, so the client only ever sees an empty one here.
+        const packet = new BlockActorDataPacket();
+        packet.blockPosition = new BlockPosition(1, 2, 3);
+        packet.actorDataTags = new NBTTagCompound('Sign');
+        packet.actorDataTags.addValue('id', new Types.StringVal('Sign'));
+        packet.encode();
+
+        expect(packet.getBuffer()).toEqual(encoded);
+        expect(packet.actorDataTags.getName()).toBe('Sign');
+    });
 });
