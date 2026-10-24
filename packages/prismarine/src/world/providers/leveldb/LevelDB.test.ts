@@ -11,8 +11,12 @@ import { ChunkTag, encodeChunkKey } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
 import { Dimensions } from '../../Dimension';
+import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
+import type { Logger } from '@jsprismarine/logger';
+import type Server from '../../../Server';
+import type { World } from '../../World';
 
 const directories: string[] = [];
 
@@ -34,25 +38,26 @@ const id = (name: string) => BlockRuntimeIds.getByName(name);
  */
 const harness = (worldPath: string, name = 'testworld') => {
     const warnings: string[] = [];
-    const server = {
-        getLogger: () => ({
-            warn: (message: string) => warnings.push(message),
-            debug: () => {},
-            verbose: () => {},
-            info: () => {},
-            error: () => {}
-        })
-    };
+    const logger = stub<Logger>({
+        warn: (message: string) => {
+            warnings.push(message);
+        },
+        debug: () => {},
+        verbose: () => {},
+        info: () => {},
+        error: () => {}
+    });
+    const server = stub<Server>({ getLogger: () => logger });
 
-    const world = {
+    const world = stub<World>({
         getName: () => name,
         getSeed: () => 1234,
         getDimension: () => Dimensions.Overworld,
         getServer: () => server
-    };
+    });
 
-    const provider = new LevelDB(worldPath, server as never);
-    provider.setWorld(world as never);
+    const provider = new LevelDB(worldPath, server);
+    provider.setWorld(world);
     return { provider, warnings };
 };
 
@@ -112,7 +117,7 @@ describe('world', () => {
             await provider.enable();
 
             const gen = generator();
-            const chunk = await provider.readChunk(0, 0, 1234, gen as never);
+            const chunk = await provider.readChunk(0, 0, 1234, gen);
 
             expect(gen.calls).toEqual([[0, 0]]);
             expect(chunk.getHasChanged()).toBe(false);
@@ -130,7 +135,7 @@ describe('world', () => {
                 const second = harness(worldPath);
                 await second.provider.enable();
                 const gen = generator();
-                const restored = await second.provider.readChunk(0, 0, 1234, gen as never);
+                const restored = await second.provider.readChunk(0, 0, 1234, gen);
 
                 // Not regenerated: the chunk was found on disk.
                 expect(gen.calls).toEqual([]);
@@ -152,7 +157,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234, generator() as never);
+                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
 
                 expect(restored.getMinY()).toBe(-64);
                 expect(restored.getMaxY()).toBe(319);
@@ -177,7 +182,7 @@ describe('world', () => {
 
                 for (let cx = -2; cx <= 2; cx++) {
                     for (let cz = -2; cz <= 2; cz++) {
-                        const restored = await reopened.provider.readChunk(cx, cz, 1234, generator() as never);
+                        const restored = await reopened.provider.readChunk(cx, cz, 1234, generator());
                         expect(restored.getBlockRuntimeId(3, -64, 4)).toBe(id('minecraft:bedrock'));
                     }
                 }
@@ -191,10 +196,11 @@ describe('world', () => {
                 await provider.enable();
 
                 const chunk = buildChunk();
-                for (const [id_, x, y, z, extra] of [
-                    ['Chest', 1, 64, 1, (root: NBTTagCompound) => root.addValue('Findable', new Types.ByteVal(1))],
-                    ['Beacon', 2, 64, 2, (root: NBTTagCompound) => root.addValue('primary', new Types.NumberVal(5))]
-                ] as Array<[string, number, number, number, (root: NBTTagCompound) => void]>) {
+                const blockEntities: Array<[string, number, number, number, (root: NBTTagCompound) => void]> = [
+                    ['Chest', 1, 64, 1, (root) => root.addValue('Findable', new Types.ByteVal(1))],
+                    ['Beacon', 2, 64, 2, (root) => root.addValue('primary', new Types.NumberVal(5))]
+                ];
+                for (const [id_, x, y, z, extra] of blockEntities) {
                     const nbt = new NBTTagCompound('');
                     nbt.addValue('id', new Types.StringVal(id_));
                     nbt.addValue('x', new Types.NumberVal(x));
@@ -209,7 +215,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234, generator() as never);
+                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
 
                 const chest = restored.getBlockEntity(1, 64, 1);
                 const beacon = restored.getBlockEntity(2, 64, 2);
