@@ -23,14 +23,6 @@ const commandPermissionToString = (level: number): string =>
 export default class AvailableCommandsPacket extends DataPacket {
     public static NetID = Identifiers.AvailableCommandsPacket;
 
-    public override getId(): number {
-        return AvailableCommandsPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'AvailableCommandsPacket';
-    }
-
     public ARG_FLAG_VALID = 0x100000;
     public ARG_FLAG_INT = 1;
     public ARG_FLAG_FLOAT = 3;

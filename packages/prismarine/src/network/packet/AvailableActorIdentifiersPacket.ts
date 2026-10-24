@@ -6,14 +6,6 @@ import { entity_identifiers } from '@jsprismarine/bedrock-data';
 export default class AvailableActorIdentifiersPacket extends DataPacket {
     public static NetID = Identifiers.AvailableActorIdentifiersPacket;
 
-    public override getId(): number {
-        return AvailableActorIdentifiersPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'AvailableActorIdentifiersPacket';
-    }
-
     private cachedNBT: any;
 
     public encodePayload(): void {

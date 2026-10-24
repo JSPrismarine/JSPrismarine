@@ -10,14 +10,6 @@ export enum SpawnType {
 export default class SetSpawnPositionPacket extends DataPacket {
     public static NetID = Identifiers.SetSpawnPositionPacket;
 
-    public override getId(): number {
-        return SetSpawnPositionPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'SetSpawnPositionPacket';
-    }
-
     public type!: SpawnType;
     public position!: Vector3;
     public dimension!: number;

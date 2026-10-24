@@ -137,10 +137,6 @@ class InertMob extends Mob {
     // the animal the whole thing was reported against.
     public static override MOB_ID = 'minecraft:sheep';
 
-    public override getType(): string {
-        return InertMob.MOB_ID;
-    }
-
     protected override createGoals(): GoalSelector {
         return new GoalSelector();
     }

@@ -18,14 +18,6 @@ import DataPacket from './DataPacket';
 export default class TakeItemActorPacket extends DataPacket {
     public static NetID = Identifiers.TakeItemActorPacket;
 
-    public override getId(): number {
-        return TakeItemActorPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'TakeItemActorPacket';
-    }
-
     public itemRuntimeEntityId!: bigint;
     public takerRuntimeEntityId!: bigint;
 

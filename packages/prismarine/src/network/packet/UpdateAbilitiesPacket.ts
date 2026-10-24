@@ -51,14 +51,6 @@ export class AbilityLayer {
 export default class UpdateAbilitiesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAbilitiesPacket;
 
-    public override getId(): number {
-        return UpdateAbilitiesPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'UpdateAbilitiesPacket';
-    }
-
     public commandPermission!: PermissionType;
     public playerPermission!: PlayerPermissionType;
     public targetActorUniqueId!: bigint;

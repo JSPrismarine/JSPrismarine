@@ -49,19 +49,12 @@ export class Position extends Vector3 {
      * friends hand back a position rather than a bare vector missing its world.
      */
     protected override create(x: number, y: number, z: number): this {
-        return new Position(x, y, z, this.world) as this;
-    }
-
-    public override withX(x: number): this {
-        return this.create(x, this.getY(), this.getZ());
-    }
-
-    public override withY(y: number): this {
-        return this.create(this.getX(), y, this.getZ());
-    }
-
-    public override withZ(z: number): this {
-        return this.create(this.getX(), this.getY(), z);
+        return new (this.constructor as new (x: number, y: number, z: number, world: World) => this)(
+            x,
+            y,
+            z,
+            this.world
+        );
     }
 
     /**

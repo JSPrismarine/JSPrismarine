@@ -6,14 +6,6 @@ import DataPacket from './DataPacket';
 export default class RespawnPacket extends DataPacket {
     public static NetID = Identifiers.RespawnPacket;
 
-    public override getId(): number {
-        return RespawnPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'RespawnPacket';
-    }
-
     public position: Vector3 | null = null;
     public state!: RespawnState;
     public runtimeEntityId!: bigint;

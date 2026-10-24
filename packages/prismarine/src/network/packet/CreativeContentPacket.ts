@@ -47,14 +47,6 @@ export interface CreativeGroup {
 export default class CreativeContentPacket extends DataPacket {
     public static NetID = Identifiers.CreativeContentPacket;
 
-    public override getId(): number {
-        return CreativeContentPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'CreativeContentPacket';
-    }
-
     public items: Item[] = [];
 
     /**

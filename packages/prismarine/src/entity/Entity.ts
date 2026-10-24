@@ -224,8 +224,12 @@ export class Entity {
      * console.log(`Entity type: ${entityType}`);
      * ```
      */
+    public get [Symbol.toStringTag](): string {
+        return `Entity(${this.toString()})`;
+    }
+
     public getType(): string {
-        return Entity.MOB_ID;
+        return (this.constructor as typeof Entity & { MOB_ID: string }).MOB_ID;
     }
 
     /**

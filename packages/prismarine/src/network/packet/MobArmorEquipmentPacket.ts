@@ -17,14 +17,6 @@ import DataPacket from './DataPacket';
 export default class MobArmorEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobArmorEquipmentPacket;
 
-    public override getId(): number {
-        return MobArmorEquipmentPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'MobArmorEquipmentPacket';
-    }
-
     public runtimeEntityId!: bigint;
 
     public head!: Item;

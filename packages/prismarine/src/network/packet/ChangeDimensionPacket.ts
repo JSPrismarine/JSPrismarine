@@ -6,14 +6,6 @@ import DataPacket from './DataPacket';
 export default class ChangeDimensionPacket extends DataPacket {
     public static NetID = Identifiers.ChangeDimensionPacket;
 
-    public override getId(): number {
-        return ChangeDimensionPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ChangeDimensionPacket';
-    }
-
     public dimension!: number;
     public position!: Vector3 | null;
     public respawn!: boolean;

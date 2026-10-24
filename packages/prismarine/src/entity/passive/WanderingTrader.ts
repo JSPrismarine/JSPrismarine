@@ -5,10 +5,6 @@ import type GoalSelector from '../ai/GoalSelector';
 export default class WanderingTrader extends Mob {
     public static MOB_ID = 'minecraft:wandering_trader';
 
-    public override getType(): string {
-        return WanderingTrader.MOB_ID;
-    }
-
     protected override createGoals(): GoalSelector {
         return villagerBrain();
     }

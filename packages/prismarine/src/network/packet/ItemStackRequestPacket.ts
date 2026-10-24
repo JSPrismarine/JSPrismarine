@@ -16,14 +16,6 @@ import DataPacket from './DataPacket';
 export default class ItemStackRequestPacket extends DataPacket {
     public static NetID = Identifiers.ItemStackRequestPacket;
 
-    public override getId(): number {
-        return ItemStackRequestPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ItemStackRequestPacket';
-    }
-
     public requests: ItemStackRequest[] = [];
 
     /**

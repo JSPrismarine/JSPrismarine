@@ -13,14 +13,6 @@ export const DEFAULT_COMPRESSION_LEVEL = 7;
 export default class BatchPacket extends DataPacket {
     public static NetID = 0xfe;
 
-    public override getId(): number {
-        return BatchPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'BatchPacket';
-    }
-
     public compressed = true; //  TODO: better solution
     private payload = new BinaryStream();
 

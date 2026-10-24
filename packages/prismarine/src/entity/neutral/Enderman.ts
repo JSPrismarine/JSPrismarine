@@ -5,10 +5,6 @@ import type GoalSelector from '../ai/GoalSelector';
 export default class Endermand extends Mob {
     public static MOB_ID = 'minecraft:enderman';
 
-    public override getType(): string {
-        return Endermand.MOB_ID;
-    }
-
     protected override createGoals(): GoalSelector {
         return hostileBrain();
     }

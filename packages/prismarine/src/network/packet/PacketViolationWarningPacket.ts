@@ -5,14 +5,6 @@ import DataPacket from './DataPacket';
 export default class PacketViolationWarningPacket extends DataPacket {
     public static NetID = Identifiers.PacketViolationWarningPacket;
 
-    public override getId(): number {
-        return PacketViolationWarningPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'PacketViolationWarningPacket';
-    }
-
     public type!: number;
     public severity!: number;
     public packetId!: number;

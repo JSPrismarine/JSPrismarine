@@ -4,14 +4,6 @@ import DataPacket from './DataPacket';
 export default class RequestChunkRadiusPacket extends DataPacket {
     public static NetID = Identifiers.RequestChunkRadiusPacket;
 
-    public override getId(): number {
-        return RequestChunkRadiusPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'RequestChunkRadiusPacket';
-    }
-
     public radius!: number;
     public maxRadius!: number;
 

@@ -5,14 +5,6 @@ import Identifiers from '../Identifiers';
 export default class UpdateAttributesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAttributesPacket;
 
-    public override getId(): number {
-        return UpdateAttributesPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'UpdateAttributesPacket';
-    }
-
     public runtimeEntityId!: bigint;
     public attributes: Attribute[] = [];
 

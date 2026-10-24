@@ -49,14 +49,6 @@ export interface ItemStackResponse {
 export default class ItemStackResponsePacket extends DataPacket {
     public static NetID = Identifiers.ItemStackResponsePacket;
 
-    public override getId(): number {
-        return ItemStackResponsePacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ItemStackResponsePacket';
-    }
-
     public responses: ItemStackResponse[] = [];
 
     public encodePayload(): void {

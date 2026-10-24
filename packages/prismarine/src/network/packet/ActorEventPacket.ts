@@ -13,14 +13,6 @@ import DataPacket from './DataPacket';
 export default class ActorEventPacket extends DataPacket {
     public static NetID = Identifiers.ActorEventPacket;
 
-    public override getId(): number {
-        return ActorEventPacket.NetID;
-    }
-
-    public override getName(): string {
-        return 'ActorEventPacket';
-    }
-
     public runtimeEntityId!: bigint;
     public event!: ActorEvent;
 
