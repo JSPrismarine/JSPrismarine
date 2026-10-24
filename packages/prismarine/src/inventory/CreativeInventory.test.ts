@@ -14,7 +14,7 @@ import CreativeInventory from './CreativeInventory';
 const emptyServer = {
     getBlockManager: () => ({ getBlocks: () => [] }),
     getItemManager: () => ({ getItems: () => [] })
-} as any;
+};
 
 describe('CreativeInventory', () => {
     beforeEach(() => CreativeInventory.reset());
@@ -25,7 +25,7 @@ describe('CreativeInventory', () => {
         // comes from the submodule and stops at 1.21.40. An entry the table has never heard of
         // is left out on purpose - that is the guard working, not a menu with a hole in it -
         // and this asserts the guard drops exactly what it should and nothing more.
-        const nameable = (CreativeItems as Array<{ name: string }>).filter((entry) => entry.name in ItemTable);
+        const nameable = CreativeItems.filter((entry) => entry.name in ItemTable);
 
         expect(CreativeInventory.getItems(emptyServer)).toHaveLength(nameable.length);
     });
@@ -34,9 +34,7 @@ describe('CreativeInventory', () => {
         // One, at the time of writing: `minecraft:chain`, which 1.26.40 renamed to
         // `minecraft:iron_chain` when copper chains arrived. Worth naming rather than counting,
         // so that a second one appearing is a test failure instead of a smaller menu.
-        const dropped = (CreativeItems as Array<{ name: string }>)
-            .map((entry) => entry.name)
-            .filter((name) => !(name in ItemTable));
+        const dropped = CreativeItems.map((entry) => entry.name).filter((name) => !(name in ItemTable));
 
         expect(dropped).toEqual(['minecraft:chain']);
     });

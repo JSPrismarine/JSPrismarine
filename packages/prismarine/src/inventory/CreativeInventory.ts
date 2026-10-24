@@ -1,11 +1,20 @@
 import { creativeitems as CreativeItems, item_table as ItemTable } from '@jsprismarine/bedrock-data';
-import type Server from '../Server';
 import { Item } from '../item/Item';
 
-/** What the creative list carries per entry; ids are not among it. */
-interface CreativeEntry {
-    name: string;
-    meta?: number;
+/** A registered block or item, as far as the creative menu reads one. */
+export interface CreativeRegistryEntry {
+    getName(): string;
+    getId(): number;
+}
+
+/**
+ * The registries the creative menu is built from.
+ *
+ * A full `Server` fits. A test only has to supply these two managers.
+ */
+export interface CreativeRegistries {
+    getBlockManager(): { getBlocks(): readonly CreativeRegistryEntry[] };
+    getItemManager(): { getItems(): readonly CreativeRegistryEntry[] };
 }
 
 /**
@@ -29,21 +38,21 @@ export class CreativeInventory {
 
     /**
      * The whole menu.
-     * @param {Server} server - where the registered blocks and items come from.
+     * @param {CreativeRegistries} server - where the registered blocks and items come from.
      * @returns {Item[]} the menu, in order.
      */
-    public static getItems(server: Server): Item[] {
+    public static getItems(server: CreativeRegistries): Item[] {
         if (CreativeInventory.items) return CreativeInventory.items;
 
         const registered = [...server.getBlockManager().getBlocks(), ...server.getItemManager().getItems()];
 
         // Indexed by name: scanning every block and item once per creative entry would be
         // 1900 passes over the registry.
-        const byName = new Map<string, (typeof registered)[number]>();
+        const byName = new Map<string, CreativeRegistryEntry>();
         for (const entry of registered) if (!byName.has(entry.getName())) byName.set(entry.getName(), entry);
 
         const items: Item[] = [];
-        for (const entry of CreativeItems as CreativeEntry[]) {
+        for (const entry of CreativeItems) {
             if (!(entry.name in ItemTable)) continue; // The client has no id to resolve it to.
 
             const registeredEntry = byName.get(entry.name);
@@ -63,11 +72,11 @@ export class CreativeInventory {
      *
      * Net ids are one-based, matching what `CreativeContentPacket` writes alongside each
      * entry.
-     * @param {Server} server - where the registered blocks and items come from.
+     * @param {CreativeRegistries} server - where the registered blocks and items come from.
      * @param {number} netId - the id the client sent back.
      * @returns {Item | null} the item, or `null` if the id names nothing.
      */
-    public static get(server: Server, netId: number): Item | null {
+    public static get(server: CreativeRegistries, netId: number): Item | null {
         return CreativeInventory.getItems(server)[netId - 1] ?? null;
     }
 
