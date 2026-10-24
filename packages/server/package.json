@@ -72,6 +72,6 @@
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "yargs": "17.7.3"
+        "yargs": "18.2.0"
     }
 }
