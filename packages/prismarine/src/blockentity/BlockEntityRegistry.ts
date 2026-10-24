@@ -11,6 +11,17 @@ interface BlockEntityClass {
 }
 
 /**
+ * Whether a module export is a block entity class: a function carrying a string ID and a reader.
+ * The module exports a helper alongside the classes, so this is what tells them apart.
+ */
+const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =>
+    typeof candidate === 'function' &&
+    'ID' in candidate &&
+    typeof candidate.ID === 'string' &&
+    'fromNBT' in candidate &&
+    typeof candidate.fromNBT === 'function';
+
+/**
  * Turns a block entity's NBT into an object.
  *
  * A type nobody has modelled becomes a {@link GenericBlockEntity} rather than an error, because
@@ -25,14 +36,9 @@ export class BlockEntityRegistry {
 
         this.index = new Map();
         for (const candidate of Object.values(BlockEntities)) {
-            // The module exports a helper alongside the classes; only the ones carrying an ID and
-            // a reader are block entities.
-            if (typeof candidate !== 'function') continue;
+            if (!isBlockEntityClass(candidate)) continue;
 
-            const blockEntity = candidate as unknown as Partial<BlockEntityClass>;
-            if (typeof blockEntity.ID !== 'string' || typeof blockEntity.fromNBT !== 'function') continue;
-
-            this.index.set(blockEntity.ID, blockEntity as BlockEntityClass);
+            this.index.set(candidate.ID, candidate);
         }
 
         return this.index;

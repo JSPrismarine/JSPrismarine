@@ -19,7 +19,7 @@ import { BlockEntity, clone } from './BlockEntity';
 /** A container's items, kept as written until the server has an inventory model to put them in. */
 abstract class Container extends BlockEntity {
     public getItems(): Set<NBTTagCompound> {
-        return (this.extra.getList('Items', false) as Set<NBTTagCompound> | null) ?? new Set<NBTTagCompound>();
+        return this.extra.getList('Items', false) ?? new Set<NBTTagCompound>();
     }
 
     public isEmpty(): boolean {
@@ -211,7 +211,7 @@ export class Banner extends BlockEntity {
 
     /** The layered pattern compounds, kept as written. */
     public getPatterns(): Set<NBTTagCompound> {
-        return (this.extra.getList('Patterns', false) as Set<NBTTagCompound> | null) ?? new Set<NBTTagCompound>();
+        return this.extra.getList('Patterns', false) ?? new Set<NBTTagCompound>();
     }
 }
 
