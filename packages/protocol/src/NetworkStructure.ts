@@ -22,14 +22,14 @@ export default abstract class NetworkStructure {
 
     /**
      * Deserializes the network structure from a binary stream.
+     * The constructor runs with no arguments before the stream is read, so
+     * the class must tolerate that.
      * @param stream - The binary stream to deserialize from.
      * @returns An instance of the class T.
      */
     public static deserialize<T extends NetworkStructure>(this: Constructor<T>, stream: NetworkBinaryStream): T {
-        const tempObject: T = {} as T;
-        tempObject.deserialize = this.prototype.deserialize;
-        tempObject.deserialize(stream);
-        Object.assign(tempObject, this.prototype);
-        return tempObject;
+        const instance = new this();
+        instance.deserialize(stream);
+        return instance;
     }
 }
