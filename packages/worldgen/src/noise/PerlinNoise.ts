@@ -39,8 +39,8 @@ export class PerlinNoise extends GradientNoise {
      * Interpolates the eight lattice corners of one cell.
      *
      * @param originalRelativeY - The unfudged y fraction used for the interpolation weight.
-     *   {@link SmearedPerlinNoise} passes a shifted value as `relativeY` while keeping the
-     *   weight on the original, which is what "smearing" means.
+     *   Smeared Perlin noise passes a shifted value as `relativeY` while keeping the weight on
+     *   the original, which is what "smearing" means.
      */
     protected sampleAndLerp(
         x: number,
