@@ -1,11 +1,11 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal } from '@jsprismarine/brigadier';
 import { CommandArgumentEntity, CommandArgumentPosition } from '../CommandArguments';
 
 import { Vector3 } from '@jsprismarine/math';
 import Player from '../../Player';
+import type { Entity } from '../../entity/Entity';
 import MovementType from '../../network/type/MovementType';
-import { Command } from '../Command';
+import { Command, argument, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 /**
@@ -22,6 +22,15 @@ const toBlockCentre = (position: Vector3): Vector3 => {
     return new Vector3(centre(position.getX()), position.getY(), centre(position.getZ()));
 };
 
+/**
+ * Moves an entity to a position. Only players distinguish a teleport from walking, so the
+ * movement type is passed to them alone.
+ */
+const teleport = (entity: Entity, position: Vector3): Promise<void> =>
+    entity instanceof Player
+        ? entity.setPosition({ position, type: MovementType.Teleport })
+        : entity.setPosition({ position });
+
 export default class TpCommand extends Command {
     public constructor() {
         super({
@@ -32,25 +41,20 @@ export default class TpCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('tp')
                 .then(
                     argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                         async (context) => {
-                            // Typed as what brigadier can actually hand over, so the guard
-                            // below narrows instead of being a no-op on an `as Player` cast.
-                            const source = context.getSource() as CommandExecutor;
+                            const source = context.getSource();
 
                             if (!(source instanceof Player))
                                 throw new Error(`This command can't be run from the console`);
 
-                            const position = toBlockCentre(context.getArgument('position') as Vector3);
+                            const position = toBlockCentre(CommandArgumentPosition.getPosition(context, 'position'));
 
-                            await source.setPosition({
-                                position,
-                                type: MovementType.Teleport
-                            });
+                            await teleport(source, position);
                             return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
                         }
                     )
@@ -60,21 +64,15 @@ export default class TpCommand extends Command {
                         .then(
                             argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
                                 async (context) => {
-                                    const targets = context.getArgument('player') as Player[];
-                                    const position = toBlockCentre(context.getArgument('position') as Vector3);
+                                    const targets = CommandArgumentEntity.getEntities(context, 'player');
+                                    const position = toBlockCentre(
+                                        CommandArgumentPosition.getPosition(context, 'position')
+                                    );
 
                                     if (!targets.length)
                                         throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
 
-                                    await Promise.all(
-                                        targets.map(
-                                            async (entity: Player) =>
-                                                await entity.setPosition({
-                                                    position,
-                                                    type: MovementType.Teleport
-                                                })
-                                        )
-                                    );
+                                    await Promise.all(targets.map((entity) => teleport(entity, position)));
 
                                     return `Teleported ${targets
                                         .map((entity) => entity.getFormattedUsername())
@@ -85,20 +83,14 @@ export default class TpCommand extends Command {
                         .then(
                             argument('target', new CommandArgumentEntity({ name: 'destination' })).executes(
                                 async (context) => {
-                                    const sources = context.getArgument('player') as Player[];
-                                    const target = context.getArgument('target')?.[0] as Player;
+                                    const sources = CommandArgumentEntity.getEntities(context, 'player');
+                                    const target = CommandArgumentEntity.getEntities(context, 'target')[0];
 
                                     if (!sources.length)
                                         throw new Error(`Cannot find specified player(s) & entit(y/ies)`);
+                                    if (!target) throw new Error(`Cannot find the destination player or entity`);
 
-                                    await Promise.all(
-                                        sources.map(async (entity: Player) =>
-                                            entity.setPosition({
-                                                position: target.getPosition(),
-                                                type: MovementType.Teleport
-                                            })
-                                        )
-                                    );
+                                    await Promise.all(sources.map((entity) => teleport(entity, target.getPosition())));
 
                                     return `Teleported ${sources
                                         .map((entity) => entity.getFormattedUsername())
@@ -107,16 +99,14 @@ export default class TpCommand extends Command {
                             )
                         )
                         .executes(async (context) => {
-                            const source = context.getSource() as CommandExecutor;
-                            const target = context.getArgument('player')?.[0] as Player;
+                            const source = context.getSource();
+                            const target = CommandArgumentEntity.getEntities(context, 'player')[0];
 
                             if (!(source instanceof Player))
                                 throw new Error(`This command can't be run from the console`);
+                            if (!target) throw new Error(`Cannot find the destination player or entity`);
 
-                            await source.setPosition({
-                                position: target.getPosition(),
-                                type: MovementType.Teleport
-                            });
+                            await teleport(source, target.getPosition());
                             return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
                         })
                 )
