@@ -133,12 +133,14 @@ describe('network', () => {
                 expect(tracker.remove(1n)).toBe(false);
             });
 
-            it('should clear without producing a despawn plan', () => {
-                // A world change: the client drops everything on its own.
+            it('should hand back what it held when cleared, and hold nothing after', () => {
+                // A world change. The caller despawns what comes back; the tracker itself only
+                // records, so a later plan has nothing left to despawn.
                 const tracker = newTracker();
                 tracker.add(1n);
-                tracker.clear();
+                tracker.add(2n);
 
+                expect(tracker.clear().sort()).toEqual([1n, 2n]);
                 expect(tracker.size).toBe(0);
                 expect(plan(tracker, []).despawn).toEqual([]);
             });

@@ -369,15 +369,15 @@ export default class Player extends Human {
         dim1.position = this.getPosition();
         dim1.respawn = false;
 
+        // Out of the old world first, so it stops broadcasting to us and its players are
+        // told we left. Then the old world's entities come off this client, before
+        // `addEntity` below fills the tracker with the new world's.
         await this.getWorld().removeEntity(this);
-
-        // Here, and not alongside `clearChunks` at the end: a dimension change makes the
-        // client drop every entity it holds, so the tracker has to agree - but `addEntity`
-        // below fills it with the new world, and clearing after that would throw away what it
-        // just recorded and leave the player in an apparently empty world.
-        this.getNetworkSession().clearTrackedEntities();
+        await this.getNetworkSession().despawnAllTrackedEntities();
 
         this.position = this.position.withWorld(world);
+        // The new world's spawns go out here, ahead of the ChangeDimension packets below.
+        // Whether the client keeps them across the change is unverified.
         await world.addEntity(this);
 
         await this.getNetworkSession().send(dim0);

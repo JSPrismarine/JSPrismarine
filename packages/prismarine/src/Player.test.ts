@@ -10,9 +10,12 @@ import type Server from './Server';
 import type { Block } from './block/Block';
 import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
+import type { Entity } from './entity/Entity';
 import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from './network/packet/ActorEventPacket';
+import ChangeDimensionPacket from './network/packet/ChangeDimensionPacket';
+import RemoveActorPacket from './network/packet/RemoveActorPacket';
 import RespawnPacket, { RespawnState } from './network/packet/RespawnPacket';
 import SetActorDataPacket from './network/packet/SetActorDataPacket';
 import UpdateAttributesPacket from './network/packet/UpdateAttributesPacket';
@@ -55,6 +58,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getName: () => 'test',
         getServer: () => server,
         broadcastMove: async () => {},
+        removeEntity: async () => {},
         getPlayers: () => [],
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
@@ -450,6 +454,40 @@ describe('Player', () => {
             await player.respawn();
 
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
+        });
+    });
+
+    describe('setWorld', () => {
+        it('takes the old world entities off the client before the dimension change', async () => {
+            // The client keeps rendering what it was never told to remove. Changing dimension
+            // does not clear it, so every mob from the old world has to be despawned by hand.
+            const { player, sent } = fakePlayer();
+            player.viewDistance = 10;
+
+            const mob = stub<Entity>({
+                getRuntimeId: () => 42n,
+                getPosition: () => new Position(4, 64, 4, player.getWorld()),
+                getTrackingRange: () => 8,
+                spawnTo: async () => {}
+            });
+            await player.getNetworkSession().considerEntity(mob);
+            expect(player.getNetworkSession().tracks(42n)).toBe(true);
+            sent.length = 0;
+
+            const target = stub<World>({
+                getName: () => 'other',
+                addEntity: async () => {}
+            });
+            await player.setWorld(target);
+
+            const removal = sent.findIndex(
+                (packet) => packet instanceof RemoveActorPacket && packet.uniqueEntityId === 42n
+            );
+            const dimensionChange = sent.findIndex((packet) => packet instanceof ChangeDimensionPacket);
+            expect(removal).toBeGreaterThanOrEqual(0);
+            expect(dimensionChange).toBeGreaterThan(removal);
+            expect(player.getNetworkSession().tracks(42n)).toBe(false);
+            expect(player.getWorld()).toBe(target);
         });
     });
 

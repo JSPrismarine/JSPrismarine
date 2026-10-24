@@ -104,9 +104,9 @@ export default class PlayerSession {
     /**
      * Which entities this client currently has on screen.
      *
-     * Kept here, beside the chunk state, because it has exactly the same life: it is emptied
-     * when the player changes world and it dies with the session, so nothing has to remember
-     * to tidy it up.
+     * Kept here, beside the chunk state, because it has exactly the same life: it is despawned
+     * and emptied when the player changes world and it dies with the session, so nothing has
+     * to remember to tidy it up.
      */
     private readonly entityTracker: EntityTracker;
 
@@ -314,9 +314,18 @@ export default class PlayerSession {
         await this.sendRemoveActorById(entity.getRuntimeId());
     }
 
-    /** Forgets every tracked entity without telling the client - it is changing worlds. */
-    public clearTrackedEntities(): void {
-        this.entityTracker.clear();
+    /**
+     * Hides every tracked entity from this client and forgets them all.
+     *
+     * For a world change. A dimension change does not make the client drop what it holds, so
+     * the mobs of the world being left stayed on screen in the new one. Not routed through
+     * {@link PlayerSession.reconcileTrackedEntities}: that returns early while another pass
+     * runs, and a world change cannot be skipped.
+     */
+    public async despawnAllTrackedEntities(): Promise<void> {
+        for (const runtimeId of this.entityTracker.clear()) {
+            await this.sendRemoveActorById(runtimeId);
+        }
     }
 
     /**
