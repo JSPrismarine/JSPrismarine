@@ -53,7 +53,7 @@
     "author": "JSPrismarine",
     "contributors": [
         {
-            "name": "Filiph Sandstr\u00f6m",
+            "name": "Filiph Sandström",
             "email": "filiph@hotmail.se",
             "url": "https://github.com/filiphsps"
         },
@@ -79,7 +79,6 @@
         "@commitlint/types": "21.2.3",
         "@nordcom/prettier": "0.1.1",
         "@turbo/gen": "2.11.10",
-        "@types/heap": "0.2.35",
         "@types/node": "24.13.6",
         "@vitest/coverage-v8": "5.0.1",
         "concurrently": "10.0.6",
