@@ -14,10 +14,6 @@ export default class ChainCommandBlock extends Solid {
         return false;
     }
 
-    public getBlastResistance() {
-        return 18_000_000;
-    }
-
     public isPartOfCreativeInventory() {
         return false;
     }

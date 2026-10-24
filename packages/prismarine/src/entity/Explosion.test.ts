@@ -17,7 +17,8 @@ import IronGolem from './neutral/IronGolem';
  * The curve is vanilla's: a creeper at point blank kills an unarmored player outright and one at
  * four blocks costs a couple of half-hearts. That steepness is the mob, so it is what is checked.
  */
-const scene = ({ griefing = true, solid = false } = {}) => {
+const scene = ({ griefing = true, solid = false, block = '' } = {}) => {
+    const blockName = block !== '' ? block : solid ? 'minecraft:stone' : 'minecraft:air';
     const nearby: Entity[] = [];
     const effects: LevelEvent[] = [];
     const cleared: string[] = [];
@@ -39,7 +40,7 @@ const scene = ({ griefing = true, solid = false } = {}) => {
             getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
         }),
         getEntityGrid: () => ({ near: () => nearby }),
-        getBlockState: async () => ({ name: solid ? 'minecraft:stone' : 'minecraft:air' }),
+        getBlockState: async () => ({ name: blockName }),
         setBlockByName: async (x: number, y: number, z: number) => void cleared.push(`${x},${y},${z}`),
         getLoadedChunk: () => null
     };
@@ -128,6 +129,41 @@ describe('explosions', () => {
             await explode(digging.world, new Vector3(0, 64, 0), { power: 3 });
 
             expect(digging.cleared.length).toBeGreaterThan(0);
+        });
+
+        // Blast resistance comes from the Java-sourced property table, keyed by block state
+        // name, rather than from a hand-kept name set: whether a block gives way is whether
+        // its own absorption, `(resistance / 5 + 0.3) * 0.3`, stops the strongest vanilla ray.
+        it.each([
+            ['minecraft:dirt', 0.5],
+            ['minecraft:stone', 6],
+            ['minecraft:oak_planks', 3]
+        ])('breaks the soft: %s resists only %d', async (block) => {
+            const digging = scene({ block });
+            await explode(digging.world, new Vector3(0, 64, 0), { power: 4 });
+
+            expect(digging.cleared.length).toBeGreaterThan(0);
+        });
+
+        it.each([
+            ['minecraft:obsidian', 1200],
+            ['minecraft:bedrock', 3600000],
+            ['minecraft:ender_chest', 600],
+            ['minecraft:anvil', 1200],
+            ['minecraft:water', 100],
+            ['minecraft:flowing_lava', 100]
+        ])('cannot shift the hard: %s resists %d', async (block) => {
+            const bouncing = scene({ block });
+            await explode(bouncing.world, new Vector3(0, 64, 0), { power: 4 });
+
+            expect(bouncing.cleared).toEqual([]);
+        });
+
+        it('treats a block outside the table as unresisting, as the old name set did', async () => {
+            const chemistry = scene({ block: 'minecraft:element_1' });
+            await explode(chemistry.world, new Vector3(0, 64, 0), { power: 4 });
+
+            expect(chemistry.cleared.length).toBeGreaterThan(0);
         });
 
         it('leaves the world alone when mobGriefing is off', async () => {

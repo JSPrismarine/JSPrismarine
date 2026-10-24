@@ -28,10 +28,6 @@ export default class Leaves extends Solid {
         return [BlockToolType.Shears];
     }
 
-    public getFlammability() {
-        return 20;
-    }
-
     public getFuelTime() {
         return 300;
     }

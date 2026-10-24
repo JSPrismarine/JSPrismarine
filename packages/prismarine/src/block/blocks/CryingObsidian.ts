@@ -19,8 +19,4 @@ export default class CryingObsidian extends Solid {
     public getToolHarvestLevel() {
         return ItemTieredToolType.Diamond;
     }
-
-    public getBlastResistance() {
-        return 6000;
-    }
 }

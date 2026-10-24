@@ -19,8 +19,4 @@ export default class MobSpawner extends Solid {
     public getToolHarvestLevel() {
         return ItemTieredToolType.Wood;
     }
-
-    public getLightLevel() {
-        return 3;
-    }
 }

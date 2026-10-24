@@ -25,10 +25,6 @@ export default class Log extends Solid {
         return [BlockToolType.None, BlockToolType.Axe];
     }
 
-    public getFlammability() {
-        return 20;
-    }
-
     public getFuelTime() {
         return 300;
     }

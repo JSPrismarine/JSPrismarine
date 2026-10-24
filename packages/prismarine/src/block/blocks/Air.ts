@@ -14,10 +14,6 @@ export default class Air extends Transparent {
         return 0;
     }
 
-    public getBlastResistance() {
-        return 0;
-    }
-
     public canPassThrough() {
         return true;
     }

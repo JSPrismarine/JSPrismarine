@@ -9,8 +9,4 @@ export default class Torch extends Flowable {
             hardness: 0
         });
     }
-
-    public getLightLevel(): number {
-        return 15;
-    }
 }

@@ -6,10 +6,6 @@ import type Server from '../Server';
  * Liquid blocks (eg. Water, Still Water, Lava, Still Lava)
  */
 export class Liquid extends Block {
-    public getHardness() {
-        return 100;
-    }
-
     public getDropsForCompatibleTool(_item: Item | null, _server: Server): Array<Block | Item | null> {
         return [];
     }

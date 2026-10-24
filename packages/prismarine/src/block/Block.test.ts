@@ -102,6 +102,44 @@ describe('block', () => {
             expect(silkTouchDrops).toEqual([block]);
         });
 
+        // The getters read the Java-sourced property table through the block's state name, so a
+        // class's registered value only matters for names the pinned palette does not know.
+        describe('the Java-sourced property table', () => {
+            const named = (name: string) => new Block({ id: 1, name });
+
+            it('answers hardness and blast resistance from the table', () => {
+                expect(named('minecraft:stone').getHardness()).toBe(1.5);
+                expect(named('minecraft:stone').getBlastResistance()).toBe(6);
+                expect(named('minecraft:obsidian').getHardness()).toBe(50);
+                expect(named('minecraft:obsidian').getBlastResistance()).toBe(1200);
+                expect(named('minecraft:bedrock').getBlastResistance()).toBe(3600000);
+                // The registered class used to read 0 through `Flowable`; Java says 4.
+                expect(named('minecraft:web').getHardness()).toBe(4);
+            });
+
+            it('never finishes breaking the unbreakable', () => {
+                expect(named('minecraft:bedrock').getBreakTime(null, server)).toBe(Number.POSITIVE_INFINITY);
+            });
+
+            it('answers light, light filtering and flammability from the table', () => {
+                expect(named('minecraft:torch').getLightLevel()).toBe(14);
+                expect(named('minecraft:glowstone').getLightLevel()).toBe(15);
+                expect(named('minecraft:water').getLightFilter()).toBe(1);
+                expect(named('minecraft:stone').getLightFilter()).toBe(15);
+                expect(named('minecraft:oak_planks').getFlammability()).toBe(20);
+                expect(named('minecraft:stone').getFlammability()).toBe(0);
+            });
+
+            it('falls back to the class values for a name outside the table', () => {
+                const outside = new Block({ id: 1, name: 'minecraft:element_1', hardness: 2.25 });
+
+                expect(outside.getHardness()).toBe(2.25);
+                expect(outside.getBlastResistance()).toBe(11.25);
+                expect(outside.getLightLevel()).toBe(0);
+                expect(outside.getLightFilter()).toBe(15);
+            });
+        });
+
         // The break time drives the speed of the client's cracking animation. Returning the
         // hardness on its own, as this used to, made every block appear to break well before
         // it did.

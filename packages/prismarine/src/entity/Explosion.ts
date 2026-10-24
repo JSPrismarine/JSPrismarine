@@ -1,5 +1,7 @@
+import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { Vector3 } from '@jsprismarine/math';
+import { liquidOf } from '../world/physics/BlockRules';
 import { GameRules } from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
@@ -37,38 +39,26 @@ const KNOCKBACK = 1.6;
 const SIGHT_STEP = 0.5;
 
 /**
- * Blocks a blast does not remove.
+ * Whether a block withstands a blast of this power, read from the Java-sourced property table.
  *
- * By name against the block state rather than through the block registry, for the reason
- * `world/physics/BlockRules` sets out: the registry knows a fifth of the blocks the client does
- * and `getBlock` returns *air* for the rest, so a blast-resistance check through it would quietly
- * decide that most of the world was air and blow up the lot.
+ * By state name rather than through the block registry, for the reason `world/physics/BlockRules`
+ * sets out: the registry knows a fifth of the blocks the client does and `getBlock` returns *air*
+ * for the rest, so a blast-resistance check through it would quietly decide that most of the world
+ * was air and blow up the lot. The table knows every state with a Java source; a Bedrock-only
+ * block falls back to no resistance, which is what the old name set said about it too.
+ *
+ * The rule is the center-ray bound of vanilla's curve. Vanilla fires rays whose intensity starts
+ * at `power * (0.7..1.3)` and loses `(resistance / 5 + 0.3) * 0.3` per block it crosses, breaking
+ * a block while any intensity remains. This model has no rays, so a block survives when its own
+ * absorption stops the strongest possible ray: obsidian at 1200 shrugs off any vanilla blast,
+ * stone at 6 none of them, and water's 100 is exactly why a one-block moat tames TNT.
  */
-const BLAST_PROOF: ReadonlySet<string> = new Set([
-    'minecraft:bedrock',
-    'minecraft:obsidian',
-    'minecraft:crying_obsidian',
-    'minecraft:ancient_debris',
-    'minecraft:netherite_block',
-    'minecraft:reinforced_deepslate',
-    'minecraft:enchanting_table',
-    'minecraft:ender_chest',
-    'minecraft:respawn_anchor',
-    'minecraft:end_portal_frame',
-    'minecraft:end_portal',
-    'minecraft:end_gateway',
-    'minecraft:barrier',
-    'minecraft:command_block',
-    'minecraft:chain_command_block',
-    'minecraft:repeating_command_block',
-    'minecraft:structure_block',
-    'minecraft:jigsaw',
-    // Liquids absorb a blast rather than being thrown by it, which is why a moat works.
-    'minecraft:water',
-    'minecraft:flowing_water',
-    'minecraft:lava',
-    'minecraft:flowing_lava'
-]);
+const survivesBlast = (name: string, power: number): boolean => {
+    // Liquids absorb a blast rather than being thrown by it, whatever their listed resistance.
+    if (liquidOf(name) !== null) return true;
+    const resistance = bedrockBlockPropertiesOf(name)?.blastResistance ?? 0;
+    return (resistance / 5 + 0.3) * 0.3 >= power * 1.3;
+};
 
 /** What a blast is. */
 export interface ExplosionOptions {
@@ -224,7 +214,7 @@ const breakBlocks = async (world: World, at: Vector3, power: number): Promise<vo
                 const bz = centerZ + z;
 
                 const state = await world.getBlockState(bx, by, bz);
-                if (state.name === 'minecraft:air' || BLAST_PROOF.has(state.name)) continue;
+                if (state.name === 'minecraft:air' || survivesBlast(state.name, power)) continue;
 
                 // Delay zero: a blast is instantaneous, and letting the block updates queue would
                 // spread one explosion across several ticks of visible collapse.

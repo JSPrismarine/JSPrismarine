@@ -83,6 +83,7 @@
         "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
+        "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/math": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",

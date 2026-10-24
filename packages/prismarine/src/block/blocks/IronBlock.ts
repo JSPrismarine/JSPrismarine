@@ -19,8 +19,4 @@ export default class IronBlock extends Solid {
     public getToolHarvestLevel() {
         return ItemTieredToolType.Stone;
     }
-
-    public getBlastResistance() {
-        return 6;
-    }
 }
