@@ -1,8 +1,10 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
-import { argument, literal, string } from '@jsprismarine/brigadier';
+import { string } from '@jsprismarine/brigadier';
 
-import type Player from '../../Player';
-import { Command } from '../Command';
+import Player from '../../Player';
+import { Command, argument, literal } from '../Command';
+import { getString } from '../CommandArguments';
+import type { CommandExecutor } from '../CommandExecutor';
 
 export default class GameRuleCommand extends Command {
     public constructor() {
@@ -13,15 +15,18 @@ export default class GameRuleCommand extends Command {
         });
     }
 
-    public async register(dispatcher: CommandDispatcher<any>) {
+    public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
             literal('gameRule')
                 .then(
                     argument('name', string()).then(
                         argument('value', string()).executes(async (context) => {
-                            const source = context.getSource() as Player;
-                            const name = context.getArgument('name');
-                            let value = context.getArgument('value').toLowerCase() === 'true' ? true : false;
+                            const source = context.getSource();
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
+
+                            const name = getString(context, 'name');
+                            const value = getString(context, 'value').toLowerCase() === 'true';
 
                             source.getWorld().getGameRuleManager().setGameRule(name, value, true);
 
@@ -32,7 +37,9 @@ export default class GameRuleCommand extends Command {
                     )
                 )
                 .executes(async (context) => {
-                    const source = context.getSource() as Player;
+                    const source = context.getSource();
+                    if (!(source instanceof Player)) throw new Error(`This command can't be run from the console`);
+
                     const gameRules = Array.from(source.getWorld().getGameRuleManager().getGameRules());
                     await source.sendMessage(gameRules.map(([id, [value]]) => `§a${id}§r: §b${value}§r`).join(', '));
                 })
