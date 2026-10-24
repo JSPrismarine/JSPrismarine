@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import type { Logger } from '@jsprismarine/logger';
+import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
 import { stub } from '../../testing/stub.test.helper';
@@ -10,22 +12,39 @@ import RequestChunkRadiusHandler from './RequestChunkRadiusHandler';
 const request = (radius: number, maxRadius: number): RequestChunkRadiusPacket =>
     Object.assign(new RequestChunkRadiusPacket(), { radius, maxRadius });
 
-/** Runs the handler against a server with the given view distance and returns the granted radius. */
-const grant = async (packet: RequestChunkRadiusPacket, serverMax: number): Promise<number | undefined> => {
+/** Runs the handler against a server with the given view distance and returns what it granted and logged. */
+const run = async (
+    packet: RequestChunkRadiusPacket,
+    serverMax: number
+): Promise<{ granted: number | undefined; logged: string[] }> => {
     let granted: number | undefined;
+    const logged: string[] = [];
     const server = stub<Server>({
-        getConfig: () => stub<Config>({ getViewDistance: () => serverMax })
+        getConfig: () => stub<Config>({ getViewDistance: () => serverMax }),
+        getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
     });
     const session = stub<PlayerSession>({
+        getPlayer: () => stub<Player>({ getName: () => 'Steve' }),
         setViewDistance: async (distance) => void (granted = distance)
     });
 
     await new RequestChunkRadiusHandler().handle(packet, server, session);
 
-    return granted;
+    return { granted, logged };
 };
 
+const grant = async (packet: RequestChunkRadiusPacket, serverMax: number): Promise<number | undefined> =>
+    (await run(packet, serverMax)).granted;
+
 describe('RequestChunkRadiusHandler', () => {
+    it('records the request and the grant', async () => {
+        // The radius exchange is what lets a client accept terrain, so a join that stalls has to
+        // show whether it happened.
+        const { logged } = await run(request(10, 6), 12);
+
+        expect(logged).toEqual(['Steve asked for a chunk radius of 10 (max 6), granted 6']);
+    });
+
     it('grants the requested radius when both the client and the server allow it', async () => {
         expect(await grant(request(8, 16), 12)).toBe(8);
     });
