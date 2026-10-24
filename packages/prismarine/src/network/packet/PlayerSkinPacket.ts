@@ -1,23 +1,42 @@
 import UUID from '../../utils/UUID';
-import type Skin from '../../utils/skin/Skin';
+import Skin from '../../utils/skin/Skin';
 import Identifiers from '../Identifiers';
+import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/**
+ * A player changing skin mid-session.
+ *
+ * The client sends it, and the server forwards it to every other client. Protocol 2193 wire
+ * order: `UUID` (the player's), `Serialized Skin`, `Localized New Skin Name` string,
+ * `Localized Old Skin Name` string. There is no trusted flag of its own at this level; it
+ * travels inside the skin as its `TrustedSkinFlag` string, which `Skin.isTrusted` records.
+ */
 export default class PlayerSkinPacket extends DataPacket {
     public static NetID = Identifiers.PlayerSkinPacket;
 
+    /** The player whose skin changed. */
     public uuid!: UUID;
-    public newSkinName!: string;
-    public oldSkinName!: string;
+    /** The new skin, laid out as `SerializedSkin`. */
     public skin!: Skin;
-    public trusted!: boolean;
+    /** `Localized New Skin Name`. */
+    public newSkinName!: string;
+    /** `Localized Old Skin Name`. */
+    public oldSkinName!: string;
 
+    /** Writes the UUID, the skin, and the two localized names. */
+    public encodePayload(): void {
+        this.uuid.networkSerialize(this);
+        this.skin.networkSerialize(this);
+        NetworkUtil.writeString(this, this.newSkinName);
+        NetworkUtil.writeString(this, this.oldSkinName);
+    }
+
+    /** Reads the UUID, the skin, and the two localized names. */
     public decodePayload(): void {
         this.uuid = UUID.networkDeserialize(this);
-        this.readRemaining();
-        // TODO: this.skin = this.readSkin();
-        // this.newSkinName = this.readString();
-        // this.oldSkinName = this.readString();
-        // this.trusted = this.readBool();
+        this.skin = Skin.networkDeserialize(this);
+        this.newSkinName = NetworkUtil.readString(this);
+        this.oldSkinName = NetworkUtil.readString(this);
     }
 }

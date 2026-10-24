@@ -147,6 +147,12 @@ const colorToArgb = (color: string): number => {
 };
 
 /**
+ * A wire ARGB integer as the `#aarrggbb` string the client data uses, so a color read off the
+ * wire goes back out as the same four bytes.
+ */
+const argbToColor = (argb: number): string => `#${(argb >>> 0).toString(16).padStart(8, '0')}`;
+
+/**
  * Writes an ARGB color the way gophertunnel's `BEARGB` does.
  *
  * It packs `A | R<<8 | G<<16 | B<<24` and writes that big endian, so the bytes on the wire
@@ -164,13 +170,17 @@ export default class Skin {
     private readonly animations: Set<SkinAnimation> = new Set();
     private cape!: SkinCape;
     private geometry!: string;
+    private geometryDataEngineVersion = '0.0.0';
     private animationData!: string;
     private premium!: boolean;
     private persona!: boolean;
     private capeOnClassicSkin!: boolean;
+    private primaryUser = false;
+    private overridesPlayerAppearance = true;
     private color = '#0';
     private armSize = 'wide';
     private personaData!: SkinPersona;
+    private profileHash = '';
 
     /**
      * Full skin ID, computed because
@@ -313,7 +323,7 @@ export default class Skin {
 
         // Miscellaneous
         NetworkUtil.writeString(stream, this.getGeometry());
-        NetworkUtil.writeString(stream, '0.0.0'); // geometry data engine version
+        NetworkUtil.writeString(stream, this.getGeometryDataEngineVersion());
         NetworkUtil.writeString(stream, this.getAnimationData());
         NetworkUtil.writeString(stream, this.getCape().getId());
         NetworkUtil.writeString(stream, this.getFullId());
@@ -350,13 +360,83 @@ export default class Skin {
         stream.writeBoolean(this.isPremium());
         stream.writeBoolean(this.isPersona());
         stream.writeBoolean(this.isCapeOnClassicSkin());
-        stream.writeBoolean(false); // Is primary user
-        stream.writeBoolean(true); // Is override appearance
+        stream.writeBoolean(this.isPrimaryUser());
+        stream.writeBoolean(this.overridesAppearance());
 
-        // `trusted` travels as a string, and a profile hash follows it. Both new to this
-        // encoder; a self-made offline skin is not trusted and hashes to nothing.
+        // `TrustedSkinFlag` travels as a string. This server vouches for no skin, so it goes out
+        // as `false` whatever the client claimed; `networkDeserialize` still records the claim
+        // in `isTrusted`. A profile hash string follows it.
         NetworkUtil.writeString(stream, 'false');
-        NetworkUtil.writeString(stream, '');
+        NetworkUtil.writeString(stream, this.getProfileHash());
+    }
+
+    /**
+     * Reads a skin as protocol 2193 carries it, field for field the inverse of
+     * {@link networkSerialize}.
+     *
+     * Wire values are stored the way the client data would have given them, so a skin read
+     * here and written again produces the same bytes: the arm size byte becomes `slim` or
+     * `wide`, colors become `#aarrggbb`, and a piece's pack id becomes its UUID string. Persona
+     * piece types are kept by their wire name (`body`, `hands`), which the writer accepts as it
+     * is. A piece type above the known range reads as `unknown`. The persona pieces and tints
+     * arrive before the `IsPersona` flag, so they are read for every skin and kept only when
+     * the flag is set. `TrustedSkinFlag` is compared case-insensitively: the docs spell it
+     * `"True"`, gophertunnel writes `true`.
+     */
+    public static networkDeserialize(stream: BinaryStream): Skin {
+        const skin = new Skin();
+
+        skin.id = NetworkUtil.readString(stream);
+        skin.playFabId = NetworkUtil.readString(stream);
+        skin.resourcePatch = NetworkUtil.readString(stream);
+        skin.image = SkinImage.networkDeserialize(stream);
+
+        for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
+            const image = SkinImage.networkDeserialize(stream);
+            const type = stream.readUnsignedVarInt();
+            const frames = stream.readFloatLE();
+            const expression = stream.readUnsignedVarInt();
+            skin.animations.add(new SkinAnimation({ image, frames, type, expression }));
+        }
+
+        const capeImage = SkinImage.networkDeserialize(stream);
+        skin.geometry = NetworkUtil.readString(stream);
+        skin.geometryDataEngineVersion = NetworkUtil.readString(stream);
+        skin.animationData = NetworkUtil.readString(stream);
+        skin.cape = new SkinCape({ id: NetworkUtil.readString(stream), image: capeImage });
+        skin.fullId = NetworkUtil.readString(stream);
+        skin.armSize = stream.readByte() === 0 ? 'slim' : 'wide';
+        skin.color = argbToColor(stream.readIntLE());
+
+        const persona = new SkinPersona();
+        for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
+            const pieceId = NetworkUtil.readString(stream);
+            const pieceType = PIECE_TYPES[stream.readUnsignedIntLE()] ?? 'unknown';
+            const packId = UUID.networkDeserialize(stream).toString();
+            const def = stream.readBoolean();
+            const productId = NetworkUtil.readString(stream);
+            persona.getPieces().add(new SkinPersonaPiece({ def, packId, pieceId, pieceType, productId }));
+        }
+
+        for (let index = 0, count = stream.readUnsignedVarInt(); index < count; index++) {
+            const tint = new SkinPersonaPieceTintColor();
+            tint.setPieceType(NetworkUtil.readString(stream));
+            for (let color = 0; color < TINT_COLORS; color++) {
+                tint.getColors().push(argbToColor(stream.readIntLE()));
+            }
+            persona.getTintColors().add(tint);
+        }
+
+        skin.premium = stream.readBoolean();
+        skin.persona = stream.readBoolean();
+        skin.capeOnClassicSkin = stream.readBoolean();
+        skin.primaryUser = stream.readBoolean();
+        skin.overridesPlayerAppearance = stream.readBoolean();
+        skin.isTrusted = NetworkUtil.readString(stream).toLowerCase() === 'true';
+        skin.profileHash = NetworkUtil.readString(stream);
+
+        if (skin.persona) skin.personaData = persona;
+        return skin;
     }
 
     public getId(): string {
@@ -413,6 +493,26 @@ export default class Skin {
 
     public getGeometry(): string {
         return this.geometry;
+    }
+
+    /** The `GeometryDataMinEngineVersion` string; `0.0.0` for a skin built from login data. */
+    public getGeometryDataEngineVersion(): string {
+        return this.geometryDataEngineVersion;
+    }
+
+    /** The wire's `IsPrimaryUser` flag. False for a skin built from login data. */
+    public isPrimaryUser(): boolean {
+        return this.primaryUser;
+    }
+
+    /** The wire's `OverridesPlayerAppearance` flag. True for a skin built from login data. */
+    public overridesAppearance(): boolean {
+        return this.overridesPlayerAppearance;
+    }
+
+    /** The wire's `ProfileHash` string; empty for a skin built from login data. */
+    public getProfileHash(): string {
+        return this.profileHash;
     }
 
     public getCape(): SkinCape {

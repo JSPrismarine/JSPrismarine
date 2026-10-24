@@ -7,25 +7,43 @@ import type PacketHandler from './PacketHandler';
 /**
  * A client changing its skin mid-session.
  *
- * The change is not applied: `PlayerSkinPacket` does not decode the skin yet, so there is
- * nothing to store or to show other players. Handled so the packet stops surfacing as a
- * handler error, and logged so a skin that did not change can be traced to here.
+ * The skin is stored on the player, so the player list shows it to anyone who joins later,
+ * and the packet is forwarded as received to every other online player, so they see the
+ * change now. A packet naming another player's UUID is dropped: the server forwards the
+ * packet unchanged, so honoring it would let one client redress another.
  */
 export default class PlayerSkinHandler implements PacketHandler<PlayerSkinPacket> {
     public static NetID = Identifiers.PlayerSkinPacket;
 
     /**
-     * Logs at debug level that the skin change was not applied.
-     * @param {PlayerSkinPacket} _packet - The skin change, which is not decoded yet.
-     * @param {Server} server - The server, for its logger.
+     * Stores the new skin on the sender and forwards the packet to every other player.
+     * @param {PlayerSkinPacket} packet - The skin change.
+     * @param {Server} server - The server, for its players and logger.
      * @param {PlayerSession} session - The client that sent it.
      */
-    public handle(_packet: PlayerSkinPacket, server: Server, session: PlayerSession): void {
-        server
-            .getLogger()
-            .debug(
-                `Skin change from §b${session.getPlayer().getName()}§r not applied: skin changes are not supported yet`,
+    public async handle(packet: PlayerSkinPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
+        const logger = server.getLogger();
+
+        if (!packet.uuid.equals(player.getUUID())) {
+            logger.debug(
+                `Dropped skin change from §b${player.getName()}§r for another player's UUID ${packet.uuid.toString()}`,
                 'PlayerSkinHandler/handle'
             );
+            return;
+        }
+
+        player.skin = packet.skin;
+
+        const others = server
+            .getSessionManager()
+            .getAllPlayers()
+            .filter((other) => other !== player);
+        await Promise.all(others.map((other) => other.getNetworkSession().getConnection().sendDataPacket(packet)));
+
+        logger.debug(
+            `§b${player.getName()}§r changed skin to §b${packet.skin.getId()}§r, forwarded to ${others.length} player(s)`,
+            'PlayerSkinHandler/handle'
+        );
     }
 }
