@@ -9,6 +9,16 @@ class CacheCell {
 }
 
 /**
+ * The cell-corner values an `interpolated` function has already computed, indexed by block x,
+ * then y, then z.
+ *
+ * Java fills a whole cell grid before interpolating; this grows the same grid on demand. It
+ * is bounded by how far a caller walks before calling {@link SampleContext.reset}, which is
+ * one chunk for the chunk sampler.
+ */
+export type InterpolationGrid = Map<number, Map<number, Map<number, number>>>;
+
+/**
  * The per-chunk state a compiled density function tree reads while sampling.
  *
  * Java keeps the same split: the function tree is immutable and shared across chunks and
@@ -29,6 +39,7 @@ export class SampleContext {
     public blendDensity: ((x: number, y: number, z: number, density: number) => number) | undefined;
 
     private readonly cells: CacheCell[] = [];
+    private readonly interpolationGrids: InterpolationGrid[] = [];
 
     /** Returns the memo slot a compiled `cache` node owns, creating it on first use. */
     public cell(id: number): CacheCell {
@@ -39,8 +50,23 @@ export class SampleContext {
         return created;
     }
 
-    /** Drops every memoized value, which a caller does when it moves to another chunk. */
+    /** Returns the cell grid a compiled `interpolated` node fills, creating it on first use. */
+    public interpolationGrid(id: number): InterpolationGrid {
+        const existing = this.interpolationGrids[id];
+        if (existing) return existing;
+        const created: InterpolationGrid = new Map();
+        this.interpolationGrids[id] = created;
+        return created;
+    }
+
+    /**
+     * Drops every memoized value.
+     *
+     * A caller that walks more than one chunk with one context has to do this between them,
+     * or the interpolation grids keep every corner it has ever visited.
+     */
     public reset(): void {
         for (const cell of this.cells) cell.valid = false;
+        for (const grid of this.interpolationGrids) grid.clear();
     }
 }

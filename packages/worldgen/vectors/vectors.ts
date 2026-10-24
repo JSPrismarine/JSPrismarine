@@ -1,3 +1,4 @@
+import chunkVectors from './chunk.json' with { type: 'json' };
 import densityVectors from './density.json' with { type: 'json' };
 import noiseVectors from './noise.json' with { type: 'json' };
 import randomVectors from './random.json' with { type: 'json' };
@@ -14,7 +15,9 @@ export const vectors = {
     /** Perlin, simplex, smeared Perlin, normal and old blended noise samples. */
     noise: noiseVectors,
     /** Noise router and aquifer density function samples for all seven vanilla settings. */
-    density: densityVectors
+    density: densityVectors,
+    /** Nine whole overworld columns, aquifers applied, as run lengths of block identifiers. */
+    chunk: chunkVectors
 };
 
 /**

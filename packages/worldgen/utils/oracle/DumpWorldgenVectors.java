@@ -21,7 +21,13 @@ import net.minecraft.world.level.levelgen.PositionalRandomFactory;
 import net.minecraft.world.level.levelgen.RandomState;
 import net.minecraft.world.level.levelgen.RandomSupport;
 import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.levelgen.NoiseChunk;
+import net.minecraft.world.level.levelgen.blending.Blender;
 import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
 import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
 import net.minecraft.world.level.levelgen.synth.BlendedNoise;
 import net.minecraft.world.level.levelgen.synth.Noise;
@@ -61,6 +67,7 @@ public final class DumpWorldgenVectors {
         write(out.resolve("random.json"), dumpRandom());
         write(out.resolve("noise.json"), dumpNoise());
         write(out.resolve("density.json"), dumpDensity());
+        write(out.resolve("chunk.json"), dumpChunk());
     }
 
     private static void write(final Path file, final String json) throws IOException {
@@ -307,6 +314,70 @@ public final class DumpWorldgenVectors {
             values.add(floatValue(state.sampleBlockValueUncached(function, pos[0], pos[1], pos[2])));
         }
         return array(values);
+    }
+
+    // ------------------------------------------------------------------ chunk
+
+    private static final int CHUNK_X = 3;
+    private static final int CHUNK_Z = -5;
+    private static final int[] COLUMNS = { 0, 7, 15 };
+
+    /**
+     * Dumps a few whole columns of the overworld, run through the real `NoiseChunk`, its
+     * aquifer and the same global fluid picker `NoiseBasedChunkGenerator` builds.
+     */
+    private static String dumpChunk() {
+        HolderLookup.Provider provider = VanillaRegistries.createWorldLookup();
+        NoiseGeneratorSettings settings = provider.lookupOrThrow(Registries.NOISE_SETTINGS)
+            .getOrThrow(NoiseGeneratorSettings.OVERWORLD).value();
+        RandomState state = RandomState.create(provider.lookupOrThrow(Registries.NOISE), 1234L, settings);
+
+        Aquifer.FluidStatus lavaStatus = new Aquifer.FluidStatus(-54, Blocks.LAVA.defaultBlockState());
+        Aquifer.FluidStatus seaStatus = new Aquifer.FluidStatus(settings.seaLevel(), settings.defaultFluid());
+        Aquifer.FluidPicker globalFluidPicker = (x, y, z) -> y < Math.min(-54, settings.seaLevel()) ? lavaStatus : seaStatus;
+
+        int minY = settings.noiseSettings().minY();
+        int height = settings.noiseSettings().height();
+        DensityVolume volume = new DensityVolume(16, height, 16, CHUNK_X * 16, minY, CHUNK_Z * 16);
+
+        List<String> columns = new ArrayList<>();
+        try (NoiseChunk noiseChunk = new NoiseChunk(state, null, settings, globalFluidPicker, Blender.empty(), volume)) {
+            Aquifer aquifer = noiseChunk.aquifer();
+            DensitySampler.Bound finalDensity = noiseChunk.cachingSamplers().get(settings.noiseRouter().finalDensity());
+            BlockState defaultBlock = settings.defaultBlock();
+
+            for (int localZ : COLUMNS) {
+                for (int localX : COLUMNS) {
+                    int blockX = volume.blockX(localX);
+                    int blockZ = volume.blockZ(localZ);
+                    String[] states = new String[height];
+                    for (int index = height - 1; index >= 0; index--) {
+                        int blockY = minY + index;
+                        float density = finalDensity.sampleValue(blockX, blockY, blockZ);
+                        BlockState substance = aquifer.computeSubstance(blockX, blockY, blockZ, density);
+                        states[index] = (substance == null ? defaultBlock : substance).getBlock()
+                            .builtInRegistryHolder().key().identifier().toString();
+                    }
+                    List<String> runs = new ArrayList<>();
+                    int runStart = 0;
+                    for (int index = 1; index <= height; index++) {
+                        if (index == height || !states[index].equals(states[runStart])) {
+                            runs.add(obj(field("y", Integer.toString(minY + runStart)),
+                                field("count", Integer.toString(index - runStart)),
+                                field("block", quote(states[runStart]))));
+                            runStart = index;
+                        }
+                    }
+                    columns.add(obj(field("x", Integer.toString(blockX)), field("z", Integer.toString(blockZ)),
+                        field("runs", array(runs))));
+                }
+            }
+        }
+
+        return obj(field("seed", quote("1234")), field("settings", quote("minecraft:overworld")),
+            field("chunkX", Integer.toString(CHUNK_X)), field("chunkZ", Integer.toString(CHUNK_Z)),
+            field("minY", Integer.toString(minY)), field("height", Integer.toString(height)),
+            field("columns", array(columns)));
     }
 
     // ------------------------------------------------------------ json output

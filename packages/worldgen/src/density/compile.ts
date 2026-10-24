@@ -3,10 +3,10 @@ import { createBlendedNoiseSampler, BLENDED_NOISE_SEED } from '../noise/BlendedN
 import type { Noise } from '../noise/GradientNoise';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
-import type { CompiledSpline, } from './CubicSpline';
+import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
 import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
-import type { SampleContext } from './SampleContext';
+import type { InterpolationGrid, SampleContext } from './SampleContext';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
@@ -62,6 +62,32 @@ const distance = (metric: DistanceMetric, dx: number, dy: number, dz: number): n
         case 'chebyshev':
             return Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
     }
+};
+
+/** Reads one interpolation cell corner, computing and recording it on first visit. */
+const cornerValue = (
+    grid: InterpolationGrid,
+    context: SampleContext,
+    input: DensitySampler,
+    x: number,
+    y: number,
+    z: number
+): number => {
+    let byY = grid.get(x);
+    if (!byY) {
+        byY = new Map();
+        grid.set(x, byY);
+    }
+    let byZ = byY.get(y);
+    if (!byZ) {
+        byZ = new Map();
+        byY.set(y, byZ);
+    }
+    const cached = byZ.get(z);
+    if (cached !== undefined) return cached;
+    const value = input(context, x, y, z);
+    byZ.set(z, value);
+    return value;
 };
 
 const END_ISLAND_THRESHOLD = -0.9;
@@ -304,6 +330,7 @@ export class DensityFunctionCompiler {
             }
 
             case 'interpolated': {
+                const id = this.cacheId(node);
                 const input = this.compile(node.input);
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
@@ -311,11 +338,14 @@ export class DensityFunctionCompiler {
                     const xInCell = floorMod(x, cellSizeXz);
                     const yInCell = floorMod(y, cellSizeY);
                     const zInCell = floorMod(z, cellSizeXz);
-                    if (xInCell === 0 && yInCell === 0 && zInCell === 0) return input(context, x, y, z);
-
                     const x0 = x - xInCell;
                     const y0 = y - yInCell;
                     const z0 = z - zInCell;
+                    const grid = context.interpolationGrid(id);
+                    if (xInCell === 0 && yInCell === 0 && zInCell === 0) {
+                        return cornerValue(grid, context, input, x0, y0, z0);
+                    }
+
                     const x1 = x0 + cellSizeXz;
                     const y1 = y0 + cellSizeY;
                     const z1 = z0 + cellSizeXz;
@@ -323,14 +353,14 @@ export class DensityFunctionCompiler {
                         f32(xInCell / cellSizeXz),
                         f32(yInCell / cellSizeY),
                         f32(zInCell / cellSizeXz),
-                        input(context, x0, y0, z0),
-                        input(context, x1, y0, z0),
-                        input(context, x0, y1, z0),
-                        input(context, x1, y1, z0),
-                        input(context, x0, y0, z1),
-                        input(context, x1, y0, z1),
-                        input(context, x0, y1, z1),
-                        input(context, x1, y1, z1)
+                        cornerValue(grid, context, input, x0, y0, z0),
+                        cornerValue(grid, context, input, x1, y0, z0),
+                        cornerValue(grid, context, input, x0, y1, z0),
+                        cornerValue(grid, context, input, x1, y1, z0),
+                        cornerValue(grid, context, input, x0, y0, z1),
+                        cornerValue(grid, context, input, x1, y0, z1),
+                        cornerValue(grid, context, input, x0, y1, z1),
+                        cornerValue(grid, context, input, x1, y1, z1)
                     );
                 };
             }
