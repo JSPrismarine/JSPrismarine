@@ -70,3 +70,29 @@ export {
     type StructurePlacement,
     type StructureSet
 } from './structureSets';
+export {
+    POOL_ELEMENT_TYPES,
+    assembleJigsaw,
+    boxesOverlap,
+    canAttach,
+    jigsawBlocksOf,
+    jigsawOrientationOf,
+    jigsawStateFor,
+    oppositeDirection,
+    parseOrientation,
+    parsePoolAliases,
+    parseTemplatePool,
+    rotateDirection,
+    type BoundingBox,
+    type Direction,
+    type JigsawAssembly,
+    type JigsawBlockInfo,
+    type JigsawConfig,
+    type JigsawSources,
+    type JointType,
+    type PlacedPiece,
+    type PoolElement,
+    type PoolElementType,
+    type Projection,
+    type TemplatePool
+} from './jigsaw';
