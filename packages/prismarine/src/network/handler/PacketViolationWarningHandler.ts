@@ -1,19 +1,42 @@
-import Identifiers from '../Identifiers';
-import type PacketHandler from './PacketHandler';
-import type PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
-import type { PlayerSession } from '../../';
 import type Server from '../../Server';
+import Identifiers from '../Identifiers';
+import type PlayerSession from '../PlayerSession';
+import { PacketViolationSeverity, PacketViolationType } from '../packet/PacketViolationWarningPacket';
+import type PacketViolationWarningPacket from '../packet/PacketViolationWarningPacket';
+import type PacketHandler from './PacketHandler';
 
+/**
+ * The name `Identifiers` gives a packet id, or null when no packet has that id.
+ *
+ * `Identifiers` also carries the protocol number and the version list, so only the keys that
+ * name a packet take part.
+ */
+const packetNameOf = (id: number): string | null =>
+    Object.entries(Identifiers).find(([name, value]) => name.endsWith('Packet') && value === id)?.[0] ?? null;
+
+/**
+ * The client reporting that a packet the server sent did not parse.
+ *
+ * Logged at warning level and nothing more: the packet is the client's bug report about the
+ * server's own output, so the fix is in whichever encoder it names, not in the session. The
+ * line names the rejected packet from its id, because a client that hangs on the loading
+ * screen usually sent one of these about the last packet it could not read.
+ */
 export default class PacketViolationWarningHandler implements PacketHandler<PacketViolationWarningPacket> {
     public static NetID = Identifiers.PacketViolationWarningPacket;
 
-    public handle(packet: PacketViolationWarningPacket, server: Server, _session: PlayerSession): void {
+    /** Logs who complained, which packet, how badly, and the client's own words. */
+    public handle(packet: PacketViolationWarningPacket, server: Server, session: PlayerSession): void {
+        const name = packetNameOf(packet.packetId) ?? 'an unregistered packet';
+        const id = `0x${packet.packetId.toString(16)}`;
+        const type = PacketViolationType[packet.type] ?? `type ${packet.type}`;
+        const severity = PacketViolationSeverity[packet.severity] ?? `severity ${packet.severity}`;
+
         server
             .getLogger()
-            .error(
-                `Packet violation 0x${packet.packetId.toString(16)}, message: "${packet.message}", type: ${
-                    packet.type
-                }, severity: ${packet.severity}`
+            .warn(
+                `${session.getPlayer().getName()} rejected ${name} (${id}) as ${type}, ${severity}: "${packet.message}"`,
+                'PacketViolationWarningHandler/handle'
             );
     }
 }
