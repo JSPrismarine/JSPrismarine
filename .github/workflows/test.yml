@@ -21,6 +21,14 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
+            - name: Cache Vitest module transforms
+              uses: actions/cache@v6
+              with:
+                  path: node_modules/.cache/vitest
+                  key: ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-${{ hashFiles('packages/**/*.ts', 'packages/**/*.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-vitest-${{ hashFiles('pnpm-lock.yaml', 'vitest.config.ts', 'vitest.workspace.ts', 'packages/**/vitest.config.ts') }}-
+
             - name: 🔨 Build
               run: pnpm run build
 

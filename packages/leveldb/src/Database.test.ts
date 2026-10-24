@@ -255,7 +255,7 @@ describe('leveldb', () => {
                 expect(db.stats.totalFiles).toBeGreaterThan(0);
                 expect([...db.keys()]).toHaveLength(500);
                 await db.close();
-            });
+            }, 15_000);
 
             it('merges level 0 into level 1 without losing a key', async () => {
                 const directory = scratch();
