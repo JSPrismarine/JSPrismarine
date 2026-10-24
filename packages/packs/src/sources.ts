@@ -6,11 +6,8 @@ import type { Diagnostic } from './diagnostics';
 import { compareVersions, parseVersion } from './formatVersion';
 import { isZip, readZip } from './zip';
 
-/**
- * One member of a {@link PackStack}. Later members win over earlier ones when
- * both define the same identifier.
- */
-export type PackSource =
+/** A Bedrock pack source: definitions keyed by identifier, later pack wins whole. */
+export type BedrockPackSource =
     /** A loose pack folder with `manifest.json` at its root. */
     | { kind: 'directory'; path: string }
     /** A `.mcpack` (one pack) or `.mcaddon` (several `.mcpack` members). */
@@ -20,6 +17,22 @@ export type PackSource =
      * `vanilla_1.14`, ... Each layer is a pack; layers apply in version order.
      */
     | { kind: 'brarchiveLayers'; path: string };
+
+/**
+ * A Java datapack: a folder or zip with `pack.mcmeta` and `data/` at its root.
+ * It fills the Java registries, where a later pack wins per file except tags,
+ * which merge.
+ */
+export interface DatapackSource {
+    kind: 'datapack';
+    path: string;
+}
+
+/**
+ * One member of a {@link PackStack}. Later members win over earlier ones when
+ * both define the same identifier.
+ */
+export type PackSource = BedrockPackSource | DatapackSource;
 
 /** The ordered list of pack sources a world runs. */
 export type PackStack = readonly PackSource[];
@@ -39,7 +52,7 @@ const BRARCHIVE_FOLDER = '__brarchive/';
  * Unreadable members are reported rather than thrown so one bad pack does not
  * hide the rest of the report.
  */
-export const expandSource = (source: PackSource, diagnostics: Diagnostic[]): PackFiles[] => {
+export const expandSource = (source: BedrockPackSource, diagnostics: Diagnostic[]): PackFiles[] => {
     try {
         switch (source.kind) {
             case 'directory':

@@ -1,4 +1,5 @@
 export * from './brarchive';
+export * from './datapack';
 export * from './diagnostics';
 export * from './filters';
 export * from './formatVersion';
