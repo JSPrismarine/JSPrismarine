@@ -19,8 +19,4 @@ export default class GoldBlock extends Solid {
     public getToolHarvestLevel() {
         return ItemTieredToolType.Iron;
     }
-
-    public getBlastResistance() {
-        return 6;
-    }
 }

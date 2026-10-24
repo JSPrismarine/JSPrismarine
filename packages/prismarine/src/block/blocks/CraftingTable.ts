@@ -15,10 +15,6 @@ export default class CraftingTable extends Solid {
         return [BlockToolType.Axe];
     }
 
-    public getFlammability() {
-        return 20;
-    }
-
     public getFuelTime() {
         return 300;
     }

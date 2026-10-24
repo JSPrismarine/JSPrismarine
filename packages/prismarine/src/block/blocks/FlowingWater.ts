@@ -8,8 +8,4 @@ export default class FlowingWater extends Liquid {
             id
         });
     }
-
-    public getLightFilter() {
-        return 2;
-    }
 }

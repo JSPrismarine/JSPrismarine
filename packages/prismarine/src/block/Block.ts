@@ -1,4 +1,6 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
+import type { BedrockBlockProperties } from '@jsprismarine/mapping';
+import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 import type Server from '../Server';
 import type { Item } from '../item/Item';
 import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
@@ -114,10 +116,26 @@ export class Block {
     }
 
     /**
+     * The Java-sourced property row for this block's state, when the mapping table has one.
+     *
+     * Keyed by {@link getStateName}, the Bedrock block state the server places, which is the
+     * identity the table is flattened onto. A block the table does not know - a Bedrock-only
+     * identifier, or a legacy name the current palette dropped - returns `undefined`, and each
+     * getter falls back to the value the class carries, so nothing is silently defaulted.
+     */
+    protected getBlockProperties(): BedrockBlockProperties | undefined {
+        return bedrockBlockPropertiesOf(this.getStateName());
+    }
+
+    /**
      * Get the Block's hardness value.
+     *
+     * From the Java 26.3 property dump via the mapping table, which covers every block state the
+     * palette has rather than the handful the class registry declares. `-1` marks the unbreakable
+     * blocks. The constructor's value is only the fallback for names outside the table.
      */
     public getHardness(): number {
-        return this.hardness;
+        return this.getBlockProperties()?.hardness ?? this.hardness;
     }
 
     /**
@@ -133,28 +151,36 @@ export class Block {
     public getBreakTime(item: Item | null, _server: Server): number {
         // TODO: divide by the tool's mining efficiency, so that a diamond pickaxe is
         // quicker than a wooden one. Items do not carry one yet.
-        return this.getHardness() * (this.isCompatibleWithTool(item) ? 1.5 : 5);
+        const hardness = this.getHardness();
+        // Negative hardness is Java's marker for the unbreakable blocks - bedrock, barriers,
+        // portals - which never give way however long the player holds the button.
+        if (hardness < 0) return Number.POSITIVE_INFINITY;
+        return hardness * (this.isCompatibleWithTool(item) ? 1.5 : 5);
     }
 
     /**
      * Get the Block's blast resistance.
+     *
+     * Java's explosion resistance from the mapping table - obsidian is 1200 where its hardness
+     * alone would say 250 - with the old hardness-times-five guess as the fallback for names
+     * outside the table.
      */
-    public getBlastResistance() {
-        return this.getHardness() * 5;
+    public getBlastResistance(): number {
+        return this.getBlockProperties()?.blastResistance ?? this.getHardness() * 5;
     }
 
     /**
      * Get the Block's light level emission.
      */
-    public getLightLevel() {
-        return 0;
+    public getLightLevel(): number {
+        return this.getBlockProperties()?.lightEmission ?? 0;
     }
 
     /**
-     * Get the Block's flammability.
+     * Get the Block's flammability: fire's odds of consuming it once lit, Java's burn odds.
      */
-    public getFlammability() {
-        return 0;
+    public getFlammability(): number {
+        return this.getBlockProperties()?.burnOdds ?? 0;
     }
 
     /**
@@ -215,7 +241,16 @@ export class Block {
         return [this];
     }
 
-    public getLightFilter() {
+    /**
+     * How much light the block swallows, 0 to 15: Java's light dampening from the mapping table,
+     * falling back to {@link defaultLightFilter} for names outside it.
+     */
+    public getLightFilter(): number {
+        return this.getBlockProperties()?.lightDampening ?? this.defaultLightFilter();
+    }
+
+    /** The light filter for a block the table does not know. `Transparent` lowers it to 0. */
+    protected defaultLightFilter(): number {
         return 15;
     }
 

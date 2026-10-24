@@ -10,10 +10,6 @@ export default class Fire extends Flowable {
         });
     }
 
-    public getLightLevel(): number {
-        return 15;
-    }
-
     public canBeReplaced(): boolean {
         return true;
     }

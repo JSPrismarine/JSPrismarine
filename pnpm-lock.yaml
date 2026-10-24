@@ -686,6 +686,9 @@ importers:
       '@jsprismarine/logger':
         specifier: workspace:*
         version: link:../logger
+      '@jsprismarine/mapping':
+        specifier: workspace:*
+        version: link:../mapping
       '@jsprismarine/math':
         specifier: workspace:*
         version: link:../math

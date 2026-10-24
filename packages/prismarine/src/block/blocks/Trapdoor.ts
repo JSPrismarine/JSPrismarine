@@ -15,10 +15,6 @@ export default class Trapdoor extends Solid {
         return [BlockToolType.Axe];
     }
 
-    public getFlammability() {
-        return 20;
-    }
-
     public isTransparent() {
         return true;
     }

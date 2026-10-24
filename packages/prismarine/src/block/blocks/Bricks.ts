@@ -10,8 +10,4 @@ export default class Bricks extends Solid {
             hardness: 2
         });
     }
-
-    public getBlastResistance() {
-        return 6;
-    }
 }

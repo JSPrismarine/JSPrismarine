@@ -9,8 +9,4 @@ export default class BrownMushroom extends Flowable {
             hardness: 0
         });
     }
-
-    public getLightLevel(): number {
-        return 1;
-    }
 }

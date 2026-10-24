@@ -21,10 +21,6 @@ export default class Bookshelf extends Solid {
         return [BlockToolType.Axe];
     }
 
-    public getFlammability() {
-        return 20;
-    }
-
     public getFuelTime() {
         return 300;
     }
