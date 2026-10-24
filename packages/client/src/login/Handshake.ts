@@ -10,18 +10,17 @@ import { createHash, createPrivateKey, createPublicKey, diffieHellman } from 'no
  * different - there is no negotiation and no error, only a connection that stops.
  */
 
-/** The header field carrying the sender's public key, as base64 DER rather than a JWK. */
-interface JwtHeader {
-    x5u?: string;
-}
-
-interface SaltClaims {
-    salt?: string;
-}
-
 const decodeSegment = (segment: string): unknown => {
     const json = Buffer.from(segment, 'base64url').toString('utf8');
     return JSON.parse(json);
+};
+
+/** A string claim from a decoded segment, or undefined when it is missing or not a string. */
+const stringClaim = (segment: unknown, key: string): string | undefined => {
+    if (typeof segment !== 'object' || segment === null) return undefined;
+
+    const value: unknown = Reflect.get(segment, key);
+    return typeof value === 'string' ? value : undefined;
 };
 
 /**
@@ -38,10 +37,11 @@ export const readHandshake = (jwt: string): { publicKeyDer: string; salt: Buffer
         throw new Error('A handshake token has a header and a payload separated by dots');
     }
 
-    const { x5u } = decodeSegment(rawHeader) as JwtHeader;
+    // `x5u` is the header field carrying the sender's public key, as base64 DER rather than a JWK.
+    const x5u = stringClaim(decodeSegment(rawHeader), 'x5u');
     if (x5u === undefined) throw new Error('The handshake token carries no `x5u` public key');
 
-    const { salt } = decodeSegment(rawPayload) as SaltClaims;
+    const salt = stringClaim(decodeSegment(rawPayload), 'salt');
     if (salt === undefined) throw new Error('The handshake token carries no `salt`');
 
     // Base64 without padding is what the claim carries; Node wants either, but only if it is
