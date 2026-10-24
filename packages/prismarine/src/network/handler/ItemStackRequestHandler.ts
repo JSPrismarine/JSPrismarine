@@ -173,8 +173,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             // four planks with the second four, and a creative pick dropped
                             // onto an occupied slot destroyed what it landed on.
                             //
-                            // TODO: what does not fit should go to the next free slot rather
-                            // than be capped away.
+                            // Known gap: what will not fit in the slot is capped away rather
+                            // than carried to the next free one. The request named one
+                            // destination slot, and spilling into a slot the client did not
+                            // name means answering for a slot the client is not expecting -
+                            // which needs the response to describe both, so it is left until
+                            // the response is built from what changed rather than from what
+                            // was asked for.
                             const held = inventory.getEntry(to[1]);
                             const sameThing =
                                 held !== null &&
@@ -232,7 +237,12 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
                 case ItemStackRequestActionType.DROP:
                 case ItemStackRequestActionType.DESTROY: {
-                    // TODO: a dropped stack should become an item entity in the world.
+                    // Known gap: a Drop takes the stack out of the inventory but puts nothing
+                    // on the ground, so the two act alike where only Destroy should discard.
+                    // Spawning the entity needs `World.dropContents`, which is async, and this
+                    // whole method is synchronous so that a refusal can roll the request back
+                    // before anything else has run. A drop would have to be collected here and
+                    // made after the request is answered.
                     //
                     // Located rather than looked up as an inventory slot: throwing away what
                     // is on the pointer is the ordinary way to get rid of a creative pick,
@@ -599,7 +609,6 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
     private describeItem(slot: number, item: Item | null): ItemStackResponseSlotInfo {
         return {
             slot,
-            hotbarSlot: 0,
             count: item?.getAmount() ?? 0,
             itemStackId: item ? nextStackId++ : 0,
             customName: '',
@@ -617,7 +626,6 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         return {
             slot,
-            hotbarSlot: slot,
             count: empty ? 0 : item.getAmount(),
             // Zero is how the client reads "nothing here"; a real stack gets an id of its own.
             itemStackId: empty ? 0 : nextStackId++,
