@@ -21,12 +21,11 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - run: pnpm run build
             - run: pnpm run build:docs
 
             - uses: peaceiris/actions-gh-pages@v4
               with:
                   github_token: ${{ secrets.GITHUB_TOKEN }}
-                  publish_dir: ./dist
+                  publish_dir: ./tools/docs/site/.vitepress/dist
                   enable_jekyll: false
                   commit_message: ${{ github.event.workflow_run.head_commit.message }}
