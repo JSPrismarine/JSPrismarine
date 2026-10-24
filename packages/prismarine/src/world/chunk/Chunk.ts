@@ -11,6 +11,16 @@ import type { DimensionDefinition } from '../Dimension';
 import type { EntitySpawn } from '../EntitySpawn';
 import SubChunk from './SubChunk';
 
+/**
+ * The vertical range the client gives a dimension id, which is the range a chunk payload has to
+ * cover whatever shape the server's own definition has. The deprecated `Legacy` Overworld is
+ * shallower than the client's and owes it padding below; the Nether and the End are not padded
+ * and carry 8 and 16 biome sections rather than the Overworld's 24.
+ */
+const clientRangeOf = (dimension: DimensionDefinition): DimensionDefinition =>
+    [Dimensions.Overworld, Dimensions.Nether, Dimensions.TheEnd].find((candidate) => candidate.id === dimension.id) ??
+    Dimensions.Overworld;
+
 export default class Chunk {
     private x: number;
     private z: number;
@@ -380,11 +390,13 @@ export default class Chunk {
 
         const stream = new BinaryStream();
         const floor = minSubChunk(this.dimension);
+        const client = clientRangeOf(this.dimension);
 
-        // The client's world starts at -64 whatever we think, so a dimension whose floor is above
-        // that has to make up the difference in empty sub chunks. For the Overworld the loop below
-        // is the whole story and this writes nothing.
-        for (let y = Dimensions.Overworld.minY >> 4; y < floor; ++y) {
+        // The client's floor for this dimension id is fixed, -64 in the Overworld whatever we
+        // think, so a dimension whose floor is above it has to make up the difference in empty sub
+        // chunks. For the real Overworld, the Nether and the End the loop below is the whole story
+        // and this writes nothing.
+        for (let y = minSubChunk(client); y < floor; ++y) {
             Chunk.EMPTY_SUBCHUNK.networkSerialize(stream);
         }
 
@@ -392,11 +404,11 @@ export default class Chunk {
             (this.subChunks.get(y) ?? Chunk.EMPTY_SUBCHUNK).networkSerialize(stream);
         }
 
-        // One biome section per sub chunk of the client's column, which is the dimension's full
-        // height rather than the sub chunk count written above - 24 for the Overworld, the same
-        // range the padding loop pads to. Each is a paletted store in the same format a block
-        // storage uses: a header of `(bitsPerBlock << 1) | networkFlag`, then the word data, then
-        // the palette.
+        // One biome section per sub chunk of the client's column, which is the client's full
+        // height for this dimension id rather than the sub chunk count written above - 24 for the
+        // Overworld, 8 for the Nether, 16 for the End, the same range the padding loop pads to.
+        // Each is a paletted store in the same format a block storage uses: a header of
+        // `(bitsPerBlock << 1) | networkFlag`, then the word data, then the palette.
         //
         // The network flag says the palette holds runtime ids; cleared, it names the persistent
         // on-disk form whose entries are NBT compounds, and the client reads the next varint as
@@ -407,7 +419,7 @@ export default class Chunk {
         // Known gap: the biome is plains in every section. Real 3D biomes need the generator to
         // decide a biome per column, which it does not do. A Bedrock Dedicated Server 1.26.51
         // puts 12, 30 and 182 to 190 on the wire here.
-        for (let i = 0; i < subChunkCount(Dimensions.Overworld); i++) {
+        for (let i = 0; i < subChunkCount(client); i++) {
             stream.writeByte(1);
             stream.writeVarInt(1);
         }
@@ -427,11 +439,11 @@ export default class Chunk {
 
     /**
      * How many sub chunks {@link networkSerialize} writes, which is what `LevelChunkPacket` has to
-     * declare. Counts from the client's floor rather than the dimension's, so it includes the
-     * padding sub chunks a shallow dimension needs.
+     * declare. Counts from the client's floor for this dimension id rather than the dimension's,
+     * so it includes the padding sub chunks a shallow dimension needs.
      */
     public getNetworkSubChunkCount(): number {
-        return this.getTopEmpty() - (Dimensions.Overworld.minY >> 4);
+        return this.getTopEmpty() - minSubChunk(clientRangeOf(this.dimension));
     }
 
     /**
@@ -450,7 +462,7 @@ export default class Chunk {
         subChunkCountSent?: number,
         dimension: DimensionDefinition = Dimensions.Overworld
     ): Chunk {
-        const clientFloor = Dimensions.Overworld.minY >> 4;
+        const clientFloor = minSubChunk(clientRangeOf(dimension));
         const floor = minSubChunk(dimension);
         const sent = subChunkCountSent ?? maxSubChunk(dimension) + 1 - clientFloor;
 

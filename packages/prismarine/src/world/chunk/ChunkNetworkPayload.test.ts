@@ -93,6 +93,28 @@ describe('world', () => {
             expect([...trailer]).toEqual([...Array.from({ length: sections }, () => [0x01, 0x02]).flat(), 0x00]);
         });
 
+        it('pads and counts biomes for the range the client gives the dimension id, not the Overworld', () => {
+            // The Nether starts at 0 and is 128 tall on the client, the End 256. Padding either
+            // to -64 or giving it 24 biome sections leaves the client reading biome headers as
+            // sub chunks.
+            for (const [dimension, sections] of [
+                [Dimensions.Nether, 8],
+                [Dimensions.TheEnd, 16]
+            ] as const) {
+                const chunk = new Chunk(0, 0, new Map(), dimension);
+                chunk.setBlockRuntimeId(1, 1, 1, stone());
+                const payload = chunk.networkSerialize();
+
+                expect(chunk.getNetworkSubChunkCount()).toBe(1);
+                // No padding: the first byte is the real sub chunk's version.
+                expect(payload[0]).toBe(8);
+
+                const stream = new BinaryStream(payload);
+                Chunk.networkDeserialize(stream, 0, 0, 1, dimension);
+                expect(payload.byteLength - stream.getReadIndex()).toBe(sections * 2 + 1);
+            }
+        });
+
         it('caches the payload until a block changes', () => {
             const chunk = build();
             const first = chunk.networkSerialize();
