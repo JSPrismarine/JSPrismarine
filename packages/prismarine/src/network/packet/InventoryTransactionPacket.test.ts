@@ -8,6 +8,7 @@ import InventoryTransactionPacket, {
     ActionSource,
     HandSlot,
     InventoryAction,
+    LegacySlotChange,
     TransactionType,
     UseItemAction,
     UseItemOnEntityAction
@@ -22,11 +23,19 @@ import InventoryTransactionPacket, {
  * the type or the actions, and each action carries its window id and its flags as optionals
  * with presence bytes of their own.
  */
-const transaction = (type: TransactionType, write: (out: BinaryStream) => void): Buffer => {
+const noLegacyRequest = (out: BinaryStream): void => {
+    out.writeVarInt(0); // Legacy request id: zero, no request.
+    out.writeBoolean(false); // So no legacy slot changes.
+};
+
+const transaction = (
+    type: TransactionType,
+    write: (out: BinaryStream) => void,
+    writeLegacyRequest: (out: BinaryStream) => void = noLegacyRequest
+): Buffer => {
     const out = new BinaryStream();
     out.writeUnsignedVarInt(0x1e); // Header.
-    out.writeVarInt(0); // Legacy request id.
-    out.writeBoolean(false); // No legacy slot changes.
+    writeLegacyRequest(out);
     out.writeUnsignedVarInt(type);
     write(out);
     return out.getBuffer();
@@ -134,6 +143,97 @@ describe('InventoryTransactionPacket', () => {
         expect(packet.feof()).toBe(true);
     });
 
+    it('reads a release: the item, then the player position the docs call From Position', () => {
+        const packet = decode(
+            transaction(TransactionType.RELEASE_ITEM, (out) => {
+                out.writeUnsignedVarInt(0); // No actions.
+                out.writeVarInt(0); // Action type: release.
+                out.writeVarInt(3); // Hotbar slot.
+                Item.air().networkSerialize(out);
+                out.writeFloatLE(1.5); // From position.
+                out.writeFloatLE(64);
+                out.writeFloatLE(-2.25);
+            })
+        );
+
+        const data = packet.transactionData;
+        assert(data?.kind === 'releaseItem');
+        expect(packet.transactionType).toBe(TransactionType.RELEASE_ITEM);
+        expect(data.actionType).toBe(0);
+        expect(data.hotbarSlot).toBe(3);
+        expect(data.playerPosition.getX()).toBe(1.5);
+        expect(data.playerPosition.getY()).toBe(64);
+        expect(data.playerPosition.getZ()).toBe(-2.25);
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('reads the legacy set item slots that a valid request id carries', () => {
+        const packet = decode(
+            transaction(
+                TransactionType.NORMAL,
+                (out) => out.writeUnsignedVarInt(0), // No actions.
+                (out) => {
+                    out.writeVarInt(-2); // Legacy request id: negative and even, so valid.
+                    out.writeBoolean(true);
+                    out.writeUnsignedVarInt(1); // One legacy set slot.
+                    out.writeByte(12); // Container enum: CombinedHotbarAndInventoryContainer.
+                    out.writeUnsignedVarInt(2); // Two slots.
+                    out.writeByte(0);
+                    out.writeByte(9);
+                }
+            )
+        );
+
+        expect(packet.legacyRequestId).toBe(-2);
+        expect(packet.legacySlotChanges).toEqual([new LegacySlotChange(12, [0, 9])]);
+        expect(packet.inventoryActions).toHaveLength(0);
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('writes the legacy slot list presence from the request id, not from the list', () => {
+        const encode = (legacyRequestId: number): number[] => {
+            const packet = new InventoryTransactionPacket();
+            packet.legacyRequestId = legacyRequestId;
+            packet.legacySlotChanges = [];
+            packet.transactionType = TransactionType.NORMAL;
+            packet.inventoryActions = [];
+            packet.encode();
+            return Array.from(packet.getBuffer());
+        };
+
+        // Header, -2 as ZigZag 3, presence 0x01, an empty slot list, Normal, no actions.
+        expect(encode(-2)).toEqual([0x1e, 0x03, 0x01, 0x00, 0x00, 0x00]);
+        // Zero is no request: presence 0x00 and no list.
+        expect(encode(0)).toEqual([0x1e, 0x00, 0x00, 0x00, 0x00]);
+        // Odd negatives are not valid either; -1 is ZigZag 1.
+        expect(encode(-1)).toEqual([0x1e, 0x01, 0x00, 0x00, 0x00]);
+    });
+
+    it('writes a release the way it reads one', () => {
+        const packet = new InventoryTransactionPacket();
+        packet.legacyRequestId = 0;
+        packet.legacySlotChanges = [];
+        packet.transactionType = TransactionType.RELEASE_ITEM;
+        packet.inventoryActions = [];
+        packet.transactionData = {
+            kind: 'releaseItem',
+            actionType: 0,
+            hotbarSlot: 4,
+            itemInHand: Item.air(),
+            playerPosition: new Vector3(3, 70, -5)
+        };
+        packet.encode();
+
+        const read = decode(packet.getBuffer());
+        const data = read.transactionData;
+        assert(data?.kind === 'releaseItem');
+
+        expect(data.hotbarSlot).toBe(4);
+        expect(data.playerPosition.getY()).toBe(70);
+        expect(data.playerPosition.getZ()).toBe(-5);
+        expect(read.feof()).toBe(true);
+    });
+
     it('writes what it reads', () => {
         const packet = new InventoryTransactionPacket();
         packet.legacyRequestId = 0;
@@ -162,7 +262,7 @@ describe('InventoryTransactionPacket', () => {
         assert(data?.kind === 'useItem');
 
         expect(read.inventoryActions).toHaveLength(1);
-        expect(read.inventoryActions[0]!.sourceFlags).toBe(0);
+        expect(read.inventoryActions[0]).toMatchObject({ sourceFlags: 0 });
         expect(data.blockPosition.getY()).toBe(-64);
         expect(data.hand).toBe(HandSlot.OFFHAND);
         expect(data.hotbarSlot).toBe(8);

@@ -6,18 +6,25 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/**
+ * The docs' `ItemUseActionType`: what the client did with the item in hand.
+ *
+ * The member names are ours. The docs call them Place, Use, Destroy and Use As Attack.
+ */
 export enum UseItemAction {
     CLICK_BLOCK,
     CLICK_AIR,
-    BREAK_BLOCK
+    BREAK_BLOCK,
+    /** A swing with the item at nothing in particular. The docs' "Use As Attack". */
+    USE_AS_ATTACK = 3
 }
 
 /**
- * What a client meant by clicking on an entity.
+ * The docs' `ItemUseOnActorActionType`: what a client meant by clicking on an entity.
  *
- * A melee attack arrives here rather than in `InteractPacket`, which is not what its name
- * suggests: that one carries mounting, dismounting and opening a villager's trades. Everything
- * that comes out of swinging at something comes through this transaction.
+ * A melee attack arrives here rather than in `InteractPacket`. That packet carries mounting,
+ * dismounting and opening a villager's trades. Everything that comes out of swinging at
+ * something comes through this transaction.
  */
 export enum UseItemOnEntityAction {
     /** Right-clicked it: shearing, saddling, trading, leading. */
@@ -28,12 +35,18 @@ export enum UseItemOnEntityAction {
     ITEM_INTERACT
 }
 
+/**
+ * The Transaction variant index, the docs' `ComplexInventoryTransaction::Type`.
+ *
+ * It selects which body follows the Actions list. Normal and Mismatch have no body of
+ * their own.
+ */
 export enum TransactionType {
     NORMAL,
     MISMATCH,
     USE_ITEM,
     USE_ITEM_ON_ENTITY,
-    RELASE_ITEM
+    RELEASE_ITEM
 }
 
 /** Which hand an item was used from. */
@@ -42,12 +55,20 @@ export enum HandSlot {
     OFFHAND
 }
 
+/**
+ * One of the docs' Legacy Set Item Slots: a Container Enum (uint8) and its Slots
+ * (varuint count, then one uint8 per slot).
+ *
+ * The client sends these alongside a valid Legacy Request ID to say which open containers and
+ * slots the request touches.
+ */
 export class LegacySlotChange {
     public constructor(
         public containerId: number,
         public slots: number[]
     ) {}
 
+    /** Reads one entry in the docs' order: Container Enum, then the Slots list. */
     public static fromNetwork(stream: BinaryStream): LegacySlotChange {
         const containerId = stream.readByte();
         const slotCount = stream.readUnsignedVarInt();
@@ -55,6 +76,7 @@ export class LegacySlotChange {
         return new LegacySlotChange(containerId, slots);
     }
 
+    /** The mirror of {@link LegacySlotChange.fromNetwork}. */
     public toNetwork(stream: BinaryStream): void {
         stream.writeByte(this.containerId);
         stream.writeUnsignedVarInt(this.slots.length);
@@ -62,6 +84,7 @@ export class LegacySlotChange {
     }
 }
 
+/** The docs' `InventorySourceType`: which inventory an action's slot belongs to. */
 export enum ActionSource {
     INVALID = -1,
     CONTAINER,
@@ -69,9 +92,20 @@ export enum ActionSource {
     WORLD,
     CREATIVE,
     UNTRACKED_INTERACTION_UI = 100,
+    /**
+     * The 2193 docs page lists this as 4, but that page numbered members without declared
+     * values in order. The 2207 page corrects it to 99999, which is what the client sends.
+     */
     NON_IMPLEMENTED_TODO = 99999
 }
 
+/**
+ * One of the docs' Actions: a slot that changes, with the item it held before and after.
+ *
+ * Wire order is Source Type (varuint), Container ID (optional int8), Bit Flags (optional
+ * varuint), Slot (varuint), From Item, To Item. The two optionals each carry their own
+ * presence byte.
+ */
 export class InventoryAction {
     public constructor(
         public sourceType: number,
@@ -85,12 +119,12 @@ export class InventoryAction {
     /**
      * Reads one action.
      *
-     * The window id and the flags are each an optional with its own presence byte - not, as
-     * they were up to 748, fields whose presence the reader inferred from the source type.
-     * The client sets the byte by the same rule the reader used to apply (a container has a
-     * window, the world has flags), but the byte is what is on the wire, and a reader that
-     * infers instead of reading is a field out the moment the two disagree. The window id is
-     * a single signed byte now, where it used to be a varint.
+     * The Container ID and the Bit Flags are each an optional with its own presence byte. Up
+     * to protocol 748 the reader inferred their presence from the Source Type. The client still
+     * sets each byte by that rule (a container has a Container ID, the world has Bit Flags),
+     * but the byte is what is on the wire, and a reader that infers instead of reading is one
+     * field off as soon as the two disagree. The Container ID is a single signed byte, where it
+     * used to be a varint.
      */
     public static fromNetwork(stream: BinaryStream): InventoryAction {
         const sourceType = stream.readUnsignedVarInt();
@@ -106,6 +140,7 @@ export class InventoryAction {
         );
     }
 
+    /** The mirror of {@link InventoryAction.fromNetwork}. */
     public toNetwork(stream: BinaryStream): void {
         stream.writeUnsignedVarInt(this.sourceType);
         stream.writeBoolean(this.windowId !== null);
@@ -121,6 +156,9 @@ export class InventoryAction {
 /** Which transaction body a packet carries; the field every reader narrows on. */
 export type TransactionKind = 'useItem' | 'useItemOnEntity' | 'releaseItem';
 
+/**
+ * The fields every transaction body shares. The docs call them Action Type, Slot and Item.
+ */
 export interface TransactionData {
     kind: TransactionKind;
     actionType: number;
@@ -128,16 +166,28 @@ export interface TransactionData {
     itemInHand: Item;
 }
 
+/**
+ * The docs' `ItemUseInventoryTransaction`: the item in hand used on a block or on nothing.
+ *
+ * Wire order is Action Type (varint), Trigger Type (uint8), Position (BlockPos), Face (uint8),
+ * Slot (varint), Hand (uint8), Item, From Position (Vec3), Click Position (Vec3), Target Block
+ * Id (varuint), Client Interact Prediction (uint8), Client Cooldown State (uint8).
+ */
 export interface UseItemData extends TransactionData {
     kind: 'useItem';
-    /** What set the use off - a tap, a hold, the item being equipped. */
+    /** The docs' Trigger Type: 1 for the player's own input, 2 for a held input replayed each tick. */
     triggerType: number;
+    /** The docs' Position: the block that was clicked. */
     blockPosition: BlockPosition;
+    /** The docs' Face. */
     blockFace: number;
     /** Which hand the item was in. Added at 2193. */
     hand: HandSlot;
+    /** The docs' From Position: where the player stood when sending this. */
     playerPosition: Vector3;
+    /** The docs' Click Position: where on the block face the click landed. */
     clickPosition: Vector3;
+    /** The docs' Target Block Id: the runtime id of the clicked block's state. */
     blockRuntimeId: number;
     /** What the client has already drawn on its own screen, expecting the server to agree. */
     clientInteractPrediction: number;
@@ -146,10 +196,10 @@ export interface UseItemData extends TransactionData {
 }
 
 /**
- * Reads the body of a use-item transaction: everything after the actions.
+ * Reads the body of a use-item transaction: everything after the Actions.
  *
  * Shared with `PlayerAuthInputPacket`, which carries the same transaction inside itself when
- * the client used an item in the same tick it moved - the two packets differ only in what
+ * the client used an item in the same tick it moved. The two packets differ only in what
  * surrounds this. Property order is read order, so these lines are the wire layout.
  */
 export const readUseItemData = (stream: BinaryStream): UseItemData => ({
@@ -168,18 +218,49 @@ export const readUseItemData = (stream: BinaryStream): UseItemData => ({
     clientCooldownState: stream.readByte()
 });
 
+/**
+ * The docs' `ItemUseOnActorInventoryTransaction`: the item in hand used on an entity.
+ *
+ * Wire order is Runtime Id (varuint64), Action Type (varint), Slot (varint), Item, From
+ * Position (Vec3), Hit Position (Vec3).
+ */
 export interface UseItemOnEntityData extends TransactionData {
     kind: 'useItemOnEntity';
+    /** The docs' Runtime Id: the entity that was clicked. */
     entityRuntimeId: bigint;
+    /** The docs' From Position: where the player stood when sending this. */
     playerPosition: Vector3;
+    /** The docs' Hit Position: where on the entity the click landed. */
     clickPosition: Vector3;
 }
 
-export interface RelaseItemData extends TransactionData {
+/**
+ * The docs' `ItemReleaseInventoryTransaction`: a held item let go of, such as a bow firing.
+ *
+ * Wire order is Action Type (varint), Slot (varint), Item, From Position (Vec3).
+ */
+export interface ReleaseItemData extends TransactionData {
     kind: 'releaseItem';
-    headRotation: Vector3;
+    /** The docs' From Position: where the player stood when sending this. */
+    playerPosition: Vector3;
 }
 
+/**
+ * The docs' validity rule for a Legacy Request ID: negative and even. Zero means no request,
+ * and the Legacy Set Item Slots list is only on the wire when the id is valid.
+ */
+const hasLegacyRequest = (legacyRequestId: number): boolean => legacyRequestId < -1 && (legacyRequestId & 1) === 0;
+
+/**
+ * Packet 30. The client's item use, attack, release or container move.
+ *
+ * Wire order at protocol 2193: Legacy Request ID (varint), Legacy Set Item Slots (presence
+ * byte, then a varuint count and one {@link LegacySlotChange} each), the Transaction variant
+ * index (varuint, {@link TransactionType}), Actions (varuint count and one
+ * {@link InventoryAction} each), then the body the variant selects: {@link UseItemData},
+ * {@link UseItemOnEntityData} or {@link ReleaseItemData}. Normal and Mismatch end after the
+ * Actions.
+ */
 export default class InventoryTransactionPacket extends DataPacket {
     public static NetID = Identifiers.InventoryTransactionPacket;
 
@@ -189,16 +270,16 @@ export default class InventoryTransactionPacket extends DataPacket {
     public transactionType!: TransactionType;
     public inventoryActions!: InventoryAction[];
 
-    public transactionData: UseItemData | UseItemOnEntityData | RelaseItemData | null = null;
+    public transactionData: UseItemData | UseItemOnEntityData | ReleaseItemData | null = null;
 
     /**
-     * The layout is protocol 2193's. Two things about it are not what they were at 748:
+     * Reads the packet in the order the class comment gives.
      *
-     * - The legacy slot changes are an optional with a presence byte, not a list whose
-     *   presence follows from the request id.
-     * - The presence bytes that 1.26.30 put in front of the transaction type and the action
-     *   list are gone again at 2193 ("obsolete Cereal presence bytes", Mojang's words). A
-     *   reader still expecting them takes the type for a flag and the flag for the type.
+     * Two things about the layout differ from protocol 748. The Legacy Set Item Slots have a
+     * presence byte of their own, which the reader trusts over the request id. The presence
+     * bytes that 1.26.30 put in front of the variant index and the Actions are gone again at
+     * 2193 ("obsolete Cereal presence bytes", in Mojang's words). A reader still expecting
+     * them takes the type for a flag and the flag for the type.
      */
     public decodePayload(): void {
         this.legacyRequestId = this.readVarInt();
@@ -218,10 +299,10 @@ export default class InventoryTransactionPacket extends DataPacket {
             case TransactionType.USE_ITEM:
                 this.transactionData = readUseItemData(this);
 
-                // A layout that has drifted from the client's does not fail - it hands back
-                // plausible looking rubbish, and acting on that means destroying a block at a
-                // position nobody touched. Leftover bytes mean the layout is wrong, and
-                // saying so is worth more than the guess.
+                // A layout that has drifted from the client's does not fail. It hands back
+                // plausible looking values, and acting on those means destroying a block at a
+                // position nobody touched. Leftover bytes mean the layout is wrong, and saying
+                // so is worth more than the guess.
                 if (!this.feof()) {
                     throw new Error(
                         `UseItem transaction left ${this.readRemaining().byteLength} bytes unread: the packet layout does not match the client's`
@@ -239,13 +320,13 @@ export default class InventoryTransactionPacket extends DataPacket {
                     clickPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
                 };
                 break;
-            case TransactionType.RELASE_ITEM:
+            case TransactionType.RELEASE_ITEM:
                 this.transactionData = {
                     kind: 'releaseItem',
                     actionType: this.readVarInt(),
                     hotbarSlot: this.readVarInt(),
                     itemInHand: Item.networkDeserialize(this),
-                    headRotation: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
+                    playerPosition: new Vector3(this.readFloatLE(), this.readFloatLE(), this.readFloatLE())
                 };
                 break;
             default:
@@ -254,13 +335,18 @@ export default class InventoryTransactionPacket extends DataPacket {
     }
 
     /**
-     * The mirror of {@link decodePayload}, so that a client - the bot harness - can send what
-     * a real one sends, and so that a test can pin the two against each other.
+     * The mirror of {@link decodePayload}, so that a client such as the bot harness can send
+     * what a real one sends, and so that a test can pin the two against each other.
+     *
+     * The Legacy Set Item Slots presence byte follows the request id, as the docs and the
+     * client have it: a valid id always carries the list, even an empty one, and an invalid id
+     * never does.
      */
     public encodePayload(): void {
         this.writeVarInt(this.legacyRequestId);
-        this.writeBoolean(this.legacySlotChanges.length > 0);
-        if (this.legacySlotChanges.length > 0) {
+        const hasLegacySlots = hasLegacyRequest(this.legacyRequestId);
+        this.writeBoolean(hasLegacySlots);
+        if (hasLegacySlots) {
             this.writeUnsignedVarInt(this.legacySlotChanges.length);
             for (const change of this.legacySlotChanges) change.toNetwork(this);
         }
@@ -293,14 +379,14 @@ export default class InventoryTransactionPacket extends DataPacket {
                 NetworkUtil.writeVector3(this, data.clickPosition);
                 break;
             }
-            case TransactionType.RELASE_ITEM: {
+            case TransactionType.RELEASE_ITEM: {
                 const data = this.transactionData;
                 if (data?.kind !== 'releaseItem')
                     throw new TypeError('A release-item transaction needs release-item data');
                 this.writeVarInt(data.actionType);
                 this.writeVarInt(data.hotbarSlot);
                 data.itemInHand.networkSerialize(this);
-                NetworkUtil.writeVector3(this, data.headRotation);
+                NetworkUtil.writeVector3(this, data.playerPosition);
                 break;
             }
             default:
