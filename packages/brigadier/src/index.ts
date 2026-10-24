@@ -54,3 +54,6 @@ export {
     string,
     word
 };
+
+export type { default as ArgumentType } from './arguments/ArgumentType';
+export type { ArgumentParseContext } from './arguments/ArgumentType';
