@@ -62,7 +62,6 @@
         "url": "https://github.com/JSPrismarine/JSPrismarine/issues"
     },
     "devDependencies": {
-        "@types/js-yaml": "^4.0.9",
         "@types/node": "24.13.6",
         "@types/terminal-kit": "2.5.7",
         "fast-jwt": "6.3.4",
@@ -83,8 +82,6 @@
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/protocol": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
-        "js-yaml": "4.3.2",
-        "json5": "2.2.3",
         "jsonc-parser": "3.3.1",
         "yaml": "2.9.1"
     }
