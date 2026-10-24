@@ -1,5 +1,24 @@
 # @jsprismarine/prismarine
 
+## 0.15.1
+
+### Patch Changes
+
+- [#2599](https://github.com/JSPrismarine/JSPrismarine/pull/2599) [`24e9693`](https://github.com/JSPrismarine/JSPrismarine/commit/24e9693285faea53a54264af5233f1c54724aa46) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency fast-jwt to v6.3.5
+
+- [#2610](https://github.com/JSPrismarine/JSPrismarine/pull/2610) [`10b7a13`](https://github.com/JSPrismarine/JSPrismarine/commit/10b7a1361bf615d62b22ef5c463d07d785eed56a) Thanks [@enricoangelon](https://github.com/enricoangelon)! - Fix respawning: pressing Respawn after a death left the client frozen, unable to move or act. The server now runs the respawn exchange as a Bedrock Dedicated Server 1.26.52 does. It answers the client's `ClientReadyToSpawn` with `SearchingForSpawn` at the spawn block and then `ReadyToSpawn` at eye height, with nothing after them. On the respawn action it sends `ActorEvent(SPAWN_ALIVE)`, the health, the attributes and the actor data, without moving the client. Every `Respawn` now names runtime id 0.
+- Updated dependencies []:
+  - @jsprismarine/binaryutils@0.15.1
+  - @jsprismarine/color-parser@0.15.1
+  - @jsprismarine/errors@0.15.1
+  - @jsprismarine/leveldb@0.15.1
+  - @jsprismarine/logger@0.15.1
+  - @jsprismarine/math@0.15.1
+  - @jsprismarine/minecraft@0.15.1
+  - @jsprismarine/nbt@0.15.1
+  - @jsprismarine/protocol@0.15.1
+  - @jsprismarine/raknet@0.15.1
+
 ## 0.15.0
 
 ### Minor Changes

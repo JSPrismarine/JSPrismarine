@@ -1,5 +1,13 @@
 # @jsprismarine/auth
 
+## 0.15.1
+
+### Patch Changes
+
+- [#2599](https://github.com/JSPrismarine/JSPrismarine/pull/2599) [`24e9693`](https://github.com/JSPrismarine/JSPrismarine/commit/24e9693285faea53a54264af5233f1c54724aa46) Thanks [@renovate](https://github.com/apps/renovate)! - chore(deps): update dependency fast-jwt to v6.3.5
+- Updated dependencies []:
+  - @jsprismarine/minecraft@0.15.1
+
 ## 0.15.0
 
 ### Patch Changes
