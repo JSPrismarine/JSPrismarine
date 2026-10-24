@@ -5,6 +5,7 @@ import type Skin from '../../utils/skin/Skin';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+/** The fields of one player list entry. A Remove entry needs only `uuid`. */
 interface PlayerListData {
     uuid: UUID;
     runtimeId?: bigint | null;
@@ -15,9 +16,23 @@ interface PlayerListData {
     skin?: Skin | null;
     isTeacher?: boolean;
     isHost?: boolean;
-    isSubClient?: boolean; // TODO
+    isSubClient?: boolean;
+    /** Player Color as an ARGB integer. Defaults to white. */
+    color?: number;
 }
 
+/** White. The client tints the name with this, and nothing here has an opinion about it. */
+const DEFAULT_PLAYER_COLOR = 0xff_ff_ff_ff;
+
+/** Build Platform for a device the session does not know. The session passes the same value. */
+const UNKNOWN_BUILD_PLATFORM = -1;
+
+/**
+ * One player in a Player List packet.
+ *
+ * The packet writes the UUID itself. For an Add entry, `networkSerialize` writes the rest of the
+ * PlayerListAddEntry fields after it.
+ */
 export class PlayerListEntry {
     private readonly uuid: UUID;
     private readonly runtimeId: bigint | null;
@@ -28,6 +43,8 @@ export class PlayerListEntry {
     private readonly skin: Skin | null;
     private readonly teacher: boolean;
     private readonly host: boolean;
+    private readonly subClient: boolean;
+    private readonly color: number;
 
     public constructor({
         uuid,
@@ -38,7 +55,9 @@ export class PlayerListEntry {
         buildPlatform,
         skin,
         isTeacher = true,
-        isHost = true
+        isHost = true,
+        isSubClient = false,
+        color = DEFAULT_PLAYER_COLOR
     }: PlayerListData) {
         this.uuid = uuid;
         this.runtimeId = runtimeId ?? null;
@@ -49,21 +68,37 @@ export class PlayerListEntry {
         this.skin = skin ?? null;
         this.teacher = isTeacher;
         this.host = isHost;
+        this.subClient = isSubClient;
+        // Signed, so the int32 writer accepts an ARGB value with the alpha bit set.
+        this.color = color | 0;
     }
 
+    /**
+     * Writes the PlayerListAddEntry fields that follow the UUID, in wire order: Actor Unique ID
+     * (varint64, ZigZag), Player Name, XBL XUID, Platform Online ID, Build Platform (int32,
+     * little-endian), Serialized Skin, Is Teacher, Is Host, Is SubClient and Player Color (int32,
+     * little-endian).
+     *
+     * @throws Error when the entry has no skin. An Add entry cannot be written without one.
+     */
     public networkSerialize(stream: BinaryStream): void {
-        stream.writeVarLong(this.getRuntimeId()!);
-        NetworkUtil.writeString(stream, this.getName()!);
-        NetworkUtil.writeString(stream, this.getXUID()!);
-        NetworkUtil.writeString(stream, this.getPlatformChatId()!);
-        stream.writeIntLE(this.getBuildPlatform()!);
-        this.getSkin()!.networkSerialize(stream);
+        const skin = this.getSkin();
+        if (skin === null) {
+            throw new Error(`Player list entry ${this.getUUID().toString()} has no skin, so it cannot be added`);
+        }
+
+        stream.writeVarLong(this.getRuntimeId() ?? 0n);
+        NetworkUtil.writeString(stream, this.getName() ?? '');
+        NetworkUtil.writeString(stream, this.getXUID());
+        NetworkUtil.writeString(stream, this.getPlatformChatId() ?? '');
+        stream.writeIntLE(this.getBuildPlatform() ?? UNKNOWN_BUILD_PLATFORM);
+        skin.networkSerialize(stream);
         stream.writeBoolean(this.isTeacher());
         stream.writeBoolean(this.isHost());
-        stream.writeBoolean(false); // is sub client
-        // The color the client tints this player's name with, ARGB and big endian. New at
-        // 2168, and four bytes the entry after this one is read from without it.
-        stream.writeInt(PLAYER_COLOR);
+        stream.writeBoolean(this.isSubClient());
+        // Player Color is an int32 in little-endian byte order, so an ARGB integer lands on the
+        // wire as B, G, R, A.
+        stream.writeIntLE(this.getColor());
     }
 
     public getUUID(): UUID {
@@ -101,16 +136,38 @@ export class PlayerListEntry {
     public isHost(): boolean {
         return this.host;
     }
+
+    /** Whether the player is a split-screen sub client of another player's device. */
+    public isSubClient(): boolean {
+        return this.subClient;
+    }
+
+    /** The Player Color as a signed 32-bit ARGB integer. */
+    public getColor(): number {
+        return this.color;
+    }
 }
 
-/** White: the client tints a name with this, and nothing here has an opinion about it. */
-const PLAYER_COLOR = 0xff_ff_ff_ff | 0;
-
+/**
+ * The Action byte of a player list entry: 0 adds a player, 1 removes one.
+ *
+ * The 1.26.50 docs page lists both values as 0. The client reads Add as 0 and Remove as 1, and
+ * the 1.26.60 page corrects the table. The variant selector written before the byte is numbered
+ * the other way round: Add selects 1 and Remove selects 0.
+ */
 export enum PlayerListAction {
     TYPE_ADD,
     TYPE_REMOVE
 }
 
+/**
+ * Player List (packet 63). Adds players to or removes them from the client's player list.
+ *
+ * The payload is a varuint entry count followed by one entry per player. Each entry is a varuint
+ * variant selector (1 for an Add entry, 0 for a Remove entry), the Action as a uint8, and the
+ * UUID. An Add entry continues with the fields `PlayerListEntry.networkSerialize` writes. The
+ * trusted-skin flag lives inside the skin, so nothing follows the entries.
+ */
 export default class PlayerListPacket extends DataPacket {
     public static NetID = Identifiers.PlayerListPacket;
 
@@ -118,15 +175,10 @@ export default class PlayerListPacket extends DataPacket {
     public type!: number;
 
     public encodePayload(): void {
-        // Every entry says for itself whether it is an addition or a removal. 748 said it once
-        // for the packet and then wrote a trailing run of booleans after the entries; at 2168
-        // the action is a tagged variant on each entry, and there are no trailing booleans.
         const adding = this.type === PlayerListAction.TYPE_ADD;
 
         this.writeUnsignedVarInt(this.entries.length);
         for (const entry of this.entries) {
-            // The selector, then the same action as a byte - the alternative's own first
-            // field. The two are numbered opposite ways round: `Add` selects 1 and is 0.
             this.writeUnsignedVarInt(adding ? 1 : 0);
             this.writeByte(this.type);
 
