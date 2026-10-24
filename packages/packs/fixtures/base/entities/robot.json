@@ -1,0 +1,25 @@
+{
+    // A comment the lenient parser must accept.
+    "format_version": "1.26.0",
+    "minecraft:entity": {
+        "description": { "identifier": "fixture:robot" },
+        "components": {
+            "minecraft:health": { "value": 10 },
+            /* The integer encoding the 1.26 serializer writes. */
+            "minecraft:damage_sensor": {
+                "triggers": [
+                    {
+                        "on_damage": {
+                            "filters": {
+                                "AND": [
+                                    { "test": "is_family", "subject": 1, "value": "player" },
+                                    { "test": "has_component", "operator": 1, "value": "minecraft:is_baby" },
+                                ]
+                            }
+                        }
+                    },
+                ]
+            },
+        }
+    }
+}

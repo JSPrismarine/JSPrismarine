@@ -1,0 +1,7 @@
+{
+    "format_version": "1.26.0",
+    "minecraft:entity": {
+        "description": { "identifier": "fixture:robot" },
+        "components": { "minecraft:health": { "value": 20 } }
+    }
+}

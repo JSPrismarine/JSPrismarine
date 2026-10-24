@@ -1,0 +1,17 @@
+{
+    "tiers": [
+        {
+            "groups": [
+                {
+                    "num_to_select": 1,
+                    "trades": [
+                        {
+                            "wants": [{ "item": "minecraft:emerald", "quantity": 1, }],
+                            "gives": [{ "item": "minecraft:apple", "quantity": 4 }], // trailing commas above
+                        },
+                    ]
+                },
+            ]
+        },
+    ]
+}

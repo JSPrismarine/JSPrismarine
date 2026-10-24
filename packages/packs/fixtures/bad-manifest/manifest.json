@@ -1,0 +1,5 @@
+{
+    "format_version": 2,
+    "header": { "name": "Broken Pack", "uuid": "not-a-uuid", "version": [1, 0, 0] },
+    "modules": []
+}

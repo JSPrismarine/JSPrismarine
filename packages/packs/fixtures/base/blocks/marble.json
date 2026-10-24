@@ -1,0 +1,8 @@
+{
+    "format_version": "1.26.50",
+    "unknown_root_key": true,
+    "minecraft:block": {
+        "description": { "identifier": "fixture:marble" },
+        "components": { "minecraft:destructible_by_mining": { "seconds_to_destroy": 1.5 } }
+    }
+}

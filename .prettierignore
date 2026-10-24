@@ -22,6 +22,8 @@ packages/minecraft/src/generated/*
 packages/minecraft/datagen/snapshot/*
 
 # Test files
+# Fixture pack JSON exercises lenient parsing (comments, trailing commas), which Prettier rejects.
+packages/packs/fixtures/**/*.json
 
 # File formats
 *.dat
