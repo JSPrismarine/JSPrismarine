@@ -9,7 +9,7 @@ import {
     MAX_MTU_SIZE,
     MIN_MTU_SIZE,
     MIN_DATAGRAM_BYTE_LENGTH,
-    MINECRAFT_PROTOCOL_VERSION,
+    RAKNET_PROTOCOL_VERSION,
     RAKNET_TICK_INTERVAL_MS,
     UDP_HEADER_SIZE
 } from './Constants';
@@ -436,7 +436,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
         if (attempt.stage === OfflineStage.OPEN_CONNECTION_REQUEST_1) {
             const packet = new OpenConnectionRequest1();
-            packet.protocol = MINECRAFT_PROTOCOL_VERSION;
+            packet.protocol = RAKNET_PROTOCOL_VERSION;
             // The server reads the MTU off the *size of this datagram*, adding back the UDP
             // header it cannot see, so the padding is the probe. Asking for `mtu` here
             // rather than `mtu - UDP_HEADER_SIZE` would negotiate one header too many and

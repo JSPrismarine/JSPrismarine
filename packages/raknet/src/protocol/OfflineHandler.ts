@@ -1,8 +1,8 @@
 import {
     MAX_MTU_SIZE,
     MIN_MTU_SIZE,
-    MINECRAFT_PROTOCOL_VERSION,
     OFFLINE_MESSAGE_DATA_ID,
+    RAKNET_PROTOCOL_VERSION,
     UDP_HEADER_SIZE
 } from '../Constants';
 import InetAddress from '../utils/InetAddress';
@@ -84,10 +84,9 @@ export class OfflineHandler {
 
                 // Don't waste resources by allocating a packet if we know version mismatches
                 const remoteProtocol = msg[1 + OFFLINE_MESSAGE_DATA_ID.byteLength];
-                // TODO: setter for custom protocol version
-                if (remoteProtocol !== MINECRAFT_PROTOCOL_VERSION) {
+                if (remoteProtocol !== RAKNET_PROTOCOL_VERSION) {
                     const response = new IncompatibleProtocolVersion();
-                    response.protocol = MINECRAFT_PROTOCOL_VERSION;
+                    response.protocol = RAKNET_PROTOCOL_VERSION;
                     response.serverGUID = this.listener.getServerGuid();
                     this.listener.sendPacket(response, rinfo);
                     return;

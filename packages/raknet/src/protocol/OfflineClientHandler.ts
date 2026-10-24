@@ -1,4 +1,4 @@
-import { MINECRAFT_PROTOCOL_VERSION, OFFLINE_MESSAGE_DATA_ID } from '../Constants';
+import { OFFLINE_MESSAGE_DATA_ID, RAKNET_PROTOCOL_VERSION } from '../Constants';
 
 import type { RemoteInfo } from 'node:dgram';
 import type ClientSocket from '../ClientSocket';
@@ -92,7 +92,7 @@ export class OfflineClientHandler {
                 const incompatible = new IncompatibleProtocolVersion(msg);
                 incompatible.decode();
                 this.socket.onOfflineFailure(
-                    `incompatible RakNet protocol version: the server speaks ${incompatible.protocol}, we speak ${MINECRAFT_PROTOCOL_VERSION}`
+                    `incompatible RakNet protocol version: the server speaks ${incompatible.protocol}, we speak ${RAKNET_PROTOCOL_VERSION}`
                 );
                 break;
             }

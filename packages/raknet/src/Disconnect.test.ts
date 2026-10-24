@@ -78,7 +78,7 @@ const openConnectionRequest1 = (mtuProbe: number) => {
     const stream = new BinaryStream();
     stream.writeByte(MessageIdentifiers.OPEN_CONNECTION_REQUEST_1);
     stream.write(OFFLINE_MESSAGE_DATA_ID);
-    stream.writeByte(11); // MINECRAFT_PROTOCOL_VERSION
+    stream.writeByte(11); // RAKNET_PROTOCOL_VERSION
     const header = stream.getBuffer();
     return Buffer.concat([header, Buffer.alloc(Math.max(0, mtuProbe - header.byteLength))]);
 };

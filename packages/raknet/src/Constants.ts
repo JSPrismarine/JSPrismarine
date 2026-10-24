@@ -106,7 +106,19 @@ export const CONNECTED_PING_INTERVAL_MS = 2_500;
  */
 export const MIN_DATAGRAM_BYTE_LENGTH = 2;
 
-export const MINECRAFT_PROTOCOL_VERSION = 11;
+/**
+ * The RakNet protocol version Bedrock speaks, carried in `OpenConnectionRequest1` and
+ * answered with `IncompatibleProtocolVersion` when it differs. This is RakNet's own
+ * version byte (Mojang's fork is at 11; the public archive is at 6), not Minecraft's
+ * network protocol, which the game layer negotiates after the connection is up. It is a
+ * property of the client build, so there is no setter: a server speaking any other value
+ * could talk to no Bedrock client.
+ * @see https://github.com/facebookarchive/RakNet/blob/master/Source/RakNetVersion.h
+ */
+export const RAKNET_PROTOCOL_VERSION = 11;
+/** @deprecated Use {@link RAKNET_PROTOCOL_VERSION}; this is the RakNet version, not Minecraft's. */
+export const MINECRAFT_PROTOCOL_VERSION = RAKNET_PROTOCOL_VERSION;
+/** The IPv4 and UDP headers a datagram pays for on the wire, which the MTU includes. */
 export const UDP_HEADER_SIZE = 28;
 /** RakNet's OFFLINE_MESSAGE_DATA_ID, the 16 byte magic every offline packet carries. */
 export const OFFLINE_MESSAGE_DATA_ID: Buffer = Buffer.from([

@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import Dgram from 'node:dgram';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import ClientSocket from './ClientSocket';
-import { MAX_MTU_SIZE, MIN_MTU_SIZE, MINECRAFT_PROTOCOL_VERSION, OFFLINE_MESSAGE_DATA_ID } from './Constants';
+import { MAX_MTU_SIZE, MIN_MTU_SIZE, OFFLINE_MESSAGE_DATA_ID, RAKNET_PROTOCOL_VERSION } from './Constants';
 import ServerSocket from './ServerSocket';
 import { RakNetRole, SessionStatus } from './Session';
 import Frame from './protocol/Frame';
@@ -215,14 +215,14 @@ describe('outgoing handshake over a real socket', () => {
     it('reports a protocol mismatch as itself rather than as a timeout', async () => {
         const port = await startRefusingServer((send) => {
             const refusal = new IncompatibleProtocolVersion();
-            refusal.protocol = MINECRAFT_PROTOCOL_VERSION + 1;
+            refusal.protocol = RAKNET_PROTOCOL_VERSION + 1;
             refusal.serverGUID = 42n;
             refusal.encode();
             send(refusal.getBuffer());
         });
 
         await expect(newClient().connect('127.0.0.1', port)).rejects.toThrow(
-            `the server speaks ${MINECRAFT_PROTOCOL_VERSION + 1}, we speak ${MINECRAFT_PROTOCOL_VERSION}`
+            `the server speaks ${RAKNET_PROTOCOL_VERSION + 1}, we speak ${RAKNET_PROTOCOL_VERSION}`
         );
     });
 
