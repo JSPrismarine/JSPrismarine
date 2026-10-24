@@ -80,8 +80,10 @@ export default class ClientConnection extends MinecraftSession {
         // be kicked with no reason shown.
         await Promise.all([
             // RakNet holds the session open until the client acknowledges this, so a lost
-            // datagram costs a retransmission rather than the reason.
-            this.sendDataPacket(packet).finally(() => this.forceDisconnect()),
+            // datagram costs a retransmission rather than the reason. Before the network
+            // settings exchange nothing is compressed, and a deflated goodbye would be read
+            // as garbage by a client that has not agreed to compression yet.
+            this.sendDataPacket(packet, this.hasCompression).finally(() => this.forceDisconnect()),
             this.closePlayerSession()
         ]);
     }

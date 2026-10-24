@@ -101,6 +101,21 @@ describe('network', () => {
             expect(disable).toHaveBeenCalledOnce();
         });
 
+        it('sends the goodbye uncompressed until compression has been negotiated', async () => {
+            // A client refused on its first packet has not agreed to compression yet. A
+            // deflated disconnect would decode as garbage, so the reason would never show.
+            const connection = fakeConnection();
+            const send = vi.spyOn(connection, 'sendDataPacket').mockResolvedValue();
+            vi.spyOn(connection, 'forceDisconnect').mockImplementation(() => {});
+
+            await connection.disconnect('Outdated client!', false);
+            expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Outdated client!' }), false);
+
+            connection.hasCompression = true;
+            await connection.disconnect('Kicked', false);
+            expect(send).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'Kicked' }), true);
+        });
+
         it('does nothing for a connection that never got a player', async () => {
             const connection = fakeConnection();
 
