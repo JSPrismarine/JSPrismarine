@@ -15,6 +15,11 @@ export {
 export { javaEntityTypeToBedrock, type EntityMappingResult } from './entityMapping';
 export { javaItemToBedrock, type BedrockItem, type ItemMappingResult } from './itemMapping';
 export {
+    createPackIdentifierResolver,
+    type PackIdentifierResolution,
+    type PackIdentifierResolver
+} from './packIdentifierResolver';
+export {
     BLOCK_LOSSES,
     BLOCK_MERGES,
     DROPPED_BLOCK_PROPERTIES,

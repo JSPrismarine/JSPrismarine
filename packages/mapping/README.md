@@ -31,6 +31,13 @@ javaIdentifierToBedrock('enchantment', 'minecraft:infinity');
 // { kind: 'mapped', bedrock: 'minecraft:bow_infinity' }
 ```
 
+`createPackIdentifierResolver()` wraps these lookups in the `IdentifierResolver` shape that
+`reportIdentifiers` in `@jsprismarine/packs` injects, so a datapack's referenced identifiers can be
+checked against the tables without that package knowing two editions exist. It resolves items,
+blocks, entity types, biomes (`worldgen/biome`) and enchantments: `mapped` and `passthrough`
+results report as `known`, reviewed losses as `loss`. Tag references and registries the tables do
+not cover report as `unknown`.
+
 The reviewed loss list is exported alongside the functions (`BLOCK_LOSSES`, `ITEM_LOSSES`,
 `ENTITY_LOSSES`, `REGISTRY_LOSSES`, the merge lists and the dropped-property lists). Every known
 loss carries a reason and a reference, and the property tests fail both when an unlisted loss
