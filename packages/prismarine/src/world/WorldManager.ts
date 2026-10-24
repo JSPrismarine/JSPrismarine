@@ -2,7 +2,7 @@ import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import { GeneratorManager } from './GeneratorManager';
 import { World } from './World';
-import type Provider from './providers/Provider';
+import type BaseProvider from './providers/BaseProvider';
 
 import Anvil from './providers/anvil/Anvil';
 import LevelDB from './providers/leveldb/LevelDB';
@@ -34,14 +34,19 @@ const WORLDS_FOLDER = 'worlds';
 const DEFAULT_WORLD_PROVIDER = 'LevelDB';
 
 /**
+ * A world provider class the manager instantiates per world with the world folder and server.
+ */
+export type ProviderClass = new (folderPath: string, server: Server) => BaseProvider;
+
+/**
  * The world manager is responsible level loading, unloading, and general level management.
  */
 export default class WorldManager implements Service {
-    private readonly worlds: Map<string, World> = new Map() as Map<string, World>;
+    private readonly worlds: Map<string, World> = new Map();
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
-    private providers: Map<string, any> = new Map() as Map<string, any>; // TODO: this should be a manager
+    private providers = new Map<string, ProviderClass>(); // TODO: this should be a manager
 
     public constructor(server: Server) {
         this.server = server;
@@ -89,9 +94,9 @@ export default class WorldManager implements Service {
      * Add a provider to the internal providers map.
      *
      * @param name - the name of the provider CASE SENSITIVE
-     * @param provider - the provider
+     * @param provider - the provider class, constructed per world with its folder path and the server
      */
-    public addProvider(name: string, provider: any) {
+    public addProvider(name: string, provider: ProviderClass) {
         this.providers.set(name, provider);
     }
 
@@ -105,10 +110,10 @@ export default class WorldManager implements Service {
     }
 
     /**
-     * Get all providers.
+     * Get all registered provider classes by name.
      */
-    public getProviders(): Map<string, Provider> {
-        return this.providers as Map<string, Provider>;
+    public getProviders(): Map<string, ProviderClass> {
+        return this.providers;
     }
 
     /**
@@ -128,7 +133,7 @@ export default class WorldManager implements Service {
      * @param folderName - the name of the folder containing the world
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
-        if (!(worldData as any)) throw new Error('Invalid world data');
+        if (!worldData) throw new Error('Invalid world data');
 
         if (this.isWorldLoaded(folderName)) {
             throw new Error(`World ${folderName} has already been loaded`);
