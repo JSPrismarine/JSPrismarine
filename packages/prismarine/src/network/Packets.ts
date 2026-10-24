@@ -2,6 +2,7 @@ import ActorEventPacket from './packet/ActorEventPacket';
 import ActorPickRequestPacket from './packet/ActorPickRequestPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
+import AddPaintingPacket from './packet/AddPaintingPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AnimatePacket from './packet/AnimatePacket';
 import AnvilDamagePacket from './packet/AnvilDamagePacket';
@@ -70,6 +71,7 @@ import ServerboundDiagnosticsPacket from './packet/ServerboundDiagnosticsPacket'
 import ServerboundLoadingScreenPacket from './packet/ServerboundLoadingScreenPacket';
 import ServerboundPackSettingChangePacket from './packet/ServerboundPackSettingChangePacket';
 import SetActorDataPacket from './packet/SetActorDataPacket';
+import SetActorLinkPacket from './packet/SetActorLinkPacket';
 import SetActorMotionPacket from './packet/SetActorMotionPacket';
 import SetDefaultGameTypePacket from './packet/SetDefaultGameTypePacket';
 import SetDifficultyPacket from './packet/SetDifficultyPacket';
@@ -98,6 +100,7 @@ export {
     ActorPickRequestPacket,
     AddActorPacket,
     AddItemActorPacket,
+    AddPaintingPacket,
     AddPlayerPacket,
     AdventureSettingsPacket,
     AnimatePacket,
@@ -173,6 +176,7 @@ export {
     ServerboundLoadingScreenPacket,
     ServerboundPackSettingChangePacket,
     SetActorDataPacket,
+    SetActorLinkPacket,
     SetActorMotionPacket,
     SetDefaultGameTypePacket,
     SetDifficultyPacket,

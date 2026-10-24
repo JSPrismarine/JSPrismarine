@@ -41,6 +41,7 @@ import ServerSettingsRequestHandler from './handler/ServerSettingsRequestHandler
 import ServerboundDiagnosticsHandler from './handler/ServerboundDiagnosticsHandler';
 import ServerboundLoadingScreenHandler from './handler/ServerboundLoadingScreenHandler';
 import ServerboundPackSettingChangeHandler from './handler/ServerboundPackSettingChangeHandler';
+import SetActorLinkHandler from './handler/SetActorLinkHandler';
 import SetDefaultGameTypeHandler from './handler/SetDefaultGameTypeHandler';
 import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
@@ -96,6 +97,7 @@ export {
     ServerboundDiagnosticsHandler,
     ServerboundLoadingScreenHandler,
     ServerboundPackSettingChangeHandler,
+    SetActorLinkHandler,
     SetDefaultGameTypeHandler,
     SetDifficultyHandler,
     SetLocalPlayerAsInitializedHandler,
