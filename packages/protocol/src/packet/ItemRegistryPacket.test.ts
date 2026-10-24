@@ -1,7 +1,11 @@
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import { ItemVersion } from '../structure/ItemData';
 import ItemRegistryPacket from './ItemRegistryPacket';
+
+import type { ItemRegistryEntry } from './ItemRegistryPacket';
 
 /** Packet id 162 as a varuint. */
 const HEADER = [0xa2, 0x01];
@@ -28,7 +32,7 @@ const OAK_LOG = [
     0x00 // empty Item Component Data
 ];
 
-/** A component based item whose compound holds one byte tag, so the reader has to skip it. */
+/** A component based item whose compound holds one byte tag, so the reader has to keep it. */
 const CUSTOM_WAND = [
     ...str('custom:wand'),
     ...int16le(1000),
@@ -44,16 +48,57 @@ const CUSTOM_WAND = [
 
 const PACKET = Buffer.from([...HEADER, 0x02, ...OAK_LOG, ...CUSTOM_WAND]);
 
+const wandComponents = (): NBTTagCompound => {
+    const compound = new NBTTagCompound();
+    compound.addValue('glow', new Types.ByteVal(7));
+    return compound;
+};
+
+const oakLog: ItemRegistryEntry = {
+    name: 'minecraft:oak_log',
+    runtimeId: -10,
+    componentBased: false,
+    version: ItemVersion.LEGACY
+};
+
+const wand: ItemRegistryEntry = {
+    name: 'custom:wand',
+    runtimeId: 1000,
+    componentBased: true,
+    version: ItemVersion.DATA_DRIVEN,
+    componentData: wandComponents()
+};
+
 describe('ItemRegistryPacket', () => {
-    it('reads each Item Data entry in docs order and skips the component compound', () => {
+    it('reads each Item Data entry in docs order and keeps the component compound', () => {
         const stream = new NetworkBinaryStream(PACKET);
         const data = new ItemRegistryPacket().deserialize(stream);
 
-        expect(data.items).toEqual([
-            { name: 'minecraft:oak_log', runtimeId: -10, componentBased: false, version: 0 },
-            { name: 'custom:wand', runtimeId: 1000, componentBased: true, version: 1 }
-        ]);
+        expect(data.items).toHaveLength(2);
+        expect(data.items[0]).toMatchObject({
+            name: 'minecraft:oak_log',
+            runtimeId: -10,
+            componentBased: false,
+            version: 0
+        });
+        expect(data.items[0]?.componentData?.size()).toBe(0);
+        expect(data.items[1]).toMatchObject({ name: 'custom:wand', runtimeId: 1000, componentBased: true, version: 1 });
+        expect(data.items[1]?.componentData?.getByte('glow', 0)).toBe(7);
         expect(stream.feof()).toBe(true);
+    });
+
+    it('writes the same bytes, with an empty compound for an entry that gives none', () => {
+        const bytes = new ItemRegistryPacket({ items: [oakLog, wand] }).serialize(new NetworkBinaryStream());
+
+        expect(bytes).toEqual(PACKET);
+    });
+
+    it('round-trips a component based entry', () => {
+        const bytes = new ItemRegistryPacket({ items: [wand] }).serialize(new NetworkBinaryStream());
+        const data = new ItemRegistryPacket().deserialize(new NetworkBinaryStream(bytes));
+
+        expect(data.items[0]).toMatchObject({ name: 'custom:wand', runtimeId: 1000, componentBased: true, version: 1 });
+        expect(data.items[0]?.componentData?.getByte('glow', 0)).toBe(7);
     });
 
     it('reads an empty table and stops at the count', () => {
@@ -64,9 +109,9 @@ describe('ItemRegistryPacket', () => {
         expect(stream.feof()).toBe(true);
     });
 
-    it('refuses to serialize, since the component trees are not modeled', () => {
-        const packet = new ItemRegistryPacket({ items: [] });
+    it('writes an empty table as the header and a zero count', () => {
+        const bytes = new ItemRegistryPacket({ items: [] }).serialize(new NetworkBinaryStream());
 
-        expect(() => packet.serialize(new NetworkBinaryStream())).toThrow(/decode-only/);
+        expect(bytes).toEqual(Buffer.from([...HEADER, 0x00]));
     });
 });

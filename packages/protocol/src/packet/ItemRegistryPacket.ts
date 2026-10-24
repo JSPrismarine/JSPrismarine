@@ -1,11 +1,12 @@
-import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 
 import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
+import ItemData from '../structure/ItemData';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** One `ItemData` entry of `ItemRegistryPacket`, without its `Item Component Data`. */
+/** One `ItemData` entry of `ItemRegistryPacket`. */
 export interface ItemRegistryEntry {
     /** `Item Name`, e.g. `minecraft:stick`. */
     name: string;
@@ -15,6 +16,12 @@ export interface ItemRegistryEntry {
     componentBased: boolean;
     /** `Item Version` from the docs enum `ItemVersion`: 0 `Legacy`, 1 `DataDriven`, 2 `None`. */
     version: number;
+    /**
+     * `Item Component Data`, the compound that defines a component-based item. A reader always
+     * fills it. A writer may leave it out for an item with no components, which writes the
+     * empty compound the field still requires.
+     */
+    componentData?: NBTTagCompound;
 }
 
 /** The decoded `ItemRegistryPacket`: the `Item Data` array in wire order. */
@@ -30,22 +37,24 @@ export interface ItemRegistry {
  * definitions that `StartGame` used to carry. A client that does not receive it cannot
  * resolve a single item id.
  *
- * Wire layout: `Item Data` is a varuint32 count followed by one `ItemData` per entry:
- * `Item Name` (string), `Item Id` (int16 little endian), `Is Component Based` (boolean),
- * `Item Version` (varint32, `ItemVersion` enum), and `Item Component Data` (network NBT
- * compound with varint lengths, little endian).
- *
- * This packet reads the component compound and drops it. The tree describes how a custom
- * item behaves, which the client package does not need. It still has to be read, because the
- * next entry starts where the compound ends.
+ * Wire layout: `Item Data` is a varuint32 count followed by one {@link ItemData} per entry:
+ * `Item Name` (a `hashed_string`, which travels as an ordinary string), `Item Id` (int16
+ * little endian), `Is Component Based` (boolean), `Item Version` (ZigZag varint32,
+ * `ItemVersion` enum), and `Item Component Data` (network NBT compound with varint lengths,
+ * little endian).
  */
 export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
     public get id(): number {
         return PacketIdentifier.ITEM_REGISTRY;
     }
 
-    protected serializePayload(): void {
-        throw new Error('ItemRegistryPacket is decode-only: the component trees are not modeled');
+    protected serializePayload(stream: NetworkBinaryStream, data: ItemRegistry): void {
+        stream.writeUnsignedVarInt(data.items.length);
+        for (const item of data.items) {
+            new ItemData(item.name, item.runtimeId, item.componentBased, item.version, item.componentData).serialize(
+                stream
+            );
+        }
     }
 
     protected deserializePayload(stream: NetworkBinaryStream): ItemRegistry {
@@ -53,19 +62,14 @@ export default class ItemRegistryPacket extends NetworkPacket<ItemRegistry> {
 
         let count = stream.readUnsignedVarInt();
         while (count-- > 0) {
-            const name = stream.readString();
-            const runtimeId = stream.readShortLE();
-            const componentBased = stream.readBoolean();
-            const version = stream.readVarInt();
-
-            // Read for its length, not its contents, in the network dialect with varint
-            // string lengths. The same compound in the other encoding is three bytes longer,
-            // so a reader on the wrong one walks into the next entry's name.
-            const reader = new NBTReader(stream, ByteOrder.LITTLE_ENDIAN);
-            reader.setUseVarint(true);
-            reader.parse();
-
-            items.push({ name, runtimeId, componentBased, version });
+            const data = ItemData.deserialize(stream);
+            items.push({
+                name: data.itemName,
+                runtimeId: data.itemId,
+                componentBased: data.componentBased,
+                version: data.version,
+                componentData: data.componentData
+            });
         }
 
         return { items };
