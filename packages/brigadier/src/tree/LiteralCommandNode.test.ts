@@ -15,7 +15,7 @@ describe('LiteralCommandNodeTest', () => {
     let contextBuilder: CommandContextBuilder<Object>;
 
     beforeEach(() => {
-        node = literal('foo').build() as any;
+        node = literal<Object>('foo').build();
         contextBuilder = new CommandContextBuilder(new CommandDispatcher(), new Object(), new RootCommandNode(), 0);
     });
 
