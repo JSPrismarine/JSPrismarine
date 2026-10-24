@@ -1,5 +1,10 @@
 import ActorLink from './ActorLink';
 import BlockPos from './BlockPos';
+import CameraAimAssistCategoryDefinition from './CameraAimAssistCategoryDefinition';
+import CameraAimAssistCategoryPriorities from './CameraAimAssistCategoryPriorities';
+import type { CameraAimAssistPriority } from './CameraAimAssistCategoryPriorities';
+import CameraAimAssistPresetDefinition from './CameraAimAssistPresetDefinition';
+import type { CameraAimAssistItemSetting, CameraAimAssistPresetExclusions } from './CameraAimAssistPresetDefinition';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
 import DimensionDefinition from './DimensionDefinition';
@@ -29,6 +34,9 @@ import Vec3 from './Vec3';
 export {
     ActorLink,
     BlockPos,
+    CameraAimAssistCategoryDefinition,
+    CameraAimAssistCategoryPriorities,
+    CameraAimAssistPresetDefinition,
     ChunkPos,
     DataItem,
     DimensionDefinition,
@@ -53,4 +61,12 @@ export {
     Vec2,
     Vec3
 };
-export type { EduSharedUriResourceData, HeightMap, ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };
+export type {
+    CameraAimAssistItemSetting,
+    CameraAimAssistPresetExclusions,
+    CameraAimAssistPriority,
+    EduSharedUriResourceData,
+    HeightMap,
+    ItemInstanceUserDataConfig,
+    NetworkItemStackDescriptorConfig
+};
