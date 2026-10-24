@@ -116,10 +116,12 @@ export const dumpBlockTransforms = () => {
     );
 
     console.log('Running the block transform dumper...');
+    // Minecraft's bootstrap writes a `logs/` folder into the working
+    // directory, so the dumper runs inside the cache rather than the package.
     execFileSync(
         path.join(jdkHome, 'bin/java'),
         ['-cp', [classesDir, classpath].join(path.delimiter), 'DumpBlockTransforms', outputDir],
-        { stdio: 'inherit' }
+        { stdio: 'inherit', cwd: cacheDir }
     );
     return path.join(outputDir, 'block_transforms.json');
 };
