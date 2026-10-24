@@ -11,79 +11,11 @@ import type CommandExceptionType from './CommandExceptionType';
 // SC1016) and that bundlers only tolerate with lazy-initialization tricks.
 // The old module paths re-export from here, so existing imports keep working.
 
-export default class CommandSyntaxException extends Error {
-    public static CONTEXT_AMOUNT = 10;
-    /** Assigned below, once BuiltInExceptions is defined. */
-    public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider;
-
-    private type: CommandExceptionType;
-    private __message: Message;
-    private input: string | null;
-    private cursor: number;
-
-    public constructor(type: CommandExceptionType, message: Message, input: string | null = null, cursor = -1) {
-        super(message.getString());
-        (Error as any).captureStackTrace?.(this, CommandSyntaxException);
-        this.type = type;
-        this.__message = message;
-        this.input = input;
-        this.cursor = cursor;
-
-        this.message = this.getMessage();
-    }
-
-    public getMessage(): string {
-        let message = this.__message.getString();
-        let context = this.getContext();
-        if (context != null) {
-            message += ' at position ' + this.cursor + ': ' + context;
-        }
-        return message;
-    }
-
-    public getRawMessage(): Message {
-        return this.__message;
-    }
-
-    public getContext() {
-        if (this.input == null || this.cursor < 0) {
-            return null;
-        }
-
-        let builder = '';
-        let cursor = Math.min(this.input.length, this.cursor);
-        if (cursor > CommandSyntaxException.CONTEXT_AMOUNT) {
-            builder += '...';
-        }
-
-        builder += this.input.substring(Math.max(0, cursor - CommandSyntaxException.CONTEXT_AMOUNT), cursor);
-        builder += '<--[HERE]';
-        return builder;
-    }
-
-    public getType(): CommandExceptionType {
-        return this.type;
-    }
-
-    public getInput() {
-        return this.input;
-    }
-
-    public getCursor(): number {
-        return this.cursor;
-    }
-
-    public toString(): string {
-        return this.message;
-    }
-}
-
 export class SimpleCommandExceptionType implements CommandExceptionType {
     private message: Message;
 
     public constructor(message: Message) {
         this.message = message;
-        (Error as any).captureStackTrace?.(this, SimpleCommandExceptionType);
     }
 
     public create(): CommandSyntaxException {
@@ -100,19 +32,26 @@ export class SimpleCommandExceptionType implements CommandExceptionType {
 }
 
 export class DynamicCommandExceptionType implements CommandExceptionType {
-    private fn: Function;
+    private fn: (...args: any[]) => Message;
 
     public constructor(fn: (...args: any[]) => Message) {
         this.fn = fn;
-        (Error as any).captureStackTrace?.(this, DynamicCommandExceptionType);
+    }
+
+    /**
+     * Calls the message factory with the arguments spelled out: the built-in factories take
+     * at most two, and positional calls lower where spread arguments do not.
+     */
+    private message(args: any[]): Message {
+        return this.fn(args[0], args[1], args[2]);
     }
 
     public create(...args: any[]): CommandSyntaxException {
-        return new CommandSyntaxException(this, this.fn(...args));
+        return new CommandSyntaxException(this, this.message(args));
     }
 
     public createWithContext(reader: ImmutableStringReader, ...args: any[]): CommandSyntaxException {
-        return new CommandSyntaxException(this, this.fn(...args), reader.getString(), reader.getCursor());
+        return new CommandSyntaxException(this, this.message(args), reader.getString(), reader.getCursor());
     }
 }
 
@@ -262,4 +201,67 @@ export class BuiltInExceptions implements BuiltInExceptionProvider {
     }
 }
 
-CommandSyntaxException.BUILT_IN_EXCEPTIONS = new BuiltInExceptions();
+export default class CommandSyntaxException extends Error {
+    public static CONTEXT_AMOUNT = 10;
+    public static BUILT_IN_EXCEPTIONS: BuiltInExceptionProvider = new BuiltInExceptions();
+
+    private type: CommandExceptionType;
+    private __message: Message;
+    private input: string | null;
+    private cursor: number;
+
+    public constructor(type: CommandExceptionType, message: Message, input: string | null = null, cursor = -1) {
+        super(message.getString());
+        this.type = type;
+        this.__message = message;
+        this.input = input;
+        this.cursor = cursor;
+
+        this.message = this.getMessage();
+    }
+
+    public getMessage(): string {
+        let message = this.__message.getString();
+        let context = this.getContext();
+        if (context != null) {
+            message += ' at position ' + this.cursor + ': ' + context;
+        }
+        return message;
+    }
+
+    public getRawMessage(): Message {
+        return this.__message;
+    }
+
+    public getContext() {
+        if (this.input == null || this.cursor < 0) {
+            return null;
+        }
+
+        let builder = '';
+        let cursor = Math.min(this.input.length, this.cursor);
+        if (cursor > CommandSyntaxException.CONTEXT_AMOUNT) {
+            builder += '...';
+        }
+
+        builder += this.input.substring(Math.max(0, cursor - CommandSyntaxException.CONTEXT_AMOUNT), cursor);
+        builder += '<--[HERE]';
+        return builder;
+    }
+
+    public getType(): CommandExceptionType {
+        return this.type;
+    }
+
+    public getInput() {
+        return this.input;
+    }
+
+    public getCursor(): number {
+        return this.cursor;
+    }
+
+    public toString(): string {
+        return this.message;
+    }
+}

@@ -13,7 +13,7 @@ export default class BoolArgumentType implements ArgumentType<boolean> {
         return new BoolArgumentType();
     }
 
-    public static getBool(context: CommandContext<any>, name: string): boolean {
+    public static getBool<S>(context: CommandContext<S>, name: string): boolean {
         return context.getArgument(name, Boolean);
     }
 
@@ -21,7 +21,7 @@ export default class BoolArgumentType implements ArgumentType<boolean> {
         return reader.readBoolean();
     }
 
-    public listSuggestions(context: CommandContext<any>, builder: SuggestionsBuilder): Promise<Suggestions> {
+    public listSuggestions<S>(context: CommandContext<S>, builder: SuggestionsBuilder): Promise<Suggestions> {
         if ('true'.startsWith(builder.getRemaining().toLowerCase())) {
             builder.suggest('true');
         }
