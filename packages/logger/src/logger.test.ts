@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 
+import type { LogLevel } from './logger';
 import { Logger } from './logger';
 
 /** A logger whose output is captured instead of printed. */
-const makeLogger = (level: Parameters<typeof Logger.prototype.constructor>[0] = 'info') => {
+const makeLogger = (level: LogLevel = 'info') => {
     const written: string[] = [];
-    const logger = new Logger(level as any);
+    const logger = new Logger(level);
     logger.setConsole({ write: (line: string) => written.push(line) });
     return { logger, written };
 };
@@ -39,7 +40,7 @@ describe('level guard', () => {
         const { logger } = makeLogger('info');
         // getNamespace is what captures the stack, and it is the whole cost being avoided.
         const getNamespace = vi.fn(() => '');
-        (logger as any).getNamespace = getNamespace;
+        logger['getNamespace'] = getNamespace;
 
         logger.debug('suppressed');
         logger.verbose('suppressed');
@@ -60,8 +61,8 @@ describe('namespace resolution', () => {
     it('reaches getNamespace at the stack depth getNamespace assumes', () => {
         const { logger } = makeLogger('info');
         let frames: string[] = [];
-        (logger as any).getNamespace = () => {
-            frames = (new Error().stack as string).split('\n');
+        logger['getNamespace'] = () => {
+            frames = new Error().stack?.split('\n') ?? [];
             return '';
         };
 
