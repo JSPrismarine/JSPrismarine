@@ -252,7 +252,7 @@ export default class NBTWriter {
         if (value instanceof DoubleVal) {
             return NBTDefinitions.TAG_DOUBLE;
         }
-        if (value instanceof Buffer) {
+        if (Buffer.isBuffer(value)) {
             return NBTDefinitions.TAG_BYTE_ARRAY;
         }
         if (value instanceof StringVal) {
