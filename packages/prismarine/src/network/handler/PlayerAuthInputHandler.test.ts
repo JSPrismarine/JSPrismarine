@@ -46,7 +46,7 @@ const fake = () => {
         getRuntimeId: () => 1n,
         getWorld: () => world
     });
-    const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn() });
+    const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn(), recordInputTick: vi.fn() });
     const server = stub<Server>({ post: () => 0, getLogger: () => stub<Logger>({ verbose: () => {} }) });
 
     return { calls, player, session, server };
@@ -131,5 +131,34 @@ describe('PlayerAuthInputHandler', () => {
         await new PlayerAuthInputHandler().handle(input(), server, session);
 
         expect(calls).toEqual([]);
+    });
+
+    it('records the input tick before anything else, so later packets can echo it', async () => {
+        const { session, server } = fake();
+
+        await new PlayerAuthInputHandler().handle(
+            input((packet) => {
+                packet.tick = 4242n;
+            }),
+            server,
+            session
+        );
+
+        expect(session.recordInputTick).toHaveBeenCalledWith(4242n);
+    });
+
+    it('records the tick of an input from a player who has not finished joining', async () => {
+        const { player, session, server } = fake();
+        player.isOnline = () => false;
+
+        await new PlayerAuthInputHandler().handle(
+            input((packet) => {
+                packet.tick = 7n;
+            }),
+            server,
+            session
+        );
+
+        expect(session.recordInputTick).toHaveBeenCalledWith(7n);
     });
 });

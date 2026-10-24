@@ -53,6 +53,10 @@ export default class PlayerAuthInputHandler implements PacketHandler<PlayerAuthI
     private readonly requests = new ItemStackRequestHandler();
 
     public async handle(packet: PlayerAuthInputPacket, server: Server, session: PlayerSession): Promise<void> {
+        // First, so every packet sent about this player from here on carries the tick as its
+        // `PlayerInputTick`, whatever else this input turns out to do.
+        session.recordInputTick(packet.tick);
+
         const player = session.getPlayer();
         if (!player.isOnline()) return;
 
