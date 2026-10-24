@@ -16,11 +16,14 @@ import ItemData, { ItemVersion } from './ItemData';
 import ItemInstanceUserData from './ItemInstanceUserData';
 import type { ItemInstanceUserDataConfig } from './ItemInstanceUserData';
 import LevelSettings from './LevelSettings';
+import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorBarWaypointPayload';
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
 import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
+import ServerWaypointPayload from './ServerWaypointPayload';
+import type { WorldPosition } from './ServerWaypointPayload';
 import SpawnSettings from './SpawnSettings';
 import SubChunkHeightmapData, { HeightMapDataType } from './SubChunkHeightmapData';
 import type { HeightMap } from './SubChunkHeightmapData';
@@ -48,10 +51,13 @@ export {
     ItemInstanceUserData,
     ItemVersion,
     LevelSettings,
+    LocatorBarWaypointPayload,
     NetworkItemStackDescriptor,
     PropertySyncData,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
+    ServerWaypointGroupAction,
+    ServerWaypointPayload,
     SpawnSettings,
     SubChunkHeightmapData,
     HeightMapDataType,
@@ -70,5 +76,6 @@ export type {
     EduSharedUriResourceData,
     HeightMap,
     ItemInstanceUserDataConfig,
-    NetworkItemStackDescriptorConfig
+    NetworkItemStackDescriptorConfig,
+    WorldPosition
 };
