@@ -78,6 +78,13 @@ const startServer = async (): Promise<void> => {
             logger.warn(`Cannot start the server, is it already running on the same port?`);
             throw error; // Re-throw it so `process.on` can handle it.
         }
+
+        // Something referenced, held for as long as the server runs. The socket and the tick
+        // timer are `unref`ed on purpose - a library must not keep its host process alive -
+        // and without a TTY the console never holds stdin open, so a headless server, as in
+        // a container, exited right after it began listening. Nothing clears this: `shutdown`
+        // ends the process with `process.exit`.
+        setInterval(() => {}, 1 << 30);
     };
 
     void bootstrap();
