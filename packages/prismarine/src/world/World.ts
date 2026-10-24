@@ -15,9 +15,9 @@ import UUID from '../utils/UUID';
 import Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
-import { allEntities } from '../entity/Entities';
+import { spawnableEntities } from '../entity/Entities';
 import { Item as ItemEntity } from '../entity/other/Item';
-import type { Entity, SpawnableEntityClass } from '../entity/Entity';
+import type { Entity } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
@@ -134,6 +134,10 @@ export interface LevelData {
     }>;
 }
 export interface WorldPlayerData {
+    /** Written so the file says who it belongs to; the file is found by key, not by this. */
+    uuid?: string;
+    /** Written for the same reason as `uuid`. */
+    username?: string;
     gamemode: string;
     position: {
         x: number;
@@ -261,8 +265,7 @@ export class World implements Service {
         }
         if (level.entities) {
             for (const entityData of level.entities) {
-                const Entity = allEntities().find((e) => e.MOB_ID === entityData.type) as
-                    SpawnableEntityClass | undefined;
+                const Entity = spawnableEntities().find((e) => e.MOB_ID === entityData.type);
                 if (!Entity) {
                     this.server.getLogger().warn(`Entity type ${entityData.type} not found`);
                     continue;
@@ -490,8 +493,7 @@ export class World implements Service {
         if (spawns.length === 0) return;
 
         for (const spawn of spawns) {
-            const Entity = allEntities().find((candidate) => candidate.MOB_ID === spawn.type) as
-                SpawnableEntityClass | undefined;
+            const Entity = spawnableEntities().find((candidate) => candidate.MOB_ID === spawn.type);
             if (!Entity) {
                 this.server.getLogger().debug(`World generation asked for ${spawn.type}, which has no entity class`);
                 continue;
@@ -711,7 +713,7 @@ export class World implements Service {
                 resolve(true);
             } catch (error: unknown) {
                 player.getServer().getLogger().warn(`${player.getName()} failed to place block due to ${error}`);
-                await player.sendMessage((error as any)?.message);
+                await player.sendMessage(error instanceof Error ? error.message : String(error));
 
                 resolve(false);
             }
@@ -1154,13 +1156,14 @@ export class World implements Service {
         return this.dimension;
     }
 
-    private async getLevelData() {
+    private async getLevelData(): Promise<Partial<LevelData>> {
         const path = withCwd(WORLDS_FOLDER_NAME, this.name, LEVEL_DATA_FILE_NAME);
         if (!fs.existsSync(path)) return {};
 
         try {
             const raw = await fs.promises.readFile(path, 'utf-8');
-            return JSON5.parse(raw.toString()) as Partial<LevelData>;
+            // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
+            return JSON5.parse(raw.toString());
         } catch (error: any) {
             // Something went wrong while reading or parsing the level data.
             this.server.getLogger().error(error);
@@ -1210,7 +1213,8 @@ export class World implements Service {
                 withCwd(WORLDS_FOLDER_NAME, this.name, 'playerdata', `${World.playerDataKey(player)}.json`),
                 'utf8'
             );
-            return JSON5.parse(raw) as Partial<WorldPlayerData>;
+            // Parsed JSON is a boundary the compiler cannot see; the file is trusted as written.
+            return JSON5.parse(raw);
         } catch (error: unknown) {
             // Missing player data is the ordinary case - it is what a first join looks like -
             // so this is a debug line and not an error. It used to raise "Player has no XUID"
@@ -1266,7 +1270,7 @@ export class World implements Service {
                 yaw: player.yaw,
                 headYaw: player.headYaw
             }
-        } as WorldPlayerData;
+        } satisfies WorldPlayerData;
 
         try {
             await fs.promises.writeFile(
