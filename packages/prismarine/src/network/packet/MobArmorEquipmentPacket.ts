@@ -3,16 +3,17 @@ import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
 /**
- * What an entity is wearing, all four pieces at once.
+ * What an entity is wearing, all five pieces at once.
  *
  * Separate from `MobEquipmentPacket`, which carries one held item and names a slot; this one is
- * positional - helmet, chestplate, leggings, boots, in that order and always all of them. An empty
- * slot is an air stack rather than an omission, because the client reads four and would otherwise
- * read the next packet's bytes as the rest of the armor.
+ * positional. Wire order at protocol 2193: Target Runtime ID, then Head, Torso, Legs, Feet and
+ * Body, each a `NetworkItemStackDescriptor`. An empty slot is an air stack rather than an
+ * omission, because the client reads five and would otherwise read the next packet's bytes as
+ * the rest of the armor.
  *
  * The only way anybody but the wearer sees armor: `AddActorPacket` has no room for it, so this
  * has to follow an entity into view the same way its held item does.
- * @see https://github.com/pmmp/BedrockProtocol/blob/master/src/MobArmorEquipmentPacket.php
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/mob-armor-equipment-packet/
  */
 export default class MobArmorEquipmentPacket extends DataPacket {
     public static NetID = Identifiers.MobArmorEquipmentPacket;
@@ -25,10 +26,9 @@ export default class MobArmorEquipmentPacket extends DataPacket {
     public feet!: Item;
 
     /**
-     * The off hand, which the protocol carries here rather than with the held item.
+     * The body armor slot, the fifth piece worn by wolves, horses and similar mobs.
      *
-     * Not armor by any reading, but it is what the packet holds and splitting it out would mean
-     * inventing a second packet the client does not send.
+     * Players have nothing to show here, so they send an air stack. It is not the off hand.
      */
     public body!: Item;
 
