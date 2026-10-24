@@ -8,7 +8,7 @@ import Chunk from './Chunk';
 
 const blockOf = (name: string): Block =>
     allBlocks()
-        .map((B) => new (B as any)())
+        .map((B) => new B())
         .find((block: Block) => block.getName() === name)!;
 
 describe('world', () => {
@@ -71,8 +71,8 @@ describe('world', () => {
             chunk.setBlockRuntimeId(0, 2, 0, dirt);
             chunk.setBlockRuntimeId(0, 3, 0, stone); // already known, must not be appended
 
-            const palette = (chunk.getSubChunk(0) as any).getStorage(0).palette;
-            expect(palette).toEqual([BlockRuntimeIds.getByName('minecraft:air'), stone, dirt]);
+            const [storage] = chunk.getSubChunk(0)?.getStorages() ?? [];
+            expect(storage?.getPalette()).toEqual([BlockRuntimeIds.getByName('minecraft:air'), stone, dirt]);
         });
     });
 

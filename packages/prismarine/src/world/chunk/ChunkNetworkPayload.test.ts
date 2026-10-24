@@ -45,13 +45,14 @@ describe('world', () => {
             expect(restored.getZ()).toBe(-7);
 
             const floor = Dimensions.Legacy.minY;
-            for (const [x, y, z] of [
+            const probes: Array<[number, number, number]> = [
                 [0, floor, 0],
                 [15, floor + 3, 15],
                 [4, floor + 4, 9],
                 [0, floor + 40, 0],
                 [7, floor + 20, 7]
-            ] as Array<[number, number, number]>) {
+            ];
+            for (const [x, y, z] of probes) {
                 expect(restored.getBlockRuntimeId(x, y, z)).toBe(original.getBlockRuntimeId(x, y, z));
             }
         });
