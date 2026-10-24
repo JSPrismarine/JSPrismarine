@@ -2,6 +2,9 @@ import NetworkPacket from '../NetworkPacket';
 import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
+import type { Experiment } from '@jsprismarine/minecraft';
+
+export type { Experiment };
 
 /** One entry of the `Texture Pack List`, as the docs' `PackInstanceId`. */
 export interface ResourcePackStackEntry {
@@ -11,14 +14,6 @@ export interface ResourcePackStackEntry {
     version: string;
     /** `Sub Pack Name`, empty when the pack has no sub pack selected. */
     subPackName: string;
-}
-
-/** One `ExperimentToggle` inside `Experiments`. */
-export interface Experiment {
-    /** `Name` of the experiment. */
-    name: string;
-    /** `Enabled` state of the experiment. */
-    enabled: boolean;
 }
 
 /** The fields of `ResourcePackStackPacket`, in wire order. */
@@ -83,20 +78,16 @@ export default class ResourcePackStackPacket extends NetworkPacket<ResourcePackS
     protected deserializePayload(stream: NetworkBinaryStream): ResourcePackStack {
         const texturePackRequired = stream.readBoolean();
 
-        const readList = (): ResourcePackStackEntry[] => {
-            const entries: ResourcePackStackEntry[] = [];
-            let count = stream.readUnsignedVarInt();
-            while (count-- > 0) {
-                entries.push({
-                    uuid: stream.readString(),
-                    version: stream.readString(),
-                    subPackName: stream.readString()
-                });
-            }
-            return entries;
-        };
+        const texturePacks: ResourcePackStackEntry[] = [];
+        let packCount = stream.readUnsignedVarInt();
+        while (packCount-- > 0) {
+            texturePacks.push({
+                uuid: stream.readString(),
+                version: stream.readString(),
+                subPackName: stream.readString()
+            });
+        }
 
-        const texturePacks = readList();
         const gameVersion = stream.readString();
 
         const experiments: Experiment[] = [];

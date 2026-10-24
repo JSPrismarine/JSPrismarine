@@ -10,10 +10,12 @@ import type { Experiment } from '@jsprismarine/minecraft';
  * 0. Toggles: the count as a uint32 LE (the docs mark it "no size compression", so not a
  *    varuint), then per toggle a Name string and an Enabled boolean.
  * 1. ExperimentsEverToggled: boolean, whether any experiment was ever switched on in this world.
- * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.50/types/experiments/}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/experiments/}
  */
 export default class Experiments extends NetworkStructure {
+    /** `Toggles`: the active experiments followed by the always-on ones. */
     public toggled: Array<Experiment> = [];
+    /** `ExperimentsEverToggled`: whether any experiment was ever switched on in this world. */
     public wereEverAlreadyToggled = false;
 
     public serialize(stream: NetworkBinaryStream): void {

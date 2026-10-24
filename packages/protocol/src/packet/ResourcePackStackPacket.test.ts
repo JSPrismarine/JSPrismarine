@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import NetworkBinaryStream from '../NetworkBinaryStream';
+import Experiments from '../structure/Experiments';
 import ResourcePackStackPacket from './ResourcePackStackPacket';
 
 import type { ResourcePackStack } from './ResourcePackStackPacket';
@@ -55,6 +56,18 @@ describe('ResourcePackStackPacket', () => {
 
     it('writes an empty stack as eleven bytes', () => {
         expect(encode(EMPTY_STACK_DATA)).toEqual(EMPTY_STACK);
+    });
+
+    it('writes the experiments the way the shared Experiments structure does', () => {
+        const experiments = new Experiments();
+        experiments.toggled = ONE_PACK_ONE_EXPERIMENT_DATA.experiments;
+        experiments.wereEverAlreadyToggled = ONE_PACK_ONE_EXPERIMENT_DATA.experimentsAlreadyEnabled;
+        const stream = new NetworkBinaryStream();
+        experiments.serialize(stream);
+
+        // Everything between Base Game Version and Include Editor Packs.
+        const experimentBytes = encode(ONE_PACK_ONE_EXPERIMENT_DATA).subarray(17, -1);
+        expect(experimentBytes).toEqual(stream.getBuffer());
     });
 
     it('reads the hand built buffer and nothing past it', () => {
