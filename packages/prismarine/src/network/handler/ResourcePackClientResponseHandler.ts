@@ -3,12 +3,13 @@ import RespawnPacket, { RespawnState } from '../packet/RespawnPacket';
 import SetSpawnPositionPacket, { SpawnType } from '../packet/SetSpawnPositionPacket';
 
 import type { Vector3 } from '@jsprismarine/math';
-import { getGametypeId } from '@jsprismarine/minecraft';
+import { Generator, getGametypeId } from '@jsprismarine/minecraft';
 import type { Player, PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
+import Flat from '../../world/generators/Flat';
 import Identifiers from '../Identifiers';
 import AvailableActorIdentifiersPacket from '../packet/AvailableActorIdentifiersPacket';
 import BiomeDefinitionListPacket from '../packet/BiomeDefinitionListPacket';
@@ -129,6 +130,10 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         startGame.gamemode = player.gamemode;
         startGame.defaultGamemode = getGametypeId(server.getConfig().getGamemode());
         startGame.difficulty = server.getConfig().getDifficulty();
+        startGame.dimension = world.getDimension().id;
+        // Only two generator types exist here. A plugin's generator is reported as Overworld,
+        // which is what the client assumes for terrain it did not make itself.
+        startGame.generator = world.getGenerator() instanceof Flat ? Generator.FLAT : Generator.OVERWORLD;
 
         const worldSpawnPos = await world.getSpawnPosition();
         startGame.worldSpawnPos = worldSpawnPos;

@@ -12,6 +12,7 @@ import type { Event } from '../../events/Event';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '../../utils/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
+import type { Generator } from '../../world/Generator';
 import type { PlayerSpawn } from '../../world/SpawnPlacement';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -47,6 +48,7 @@ const harness = ({
     const world = stub<World>({
         getTicks: () => 6000,
         getDimension: () => Dimensions.Overworld,
+        getGenerator: () => stub<Generator>(),
         getSpawnPosition: async () => new Vector3(0, 64, 0),
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',

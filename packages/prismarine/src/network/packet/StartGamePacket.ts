@@ -1,7 +1,7 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, Dimension, Generator } from '@jsprismarine/minecraft';
 import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
@@ -48,7 +48,8 @@ import DataPacket from './DataPacket';
  * | Server Telemetry Data | Server Id, Scenario Id, World Id, Owner Id (String) | `serverIdentifier`, `scenarioIdentifier`, `worldIdentifier`, empty |
  *
  * LevelSettings, in wire order: Seed (LUnsignedLong), Spawn Settings (Spawn Biome Type LShort,
- * User Defined Biome Name String, Dimension VarInt), Generator Type (VarInt), Game Type (VarInt),
+ * User Defined Biome Name String, Dimension VarInt `dimension`), Generator Type (VarInt
+ * `generator`), Game Type (VarInt `defaultGamemode`),
  * Is Hardcore, Game Difficulty (VarInt), Default Spawn Block Position (three VarInt), Achievements
  * Disabled, Editor World Type (VarInt), Is Created In Editor, Is Exported From Editor, Day Cycle
  * Stop Time (VarInt), Education Edition Offer (UnsignedVarInt), Education Features Enabled,
@@ -75,6 +76,15 @@ export default class StartGamePacket extends DataPacket {
 
     /** Game Difficulty, which the client shows on its own pause screen. */
     public difficulty: Difficulty = Difficulty.NORMAL;
+
+    /**
+     * Generator Type of the world. A dedicated server sends `Flat` for a flat world and
+     * `Overworld` for a generated one; the client reads it for its horizon and fog.
+     */
+    public generator: Generator = Generator.OVERWORLD;
+
+    /** Dimension the player spawns in, from the world's own definition. */
+    public dimension: Dimension = Dimension.OVERWORLD;
 
     public playerPos: Vector3 = new Vector3(0, 5, 0);
     public pitch: number = 0;
@@ -109,9 +119,9 @@ export default class StartGamePacket extends DataPacket {
 
         this.writeUnsignedShortLE(0x00); // Spawn Biome Type: Default
         NetworkUtil.writeString(this, 'plains'); // User Defined Biome Name
-        this.writeVarInt(0); // Dimension: Overworld
+        this.writeVarInt(this.dimension); // Dimension
 
-        this.writeVarInt(1); // Generator Type: Overworld
+        this.writeVarInt(this.generator); // Generator Type
         this.writeVarInt(this.defaultGamemode); // Game Type, the world default
 
         this.writeBoolean(false); // Is Hardcore

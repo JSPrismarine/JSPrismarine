@@ -1,6 +1,6 @@
 import { block_definitions } from '@jsprismarine/bedrock-data';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, Dimension, Generator } from '@jsprismarine/minecraft';
 import { NetworkBinaryStream, StartGamePacket as ProtocolStartGamePacket } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -35,6 +35,8 @@ const build = (seed = 258): StartGamePacket => {
     packet.gamemode = 1;
     packet.defaultGamemode = 2;
     packet.difficulty = Difficulty.HARD;
+    packet.generator = Generator.FLAT;
+    packet.dimension = Dimension.OVERWORLD;
     packet.playerPos = new Vector3(0.5, 64, -2);
     packet.pitch = 1;
     packet.yaw = 180;
@@ -80,8 +82,8 @@ const HEAD = Buffer.from([
     0x00, // Spawn Biome Type: Default as an int16
     0x00,
     ...string('plains'), // User Defined Biome Name
-    0x00, // Dimension: 0
-    0x02, // Generator Type: 1 zigzag encoded
+    0x00, // Dimension: Overworld
+    0x04, // Generator Type: Flat (2) zigzag encoded
     0x04, // Game Type (world default): 2 zigzag encoded
     0x00, // Is Hardcore
     0x06, // Game Difficulty: 3 zigzag encoded
@@ -143,6 +145,8 @@ describe('StartGamePacket', () => {
         expect(data.seed).toBe(258n);
         expect(data.worldGamemode).toBe(2);
         expect(data.difficulty).toBe(Difficulty.HARD);
+        expect(data.generator).toBe(Generator.FLAT);
+        expect(data.dimension).toBe(Dimension.OVERWORLD);
         expect(data.spawnPosition).toEqual({ x: 8, y: -60, z: -16 });
         expect(data.dayCycleStopTime).toBe(6000);
         expect(data.levelId).toBe('level-id');
@@ -200,6 +204,13 @@ describe('StartGamePacket', () => {
         expect(data.blockProperties).toEqual(
             block_definitions.map((block) => ({ name: block.name, definition: block.definition }))
         );
+    });
+
+    it('reports a generated world as Overworld unless told otherwise', () => {
+        const packet = new StartGamePacket();
+
+        expect(packet.generator).toBe(Generator.OVERWORLD);
+        expect(packet.dimension).toBe(Dimension.OVERWORLD);
     });
 
     it('writes a negative seed as its two 64 bit complement bytes', () => {
