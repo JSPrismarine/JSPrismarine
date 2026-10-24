@@ -221,7 +221,15 @@ export default class Player extends Human {
     }
 
     /**
-     * On enable hook.
+     * On enable hook: loads what the server knows about this player and marks them connected.
+     *
+     * @remarks Sends nothing. This runs from `LoginHandler`, before the client has been told
+     * its login succeeded, and a retail client at protocol 2193 that is handed game packets in
+     * that state drops the connection with `InitialConnection-90` (bad packet). It used to send
+     * the gamemode, adventure settings and abilities from here, and a `MovePlayer` for every
+     * other player in the world - the first three now go out from the join burst after
+     * `StartGame`, and the last was never needed: `AddPlayer` carries each player's position
+     * when they come into view.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
@@ -230,24 +238,20 @@ export default class Player extends Human {
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
-        this.setPosition({
-            position: playerData.position
-                ? Vector3.fromObject(playerData.position)
-                : await this.getWorld().getSpawnPosition(),
-            pitch: playerData.position?.pitch || 0,
-            yaw: playerData.position?.yaw || 0,
-            headYaw: playerData.position?.headYaw || 0,
-            type: MovementType.Reset
-        });
-        await this.getWorld().broadcastMove(this);
-
-        await this.sendSettings();
-
-        // Update position of all the players in the same world.
-        await Promise.all(
-            this.getWorld()
-                .getPlayers()
-                .map((target) => this.getNetworkSession().sendMove(target, MovementType.Reset))
+        // Not broadcast: `StartGame` carries the position, so the client has no use for a
+        // `MovePlayer` here. Awaited, where it was not, because the move this used to send went
+        // out after `PlayStatus(LoginSuccess)` had already been written.
+        await this.setPosition(
+            {
+                position: playerData.position
+                    ? Vector3.fromObject(playerData.position)
+                    : await this.getWorld().getSpawnPosition(),
+                pitch: playerData.position?.pitch || 0,
+                yaw: playerData.position?.yaw || 0,
+                headYaw: playerData.position?.headYaw || 0,
+                type: MovementType.Reset
+            },
+            false
         );
 
         // Registered here rather than in the constructor, and only once the rest has
@@ -453,8 +457,8 @@ export default class Player extends Human {
         await this.getNetworkSession().sendGamemode();
         await this.getNetworkSession().sendSettings();
 
-        // Explicitly, rather than relying on being among the online players: this runs from
-        // `enable()`, which marks the player connected only once it returns.
+        // Explicitly, because the fan-out below leaves this player out: its own client needs
+        // the abilities too, and this is the one copy it gets.
         await this.getNetworkSession().sendAbilities(this);
 
         await Promise.all(

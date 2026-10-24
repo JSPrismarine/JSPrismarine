@@ -1,3 +1,4 @@
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
@@ -11,6 +12,7 @@ import type { Block } from './block/Block';
 import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
 import type { Entity } from './entity/Entity';
+import type { PermissionManager } from './permission/PermissionManager';
 import { MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
 import type ClientConnection from './network/ClientConnection';
 import { ActorEvent } from './network/packet/ActorEventPacket';
@@ -45,9 +47,12 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
+        getLogger: () => stub<Logger>({ debug: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
+        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getConfig: () =>
             stub<Config>({
+                getGamemode: () => 'survival',
                 getProximityBroadcast: () => true,
                 getEntityTrackingHysteresis: () => 2,
                 getEntityTrackingInterval: () => 4
@@ -57,6 +62,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     const world = stub<World>({
         getName: () => 'test',
         getServer: () => server,
+        getPlayerData: async () => ({}),
         broadcastMove: async () => {},
         removeEntity: async () => {},
         getPlayers: () => [],
@@ -110,6 +116,20 @@ const move = async (player: Player, blocks: number, type = MovementType.Normal) 
 };
 
 describe('Player', () => {
+    describe('enable', () => {
+        it('sends nothing', async () => {
+            // It runs during login, before the client has `PlayStatus(LoginSuccess)`. The
+            // gamemode, settings and abilities it used to send from here now go out from the
+            // join burst after StartGame, where a retail client will accept them.
+            const { player, sent } = fakePlayer();
+
+            await player.enable();
+
+            expect(sent).toEqual([]);
+            expect(player.isOnline()).toBe(true);
+        });
+    });
+
     describe('attributes at spawn', () => {
         it('spawns fed, not starving', () => {
             const { player } = fakePlayer();
