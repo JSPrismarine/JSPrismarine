@@ -13,7 +13,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { glob } from 'glob';
-import type { Node, SourceFile } from 'tsc-ts/api';
+import type { ClassDeclaration, Node, SourceFile, VariableStatement } from 'tsc-ts/api';
 import {
     getCombinedModifierFlags,
     getJSDoc,
@@ -53,9 +53,22 @@ interface Finding {
 }
 
 const nameOf = (node: Node): string => {
-    const named = node as Node & { name?: { text?: string } };
-    return named.name?.text ?? '(anonymous)';
+    if (
+        'name' in node &&
+        typeof node.name === 'object' &&
+        node.name !== null &&
+        'text' in node.name &&
+        typeof node.name.text === 'string'
+    ) {
+        return node.name.text;
+    }
+    return '(anonymous)';
 };
+
+// `Statement` is the base interface rather than a union, so comparing `kind`
+// alone does not narrow and the API ships no `is*` helpers.
+const isVariableStatement = (node: Node): node is VariableStatement => node.kind === SyntaxKind.VariableStatement;
+const isClassDeclaration = (node: Node): node is ClassDeclaration => node.kind === SyntaxKind.ClassDeclaration;
 
 const findingsIn = (file: string, source: SourceFile): Finding[] => {
     const findings: Finding[] = [];
@@ -66,21 +79,19 @@ const findingsIn = (file: string, source: SourceFile): Finding[] => {
 
     for (const statement of source.statements.nodes) {
         if (!DECLARATIONS.has(statement.kind)) continue;
-        if (!(getCombinedModifierFlags(statement as never) & ModifierFlags.Export)) continue;
+        if (!(getCombinedModifierFlags(statement) & ModifierFlags.Export)) continue;
 
         if (getJSDoc(statement).length === 0) {
-            const what =
-                statement.kind === SyntaxKind.VariableStatement
-                    ? `exported constant \`${nameOf((statement as never as { declarationList: { declarations: { nodes: Node[] } } }).declarationList.declarations.nodes[0]!)}\``
-                    : `exported ${SyntaxKind[statement.kind]!.replace('Declaration', '').toLowerCase()} \`${nameOf(statement)}\``;
+            const what = isVariableStatement(statement)
+                ? `exported constant \`${nameOf(statement.declarationList.declarations.nodes[0]!)}\``
+                : `exported ${SyntaxKind[statement.kind]!.replace('Declaration', '').toLowerCase()} \`${nameOf(statement)}\``;
             report(statement, what);
         }
 
-        if (statement.kind !== SyntaxKind.ClassDeclaration) continue;
-        const members = (statement as never as { members: { nodes: Node[] } }).members.nodes;
-        for (const member of members) {
+        if (!isClassDeclaration(statement)) continue;
+        for (const member of statement.members.nodes) {
             if (member.kind !== SyntaxKind.MethodDeclaration) continue;
-            const flags = getCombinedModifierFlags(member as never);
+            const flags = getCombinedModifierFlags(member);
             if (flags & (ModifierFlags.Private | ModifierFlags.Protected)) continue;
             if (getJSDoc(member).length === 0) {
                 report(member, `public method \`${nameOf(statement)}.${nameOf(member)}\``);
@@ -109,7 +120,11 @@ if (process.argv.includes('--update')) {
     process.exit(0);
 }
 
-const baseline = new Set<string>(JSON.parse(readFileSync(baselinePath, 'utf8')) as string[]);
+const parsedBaseline: unknown = JSON.parse(readFileSync(baselinePath, 'utf8'));
+if (!Array.isArray(parsedBaseline) || !parsedBaseline.every((entry): entry is string => typeof entry === 'string')) {
+    throw new Error(`${baselinePath} must contain a JSON array of strings.`);
+}
+const baseline = new Set(parsedBaseline);
 const fresh = findings.filter((finding) => !baseline.has(keyOf(finding)));
 
 if (fresh.length > 0) {

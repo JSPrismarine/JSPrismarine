@@ -44,9 +44,7 @@ const typeOf = (value: unknown): string => {
         return members.length === 1 ? `${members[0]}[]` : `(${members.join(' | ')})[]`;
     }
     if (typeof value === 'object') {
-        const fields = Object.entries(value as Record<string, unknown>).map(
-            ([key, field]) => `${JSON.stringify(key)}: ${typeOf(field)}`
-        );
+        const fields = Object.entries(value).map(([key, field]) => `${JSON.stringify(key)}: ${typeOf(field)}`);
         return fields.length === 0 ? '{}' : `{ ${fields.join('; ')} }`;
     }
     return typeof value;
