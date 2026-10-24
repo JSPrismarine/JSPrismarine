@@ -93,8 +93,8 @@ describe('network', () => {
                 expect(pk.getBuffer()).toEqual(
                     expectedBytes({
                         targetActorId: [0x05], // -3 zigzags to 5
-                        // One entry: ID 3 (COLOR), Type 0 (Byte), Value 7.
-                        entityData: [0x01, 0x03, 0x00, 0x07],
+                        // One entry: ID 3 (COLOR), one-of selector 0 (Byte), Type 0 again, Value 7.
+                        entityData: [0x01, 0x03, 0x00, 0x00, 0x07],
                         isFromFishing: 0x01
                     })
                 );

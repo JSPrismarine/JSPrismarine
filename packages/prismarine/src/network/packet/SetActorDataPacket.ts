@@ -8,9 +8,10 @@ import DataPacket from './DataPacket';
  *
  * Protocol 2193 layout, in order: `Target Runtime ID` as a varuint64, `Actor Data` as a
  * `SynchedActorDataList` (varuint32 count, then per `DataItemEntry` the `ID` as a varuint32,
- * the `Type` as one uint8 `DataItemType`, and the `Value` in that type's encoding), `Synched
- * Properties` as a `PropertySyncData` (int entries, then float entries), and `Tick` as a
- * varuint64. Server to client only.
+ * the payload's one-of selector as a varuint32, the same type again as the alternative's uint8
+ * `Type`, and the `Value` in that type's encoding), `Synched Properties` as a
+ * `PropertySyncData` (int entries, then float entries), and `Tick` as a varuint64. Server to
+ * client only.
  */
 export default class SetActorDataPacket extends DataPacket {
     public static NetID = Identifiers.SetActorDataPacket;

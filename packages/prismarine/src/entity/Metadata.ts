@@ -254,7 +254,8 @@ export class MetadataWriter {
      * Writes the properties as a `SynchedActorDataList`.
      *
      * A varuint32 count, then one `DataItemEntry` per property: the `ID` as a varuint32, the
-     * payload's `Type` as one uint8 `DataItemType`, and the `Value` in that type's encoding.
+     * payload's one-of selector as a varuint32, the same type again as the alternative's own
+     * uint8 `Type` field, and the `Value` in that type's encoding.
      *
      * The entries go out in ascending id order rather than in the order they were set. The
      * client reads some properties as a group and expects them to arrive in order - an NPC
@@ -269,13 +270,15 @@ export class MetadataWriter {
         for (const [index, value] of entries) {
             stream.writeUnsignedVarInt(index);
 
-            // Once. The docs draw the payload as a one-of whose every alternative opens with
-            // `Type`, and that byte is the discriminator itself: the single type byte a Bedrock
-            // server has always put between the id and the value. For a while this also wrote
-            // a varuint selector ahead of it, so the client took the repeated byte as the
-            // start of the value and read every entry after it from the wrong place. A retail
-            // 1.26.51 client stalled on that during the join, before it ever reported itself
-            // initialized; the server's own bot, which does not validate, got through.
+            // The type twice, and both are needed. The payload is a Cereal tagged variant: a
+            // varuint selector (the alternative's index, which equals the `DataItemType`
+            // value) and then the alternative in full, whose first field is the same type as
+            // a byte. gophertunnel master writes `Varuint32(dataType)` then
+            // `Uint8(legacyDataType)` for protocol 2193 and its reader rejects a mismatch. This
+            // was once cut to the byte alone on the theory that the byte was the discriminator;
+            // a retail 1.26.51 client then failed to join. Do not remove the selector without a
+            // real-client capture that lacks it.
+            stream.writeUnsignedVarInt(value[0]);
             stream.writeByte(value[0]);
             switch (value[0]) {
                 case FlagType.BYTE:

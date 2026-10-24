@@ -142,8 +142,12 @@ describe('Metadata.networkSerialize', () => {
         for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
             stream.readUnsignedVarInt(); // The key.
 
-            // The type once, as the single `DataItemType` byte between the id and the value.
+            // The type arrives twice: a varuint selecting the alternative, then the same type
+            // as a byte because that is the alternative's own first field. A reader that
+            // takes only one of them reads the value as the other.
+            const selector = stream.readUnsignedVarInt();
             const type = stream.readByte();
+            expect(type).toBe(selector);
             const value =
                 type === FlagType.BYTE
                     ? stream.readSignedByte()
@@ -203,7 +207,8 @@ describe('Metadata.networkSerialize', () => {
         for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
             ids.push(stream.readUnsignedVarInt());
 
-            const type = stream.readByte();
+            const type = stream.readUnsignedVarInt();
+            expect(stream.readByte()).toBe(type);
             if (type === FlagType.FLOAT) stream.readFloatLE();
             else if (type === FlagType.SHORT) stream.readShortLE();
             else stream.read(stream.readUnsignedVarInt());
@@ -224,7 +229,8 @@ describe('Metadata.networkSerialize', () => {
 
         expect(stream.readUnsignedVarInt()).toBe(1);
         expect(stream.readUnsignedVarInt()).toBe(40);
-        expect(stream.readByte()).toBe(FlagType.ITEM);
+        expect(stream.readUnsignedVarInt()).toBe(FlagType.ITEM); // The one-of selector.
+        expect(stream.readByte()).toBe(FlagType.ITEM); // The alternative's own `Type`.
         const read = NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN, true);
         expect(read.getString('name', '')).toBe('steve');
         expect(stream.feof()).toBe(true);

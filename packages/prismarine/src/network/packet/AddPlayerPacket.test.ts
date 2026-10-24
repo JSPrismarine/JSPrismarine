@@ -99,7 +99,7 @@ describe('network', () => {
                 );
             });
 
-            it('writes a data item as its id, its type and the value, and targets the runtime id without a unique id', () => {
+            it('writes a data item as its id, the type twice and the value, and targets the runtime id without a unique id', () => {
                 // `sendSpawn` never sets a unique id; the server uses the runtime id for both.
                 const pk = buildPacket({});
                 pk.metadata.setFloat(MetadataFlag.SCALE, 1);
@@ -111,9 +111,9 @@ describe('network', () => {
                         playerPermission: 0x00,
                         commandPermission: 0x00,
                         buildPlatform: [0xff, 0xff, 0xff, 0xff],
-                        // One DataItemEntry: ID 38 as a varuint, DataItemType Float as one byte,
-                        // then the Value 1.0 as a float LE.
-                        entityData: [0x01, 0x26, 0x03, 0x00, 0x00, 0x80, 0x3f],
+                        // One DataItemEntry: ID 38 as a varuint, the Float alternative selected as
+                        // varuint 3, DataItemType Float as a byte, then the Value 1.0 as a float LE.
+                        entityData: [0x01, 0x26, 0x03, 0x03, 0x00, 0x00, 0x80, 0x3f],
                         rawId: [0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
                     })
                 );

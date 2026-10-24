@@ -40,8 +40,9 @@ const readValue = (stream: BinaryStream, type: FlagType): unknown => {
 /**
  * Decodes an encoded packet the way the docs lay it out, sharing nothing with the writer:
  * the header, `Target Runtime ID` varuint64, `Actor Data` as a varuint32 count of `ID`
- * varuint32, `Type` uint8 and `Value`, `Synched Properties` as two counted lists, `Tick`
- * varuint64, and nothing after that.
+ * varuint32, the one-of selector varuint32, the alternative's `Type` uint8 (equal to the
+ * selector) and `Value`, `Synched Properties` as two counted lists, `Tick` varuint64, and
+ * nothing after that.
  */
 const readPacket = (buffer: Buffer) => {
     const stream = new BinaryStream(buffer);
@@ -51,7 +52,9 @@ const readPacket = (buffer: Buffer) => {
     const items: DecodedItem[] = [];
     for (let i = 0, count = stream.readUnsignedVarInt(); i < count; i++) {
         const id = stream.readUnsignedVarInt();
+        const selector = stream.readUnsignedVarInt();
         const type: FlagType = stream.readByte();
+        expect(type, `id ${id}`).toBe(selector);
         items.push({ id, type, value: readValue(stream, type) });
     }
 
@@ -100,58 +103,59 @@ const encodeOne = (build: (metadata: Metadata) => void): number[] => {
 
 /**
  * One data item of each type, as hand-written bytes. Each packet is the header `0x27`, the
- * runtime id `0x01`, the count `0x01`, then `ID`, `Type` and `Value`, then two empty property
- * lists and a zero tick. The ids are 2193 `ActorDataID` values.
+ * runtime id `0x01`, the count `0x01`, then `ID`, the one-of selector, the alternative's
+ * `Type` byte (the same value again) and `Value`, then two empty property lists and a zero
+ * tick. The ids are 2193 `ActorDataID` values.
  */
 const vectors: Array<{ name: string; build: (metadata: Metadata) => void; entry: number[] }> = [
     {
         name: 'BYTE as int8',
         build: (m) => m.setPropertyValue(MetadataFlag.COLOR, FlagType.BYTE, -1),
-        entry: [0x03, 0x00, 0xff]
+        entry: [0x03, 0x00, 0x00, 0xff]
     },
     {
         name: 'SHORT as int16 LE',
         build: (m) => m.setShort(MetadataFlag.AIR, 300),
-        entry: [0x07, 0x01, 0x2c, 0x01]
+        entry: [0x07, 0x01, 0x01, 0x2c, 0x01]
     },
     {
         name: 'INT as ZigZag varint32',
         build: (m) => m.setInt(MetadataFlag.VARIANT, -2),
-        entry: [0x02, 0x02, 0x03]
+        entry: [0x02, 0x02, 0x02, 0x03]
     },
     {
         name: 'FLOAT as float LE',
         build: (m) => m.setFloat(MetadataFlag.SCALE, 1.5),
-        entry: [0x26, 0x03, 0x00, 0x00, 0xc0, 0x3f]
+        entry: [0x26, 0x03, 0x03, 0x00, 0x00, 0xc0, 0x3f]
     },
     {
         name: 'STRING as varuint length and UTF-8',
         build: (m) => m.setString(MetadataFlag.NAMETAG, 'hi'),
-        entry: [0x04, 0x04, 0x02, 0x68, 0x69]
+        entry: [0x04, 0x04, 0x04, 0x02, 0x68, 0x69]
     },
     {
         name: 'POSITION as three ZigZag varint32',
         // 28 is `BedPosition`, the vanilla `Pos` item.
         build: (m) => m.setPropertyValue(28, FlagType.POSITION, new Vector3(1, -2, 3)),
-        entry: [0x1c, 0x06, 0x02, 0x03, 0x06]
+        entry: [0x1c, 0x06, 0x06, 0x02, 0x03, 0x06]
     },
     {
         name: 'LONG as ZigZag varint64',
         build: (m) => m.setLong(MetadataFlag.TARGET_ENTITY_ID, -1n),
-        entry: [0x06, 0x07, 0x01]
+        entry: [0x06, 0x07, 0x07, 0x01]
     },
     {
         name: 'VECTOR as three floats LE',
         // 17 is `DisplayOffset`, the vanilla `Vec3` item.
         build: (m) => m.setPropertyValue(17, FlagType.VECTOR, new Vector3(0.5, 1.5, -2.5)),
-        entry: [0x11, 0x08, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0xc0, 0x3f, 0x00, 0x00, 0x20, 0xc0]
+        entry: [0x11, 0x08, 0x08, 0x00, 0x00, 0x00, 0x3f, 0x00, 0x00, 0xc0, 0x3f, 0x00, 0x00, 0x20, 0xc0]
     }
 ];
 
 describe('network', () => {
     describe('packet', () => {
         describe('SetActorDataPacket', () => {
-            it.each(vectors)('writes $name after one id and one type byte', ({ build, entry }) => {
+            it.each(vectors)('writes $name after the id, the selector and the type byte', ({ build, entry }) => {
                 expect(encodeOne(build)).toEqual([0x27, 0x01, 0x01, ...entry, 0x00, 0x00, 0x00]);
             });
 
