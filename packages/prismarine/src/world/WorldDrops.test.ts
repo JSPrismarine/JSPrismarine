@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
+import type { Entity } from '../entity/Entity';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '../network/packet/AddItemActorPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
@@ -66,12 +67,15 @@ const fakeWorld = (initial: BlockState) => {
         viewDistance: 10
     };
 
+    // The real one, so `addEntity` has somewhere to put what it is given - and handed back,
+    // because the world keeps no public count of what it holds.
+    const entities = new Map<bigint, Entity>();
+
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         currentTick: 0,
         blockUpdates: new BlockUpdateScheduler(),
-        // The real ones, so `addEntity` has somewhere to put what it is given.
-        entities: new Map(),
+        entities,
         players: new Map(),
         getChunkAt: async () => chunk,
         getBlock: async () => block,
@@ -87,9 +91,9 @@ const fakeWorld = (initial: BlockState) => {
         }
     });
 
-    world.attachChangeSink(new NetworkWorldReplicator(world, (world as any).server));
+    world.attachChangeSink(new NetworkWorldReplicator(world, world.getServer()));
 
-    return { world, player, sent };
+    return { world, player, sent, entities };
 };
 
 describe('world', () => {
@@ -117,21 +121,21 @@ describe('world', () => {
         });
 
         it('adds the drop to the world, so it ticks and can be picked up', async () => {
-            const { world, player } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { world, player, entities } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
-            expect(world.getEntityCount?.() ?? (world as any).entities.size).toBe(1);
+            expect(entities.size).toBe(1);
         });
 
         it('drops nothing in creative, where breaking is not mining', async () => {
-            const { world, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
+            const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'));
             player.gamemode = Gametype.CREATIVE;
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(sent.some((packet) => packet instanceof AddItemActorPacket)).toBe(false);
-            expect((world as any).entities.size).toBe(0);
+            expect(entities.size).toBe(0);
         });
     });
 });

@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { Block } from '../../block/Block';
+import type BlockManager from '../../block/BlockManager';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import type Server from '../../Server';
+import { stub } from '../../testing/stub.test.helper';
 import BlockUpdateScheduler from '../BlockUpdateScheduler';
 import Chunk from '../chunk/Chunk';
+import { Dimensions } from '../Dimension';
 import type { World } from '../World';
 import BlockPhysics from './BlockPhysics';
 
@@ -38,58 +43,55 @@ class TestWorld {
         }
     }
 
-    public getLoadedChunk(cx: number, cz: number): Chunk | null {
-        return this.chunks.get(`${cx},${cz}`) ?? null;
-    }
-
-    public getBlockUpdates(): BlockUpdateScheduler {
-        return this.updates;
-    }
-
-    public getPlayers(): [] {
-        return [];
-    }
-
-    public getServer(): any {
-        return {
-            getBlockManager: () => ({
-                getBlock: (name: string) => {
-                    if (name === 'minecraft:nonexistent') throw new Error('no such block');
-                    return { getName: () => name, getStateName: () => name, getId: () => 1, getMeta: () => 0 };
-                }
-            })
-        };
-    }
-
     /** Entities in the world, which for physics means the blocks currently falling. */
     public readonly entities: any[] = [];
 
-    public async dropContents(_position: any, contents: any[]): Promise<void> {
-        for (const drop of contents) this.dropped.push(drop.getName());
-    }
+    /** The face this shows to the code under test. Every member reads the state above. */
+    private readonly world = stub<World>({
+        getLoadedChunk: (cx, cz) => this.getLoadedChunk(cx, cz),
+        getBlockUpdates: () => this.updates,
+        getPlayers: () => [],
+        getServer: () =>
+            stub<Server>({
+                getBlockManager: () =>
+                    stub<BlockManager>({
+                        getBlock: (name) => {
+                            if (name === 'minecraft:nonexistent') throw new Error('no such block');
+                            return stub<Block>({
+                                getName: () => name,
+                                getStateName: () => name,
+                                getId: () => 1,
+                                getMeta: () => 0
+                            });
+                        }
+                    })
+            }),
+        dropContents: async (_position, contents) => {
+            for (const drop of contents) if (drop) this.dropped.push(drop.getName());
+        },
+        addEntity: async (entity) => {
+            this.entities.push(entity);
+        },
+        removeEntity: async (entity) => {
+            const index = this.entities.indexOf(entity);
+            if (index >= 0) this.entities.splice(index, 1);
+        },
+        broadcastMove: async () => {},
+        getDimension: () => Dimensions.Overworld,
+        getBlockState: async (x, y, z) => {
+            const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+            if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) {
+                throw new Error(`nothing loaded at ${x},${y},${z}`);
+            }
 
-    public async addEntity(entity: any): Promise<void> {
-        this.entities.push(entity);
-    }
+            return chunk.getBlock(x & 0xf, y, z & 0xf);
+        },
+        setBlockRuntimeId: (x, y, z, runtimeId, now, delay) => this.setBlockRuntimeId(x, y, z, runtimeId, now, delay),
+        setBlockByName: (x, y, z, name, now, delay) => this.setBlockByName(x, y, z, name, now, delay)
+    });
 
-    public async removeEntity(entity: any): Promise<void> {
-        const index = this.entities.indexOf(entity);
-        if (index >= 0) this.entities.splice(index, 1);
-    }
-
-    public async broadcastMove(): Promise<void> {}
-
-    public getDimension() {
-        return { id: 0 as const, name: 'minecraft:overworld', minY: -64, height: 384 };
-    }
-
-    public async getBlockState(x: number, y: number, z: number) {
-        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
-        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) {
-            throw new Error(`nothing loaded at ${x},${y},${z}`);
-        }
-
-        return chunk.getBlock(x & 0xf, y, z & 0xf);
+    public getLoadedChunk(cx: number, cz: number): Chunk | null {
+        return this.chunks.get(`${cx},${cz}`) ?? null;
     }
 
     public async setBlockRuntimeId(
@@ -97,7 +99,7 @@ class TestWorld {
         y: number,
         z: number,
         runtimeId: number,
-        now: number,
+        now = 0,
         delay = 1
     ): Promise<boolean> {
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
@@ -135,7 +137,7 @@ class TestWorld {
     }
 
     public asWorld(): World {
-        return this as unknown as World;
+        return this.world;
     }
 }
 
