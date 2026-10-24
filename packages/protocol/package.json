@@ -54,7 +54,7 @@
         "@types/node": "24.19.2",
         "glob": "13.0.6",
         "typescript": "7.0.2",
-        "vite": "8.3.3",
+        "vite": "8.3.5",
         "vitest": "5.0.5"
     },
     "dependencies": {
