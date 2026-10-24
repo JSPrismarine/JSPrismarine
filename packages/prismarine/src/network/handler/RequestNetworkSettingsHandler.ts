@@ -8,6 +8,7 @@ import NetworkSettingsPacket, { CompressionThreshold } from '../packet/NetworkSe
 
 export default class RequestNetworkSettingsHandler implements PreLoginPacketHandler<RequestNetworkSettingsPacket> {
     public static NetID = Identifiers.RequestNetworkSettingsPacket;
+    public readonly preLogin = true;
 
     public async handle(
         packet: RequestNetworkSettingsPacket,

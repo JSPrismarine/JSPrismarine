@@ -9,11 +9,11 @@ describe('network', () => {
             const logger = new Logger();
             const registry = new PacketRegistry({
                 getLogger: () => logger
-            } as any);
+            });
 
             let error;
             try {
-                await (registry as any).registerPackets();
+                await registry['registerPackets']();
             } catch (e) {
                 error = e;
             }
@@ -24,11 +24,11 @@ describe('network', () => {
             const logger = new Logger();
             const registry = new PacketRegistry({
                 getLogger: () => logger
-            } as any);
+            });
 
             let error;
             try {
-                await (registry as any).registerHandlers();
+                await registry['registerHandlers']();
             } catch (e) {
                 error = e;
             }

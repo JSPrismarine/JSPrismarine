@@ -8,12 +8,15 @@ import Identifiers from './Identifiers';
 import type PacketHandler from './handler/PacketHandler';
 import type PreLoginPacketHandler from './handler/PreLoginPacketHandler';
 
-export default class PacketRegistry {
-    private server: Server;
-    private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
-    private readonly handlers: Map<number, PacketHandler<any>> = new Map();
+/** Either handler kind the registry holds. Which one applies depends on whether the connection has logged in. */
+type RegisteredHandler = PacketHandler<any> | PreLoginPacketHandler<any>;
 
-    public constructor(server: Server) {
+export default class PacketRegistry {
+    private server: Pick<Server, 'getLogger'>;
+    private readonly packets: Map<number, typeof Packets.DataPacket> = new Map();
+    private readonly handlers: Map<number, RegisteredHandler> = new Map();
+
+    public constructor(server: Pick<Server, 'getLogger'>) {
         this.server = server;
     }
 
@@ -67,7 +70,7 @@ export default class PacketRegistry {
         this.packets.delete(id);
     }
 
-    public registerHandler(id: number, handler: PacketHandler<any>): void {
+    public registerHandler(id: number, handler: RegisteredHandler): void {
         if (this.handlers.has(id)) throw new Error(`Handler with id ${id} already exists!`);
 
         this.handlers.set(id, handler);
@@ -76,7 +79,7 @@ export default class PacketRegistry {
             .debug(`Handler with id §b${handler.constructor.name}§r registered`, 'PacketRegistry/registerHandler');
     }
 
-    public getHandler(id: number): PacketHandler<any> | PreLoginPacketHandler<any> {
+    public getHandler(id: number): RegisteredHandler {
         if (!this.handlers.has(id)) throw new Error(`Invalid handler with id ${id.toString(16)}!`);
 
         return this.handlers.get(id)!;
@@ -97,7 +100,7 @@ export default class PacketRegistry {
             }
         })();
 
-        return res as PacketHandler<any>;
+        return res;
     }
 
     /**
@@ -136,7 +139,7 @@ export default class PacketRegistry {
         const timer = new Timer();
 
         // Dynamically register handlers
-        Object.entries(Handlers).map(([, value]) => this.registerHandler(value.NetID!, new (value as any)()));
+        Object.values(Handlers).forEach((Handler) => this.registerHandler(Handler.NetID, new Handler()));
 
         this.server
             .getLogger()
