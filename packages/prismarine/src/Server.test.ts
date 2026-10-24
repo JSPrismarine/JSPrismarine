@@ -5,6 +5,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@jsprismarine/logger';
 import Server from './Server';
+import { Config } from './config/Config';
 
 vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: any) {
@@ -12,7 +13,7 @@ vi.mock('@jsprismarine/raknet', async (importActual) => {
         this.on = vi.fn();
     });
     return {
-        ...(((await importActual()) as any) || {}),
+        ...(await importActual<typeof import('@jsprismarine/raknet')>()),
         RakNetListener: MockRakNetListener
     };
 });
@@ -38,79 +39,74 @@ describe('Server', () => {
     /**
      * A config naming a world of its own.
      *
+     * Extends the real `Config` because its fields are private, so nothing else can stand in
+     * for it. `enable` is a no-op so the file under `JSP_DIR` is never read; every value the
+     * server asks for at startup is answered by an override below.
+     *
      * One folder per test on purpose: these tests stub `shutdown`, so the server they started is
      * left running and still holding its world. LevelDB takes a directory lock - two writers on
      * one world delete each other's files - so a second server pointed at the same folder is
      * refused, as it should be.
      */
     const debugConfig = (levelName: string) =>
-        new (class DebugConfig {
-            public enable() {}
-            public disable() {}
+        new (class DebugConfig extends Config {
+            public override async enable() {}
 
-            public getPort() {
-                return 19199;
-            }
-
-            public getServerIp() {
+            public override getServerIp() {
                 return '0.0.0.0';
             }
 
-            public getLevelName() {
+            public override getLevelName() {
                 return levelName;
             }
 
-            public getWorlds() {
+            public override getWorlds() {
                 return {
                     [levelName]: { generator: 'Flat', provider: 'LevelDB', seed: 1 }
                 };
             }
 
             /** Zero: this is a startup smoke test, not a terrain generation one. */
-            public getPreloadRadius() {
+            public override getPreloadRadius() {
                 return 0;
             }
 
-            public getChunkSendBudgetMs() {
+            public override getChunkSendBudgetMs() {
                 return 5;
             }
 
-            public getMaxPlayers() {
+            public override getMaxPlayers() {
                 return 1;
             }
 
-            public getGamemode() {
-                return 1;
+            public override getGamemode() {
+                return 'creative';
             }
 
-            public getMotd() {
+            public override getMotd() {
                 return 'CI';
             }
 
-            public getViewDistance() {
+            public override getViewDistance() {
                 return 4;
             }
 
-            public getOnlineMode() {
+            public override getOnlineMode() {
                 return false;
             }
 
-            public getEnableEval() {
+            public override getEnableTicking() {
                 return false;
             }
 
-            public getEnableTicking() {
+            public override getEnableProcessTitle() {
                 return false;
             }
 
-            public getEnableProcessTitle() {
-                return false;
-            }
-
-            public getPacketCompressionLevel() {
+            public override getPacketCompressionLevel() {
                 return 7;
             }
-        })() as any;
+        })();
 
     it('starts and stops without crashing', async () => {
         const logger = new Logger();
@@ -119,7 +115,7 @@ describe('Server', () => {
             config: debugConfig('test-world')
         });
 
-        const mockExit = vi.spyOn(prismarine, 'shutdown').mockImplementation((() => {}) as any);
+        const mockExit = vi.spyOn(prismarine, 'shutdown').mockResolvedValue(undefined);
 
         await prismarine.bootstrap('0.0.0.0', 12345);
         await expect(() => prismarine.shutdown()).not.toThrow();
@@ -134,7 +130,7 @@ describe('Server', () => {
             headless: true
         });
 
-        const mockExit = vi.spyOn(prismarine, 'shutdown').mockImplementation((() => {}) as any);
+        const mockExit = vi.spyOn(prismarine, 'shutdown').mockResolvedValue(undefined);
 
         await prismarine.bootstrap('0.0.0.0', 12345);
         await expect(() => prismarine.shutdown()).not.toThrow();
