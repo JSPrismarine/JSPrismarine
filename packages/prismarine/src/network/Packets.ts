@@ -86,6 +86,7 @@ import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket';
 import TakeItemActorPacket from './packet/TakeItemActorPacket';
 import TransferPacket from './packet/TransferPacket';
+import UpdateAbilitiesPacket from './packet/UpdateAbilitiesPacket';
 import AdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
 import UpdateBlockPacket from './packet/UpdateBlockPacket';
@@ -188,6 +189,7 @@ export {
     TakeItemActorPacket,
     TickingAreasLoadStatusPacket,
     TransferPacket,
+    UpdateAbilitiesPacket,
     UpdateAttributesPacket,
     UpdateBlockPacket,
     UpdateClientOptionsPacket,

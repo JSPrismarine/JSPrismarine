@@ -6,14 +6,16 @@ import Identifiers from '../Identifiers';
  * The "SerializedLayer" value of an ability layer, written as a uint16.
  *
  * The client merges layers in this order, so a flag set in a later layer wins over the same
- * flag in an earlier one. Values match gophertunnel's `AbilityLayerType`.
+ * flag in an earlier one. The docs type the field as a bare uint16; the values are the
+ * client's `AbilitiesLayer` enum, `CustomCache` through `LoadingScreen`.
  */
 export enum AbilityLayerType {
     CACHE,
     BASE,
     SPECTATOR,
     COMMANDS,
-    EDITOR
+    EDITOR,
+    LOADING_SCREEN
 }
 
 // `AbilityLayerFlag` is generated from Mojang's documentation, where it is `AbilitiesIndex`.
@@ -100,7 +102,10 @@ export class AbilityLayer {
  * followed by that many `AbilityLayer` entries.
  *
  * The docs type "Player Permissions" as `PlayerPermissionLevel` and "Command Permissions" as
- * `CommandPermissionLevel`, the generated enums in `@jsprismarine/minecraft`.
+ * `CommandPermissionLevel`, the generated enums in `@jsprismarine/minecraft`. The target id
+ * is the actor unique id the client got in `StartGamePacket` or `AddPlayerPacket`; a packet
+ * for an id the client does not know is dropped.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-abilities-packet/
  */
 export default class UpdateAbilitiesPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAbilitiesPacket;

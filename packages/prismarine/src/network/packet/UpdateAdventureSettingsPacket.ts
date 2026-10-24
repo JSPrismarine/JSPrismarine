@@ -9,6 +9,7 @@ import Identifiers from '../Identifiers';
  * `no MvP`, `Immutable World`, `Show Name Tags`, `Auto Jump`.
  *
  * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/update-adventure-settings-packet/
  */
 export default class UpdateAdventureSettingsPacket extends DataPacket {
     public static NetID = Identifiers.UpdateAdventureSettingsPacket;

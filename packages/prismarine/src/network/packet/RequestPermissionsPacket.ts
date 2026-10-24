@@ -8,7 +8,7 @@ import DataPacket from './DataPacket';
  * Wire layout at protocol 2193: Target Player Id's Raw ID as an int64 LE (an actor unique id
  * written fixed width, not as a varint), Player Permission Level as a ZigZag varint32, then
  * Custom Permission Flags as a uint16 LE bit set that only matters at the `Custom` level.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/request-permissions-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-permissions-packet/
  */
 export default class RequestPermissionsPacket extends DataPacket {
     public static NetID = Identifiers.RequestPermissionsPacket;

@@ -134,6 +134,18 @@ export default class PlayerSession {
     /** The last window id handed out; see {@link PlayerSession.nextWindowId}. */
     private windowId = 0;
 
+    /**
+     * The tick of the last `PlayerAuthInputPacket` handled for this client, or `0n` before the
+     * first one.
+     *
+     * Client-bound packets about the player carry a `PlayerInputTick`, and the docs want it to be
+     * this value, not the server's tick counter. The client matches it against its own input
+     * history to undo predictions it made while the packet was in flight. The server's counter
+     * is not in that history, so it told the client nothing; zero is what the docs allow before
+     * any input has arrived.
+     */
+    private lastInputTick = 0n;
+
     public constructor(server: Server, connection: ClientConnection, player: Player) {
         this.server = server;
         this.connection = connection;
@@ -431,6 +443,15 @@ export default class PlayerSession {
         await this.connection.sendDataPacket(packet);
     }
 
+    /**
+     * Sends `UpdateAbilitiesPacket` describing `player` to this client.
+     *
+     * One `BASE` layer carries every ability, derived from the game mode and op state, with
+     * walk speed 0.1, fly speed 0.05 and vertical fly speed 1, the client's own defaults.
+     * The target id is the player's runtime id, which the server also uses as its unique id.
+     *
+     * @param player - The player described. Defaults to this session's own player.
+     */
     public async sendAbilities(player?: Player): Promise<void> {
         const target = player ?? this.player;
 
@@ -440,11 +461,15 @@ export default class PlayerSession {
         const creative = target.gamemode === Gametype.CREATIVE;
         const spectator = target.gamemode === Gametype.SPECTATOR;
 
+        // The base layer names every ability, so the client replaces its whole state rather
+        // than keeping stale bits. The three speed flags mark their floats as applying; without
+        // `VERTICAL_FLY_SPEED` the client ignored the vertical speed written below.
         const mainLayer = new AbilityLayer();
         mainLayer.layerType = AbilityLayerType.BASE;
         mainLayer.layerFlags = new Map([
             [AbilityLayerFlag.FLY_SPEED, true],
             [AbilityLayerFlag.WALK_SPEED, true],
+            [AbilityLayerFlag.VERTICAL_FLY_SPEED, true],
             [AbilityLayerFlag.MAY_FLY, creative || spectator || target.metadata.canFly],
             [AbilityLayerFlag.FLYING, spectator || target.isFlying()],
             [AbilityLayerFlag.NO_CLIP, spectator],
@@ -455,6 +480,7 @@ export default class PlayerSession {
             [AbilityLayerFlag.WORLD_BUILDER, false],
             [AbilityLayerFlag.INSTABUILD, creative],
             [AbilityLayerFlag.LIGHTNING, false],
+            [AbilityLayerFlag.PRIVILEGED_BUILDER, false],
             [AbilityLayerFlag.BUILD, !spectator],
             [AbilityLayerFlag.MINE, !spectator],
             [AbilityLayerFlag.DOORS_AND_SWITCHES, !spectator],
@@ -463,6 +489,7 @@ export default class PlayerSession {
             [AbilityLayerFlag.ATTACK_MOBS, !spectator]
         ]);
         mainLayer.flySpeed = 0.05;
+        mainLayer.verticalFlySpeed = 1;
         mainLayer.walkSpeed = 0.1;
 
         const packet = new UpdateAbilitiesPacket();
@@ -954,8 +981,21 @@ export default class PlayerSession {
         const packet = new UpdateAttributesPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.attributes = attributes;
-        packet.tick = BigInt(this.player.getServer().getTick());
+        // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
+        // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
+        packet.tick = entity === this.player ? this.lastInputTick : 0n;
         await this.connection.sendDataPacket(packet);
+    }
+
+    /**
+     * Remember the tick of a `PlayerAuthInputPacket` just handled, so packets about this player
+     * can carry it as their `PlayerInputTick`.
+     *
+     * Ticks only move forward; an input that arrives out of order does not wind the value back.
+     * @param {bigint} tick - The packet's `Tick` field.
+     */
+    public recordInputTick(tick: bigint): void {
+        if (tick > this.lastInputTick) this.lastInputTick = tick;
     }
 
     /**

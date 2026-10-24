@@ -12,10 +12,11 @@ export enum RequestAbilityValueType {
 /**
  * The client asking to change one of its own abilities, such as toggling flight.
  *
- * Wire layout at protocol 2193: Ability as a ZigZag varint32 (an `AbilitiesIndex`), Value
- * Type as a uint8, then both a boolean and a float LE. Only the slot named by the value type
- * is meaningful; the other is sent as its zero value.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/request-ability-packet/
+ * Wire layout at protocol 2193: Ability as a ZigZag varint32 (an `AbilitiesIndex`, which the
+ * schema constrains to 0 through 19), Value Type as a uint8, then both a boolean and a float
+ * LE. Only the slot named by the value type is meaningful; the other is sent as its zero
+ * value.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/request-ability-packet/
  */
 export default class RequestAbilityPacket extends DataPacket {
     public static NetID = Identifiers.RequestAbilityPacket;
