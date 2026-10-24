@@ -2,7 +2,7 @@ import type Command from '../Command';
 import type Predicate from '../Predicate';
 import type RedirectModifier from '../RedirectModifier';
 import StringReader from '../StringReader';
-import LiteralArgumentBuilder from '../builder/LiteralArgumentBuilder';
+import ArgumentBuilder from '../builder/ArgumentBuilder';
 import type CommandContext from '../context/CommandContext';
 import type CommandContextBuilder from '../context/CommandContextBuilder';
 import StringRange from '../context/StringRange';
@@ -110,4 +110,46 @@ export default class LiteralCommandNode<S> extends CommandNode<S> {
     public toString(): string {
         return '<literal ' + this.literal + '>';
     }
+}
+
+export class LiteralArgumentBuilder<S> extends ArgumentBuilder<S, LiteralArgumentBuilder<S>> {
+    private literal: string;
+
+    public constructor(literal: string) {
+        super();
+        this.literal = literal;
+    }
+
+    public static literal<S>(name: string): LiteralArgumentBuilder<S> {
+        return new LiteralArgumentBuilder<S>(name);
+    }
+
+    public getThis(): LiteralArgumentBuilder<S> {
+        return this;
+    }
+
+    public getLiteral(): string {
+        return this.literal;
+    }
+
+    public build(): LiteralCommandNode<S> {
+        let result: LiteralCommandNode<S> = new LiteralCommandNode(
+            this.getLiteral(),
+            this.getCommand(),
+            this.getRequirement(),
+            this.getRedirect(),
+            this.getRedirectModifier(),
+            this.isFork()
+        );
+        for (let arg of this.getArguments()) {
+            result.addChild(arg);
+        }
+
+        return result;
+    }
+}
+
+/** Starts a literal command node builder. */
+export function literal<S>(name: string): LiteralArgumentBuilder<S> {
+    return LiteralArgumentBuilder.literal<S>(name);
 }

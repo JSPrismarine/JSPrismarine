@@ -27,7 +27,7 @@ export default class StringArgumentType implements ArgumentType<string> {
         return new StringArgumentType(StringType.GREEDY_PHRASE);
     }
 
-    public static getString(context: CommandContext<any>, name: string): string {
+    public static getString<S>(context: CommandContext<S>, name: string): string {
         return context.getArgument(name, String);
     }
 

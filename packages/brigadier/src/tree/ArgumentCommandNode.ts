@@ -3,11 +3,11 @@ import type Predicate from '../Predicate';
 import type RedirectModifier from '../RedirectModifier';
 import StringReader from '../StringReader';
 import type ArgumentType from '../arguments/ArgumentType';
-import RequiredArgumentBuilder from '../builder/RequiredArgumentBuilder';
+import ArgumentBuilder from '../builder/ArgumentBuilder';
+import type SuggestionProvider from '../suggestion/SuggestionProvider';
 import type CommandContext from '../context/CommandContext';
 import type CommandContextBuilder from '../context/CommandContextBuilder';
 import ParsedArgument from '../context/ParsedArgument';
-import type SuggestionProvider from '../suggestion/SuggestionProvider';
 import Suggestions from '../suggestion/Suggestions';
 import type SuggestionsBuilder from '../suggestion/SuggestionsBuilder';
 import isEqual from '../util/isEqual';
@@ -120,4 +120,63 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
     public toString(): string {
         return '<argument ' + this.name + ':' + this.type + '>';
     }
+}
+
+export class RequiredArgumentBuilder<S, T> extends ArgumentBuilder<S, RequiredArgumentBuilder<S, T>> {
+    private name: string;
+    private type: ArgumentType<T>;
+    private suggestionsProvider!: SuggestionProvider<S>;
+
+    private constructor(name: string, type: ArgumentType<T>) {
+        super();
+        this.name = name;
+        this.type = type;
+    }
+
+    public static argument<S, T>(name: string, type: ArgumentType<T>) {
+        return new RequiredArgumentBuilder<S, T>(name, type);
+    }
+
+    public suggests(provider: SuggestionProvider<S>) {
+        this.suggestionsProvider = provider;
+        return this.getThis();
+    }
+
+    public getSuggestionsProvider(): SuggestionProvider<S> {
+        return this.suggestionsProvider;
+    }
+
+    public getThis(): RequiredArgumentBuilder<S, T> {
+        return this;
+    }
+
+    public getType(): ArgumentType<T> {
+        return this.type;
+    }
+
+    public getName(): string {
+        return this.name;
+    }
+
+    public build(): ArgumentCommandNode<S, T> {
+        let result: ArgumentCommandNode<S, T> = new ArgumentCommandNode(
+            this.getName(),
+            this.getType(),
+            this.getCommand(),
+            this.getRequirement(),
+            this.getRedirect(),
+            this.getRedirectModifier(),
+            this.isFork(),
+            this.getSuggestionsProvider()
+        );
+        for (let arg of this.getArguments()) {
+            result.addChild(arg);
+        }
+        return result;
+    }
+}
+
+/** Starts a required argument node builder. */
+export function argument<S, T>(name: string, type: ArgumentType<T>): RequiredArgumentBuilder<S, T> {
+    return RequiredArgumentBuilder.argument<S, T>(name, type);
 }

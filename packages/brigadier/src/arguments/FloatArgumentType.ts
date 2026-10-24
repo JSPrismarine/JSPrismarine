@@ -18,7 +18,7 @@ export default class FloatArgumentType implements ArgumentType<number> {
         return new FloatArgumentType(min, max);
     }
 
-    public static getFloat(context: CommandContext<any>, name: string): number {
+    public static getFloat<S>(context: CommandContext<S>, name: string): number {
         return context.getArgument(name, Number);
     }
 

@@ -18,7 +18,7 @@ export default class IntegerArgumentType implements ArgumentType<number> {
         return new IntegerArgumentType(min, max);
     }
 
-    public static getInteger(context: CommandContext<any>, name: string): number {
+    public static getInteger<S>(context: CommandContext<S>, name: string): number {
         return context.getArgument(name, Number);
     }
 
