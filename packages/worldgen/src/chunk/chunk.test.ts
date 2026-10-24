@@ -5,9 +5,10 @@ import { vectors } from '../../vectors/vectors';
 import type { DensitySampler } from '../density/compile';
 import type { DensityFunctionNode } from '../density/DensityFunction';
 import { SampleContext } from '../density/SampleContext';
+import { LegacyRandomSource } from '../random/LegacyRandomSource';
 import type { PositionalRandomFactory, RandomSource } from '../random/RandomSource';
-import { XoroshiroRandomSource } from '../random/XoroshiroRandomSource';
 import { RandomState } from '../RandomState';
+import type { NoiseGeneratorSettings, NoiseRouter } from '../settings/NoiseGeneratorSettings';
 import { ChunkSampler } from './ChunkSampler';
 import { AIR, createGlobalFluidPicker, FluidStatus, LAVA, WATER } from './FluidPicker';
 import { compileOreVeinRule, parseOreVeinRule } from './oreVein';
@@ -28,17 +29,29 @@ describe('FluidStatus', () => {
 });
 
 describe('the global fluid picker', () => {
-    const picker = createGlobalFluidPicker({
+    const zero: DensityFunctionNode = { type: 'constant', value: 0 };
+    const router: NoiseRouter = {
+        temperature: zero,
+        vegetation: zero,
+        continents: zero,
+        erosion: zero,
+        depth: zero,
+        ridges: zero,
+        chunkSurfaceLevel: zero,
+        finalDensity: zero
+    };
+    const settings: NoiseGeneratorSettings = {
         noiseSettings: { minY: -64, height: 384 },
         defaultBlock: 'minecraft:stone',
         defaultFluid: WATER,
-        noiseRouter: {} as never,
+        noiseRouter: router,
         materialRule: 'minecraft:overworld',
         seaLevel: 63,
         disableMobGeneration: false,
         aquifers: undefined,
         useLegacyRandomSource: false
-    });
+    };
+    const picker = createGlobalFluidPicker(settings);
 
     it('fills to sea level with the dimension fluid', () => {
         expect(picker(0, 0, 0).at(62)).toBe(WATER);
@@ -65,7 +78,7 @@ describe('the ore vein rule', () => {
             raw_ore_chance: 0.02,
             richness: 'richness'
         },
-        (reference) => ({ type: 'constant', value: 0 }) as DensityFunctionNode & { marker?: typeof reference }
+        (): DensityFunctionNode => ({ type: 'constant', value: 0 })
     );
 
     const compileWith = (density: number, richness: number, gap: number, floats: number[]) => {
@@ -77,10 +90,26 @@ describe('the ore vein rule', () => {
             return () => values[name] ?? 0;
         };
         let drawn = 0;
+        // Only `nextFloat` is reachable from the rule; the rest delegates to a real source so
+        // the double still satisfies the whole interface.
+        const delegate = new LegacyRandomSource(0n);
         const random: RandomSource = {
-            nextFloat: () => floats[drawn++] ?? 0
-        } as RandomSource;
-        const factory: PositionalRandomFactory = { at: () => random } as PositionalRandomFactory;
+            nextFloat: () => floats[drawn++] ?? 0,
+            nextInt: () => delegate.nextInt(),
+            nextIntBounded: (bound) => delegate.nextIntBounded(bound),
+            nextLong: () => delegate.nextLong(),
+            nextBoolean: () => delegate.nextBoolean(),
+            nextDouble: () => delegate.nextDouble(),
+            nextGaussian: () => delegate.nextGaussian(),
+            consumeCount: (rounds) => delegate.consumeCount(rounds),
+            fork: () => delegate.fork(),
+            forkPositional: () => delegate.forkPositional()
+        };
+        const factory: PositionalRandomFactory = {
+            at: () => random,
+            fromHashOf: () => random,
+            fromSeed: () => random
+        };
         return { place: compileOreVeinRule(rule, compile, factory), draws: () => drawn };
     };
 
@@ -185,6 +214,5 @@ describe.skipIf(!vanilla)('the overworld chunk sampler', () => {
         expect(other.column(first.x, first.z).map((entry) => entry.state)).toEqual(
             sampler.column(first.x, first.z).map((entry) => entry.state)
         );
-        expect(XoroshiroRandomSource.fromSeed(1n).nextLong()).toBeTypeOf('bigint');
     });
 });
