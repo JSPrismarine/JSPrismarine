@@ -1,3 +1,4 @@
+import { BuildPlatform, CommandPermissionLevel, Gametype, PlayerPermissionLevel } from '@jsprismarine/minecraft';
 import { Metadata } from '../../entity/Metadata';
 import { Item } from '../../item/Item';
 import { NetworkUtil } from '../../network/NetworkUtil';
@@ -5,6 +6,32 @@ import type UUID from '../../utils/UUID';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+/**
+ * Spawns another player's entity on a client.
+ *
+ * **Bound To:** Client
+ *
+ * Wire layout at protocol 2193, in order and with the names the docs use:
+ *
+ * | Name | Type | Notes |
+ * | ---- |:----:|:-----:|
+ * | UUID | mce::UUID | Most significant uint64 LE, then least significant uint64 LE |
+ * | Player Name | String | |
+ * | Target Runtime ID | UnsignedVarLong | |
+ * | Platform Chat Id | String | |
+ * | Position | Vec3 (LFloat) | |
+ * | Velocity | Vec3 (LFloat) | |
+ * | Rotation | Vec2 (LFloat) | Pitch, then yaw |
+ * | Y-Head Rotation | LFloat | |
+ * | Carried Item | NetworkItemStackDescriptor | See {@link Item.networkSerialize} |
+ * | Player Game Type | VarInt | A `Gametype` value |
+ * | Entity Data | SynchedActorDataList | See {@link Metadata.networkSerialize} |
+ * | Synched Properties | PropertySyncData | Int entry count, then float entry count; both always zero |
+ * | Abilities Data | SerializedAbilitiesData | Target Player Raw Id LLong, Player Permissions Byte, Command Permissions Byte, layer count UnsignedVarInt |
+ * | Actor Links | ActorLink[] | UnsignedVarInt count; always empty here |
+ * | Device Id | String | |
+ * | Build Platform | LInt | A `BuildPlatform` value |
+ */
 export default class AddPlayerPacket extends DataPacket {
     public static NetID = Identifiers.AddPlayerPacket;
 
@@ -26,11 +53,17 @@ export default class AddPlayerPacket extends DataPacket {
     public yaw!: number;
     public headYaw!: number;
 
-    public gamemode: number = 0;
+    public gamemode: Gametype = Gametype.SURVIVAL;
     public item!: Item;
 
+    /** The Player Permissions byte inside Abilities Data. */
+    public playerPermission: PlayerPermissionLevel = PlayerPermissionLevel.VISITOR;
+
+    /** The Command Permissions byte inside Abilities Data. */
+    public commandPermission: CommandPermissionLevel = CommandPermissionLevel.ANY;
+
     public deviceId!: string;
-    public buildPlatform!: number;
+    public buildPlatform: BuildPlatform = BuildPlatform.UNKNOWN;
 
     public metadata!: Metadata;
 
@@ -62,19 +95,23 @@ export default class AddPlayerPacket extends DataPacket {
         // middle of it, and everything after that was one field out.
         (this.item ?? Item.air()).networkSerialize(this);
 
-        this.writeVarInt(this.gamemode); // TODO: gamemode
+        this.writeVarInt(this.gamemode);
         this.metadata.networkSerialize(this);
 
-        this.writeUnsignedVarInt(0); // ? unknown
-        this.writeUnsignedVarInt(0); // ? unknown
+        // Synched Properties. Neither list is populated, so both counts are zero.
+        this.writeUnsignedVarInt(0); // Int Entries List
+        this.writeUnsignedVarInt(0); // Float Entries List
 
-        this.writeLongLE(this.uniqueEntityId || this.runtimeEntityId);
-        this.writeByte(0); // command permission
-        this.writeByte(0); // permission level
-        this.writeByte(0); // ? unknown
+        // Abilities Data. The layers travel in `UpdateAbilitiesPacket`, so the list is empty here.
+        this.writeLongLE(this.uniqueEntityId || this.runtimeEntityId); // Target Player Raw Id
+        this.writeSignedByte(this.playerPermission); // Player Permissions
+        this.writeByte(this.commandPermission); // Command Permissions
+        this.writeUnsignedVarInt(0); // Layers
 
-        this.writeUnsignedVarInt(0); // TODO: Entity links
+        // Actor Links. The server does not track riding, so there is nothing to list.
+        this.writeUnsignedVarInt(0);
+
         NetworkUtil.writeString(this, this.deviceId);
-        this.writeIntLE(this.buildPlatform || -1); // TODO: OS enum
+        this.writeIntLE(this.buildPlatform);
     }
 }
