@@ -15,7 +15,12 @@ import { NetworkUtil } from '../NetworkUtil';
  * an `ItemStackRequest`, which `ItemStackRequest.ts` reads. gophertunnel at protocol 2193
  * keeps the two apart the same way: `Writer.ItemDescriptorCount` writes the legacy form used
  * here and is what every recipe in `crafting_data.go` goes through, while
- * `StackRequestItemDescriptorCount` writes the selector plus type byte form.
+ * `StackRequestItemDescriptorCount` writes the selector plus type byte form. CloudburstMC's
+ * Protocol does the same from its 2168 codec on: `readIngredient` is this form and feeds
+ * `CraftingDataSerializer`, `readIngredient2` is the type byte and uint16 form. Mojang's own
+ * release note for the `ItemStackRequestPacket` conversion says that packet moved to
+ * "packet-local item descriptor variants ... instead of the old internal item-descriptor
+ * variant bytes"; the note for `CraftingDataPacket` says nothing of the kind.
  */
 const VARIANT_INVALID = 0;
 const VARIANT_DEFAULT = 1;

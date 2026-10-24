@@ -38,7 +38,13 @@ const UNLOCK_CONTEXT: UnlockContext = UnlockContext.ALWAYS_UNLOCKED;
  * of the others will take one. Smelting is data driven on the client now. The server still
  * keeps its furnace recipes and still smelts with them; it just no longer says so here.
  *
+ * An ingredient inside a recipe is written in the form `RecipeIngredientCodec` describes, which
+ * is not the `recipe-ingredient` type page's. A result is a `NetworkItemInstanceDescriptor`: a
+ * varint id, a uint16 count, a varuint aux value, a varint block runtime id and a length
+ * prefixed user data blob.
+ *
  * **Bound To:** Client
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/crafting-data-packet/
  */
 export default class CraftingDataPacket extends DataPacket {
     public static NetID = Identifiers.CraftingDataPacket;
@@ -52,9 +58,11 @@ export default class CraftingDataPacket extends DataPacket {
      * The net id a recipe is known by, which is its position in the manager's list.
      *
      * Passed in rather than looked up so that this packet needs nothing but what it is given,
-     * and so a test can write one recipe without standing up a manager.
+     * and so a test can write one recipe without standing up a manager. Without a caller's
+     * function it is the recipe's one-based position in {@link recipes}: a net id of zero is
+     * not a recipe, and every id in one packet has to differ from every other.
      */
-    public netIdOf: (recipe: Recipe) => number = (_recipe) => 0;
+    public netIdOf: (recipe: Recipe) => number = (recipe) => this.recipes.indexOf(recipe) + 1;
 
     /** Writes the eleven recipe arrays in docs order, then Clear Recipes. */
     public encodePayload(): void {

@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import type { Recipe } from '../../crafting/Recipe';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '../../crafting/Recipe';
-import { ANY_META, ItemIngredient } from '../../crafting/RecipeIngredient';
+import { ANY_META, ItemIngredient, TagIngredient } from '../../crafting/RecipeIngredient';
 import { Item } from '../../item/Item';
 import UUID from '../../utils/UUID';
 import { NetworkUtil } from '../NetworkUtil';
@@ -87,6 +87,18 @@ const namedIngredient = (name: string, meta: number, count: number): number[] =>
     ...text('name'),
     ...text(name),
     ...varint(meta),
+    ...varint(count)
+];
+
+/**
+ * One `RecipeIngredient` naming a tag: the same `DEFAULT` selector, `item_tag` as the shape,
+ * the tag, then the wildcard aux a tag always carries, and the count.
+ */
+const tagIngredient = (tag: string, count: number): number[] => [
+    ...varuint(1),
+    ...text('item_tag'),
+    ...text(tag),
+    ...varint(ANY_META),
     ...varint(count)
 ];
 
@@ -271,6 +283,91 @@ describe('network', () => {
             ]);
         });
 
+        it('writes a smithing transform recipe as the exact bytes the docs give', () => {
+            // Recipe Id, then Template, Base and Addition as three bare ingredients - no count
+            // in front of them - then one Result rather than a list, the Tag, and the Net Id.
+            // No UUID, no Priority, no unlocking requirement: those belong to the two grid
+            // shapes only.
+            const packet = new CraftingDataPacket();
+            packet.recipes = [
+                new SmithingRecipe(
+                    'upgrade',
+                    'smithing_table',
+                    need('minecraft:netherite_upgrade_smithing_template'),
+                    need('minecraft:diamond_axe'),
+                    need('minecraft:netherite_ingot'),
+                    new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })
+                )
+            ];
+            packet.netIdOf = () => 7;
+            packet.encode();
+
+            expect([...packet.getBuffer()]).toEqual([
+                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(0), // Shaped Recipes.
+                ...varuint(0), // Shapeless Recipes.
+                ...varuint(0), // Multi Recipes.
+                ...varuint(0), // User Data Shapeless Recipes.
+                ...varuint(0), // Shapeless Chemistry Recipes.
+                ...varuint(0), // Shaped Chemistry Recipes.
+                ...varuint(1), // Smithing Transform Recipes.
+                ...text('upgrade'), // Recipe Id.
+                ...namedIngredient('minecraft:netherite_upgrade_smithing_template', ANY_META, 1), // Template.
+                ...namedIngredient('minecraft:diamond_axe', ANY_META, 1), // Base.
+                ...namedIngredient('minecraft:netherite_ingot', ANY_META, 1), // Addition.
+                ...OUTPUT_STACK, // Result.
+                ...text('smithing_table'), // Tag.
+                ...varuint(7), // Net Id.
+                ...varuint(0), // Smithing Trim Recipes.
+                ...varuint(0), // Potion Mixes.
+                ...varuint(0), // Container Mixes.
+                ...varuint(0), // Material Reducers.
+                1 // Clear Recipes.
+            ]);
+        });
+
+        it('writes a tag ingredient under item_tag with the wildcard aux', () => {
+            // A tag names no single item, so the aux that follows it is the wildcard - the
+            // same 32767 an empty slot carries - and the count still closes the ingredient.
+            const packet = new CraftingDataPacket();
+            packet.recipes = [
+                new ShapelessRecipe(
+                    'sticks',
+                    'crafting_table',
+                    [new TagIngredient('minecraft:planks', new Set(['minecraft:oak_planks']), 2)],
+                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })]
+                )
+            ];
+            packet.netIdOf = () => 7;
+            packet.encode();
+
+            expect([...packet.getBuffer()]).toEqual([
+                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(0), // Shaped Recipes.
+                ...varuint(1), // Shapeless Recipes.
+                ...text('sticks'), // Recipe Id.
+                ...varuint(1), // Ingredients.
+                ...tagIngredient('minecraft:planks', 2),
+                ...varuint(1), // Results.
+                ...OUTPUT_STACK,
+                ...uuidBytes('sticks'), // UUID.
+                ...text('crafting_table'), // Tag.
+                ...varint(0), // Priority.
+                ...ALWAYS_UNLOCKED, // Unlocking Requirement.
+                ...varuint(7), // Net Id.
+                ...varuint(0), // Multi Recipes.
+                ...varuint(0), // User Data Shapeless Recipes.
+                ...varuint(0), // Shapeless Chemistry Recipes.
+                ...varuint(0), // Shaped Chemistry Recipes.
+                ...varuint(0), // Smithing Transform Recipes.
+                ...varuint(0), // Smithing Trim Recipes.
+                ...varuint(0), // Potion Mixes.
+                ...varuint(0), // Container Mixes.
+                ...varuint(0), // Material Reducers.
+                1 // Clear Recipes.
+            ]);
+        });
+
         it('writes a shapeless recipe the way it reads back', () => {
             const recipe = new ShapelessRecipe(
                 'torch',
@@ -409,6 +506,33 @@ describe('network', () => {
 
             // Shaped comes first, and the shapeless recipe is not in with it.
             expect(stream.readUnsignedVarInt()).toBe(1);
+        });
+
+        it('numbers recipes from one when no caller says otherwise', () => {
+            // Zero is not a net id, and two recipes may not share one - so the fallback is a
+            // recipe's one-based position, whatever list it ends up written in.
+            const shapeless = new ShapelessRecipe(
+                'torch',
+                'crafting_table',
+                [need('minecraft:stick')],
+                [item('minecraft:torch')],
+                0
+            );
+            const shaped = new ShapedRecipe(
+                'hoe',
+                'crafting_table',
+                1,
+                1,
+                [need('minecraft:stick')],
+                [item('minecraft:wooden_hoe')],
+                0,
+                true
+            );
+            const packet = new CraftingDataPacket();
+            packet.recipes = [shapeless, shaped];
+
+            expect(packet.netIdOf(shapeless)).toBe(1);
+            expect(packet.netIdOf(shaped)).toBe(2);
         });
 
         it('gives a recipe the same uuid every time', () => {
