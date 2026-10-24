@@ -28,7 +28,13 @@ describe('math', () => {
         });
 
         it('should keep the concrete class when deriving', () => {
-            class Tagged extends Vector3 {}
+            // A subclass keeps its class through `withY` and friends by overriding `create`,
+            // which replaced reading `this.constructor` so the class lowers ahead of time.
+            class Tagged extends Vector3 {
+                protected override create(x: number, y: number, z: number): this {
+                    return new Tagged(x, y, z) as this;
+                }
+            }
 
             const tagged = new Tagged(1, 2, 3);
 

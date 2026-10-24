@@ -5,9 +5,7 @@ export class Vector2 {
     /**
      * Returns a Vector2 with 0 on all axis.
      */
-    public static get ZERO(): Vector2 {
-        return new Vector2(0, 0);
-    }
+    public static readonly ZERO: Vector2 = new Vector2(0, 0);
 
     /**
      * Create a new `Vector2` instance.
