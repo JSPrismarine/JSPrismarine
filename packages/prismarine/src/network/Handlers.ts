@@ -19,6 +19,7 @@ import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import LecternUpdateHandler from './handler/LecternUpdateHandler';
 import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LoginHandler from './handler/LoginHandler';
+import MapCreateLockedCopyHandler from './handler/MapCreateLockedCopyHandler';
 import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
@@ -32,6 +33,7 @@ import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
 import PlayerLocationHandler from './handler/PlayerLocationHandler';
 import PlayerSkinHandler from './handler/PlayerSkinHandler';
 import PlayerToggleCrafterSlotRequestHandler from './handler/PlayerToggleCrafterSlotRequestHandler';
+import PositionTrackingDBClientRequestHandler from './handler/PositionTrackingDBClientRequestHandler';
 import PurchaseReceiptHandler from './handler/PurchaseReceiptHandler';
 import RequestAbilityHandler from './handler/RequestAbilityHandler';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
@@ -79,6 +81,7 @@ export {
     LecternUpdateHandler,
     LevelSoundEventHandler,
     LoginHandler,
+    MapCreateLockedCopyHandler,
     MapInfoRequestHandler,
     MobEquipmentHandler,
     ModalFormResponseHandler,
@@ -92,6 +95,7 @@ export {
     PlayerLocationHandler,
     PlayerSkinHandler,
     PlayerToggleCrafterSlotRequestHandler,
+    PositionTrackingDBClientRequestHandler,
     PurchaseReceiptHandler,
     RequestAbilityHandler,
     RequestChunkRadiusHandler,

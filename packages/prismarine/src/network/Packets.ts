@@ -17,6 +17,7 @@ import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
 import ClientCacheBlobStatusPacket from './packet/ClientCacheBlobStatusPacket';
 import ClientCacheStatusPacket from './packet/ClientCacheStatusPacket';
 import ClientMovementPredictionSyncPacket from './packet/ClientMovementPredictionSyncPacket';
+import ClientboundMapItemDataPacket from './packet/ClientboundMapItemDataPacket';
 import CommandBlockUpdatePacket from './packet/CommandBlockUpdatePacket';
 import CommandRequestPacket from './packet/CommandRequestPacket';
 import ContainerClosePacket from './packet/ContainerClosePacket';
@@ -38,6 +39,7 @@ import LecternUpdatePacket from './packet/LecternUpdatePacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
+import MapCreateLockedCopyPacket from './packet/MapCreateLockedCopyPacket';
 import MapInfoRequestPacket from './packet/MapInfoRequestPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
@@ -59,6 +61,8 @@ import PlayerListPacket from './packet/PlayerListPacket';
 import PlayerLocationPacket from './packet/PlayerLocationPacket';
 import PlayerSkinPacket from './packet/PlayerSkinPacket';
 import PlayerToggleCrafterSlotRequestPacket from './packet/PlayerToggleCrafterSlotRequestPacket';
+import PositionTrackingDBClientRequestPacket from './packet/PositionTrackingDBClientRequestPacket';
+import PositionTrackingDBServerBroadcastPacket from './packet/PositionTrackingDBServerBroadcastPacket';
 import PurchaseReceiptPacket from './packet/PurchaseReceiptPacket';
 import RemoveActorPacket from './packet/RemoveActorPacket';
 import RequestAbilityPacket from './packet/RequestAbilityPacket';
@@ -126,6 +130,7 @@ export {
     ClientCacheBlobStatusPacket,
     ClientCacheStatusPacket,
     ClientMovementPredictionSyncPacket,
+    ClientboundMapItemDataPacket,
     CommandBlockUpdatePacket,
     CommandRequestPacket,
     ContainerClosePacket,
@@ -150,6 +155,7 @@ export {
     LevelChunkPacket,
     LevelSoundEventPacket,
     LoginPacket,
+    MapCreateLockedCopyPacket,
     MapInfoRequestPacket,
     MobArmorEquipmentPacket,
     MobEquipmentPacket,
@@ -171,6 +177,8 @@ export {
     PlayerLocationPacket,
     PlayerSkinPacket,
     PlayerToggleCrafterSlotRequestPacket,
+    PositionTrackingDBClientRequestPacket,
+    PositionTrackingDBServerBroadcastPacket,
     PurchaseReceiptPacket,
     RemoveActorPacket,
     RequestAbilityPacket,
