@@ -32,8 +32,8 @@ export default class NewIncomingConnection extends Packet {
             this.systemAddresses.push(this.readAddress());
         }
 
-        this.requestTimestamp = this.readLong();
-        this.acceptedTimestamp = this.readLong();
+        this.requestTimestamp = this.readUnsignedLong();
+        this.acceptedTimestamp = this.readUnsignedLong();
     }
 
     /**
@@ -50,7 +50,7 @@ export default class NewIncomingConnection extends Packet {
             this.writeAddress(this.systemAddresses[i] ?? UNASSIGNED_SYSTEM_ADDRESS);
         }
 
-        this.writeLong(this.requestTimestamp);
-        this.writeLong(this.acceptedTimestamp);
+        this.writeUnsignedLong(this.requestTimestamp);
+        this.writeUnsignedLong(this.acceptedTimestamp);
     }
 }

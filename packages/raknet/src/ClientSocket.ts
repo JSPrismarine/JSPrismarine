@@ -130,8 +130,8 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
         this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
-        let guid = randomBytes(8).readBigInt64BE();
-        while (guid === 0n) guid = randomBytes(8).readBigInt64BE();
+        let guid = randomBytes(8).readBigUInt64BE();
+        while (guid === 0n) guid = randomBytes(8).readBigUInt64BE();
         this.guid = guid;
     }
 

@@ -7,6 +7,8 @@ import Frame from './protocol/Frame';
 import FrameReliability from './protocol/FrameReliability';
 import FrameSet from './protocol/FrameSet';
 import { MessageIdentifiers } from './protocol/MessageIdentifiers';
+import UnconnectedPong from './protocol/offline/UnconnectedPong';
+import { ServerName } from './utils/ServerName';
 
 /**
  * Drives a real ServerSocket over loopback UDP with hand-built packets, so the whole
@@ -15,7 +17,12 @@ import { MessageIdentifiers } from './protocol/MessageIdentifiers';
  */
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
-const serverName: any = { toString: () => 'MCPE;test;0;0;0;0;0;', setOnlinePlayerCount: vi.fn(), setPort: vi.fn() };
+const serverName: any = {
+    toString: () => 'MCPE;test;0;0;0;0;0;',
+    setOnlinePlayerCount: vi.fn(),
+    setPort: vi.fn(),
+    setServerId: vi.fn()
+};
 
 const CLIENT_GUID = 0x0123456789abcdefn;
 
@@ -27,8 +34,8 @@ afterEach(() => {
     running = null;
 });
 
-const start = async () => {
-    const server = new ServerSocket(10, false, serverName, logger);
+const start = async (name = serverName) => {
+    const server = new ServerSocket(10, false, name, logger);
     server.start('127.0.0.1', 0);
 
     const client = Dgram.createSocket('udp4');
@@ -135,6 +142,43 @@ describe('offline handshake over a real socket', () => {
 
         const reply = await next();
         expect(reply[0]).toBe(MessageIdentifiers.UNCONNECTED_PONG);
+    });
+
+    it('answers every offline packet with the same server guid, and advertises it in the MOTD', async () => {
+        const name = new ServerName({
+            getConfig: () => ({ getMotd: () => 'guid test', getGamemode: () => 'Survival', getMaxPlayers: () => 20 }),
+            getIdentifiers: () => ({ Protocol: 2193, MinecraftVersions: ['1.26.51'] })
+        });
+        const { server, send, next } = await start(name);
+        const guid = server.getServerGuid();
+
+        // Unsigned, as RakNet's RakNetGUID is and as a Bedrock Dedicated Server prints it in
+        // the MOTD. Generated signed, half of all servers advertised a negative number there.
+        expect(guid).toBeGreaterThan(0n);
+
+        const ping = new BinaryStream();
+        ping.writeByte(MessageIdentifiers.UNCONNECTED_PING);
+        ping.writeUnsignedLong(1234n);
+        ping.write(OFFLINE_MESSAGE_DATA_ID);
+        ping.writeUnsignedLong(CLIENT_GUID);
+        send(ping.getBuffer());
+
+        const pong = new UnconnectedPong(await next());
+        pong.decode();
+        expect(pong.serverGuid).toBe(guid);
+        // The seventh field of the MOTD line is the guid. Nothing set it before, so a
+        // client saw the real guid in the header and 0 in the line.
+        expect(pong.serverName.split(';')[6]).toBe(guid.toString());
+
+        send(openConnectionRequest1(1200));
+        const reply1 = await next();
+        expect(reply1[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_1);
+        expect(reply1.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);
+
+        send(openConnectionRequest2(1200, server['socket'].address().port));
+        const reply2 = await next();
+        expect(reply2[0]).toBe(MessageIdentifiers.OPEN_CONNECTION_REPLY_2);
+        expect(reply2.readBigUInt64BE(1 + OFFLINE_MESSAGE_DATA_ID.byteLength)).toBe(guid);
     });
 
     it('ignores a ping carrying the wrong magic', async () => {

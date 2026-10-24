@@ -37,9 +37,11 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
         this.socket = Dgram.createSocket('udp4').unref();
         // allocUnsafe would hand us recycled or zeroed memory, not a unique identifier.
         // https://github.com/facebookarchive/RakNet/blob/master/Source/RakPeer.cpp#L4525
-        let guid = randomBytes(8).readBigInt64BE();
-        while (guid === 0n) guid = randomBytes(8).readBigInt64BE();
+        let guid = randomBytes(8).readBigUInt64BE();
+        while (guid === 0n) guid = randomBytes(8).readBigUInt64BE();
         this.guid = guid;
+        // The MOTD line carries the guid too, and a client matches the two.
+        this.serverName.setServerId(guid);
 
         if (this.onlineMode) {
             this.logger.warn('Online mode is currently not supported.', 'RakNet/ServerSocket');

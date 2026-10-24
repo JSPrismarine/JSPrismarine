@@ -210,8 +210,8 @@ export default class LoopbackSocket {
     public readonly server: LoopbackEndpoint;
     public readonly client: LoopbackEndpoint;
 
-    private readonly serverGuid = randomBytes(8).readBigInt64BE();
-    private readonly clientGuid = randomBytes(8).readBigInt64BE();
+    private readonly serverGuid = randomBytes(8).readBigUInt64BE();
+    private readonly clientGuid = randomBytes(8).readBigUInt64BE();
     private ticker: NodeJS.Timeout | undefined;
     private stopped = false;
 

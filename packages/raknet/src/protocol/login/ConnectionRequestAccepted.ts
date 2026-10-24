@@ -18,8 +18,8 @@ export default class ConnectionRequestAccepted extends Packet {
             this.readAddress();
         }
 
-        this.requestTimestamp = this.readLong();
-        this.acceptedTimestamp = this.readLong();
+        this.requestTimestamp = this.readUnsignedLong();
+        this.acceptedTimestamp = this.readUnsignedLong();
     }
 
     public encodePayload(): void {
@@ -30,7 +30,7 @@ export default class ConnectionRequestAccepted extends Packet {
             this.writeAddress(sysAddresses[i] ?? new InetAddress('0.0.0.0', 0, 4));
         }
 
-        this.writeLong(this.requestTimestamp);
-        this.writeLong(this.acceptedTimestamp);
+        this.writeUnsignedLong(this.requestTimestamp);
+        this.writeUnsignedLong(this.acceptedTimestamp);
     }
 }

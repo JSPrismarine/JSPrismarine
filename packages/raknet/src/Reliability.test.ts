@@ -855,7 +855,12 @@ describe('H8 - split unreliable messages are upgraded', () => {
 describe('H9 - server GUID', () => {
     it('is random and non-zero', async () => {
         const { default: ServerSocket } = await import('./ServerSocket');
-        const name: any = { toString: () => 'x', setOnlinePlayerCount: vi.fn(), setPort: vi.fn() };
+        const name: any = {
+            toString: () => 'x',
+            setOnlinePlayerCount: vi.fn(),
+            setPort: vi.fn(),
+            setServerId: vi.fn()
+        };
         const guids = new Set<bigint>();
         for (let i = 0; i < 8; i++) {
             const server = new ServerSocket(10, false, name, logger);

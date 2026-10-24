@@ -159,7 +159,7 @@ export class OfflineHandler {
                     const str = new BinaryStream();
                     str.writeByte(MessageIdentifiers.NO_FREE_INCOMING_CONNECTIONS);
                     str.write(OFFLINE_MESSAGE_DATA_ID);
-                    str.writeLong(this.listener.getServerGuid());
+                    str.writeUnsignedLong(this.listener.getServerGuid());
                     this.listener.sendBuffer(str.getBuffer(), rinfo);
                     return;
                 }
@@ -192,7 +192,7 @@ export class OfflineHandler {
         const str = new BinaryStream();
         str.writeByte(MessageIdentifiers.ALREADY_CONNECTED);
         str.write(OFFLINE_MESSAGE_DATA_ID);
-        str.writeLong(this.listener.getServerGuid());
+        str.writeUnsignedLong(this.listener.getServerGuid());
         this.listener.sendBuffer(str.getBuffer(), remote);
     }
 }
