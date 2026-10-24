@@ -143,6 +143,25 @@ const readBack = (skin: Skin) => {
     };
 };
 
+/**
+ * Writes a skin, reads it back with `Skin.networkDeserialize`, and writes the reading again.
+ * The second writing must equal the first byte for byte, which pins the reader to the writer
+ * that `readBack` pins to the protocol.
+ */
+const roundTrip = (skin: Skin) => {
+    const written = new BinaryStream();
+    skin.networkSerialize(written);
+
+    const stream = new BinaryStream(written.getBuffer());
+    const read = Skin.networkDeserialize(stream);
+    expect(stream.feof()).toBe(true);
+
+    const rewritten = new BinaryStream();
+    read.networkSerialize(rewritten);
+    expect(rewritten.getBuffer()).toEqual(written.getBuffer());
+    return read;
+};
+
 describe('utils', () => {
     describe('skin', () => {
         describe('Skin', () => {
@@ -223,6 +242,110 @@ describe('utils', () => {
                 expect(skin.tints).toEqual([]);
                 expect(skin.trusted).toBe('false');
                 expect(skin.profileHash).toBe('');
+            });
+
+            it('reads a persona skin back to the same bytes', () => {
+                const skin = roundTrip(Skin.fromJWT(clientData()));
+
+                expect(skin.getId()).toBe('persona-skin');
+                expect(skin.isPersona()).toBe(true);
+                expect(skin.getArmSize()).toBe('slim');
+                // The opaque `#b37b62` of the client data comes back with its alpha spelled out.
+                expect(skin.getColor()).toBe('#ffb37b62');
+
+                // Pieces keep their wire type names and their pack id as a UUID string.
+                expect(
+                    [...skin.getPersonaData().getPieces()].map((piece) => ({
+                        id: piece.getPieceId(),
+                        type: piece.getPieceType(),
+                        packId: piece.getPackId(),
+                        isDefault: piece.isDefault(),
+                        productId: piece.getProductId()
+                    }))
+                ).toEqual([
+                    { id: 'piece-body', type: 'body', packId: PACK_ID, isDefault: true, productId: '' },
+                    { id: 'piece-hand', type: 'hands', packId: PACK_ID, isDefault: false, productId: 'product-hand' }
+                ]);
+                expect(
+                    [...skin.getPersonaData().getTintColors()].map((tint) => ({
+                        type: tint.getPieceType(),
+                        colors: tint.getColors()
+                    }))
+                ).toEqual([{ type: 'eyes', colors: ['#ffa12722', '#ff2f1f0f', '#ff3aafd9', '#00000000'] }]);
+
+                expect(skin.isPremium()).toBe(false);
+                expect(skin.isCapeOnClassicSkin()).toBe(false);
+                expect(skin.isPrimaryUser()).toBe(false);
+                expect(skin.overridesAppearance()).toBe(true);
+                expect(skin.isTrusted).toBe(false);
+                expect(skin.getProfileHash()).toBe('');
+            });
+
+            it('reads a classic skin with an animation and a cape back to the same bytes', () => {
+                const pixel = Buffer.from([1, 2, 3, 255]);
+                const skin = roundTrip(
+                    Skin.fromJWT(
+                        clientData({
+                            SkinId: 'classic-skin',
+                            PersonaSkin: false,
+                            SkinColor: '#0',
+                            ArmSize: 'wide',
+                            PersonaPieces: [],
+                            PieceTintColors: [],
+                            CapeId: 'cape-id',
+                            CapeImageWidth: 1,
+                            CapeImageHeight: 1,
+                            CapeData: pixel.toString('base64'),
+                            SkinGeometryData: Buffer.from('{"format_version":"1.12.0"}').toString('base64'),
+                            SkinAnimationData: Buffer.from('anim').toString('base64'),
+                            AnimatedImageData: [
+                                {
+                                    ImageWidth: 1,
+                                    ImageHeight: 1,
+                                    Image: pixel.toString('base64'),
+                                    Frames: 2.5,
+                                    Type: 1,
+                                    AnimationExpression: 1
+                                }
+                            ]
+                        })
+                    )
+                );
+
+                expect(skin.getId()).toBe('classic-skin');
+                expect(skin.getFullId()).toBe('classic-skincape-id');
+                expect(skin.isPersona()).toBe(false);
+                expect(skin.getArmSize()).toBe('wide');
+                expect(skin.getColor()).toBe('#00000000');
+                expect(skin.getImage().data).toEqual(Buffer.from([0, 0, 0, 255]));
+                expect(skin.getGeometry()).toBe('{"format_version":"1.12.0"}');
+                expect(skin.getGeometryDataEngineVersion()).toBe('0.0.0');
+                expect(skin.getAnimationData()).toBe('anim');
+                expect(skin.getCape().getId()).toBe('cape-id');
+                expect(skin.getCape().getImage().data).toEqual(pixel);
+
+                const [animation] = skin.getAnimations();
+                expect(animation?.getImage().data).toEqual(pixel);
+                expect(animation?.getType()).toBe(1);
+                expect(animation?.getFrames()).toBe(2.5);
+                expect(animation?.getExpression()).toBe(1);
+            });
+
+            it('reads the trusted flag case-insensitively and keeps the profile hash', () => {
+                // The writer always ends a skin with `"false"` and an empty profile hash: six
+                // bytes and one byte. A client may spell the flag `True`, as the docs do.
+                const written = new BinaryStream();
+                Skin.fromJWT(clientData()).networkSerialize(written);
+                const tail = new BinaryStream();
+                NetworkUtil.writeString(tail, 'True');
+                NetworkUtil.writeString(tail, 'profile-hash');
+                const stream = new BinaryStream(Buffer.concat([written.getBuffer().subarray(0, -7), tail.getBuffer()]));
+
+                const skin = Skin.networkDeserialize(stream);
+
+                expect(stream.feof()).toBe(true);
+                expect(skin.isTrusted).toBe(true);
+                expect(skin.getProfileHash()).toBe('profile-hash');
             });
         });
     });
