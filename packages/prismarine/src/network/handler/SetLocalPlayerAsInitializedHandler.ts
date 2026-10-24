@@ -12,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * dropped - acting on it again re-announced the player to everyone who can see it and
  * resent its whole state, which is a spawn broadcast per packet for anything that cares to
  * send them.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/set-local-player-as-initialized-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-local-player-as-initialized-packet/
  */
 export default class SetLocalPlayerAsInitializedHandler implements PacketHandler<SetLocalPlayerAsInitializedPacket> {
     public static NetID = Identifiers.SetLocalPlayerAsInitializedPacket;

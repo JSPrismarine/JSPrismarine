@@ -6,7 +6,7 @@ import DataPacket from './DataPacket';
  *
  * Wire layout at protocol 2193: Creation Time as a uint64 LE, then Is From Server as a
  * boolean. Mojang marks the packet deprecated, but a 1.26.51 client still sends it.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/network-stack-latency-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
 export default class NetworkStackLatencyPacket extends DataPacket {
     public static NetID = Identifiers.NetworkStackLatencyPacket;

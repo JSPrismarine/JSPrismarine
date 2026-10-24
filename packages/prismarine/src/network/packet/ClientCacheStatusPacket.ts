@@ -9,7 +9,10 @@ import DataPacket from './DataPacket';
  * does, so the flag is read and recorded but changes nothing about what gets sent. The
  * packet is decoded rather than ignored because a packet the registry has never heard of
  * is a warning on every join.
- * @see https://github.com/PrismarineJS/minecraft-data/blob/master/data/bedrock/1.21.42/protocol.json `packet_client_cache_status`
+ * Wire layout at protocol 2193: `Is cache supported?` as one boolean byte.
+ *
+ * **Bound To:** Server
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/client-cache-status-packet/
  */
 export default class ClientCacheStatusPacket extends DataPacket {
     public static NetID = Identifiers.ClientCacheStatusPacket;

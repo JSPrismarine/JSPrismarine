@@ -12,7 +12,7 @@ import type PacketHandler from './PacketHandler';
  * whole Minecraft stack rather than through RakNet alone. A ping that sets it is echoed with
  * the flag cleared, so the answer does not read as another request and the two sides do not
  * ping each other forever. A ping that does not set it is recorded and left alone.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/network-stack-latency-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/network-stack-latency-packet/
  */
 export default class NetworkStackLatencyHandler implements PacketHandler<NetworkStackLatencyPacket> {
     public static NetID = Identifiers.NetworkStackLatencyPacket;
