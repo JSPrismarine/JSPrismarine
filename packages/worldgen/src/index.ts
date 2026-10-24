@@ -1,3 +1,9 @@
+export * from './density/compile';
+export * from './density/CubicSpline';
+export * from './density/DensityFunction';
+export * from './density/parse';
+export * from './density/SampleContext';
+export * from './identifier';
 export * from './math';
 export * from './noise/BlendedNoise';
 export * from './noise/GradientNoise';
@@ -12,3 +18,6 @@ export * from './random/MarsagliaPolarGaussian';
 export * from './random/randomSupport';
 export * from './random/RandomSource';
 export * from './random/XoroshiroRandomSource';
+export * from './RandomState';
+export * from './settings/NoiseGeneratorSettings';
+export * from './WorldgenData';
