@@ -278,17 +278,31 @@ export default class Server extends EventEmitter {
             const session = this.sessionManager.get(token);
             this.sessionManager.remove(token);
 
+            // Read before the tear-down below, which detaches the session and takes the
+            // player out of its world. A player is only added to a world once the client
+            // reports itself initialised, so a session whose player is not in one belongs
+            // to a client that gave up between login and spawn.
+            const player = session?.getPlayerSession()?.getPlayer() ?? null;
+            const spawned = player !== null && player.getWorld().getEntity(player.getRuntimeId()) === player;
+
             const event = new RaknetDisconnectEvent(inetAddr, reason);
             await this.emit('raknetDisconnect', event);
 
             if (!session) {
-                this.logger.debug(`Cannot remove connection from non-existing player (${token})`);
+                this.logger.info(`${token} disconnected due to ${reason}`);
                 return;
             }
 
             await session.closePlayerSession();
 
-            this.logger.debug(`${token} disconnected due to ${reason}`);
+            // A spawned player announces its own departure in chat. For one that never got
+            // that far this line is the only trace the connection leaves, so it is kept at a
+            // level the default console shows.
+            if (spawned) this.logger.debug(`${token} disconnected due to ${reason}`);
+            else {
+                const who = player === null ? token : `${player.getName()} (${token})`;
+                this.logger.info(`${who} disconnected during the join due to ${reason}`);
+            }
             this.logger.debug(`Player destruction took about ${Date.now() - time} ms`);
         });
 
