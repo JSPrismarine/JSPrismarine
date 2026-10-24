@@ -160,6 +160,7 @@ const Identifiers = {
     ItemComponentPacket: 0xa2,
     FilterTextPacket: 0xa3,
     ClientBoundDebugRendererPacket: 0xa4,
+    SubChunkRequestPacket: 0xaf,
     RequestAbilityPacket: 0xb8,
     RequestPermissionsPacket: 0xb9,
     RequestNetworkSettingsPacket: 0xc1,

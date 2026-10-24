@@ -1,5 +1,8 @@
 import ActorEventHandler from './handler/ActorEventHandler';
+import ActorPickRequestHandler from './handler/ActorPickRequestHandler';
 import AnimateHandler from './handler/AnimateHandler';
+import AnvilDamageHandler from './handler/AnvilDamageHandler';
+import BlockPickRequestHandler from './handler/BlockPickRequestHandler';
 import BookEditHandler from './handler/BookEditHandler';
 import ClientCacheBlobStatusHandler from './handler/ClientCacheBlobStatusHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
@@ -16,6 +19,7 @@ import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
 import LecternUpdateHandler from './handler/LecternUpdateHandler';
 import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LoginHandler from './handler/LoginHandler';
+import MapInfoRequestHandler from './handler/MapInfoRequestHandler';
 import MobEquipmentHandler from './handler/MobEquipmentHandler';
 import ModalFormResponseHandler from './handler/ModalFormResponseHandler';
 import MovePlayerHandler from './handler/MovePlayerHandler';
@@ -42,13 +46,17 @@ import SetDifficultyHandler from './handler/SetDifficultyHandler';
 import SetLocalPlayerAsInitializedHandler from './handler/SetLocalPlayerAsInitializedHandler';
 import SetPlayerGametypeHandler from './handler/SetPlayerGametypeHandler';
 import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOptionsHandler';
+import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import TextHandler from './handler/TextHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
 import UpdateClientOptionsHandler from './handler/UpdateClientOptionsHandler';
 
 export {
     ActorEventHandler,
+    ActorPickRequestHandler,
     AnimateHandler,
+    AnvilDamageHandler,
+    BlockPickRequestHandler,
     BookEditHandler,
     ClientCacheBlobStatusHandler,
     ClientCacheStatusHandler,
@@ -65,6 +73,7 @@ export {
     LecternUpdateHandler,
     LevelSoundEventHandler,
     LoginHandler,
+    MapInfoRequestHandler,
     MobEquipmentHandler,
     ModalFormResponseHandler,
     MovePlayerHandler,
@@ -91,6 +100,7 @@ export {
     SetLocalPlayerAsInitializedHandler,
     SetPlayerGametypeHandler,
     SetPlayerInventoryOptionsHandler,
+    SubChunkRequestHandler,
     TextHandler,
     TickingAreasLoadStatusHandler,
     UpdateClientOptionsHandler

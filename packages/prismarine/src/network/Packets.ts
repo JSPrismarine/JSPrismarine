@@ -1,12 +1,15 @@
 import ActorEventPacket from './packet/ActorEventPacket';
+import ActorPickRequestPacket from './packet/ActorPickRequestPacket';
 import AddActorPacket from './packet/AddActorPacket';
 import AddItemActorPacket from './packet/AddItemActorPacket';
 import AddPlayerPacket from './packet/AddPlayerPacket';
 import AnimatePacket from './packet/AnimatePacket';
+import AnvilDamagePacket from './packet/AnvilDamagePacket';
 import AvailableActorIdentifiersPacket from './packet/AvailableActorIdentifiersPacket';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import BatchPacket from './packet/BatchPacket';
 import BiomeDefinitionListPacket from './packet/BiomeDefinitionListPacket';
+import BlockPickRequestPacket from './packet/BlockPickRequestPacket';
 import BookEditPacket from './packet/BookEditPacket';
 import ChangeDimensionPacket from './packet/ChangeDimensionPacket';
 import ChunkRadiusUpdatedPacket from './packet/ChunkRadiusUpdatedPacket';
@@ -34,6 +37,7 @@ import LecternUpdatePacket from './packet/LecternUpdatePacket';
 import LevelChunkPacket from './packet/LevelChunkPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import LoginPacket from './packet/LoginPacket';
+import MapInfoRequestPacket from './packet/MapInfoRequestPacket';
 import MobArmorEquipmentPacket from './packet/MobArmorEquipmentPacket';
 import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import ModalFormResponsePacket from './packet/ModalFormResponsePacket';
@@ -76,6 +80,7 @@ import SetPlayerInventoryOptionsPacket from './packet/SetPlayerInventoryOptionsP
 import SetTimePacket from './packet/SetTimePacket';
 import ShowProfilePacket from './packet/ShowProfilePacket';
 import StartGamePacket from './packet/StartGamePacket';
+import SubChunkRequestPacket from './packet/SubChunkRequestPacket';
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket';
 import TakeItemActorPacket from './packet/TakeItemActorPacket';
@@ -88,11 +93,13 @@ import WorldEventPacket from './packet/WorldEventPacket';
 
 export {
     ActorEventPacket,
+    ActorPickRequestPacket,
     AddActorPacket,
     AddItemActorPacket,
     AddPlayerPacket,
     AdventureSettingsPacket,
     AnimatePacket,
+    AnvilDamagePacket,
     AvailableActorIdentifiersPacket,
     AvailableCommandsPacket,
     /**
@@ -100,6 +107,7 @@ export {
      */
     BatchPacket,
     BiomeDefinitionListPacket,
+    BlockPickRequestPacket,
     BookEditPacket,
     ChangeDimensionPacket,
     ChunkRadiusUpdatedPacket,
@@ -130,6 +138,7 @@ export {
     LevelChunkPacket,
     LevelSoundEventPacket,
     LoginPacket,
+    MapInfoRequestPacket,
     MobArmorEquipmentPacket,
     MobEquipmentPacket,
     ModalFormResponsePacket,
@@ -172,6 +181,7 @@ export {
     SetTimePacket,
     ShowProfilePacket,
     StartGamePacket,
+    SubChunkRequestPacket,
     TextPacket,
     TakeItemActorPacket,
     TickingAreasLoadStatusPacket,
