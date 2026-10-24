@@ -20,7 +20,7 @@
 
 import type { ChildProcess } from 'node:child_process';
 import { spawn, spawnSync } from 'node:child_process';
-import { existsSync, readdirSync, watch } from 'node:fs';
+import { readdirSync, watch } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
@@ -178,9 +178,10 @@ for (const signal of ['SIGINT', 'SIGTERM', 'SIGHUP'] as const) {
     });
 }
 
-if (!existsSync(path.join(bedrockDataDir, 'src', 'generated'))) {
-    generateBedrockData({ restart: false });
-}
+// The generated JSON is ignored by Git, so a fresh checkout has the directory (it holds a
+// checked-in `.gitignore` and `creativeitems.ts`) but not the files the package imports. The
+// generator skips anything already up to date, so running it on every start costs nothing.
+generateBedrockData({ restart: false });
 
 log(`watching ${packagesDir.replace(`${process.cwd()}/`, '')} for changes`, '36');
 start();

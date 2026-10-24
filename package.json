@@ -13,7 +13,7 @@
     },
     "scripts": {
         "preinstall": "node scripts/ensure-pnpm.mts",
-        "prepare": "node scripts/ensure-submodules.mts && (husky || true)",
+        "prepare": "pnpm --filter @jsprismarine/bedrock-data run generate && (husky || true)",
         "start": "pnpm --filter ./packages/server run start",
         "dev": "pnpm --filter ./packages/server run dev",
         "clean": "turbo run clean",
