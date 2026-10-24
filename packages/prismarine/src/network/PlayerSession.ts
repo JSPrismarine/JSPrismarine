@@ -1,3 +1,11 @@
+import {
+    ArgumentCommandNode,
+    BoolArgumentType,
+    FloatArgumentType,
+    IntegerArgumentType,
+    StringArgumentType,
+    StringType
+} from '@jsprismarine/brigadier';
 import { Vector3 } from '@jsprismarine/math';
 import {
     BuildPlatform,
@@ -9,7 +17,10 @@ import {
 import { BinaryHeap } from '../utils/BinaryHeap';
 import type Player from '../Player';
 import type Server from '../Server';
-import { CommandArgumentEntity, CommandArgumentGamemode, isCommandArgument } from '../command/CommandArguments';
+import type { Command } from '../command/Command';
+import type { CommandArgumentType } from '../command/CommandArguments';
+import { isCommandArgument } from '../command/CommandArguments';
+import type { CommandTreeNode } from '../command/CommandManager';
 import type { Attribute, Attributes } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
@@ -87,6 +98,26 @@ import TextPacketType from './type/TextPacketType';
  * ticks a second this still carries far more than generation can produce.
  */
 const CHUNKS_PER_BATCH = 4;
+
+/**
+ * The name each argument node under `node` was registered with, keyed by the type it holds.
+ *
+ * `CommandManager.getCommandsList()` hands out the types alone. A prismarine argument carries
+ * its own name, but a brigadier built-in such as `greedyString()` does not, and each
+ * `argument(name, type)` call gets its own instance, so the instance is enough to find the
+ * node and its name again.
+ * @param {CommandTreeNode} node - The command's root literal.
+ * @returns {Map<CommandArgumentType, string>} Type instance to node name.
+ */
+const argumentNamesOf = (node: CommandTreeNode): Map<CommandArgumentType, string> => {
+    const names = new Map<CommandArgumentType, string>();
+    const walk = (current: CommandTreeNode) => {
+        if (current instanceof ArgumentCommandNode) names.set(current.getType(), current.getName());
+        for (const child of current.getChildren()) walk(child);
+    };
+    walk(node);
+    return names;
+};
 
 export default class PlayerSession {
     private connection: ClientConnection;
@@ -859,6 +890,13 @@ export default class PlayerSession {
         await this.connection.sendDataPacket(pk);
     }
 
+    /**
+     * Tells the client which commands this player may run and what each one takes.
+     *
+     * One `CommandData` per command, each branch of its tree an overload, with overloads that
+     * come out the same folded into one. Only commands the player's permissions allow are
+     * sent, so the list is built per recipient and sent again when those permissions change.
+     */
     public async sendAvailableCommands(): Promise<void> {
         const playerEnum = new CommandEnum();
         playerEnum.soft = true;
@@ -871,87 +909,124 @@ export default class PlayerSession {
 
         const pk = new AvailableCommandsPacket();
         pk.softEnums = [playerEnum];
-        this.server
-            .getCommandManager()
-            .getCommandsList()
-            .forEach((command) => {
-                const commandClass = Array.from(this.server.getCommandManager().getCommands().values()).find(
-                    (cmd) => cmd.name === command[0]
+
+        const commandManager = this.server.getCommandManager();
+        const commands = Array.from(commandManager.getCommands().values());
+        for (const [name, node, overloads] of commandManager.getCommandsList()) {
+            const commandClass = commands.find((cmd) => cmd.name === name);
+            if (!commandClass) {
+                this.server.getLogger().warn(`Can't find corresponding command class for "${name}"`);
+                continue;
+            }
+
+            if (!this.server.getPermissionManager().can(this.player).execute(commandClass.permission)) continue;
+
+            const cmd = new CommandData();
+            cmd.commandName = name;
+            cmd.commandDescription = commandClass.description;
+            cmd.permission = this.commandPermissionLevel(commandClass);
+            if (commandClass.aliases!.length > 0) {
+                const cmdAliases = new CommandEnum();
+                cmdAliases.name = `${name}Aliases`;
+                cmdAliases.values = commandClass.aliases!.concat(name);
+                cmd.aliases = cmdAliases;
+            }
+
+            // Two branches can spell the same overload, as when two argument nodes hold
+            // prismarine arguments built with the same name. The client lists each once.
+            const argumentNames = argumentNamesOf(node);
+            const seen = new Set<string>();
+            for (const overload of overloads) {
+                const parameters = overload.flatMap((argument) => this.describeArgument(argument, argumentNames));
+                const key = JSON.stringify(
+                    parameters.map(({ paramName, paramType, isOptional, enum: _enum, postfix }) => [
+                        paramName,
+                        paramType,
+                        isOptional,
+                        _enum?.name ?? null,
+                        postfix
+                    ])
                 );
-
-                if (!commandClass) {
-                    this.player
-                        .getServer()
-                        .getLogger()
-                        .warn(`Can't find corresponding command class for "${command[0]}"`);
-                    return;
-                }
-
-                if (!this.player.getServer().getPermissionManager().can(this.player).execute(commandClass.permission))
-                    return;
-
-                const cmd = new CommandData();
-                cmd.commandName = command[0];
-                cmd.commandDescription = commandClass.description;
-                if (commandClass.aliases!.length > 0) {
-                    const cmdAliases = new CommandEnum();
-                    cmdAliases.name = `${command[0]}Aliases`;
-                    cmdAliases.values = commandClass.aliases!.concat(command[0]);
-                    cmd.aliases = cmdAliases;
-                }
-
-                command[2].forEach((arg, index) => {
-                    const parameters = arg
-                        .map((parameter) => {
-                            if (!isCommandArgument(parameter)) return [];
-
-                            const parameters = parameter.getParameters(this.server);
-                            if (parameters) return Array.from(parameters.values());
-
-                            if (parameter instanceof CommandArgumentEntity)
-                                return [
-                                    new CommandParameter({
-                                        paramName: 'target',
-                                        paramType: CommandParameterType.Target
-                                    })
-                                ];
-                            if (parameter instanceof CommandArgumentGamemode)
-                                return [
-                                    new CommandParameter({
-                                        paramName: 'gamemode',
-                                        paramType: CommandParameterType.String
-                                    })
-                                ];
-                            if (parameter.constructor.name === 'StringArgumentType')
-                                return [
-                                    new CommandParameter({
-                                        paramName: 'value',
-                                        paramType: CommandParameterType.String
-                                    })
-                                ];
-                            if (parameter.constructor.name === 'IntegerArgumentType')
-                                return [
-                                    new CommandParameter({
-                                        paramName: 'number',
-                                        paramType: CommandParameterType.Int
-                                    })
-                                ];
-
-                            this.server.getLogger().warn(`Invalid parameter ${parameter.constructor.name}`);
-                            return [
-                                new CommandParameter({
-                                    paramName: 'value',
-                                    paramType: CommandParameterType.String
-                                })
-                            ];
-                        })
-                        .flat();
-                    cmd.overloads[index] = parameters;
-                });
-                pk.commandData.push(cmd);
-            });
+                if (seen.has(key)) continue;
+                seen.add(key);
+                cmd.overloads.push(parameters);
+            }
+            pk.commandData.push(cmd);
+        }
 
         await this.getConnection().sendDataPacket(pk);
+    }
+
+    /**
+     * The parameters one argument node contributes to an overload.
+     *
+     * A prismarine argument describes itself. A brigadier built-in type cannot, so it is mapped
+     * onto the closest parse symbol: a greedy string is a `Message`, which the client reads to
+     * the end of the line as `/say` and `/me` need, any other string a `String`, an integer an
+     * `Int`, a float a `Float`, and a bool the `Boolean` enum. The name is the node's, as
+     * `argument('message', greedyString())` spells it.
+     *
+     * The built-in types used to be checked after `isCommandArgument` had already returned, so
+     * `/say`, `/me`, `/time` and the reason of `/ban` and `/kick` went out with no parameters.
+     * @param {CommandArgumentType} argument - The type the node holds.
+     * @param {Map<CommandArgumentType, string>} names - Each type's node name, from {@link argumentNamesOf}.
+     * @returns {CommandParameter[]} The parameters, in order.
+     */
+    private describeArgument(
+        argument: CommandArgumentType,
+        names: Map<CommandArgumentType, string>
+    ): CommandParameter[] {
+        if (isCommandArgument(argument)) {
+            const parameters = argument.getParameters(this.server);
+            if (parameters) return Array.from(parameters);
+            return [
+                new CommandParameter({ paramName: argument.getReadableType(), paramType: CommandParameterType.String })
+            ];
+        }
+
+        const paramName = names.get(argument) ?? 'value';
+        if (argument instanceof StringArgumentType) {
+            const paramType =
+                argument.getType() === StringType.GREEDY_PHRASE
+                    ? CommandParameterType.Message
+                    : CommandParameterType.String;
+            return [new CommandParameter({ paramName, paramType })];
+        }
+        if (argument instanceof IntegerArgumentType)
+            return [new CommandParameter({ paramName, paramType: CommandParameterType.Int })];
+        if (argument instanceof FloatArgumentType)
+            return [new CommandParameter({ paramName, paramType: CommandParameterType.Float })];
+        if (argument instanceof BoolArgumentType) {
+            const booleanEnum = new CommandEnum();
+            booleanEnum.name = 'Boolean';
+            booleanEnum.values = ['true', 'false'];
+            return [new CommandParameter({ paramName, enum: booleanEnum })];
+        }
+
+        this.server.getLogger().warn(`Invalid parameter ${argument.constructor.name}`);
+        return [new CommandParameter({ paramName, paramType: CommandParameterType.String })];
+    }
+
+    /**
+     * The `Permission Level` a command is sent with.
+     *
+     * Commands are gated by permission nodes, not levels, so the level is read off the
+     * permission manager: a command the default permissions allow is `Any`; anything else
+     * takes an operator, `GameDirectors`, the level `sendAbilities` gives an op. The result is
+     * capped at the player's own level. Every command in the list is one this player may run,
+     * and a client hides a command whose level is above its own even though the server would
+     * run it, which is what a player granted one operator command by name would otherwise see.
+     * @param {Command} command - The command being described.
+     * @returns {CommandPermissionLevel} The level, 0 (`Any`) or 1 (`GameDirectors`).
+     */
+    private commandPermissionLevel(command: Command): CommandPermissionLevel {
+        const permissions = this.server.getPermissionManager();
+        const everyone = { isOp: () => false, getPermissions: () => permissions.getDefaultPermissions() };
+        const required = permissions.can(everyone).execute(command.permission)
+            ? CommandPermissionLevel.ANY
+            : CommandPermissionLevel.GAME_DIRECTORS;
+        const own = this.player.isOp() ? CommandPermissionLevel.GAME_DIRECTORS : CommandPermissionLevel.ANY;
+        return required > own ? own : required;
     }
 
     /**
