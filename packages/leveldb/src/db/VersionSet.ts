@@ -145,7 +145,7 @@ export class VersionSet {
             previousLogNumber: this.previousLogNumber,
             nextFileNumber: this.nextFileNumber,
             lastSequence: this.lastSequence,
-            newFiles: this.allFiles().map(({ level, file }) => [level, file] as [number, FileMetaData])
+            newFiles: this.allFiles().map(({ level, file }) => [level, file])
         };
     }
 }
