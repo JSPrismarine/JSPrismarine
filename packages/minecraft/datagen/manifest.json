@@ -320,7 +320,7 @@
             "creative list, and it was the one that needed a native mod hooking the server binary."
         ],
         "source": "snapshot/block-palette.json",
-        "target": "../src/generated/block-schemas.json"
+        "target": "../src/generated/block-schemas.ts"
     },
     "recipes": {
         "$comment": [
