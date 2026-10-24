@@ -1,7 +1,10 @@
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
-/** A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it. */
+/**
+ * A piece of armor, as the Armor Slot varint32 of an `ArmorSlotAndDamagePair` numbers it. The
+ * values are `SharedTypes::Legacy::ArmorSlot` from Mojang's datagen snapshot.
+ */
 export enum ArmorSlot {
     Head = 0,
     Torso = 1,
@@ -26,8 +29,9 @@ export interface ArmorSlotAndDamagePair {
  *
  * Wire order at protocol 2193: Armor Slot and Damage Pairs as a varuint32 count followed by
  * that many pairs of Armor Slot (ZigZag varint32, see {@link ArmorSlot}) and Damage (int16 in
- * little-endian byte order). Up to protocol 1001 this packet was a slot bit set followed by
- * one ZigZag varint32 per set bit; at 2193 it is the counted list below.
+ * little-endian byte order). Older servers wrote a slot bitset followed by one ZigZag varint32
+ * per set bit; the 1.26.45 (protocol 2169) and 1.26.51 (protocol 2193) docs both give the
+ * counted list, and gophertunnel at 2193 agrees.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/player-armor-damage-packet/
  */
 export default class PlayerArmorDamagePacket extends DataPacket {

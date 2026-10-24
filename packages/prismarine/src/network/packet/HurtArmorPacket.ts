@@ -14,7 +14,7 @@ import DataPacket from './DataPacket';
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
- * | Cause | varint32 | The damage cause that hit the wearer |
+ * | Cause | varint32 | A `SharedTypes::Legacy::ActorDamageCause` number |
  * | Damage | varint32 | Damage points dealt to the wearer, not to the armor |
  * | Armor Slots | varuint64 | A bitset, one bit per armor slot |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/hurt-armor-packet/
@@ -22,7 +22,11 @@ import DataPacket from './DataPacket';
 export default class HurtArmorPacket extends DataPacket {
     public static NetID = Identifiers.HurtArmorPacket;
 
-    /** Cause, the damage cause that produced the hit. */
+    /**
+     * Cause, the damage cause that produced the hit, as a `SharedTypes::Legacy::ActorDamageCause`
+     * number. Mojang's datagen snapshot numbers its 35 members consecutively from `Override` (0)
+     * to `MaceSmash` (34); this repository does not generate the enum.
+     */
     public cause = 0;
 
     /** Damage, in damage points dealt to the wearer. The client derives the durability loss. */
