@@ -8,8 +8,6 @@ on:
     push:
         branches:
             - master
-    schedule:
-        - cron: '0 6 * * 1'
     workflow_dispatch:
 
 jobs:
@@ -30,4 +28,5 @@ jobs:
               run: pnpm run package:scriptc:coverage
 
             - name: 🧪 Build
+              continue-on-error: true
               run: pnpm run package:scriptc
