@@ -14,15 +14,15 @@ import RespawnHandler from './RespawnHandler';
 /**
  * The respawn exchange, and the order its three states go in.
  *
- * `SearchingForSpawn` at the death, `ClientReadyToSpawn` from the client when it
- * has loaded, `ReadyToSpawn` in answer. The middle one is the only one this handler
- * owns, and the answer to it is what lets go of the client's screen: sent at the wrong moment
- * - or not at all - the player watches "Respawning" for ever.
+ * `SearchingForSpawn` at the death, `ClientReadyToSpawn` from the client when the respawn
+ * button is pressed, `SearchingForSpawn` and `ReadyToSpawn` in answer. The middle one is the
+ * only one this handler owns, and the answer to it is what lets go of the client: answered
+ * wrongly, the player cannot move.
  */
 const fakeSession = ({ alive = true } = {}) => {
     const done: Array<{ state?: PlayerRespawnState; position?: Vector3; what?: string }> = [];
     const dropped: string[] = [];
-    const world = stub<World>({ getSpawnPosition: async () => new Vector3(100, 70, 100) });
+    const world = stub<World>({});
     const standingAt = new Position(0, 64, 0, world);
 
     return {
@@ -41,7 +41,12 @@ const fakeSession = ({ alive = true } = {}) => {
                     getRuntimeId: () => 7n,
                     isAlive: () => alive,
                     getWorld: () => world,
-                    getPosition: () => standingAt
+                    getPosition: () => standingAt,
+                    getRespawnPoint: async () => ({
+                        announced: new Vector3(100.5, 71.62, 100.5),
+                        block: new Vector3(100, 70, 100),
+                        eyes: new Vector3(100, 71.62, 100)
+                    })
                 })
         }),
         server: stub<Server>({
@@ -64,20 +69,23 @@ describe('RespawnHandler', () => {
         expect(done[0]).toEqual({ state: PlayerRespawnState.ReadyToSpawn, position: standingAt });
     });
 
-    it('names the world spawn while the player is still dead', async () => {
-        // The client may report ready before it has pressed the button, in which case nothing
-        // has moved the player yet and the corpse's position is not where they come back.
+    it('answers a dead player as a Bedrock server does: searching at the spawn block, then ready at its eyes', async () => {
+        // The client reports ready when the button is pressed, before its respawn action, so
+        // the player is still dead here. A Bedrock Dedicated Server 1.26.52 sends these two
+        // and nothing else; describing the dead player after them left the client frozen.
         const { done, session, server } = fakeSession({ alive: false });
 
         await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);
 
-        expect(done[0]?.position).toEqual(new Vector3(100, 70, 100));
+        expect(done).toEqual([
+            { state: PlayerRespawnState.SearchingForSpawn, position: new Vector3(100, 70, 100) },
+            { state: PlayerRespawnState.ReadyToSpawn, position: new Vector3(100, 71.62, 100) }
+        ]);
     });
 
-    it('describes the player again once the exchange has closed', async () => {
-        // The client rebuilds its local player across the exchange and comes back with the
-        // one it had before - a corpse with no health and nothing in its hand. Anything sent
-        // while it was still on the death screen was thrown away.
+    it('describes a player who has already respawned again once the exchange has closed', async () => {
+        // The respawn action came first, which a Bedrock server was not recorded doing: the
+        // player is alive, and is described again after the answer, as before.
         const { done, session, server } = fakeSession();
 
         await new RespawnHandler().handle(respawn(PlayerRespawnState.ClientReadyToSpawn), server, session);

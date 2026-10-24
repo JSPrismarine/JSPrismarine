@@ -462,9 +462,29 @@ describe('Player', () => {
             expect(player.getFood()).toBe(20);
             expect(player.metadata.air).toBe(MAX_AIR_TICKS);
             expect(player.metadata.breathing).toBe(true);
-            // The placed feet, with the eyes 1.62 above them: a player's position is their eyes.
+            // Where the `ReadyToSpawn` put the client: the spawn block's corner, the eyes 1.62
+            // above it, as a Bedrock Dedicated Server says.
             const { x, y, z } = player.getPosition();
-            expect({ x, y, z }).toEqual({ x: 0.5, y: 65 + EYE_HEIGHT, z: 0.5 });
+            expect({ x, y, z }).toEqual({ x: 0, y: 64 + EYE_HEIGHT, z: 0 });
+        });
+
+        it('tells the client it is alive again as a Bedrock server does, without moving it', async () => {
+            const { player, sent } = fakePlayer({ underwater: true });
+            player.setFood(10);
+            await player.setHealth(1);
+            await tick(player, MAX_AIR_TICKS + 20);
+            sent.length = 0;
+
+            await player.respawn();
+
+            expect(sent.map((packet) => packet.constructor.name)).toEqual([
+                'ActorEventPacket',
+                'SetHealthPacket',
+                'UpdateAttributesPacket',
+                'SetActorDataPacket'
+            ]);
+            expect(sent[0]).toMatchObject({ runtimeEntityId: player.getRuntimeId(), event: ActorEvent.SPAWN_ALIVE });
+            expect(sent[1]).toMatchObject({ health: 20 });
         });
 
         it('leaves a living player as they are', async () => {
@@ -488,7 +508,13 @@ describe('Player', () => {
 
             const respawns = sent.filter((packet) => packet instanceof RespawnPacket);
             expect(respawns).toHaveLength(1);
-            expect(respawns[0]?.state).toBe(PlayerRespawnState.SearchingForSpawn);
+            // As a Bedrock Dedicated Server sends it: the eyes over the spawn block's center, at
+            // the spawn's own height, and runtime id 0.
+            expect(respawns[0]).toMatchObject({
+                state: PlayerRespawnState.SearchingForSpawn,
+                position: new Vector3(0.5, 64 + EYE_HEIGHT, 0.5),
+                runtimeEntityId: 0n
+            });
         });
 
         it('tells the dying client why, for its death screen, after the respawn', async () => {
@@ -532,14 +558,17 @@ describe('Player', () => {
             const { player, sent } = fakePlayer();
             player.viewDistance = 10;
 
+            // Runtime ids come from one counter for the whole file, so a fixed id would sooner or
+            // later be the player's own.
+            const mobId = player.getRuntimeId() + 1_000_000n;
             const mob = stub<Entity>({
-                getRuntimeId: () => 42n,
+                getRuntimeId: () => mobId,
                 getPosition: () => new Position(4, 64, 4, player.getWorld()),
                 getTrackingRange: () => 8,
                 spawnTo: async () => {}
             });
             await player.getNetworkSession().considerEntity(mob);
-            expect(player.getNetworkSession().tracks(42n)).toBe(true);
+            expect(player.getNetworkSession().tracks(mobId)).toBe(true);
             sent.length = 0;
 
             const target = stub<World>({
@@ -549,12 +578,12 @@ describe('Player', () => {
             await player.setWorld(target);
 
             const removal = sent.findIndex(
-                (packet) => packet instanceof RemoveActorPacket && packet.uniqueEntityId === 42n
+                (packet) => packet instanceof RemoveActorPacket && packet.uniqueEntityId === mobId
             );
             const dimensionChange = sent.findIndex((packet) => packet instanceof ChangeDimensionPacket);
             expect(removal).toBeGreaterThanOrEqual(0);
             expect(dimensionChange).toBeGreaterThan(removal);
-            expect(player.getNetworkSession().tracks(42n)).toBe(false);
+            expect(player.getNetworkSession().tracks(mobId)).toBe(false);
             expect(player.getWorld()).toBe(target);
         });
 

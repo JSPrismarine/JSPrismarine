@@ -59,6 +59,30 @@ export const requestedSpawnPosition = (spawn: Vector3): Vector3 =>
     centered(Math.floor(spawn.getX()), Math.floor(spawn.getY()) + 1, Math.floor(spawn.getZ()));
 
 /**
+ * Where a player who died comes back, as a Bedrock Dedicated Server 1.26.52 says it, measured
+ * with the world spawn at (5, 63, -6):
+ *
+ * - `announced`: the `SearchingForSpawn` sent at the death, the eyes over the spawn block's
+ *   center at its own height, (5.5, 64.62, -5.5);
+ * - `block`: the `SearchingForSpawn` that opens the answer to the client's
+ *   `ClientReadyToSpawn`, the spawn block itself, (5, 63, -6);
+ * - `eyes`: the `ReadyToSpawn` after it, the eyes over the block's corner, (5, 64.62, -6). The
+ *   client puts its player there, so the server does too.
+ *
+ * Unlike {@link placePlayerSpawn} for a join, nothing here is raised one block or centered.
+ * @param spawn - the world spawn, in block coordinates.
+ * @param eyeHeight - how far above the feet a player's position is.
+ */
+export const respawnPoint = (spawn: Vector3, eyeHeight: number) => {
+    const [x, y, z] = [Math.floor(spawn.getX()), Math.floor(spawn.getY()), Math.floor(spawn.getZ())];
+    return {
+        announced: centered(x, y + eyeHeight, z),
+        block: new Vector3(x, y, z),
+        eyes: new Vector3(x, y + eyeHeight, z)
+    };
+};
+
+/**
  * Places a player who has no position of their own, the way a Bedrock Dedicated Server does.
  *
  * Measured against BDS 1.26.52, one fresh player per case:
