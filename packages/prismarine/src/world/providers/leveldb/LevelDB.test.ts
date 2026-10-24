@@ -2,12 +2,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
-import { ChunkTag, encodeChunkKey } from './LevelDBKeys';
+import { ChunkTag, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
 import { Dimensions } from '../../Dimension';
@@ -17,6 +18,7 @@ import LevelDB, { CHUNK_VERSION } from './LevelDB';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
 import type { World } from '../../World';
+import type { WorldPlayerData } from '../../World';
 
 const directories: string[] = [];
 
@@ -111,6 +113,39 @@ describe('world', () => {
             expect(level.storageVersion).toBe(10);
             expect(level.root.getString('LevelName', '')).toBe('MyWorld');
             expect(level.root.getLong('RandomSeed', 0n)).toBe(1234n);
+        });
+
+        it('stores player data in a player_server NBT record', async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data: WorldPlayerData = {
+                uuid: 'player-uuid',
+                username: 'Player',
+                gamemode: 'Creative',
+                position: { x: 1.25, y: 64.5, z: -3.75, pitch: 4, yaw: 90, headYaw: 91 }
+            };
+
+            await provider.enable();
+            await provider.writePlayerData('player-xuid', data);
+            await provider.disable();
+
+            const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+            const value = database.get(encodePlayerServerKey('player-xuid'));
+            expect(value).not.toBeNull();
+            if (value === null) throw new Error('Expected player_server record');
+
+            const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+            reader.setUseVarint(false);
+            const nbt = reader.parse();
+            expect(nbt.getString('NameTag', '')).toBe('Player');
+            expect(nbt.getNumber('PlayerGameType', -1)).toBe(1);
+            expect(nbt.getCompound('JSPrismarine', false)?.getString('uuid', '')).toBe('player-uuid');
+            await database.close();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect(await reopened.provider.readPlayerData('player-xuid')).toEqual(data);
+            await reopened.provider.disable();
         });
 
         it('generates a chunk that is not there, and does not write one back for it', async () => {

@@ -1,4 +1,4 @@
-import type { WorldConfig } from '../World';
+import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Service } from '../../utils';
 import type { Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
@@ -27,4 +27,10 @@ export default interface Provider extends Service {
 
     /** Persists provider-specific world metadata, such as the spawn position. */
     saveLevelData?(spawn: { x: number; y: number; z: number }): void;
+
+    /** Reads player data from provider-specific storage, if the format supports it. */
+    readPlayerData?(key: string): Promise<Partial<WorldPlayerData> | null>;
+
+    /** Writes player data to provider-specific storage, if the format supports it. */
+    writePlayerData?(key: string, data: WorldPlayerData): Promise<void>;
 }

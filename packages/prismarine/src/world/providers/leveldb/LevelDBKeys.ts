@@ -58,6 +58,12 @@ export const OVERWORLD_DIMENSION = 0;
 /** The list of actor ids belonging to a chunk. Each actor's NBT lives under `actorprefix`. */
 export const DIGEST_PREFIX = Buffer.from('digp', 'ascii');
 export const ACTOR_PREFIX = Buffer.from('actorprefix', 'ascii');
+/** Prefix for the server-side NBT record for a player. */
+export const PLAYER_SERVER_PREFIX = Buffer.from('player_server_', 'ascii');
+
+/** The key Bedrock uses for a player's server-side NBT record. */
+export const encodePlayerServerKey = (identifier: string): Buffer =>
+    Buffer.concat([PLAYER_SERVER_PREFIX, Buffer.from(identifier, 'utf8')]);
 
 export interface ChunkKey {
     x: number;

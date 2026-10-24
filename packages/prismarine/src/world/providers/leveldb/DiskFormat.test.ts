@@ -13,7 +13,8 @@ import {
     encodeActorKey,
     encodeChunkKey,
     encodeDigest,
-    encodeDigestKey
+    encodeDigestKey,
+    encodePlayerServerKey
 } from './LevelDBKeys';
 import { HEIGHTMAP_BYTES, decodeData3D, encodeData3D, uniformBiomes, uniformData3D } from './BiomeCodec';
 import { decodeLevelDat, encodeLevelDat, LEVEL_DAT_STORAGE_VERSION } from './LevelDat';
@@ -123,6 +124,10 @@ describe('world', () => {
                 );
                 expect(() => encodeActorKey(Buffer.alloc(4))).toThrow(/8 bytes/);
             });
+        });
+
+        it('builds a player server record key', () => {
+            expect(encodePlayerServerKey('1234567890')).toEqual(Buffer.from('player_server_1234567890'));
         });
     });
 
