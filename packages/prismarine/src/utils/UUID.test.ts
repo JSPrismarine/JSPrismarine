@@ -73,6 +73,14 @@ describe('utils', () => {
             expect(serialized(UUID.fromString(HIGH_UUID))).toEqual(HIGH_UUID_WIRE);
         });
 
+        it('accepts unsigned words above 2^31 in the constructor', () => {
+            const fromUnsigned = new UUID(0xffeeddcc, 0xbbaa9988, 0xffffffff, 0xffffffff);
+
+            expect(fromUnsigned.equals(UUID.fromString(HIGH_UUID))).toBe(true);
+            expect(fromUnsigned.toString()).toBe(HIGH_UUID);
+            expect(serialized(fromUnsigned)).toEqual(HIGH_UUID_WIRE);
+        });
+
         it('reads back what it wrote, consuming the whole uuid', () => {
             for (const value of [PLAYER_UUID, HIGH_UUID]) {
                 const stream = new BinaryStream(serialized(UUID.fromString(value)));

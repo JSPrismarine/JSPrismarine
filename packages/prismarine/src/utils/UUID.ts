@@ -5,8 +5,20 @@ export default class UUID {
     private readonly parts: number[] = [];
     private readonly version: number;
 
+    /**
+     * Creates a uuid from the four 32-bit words of its big-endian form, in order.
+     *
+     * A word is kept as a signed int32, which is how {@link fromBinary} reads it; an unsigned
+     * word such as `0x8899aabb` is accepted and wrapped, so two uuids built either way are
+     * equal and both go on the wire.
+     * @param part1 - The first word (`xxxxxxxx-....`).
+     * @param part2 - The second word.
+     * @param part3 - The third word.
+     * @param part4 - The fourth word.
+     * @param version - The uuid version, taken from `part2` when zero.
+     */
     public constructor(part1 = 0, part2 = 0, part3 = 0, part4 = 0, version = 4) {
-        this.parts = [part1, part2, part3, part4];
+        this.parts = [part1 | 0, part2 | 0, part3 | 0, part4 | 0];
         this.version = version || (this.parts[1]! & 0xf000) >> 12;
     }
 
