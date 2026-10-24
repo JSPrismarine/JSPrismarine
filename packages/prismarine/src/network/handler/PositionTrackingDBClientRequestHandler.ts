@@ -2,6 +2,7 @@ import type Server from '../../Server';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
 import type PositionTrackingDBClientRequestPacket from '../packet/PositionTrackingDBClientRequestPacket';
+import { PositionTrackingDBClientRequestAction } from '../packet/PositionTrackingDBClientRequestPacket';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -14,12 +15,29 @@ import type PacketHandler from './PacketHandler';
 export default class PositionTrackingDBClientRequestHandler implements PacketHandler<PositionTrackingDBClientRequestPacket> {
     public static NetID = Identifiers.PositionTrackingDBClientRequestPacket;
 
-    /** Logs the tracking id the client asked about. */
+    /**
+     * Logs the tracking id the client asked about.
+     *
+     * `Query` is the only `Action` the docs list. Any other number is not a request this
+     * server could ever answer, so it is logged as dropped rather than read as a query.
+     */
     public handle(packet: PositionTrackingDBClientRequestPacket, server: Server, session: PlayerSession): void {
+        const name = session.getPlayer().getName();
+
+        if (packet.action !== PositionTrackingDBClientRequestAction.Query) {
+            server
+                .getLogger()
+                .debug(
+                    `Dropped a position tracking request from ${name} with the unknown action ${packet.action}`,
+                    'PositionTrackingDBClientRequestHandler/handle'
+                );
+            return;
+        }
+
         server
             .getLogger()
             .debug(
-                `${session.getPlayer().getName()} asked for tracked position ${packet.id}. Position tracking is not modeled`,
+                `${name} asked for tracked position ${packet.id}. Position tracking is not modeled`,
                 'PositionTrackingDBClientRequestHandler/handle'
             );
     }

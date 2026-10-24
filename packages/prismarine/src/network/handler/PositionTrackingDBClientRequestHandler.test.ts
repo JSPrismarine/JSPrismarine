@@ -21,4 +21,17 @@ describe('PositionTrackingDBClientRequestHandler', () => {
 
         expect(logged).toEqual(['Steve asked for tracked position 42. Position tracking is not modeled']);
     });
+
+    it('drops a request whose action is not Query', () => {
+        const logged: string[] = [];
+        const server = stub<Server>({
+            getLogger: () => stub<Logger>({ debug: (...message) => void logged.push(message[0] ?? '') })
+        });
+        const session = stub<PlayerSession>({ getPlayer: () => stub<Player>({ getName: () => 'Steve' }) });
+        const packet = Object.assign(new PositionTrackingDBClientRequestPacket(), { action: 7, id: 42 });
+
+        new PositionTrackingDBClientRequestHandler().handle(packet, server, session);
+
+        expect(logged).toEqual(['Dropped a position tracking request from Steve with the unknown action 7']);
+    });
 });
