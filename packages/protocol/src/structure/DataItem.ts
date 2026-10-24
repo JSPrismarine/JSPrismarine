@@ -18,7 +18,15 @@ export type DataItemEntry =
     | { type: DataItemType.VEC3; value: Vec3 };
 
 /**
- * Represents the network structure of the data linked to a entity.
+ * One `DataItemEntry` of a `SynchedActorDataList`, the typed entity data an actor carries.
+ *
+ * Wire layout: `ID` (varuint32), then the `Payload`, which is a one-of. The one-of writes
+ * its selector as a varuint32 and then the chosen variant, and every variant starts with its
+ * own `Type` byte (uint8 `DataItemType`), so the type travels twice: once as the selector and
+ * once inside the variant. The `Value` follows: `Byte` as int8, `Short` as int16 little
+ * endian, `Int` as varint32, `Float` as float little endian, `String` as a string,
+ * `CompoundTag` as network NBT, `Pos` as a `BlockPos` of three varint32, `Int64` as varint64,
+ * `Vec3` as three floats.
  * {@link https://mojang.github.io/bedrock-protocol-docs/html/DataItem.html}
  */
 export class DataItem extends NetworkStructure {
@@ -49,12 +57,14 @@ export class DataItem extends NetworkStructure {
         return this.entry.value;
     }
 
+    /** Writes the item in docs order: the id, the one-of selector, the variant's type byte, the value. */
     public serialize(stream: NetworkBinaryStream): void {
         stream.writeUnsignedVarInt(this.id);
-        stream.writeSignedByte(this.entry.type);
+        stream.writeUnsignedVarInt(this.entry.type);
+        stream.writeByte(this.entry.type);
         switch (this.entry.type) {
             case DataItemType.BYTE:
-                stream.writeByte(this.entry.value);
+                stream.writeSignedByte(this.entry.value);
                 break;
             case DataItemType.SHORT:
                 stream.writeShortLE(this.entry.value);
@@ -75,7 +85,7 @@ export class DataItem extends NetworkStructure {
                 this.entry.value.serialize(stream);
                 break;
             case DataItemType.LONG:
-                stream.writeLongLE(this.entry.value);
+                stream.writeVarLong(this.entry.value);
                 break;
             case DataItemType.VEC3:
                 this.entry.value.serialize(stream);
@@ -85,14 +95,20 @@ export class DataItem extends NetworkStructure {
 
     /**
      * Reads the item from the stream.
-     * @throws Error when the type byte is not a known {@link DataItemType}.
+     * @throws Error when the one-of selector and the variant's type byte disagree, or when
+     * neither names a known {@link DataItemType}.
      */
     public deserialize(stream: NetworkBinaryStream): void {
         this.id = stream.readUnsignedVarInt();
-        const type: DataItemType = stream.readSignedByte();
+        const selector = stream.readUnsignedVarInt();
+        const type: DataItemType = stream.readByte();
+        if (selector !== type) {
+            throw new Error(`Data item ${this.id} selects payload ${selector} but carries type ${type}`);
+        }
+
         switch (type) {
             case DataItemType.BYTE:
-                this.entry = { type, value: stream.readByte() };
+                this.entry = { type, value: stream.readSignedByte() };
                 break;
             case DataItemType.SHORT:
                 this.entry = { type, value: stream.readShortLE() };
@@ -113,7 +129,7 @@ export class DataItem extends NetworkStructure {
                 this.entry = { type, value: BlockPos.deserialize(stream) };
                 break;
             case DataItemType.LONG:
-                this.entry = { type, value: stream.readLongLE() };
+                this.entry = { type, value: stream.readVarLong() };
                 break;
             case DataItemType.VEC3:
                 this.entry = { type, value: Vec3.deserialize(stream) };
