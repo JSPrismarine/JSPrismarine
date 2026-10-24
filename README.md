@@ -13,7 +13,7 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 ## Why use JSPrismarine?
 
-- Written in TypeScript, making it easy to use and develop plugins for. You can develop plugins in any language that transpiles into JavaScript, such as TypeScript, Kotlin, CoffeeScript, asm.js, and more.
+- Written in TypeScript.
 - Open source with the permissive [MPL2](https://github.com/JSPrismarine/JSPrismarine/blob/master/LICENSE) license.
 - Under active development.
 
@@ -56,7 +56,7 @@ pnpm run start
 - Can I contribute?
   - Sure, make sure to read the [CONTRIBUTING.md](https://github.com/JSPrismarine/JSPrismarine/blob/master/CONTRIBUTING.md) file first.
 - Is JSPrismarine for `Minecraft: Bedrock Edition` or `Minecraft: Java Edition`?
-  - JSPrismarine is made for `Minecraft: Bedrock Edition`, but there may potentially be plugins available to provide a `Minecraft: Java Edition` protocol implementation.
+  - JSPrismarine is made for `Minecraft: Bedrock Edition`.
 - What devices can a player join JSPrismarine with?
   - By default, PC/Windows, Android, and iOS. With some tricks, you can also join with Xbox, Switch, and even PlayStation consoles.
 - Which OSes can run JSPrismarine?
