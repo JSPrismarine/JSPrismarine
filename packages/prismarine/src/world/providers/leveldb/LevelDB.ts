@@ -19,8 +19,8 @@ import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
 import type Server from '../../../Server';
 
-/** The `Version` byte 1.21 writes. Older values make the game run its upgrade passes. */
-export const CHUNK_VERSION = 41;
+/** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
+export const CHUNK_VERSION = 42;
 
 /** `FinalizedState`: 0 needs instaticking, 1 needs population, 2 is done. */
 const FINALIZED_DONE = 2;
