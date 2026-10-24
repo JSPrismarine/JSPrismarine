@@ -15,7 +15,7 @@ import type Server from '../Server';
 import { Entity } from '../entity/Entity';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
-import ParseTildeCaretNotation from '../utils/ParseTildeCaretNotation';
+import ParseTildeCaretNotation, { parseAbsoluteCoordinate } from '../utils/ParseTildeCaretNotation';
 import type { CommandExecutor } from './CommandExecutor';
 
 /**
@@ -272,7 +272,9 @@ export class CommandArgumentPosition implements CommandArgument {
     /**
      * @returns A fresh vector per invocation, so concurrent executions cannot overwrite
      * each other's coordinates.
-     * @throws Error when a relative coordinate is used from the console, which stands nowhere.
+     * @throws Error when fewer than three coordinates are given, when one of them is not a
+     * number (a player name, say), or when a relative coordinate is used from the console,
+     * which stands nowhere.
      */
     public parse(reader: StringReader, context: CommandParseContext): Vector3 {
         const getPos = () => {
@@ -296,15 +298,19 @@ export class CommandArgumentPosition implements CommandArgument {
             if (source instanceof Entity) return ParseTildeCaretNotation({ input, source, type });
             if (input.startsWith('~') || input.startsWith('^'))
                 throw new Error(`Relative coordinate "${input}" needs a player as the source`);
-            return Number.parseFloat(input);
+            return parseAbsoluteCoordinate(input);
+        };
+        const separator = () => {
+            if (!reader.canRead()) throw new Error('Expected three coordinates: x y z');
+            reader.skip();
         };
 
         // Read in order: each call consumes from the reader, so the arguments have to be
         // evaluated left to right rather than left to a constructor's argument order.
         const x = axis('x');
-        reader.skip();
+        separator();
         const y = axis('y');
-        reader.skip();
+        separator();
         const z = axis('z');
 
         return new Vector3(x, y, z);
