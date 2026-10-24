@@ -1,10 +1,8 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 import BlockPosition from '../../world/BlockPosition';
+import { AnimationMode, Mirror, Rotation } from '../type/StructureSettings';
 import StructureBlockUpdatePacket, {
-    AnimationMode,
-    Mirror,
-    Rotation,
     StructureBlockType,
     StructureRedstoneSaveMode
 } from './StructureBlockUpdatePacket';
@@ -47,14 +45,14 @@ describe('StructureBlockUpdatePacket', () => {
     const structureData = () => ({
         structureName: { unredacted: 'house', redacted: 'h' },
         dataField: '',
-        includePlayers: true,
-        showBoundingBox: false,
+        shouldIncludePlayers: true,
+        shouldShowBoundingBox: false,
         structureBlockType: StructureBlockType.Export,
         structureSettings: {
             structurePaletteName: 'default',
-            ignoreEntities: false,
-            ignoreBlocks: true,
-            allowNonTickingChunks: false,
+            shouldIgnoreEntities: false,
+            shouldIgnoreBlocks: true,
+            shouldAllowNonTickingPlayerAndTickingAreaChunks: false,
             structureSize: new BlockPosition(4, 5, 6),
             structureOffset: new BlockPosition(-1, 0, 1),
             lastEditPlayer: 7n,

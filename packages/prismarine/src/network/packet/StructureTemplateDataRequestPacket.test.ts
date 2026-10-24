@@ -1,11 +1,9 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 import BlockPosition from '../../world/BlockPosition';
-import type { StructureSettings } from './StructureTemplateDataRequestPacket';
+import type { StructureSettings } from '../type/StructureSettings';
+import { AnimationMode, Mirror, Rotation } from '../type/StructureSettings';
 import StructureTemplateDataRequestPacket, {
-    StructureAnimationMode,
-    StructureMirror,
-    StructureRotation,
     StructureTemplateRequestOperation
 } from './StructureTemplateDataRequestPacket';
 
@@ -13,13 +11,13 @@ const SETTINGS: StructureSettings = {
     structurePaletteName: 'default',
     shouldIgnoreEntities: true,
     shouldIgnoreBlocks: false,
-    shouldAllowNonTickingChunks: false,
+    shouldAllowNonTickingPlayerAndTickingAreaChunks: false,
     structureSize: new BlockPosition(1, 2, 3),
     structureOffset: new BlockPosition(0, 0, 0),
     lastEditPlayer: 4n,
-    rotation: StructureRotation.Rotate90,
-    mirror: StructureMirror.X,
-    animationMode: StructureAnimationMode.Blocks,
+    rotation: Rotation.Rotate90,
+    mirror: Mirror.X,
+    animationMode: AnimationMode.Blocks,
     animationSeconds: 0.5,
     integrityValue: 1,
     integritySeed: 0x01020304,
