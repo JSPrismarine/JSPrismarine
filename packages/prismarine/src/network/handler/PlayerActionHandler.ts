@@ -25,6 +25,24 @@ const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
 ]);
 
 /**
+ * The actions that moved into `PlayerAuthInputPacket` and no longer arrive in a packet of
+ * their own.
+ *
+ * The block-breaking guide puts every start, swing, abort, stop, continuation and prediction
+ * of a break in the input's `Player Block Actions`, and a 1.26.51 client sends them nowhere
+ * else. A `PlayerActionPacket` carrying one is not that client's doing, so it is dropped
+ * before {@link PlayerActionHandler.handleAction} would sound or break anything on its say-so.
+ */
+const INPUT_ONLY_ACTIONS: ReadonlySet<number> = new Set([
+    PlayerAction.START_BREAK,
+    PlayerAction.ABORT_BREAK,
+    PlayerAction.STOP_BREAK,
+    PlayerAction.CRACK_BLOCK,
+    PlayerAction.PREDICT_DESTROY_BLOCK,
+    PlayerAction.CONTINUE_DESTROY_BLOCK
+]);
+
+/**
  * How far from the player a block action may claim to have happened.
  *
  * Acting on a block reads the world at it, which loads the chunk it falls in and generates
@@ -39,16 +57,42 @@ const MAX_BLOCK_ACTION_DISTANCE = CREATIVE_REACH + 1;
 /**
  * Everything a player does that is not moving, whichever packet it arrived in.
  *
- * Two packets carry these. `PlayerActionPacket` still brings the ones with no block - a jump,
- * a sprint, a respawn - and a creative break. A survival break comes as the block actions of
- * `PlayerAuthInputPacket` since movement went server authoritative: the start, every swing,
- * the abort and the stop ride with the tick's input, and `PlayerAuthInputHandler` hands each
- * to {@link handleAction} exactly as this handler does for its own packet.
+ * Two packets carry these. `PlayerActionPacket` still brings the ones the docs mark "Sent in
+ * Player Action": a respawn, a creative break, a dimension change ack, a flight toggle, the
+ * sleeping, swimming, gliding and spin attack pairs. A survival break comes as the block
+ * actions of `PlayerAuthInputPacket` since movement went server authoritative: the start,
+ * every swing, the abort and the stop ride with the tick's input, and `PlayerAuthInputHandler`
+ * hands each to {@link handleAction} exactly as this handler does for its own packet.
+ *
+ * {@link handle} checks what only the standalone packet carries: `Player Runtime ID` has to be
+ * the sender's, and a block action that belongs in the input is ignored. Neither throws.
  */
 export default class PlayerActionHandler implements PacketHandler<PlayerActionPacket> {
     public static NetID = Identifiers.PlayerActionPacket;
 
     public async handle(packet: PlayerActionPacket, server: Server, session: PlayerSession): Promise<void> {
+        const player = session.getPlayer();
+
+        if (packet.runtimeEntityId !== player.getRuntimeId()) {
+            server
+                .getLogger()
+                .debug(
+                    `Dropped action ${packet.action} from ${player.getName()}: it names runtime id ${packet.runtimeEntityId}, not their own`,
+                    'PlayerActionHandler/handle'
+                );
+            return;
+        }
+
+        if (INPUT_ONLY_ACTIONS.has(packet.action)) {
+            server
+                .getLogger()
+                .debug(
+                    `Ignored action ${packet.action} from ${player.getName()}: block actions arrive in PlayerAuthInputPacket`,
+                    'PlayerActionHandler/handle'
+                );
+            return;
+        }
+
         await this.handleAction(packet.action, packet.blockPosition, packet.blockFace, server, session);
     }
 
@@ -195,8 +239,53 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 return;
             }
 
+            // The docs expect an `UpdateAbilitiesPacket` back, accepting or refusing the
+            // toggle. `setFlying` sends one either way: the new abilities when the player may
+            // fly, the old ones when they may not.
+            case PlayerAction.START_FLYING: {
+                await player.setFlying(true);
+                return;
+            }
+            case PlayerAction.STOP_FLYING: {
+                await player.setFlying(false);
+                return;
+            }
+
+            // Accepted, and nothing done. The client has already done what each of these
+            // says, and the server keeps no swimming, gliding, crawling, sleeping, spin attack
+            // or dimension change state to bring up to date; the docs' expected answers (a
+            // `SetActorDataPacket` flag for most) wait on that state existing. A client-side
+            // prediction of a break never arrives: `StartGamePacket` sends `Server
+            // Authoritative Block Breaking` as false. `DenyDestroyBlock` is EDU only.
+            case PlayerAction.DIMENSION_CHANGE_ACK:
+            case PlayerAction.START_SWIMMING:
+            case PlayerAction.STOP_SWIMMING:
+            case PlayerAction.START_GLIDE:
+            case PlayerAction.STOP_GLIDE:
+            case PlayerAction.START_CRAWLING:
+            case PlayerAction.STOP_CRAWLING:
+            case PlayerAction.START_SLEEPING:
+            case PlayerAction.STOP_SLEEPING:
+            case PlayerAction.START_SPIN_ATTACK:
+            case PlayerAction.STOP_SPIN_ATTACK:
+            case PlayerAction.START_ITEM_USE_ON:
+            case PlayerAction.STOP_ITEM_USE_ON:
+            case PlayerAction.START_USING_ITEM:
+            case PlayerAction.MISSED_SWING:
+            case PlayerAction.HANDLED_TELEPORT:
+            case PlayerAction.INTERNAL_UPDATE:
+            case PlayerAction.BUILD_DENIED:
+            case PlayerAction.PREDICT_DESTROY_BLOCK: {
+                return;
+            }
+
             default: {
-                server.getLogger().verbose(`Unhandled player action: ${action}`);
+                server
+                    .getLogger()
+                    .verbose(
+                        `Dropped action ${action} from ${player.getName()}: not one a client sends`,
+                        'PlayerActionHandler/handleAction'
+                    );
                 break;
             }
         }
