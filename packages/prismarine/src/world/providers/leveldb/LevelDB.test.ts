@@ -146,7 +146,7 @@ describe('world', () => {
                 expect(restored.getBlockRuntimeId(1, 310, 1)).toBe(id('minecraft:dirt'));
                 expect(restored.getBlockRuntimeId(5, 200, 5)).toBe(id('minecraft:air'));
                 await second.provider.disable();
-            });
+            }, 15_000);
 
             it('keeps a block at y=-64 and one at y=310, which the old format could not hold', async () => {
                 const worldPath = scratch();

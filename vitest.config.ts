@@ -55,6 +55,8 @@ export default defineConfig({
         bail: 2,
         environment: 'node',
         exclude,
+        fsModuleCache: true,
+        fsModuleCachePath: resolve(__dirname, 'node_modules/.cache/vitest'),
         maxConcurrency: 16,
         passWithNoTests: true,
         silent: false,
