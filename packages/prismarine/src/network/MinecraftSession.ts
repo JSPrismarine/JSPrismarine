@@ -6,6 +6,25 @@ import { BatchPacket } from './Packets';
 import { PacketLogFilter } from './PacketLogFilter';
 
 /**
+ * The clientbound packets `JSP_DEBUG_DROP_PACKETS` names, by class name.
+ *
+ * A debugging aid for a client that leaves during the join without saying why. Set the
+ * variable to a comma-separated list such as `LevelChunkPacket,CraftingDataPacket` and the
+ * named packets never reach the wire, which bisects the join stream one packet type at a
+ * time against a real client. Read when a session is created, from the environment the
+ * server was started with.
+ * @param {string | undefined} [value] - The variable's value; defaults to the process environment.
+ * @returns {ReadonlySet<string>} The names to drop, empty when the variable is unset.
+ */
+export const debugDroppedPackets = (value = process.env.JSP_DEBUG_DROP_PACKETS): ReadonlySet<string> =>
+    new Set(
+        (value ?? '')
+            .split(',')
+            .map((name) => name.trim())
+            .filter((name) => name.length > 0)
+    );
+
+/**
  * The layer between a `ClientConnection` and its RakNet session: wraps single packets in a
  * batch of their own, frames encoded batches in the order they were asked for, and logs what
  * went out.
@@ -43,7 +62,8 @@ export default class MinecraftSession {
     public constructor(
         session: RakNetSession,
         private readonly logger: Logger,
-        private readonly logFilter: PacketLogFilter = new PacketLogFilter()
+        private readonly logFilter: PacketLogFilter = new PacketLogFilter(),
+        private readonly dropped: ReadonlySet<string> = debugDroppedPackets()
     ) {
         this.rakSession = session;
     }
@@ -67,6 +87,8 @@ export default class MinecraftSession {
     }
 
     public sendBatch(batch: BatchPacket, direct = true): void {
+        if (this.dropsBatch(batch)) return;
+
         batch.encode();
         void this.ordered(() => this.frameBatch(batch, direct));
     }
@@ -80,6 +102,8 @@ export default class MinecraftSession {
      * through the pool would cost more than compressing a small packet does.
      */
     public async sendBatchAsync(batch: BatchPacket, direct = true): Promise<void> {
+        if (this.dropsBatch(batch)) return;
+
         this.pendingAsyncSends++;
         try {
             await this.chain(async () => {
@@ -114,6 +138,8 @@ export default class MinecraftSession {
      * @param {boolean} [direct=false] - Force a datagram of its own.
      */
     public sendSharedBatch(content: Buffer, packet: DataPacket, direct = false): void {
+        if (this.drops(packet.getName())) return;
+
         // Through the same ordering chain as everything else, so a shared batch cannot
         // overtake a chunk batch that is still compressing.
         void this.ordered(() => {
@@ -136,6 +162,8 @@ export default class MinecraftSession {
     }
 
     public async sendDataPacket(packet: DataPacket, comp = true, direct = false): Promise<void> {
+        if (this.drops(packet.getName())) return;
+
         const batch = new BatchPacket();
         try {
             batch.addPacket(packet);
@@ -157,6 +185,34 @@ export default class MinecraftSession {
             this.frameBatch(batch, direct);
             if (this.logFilter.shouldLog(packet)) this.logger.silly(`Sent §b${packet.getName()}§r packet`);
         });
+    }
+
+    /**
+     * Whether `JSP_DEBUG_DROP_PACKETS` names this packet. A dropped packet leaves a warn line,
+     * so the log of a bisect run says what the client did not get.
+     * @param {string} name - The packet class name.
+     * @returns {boolean} `true` when the packet must not be sent.
+     */
+    private drops(name: string): boolean {
+        if (!this.dropped.has(name)) return false;
+
+        this.logger.warn(`Dropped §b${name}§r packet, named by JSP_DEBUG_DROP_PACKETS`);
+        return true;
+    }
+
+    /**
+     * A batch is dropped whole when any packet in it is named. Chunk batches hold only
+     * `LevelChunkPacket`s, so for the join stream this costs nothing extra.
+     * @param {BatchPacket} batch - The batch about to be encoded.
+     * @returns {boolean} `true` when the batch must not be sent.
+     */
+    private dropsBatch(batch: BatchPacket): boolean {
+        let drop = false;
+        for (const name of batch.getPacketNames()) {
+            if (this.drops(name)) drop = true;
+        }
+
+        return drop;
     }
 
     public forceDisconnect(): void {

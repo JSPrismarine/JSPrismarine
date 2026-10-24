@@ -48,3 +48,22 @@ interactive console keeps working across restarts. If the server crashes while
 you are mid-edit, the supervisor stays up and starts it again on your next
 change. Changing the `bedrock-data` resources or its generator regenerates the
 data before the restart.
+
+### Dropping packets to find a bad one
+
+When a client leaves during the join without a `Disconnect` or
+`PacketViolationWarning`, the server log alone does not say which packet it
+choked on. Set `JSP_DEBUG_DROP_PACKETS` to a comma-separated list of packet
+class names and the server never sends those, logging a warning for each one
+it withholds:
+
+```bash
+    $ JSP_DEBUG_DROP_PACKETS=LevelChunkPacket,CraftingDataPacket pnpm run dev
+```
+
+Drop one type at a time and watch whether the client's behavior changes. A
+batch of several packets is dropped whole when any packet in it is named.
+The variable is read when a connection is made, so it can also go in
+`packages/server/.env.development.local`, which the server loads at startup
+and which is not committed. Remove it when done; a server with packets
+missing is not one players can use.
