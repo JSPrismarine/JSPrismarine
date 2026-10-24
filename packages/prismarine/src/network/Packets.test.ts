@@ -1,0 +1,94 @@
+import { readFileSync, readdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import { PacketIdentifier } from '@jsprismarine/protocol';
+import { describe, expect, it } from 'vitest';
+
+import * as Handlers from './Handlers';
+import Identifiers from './Identifiers';
+import * as Packets from './Packets';
+
+const here = fileURLToPath(new URL('.', import.meta.url));
+
+/** Exported packet classes the registry skips: the base class and the batch envelope. */
+const UNREGISTERED_PACKETS = new Set(['DataPacket', 'BatchPacket']);
+
+/** Handler interfaces that live beside the handlers but are not handlers themselves. */
+const HANDLER_INTERFACES = new Set(['PacketHandler', 'PreLoginPacketHandler']);
+
+/** Keys of `Identifiers` that describe the protocol rather than a packet. */
+const HEADER_CONSTANTS = new Set(['Protocol', 'MinecraftVersions']);
+
+/** Module names (file names without `.ts`) under `dir` that end in `suffix`, excluding tests. */
+const moduleNames = (dir: string, suffix: string) =>
+    readdirSync(`${here}${dir}`)
+        .filter((file) => file.endsWith(`${suffix}.ts`) && !file.includes('.test.'))
+        .map((file) => file.slice(0, -'.ts'.length))
+        .sort();
+
+/** Default-import specifiers of a barrel, in source order. */
+const importOrder = (barrel: string, dir: string) =>
+    Array.from(
+        readFileSync(`${here}${barrel}`, 'utf8').matchAll(new RegExp(`^import (\\w+) from '\\./${dir}/`, 'gm'))
+    ).map(([, name]) => name);
+
+const packetIds = new Map(
+    Object.entries(Identifiers).flatMap(([name, id]) =>
+        HEADER_CONSTANTS.has(name) || typeof id !== 'number' ? [] : [[name, id] as const]
+    )
+);
+
+describe('network/Packets', () => {
+    const files = moduleNames('packet', 'Packet');
+    const exported = Object.entries(Packets);
+
+    it('exports every packet file under its own name and nothing else', () => {
+        expect(exported.map(([name]) => name).sort()).toStrictEqual(files);
+        for (const [name, packet] of exported) expect(packet.name, name).toBe(name);
+    });
+
+    it('keeps the barrel sorted', () => {
+        expect(importOrder('Packets.ts', 'packet')).toStrictEqual(files);
+    });
+
+    it('gives every registered packet the id Identifiers lists under its name', () => {
+        const registered = exported.filter(([name]) => !UNREGISTERED_PACKETS.has(name));
+        for (const [name, packet] of registered) expect(packet.NetID, name).toBe(packetIds.get(name));
+        expect(new Set(registered.map(([, packet]) => packet.NetID)).size).toBe(registered.length);
+    });
+});
+
+describe('network/Handlers', () => {
+    const files = moduleNames('handler', 'Handler').filter((name) => !HANDLER_INTERFACES.has(name));
+    const exported = Object.entries(Handlers);
+
+    it('exports every handler file under its own name and nothing else', () => {
+        expect(exported.map(([name]) => name).sort()).toStrictEqual(files);
+        for (const [name, handler] of exported) expect(handler.name, name).toBe(name);
+    });
+
+    it('keeps the barrel sorted', () => {
+        expect(importOrder('Handlers.ts', 'handler')).toStrictEqual(files);
+    });
+
+    it('binds every handler to the exported packet of the same name', () => {
+        const packets = new Map(Object.entries(Packets));
+        for (const [name, handler] of exported) {
+            const packetName = name.replace(/Handler$/, 'Packet');
+            expect(packets.get(packetName)?.NetID, name).toBe(handler.NetID);
+        }
+        expect(new Set(exported.map(([, handler]) => handler.NetID)).size).toBe(exported.length);
+    });
+});
+
+describe('network/Identifiers', () => {
+    it('lists exactly the packet ids of @jsprismarine/protocol under matching names', () => {
+        const members = Object.keys(PacketIdentifier).filter((key) => Number.isNaN(Number(key)));
+        expect(packetIds.size).toBe(members.length);
+        expect(new Set(packetIds.values()).size).toBe(packetIds.size);
+        for (const [name, id] of packetIds) {
+            const member: string | undefined = PacketIdentifier[id];
+            expect(member, `${name} = 0x${id.toString(16)}`).toBeDefined();
+            expect(`${member?.replaceAll('_', '')}packet`.toLowerCase(), name).toBe(name.toLowerCase());
+        }
+    });
+});

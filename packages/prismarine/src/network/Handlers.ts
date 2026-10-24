@@ -11,11 +11,12 @@ import CommandBlockUpdateHandler from './handler/CommandBlockUpdateHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
 import ContainerCloseHandler from './handler/ContainerCloseHandler';
 import DisconnectHandler from './handler/DisconnectHandler';
-import EmoteListHandler from './handler/EmoteListHandler';
 import EmoteHandler from './handler/EmoteHandler';
+import EmoteListHandler from './handler/EmoteListHandler';
 import InteractHandler from './handler/InteractHandler';
 import InventoryTransactionHandler from './handler/InventoryTransactionHandler';
 import ItemStackRequestHandler from './handler/ItemStackRequestHandler';
+import LabTableHandler from './handler/LabTableHandler';
 import LecternUpdateHandler from './handler/LecternUpdateHandler';
 import LevelSoundEventHandler from './handler/LevelSoundEventHandler';
 import LoginHandler from './handler/LoginHandler';
@@ -56,6 +57,8 @@ import SetPlayerInventoryOptionsHandler from './handler/SetPlayerInventoryOption
 import SettingsCommandHandler from './handler/SettingsCommandHandler';
 import ShowCreditsHandler from './handler/ShowCreditsHandler';
 import SimpleEventHandler from './handler/SimpleEventHandler';
+import StructureBlockUpdateHandler from './handler/StructureBlockUpdateHandler';
+import StructureTemplateDataRequestHandler from './handler/StructureTemplateDataRequestHandler';
 import SubChunkRequestHandler from './handler/SubChunkRequestHandler';
 import SubClientLoginHandler from './handler/SubClientLoginHandler';
 import TextHandler from './handler/TextHandler';
@@ -76,11 +79,12 @@ export {
     CommandRequestHandler,
     ContainerCloseHandler,
     DisconnectHandler,
-    EmoteListHandler,
     EmoteHandler,
+    EmoteListHandler,
     InteractHandler,
     InventoryTransactionHandler,
     ItemStackRequestHandler,
+    LabTableHandler,
     LecternUpdateHandler,
     LevelSoundEventHandler,
     LoginHandler,
@@ -121,6 +125,8 @@ export {
     SettingsCommandHandler,
     ShowCreditsHandler,
     SimpleEventHandler,
+    StructureBlockUpdateHandler,
+    StructureTemplateDataRequestHandler,
     SubChunkRequestHandler,
     SubClientLoginHandler,
     TextHandler,
