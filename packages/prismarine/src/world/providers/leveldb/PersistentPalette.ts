@@ -1,19 +1,41 @@
 import type BinaryStream from '@jsprismarine/binaryutils';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ByteOrder, NBTReader, NBTWriter, Types } from '@jsprismarine/nbt';
+import { blockSchemas } from '@jsprismarine/minecraft';
 
 import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
 import { BlockStateSchemas } from '../../../block/state/BlockStateSchema';
 import type { BlockStateValue } from '../../../block/state/BlockState';
 
+const versionParts = blockSchemas.minecraftVersion.split('.').map(Number);
+const [majorVersion, minorVersion, patchVersion] = versionParts;
+if (
+    versionParts.length !== 3 ||
+    majorVersion === undefined ||
+    minorVersion === undefined ||
+    patchVersion === undefined ||
+    !Number.isInteger(majorVersion) ||
+    !Number.isInteger(minorVersion) ||
+    !Number.isInteger(patchVersion) ||
+    majorVersion < 0 ||
+    majorVersion > 0xff ||
+    minorVersion < 0 ||
+    minorVersion > 0xff ||
+    patchVersion < 0 ||
+    patchVersion > 0xff
+) {
+    throw new Error(`Invalid Minecraft catalog version: ${blockSchemas.minecraftVersion}`);
+}
+
 /**
- * The `version` every state in the vanilla dump carries: 0x01152801, which is 1.21.40 revision 1.
+ * The Bedrock state version packs the catalog's Minecraft major, minor, and patch numbers into
+ * the top three bytes, with state revision 1 in the low byte.
  *
  * Written on the way out because the game uses it to decide whether a state needs running through
  * its upgrade schema. Understate it and blocks come back as `minecraft:unknown` after the game has
  * "fixed" them; the field is ignored on the way in, since it is not part of a block's identity.
  */
-export const BLOCK_STATE_VERSION = 18163713;
+export const BLOCK_STATE_VERSION = (majorVersion << 24) | (minorVersion << 16) | (patchVersion << 8) | 1;
 
 /**
  * A palette entry as it sits on disk: `{name, states, version}` in little endian, fixed width NBT.

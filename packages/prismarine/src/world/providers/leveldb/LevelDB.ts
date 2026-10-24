@@ -6,6 +6,7 @@ import path from 'node:path';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
 import { Database, WriteBatch } from '@jsprismarine/leveldb';
+import { blockSchemas } from '@jsprismarine/minecraft';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import EntitySerializer from '../../../entity/EntitySerializer';
@@ -455,7 +456,8 @@ export default class LevelDB extends BaseProvider {
     }
 }
 
-const versionList = (): Set<Types.NumberVal> => new Set([1, 21, 40, 0, 0].map((part) => new Types.NumberVal(part)));
+const versionList = (): Set<Types.NumberVal> =>
+    new Set([...blockSchemas.minecraftVersion.split('.').map(Number), 0, 0].map((part) => new Types.NumberVal(part)));
 
 const actorIdBytes = (uniqueId: bigint): Buffer => {
     const actorId = Buffer.allocUnsafe(8);
