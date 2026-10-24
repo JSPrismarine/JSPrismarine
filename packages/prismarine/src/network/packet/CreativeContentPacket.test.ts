@@ -2,7 +2,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
-import CreativeContentPacket, { CreativeCategory } from './CreativeContentPacket';
+import CreativeContentPacket, { CreativeCategory, creativeCategoryOf } from './CreativeContentPacket';
 
 /**
  * Writes a `NetworkItemInstanceDescriptor` by hand, in the order protocol 2193 lays it out:
@@ -47,31 +47,54 @@ const decode = (buffer: Buffer): CreativeContentPacket => {
 };
 
 describe('CreativeContentPacket', () => {
-    it('writes one anonymous group and then every entry filed under it', () => {
+    it('writes every group and then every entry under the group it names', () => {
+        // A sword rather than a plank: the helpers below write a zero Block Runtime Id, so an
+        // item that places a block would pin the wrong bytes.
+        const sword = new Item({ id: 308, name: 'minecraft:wooden_sword', count: 1 });
         const stick = new Item({ id: 280, name: 'minecraft:stick', count: 64 });
         const dyedStick = new Item({ id: 280, name: 'minecraft:stick', meta: 2, count: 1 });
 
         const packet = new CreativeContentPacket();
-        packet.items = [stick, dyedStick];
+        packet.groups = [
+            { category: CreativeCategory.EQUIPMENT, name: 'itemGroup.name.sword', icon: sword },
+            { category: CreativeCategory.ITEMS, name: '', icon: Item.air() }
+        ];
+        packet.entries = [
+            { item: stick, group: 1 },
+            { item: dyedStick, group: 1 }
+        ];
 
         const expected = new BinaryStream();
         expected.writeUnsignedVarInt(0x91); // Header.
-        expected.writeUnsignedVarInt(1); // Groups.
-        expected.writeByte(CreativeCategory.ITEMS); // Creative Category.
+        expected.writeUnsignedVarInt(2); // Groups.
+        expected.writeByte(CreativeCategory.EQUIPMENT); // Creative Category.
+        writeString(expected, 'itemGroup.name.sword'); // Name.
+        writeItem(expected, sword.getNetworkId(), 1, 0); // Group Icon Item.
+        expected.writeByte(CreativeCategory.ITEMS);
         expected.writeUnsignedVarInt(0); // Name: empty, so the group is anonymous.
-        writeAir(expected); // Group Icon Item.
+        writeAir(expected);
         expected.writeUnsignedVarInt(2); // Entries.
         expected.writeUnsignedVarInt(1); // Creative Net Id, one-based.
         writeItem(expected, stick.getNetworkId(), 64, 0); // Item Instance.
-        expected.writeUnsignedVarInt(0); // Group Index.
+        expected.writeUnsignedVarInt(1); // Group Index.
         expected.writeUnsignedVarInt(2);
         writeItem(expected, dyedStick.getNetworkId(), 1, 2);
-        expected.writeUnsignedVarInt(0);
+        expected.writeUnsignedVarInt(1);
 
         expect(encode(packet)).toEqual(expected.getBuffer());
     });
 
-    it('writes an empty menu as two empty lists, with no group to head nothing', () => {
+    it('names a tab from the word the creative data uses for it', () => {
+        expect(creativeCategoryOf('construction')).toBe(CreativeCategory.CONSTRUCTION);
+        expect(creativeCategoryOf('nature')).toBe(CreativeCategory.NATURE);
+        expect(creativeCategoryOf('equipment')).toBe(CreativeCategory.EQUIPMENT);
+        expect(creativeCategoryOf('items')).toBe(CreativeCategory.ITEMS);
+
+        // A tab this does not know still has to leave the menu drawable.
+        expect(creativeCategoryOf('something_mojang_added')).toBe(CreativeCategory.ITEMS);
+    });
+
+    it('writes an empty menu as two empty lists', () => {
         const expected = new BinaryStream();
         expected.writeUnsignedVarInt(0x91); // Header.
         expected.writeUnsignedVarInt(0); // Groups.
@@ -109,9 +132,11 @@ describe('CreativeContentPacket', () => {
 
         // The reader has no item table to resolve against, so an item comes back under its
         // wire id with the unknown name.
-        expect(packet.items.map((item) => ({ id: item.getId(), count: item.count, meta: item.meta }))).toEqual([
-            { id: 5, count: 64, meta: 0 },
-            { id: 9, count: 3, meta: 7 }
+        expect(
+            packet.entries.map(({ item, group }) => ({ id: item.getId(), count: item.count, meta: item.meta, group }))
+        ).toEqual([
+            { id: 5, count: 64, meta: 0, group: 0 },
+            { id: 9, count: 3, meta: 7, group: 1 }
         ]);
         expect(packet.feof()).toBe(true);
     });

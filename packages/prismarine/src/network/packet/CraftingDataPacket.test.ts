@@ -1,6 +1,9 @@
+import crypto from 'node:crypto';
+
 import BinaryStream from '@jsprismarine/binaryutils';
 import { describe, expect, it } from 'vitest';
 
+import type { Recipe } from '../../crafting/Recipe';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '../../crafting/Recipe';
 import { ANY_META, ItemIngredient } from '../../crafting/RecipeIngredient';
 import { Item } from '../../item/Item';
@@ -13,6 +16,87 @@ const item = (name: string) => new Item({ id: 1, name });
 const need = (name: string, meta?: number) => new ItemIngredient(name, meta);
 
 /**
+ * A name that is in neither the item table nor the block table, so the stack it is put in
+ * encodes to bytes this file can spell out without consulting either.
+ */
+const OUTPUT_NAME = 'jsprismarine:test_output';
+const OUTPUT_ID = 7;
+
+/** LEB128, which is what the docs call a varuint. */
+const varuint = (value: number): number[] => {
+    const bytes: number[] = [];
+    let rest = value >>> 0;
+
+    do {
+        const byte = rest & 0x7f;
+        rest >>>= 7;
+        bytes.push(rest > 0 ? byte | 0x80 : byte);
+    } while (rest > 0);
+
+    return bytes;
+};
+
+/** ZigZag then LEB128, which is what the docs call a varint32. */
+const varint = (value: number): number[] => varuint((value << 1) ^ (value >> 31));
+
+/** A varuint byte length followed by the UTF-8 bytes. */
+const text = (value: string): number[] => {
+    const bytes = Buffer.from(value, 'utf8');
+
+    return [...varuint(bytes.byteLength), ...bytes];
+};
+
+/** An `mce::UUID`: the two halves of the digest, each as a little endian uint64. */
+const uuidBytes = (id: string): number[] => {
+    const digest = crypto.createHash('md5').update(id).digest();
+
+    return [...Buffer.from(digest.subarray(0, 8)).reverse(), ...Buffer.from(digest.subarray(8, 16)).reverse()];
+};
+
+/**
+ * One `NetworkItemInstanceDescriptor` holding a single {@link OUTPUT_NAME}.
+ *
+ * Id, Stack size, Aux value, Block Runtime Id, then the User Data Buffer: a length and, inside
+ * it, an empty nbt length and the two empty can-place-on / can-break lists.
+ */
+const OUTPUT_STACK = [
+    ...varint(OUTPUT_ID),
+    1,
+    0,
+    ...varuint(0),
+    ...varint(0),
+    ...varuint(10),
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+];
+
+/**
+ * One `RecipeIngredient` naming an item, in the legacy form `CraftingDataPacket` uses: the
+ * variant selector, the descriptor's shape as a string, Full Name, Aux Value, then the count.
+ */
+const namedIngredient = (name: string, meta: number, count: number): number[] => [
+    ...varuint(1),
+    ...text('name'),
+    ...text(name),
+    ...varint(meta),
+    ...varint(count)
+];
+
+/** The empty slot of a shaped pattern: the invalid selector, the wildcard aux, and no count. */
+const emptyIngredient = (): number[] => [...varuint(0), ...varint(ANY_META), ...varint(0)];
+
+/** The optional unlocking requirement this server writes: present, always unlocked, no list. */
+const ALWAYS_UNLOCKED = [1, ...varint(1), 0];
+
+/**
  * The ten recipe lists, in the order the packet writes them. A recipe's *list* is its type
  * now - there is no type id in front of an entry any more - so a test reads to the list it
  * cares about by counting the empty ones before it.
@@ -21,17 +105,17 @@ const LISTS = [
     'shaped',
     'shapeless',
     'multi',
-    'shulkerBox',
+    'userDataShapeless',
     'shapelessChemistry',
     'shapedChemistry',
     'smithingTransform',
     'smithingTrim',
-    'potion',
-    'potionContainer'
+    'potionMixes',
+    'containerMixes'
 ] as const;
 
 /** Encodes one recipe and hands back a reader positioned at the start of the given list. */
-const encoded = (recipe: any, list: (typeof LISTS)[number], netId = 7) => {
+const encoded = (recipe: Recipe, list: (typeof LISTS)[number], netId = 7) => {
     const packet = new CraftingDataPacket();
     packet.recipes = [recipe];
     packet.netIdOf = () => netId;
@@ -86,6 +170,105 @@ describe('network', () => {
             expect(stream.readUnsignedVarInt()).toBe(0); // Material reducers.
             expect(stream.readBoolean()).toBe(true); // Clean recipes.
             expect(stream.feof()).toBe(true);
+        });
+
+        it('writes a shapeless recipe as the exact bytes the docs give', () => {
+            // Spelled out rather than read back through the same codec, which would agree with
+            // itself whatever it wrote. The ingredient is the part this pins down: the client
+            // reads a varuint selector, a string naming the descriptor's shape, the item's
+            // name, a varint aux value and a varint count - not the uint8 descriptor type and
+            // uint16 stack size that the docs' `recipe-ingredient` page describes, which is the
+            // form the auto-craft action inside an `ItemStackRequest` uses instead.
+            const packet = new CraftingDataPacket();
+            packet.recipes = [
+                new ShapelessRecipe(
+                    'torch',
+                    'crafting_table',
+                    [need('minecraft:stick')],
+                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })],
+                    3
+                )
+            ];
+            packet.netIdOf = () => 7;
+            packet.encode();
+
+            expect([...packet.getBuffer()]).toEqual([
+                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(0), // Shaped Recipes.
+                ...varuint(1), // Shapeless Recipes.
+                ...text('torch'), // Recipe Id.
+                ...varuint(1), // Ingredients.
+                ...namedIngredient('minecraft:stick', ANY_META, 1),
+                ...varuint(1), // Results.
+                ...OUTPUT_STACK,
+                ...uuidBytes('torch'), // UUID.
+                ...text('crafting_table'), // Tag.
+                ...varint(3), // Priority.
+                ...ALWAYS_UNLOCKED, // Unlocking Requirement.
+                ...varuint(7), // Net Id.
+                ...varuint(0), // Multi Recipes.
+                ...varuint(0), // User Data Shapeless Recipes.
+                ...varuint(0), // Shapeless Chemistry Recipes.
+                ...varuint(0), // Shaped Chemistry Recipes.
+                ...varuint(0), // Smithing Transform Recipes.
+                ...varuint(0), // Smithing Trim Recipes.
+                ...varuint(0), // Potion Mixes.
+                ...varuint(0), // Container Mixes.
+                ...varuint(0), // Material Reducers.
+                1 // Clear Recipes.
+            ]);
+        });
+
+        it('writes a shaped recipe as the exact bytes the docs give', () => {
+            // Width and Height come before the Ingredients, the count of which the client
+            // checks against their product, and Assume Symmetry sits between Priority and the
+            // unlocking requirement - which is the one field that tells the two shapes apart
+            // past the ingredients.
+            const packet = new CraftingDataPacket();
+            packet.recipes = [
+                new ShapedRecipe(
+                    'hoe',
+                    'crafting_table',
+                    2,
+                    1,
+                    [need('minecraft:stick'), null],
+                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })],
+                    0,
+                    true
+                )
+            ];
+            packet.netIdOf = () => 7;
+            packet.encode();
+
+            expect([...packet.getBuffer()]).toEqual([
+                ...varuint(CraftingDataPacket.NetID),
+                ...varuint(1), // Shaped Recipes.
+                ...text('hoe'), // Recipe Id.
+                ...varint(2), // Width.
+                ...varint(1), // Height.
+                ...varuint(2), // Ingredients, which must be Width times Height.
+                ...namedIngredient('minecraft:stick', ANY_META, 1),
+                ...emptyIngredient(),
+                ...varuint(1), // Results.
+                ...OUTPUT_STACK,
+                ...uuidBytes('hoe'), // UUID.
+                ...text('crafting_table'), // Tag.
+                ...varint(0), // Priority.
+                1, // Assume Symmetry.
+                ...ALWAYS_UNLOCKED, // Unlocking Requirement.
+                ...varuint(7), // Net Id.
+                ...varuint(0), // Shapeless Recipes.
+                ...varuint(0), // Multi Recipes.
+                ...varuint(0), // User Data Shapeless Recipes.
+                ...varuint(0), // Shapeless Chemistry Recipes.
+                ...varuint(0), // Shaped Chemistry Recipes.
+                ...varuint(0), // Smithing Transform Recipes.
+                ...varuint(0), // Smithing Trim Recipes.
+                ...varuint(0), // Potion Mixes.
+                ...varuint(0), // Container Mixes.
+                ...varuint(0), // Material Reducers.
+                1 // Clear Recipes.
+            ]);
         });
 
         it('writes a shapeless recipe the way it reads back', () => {

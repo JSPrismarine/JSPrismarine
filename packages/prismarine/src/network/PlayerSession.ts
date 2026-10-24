@@ -711,7 +711,9 @@ export default class PlayerSession {
 
         // The same list a creative pick is resolved through, so that the position the client
         // sends back names the entry it was shown.
-        pk.items = CreativeInventory.getItems(this.player.getServer());
+        const server = this.player.getServer();
+        pk.groups = CreativeInventory.getGroups(server);
+        pk.entries = CreativeInventory.getEntries(server);
 
         await this.connection.sendDataPacket(pk);
     }
