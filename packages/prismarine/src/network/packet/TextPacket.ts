@@ -78,6 +78,7 @@ export default class TextPacket extends DataPacket {
             case TextType.System:
             case TextType.JsonWhisper:
             case TextType.Json:
+            case TextType.JsonAnnouncement:
                 this.message = NetworkUtil.readString(this);
                 break;
 
@@ -121,6 +122,7 @@ export default class TextPacket extends DataPacket {
             case TextType.System:
             case TextType.JsonWhisper:
             case TextType.Json:
+            case TextType.JsonAnnouncement:
                 NetworkUtil.writeString(this, this.message);
                 break;
 
