@@ -10,7 +10,7 @@ import { Dimension } from './Dimension';
 import { DisconnectReason } from './DisconnectReason';
 import type { Experiment } from './Experiment';
 import { Generator } from './Generator';
-import blockSchemas from './generated/block-schemas.json';
+import { blockSchemas } from './generated/block-schemas';
 import vanillaRecipes from './generated/recipes.json';
 import { ItemStackRequestActionType } from './generated/ItemStackRequestActionType';
 import { AbilityLayerFlag } from './generated/AbilityLayerFlag';
