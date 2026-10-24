@@ -1,4 +1,3 @@
-import assert from 'node:assert';
 import type Player from './Player';
 import type ClientConnection from './network/ClientConnection';
 import type { PlayerListEntry } from './network/packet/PlayerListPacket';
@@ -66,15 +65,16 @@ export default class SessionManager {
     }
 
     /**
-     * Just a compatibility layer to not break everything for now
+     * The online player with runtime id `id`.
+     *
+     * Null when nobody has it, as the signature always said. It used to assert instead, so
+     * asking after a player who had just left took the caller down with it.
      *
      * @deprecated
-     * @param id
-     * @returns
+     * @param id - The runtime id to look up.
+     * @returns The player, or null when no online player has that id.
      */
     public getPlayerById(id: bigint): Player | null {
-        const found = this.getAllPlayers().find((p) => p.getRuntimeId() === id) ?? null;
-        assert(found !== null, `Player with id ${id} cannot be found!`);
-        return found;
+        return this.getAllPlayers().find((p) => p.getRuntimeId() === id) ?? null;
     }
 }
