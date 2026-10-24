@@ -43,7 +43,12 @@ export const targetEntity = (context: PredicateContext, target: EntityTarget, pa
 
 const truncate = (value: number): number => Math.trunc(value);
 
-const forKind = (kind: ProviderKind, value: number): number => (kind === 'int' ? truncate(value) : value);
+/**
+ * Rounds a drawn value the way Java's registry would: an int provider
+ * truncates toward zero, and a float provider is a 32-bit `float`, so a
+ * `set_damage` of 0.9 floors to the same durability Java produces.
+ */
+const forKind = (kind: ProviderKind, value: number): number => (kind === 'int' ? truncate(value) : Math.fround(value));
 
 const constant =
     (value: number): NumberProvider =>
