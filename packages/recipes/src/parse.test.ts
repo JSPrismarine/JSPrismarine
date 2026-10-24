@@ -80,6 +80,23 @@ describe('parseRecipe over every Java 26.3 serializer', () => {
         expect(recipeIngredients(boat).map((cell) => cell === null)).toEqual([false, true, false, false, false, false]);
     });
 
+    it('trims the padding columns off a pattern, as Java does when it loads one', () => {
+        const recipe = parse('minecraft:spyglass', {
+            type: 'minecraft:crafting_shaped',
+            category: 'equipment',
+            key: { '#': 'minecraft:amethyst_shard', X: 'minecraft:copper_ingot' },
+            pattern: [' # ', ' X ', ' X '],
+            result: { id: 'minecraft:spyglass' }
+        });
+
+        expect(recipe.type === 'minecraft:crafting_shaped' && recipe.pattern).toMatchObject({ width: 1, height: 3 });
+        expect(recipeIngredients(recipe).map((cell) => cell?.items[0])).toEqual([
+            'minecraft:amethyst_shard',
+            'minecraft:copper_ingot',
+            'minecraft:copper_ingot'
+        ]);
+    });
+
     it('reads minecraft:crafting_shapeless', () => {
         const recipe = parse('minecraft:mushroom_stew', {
             type: 'minecraft:crafting_shapeless',
