@@ -13,6 +13,7 @@ import type PreLoginPacketHandler from './PreLoginPacketHandler';
 
 export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> {
     public static NetID = Identifiers.LoginPacket;
+    public readonly preLogin = true;
 
     /**
      * Says what was refused and what the login actually carried.
