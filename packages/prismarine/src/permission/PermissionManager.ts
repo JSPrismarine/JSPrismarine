@@ -16,6 +16,54 @@ const PERMISSION_FILE_NAME = 'permissions.json';
 const OPS_FILE_NAME = 'ops.json';
 
 /**
+ * Anything that can be checked for command permissions: the console or a player-like object
+ * exposing operator status and granted permissions.
+ */
+export type PermissionSubject = Console | Pick<Player, 'isOp' | 'getPermissions'>;
+
+/**
+ * Build a permission check for an executer. The console always passes; operators and holders
+ * of `*` always pass; otherwise the permission matches when the subject holds it, a parent
+ * scope of it, or a parent scope wildcard such as `namespace.scope.*`.
+ *
+ * @param executer - The console or player to check.
+ * @returns An object whose `execute` method takes a permission string and reports whether the executer may run it. `not().execute` negates the result. A missing permission string always passes.
+ * @throws Error when `execute` is called and the executer is undefined.
+ */
+export function canExecute(executer?: PermissionSubject) {
+    const execute = (permission?: string) => {
+        if (!executer) throw new Error(`Executer can't be undefined or null`);
+
+        if (!permission) return true;
+        if (executer instanceof Console) return true;
+        if (executer.isOp()) return true;
+        if (executer.getPermissions().includes(permission)) return true;
+        if (executer.getPermissions().includes('*')) return true;
+
+        const split = permission.split('.');
+        let scope = '';
+        for (const action of split) {
+            if (scope) scope = `${scope}.${action}`;
+            else scope = action;
+
+            if (executer.getPermissions().includes(scope)) return true;
+            if (executer.getPermissions().includes(`${scope}.*`)) return true;
+        }
+
+        return false;
+    };
+
+    return {
+        execute,
+        not: () => {
+            return {
+                execute: (permission?: string) => !execute(permission)
+            };
+        }
+    };
+}
+
+/**
  * Permission manager.
  */
 export class PermissionManager implements Service {
@@ -207,39 +255,10 @@ export class PermissionManager implements Service {
     /**
      * Check if a player can execute a command.
      *
-     * @param {Player | Console} executer - The player or console to check.
-     * @returns {object} An object with an execute method that takes a permission string and returns whether the player can execute the command.
+     * @param executer - The player or console to check.
+     * @returns An object with an execute method that takes a permission string and returns whether the executer can execute the command.
      */
-    public can(executer?: Player | Console) {
-        const execute = (permission?: string) => {
-            if (!executer) throw new Error(`Executer can't be undefined or null`);
-
-            if (!permission) return true;
-            if (executer instanceof Console) return true;
-            if (executer.isOp()) return true;
-            if (executer.getPermissions().includes(permission)) return true;
-            if (executer.getPermissions().includes('*')) return true;
-
-            const split = permission.split('.');
-            let scope = '';
-            for (const action of split) {
-                if (scope) scope = `${scope}.${action}`;
-                else scope = action;
-
-                if (executer.getPermissions().includes(scope)) return true;
-                if (executer.getPermissions().includes(`${scope}.*`)) return true;
-            }
-
-            return false;
-        };
-
-        return {
-            execute,
-            not: () => {
-                return {
-                    execute: (permission?: string) => !execute(permission)
-                };
-            }
-        };
+    public can(executer?: PermissionSubject) {
+        return canExecute(executer);
     }
 }
