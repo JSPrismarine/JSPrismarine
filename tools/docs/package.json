@@ -1,6 +1,6 @@
 {
     "name": "@jsprismarine/docs",
-    "version": "0.15.1",
+    "version": "0.15.2",
     "private": true,
     "description": "Builds the documentation site with VitePress; the API reference comes from TypeDoc, which still needs TypeScript 6",
     "type": "module",

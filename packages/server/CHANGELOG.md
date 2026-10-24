@@ -1,5 +1,16 @@
 # @jsprismarine/server
 
+## 0.15.2
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @jsprismarine/color-parser@0.15.2
+  - @jsprismarine/logger@0.15.2
+  - @jsprismarine/minecraft@0.15.2
+  - @jsprismarine/prismarine@0.15.2
+  - @jsprismarine/raknet@0.15.2
+
 ## 0.15.1
 
 ### Patch Changes
