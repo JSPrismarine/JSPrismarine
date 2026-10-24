@@ -2,6 +2,12 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
+/** Which way the client orders an objective's lines, as the `SortOrder` ZigZag varint32 numbers it. */
+export enum ObjectiveSortOrder {
+    Ascending = 0,
+    Descending = 1
+}
+
 /**
  * Registers a scoreboard objective and places it in one of the client's display slots.
  *
@@ -12,7 +18,7 @@ import DataPacket from './DataPacket';
  *
  * Wire layout at protocol 2193: DisplaySlotName, ObjectiveName, ObjectiveDisplayName and
  * CriteriaName as strings, then SortOrder as a ZigZag varint32.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/set-display-objective-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-display-objective-packet/
  */
 export default class SetDisplayObjectivePacket extends DataPacket {
     public static NetID = Identifiers.SetDisplayObjectivePacket;
@@ -29,8 +35,7 @@ export default class SetDisplayObjectivePacket extends DataPacket {
     /** Always `dummy` in vanilla; the client tracks no criteria itself. */
     public criteriaName = 'dummy';
 
-    /** 0 sorts ascending by score, 1 descending. */
-    public sortOrder = 0;
+    public sortOrder: ObjectiveSortOrder = ObjectiveSortOrder.Ascending;
 
     /** Reads the slot, the two names, the criteria and the sort order. */
     public decodePayload(): void {

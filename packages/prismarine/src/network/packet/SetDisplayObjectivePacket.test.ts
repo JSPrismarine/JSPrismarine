@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import SetDisplayObjectivePacket from './SetDisplayObjectivePacket';
+import SetDisplayObjectivePacket, { ObjectiveSortOrder } from './SetDisplayObjectivePacket';
 
 const ENCODED = Buffer.concat([
     Buffer.from([0x6b]), // Header: id 107 as LEB128.
@@ -11,7 +11,7 @@ const ENCODED = Buffer.concat([
     Buffer.from('Obj', 'utf8'), // ObjectiveDisplayName.
     Buffer.from([0x05]),
     Buffer.from('dummy', 'utf8'), // CriteriaName.
-    Buffer.from([0x01]) // SortOrder -1 as a ZigZag varint32.
+    Buffer.from([0x02]) // SortOrder Descending (1) as a ZigZag varint32.
 ]);
 
 describe('SetDisplayObjectivePacket', () => {
@@ -21,7 +21,7 @@ describe('SetDisplayObjectivePacket', () => {
             objectiveName: 'obj',
             objectiveDisplayName: 'Obj',
             criteriaName: 'dummy',
-            sortOrder: -1
+            sortOrder: ObjectiveSortOrder.Descending
         });
         packet.encode();
 
@@ -36,7 +36,7 @@ describe('SetDisplayObjectivePacket', () => {
         expect(packet.objectiveName).toBe('obj');
         expect(packet.objectiveDisplayName).toBe('Obj');
         expect(packet.criteriaName).toBe('dummy');
-        expect(packet.sortOrder).toBe(-1);
+        expect(packet.sortOrder).toBe(ObjectiveSortOrder.Descending);
         expect(packet.feof()).toBe(true);
     });
 });

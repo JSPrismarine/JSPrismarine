@@ -28,7 +28,11 @@ export interface ScoreboardIdentityPacketInfo {
  * Wire layout at protocol 2193: Scoreboard Identity Packet Type as a byte, then Scoreboard
  * Identity Info as a varuint32 count of entries, each a Scoreboard Id as a ZigZag varint64 and
  * an optional Player Unique Id as a ZigZag varint64.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/set-scoreboard-identity-packet/
+ *
+ * Mojang's Cereal conversion note for this packet says the Player Unique Id is gated per entry by
+ * a presence byte. Before protocol 2193 it was written only when the packet type was `Update`, so
+ * a reader keyed on the type is one byte off on every entry.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-scoreboard-identity-packet/
  */
 export default class SetScoreboardIdentityPacket extends DataPacket {
     public static NetID = Identifiers.SetScoreboardIdentityPacket;

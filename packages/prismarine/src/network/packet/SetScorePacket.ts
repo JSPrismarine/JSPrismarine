@@ -74,7 +74,11 @@ export type ScorePacketEntry =
  * The docs mark Score Info itself optional at 2193 and record it losing that marking at 2207.
  * No presence byte is written here: gophertunnel at 2193 writes the bare count, and a presence
  * byte would push every entry one byte out.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/set-score-packet/
+ *
+ * Before protocol 2193 the packet opened with a `ScorePacketType` byte and each entry carried an
+ * `IdentityDefinitionType` byte after the score. Mojang's Cereal conversion notes retire that
+ * layout; a 1.26.51 client reads the per-entry selector described above.
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/set-score-packet/
  */
 export default class SetScorePacket extends DataPacket {
     public static NetID = Identifiers.SetScorePacket;

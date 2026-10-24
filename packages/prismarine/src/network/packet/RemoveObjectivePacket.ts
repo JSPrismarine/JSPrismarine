@@ -11,7 +11,7 @@ import DataPacket from './DataPacket';
  * **Bound To:** Client
  *
  * Wire layout at protocol 2193: Objective Name as a string.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/remove-objective-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/remove-objective-packet/
  */
 export default class RemoveObjectivePacket extends DataPacket {
     public static NetID = Identifiers.RemoveObjectivePacket;
