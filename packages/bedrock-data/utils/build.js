@@ -44,3 +44,53 @@ for (const file of files) {
 
     fs.writeFileSync(target, JSON.stringify({ data }, null, 0));
 }
+
+// The creative menu entries are heterogeneous (some carry block states, some NBT), which
+// TypeScript infers as any[] when the JSON is imported directly. A generated module with an
+// explicit type gives the data a shape that every consumer, including ahead-of-time
+// compilation, can work with.
+const creativeSource = path.resolve('src/resources/creativeitems.json');
+const creativeTarget = path.resolve('src/generated/creativeitems.ts');
+if (force || !isUpToDate(creativeSource, creativeTarget)) {
+    console.log('Generating creativeitems.ts...');
+    const entries = JSON.parse(fs.readFileSync(creativeSource, 'utf8'));
+    // One helper call per entry instead of a 1900-element object literal: TypeScript
+    // gives up on the union such a literal implies, while each call has the exact type.
+    const body = entries
+        .map((entry) => {
+            const { name, ...extra } = entry;
+            const args =
+                Object.keys(extra).length === 0
+                    ? JSON.stringify(name)
+                    : `${JSON.stringify(name)}, ${JSON.stringify(extra)}`;
+            return `    entry(${args})`;
+        })
+        .join(',\n');
+    fs.writeFileSync(
+        creativeTarget,
+        [
+            '// Generated from resources/creativeitems.json by utils/build.js. Do not edit.',
+            '',
+            '/** One entry of the creative menu as the client orders it. */',
+            'export interface CreativeItemEntry {',
+            '    name: string;',
+            '    block_states?: string;',
+            '    meta?: number;',
+            '    nbt?: string;',
+            '}',
+            '',
+            "const entry = (name: string, extra: Omit<CreativeItemEntry, 'name'> = {}): CreativeItemEntry => {",
+            '    const item: CreativeItemEntry = { name };',
+            '    if (extra.block_states !== undefined) item.block_states = extra.block_states;',
+            '    if (extra.meta !== undefined) item.meta = extra.meta;',
+            '    if (extra.nbt !== undefined) item.nbt = extra.nbt;',
+            '    return item;',
+            '};',
+            '',
+            'export const creativeitems: CreativeItemEntry[] = [',
+            body,
+            '];',
+            ''
+        ].join('\n')
+    );
+}
