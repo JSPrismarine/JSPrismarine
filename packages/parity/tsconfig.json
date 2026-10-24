@@ -1,0 +1,11 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig.json",
+    "extends": ["../../tsconfig.build.json"],
+    "compilerOptions": {
+        "rootDir": "../../",
+        "typeRoots": ["./node_modules/@types", "./src/@types"],
+        "allowImportingTsExtensions": true,
+        "noEmit": true
+    },
+    "include": ["src/**/*", "scripts/**/*"]
+}
