@@ -1,9 +1,20 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import type { Logger } from '@jsprismarine/logger';
 import type { Server, Service } from '../';
 import RecipeRegisterEvent from '../events/crafting/RecipeRegisterEvent';
 import Timer from '../utils/Timer';
 import type { Recipe, RecipeStation } from './Recipe';
 import VanillaRecipes from './VanillaRecipes';
+
+/**
+ * What a recipe manager uses from the server. It logs the load summary and emits
+ * {@link RecipeRegisterEvent}. A full `Server` satisfies it, and so does a test double with
+ * those two members.
+ */
+export type RecipeManagerServer = {
+    getLogger(): Pick<Logger, 'debug'>;
+    emit: Server['emit'];
+};
 
 /**
  * Every recipe the server knows, and the numbers the client refers to them by.
@@ -19,7 +30,7 @@ import VanillaRecipes from './VanillaRecipes';
  * is what lets that cache notice a plugin without knowing plugins exist.
  */
 export class RecipeManager implements Service {
-    private readonly server: Server;
+    private readonly server: RecipeManagerServer;
 
     private readonly recipes: Recipe[] = [];
     private readonly byStation = new Map<RecipeStation, Recipe[]>();
@@ -27,7 +38,7 @@ export class RecipeManager implements Service {
 
     private revisionCounter = 0;
 
-    public constructor(server: Server) {
+    public constructor(server: RecipeManagerServer) {
         this.server = server;
     }
 
@@ -54,7 +65,7 @@ export class RecipeManager implements Service {
      * recognise however carefully the server built it.
      */
     private isKnown(name: string): boolean {
-        return (ItemIdMap as Record<string, number>)[name] !== undefined;
+        return ItemIdMap[name] !== undefined;
     }
 
     /**

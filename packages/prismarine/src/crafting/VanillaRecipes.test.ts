@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe } from './Recipe';
 import VanillaRecipes from './VanillaRecipes';
 
-const known = (name: string) => (ItemIdMap as Record<string, number>)[name] !== undefined;
+const known = (name: string) => ItemIdMap[name] !== undefined;
 
 describe('crafting', () => {
     describe('VanillaRecipes', () => {

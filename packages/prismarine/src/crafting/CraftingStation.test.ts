@@ -10,13 +10,13 @@ import RecipeManager from './RecipeManager';
 import { ItemIngredient } from './RecipeIngredient';
 import VanillaRecipes from './VanillaRecipes';
 
-const known = (name: string) => (ItemIdMap as Record<string, number>)[name] !== undefined;
+const known = (name: string) => ItemIdMap[name] !== undefined;
 const item = (name: string) => new Item({ id: 1, name });
 
 /** A server carrying a real recipe book, so matching runs against vanilla's own data. */
 const serverWith = (recipes: readonly Recipe[]) => {
-    const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} } as any);
-    const server = { getRecipeManager: () => manager } as any;
+    const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
+    const server = { getRecipeManager: () => manager };
 
     return { server, manager, recipes };
 };

@@ -2,6 +2,9 @@ import type Server from '../Server';
 import type { CraftingGrid } from './CraftingGrid';
 import type { Recipe, RecipeStation } from './Recipe';
 
+/** The one thing a station asks the server for. A full `Server` satisfies it. */
+export type StationServer = Pick<Server, 'getRecipeManager'>;
+
 /**
  * A block a player can craft at.
  *
@@ -33,7 +36,7 @@ export interface CraftingStation {
 export class RecipeDrivenStation implements CraftingStation {
     public constructor(
         public readonly block: RecipeStation,
-        private readonly server: Server
+        private readonly server: StationServer
     ) {}
 
     public match(grid: CraftingGrid): Recipe | null {
@@ -82,7 +85,7 @@ export class StationRegistry {
      * including a plugin's - and nothing has to keep a second list in step. A block that
      * needs behaviour of its own registers over the top afterwards.
      */
-    public registerRecipeStations(server: Server): void {
+    public registerRecipeStations(server: StationServer): void {
         for (const recipe of server.getRecipeManager().getRecipes()) {
             if (!this.stations.has(recipe.station)) {
                 this.register(new RecipeDrivenStation(recipe.station, server));

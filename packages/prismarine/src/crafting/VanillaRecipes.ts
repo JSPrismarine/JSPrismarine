@@ -56,9 +56,11 @@ interface GeneratedRecipe {
  */
 export type KnownItem = (name: string) => boolean;
 
+/** The tag table, indexable by any name rather than only the ones the JSON happens to list. */
+const itemTags: Readonly<Record<string, readonly string[]>> = item_tags;
+
 /** What each tag is satisfied by, as the item table of the pinned version has it. */
-const membersOf = (tag: string, known: KnownItem): string[] =>
-    ((item_tags as Record<string, string[]>)[tag] ?? []).filter(known);
+const membersOf = (tag: string, known: KnownItem): string[] => (itemTags[tag] ?? []).filter(known);
 
 const toIngredient = (raw: GeneratedIngredient, known: KnownItem): RecipeIngredient =>
     isTag(raw)
@@ -118,6 +120,7 @@ export class VanillaRecipes {
     public static load(known: KnownItem): Recipe[] {
         const recipes: Recipe[] = [];
 
+        // A JSON-module boundary: `resolveJsonModule` widens `kind` to `string` in an 820 KB file.
         for (const raw of (vanillaRecipes as { recipes: GeneratedRecipe[] }).recipes) {
             if (!namesOf(raw).every(known) || !tagsResolve(raw, known)) continue;
 
