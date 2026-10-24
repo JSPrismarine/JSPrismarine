@@ -5,7 +5,7 @@ import { BlockRuntimeIds } from './state/BlockRuntimeIds';
 import { BlockStateSchemas } from './state/BlockStateSchema';
 
 /** Every block class JSPrismarine registers at startup, instantiated as BlockManager does. */
-const registeredBlocks = () => allBlocks().map((Block) => new (Block as any)());
+const registeredBlocks = () => allBlocks().map((Block) => new Block());
 
 describe('block', () => {
     describe('registered blocks', () => {
