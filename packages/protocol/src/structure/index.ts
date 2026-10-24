@@ -44,6 +44,8 @@ import PresenceConfig from './PresenceConfig';
 import PrimitiveShapeData, { PrimitiveShapeExtraDataType, PrimitiveShapeType } from './PrimitiveShapeData';
 import type { PrimitiveShapeDataFields, PrimitiveShapeExtraData } from './PrimitiveShapeData';
 import PropertySyncData from './PropertySyncData';
+import SerializableVoxelShape from './SerializableVoxelShape';
+import type { SerializableCells } from './SerializableVoxelShape';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
 import ServerWaypointPayload from './ServerWaypointPayload';
@@ -92,6 +94,7 @@ export {
     PrimitiveShapeExtraDataType,
     PrimitiveShapeType,
     PropertySyncData,
+    SerializableVoxelShape,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
     ServerWaypointGroupAction,
@@ -134,5 +137,6 @@ export type {
     NetworkItemStackDescriptorConfig,
     PrimitiveShapeDataFields,
     PrimitiveShapeExtraData,
+    SerializableCells,
     WorldPosition
 };
