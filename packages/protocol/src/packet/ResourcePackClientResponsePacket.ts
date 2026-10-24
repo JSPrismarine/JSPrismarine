@@ -7,7 +7,7 @@ import type NetworkBinaryStream from '../NetworkBinaryStream';
  * The client's answer in a `ResourcePackClientResponsePacket`, numbered one above the wire's
  * alternative index so that `None` can stand for no answer yet.
  *
- * The docs page is https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/resource-pack-client-response-packet/
+ * The docs page is https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/resource-pack-client-response-packet/
  * and names the alternatives differently:
  * - `None` has no wire form. Encoding it throws.
  * - `Refused` is `Cancel`, alternative 0.
@@ -61,8 +61,13 @@ export interface ResourcePackResponse {
  * `Downloading` continues with `Downloading Packs`, a varuint32 count followed by that many
  * strings. The status is {@link ResourcePackStatus}, which is the alternative index plus one.
  *
- * Until protocol 748 the list was written after every alternative; a real server reads the two
- * stray bytes as the next packet and drops the connection.
+ * The schema types `Response Type` as an int8 and caps `Downloading Packs` at 65535 entries,
+ * which reads like a one byte status and a uint16 count. That is the layout before protocol
+ * 2193. Since the Cereal conversion the bytes are the ones above: a 1.26.51 client's
+ * `DownloadingFinished` is `02 13` followed by the 19 bytes of `downloadingfinished`, and
+ * gophertunnel at protocol 2193 writes the same. Until protocol 748 the list was written after
+ * every alternative; a real server reads the two stray bytes as the next packet and drops the
+ * connection.
  */
 export default class ResourcePackClientResponsePacket extends NetworkPacket<ResourcePackResponse> {
     public get id(): number {
