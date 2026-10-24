@@ -1,12 +1,10 @@
-import { ConfigInvalidDataError } from '@jsprismarine/errors';
 import yaml from 'js-yaml';
 import JSON5 from 'json5';
 import fs from 'node:fs';
 import path from 'node:path';
 
-type Tree = Record<string, unknown>;
-
-const isTree = (value: unknown): value is Tree => typeof value === 'object' && value !== null;
+/** Anything a path can descend into: a plain object or an array. */
+const isTree = (value: unknown): value is object => typeof value === 'object' && value !== null;
 
 const UNSAFE_KEYS = new Set(['__proto__', 'prototype', 'constructor']);
 const isUnsafeKey = (key: string): boolean => UNSAFE_KEYS.has(key);
@@ -18,7 +16,7 @@ const walk = (root: unknown, keys: string[]): unknown => {
     let current: unknown = root;
     for (const key of keys) {
         if (!isTree(current)) return undefined;
-        current = current[key];
+        current = Reflect.get(current, key);
     }
     return current;
 };
@@ -33,35 +31,31 @@ const _ = {
         const result = walk(obj, literal) ?? walk(obj, keysOf(path));
         return result === undefined || result === obj ? defaultValue : result;
     },
-    set: (obj: unknown, path: string | string[], value: unknown): unknown => {
-        if (!isTree(obj)) return obj;
+    set: <O extends object>(obj: O, path: string | string[], value: unknown): O => {
         const keys = Array.isArray(path) ? path : keysOf(path);
         if (keys.some(isUnsafeKey)) return obj;
-        let current: Tree = obj;
-        for (let index = 0; index < keys.length - 1; index++) {
-            const key = keys[index]!;
+        let current: object = obj;
+        for (const [index, key] of keys.slice(0, -1).entries()) {
             const hasOwn = Object.hasOwn(current, key);
-            const next = hasOwn ? current[key] : undefined;
+            const next = hasOwn ? Reflect.get(current, key) : undefined;
 
             if (hasOwn && isTree(next)) {
                 current = next;
                 continue;
             }
 
-            const created: Tree = /^\d+$/.test(keys[index + 1] ?? '')
-                ? ([] as unknown as Tree)
-                : (Object.create(null) as Tree);
-            current[key] = created;
+            const created: object = /^\d+$/.test(keys[index + 1] ?? '') ? [] : Object.create(null);
+            Reflect.set(current, key, created);
             current = created;
         }
         const last = keys.at(-1);
-        if (last !== undefined && !isUnsafeKey(last)) current[last] = value;
+        if (last !== undefined && !isUnsafeKey(last)) Reflect.set(current, last, value);
         return obj;
     },
     has: (obj: unknown, key: string): boolean => {
         const [head, ...rest] = key.split('.');
         if (!isTree(obj) || head === undefined) return false;
-        if (rest.length > 0) return _.has(obj[head], rest.join('.'));
+        if (rest.length > 0) return _.has(Reflect.get(obj, head), rest.join('.'));
         return Object.hasOwn(obj, key);
     },
     del: (obj: unknown, path: string | string[]): boolean => {
@@ -69,40 +63,59 @@ const _ = {
         if (keys.some(isUnsafeKey)) return false;
         const parent = walk(obj, keys.slice(0, -1));
         const last = keys.at(-1);
-        if (isTree(parent) && last !== undefined) delete parent[last];
+        if (isTree(parent) && last !== undefined) Reflect.deleteProperty(parent, last);
         return true;
     }
 };
 
+/** What a freshly created file of each format contains. */
 const TypeDefaults = {
     json: '{}',
     yaml: ' '
 };
 
+type ConfigType = keyof typeof TypeDefaults;
+
+const isConfigType = (ext: string): ext is ConfigType => Object.hasOwn(TypeDefaults, ext);
+
 export type ConfigData = Record<string, unknown>;
+
+/** Whether parsed file content is a key-value object rather than a scalar, a list or nothing. */
+const isConfigData = (value: unknown): value is ConfigData => isTree(value) && !Array.isArray(value);
+
+/**
+ * Whether a stored value is the same kind of thing as the default it stands in for: the same
+ * `typeof`, and an array only if the default is one. This is what lets a value read from the
+ * file take the default's type without a cast.
+ */
+const sameKindAs = <T>(value: unknown, defaults: T): value is T =>
+    typeof value === typeof defaults &&
+    Array.isArray(value) === Array.isArray(defaults) &&
+    (value === null) === (defaults === null);
 
 /**
  * General config-file handler.
  */
 export class ConfigBuilder {
-    private type: 'yaml' | 'json';
+    private type: ConfigType;
     private path: string;
 
     /**
      * Config constructor.
+     * @throws Error when the file extension is not one of the supported formats.
      */
     public constructor(filePath: string) {
         const pathSplitted = path.parse(filePath);
+        const ext = pathSplitted.ext.slice(1).toLowerCase();
 
-        this.type = pathSplitted.ext.slice(1) as 'yaml' | 'json';
-
-        if (!Object.keys(TypeDefaults).some((i) => i.toLowerCase() === this.type.toLowerCase())) {
+        if (!isConfigType(ext)) {
             throw new Error(`Unsupported config type. (Supported types: ${Object.keys(TypeDefaults).join(', ')})`);
         }
+        this.type = ext;
 
         // Create the config directory if it doesn't exist.
         if (!fs.existsSync(pathSplitted.dir)) fs.mkdirSync(pathSplitted.dir, { recursive: true });
-        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, (TypeDefaults as any)[this.type], 'utf8');
+        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, TypeDefaults[this.type], 'utf8');
 
         this.path = filePath;
     }
@@ -121,21 +134,14 @@ export class ConfigBuilder {
      *
      * @returns {'yaml' | 'json'} either `yaml` or `json`
      */
-    public getType(): 'yaml' | 'json' {
+    public getType(): ConfigType {
         return this.type;
     }
 
-    /**
-     * @private
-     */
     private setFileData(data: ConfigData = {}) {
-        if (!(data as any)) throw new ConfigInvalidDataError();
         fs.writeFileSync(this.path, this.stringify(data));
     }
 
-    /**
-     * @private
-     */
     private stringify(data: ConfigData = {}) {
         // FIXME: This overwrites comments in the file.
         switch (this.type) {
@@ -148,44 +154,60 @@ export class ConfigBuilder {
         }
     }
 
+    /**
+     * Reads and parses the file. Anything that is not a key-value object, including an empty
+     * or unparsable file, reads as `{}` so that defaults written afterwards are kept.
+     */
     private getFileData(): ConfigData {
         const raw = fs.readFileSync(this.path, 'utf8');
+        let parsed: unknown;
 
         switch (this.type) {
             case 'json':
                 try {
-                    return JSON5.parse(raw);
+                    parsed = JSON5.parse(raw);
                 } catch {}
                 break;
             case 'yaml':
                 try {
-                    return yaml.load(raw) as ConfigData;
+                    parsed = yaml.load(raw);
                 } catch {}
                 break;
             default:
                 throw new Error(`Unknown config type: ${this.type}!`);
         }
 
-        return {};
+        return isConfigData(parsed) ? parsed : {};
     }
 
     /**
-     * Get a config value from a key.
+     * Get a config value from a key, writing the default to the file when the key is absent.
      *
-     * @param {string} key - the config key
-     * @param {T} defaults -
+     * A stored value of a different kind than the default (a string where a number is
+     * expected, say) is ignored in favour of the default, and the file is left alone.
+     *
+     * @param key - the config key
+     * @param defaults - the value to use, and persist, when the key is missing
      */
-    public get<T = any>(key: string, defaults?: T): T {
+    public get<T>(key: string, defaults: T): T;
+    /**
+     * Get a config value from a key, or `undefined` when the key is absent.
+     *
+     * @param key - the config key
+     */
+    public get(key: string): unknown;
+    /** Shared body of the two `get` overloads above; only they are callable. */
+    public get<T>(key: string, defaults?: T): unknown {
         const data = this.getFileData();
-        let result = _.get(data, key) as T | undefined;
+        const stored = _.get(data, key);
+        if (defaults === undefined) return stored;
 
-        if (typeof result === 'undefined' && typeof defaults !== 'undefined') {
-            const newData = _.set(data, key, defaults) as ConfigData;
-            this.setFileData(newData);
-            result = defaults;
+        if (stored === undefined) {
+            this.setFileData(_.set(data, key, defaults));
+            return defaults;
         }
 
-        return result as T;
+        return sameKindAs(stored, defaults) ? stored : defaults;
     }
 
     /**
@@ -193,9 +215,9 @@ export class ConfigBuilder {
      *
      * @returns true if the value was set successfully
      */
-    public set(key: string, value: any) {
+    public set(key: string, value: unknown) {
         const data = this.getFileData();
-        const newData = _.set(data, key, value) as ConfigData;
+        const newData = _.set(data, key, value);
 
         try {
             this.setFileData(newData);

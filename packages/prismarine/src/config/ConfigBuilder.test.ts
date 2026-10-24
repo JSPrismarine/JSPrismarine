@@ -36,14 +36,25 @@ describe('config', () => {
         });
 
         it('should properly handle invalid type', () => {
-            try {
-                void new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.dummy'));
+            expect(() => new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.dummy'))).toThrow(
+                'Unsupported config type.'
+            );
+        });
 
-                // This should never occur
-                expect(false).toBeTruthy();
-            } catch (error: unknown) {
-                expect((error as any).message.includes('Unsupported config type.')).toBeTruthy();
-            }
+        it('should fall back to the default when the stored value is of another kind', () => {
+            const configYaml = new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.yaml'));
+            const configJson = new ConfigBuilder(path.join(process.cwd(), '.test/', 'config_test.json'));
+
+            expect(configYaml.get('number_var', 'text')).toStrictEqual('text');
+            expect(configJson.get('number_var', 'text')).toStrictEqual('text');
+            expect(configYaml.get('list_var', {})).toStrictEqual({});
+            expect(configJson.get('list_var', {})).toStrictEqual({});
+
+            // The file keeps what it had.
+            expect(configYaml.get('number_var')).toStrictEqual(1337);
+            expect(configJson.get('number_var')).toStrictEqual(1337);
+            expect(configYaml.get('list_var')).toStrictEqual(['test', 123]);
+            expect(configJson.get('list_var')).toStrictEqual(['test', 123]);
         });
 
         it('should properly write to the config file', () => {
