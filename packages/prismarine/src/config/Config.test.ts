@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
-import { Config } from './Config';
+import { Config, toPacketCompressionLevel } from './Config';
 
 describe('config', () => {
     describe('Config', () => {
@@ -58,6 +58,18 @@ describe('config', () => {
             expect(config.getPacketCompressionLevel()).toBe(7);
         });
 
+        it('should set the gamemode', () => {
+            config.setGamemode(Gametype.CREATIVE);
+            expect(config.getGamemode().toLowerCase()).toBe('creative');
+        });
+
+        it('should set the MOTD', () => {
+            config.setMotd('Welcome to my server!');
+            expect(config.getMotd()).toBe('Welcome to my server!');
+        });
+    });
+
+    describe('toPacketCompressionLevel', () => {
         it('should clamp a compression level zlib would reject', () => {
             // A typo in the config file used to surface as a rejection on the chunk sending
             // path, which took the server's tick down with it.
@@ -69,26 +81,14 @@ describe('config', () => {
                 [9, 9],
                 [-1, -1]
             ]) {
-                (config as any).packetCompressionLevel = configured;
-                expect(config.getPacketCompressionLevel()).toBe(expected);
+                expect(toPacketCompressionLevel(configured)).toBe(expected);
             }
         });
 
         it('should fall back to the default for a compression level that is not a number', () => {
             for (const configured of ['fast', undefined, Number.NaN, 4.5]) {
-                (config as any).packetCompressionLevel = configured;
-                expect(config.getPacketCompressionLevel()).toBe(7);
+                expect(toPacketCompressionLevel(configured)).toBe(7);
             }
-        });
-
-        it('should set the gamemode', () => {
-            config.setGamemode(Gametype.CREATIVE);
-            expect(config.getGamemode().toLowerCase()).toBe('creative');
-        });
-
-        it('should set the MOTD', () => {
-            config.setMotd('Welcome to my server!');
-            expect(config.getMotd()).toBe('Welcome to my server!');
         });
     });
 });

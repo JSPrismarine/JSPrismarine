@@ -21,6 +21,25 @@ const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
 
+/**
+ * Clamps a configured zlib level to the range zlib accepts.
+ *
+ * zlib takes -1 (its own default) through 9 and errors on anything else. The value comes
+ * straight out of a hand edited config file, and an unchecked `10` reached deflate as a
+ * rejection on the chunk sending path, which is nowhere near where the typo was, and
+ * used to take the server's tick down with it. Clamping keeps a bad number a bad number
+ * rather than an outage.
+ *
+ * @param raw - The value read from the config file, of whatever type the file held.
+ * @returns An integer from -1 to 9, or the default of 7 when `raw` is not an integer.
+ */
+export function toPacketCompressionLevel(raw: unknown): number {
+    const level = Number(raw);
+    if (!Number.isInteger(level)) return DEFAULT_PACKET_COMPRESSION_LEVEL;
+
+    return Math.min(9, Math.max(-1, level));
+}
+
 export class Config {
     private configBuilder!: ConfigBuilder;
 
@@ -95,9 +114,9 @@ export class Config {
     public async enable(): Promise<void> {
         this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info');
-        this.port = this.configBuilder.get('port', 19132) as number;
-        this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0') as string;
-        this.levelName = this.configBuilder.get('level-name', 'world') as string;
+        this.port = this.configBuilder.get('port', 19132);
+        this.serverIp = this.configBuilder.get('server-ip', '0.0.0.0');
+        this.levelName = this.configBuilder.get('level-name', 'world');
         this.worlds = this.configBuilder.get<Record<string, WorldData>>('worlds', {
             world: {
                 generator: 'Flat',
@@ -105,32 +124,26 @@ export class Config {
                 seed: SeedGenerator()
             }
         });
-        this.maxPlayers = this.configBuilder.get('max-players', 20) as number;
-        this.gamemode = this.configBuilder.get('gamemode', 'survival') as string;
-        this.difficulty = this.configBuilder.get('difficulty', 'normal') as string;
-        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!') as string;
-        this.viewDistance = this.configBuilder.get('view-distance', 10) as number;
-        this.preloadRadius = this.configBuilder.get('preload-radius', 10) as number;
-        this.chunkSendBudgetMs = this.configBuilder.get('chunk-send-budget-ms', 5) as number;
-        this.proximityBroadcast = this.configBuilder.get('proximity-broadcast', true) as boolean;
-        this.entityTrackingHysteresis = this.configBuilder.get('entity-tracking-hysteresis', 2) as number;
-        this.entityTrackingInterval = this.configBuilder.get('entity-tracking-interval', 4) as number;
-        this.onlineMode = this.configBuilder.get('online-mode', false) as boolean;
+        this.maxPlayers = this.configBuilder.get('max-players', 20);
+        this.gamemode = this.configBuilder.get('gamemode', 'survival');
+        this.difficulty = this.configBuilder.get('difficulty', 'normal');
+        this.motd = this.configBuilder.get('motd', 'Another JSPrismarine server!');
+        this.viewDistance = this.configBuilder.get('view-distance', 10);
+        this.preloadRadius = this.configBuilder.get('preload-radius', 10);
+        this.chunkSendBudgetMs = this.configBuilder.get('chunk-send-budget-ms', 5);
+        this.proximityBroadcast = this.configBuilder.get('proximity-broadcast', true);
+        this.entityTrackingHysteresis = this.configBuilder.get('entity-tracking-hysteresis', 2);
+        this.entityTrackingInterval = this.configBuilder.get('entity-tracking-interval', 4);
+        this.onlineMode = this.configBuilder.get('online-mode', false);
         this.packetCompressionLevel = this.configBuilder.get(
             'packet-compression-level',
             DEFAULT_PACKET_COMPRESSION_LEVEL
-        ) as number;
-        this.enableQuery = this.configBuilder.get('enable-query', this.enableQuery) as typeof this.enableQuery;
-        this.enableProcessTitle = this.configBuilder.get(
-            'enable-process-title',
-            this.enableProcessTitle
-        ) as typeof this.enableProcessTitle;
-        this.enableTicking = this.configBuilder.get('enable-ticking', this.enableTicking) as typeof this.enableTicking;
-        this.logExcludedPackets = this.configBuilder.get(
-            'log-excluded-packets',
-            this.logExcludedPackets
-        ) as typeof this.logExcludedPackets;
-        this.craftingRecipeLimit = this.configBuilder.get('crafting-recipe-limit', this.craftingRecipeLimit) as number;
+        );
+        this.enableQuery = this.configBuilder.get('enable-query', this.enableQuery);
+        this.enableProcessTitle = this.configBuilder.get('enable-process-title', this.enableProcessTitle);
+        this.enableTicking = this.configBuilder.get('enable-ticking', this.enableTicking);
+        this.logExcludedPackets = this.configBuilder.get('log-excluded-packets', this.logExcludedPackets);
+        this.craftingRecipeLimit = this.configBuilder.get('crafting-recipe-limit', this.craftingRecipeLimit);
     }
 
     /**
@@ -315,18 +328,10 @@ export class Config {
 
     /**
      * The zlib level batches are compressed at, clamped to what zlib will actually accept.
-     *
-     * zlib takes -1 (its own default) through 9 and errors on anything else. The value comes
-     * straight out of a hand edited config file, and an unchecked `10` reached deflate as a
-     * rejection on the chunk sending path - which is nowhere near where the typo was, and
-     * used to take the server's tick down with it. Clamping keeps a bad number a bad number
-     * rather than an outage.
+     * See {@link toPacketCompressionLevel} for why the configured value is not trusted as is.
      */
     public getPacketCompressionLevel(): number {
-        const level = Number(this.packetCompressionLevel);
-        if (!Number.isInteger(level)) return DEFAULT_PACKET_COMPRESSION_LEVEL;
-
-        return Math.min(9, Math.max(-1, level));
+        return toPacketCompressionLevel(this.packetCompressionLevel);
     }
 
     public getEnableQuery() {
