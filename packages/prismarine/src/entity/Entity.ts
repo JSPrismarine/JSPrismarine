@@ -55,21 +55,16 @@ const SINGLE_DAMPING = 0.5;
 const COMPOUND_DAMPING = 0.25;
 
 /**
- * The base class for all entities including `Player`.
- * @class
- * @public
- */
-/**
  * An entity class that can be built from a position and nothing else.
  *
- * What spawning by name needs. Looking a class up by its `MOB_ID` gives TypeScript the whole union
- * of entity constructors, and the options it will accept are then the *intersection* of theirs - so
- * one entity that takes an extra required argument, as a falling block takes the block it is,
- * makes every by-name spawn fail to compile even though none of them wants that entity.
+ * What spawning by name needs. Looking a class up by its `MOB_ID` in the whole union of entity
+ * constructors makes the options it accepts the *intersection* of theirs - so one entity that
+ * takes an extra required argument, as a falling block takes the block it is, makes every by-name
+ * spawn fail to compile even though none of them wants that entity.
  *
- * The cast this type exists for is sound for what actually uses it - villagers, animals, and mobs
- * restored from a save - and would not be for an entity that cannot exist without more than a
- * place to be. Those are created directly by whatever knows the rest.
+ * `spawnableEntities()` in `Entities.ts` is the list of classes with this shape. Spawning by name
+ * - villagers, animals, mobs restored from a save - looks there, and an entity that cannot exist
+ * without more than a place to be is created directly by whatever knows the rest.
  */
 export type SpawnableEntityClass = (new (options: {
     position: Position;
@@ -78,7 +73,18 @@ export type SpawnableEntityClass = (new (options: {
     headYaw?: number;
 }) => Entity) & { MOB_ID: string };
 
+/**
+ * The base class for all entities including `Player`.
+ * @class
+ * @public
+ */
 export class Entity {
+    /**
+     * TypeScript types `this.constructor` as `Function`. Declaring it as the class itself lets
+     * {@link Entity.getType} read the static `MOB_ID` the subclass set. Emits nothing.
+     */
+    declare ['constructor']: typeof Entity;
+
     /**
      * The global runtime id counter.
      * @internal
@@ -229,7 +235,7 @@ export class Entity {
     }
 
     public getType(): string {
-        return (this.constructor as typeof Entity & { MOB_ID: string }).MOB_ID;
+        return this.constructor.MOB_ID;
     }
 
     /**

@@ -1,3 +1,4 @@
+import type { SpawnableEntityClass } from './Entity';
 import AreaEffectCloud from './other/AreaEffectCloud';
 import ArmorStand from './other/ArmorStand';
 import Arrow from './other/Arrow';
@@ -227,10 +228,12 @@ export {
 };
 
 /**
- * Every class this barrel exports, in one list, for registries that enumerate them. A function
- * rather than a constant so the list is built after every module in the import cycle has loaded.
+ * Every exported class that can be built from a position alone, typed so that a class looked up
+ * by `MOB_ID` can be constructed without a cast. `FallingBlock` is left out because it also needs
+ * the block it is made of. A function rather than a constant so the list is built after every
+ * module in the import cycle has loaded.
  */
-export const allEntities = () => [
+export const spawnableEntities = (): SpawnableEntityClass[] => [
     AreaEffectCloud,
     ArmorStand,
     Arrow,
@@ -263,7 +266,6 @@ export const allEntities = () => [
     EvokerFang,
     EvokerIllager,
     EyeOfEnderSignal,
-    FallingBlock,
     Fireball,
     FireworksRocket,
     FishingHook,
@@ -344,3 +346,9 @@ export const allEntities = () => [
     ZombieVillager,
     Item
 ];
+
+/**
+ * Every class this barrel exports, in one list, for registries that enumerate them. Built from
+ * {@link spawnableEntities} plus the classes that need more than a position to exist.
+ */
+export const allEntities = () => [...spawnableEntities(), FallingBlock];

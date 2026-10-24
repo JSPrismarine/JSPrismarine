@@ -1,7 +1,7 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-import { allEntities } from './Entities';
-import type { Entity } from './Entity';
+import { spawnableEntities } from './Entities';
+import type { Entity, SpawnableEntityClass } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -24,23 +24,20 @@ import type { World } from '../world/World';
  */
 const REWRITTEN = ['identifier', 'Pos', 'Rotation'] as const;
 
-interface EntityClass {
-    MOB_ID?: string;
-    new (options: { position: Position; pitch?: number; yaw?: number; headYaw?: number }): Entity;
-}
-
 export class EntitySerializer {
-    private static index: Map<string, EntityClass> | null = null;
+    private static index: Map<string, SpawnableEntityClass> | null = null;
 
-    private static classes(): Map<string, EntityClass> {
+    /**
+     * The classes an identifier can be restored as. Only those a position alone can build: a
+     * falling block needs the block it is made of, which the actor NBT does not carry, so it loads
+     * as a {@link GenericEntity} like any other unmodelled actor.
+     */
+    private static classes(): Map<string, SpawnableEntityClass> {
         if (this.index !== null) return this.index;
 
         this.index = new Map();
-        for (const candidate of allEntities()) {
-            if (typeof candidate !== 'function') continue;
-
-            const identifier = (candidate as unknown as EntityClass).MOB_ID;
-            if (typeof identifier === 'string') this.index.set(identifier, candidate as unknown as EntityClass);
+        for (const candidate of spawnableEntities()) {
+            this.index.set(candidate.MOB_ID, candidate);
         }
 
         return this.index;
