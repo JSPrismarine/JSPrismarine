@@ -1,3 +1,4 @@
+import ActorEventHandler from './handler/ActorEventHandler';
 import AnimateHandler from './handler/AnimateHandler';
 import ClientCacheStatusHandler from './handler/ClientCacheStatusHandler';
 import CommandRequestHandler from './handler/CommandRequestHandler';
@@ -14,6 +15,7 @@ import MovePlayerHandler from './handler/MovePlayerHandler';
 import PacketViolationWarningHandler from './handler/PacketViolationWarningHandler';
 import PlayerActionHandler from './handler/PlayerActionHandler';
 import PlayerAuthInputHandler from './handler/PlayerAuthInputHandler';
+import PlayerSkinHandler from './handler/PlayerSkinHandler';
 import RequestChunkRadiusHandler from './handler/RequestChunkRadiusHandler';
 import RequestNetworkSettingsHandler from './handler/RequestNetworkSettingsHandler';
 import ResourcePackResponseHandler from './handler/ResourcePackResponseHandler';
@@ -27,6 +29,7 @@ import TextHandler from './handler/TextHandler';
 import TickingAreasLoadStatusHandler from './handler/TickingAreasLoadStatusHandler';
 
 export {
+    ActorEventHandler,
     AnimateHandler,
     ClientCacheStatusHandler,
     CommandRequestHandler,
@@ -43,6 +46,7 @@ export {
     PacketViolationWarningHandler,
     PlayerActionHandler,
     PlayerAuthInputHandler,
+    PlayerSkinHandler,
     RequestChunkRadiusHandler,
     RequestNetworkSettingsHandler,
     ResourcePackResponseHandler,
