@@ -22,7 +22,6 @@ packages/minecraft/src/generated/*
 packages/minecraft/datagen/snapshot/*
 
 # Test files
-.test/config_test.*
 
 # File formats
 *.dat
