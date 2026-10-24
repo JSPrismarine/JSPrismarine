@@ -3,7 +3,22 @@ import { PacketIdentifier } from '../PacketIdentifier';
 
 import type NetworkBinaryStream from '../NetworkBinaryStream';
 
-/** @see https://mojang.github.io/bedrock-protocol-docs/html/ResourcePackClientResponsePacket.html */
+/**
+ * The client's answer in a `ResourcePackResponsePacket`, numbered one above the wire's
+ * alternative index so that `None` can stand for no answer yet.
+ *
+ * The docs page is https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/resource-pack-client-response-packet/
+ * and names the alternatives differently:
+ * - `None` has no wire form. Encoding it throws.
+ * - `Refused` is `Cancel`, alternative 0.
+ * - `SendPacks` is `Downloading`, alternative 1, the only one followed by a `Downloading Packs` list.
+ * - `HaveAllPacks` is `DownloadingFinished`, alternative 2.
+ * - `Completed` is `ResourcePackStackFinished`, alternative 3.
+ *
+ * `ResourcePackResponse` from `@jsprismarine/minecraft` is the generated equivalent, with the docs
+ * names and the same values (`CANCEL` = 1 through `RESOURCE_PACK_STACK_FINISHED` = 4). This enum
+ * stays exported under its own names because the client package depends on them.
+ */
 export enum ResourcePackStatus {
     None,
     Refused,
@@ -13,40 +28,54 @@ export enum ResourcePackStatus {
 }
 
 /**
- * The alternatives, in selector order, spelled as the wire spells them.
+ * The `Response Type` string of each alternative, indexed by the alternative index.
  *
- * Lower case and run together, and sent in full beside the number that already identifies
- * them. Kept as data because they are not derivable from the enum's names: `SendPacks` travels
- * as `downloading`, and the two are the same alternative under different names.
+ * Real clients and gophertunnel send these in lower case. Mojang's docs list them as `Cancel`,
+ * `Downloading`, `DownloadingFinished` and `ResourcePackStackFinished`. The lower case form is
+ * the one proven on the wire, so it stays. Decoding discards the string, so either casing reads.
  */
-const ALTERNATIVE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'resourcepackstackfinished'];
+const RESPONSE_TYPE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'resourcepackstackfinished'];
 
+/**
+ * What separates a status from its alternative index: `Refused` is 1 and `Cancel` is alternative 0.
+ *
+ * Protocol 2207 renumbers the docs enum to 1..4, which matches the status values. A bump past 2193
+ * has to drop this offset.
+ */
+const ALTERNATIVE_OFFSET = 1;
+
+/** The decoded `Response`: a status and, for `SendPacks` only, the packs the client is downloading. */
 export interface ResourcePackResponse {
     status: ResourcePackStatus;
+    /** `Downloading Packs`. Empty for every status other than `SendPacks`. */
     packIds: string[];
 }
 
 /**
- * The client's half of the resource pack exchange, sent twice in a normal join:
+ * The client's answer to the resource pack exchange, packet 8. A normal join sends it twice:
  * `HaveAllPacks` to get the stack, then `Completed` to be let into the world.
  *
- * The response is a variant, and it names itself twice: a zero based selector, then the
- * alternative's name as a string. The enum counts from one, so the selector is one less than
- * the status - and the name is redundant with it, but the server reads it and a connection
- * that omits it goes no further.
+ * The payload is one field, `Response`, a `oneOf` of four alternatives. It starts with the
+ * alternative index as a varuint32 (0 `Cancel`, 1 `Downloading`, 2 `DownloadingFinished`,
+ * 3 `ResourcePackStackFinished`), then the alternative's `Response Type` as a string. Only
+ * `Downloading` continues with `Downloading Packs`, a varuint32 count followed by that many
+ * strings. The status is {@link ResourcePackStatus}, which is the alternative index plus one.
  *
- * Only `SendPacks` carries a list. 748 wrote one unconditionally, so the two bytes of an empty
- * one followed every response; at 2168 the server reads those as the start of the next packet
- * and drops the connection without answering.
+ * Until protocol 748 the list was written after every alternative; a real server reads the two
+ * stray bytes as the next packet and drops the connection.
  */
 export default class ResourcePackResponsePacket extends NetworkPacket<ResourcePackResponse> {
     public get id(): number {
         return PacketIdentifier.RESOURCE_PACK_CLIENT_RESPONSE;
     }
 
+    /**
+     * Writes `Response` for the given status.
+     * @throws when the status has no alternative, which includes `None`.
+     */
     protected serializePayload(stream: NetworkBinaryStream, data: ResourcePackResponse): void {
-        const selector = data.status - 1;
-        const name = ALTERNATIVE_NAMES[selector];
+        const selector = data.status - ALTERNATIVE_OFFSET;
+        const name = RESPONSE_TYPE_NAMES[selector];
         if (name === undefined) throw new Error(`No resource pack response alternative for status ${data.status}`);
 
         stream.writeUnsignedVarInt(selector);
@@ -60,8 +89,18 @@ export default class ResourcePackResponsePacket extends NetworkPacket<ResourcePa
         }
     }
 
+    /**
+     * Reads `Response`. The `Response Type` string is read and discarded; the alternative index
+     * alone decides the status.
+     * @throws when the alternative index names none of the four alternatives.
+     */
     protected deserializePayload(stream: NetworkBinaryStream): ResourcePackResponse {
-        const status = stream.readUnsignedVarInt() + 1;
+        const selector = stream.readUnsignedVarInt();
+        if (selector >= RESPONSE_TYPE_NAMES.length) {
+            throw new Error(`Unknown resource pack response alternative ${selector}`);
+        }
+
+        const status = selector + ALTERNATIVE_OFFSET;
         stream.readString();
 
         if (status !== ResourcePackStatus.SendPacks) return { status, packIds: [] };

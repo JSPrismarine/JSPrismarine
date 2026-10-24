@@ -1,41 +1,58 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
+import ResourcePackStatusType from '../type/ResourcePackStatusType';
 import DataPacket from './DataPacket';
 
-/** The one status whose alternative carries a list: what the client is still downloading. */
-const SEND_PACKS = 2;
-
 /**
- * The alternatives, in selector order, spelled as the wire spells them.
+ * The `Response Type` string of each alternative, indexed by the alternative index.
  *
- * Lower case and run together, and sent in full beside the number that already identifies
- * them. Not derivable from the status names: `SendPacks` travels as `downloading`.
+ * Real clients and gophertunnel send these in lower case. Mojang's docs list them as `Cancel`,
+ * `Downloading`, `DownloadingFinished` and `ResourcePackStackFinished`. The lower case form is
+ * the one proven on the wire, so it stays. Decoding discards the string, so either casing reads.
  */
-const ALTERNATIVE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'resourcepackstackfinished'];
+const RESPONSE_TYPE_NAMES = ['cancel', 'downloading', 'downloadingfinished', 'resourcepackstackfinished'];
 
 /**
- * The client's answer to the pack exchange.
+ * What separates a status from its alternative index: `Refused` is 1 and `Cancel` is alternative 0.
  *
- * The status is a variant, and it names itself twice: a zero based selector, then the
- * alternative's own name as a string. The status enum counts from one, so the selector is one
- * less than it. Only `SendPacks` is followed by a list - 748 wrote one unconditionally, and
- * the two bytes of an empty one now land in the middle of whatever follows.
+ * Protocol 2207 renumbers the docs enum to 1..4, which matches the status values. A bump past 2193
+ * has to drop this offset.
+ */
+const ALTERNATIVE_OFFSET = 1;
+
+/**
+ * The client's answer to the resource pack exchange, packet 8.
  *
- * Mojang's published table shows a `Response Type` byte inside each alternative as well. It is
- * not on the wire: a real client sends the selector and the name and nothing else, which is
- * what a server has to read to keep up with one.
+ * The payload is one field, `Response`, a `oneOf` of four alternatives. It starts with the
+ * alternative index as a varuint32 (0 `Cancel`, 1 `Downloading`, 2 `DownloadingFinished`,
+ * 3 `ResourcePackStackFinished`), then the alternative's `Response Type` as a string. Only
+ * `Downloading` continues with `Downloading Packs`, a varuint32 count followed by that many
+ * strings. The status is {@link ResourcePackStatusType}, which is the alternative index plus one.
+ *
+ * Until protocol 748 the list was written after every alternative; a real server reads the two
+ * stray bytes as the next packet.
  */
 export default class ResourcePackResponsePacket extends DataPacket {
     public static NetID = Identifiers.ResourcePackResponsePacket;
 
-    public status!: number;
+    public status!: ResourcePackStatusType;
     public packIds: string[] = [];
 
+    /**
+     * Reads `Response`. The `Response Type` string is read and discarded; the alternative index
+     * alone decides the status.
+     * @throws when the alternative index names none of the four alternatives.
+     */
     public decodePayload(): void {
-        this.status = this.readUnsignedVarInt() + 1;
+        const selector = this.readUnsignedVarInt();
+        if (selector >= RESPONSE_TYPE_NAMES.length) {
+            throw new Error(`Unknown resource pack response alternative ${selector}`);
+        }
+
+        this.status = selector + ALTERNATIVE_OFFSET;
         NetworkUtil.readString(this);
 
-        if (this.status !== SEND_PACKS) return;
+        if (this.status !== ResourcePackStatusType.SendPacks) return;
 
         let entryCount = this.readUnsignedVarInt();
         while (entryCount-- > 0) {
@@ -44,27 +61,23 @@ export default class ResourcePackResponsePacket extends DataPacket {
     }
 
     /**
-     * The mirror of {@link decodePayload}, which it did not used to be: a second
-     * `writeUnsignedShortLE(0)` sat in front of the count, so what this wrote could not be
-     * read back by the method directly above it.
-     *
-     * Latent while nothing encoded this - it only ever travels client to server, so the
-     * server decodes and never writes one. It stops being latent the moment a client in this
-     * repository sends one, which is now.
+     * Writes `Response` for the current status. The server never sends this packet; the client
+     * package does, through its own copy in `@jsprismarine/protocol`.
+     * @throws when the status has no alternative, which includes an unset status of 0.
      */
     public encodePayload(): void {
-        const selector = this.status - 1;
-        const name = ALTERNATIVE_NAMES[selector];
+        const selector = this.status - ALTERNATIVE_OFFSET;
+        const name = RESPONSE_TYPE_NAMES[selector];
         if (name === undefined) throw new Error(`No resource pack response alternative for status ${this.status}`);
 
         this.writeUnsignedVarInt(selector);
         NetworkUtil.writeString(this, name);
 
-        if (this.status !== SEND_PACKS) return;
+        if (this.status !== ResourcePackStatusType.SendPacks) return;
 
         this.writeUnsignedVarInt(this.packIds.length);
-        this.packIds.forEach((id) => {
+        for (const id of this.packIds) {
             NetworkUtil.writeString(this, id);
-        });
+        }
     }
 }
