@@ -19,13 +19,14 @@ describe('ClientboundMapItemDataPacket', () => {
     // - one tracked actor: type Entity as a little-endian int32, the unique id 7 present,
     //   and no block position
     // - one decoration: MarkerRed, rotation 4, at 8, 9, labelled "hi", coloured 0x01020304
-    //   as a big-endian int32
+    //   as a little-endian int32, so the bytes run 04 03 02 01
     // - the region 2 by 3 at 0, 1, with the four values zigzagged
-    // - two ARGB pixels, each a big-endian uint32
+    // - two packed ARGB pixels, each a little-endian uint32: 0xff112233 is 33 22 11 ff on
+    //   the wire and 0x80445566 is 66 55 44 80
     const full = Buffer.from([
         0x43, 0x0a, 0x01, 0x01, 0x02, 0x04, 0x06, 0x01, 0x02, 0x0a, 0x05, 0x01, 0x02, 0x01, 0x01, 0x00, 0x00, 0x00,
-        0x00, 0x01, 0x0e, 0x00, 0x01, 0x01, 0x02, 0x04, 0x08, 0x09, 0x02, 0x68, 0x69, 0x01, 0x02, 0x03, 0x04, 0x01,
-        0x04, 0x01, 0x06, 0x01, 0x00, 0x01, 0x02, 0x01, 0x02, 0xff, 0x00, 0x00, 0xff, 0x00, 0xff, 0x00, 0xff
+        0x00, 0x01, 0x0e, 0x00, 0x01, 0x01, 0x02, 0x04, 0x08, 0x09, 0x02, 0x68, 0x69, 0x04, 0x03, 0x02, 0x01, 0x01,
+        0x04, 0x01, 0x06, 0x01, 0x00, 0x01, 0x02, 0x01, 0x02, 0x33, 0x22, 0x11, 0xff, 0x66, 0x55, 0x44, 0x80
     ]);
 
     it('decodes a packet whose optional blocks are all absent', () => {
@@ -84,7 +85,7 @@ describe('ClientboundMapItemDataPacket', () => {
         expect(packet.height).toBe(3);
         expect(packet.startX).toBe(0);
         expect(packet.startY).toBe(1);
-        expect(packet.pixels).toEqual([0xff0000ff, 0x00ff00ff]);
+        expect(packet.pixels).toEqual([0xff112233, 0x80445566]);
         expect(packet.feof()).toBe(true);
     });
 
@@ -104,7 +105,7 @@ describe('ClientboundMapItemDataPacket', () => {
         packet.height = 3;
         packet.startX = 0;
         packet.startY = 1;
-        packet.pixels = [0xff0000ff, 0x00ff00ff];
+        packet.pixels = [0xff112233, 0x80445566];
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(full);

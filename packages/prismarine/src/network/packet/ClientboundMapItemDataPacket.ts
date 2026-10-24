@@ -63,7 +63,10 @@ export interface MapDecoration {
     y: number;
     /** Label, the name shown beside the marker. Any text is accepted. */
     label: string;
-    /** Color, packed ARGB written as a big-endian int32. */
+    /**
+     * Color, packed ARGB (`0xAARRGGBB`) written as a little-endian int32, the way every
+     * `Color` in the protocol is written.
+     */
     color: number;
 }
 
@@ -87,6 +90,11 @@ export interface MapItemTrackedActorUniqueId {
  * IDs with Decorations beside it, and a texture update sends the four region bounds with
  * Pixels. An update may carry a part of the map rather than all of it.
  *
+ * Protocol 2193 moved this packet to Cereal and dropped the `Type` bit mask that used to
+ * follow Map ID. Each optional field now carries its own presence bool, and the client sets
+ * the matching `Type` bit from what it finds present. A tracked actor's Entity ID and Block
+ * Position are optionals of the same kind, so a bool precedes each of them too.
+ *
  * Protocol 2193 layout (docs id 67), in wire order:
  *
  * | Name | Type | Notes |
@@ -103,7 +111,7 @@ export interface MapItemTrackedActorUniqueId {
  * | Height | optional varint32 | |
  * | Start X | optional varint32 | |
  * | Start Y | optional varint32 | |
- * | Pixels | optional uint32[] | ARGB, each written big-endian |
+ * | Pixels | optional uint32[] | Packed ARGB, each written little-endian |
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/clientbound-map-item-data-packet/
  */
 export default class ClientboundMapItemDataPacket extends DataPacket {
@@ -148,7 +156,7 @@ export default class ClientboundMapItemDataPacket extends DataPacket {
     /** Start Y, where the updated pixel region begins down the map. */
     public startY: number | null = null;
 
-    /** Pixels of the updated region, row by row, each a packed ARGB value. */
+    /** Pixels of the updated region, row by row, each a packed ARGB (`0xAARRGGBB`) value. */
     public pixels: number[] | null = null;
 
     /** Reads the map's identity and whichever optional blocks the update carries. */
@@ -166,7 +174,7 @@ export default class ClientboundMapItemDataPacket extends DataPacket {
         this.height = this.readBoolean() ? this.readVarInt() : null;
         this.startX = this.readBoolean() ? this.readVarInt() : null;
         this.startY = this.readBoolean() ? this.readVarInt() : null;
-        this.pixels = this.readBoolean() ? this.readList(() => this.readUnsignedInt()) : null;
+        this.pixels = this.readBoolean() ? this.readList(() => this.readUnsignedIntLE()) : null;
     }
 
     /** Writes the map's identity and whichever optional blocks are set. */
@@ -184,7 +192,7 @@ export default class ClientboundMapItemDataPacket extends DataPacket {
         this.writeOptional(this.height, (height) => this.writeVarInt(height));
         this.writeOptional(this.startX, (startX) => this.writeVarInt(startX));
         this.writeOptional(this.startY, (startY) => this.writeVarInt(startY));
-        this.writeOptionalList(this.pixels, (pixel) => this.writeUnsignedInt(pixel));
+        this.writeOptionalList(this.pixels, (pixel) => this.writeUnsignedIntLE(pixel));
     }
 
     private readList<T>(readEntry: () => T): T[] {
@@ -210,7 +218,7 @@ export default class ClientboundMapItemDataPacket extends DataPacket {
             x: this.readByte(),
             y: this.readByte(),
             label: NetworkUtil.readString(this),
-            color: this.readInt()
+            color: this.readIntLE()
         };
     }
 
@@ -238,6 +246,6 @@ export default class ClientboundMapItemDataPacket extends DataPacket {
         this.writeByte(decoration.x);
         this.writeByte(decoration.y);
         NetworkUtil.writeString(this, decoration.label);
-        this.writeInt(decoration.color);
+        this.writeIntLE(decoration.color);
     }
 }
