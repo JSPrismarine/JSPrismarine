@@ -24,8 +24,11 @@ this skill gives practical guidance for writing comments that fit them.
 - Tests, test folders, configuration files, generator templates and private helpers do not need
   JSDoc under the repository lint rules.
 
-The root `pnpm lint` command runs Biome and Prettier; neither checks JSDoc content, so the
-requirements above are reviewed by hand.
+The root `pnpm lint` command runs `scripts/check-jsdoc.mts`, which fails when an exported
+declaration or a public method of an exported class lacks a JSDoc block. Symbols that predate the
+check are grandfathered in `scripts/jsdoc-baseline.json`; after documenting one, run
+`node scripts/check-jsdoc.mts --update` to shrink the baseline. The check only sees that a JSDoc
+block exists, so the content requirements above are reviewed by hand.
 
 ## Examples
 
