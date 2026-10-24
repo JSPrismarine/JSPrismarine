@@ -6,24 +6,25 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * Packet for adding an dropped item to the game.
+ * Spawns a dropped item on the client.
  *
- * **Bound To:** Client
+ * Protocol 2193 layout (docs id 15):
  *
  * | Name | Type | Notes |
  * | ---- |:----:|:-----:|
- * | uniqueEntityId | VarLong | |
- * | runtimeEntityId | UnsignedVarLong | |
- * | item | Item | The item/block |
- * | position | Vector3 (LFloat) | The entity's position |
- * | motion | Vector3 (LFloat) | The entity's motion |
- * | metadata |  | TODO|
- * | isFromFishing | Boolean | |
+ * | Target Actor ID | varint64 | ZigZag encoded; the runtime id when `uniqueEntityId` is unset |
+ * | Target Runtime ID | varuint64 | |
+ * | Item | NetworkItemStackDescriptor | See {@link Item.networkSerialize} |
+ * | Position | Vec3 | Three little-endian floats |
+ * | Velocity | Vec3 | Three little-endian floats |
+ * | Entity Data | SynchedActorDataList | See {@link Metadata.networkSerialize} |
+ * | Is From Fishing | boolean | |
  */
 export default class AddItemActorPacket extends DataPacket {
     public static NetID = Identifiers.AddItemActorPacket;
 
-    public uniqueEntityId!: bigint;
+    /** Zero means the item has no unique id of its own and goes out under its runtime id. */
+    public uniqueEntityId = 0n;
     public runtimeEntityId!: bigint;
     public item!: Item;
     public position!: Vector3;
@@ -33,6 +34,7 @@ export default class AddItemActorPacket extends DataPacket {
     public isFromFishing = false;
 
     public encodePayload(): void {
+        // The server numbers entities once, so the runtime id doubles as the unique id.
         this.writeVarLong(this.uniqueEntityId || this.runtimeEntityId);
         this.writeUnsignedVarLong(this.runtimeEntityId);
 
