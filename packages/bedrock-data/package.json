@@ -1,7 +1,7 @@
 {
     "name": "@jsprismarine/bedrock-data",
     "version": "0.14.2",
-    "description": "BedrockData from PMMP exported in a nodejs friendly way.",
+    "description": "Minecraft Bedrock game data exported in a nodejs friendly way.",
     "sideEffects": false,
     "publishConfig": {
         "access": "public",
@@ -24,6 +24,7 @@
     "type": "module",
     "files": [
         "dist",
+        "src/vendor",
         "CHANGELOG.md",
         "README.md"
     ],

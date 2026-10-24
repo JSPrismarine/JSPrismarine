@@ -13,9 +13,9 @@
  * @see https://github.com/Mojang/bedrock-samples/tree/main/behavior_pack/entities
  *
  * Written out by hand rather than generated, because there is nowhere to generate it from:
- * `@jsprismarine/bedrock-data` is a submodule of pmmp's BedrockData, which carries the block and
- * item tables but not the entity ones. A test asserts that every registered entity appears here,
- * so the table cannot silently fall behind the classes.
+ * `@jsprismarine/bedrock-data` carries the block and item tables but no entity sizes. A test
+ * asserts that every registered entity appears here, so the table cannot silently fall behind
+ * the classes.
  */
 
 /** A box centered on the entity's position, extending upwards from its feet. */
