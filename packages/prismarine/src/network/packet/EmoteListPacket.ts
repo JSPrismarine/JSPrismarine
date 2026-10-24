@@ -9,14 +9,18 @@ import DataPacket from './DataPacket';
  * LEB128 varuint64, then Emote piece ids as a varuint32 count followed by one `mce::UUID` per
  * emote, each written as its most significant and least significant uint64 halves in little
  * endian order.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/emote-list-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-list-packet/
  */
 export default class EmoteListPacket extends DataPacket {
     public static NetID = Identifiers.EmoteListPacket;
 
+    /** Runtime id of the player whose equipped emotes these are. */
     public runtimeId: bigint = 0n;
+
+    /** The emote piece ids, one per equipped emote. */
     public emoteIds: UUID[] = [];
 
+    /** Writes the runtime id, then the count and each uuid. */
     public encodePayload(): void {
         this.writeUnsignedVarLong(this.runtimeId);
         this.writeUnsignedVarInt(this.emoteIds.length);
@@ -26,6 +30,7 @@ export default class EmoteListPacket extends DataPacket {
         }
     }
 
+    /** Reads the runtime id, then the count and each uuid. */
     public decodePayload(): void {
         this.runtimeId = this.readUnsignedVarLong();
         const emoteCount = this.readUnsignedVarInt();

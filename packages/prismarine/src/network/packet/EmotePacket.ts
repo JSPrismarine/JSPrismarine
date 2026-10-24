@@ -16,7 +16,7 @@ export enum EmoteFlags {
  * Wire layout at protocol 2193: Actor Runtime Id as a varuint64, Emote Id as a string (the
  * emote piece UUID), Emote Length Ticks as a varuint32, Xuid and PlatformId as strings, then
  * Flags as a uint8, see {@link EmoteFlags}.
- * @see https://mojang.github.io/bedrock-protocol-docs/1.26.50/packets/emote-packet/
+ * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/emote-packet/
  */
 export default class EmotePacket extends DataPacket {
     public static NetID = Identifiers.EmotePacket;
