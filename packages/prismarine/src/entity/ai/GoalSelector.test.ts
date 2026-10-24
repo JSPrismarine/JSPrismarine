@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import type Server from '../../Server';
+import { stub } from '../../testing/stub.test.helper';
 import Chunk from '../../world/chunk/Chunk';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';
@@ -64,14 +66,14 @@ const flatWorld = () => {
     // Empty, and that is the point: a mob left to itself has nothing to be pushed by.
     const entityGrid = new EntityGrid();
 
-    return {
-        getLoadedChunk: (cx: number, cz: number) => chunks.get(`${cx},${cz}`) ?? null,
+    return stub<World>({
+        getLoadedChunk: (cx, cz) => chunks.get(`${cx},${cz}`) ?? null,
         getPlayers: () => [],
         getEntityGrid: () => entityGrid,
         broadcastMove: async () => {},
-        getServer: () => ({}),
+        getServer: () => stub<Server>(),
         getName: () => 'test'
-    } as unknown as World;
+    });
 };
 
 const someMob = (world: World) => new Mob({ position: new Position(2.5, 65, 2.5, world) });

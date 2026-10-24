@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Vector3 } from '@jsprismarine/math';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { BlockStateValue } from '../../block/state/BlockState';
+import type Server from '../../Server';
+import { stub } from '../../testing/stub.test.helper';
 import Chunk from '../../world/chunk/Chunk';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';
@@ -26,31 +28,23 @@ class TestWorld {
     /** How many movement broadcasts the mob asked for, so throttling can be checked. */
     public broadcasts = 0;
 
-    public getLoadedChunk(cx: number, cz: number): Chunk | null {
-        return this.chunks.get(`${cx},${cz}`) ?? null;
-    }
-
-    public getPlayers(): [] {
-        return [];
-    }
-
     /** Whatever the test put in it; a mob asks this every tick to find out who it is touching. */
     public readonly entityGrid = new EntityGrid();
 
-    public getEntityGrid(): EntityGrid {
-        return this.entityGrid;
-    }
+    /** The face this shows to the code under test. Every member reads the state above. */
+    private readonly world = stub<World>({
+        getLoadedChunk: (cx, cz) => this.getLoadedChunk(cx, cz),
+        getPlayers: () => [],
+        getEntityGrid: () => this.entityGrid,
+        broadcastMove: async () => {
+            this.broadcasts++;
+        },
+        getServer: () => stub<Server>(),
+        getName: () => 'test'
+    });
 
-    public async broadcastMove(): Promise<void> {
-        this.broadcasts++;
-    }
-
-    public getServer(): any {
-        return {};
-    }
-
-    public getName(): string {
-        return 'test';
+    public getLoadedChunk(cx: number, cz: number): Chunk | null {
+        return this.chunks.get(`${cx},${cz}`) ?? null;
     }
 
     public chunkAt(cx: number, cz: number): Chunk {
@@ -114,7 +108,7 @@ class TestWorld {
     }
 
     public asWorld(): World {
-        return this as unknown as World;
+        return this.world;
     }
 }
 
