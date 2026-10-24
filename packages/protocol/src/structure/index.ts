@@ -40,6 +40,7 @@ import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorB
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
 import PlayerPartyInfo from './PlayerPartyInfo';
+import PresenceConfig from './PresenceConfig';
 import PrimitiveShapeData, { PrimitiveShapeExtraDataType, PrimitiveShapeType } from './PrimitiveShapeData';
 import type { PrimitiveShapeDataFields, PrimitiveShapeExtraData } from './PrimitiveShapeData';
 import PropertySyncData from './PropertySyncData';
@@ -86,6 +87,7 @@ export {
     LocatorBarWaypointPayload,
     NetworkItemStackDescriptor,
     PlayerPartyInfo,
+    PresenceConfig,
     PrimitiveShapeData,
     PrimitiveShapeExtraDataType,
     PrimitiveShapeType,
