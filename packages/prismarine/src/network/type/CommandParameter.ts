@@ -34,9 +34,10 @@ export enum CommandArgumentType {
     BlockPosition = 64,
     Position = 65,
     Message = 67,
+    MessageRoot = 68,
     RawText = 70,
     Json = 74,
-    Command = 87
+    PoiTag = 87
 }
 
 /**
@@ -58,9 +59,10 @@ export const CommandParameterType = {
     BlockPosition: CommandParameterTypeFlag.Valid | CommandArgumentType.BlockPosition,
     Position: CommandParameterTypeFlag.Valid | CommandArgumentType.Position,
     Message: CommandParameterTypeFlag.Valid | CommandArgumentType.Message,
+    MessageRoot: CommandParameterTypeFlag.Valid | CommandArgumentType.MessageRoot,
     RawText: CommandParameterTypeFlag.Valid | CommandArgumentType.RawText,
     Json: CommandParameterTypeFlag.Valid | CommandArgumentType.Json,
-    Command: CommandParameterTypeFlag.Valid | CommandArgumentType.Command,
+    PoiTag: CommandParameterTypeFlag.Valid | CommandArgumentType.PoiTag,
     Enum: CommandParameterTypeFlag.Enum
 } as const;
 

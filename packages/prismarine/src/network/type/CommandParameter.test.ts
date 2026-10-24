@@ -25,9 +25,10 @@ describe('CommandParameter', () => {
             BlockPosition: 64,
             Position: 65,
             Message: 67,
+            MessageRoot: 68,
             RawText: 70,
             Json: 74,
-            Command: 87
+            PoiTag: 87
         });
     });
 
@@ -37,9 +38,10 @@ describe('CommandParameter', () => {
         expect(CommandParameterType.String).toBe(0x100000 | 56);
         expect(CommandParameterType.Position).toBe(0x100000 | 65);
         expect(CommandParameterType.Message).toBe(0x100000 | 67);
+        expect(CommandParameterType.MessageRoot).toBe(0x100000 | 68);
         expect(CommandParameterType.RawText).toBe(0x100000 | 70);
         expect(CommandParameterType.Json).toBe(0x100000 | 74);
-        expect(CommandParameterType.Command).toBe(0x100000 | 87);
+        expect(CommandParameterType.PoiTag).toBe(0x100000 | 87);
         expect(CommandParameterType.Enum).toBe(0x200000);
     });
 });
