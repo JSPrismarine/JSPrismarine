@@ -36,10 +36,21 @@ export enum UseItemOnEntityAction {
 }
 
 /**
+ * The docs' `ItemReleaseActionType`: why a held item was let go of.
+ */
+export enum ReleaseItemAction {
+    /** The docs' Release: a bow fired, or a held item let go of. */
+    RELEASE,
+    /** The docs' Use: a crossbow finished charging. */
+    USE
+}
+
+/**
  * The Transaction variant index, the docs' `ComplexInventoryTransaction::Type`.
  *
  * It selects which body follows the Actions list. Normal and Mismatch have no body of
- * their own.
+ * their own. A 2193 client moves items between slots through `ItemStackRequestPacket`, so
+ * what it still sends here is `USE_ITEM`, `USE_ITEM_ON_ENTITY` and `RELEASE_ITEM`.
  */
 export enum TransactionType {
     NORMAL,
@@ -49,11 +60,18 @@ export enum TransactionType {
     RELEASE_ITEM
 }
 
-/** Which hand an item was used from. */
+/** Which hand an item was used from. The docs' `HandSlot`. */
 export enum HandSlot {
     MAINHAND,
     OFFHAND
 }
+
+/**
+ * The docs' runtime constraint on the Actions list: "Verify that the number of
+ * InventoryActions does not exceed 100". The reader refuses a longer list before
+ * allocating it.
+ */
+export const MAX_INVENTORY_ACTIONS = 100;
 
 /**
  * One of the docs' Legacy Set Item Slots: a Container Enum (uint8) and its Slots
@@ -88,12 +106,11 @@ export class LegacySlotChange {
  * The docs' `InventorySourceType`: which inventory an action's slot belongs to.
  *
  * The docs name five: Container Inventory, Global Inventory, World Interaction, Creative
- * Inventory and Non Implemented Feature TODO. `INVALID` is this server's own, for a source
- * nothing has been read into yet.
+ * Inventory and Non Implemented Feature TODO. Every member is a wire value; a source the
+ * client sends that is not one of these stays on the action as the number it was, and the
+ * handler drops the transaction.
  */
 export enum ActionSource {
-    /** Not a wire value. Stands for a source that has not been read. */
-    INVALID = -1,
     /** Container Inventory. */
     CONTAINER,
     /** Global Inventory. */
@@ -105,9 +122,10 @@ export enum ActionSource {
     /**
      * Non Implemented Feature TODO.
      *
-     * The 2193 docs page lists this as 4, but that page numbered members without declared
-     * values in order. The 2207 page corrects it to 99999, which is what gophertunnel reads
-     * and writes at 2193 and what the client sends.
+     * The 2193 docs page lists this as 4 because the schema carries no values and the page
+     * numbers such members in order. The 2207 page's changelog "changes" it to 99999, the
+     * value gophertunnel and PocketMine have read and written at every protocol, and the one
+     * the client sends.
      */
     NON_IMPLEMENTED_TODO = 99999
 }
@@ -121,6 +139,7 @@ export enum ActionSource {
  */
 export class InventoryAction {
     public constructor(
+        /** The docs' Source Type, as read. An {@link ActionSource} when the client sent a known one. */
         public sourceType: number,
         public windowId: number | null,
         public sourceFlags: number | null,
@@ -273,6 +292,10 @@ const hasLegacyRequest = (legacyRequestId: number): boolean => legacyRequestId <
  * {@link InventoryAction} each), then the body the variant selects: {@link UseItemData},
  * {@link UseItemOnEntityData} or {@link ReleaseItemData}. Normal and Mismatch end after the
  * Actions.
+ *
+ * A 2193 client sends the three bodied types. Container moves, drops and creative picks go
+ * through `ItemStackRequestPacket`, so a Normal transaction is a legacy client's and a
+ * Mismatch is the client saying its inventory disagrees with the server's.
  */
 export default class InventoryTransactionPacket extends DataPacket {
     public static NetID = Identifiers.InventoryTransactionPacket;
@@ -280,9 +303,14 @@ export default class InventoryTransactionPacket extends DataPacket {
     public legacyRequestId!: number;
     public legacySlotChanges!: LegacySlotChange[];
 
+    /**
+     * The variant index as read. A value no {@link TransactionType} member has is kept so the
+     * handler can say which type it dropped.
+     */
     public transactionType!: TransactionType;
     public inventoryActions!: InventoryAction[];
 
+    /** The body the type selects. Null for Normal, Mismatch and a type the reader does not know. */
     public transactionData: UseItemData | UseItemOnEntityData | ReleaseItemData | null = null;
 
     /**
@@ -293,6 +321,12 @@ export default class InventoryTransactionPacket extends DataPacket {
      * bytes that 1.26.30 put in front of the variant index and the Actions are gone again at
      * 2193 ("obsolete Cereal presence bytes", in Mojang's words). A reader still expecting
      * them takes the type for a flag and the flag for the type.
+     *
+     * A variant index this reader does not know has a body of unknown length, so reading
+     * stops after the Actions and `transactionData` stays null. The handler drops the packet
+     * at debug level; throwing here would log an error for every such packet instead.
+     * @throws {RangeError} When the Actions list is longer than {@link MAX_INVENTORY_ACTIONS}.
+     * @throws {Error} When a use-item body leaves bytes unread, which means the layout drifted.
      */
     public decodePayload(): void {
         this.legacyRequestId = this.readVarInt();
@@ -303,6 +337,11 @@ export default class InventoryTransactionPacket extends DataPacket {
         this.transactionType = this.readUnsignedVarInt();
 
         const actionsCount = this.readUnsignedVarInt();
+        if (actionsCount > MAX_INVENTORY_ACTIONS) {
+            throw new RangeError(
+                `An inventory transaction carried ${actionsCount} actions; the docs allow ${MAX_INVENTORY_ACTIONS}`
+            );
+        }
         this.inventoryActions = Array.from({ length: actionsCount }, () => InventoryAction.fromNetwork(this));
 
         switch (this.transactionType) {
@@ -343,7 +382,9 @@ export default class InventoryTransactionPacket extends DataPacket {
                 };
                 break;
             default:
-                throw new TypeError(`Unknown transaction type ${this.transactionType}`);
+                // Nothing more can be read: the body's length depends on the type. See the
+                // method comment for why this is not a throw.
+                this.transactionData = null;
         }
     }
 
@@ -354,6 +395,7 @@ export default class InventoryTransactionPacket extends DataPacket {
      * The Legacy Set Item Slots presence byte follows the request id, as the docs and the
      * client have it: a valid id always carries the list, even an empty one, and an invalid id
      * never does.
+     * @throws {TypeError} When the type is not a {@link TransactionType} or the body does not match it.
      */
     public encodePayload(): void {
         this.writeVarInt(this.legacyRequestId);

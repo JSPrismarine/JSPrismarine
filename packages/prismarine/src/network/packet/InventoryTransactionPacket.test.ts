@@ -9,10 +9,22 @@ import InventoryTransactionPacket, {
     HandSlot,
     InventoryAction,
     LegacySlotChange,
+    MAX_INVENTORY_ACTIONS,
+    ReleaseItemAction,
     TransactionType,
     UseItemAction,
     UseItemOnEntityAction
 } from './InventoryTransactionPacket';
+
+/**
+ * The eight zero bytes of an empty `NetworkItemStackDescriptor`: Id (int16), Stack size
+ * (uint16), Aux value (varuint), no Net Id Variant (one byte), Block Runtime Id (varuint) and
+ * an empty User Data Buffer (its varuint length).
+ */
+const AIR = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
+
+/** A little-endian float, as the docs' `Vec3` components are written. */
+const floatLE = (value: number): number[] => Array.from(new Uint8Array(new Float32Array([value]).buffer));
 
 /**
  * A transaction as a client writes it, built from the layout rather than from the reader.
@@ -289,5 +301,105 @@ describe('InventoryTransactionPacket', () => {
         });
 
         expect(() => decode(buffer)).toThrow(/1 bytes unread/);
+    });
+
+    it('reads an attack from bytes written by hand, in the docs order', () => {
+        // Header 30; Legacy Request ID 0; no Legacy Set Item Slots; variant 3 (ItemUseOnActor);
+        // no Actions; Runtime Id 42 (varuint64); Action Type Attack (1, ZigZag 2); Slot 4
+        // (ZigZag 8); the Item; From Position (1, 64, -2); Hit Position (0, 1.5, 0).
+        const packet = decode(
+            Buffer.from([
+                0x1e,
+                0x00,
+                0x00,
+                0x03,
+                0x00,
+                0x2a,
+                0x02,
+                0x08,
+                ...AIR,
+                ...floatLE(1),
+                ...floatLE(64),
+                ...floatLE(-2),
+                ...floatLE(0),
+                ...floatLE(1.5),
+                ...floatLE(0)
+            ])
+        );
+
+        const data = packet.transactionData;
+        assert(data?.kind === 'useItemOnEntity');
+        expect(packet.transactionType).toBe(TransactionType.USE_ITEM_ON_ENTITY);
+        expect(data.entityRuntimeId).toBe(42n);
+        expect(data.actionType).toBe(UseItemOnEntityAction.ATTACK);
+        expect(data.hotbarSlot).toBe(4);
+        expect(data.itemInHand.getName()).toBe('minecraft:air');
+        expect(data.playerPosition).toEqual(new Vector3(1, 64, -2));
+        expect(data.clickPosition).toEqual(new Vector3(0, 1.5, 0));
+        expect(packet.feof()).toBe(true);
+    });
+
+    it('writes a release byte for byte as the docs lay it out', () => {
+        const packet = new InventoryTransactionPacket();
+        packet.legacyRequestId = 0;
+        packet.legacySlotChanges = [];
+        packet.transactionType = TransactionType.RELEASE_ITEM;
+        packet.inventoryActions = [];
+        packet.transactionData = {
+            kind: 'releaseItem',
+            actionType: ReleaseItemAction.USE,
+            hotbarSlot: 3,
+            itemInHand: Item.air(),
+            playerPosition: new Vector3(0.5, 70, -0.5)
+        };
+        packet.encode();
+
+        // Header; request id 0; no slots; variant 4; no actions; Use (1, ZigZag 2); slot 3
+        // (ZigZag 6); the Item; From Position.
+        expect(Array.from(packet.getBuffer())).toEqual([
+            0x1e,
+            0x00,
+            0x00,
+            0x04,
+            0x00,
+            0x02,
+            0x06,
+            ...AIR,
+            ...floatLE(0.5),
+            ...floatLE(70),
+            ...floatLE(-0.5)
+        ]);
+    });
+
+    it('keeps a variant index it does not know, and stops reading after the actions', () => {
+        const packet = decode(
+            transaction(7, (out) => {
+                out.writeUnsignedVarInt(0); // No actions.
+                out.write(Buffer.from([0xde, 0xad, 0xbe, 0xef])); // A body of a shape nobody knows.
+            })
+        );
+
+        expect(packet.transactionType).toBe(7);
+        expect(packet.transactionData).toBeNull();
+        expect(packet.inventoryActions).toEqual([]);
+    });
+
+    it('refuses to write a variant index it does not know', () => {
+        const packet = new InventoryTransactionPacket();
+        packet.legacyRequestId = 0;
+        packet.legacySlotChanges = [];
+        packet.transactionType = 7;
+        packet.inventoryActions = [];
+
+        expect(() => packet.encode()).toThrow(TypeError);
+    });
+
+    it('refuses more actions than the docs allow, rather than allocating for them', () => {
+        const buffer = transaction(TransactionType.NORMAL, (out) => {
+            out.writeUnsignedVarInt(MAX_INVENTORY_ACTIONS + 1);
+        });
+
+        expect(() => decode(buffer)).toThrow(RangeError);
+        expect(() => decode(buffer)).toThrow(/101 actions/);
     });
 });
