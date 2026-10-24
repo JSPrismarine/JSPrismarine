@@ -211,18 +211,25 @@ export class CommandManager implements Service {
     }
 
     /**
-     * Dispatches a command and executes them.
+     * Dispatches a command and executes it.
      *
      * @param sender - the player/console who executed the command
      * @param target - the Player/entity/console who should execute the command
      * @param input - the command input including arguments
+     * @returns True when the command ran. False when the target cannot run commands, the
+     * sender lacks the permission, the command is unknown, or it threw; in each of those
+     * cases the sender has been sent the reason.
      */
-    public async dispatchCommand(sender: CommandExecutor, target: CommandExecutor | Entity, input = ''): Promise<void> {
+    public async dispatchCommand(
+        sender: CommandExecutor,
+        target: CommandExecutor | Entity,
+        input = ''
+    ): Promise<boolean> {
         try {
             // Anything else an `@e` selector can match has no way to be answered.
             if (!isCommandExecutor(target)) {
                 await sender.sendMessage(`§c${target.getName()} cannot execute commands`);
-                return;
+                return false;
             }
             if (input.startsWith('/')) input = input.slice(1);
 
@@ -248,15 +255,14 @@ export class CommandManager implements Service {
                         "§cI'm sorry, but you do not have permission to perform this command. " +
                             'Please contact the server administrators if you believe that this is in error.'
                     );
-                    return;
+                    return false;
                 }
             }
 
             let res: string[] = [];
             // Handle aliases and IDs.
             if (command.name !== id) {
-                await this.dispatchCommand(sender, target, input.replace(id, command.name));
-                return;
+                return this.dispatchCommand(sender, target, input.replace(id, command.name));
             }
 
             res = await Promise.all(this.dispatcher.execute(parsed));
@@ -269,7 +275,7 @@ export class CommandManager implements Service {
             const feedback = world.getGameRuleManager().getGameRule('sendCommandFeedback');
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
-            if (!feedback) return;
+            if (!feedback) return true;
 
             await Promise.all(
                 res.map(async (res: any) => {
@@ -283,17 +289,19 @@ export class CommandManager implements Service {
                     await this.server.getChatManager().send(chat);
                 })
             );
+
+            return true;
         } catch (error: unknown) {
             switch (true) {
                 case error instanceof CommandSyntaxException:
                     await sender.sendMessage(`§c${error.getMessage()}`);
-                    return;
+                    return false;
                 case error instanceof CommandUnknownCommandError:
                     await sender.sendMessage(`§cUnknown command. Type "/help" for help.`);
-                    return;
+                    return false;
                 case error instanceof Error:
                     await sender.sendMessage(`§c${error.message}`);
-                    return;
+                    return false;
                 default:
                     this.server.getLogger().error(error);
                     break;
@@ -307,6 +315,7 @@ export class CommandManager implements Service {
                     'CommandManager/dispatchCommand'
                 );
             this.server.getLogger().error(error);
+            return false;
         }
     }
 }

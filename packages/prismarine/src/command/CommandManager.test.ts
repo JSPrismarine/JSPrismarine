@@ -1,3 +1,4 @@
+import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
 import Console from '../Console';
@@ -8,7 +9,8 @@ import type GameRuleManager from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import * as Commands from './Commands';
-import { Command } from './Command';
+import { Command, literal } from './Command';
+import type { CommandExecutor } from './CommandExecutor';
 import { CommandManager } from './CommandManager';
 
 describe('command', () => {
@@ -104,7 +106,7 @@ describe('command', () => {
             const player = stubOf(Player);
             const sendMessage = vi.spyOn(player, 'sendMessage').mockResolvedValue();
 
-            await commandManager.dispatchCommand(player, player, '/help');
+            await expect(commandManager.dispatchCommand(player, player, '/help')).resolves.toBe(false);
 
             // By identity: letting vitest pretty-print a prototype-only player walks into
             // `toString()`, which reaches for metadata and a world it has never been given.
@@ -148,6 +150,32 @@ describe('command', () => {
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining("can't be run from the console"));
         });
 
+        it('should resolve to true once a command has run', async () => {
+            // `CommandRequestHandler` reports this to the client as the reply's success count.
+            const { commandManager } = managerWithPermissionSpy();
+            const runs: string[] = [];
+
+            class PingCommand extends Command {
+                public constructor() {
+                    super({ id: 'test:ping' });
+                }
+
+                public async register(dispatcher: CommandDispatcher<CommandExecutor>): Promise<void> {
+                    dispatcher.register(
+                        literal('ping').executes((context) => {
+                            runs.push(context.getInput());
+                            return 'pong';
+                        })
+                    );
+                }
+            }
+            await commandManager.registerCommand(new PingCommand());
+
+            const console = new Console(server);
+            await expect(commandManager.dispatchCommand(console, console, '/ping')).resolves.toBe(true);
+            expect(runs).toEqual(['ping']);
+        });
+
         it('should refuse an unknown command without throwing at the caller', async () => {
             const commandManager = new CommandManager(server);
             await commandManager.enable();
@@ -155,7 +183,7 @@ describe('command', () => {
             const console = new Console(server);
             const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
 
-            await expect(commandManager.dispatchCommand(console, console, '/nope')).resolves.toBeUndefined();
+            await expect(commandManager.dispatchCommand(console, console, '/nope')).resolves.toBe(false);
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Unknown command'));
         });
     });
