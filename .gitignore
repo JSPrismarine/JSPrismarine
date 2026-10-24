@@ -34,7 +34,7 @@ report.*.json
 # Generated documentation
 assets/
 *.html
-docs/
+/docs/
    
 
 # Pinned upstream sources for datagen. Committed on purpose: Mojang keeps only a rolling

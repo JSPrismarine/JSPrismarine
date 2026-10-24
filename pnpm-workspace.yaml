@@ -1,5 +1,6 @@
 packages:
   - packages/**
+  - tools/*
 
 onlyBuiltDependencies:
   - core-js-pure
