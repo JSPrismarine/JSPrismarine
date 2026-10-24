@@ -37,8 +37,16 @@ export default class Packet extends BinaryStream {
 
     protected encodePayload(): void {}
 
+    /**
+     * Reads a RakNet string: an unsigned 16 bit big-endian byte length, then the bytes.
+     *
+     * Unsigned to match {@link writeString}, which has always written the length with
+     * `writeUnsignedShort`. Read signed, any string of 32768 bytes or more came back with a
+     * negative length, and `read` then walked the cursor backwards over data it had already
+     * consumed instead of failing.
+     */
     public readString(): string {
-        return this.read(this.readShort()).toString('utf-8');
+        return this.read(this.readUnsignedShort()).toString('utf-8');
     }
 
     public writeString(v: string): void {
@@ -47,6 +55,14 @@ export default class Packet extends BinaryStream {
         this.write(data);
     }
 
+    /**
+     * Reads a RakNet `SystemAddress`: a version byte, the address, then the port.
+     *
+     * The port is unsigned. RakNet serializes it as `unsigned short` and
+     * {@link writeAddress} writes it with `writeUnsignedShort`, so reading it signed turned
+     * every ephemeral port from 32768 up - which is the range an operating system hands a
+     * connecting client from - into a negative number.
+     */
     public readAddress(): InetAddress {
         const ver = this.readByte();
         if (ver === 4) {
@@ -54,12 +70,12 @@ export default class Packet extends BinaryStream {
             const addr = `${(-ipBytes[0]! - 1) & 0xff}.${(-ipBytes[1]! - 1) & 0xff}.${(-ipBytes[2]! - 1) & 0xff}.${
                 (-ipBytes[3]! - 1) & 0xff
             }`;
-            const port = this.readShort();
+            const port = this.readUnsignedShort();
             return new InetAddress(addr, port, ver);
         }
 
         this.skip(2); // Skip 2 bytes
-        const port = this.readShort();
+        const port = this.readUnsignedShort();
         this.skip(4); // Skip 4 bytes
         const addr = this.read(16).toString();
         this.skip(4); // Skip 4 bytes
