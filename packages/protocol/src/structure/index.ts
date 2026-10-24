@@ -3,10 +3,12 @@ import BlockPos from './BlockPos';
 import { ChunkPos } from './ChunkPos';
 import { DataItem } from './DataItem';
 import Experiments from './Experiments';
-import ItemData from './ItemData';
+import ItemData, { ItemVersion } from './ItemData';
 import ItemInstanceUserData from './ItemInstanceUserData';
+import type { ItemInstanceUserDataConfig } from './ItemInstanceUserData';
 import LevelSettings from './LevelSettings';
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
+import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
 import PropertySyncData from './PropertySyncData';
 import SerializedAbilitiesData from './SerializedAbilitiesData';
 import SerializedAbilityLayer from './SerializedAbilityLayer';
@@ -24,6 +26,7 @@ export {
     Experiments,
     ItemData,
     ItemInstanceUserData,
+    ItemVersion,
     LevelSettings,
     NetworkItemStackDescriptor,
     PropertySyncData,
@@ -35,3 +38,4 @@ export {
     Vec2,
     Vec3
 };
+export type { ItemInstanceUserDataConfig, NetworkItemStackDescriptorConfig };
