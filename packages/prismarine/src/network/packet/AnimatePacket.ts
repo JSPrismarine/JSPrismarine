@@ -3,33 +3,31 @@ import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
 /**
- * An animation played on an entity, and the swing every mined block starts with.
+ * Triggers an animation on an actor, in either direction.
  *
- * The layout moved on at 1.21.130 and this had stayed behind on all three counts:
- *
- * - The action is a plain byte. It used to be a signed varint, so an arm swing - action 1 -
- *   went out zig-zagged as `0x02`, which the client reads as `WakeUp`: the wrong animation
- *   even before the length went wrong.
- * - The float that follows is unconditional. It used to be written only for the two rowing
- *   actions, behind an `action & 0x80` test, and those actions no longer exist.
- * - A swing source was added after it, optional, as a string naming what caused the swing.
- *
- * The last two together left the packet five bytes short, so a real client read past its end,
- * called it malformed and hung up - which is what `initialconnection-90` says and nothing more.
- * It is re-broadcast to everyone watching on every swing, so mining a single block was enough.
+ * Protocol 2193 layout: Action as a uint8, Target Actor Runtime ID as a varuint64, Data as a
+ * float, then Swing Source as an optional string (presence byte, then the string) naming what
+ * caused a swing: "None", "Build", "Mine", "Interact", "Attack", "UseItem", "ThrowItem",
+ * "DropItem" or "Event". The action is relayed as the raw byte; the 1.26.50 docs number WakeUp,
+ * CriticalHit and MagicCriticalHit as 2, 3 and 4, while the 2207 changelog and other servers
+ * use 3, 4 and 5.
  */
 export default class AnimatePacket extends DataPacket {
     public static NetID = Identifiers.AnimatePacket;
 
+    /** Action, as the raw enum byte. Swing is 1. */
     public action!: number;
+
+    /** Target Actor Runtime ID. */
     public runtimeEntityId!: bigint;
 
-    /** Meaning depends on the action; zero for the ones that carry nothing. */
+    /** Data. Meaning depends on the action; zero for the ones that carry nothing. */
     public data = 0;
 
-    /** What caused the swing, by name, or `null` for the packets that do not say. */
+    /** Swing Source: what caused the swing, by name, or `null` when absent. */
     public swingSource: string | null = null;
 
+    /** Writes the four fields in docs order, with the swing source behind a presence byte. */
     public encodePayload(): void {
         this.writeByte(this.action);
         this.writeUnsignedVarLong(this.runtimeEntityId);
@@ -43,6 +41,7 @@ export default class AnimatePacket extends DataPacket {
         }
     }
 
+    /** Reads the four fields in docs order; an absent swing source becomes `null`. */
     public decodePayload(): void {
         this.action = this.readByte();
         this.runtimeEntityId = this.readUnsignedVarLong();
