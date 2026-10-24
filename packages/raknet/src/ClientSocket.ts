@@ -272,7 +272,7 @@ export default class ClientSocket extends EventEmitter implements RakNetPeer {
 
     // ---------------------------------------------------------------- RakNetPeer
 
-    public sendPacket<T extends Packet>(packet: T, rinfo: RemoteInfo): void {
+    public sendPacket(packet: Packet, rinfo: RemoteInfo): void {
         packet.encode();
         this.sendBuffer(packet.getBuffer(), rinfo);
     }

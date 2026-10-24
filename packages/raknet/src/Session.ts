@@ -329,7 +329,7 @@ export default class Session {
                 this.listener
                     .getLogger()
                     .debug(
-                        `Discarded datagram with implausible sequence gap=${skipped} from client=${this.getAddress()}`,
+                        `Discarded datagram with implausible sequence gap=${skipped} from client=${this.getAddress().toString()}`,
                         'RakNet/Session/handleFrameSet'
                     );
                 return;
@@ -459,7 +459,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded frame with invalid orderChannel=${orderChannel} from client=${this.getAddress()}`,
+                    `Discarded frame with invalid orderChannel=${orderChannel} from client=${this.getAddress().toString()}`,
                     'RakNet/Session/handleFrame'
                 );
             return;
@@ -525,7 +525,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded reliable frame ${holeCount} past the receive window from client=${this.getAddress()}`,
+                    `Discarded reliable frame ${holeCount} past the receive window from client=${this.getAddress().toString()}`,
                     'RakNet/Session/isDuplicateReliableFrame'
                 );
             return true;
@@ -550,7 +550,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Ordering queue for channel=${orderChannel} is full, dropping frame from client=${this.getAddress()}`,
+                    `Ordering queue for channel=${orderChannel} is full, dropping frame from client=${this.getAddress().toString()}`,
                     'RakNet/Session/bufferOutOfOrderFrame'
                 );
             return;
@@ -906,7 +906,7 @@ export default class Session {
             this.listener
                 .getLogger()
                 .debug(
-                    `Discarded split message declaring ${frame.fragmentSize} fragments from client=${this.getAddress()}`,
+                    `Discarded split message declaring ${frame.fragmentSize} fragments from client=${this.getAddress().toString()}`,
                     'RakNet/Session/handleFragment'
                 );
             return;
@@ -921,7 +921,7 @@ export default class Session {
                 this.listener
                     .getLogger()
                     .debug(
-                        `Refused split message, ${this.fragmentsQueue.size} already in flight from client=${this.getAddress()}`,
+                        `Refused split message, ${this.fragmentsQueue.size} already in flight from client=${this.getAddress().toString()}`,
                         'RakNet/Session/handleFragment'
                     );
                 return;
@@ -1114,8 +1114,9 @@ export default class Session {
         }
 
         const d = 0.05;
-        const difference = rtt - this.estimatedRTT;
-        this.estimatedRTT += d * difference;
+        const current = this.estimatedRTT ?? 0;
+        const difference = rtt - current;
+        this.estimatedRTT = current + d * difference;
         this.deviationRTT += d * (Math.abs(difference) - this.deviationRTT);
     }
 

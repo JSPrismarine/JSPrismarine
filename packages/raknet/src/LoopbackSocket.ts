@@ -116,7 +116,7 @@ class LoopbackEndpoint extends EventEmitter implements RakNetPeer {
         return this.localAddress;
     }
 
-    public sendPacket<T extends Packet>(packet: T, _rinfo: RemoteInfo): void {
+    public sendPacket(packet: Packet, _rinfo: RemoteInfo): void {
         packet.encode();
         this.sendBuffer(packet.getBuffer(), _rinfo);
     }

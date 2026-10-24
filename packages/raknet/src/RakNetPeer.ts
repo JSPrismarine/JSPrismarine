@@ -37,7 +37,7 @@ export interface RakNetPeer {
      * Encodes and sends a packet to `rinfo`. Sessions never touch a socket directly - a
      * closed or unbound one has to be the peer's problem, since only the peer knows.
      */
-    sendPacket<T extends Packet>(packet: T, rinfo: RemoteInfo): void;
+    sendPacket(packet: Packet, rinfo: RemoteInfo): void;
 
     emit(event: string | symbol, ...args: any[]): boolean;
 
