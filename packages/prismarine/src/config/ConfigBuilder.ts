@@ -61,6 +61,7 @@ const _ = {
     },
     del: (obj: unknown, path: string | string[]): boolean => {
         const keys = Array.isArray(path) ? path : keysOf(path);
+        if (keys.some(isUnsafeKey)) return false;
         const parent = walk(obj, keys.slice(0, -1));
         const last = keys.at(-1);
         if (isTree(parent) && last !== undefined) delete parent[last];
