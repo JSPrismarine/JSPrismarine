@@ -254,19 +254,32 @@ describe('network', () => {
                 expect(disconnect).toHaveBeenCalledWith('Invalid identity!', false, DisconnectReason.INVALID_PLAYER);
             });
 
-            /** The status the client renders as "outdated client". Nothing else is read from the packet. */
-            it('answers an older client with LoginFailed_ClientOld', async () => {
+            /**
+             * The status the client renders as "outdated client". Nothing else is read from the
+             * packet. The docs end a failed status by terminating the connection, so a disconnect
+             * with `OutdatedClient` follows; the status alone left the connection open.
+             */
+            it('answers an older client with LoginFailed_ClientOld, then hangs up', async () => {
                 const pk = new LoginPacket();
                 pk.protocol = Identifiers.Protocol - 10;
 
                 const sent: DataPacket[] = [];
-                const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    disconnect
+                });
                 await new LoginHandler().handle(pk, server, connection);
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
                 expect(status.status).toBe(PlayStatusType.LoginFailedClient);
                 expect(sent).toHaveLength(1);
+                expect(disconnect).toHaveBeenCalledWith(
+                    `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
+                    false,
+                    DisconnectReason.OUTDATED_CLIENT
+                );
             });
 
             it('refuses a login once the server is full', async () => {
@@ -282,11 +295,13 @@ describe('network', () => {
                         stub<SessionManager>({ getAllPlayers: () => [stub<Player>(), stub<Player>()] }),
                     getConfig: () => stub<Config>({ getMaxPlayers: () => 2 })
                 });
+                const disconnect = vi.fn();
                 const connection = stub<ClientConnection>({
                     sendDataPacket: async (packet) => {
                         sent.push(packet);
                     },
-                    attachPlayerSession: vi.fn()
+                    attachPlayerSession: vi.fn(),
+                    disconnect
                 });
 
                 await new LoginHandler().handle(pk, fullServer, connection);
@@ -296,22 +311,28 @@ describe('network', () => {
                 expect(status).toBeInstanceOf(PlayStatusPacket);
                 assert(status instanceof PlayStatusPacket);
                 expect(status.status).toBe(PlayStatusType.LoginFailedServerFull);
+                expect(disconnect).toHaveBeenCalledWith('Server is full!', false, DisconnectReason.SERVER_FULL);
                 expect(connection.attachPlayerSession).not.toHaveBeenCalled();
             });
 
-            /** The status the client renders as "outdated server". */
-            it('answers a newer client with LoginFailed_ServerOld', async () => {
+            /** The status the client renders as "outdated server", then a disconnect with `OutdatedServer`. */
+            it('answers a newer client with LoginFailed_ServerOld, then hangs up', async () => {
                 const pk = new LoginPacket();
                 pk.protocol = Identifiers.Protocol + 10;
 
                 const sent: DataPacket[] = [];
-                const connection = stub<ClientConnection>({ sendDataPacket: async (packet) => void sent.push(packet) });
+                const disconnect = vi.fn();
+                const connection = stub<ClientConnection>({
+                    sendDataPacket: async (packet) => void sent.push(packet),
+                    disconnect
+                });
                 await new LoginHandler().handle(pk, server, connection);
 
                 const [status] = sent;
                 assert(status instanceof PlayStatusPacket);
                 expect(status.status).toBe(PlayStatusType.LoginFailedServer);
                 expect(sent).toHaveLength(1);
+                expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
             });
         });
     });

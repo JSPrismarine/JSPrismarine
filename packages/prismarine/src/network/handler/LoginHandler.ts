@@ -51,21 +51,30 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
         const playStatus = new PlayStatusPacket();
 
-        // Kick client if has newer / older client version
+        // A failed status is followed by a disconnect, as the docs have it: the status picks
+        // the client's "Outdated client" or "Outdated server" screen, and the disconnect
+        // carries the matching reason and hangs up. Without it the connection stayed open.
         if (packet.protocol !== Identifiers.Protocol) {
-            playStatus.status =
-                packet.protocol < Identifiers.Protocol
-                    ? PlayStatusType.LoginFailedClient
-                    : PlayStatusType.LoginFailedServer;
+            const outdatedClient = packet.protocol < Identifiers.Protocol;
+            playStatus.status = outdatedClient ? PlayStatusType.LoginFailedClient : PlayStatusType.LoginFailedServer;
             await connection.sendDataPacket(playStatus, true);
+            await connection.disconnect(
+                outdatedClient
+                    ? `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`
+                    : 'Outdated server!',
+                false,
+                outdatedClient ? DisconnectReason.OUTDATED_CLIENT : DisconnectReason.OUTDATED_SERVER
+            );
             return;
         }
 
         // The client renders this status as "server full", so the player learns why without
-        // the server building a player it would only tear down again.
+        // the server building a player it would only tear down again. The disconnect that
+        // follows carries `ServerFull` and hangs up.
         if (server.getSessionManager().getAllPlayers().length >= server.getConfig().getMaxPlayers()) {
             playStatus.status = PlayStatusType.LoginFailedServerFull;
             await connection.sendDataPacket(playStatus, true);
+            await connection.disconnect('Server is full!', false, DisconnectReason.SERVER_FULL);
             return;
         }
 

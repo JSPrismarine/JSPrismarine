@@ -1424,7 +1424,8 @@ export default class PlayerSession {
         await player.getNetworkSession().getConnection().sendDataPacket(pk);
     }
 
-    public async sendPlayStatus(status: number): Promise<void> {
+    /** Sends a `PlayStatus` to this player's client. */
+    public async sendPlayStatus(status: PlayStatusType): Promise<void> {
         const pk = new PlayStatusPacket();
         pk.status = status;
         await this.connection.sendDataPacket(pk, true);

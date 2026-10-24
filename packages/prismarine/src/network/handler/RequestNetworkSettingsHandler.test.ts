@@ -1,4 +1,5 @@
 import type { Logger } from '@jsprismarine/logger';
+import { DisconnectReason } from '@jsprismarine/minecraft';
 import { PacketCompressionAlgorithm } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -85,7 +86,8 @@ describe('RequestNetworkSettingsHandler', () => {
         expect(order).toEqual(['PlayStatusPacket', 'disconnect']);
         expect(disconnect).toHaveBeenCalledWith(
             `Outdated client! Please use ${Identifiers.MinecraftVersions.at(-1)}`,
-            false
+            false,
+            DisconnectReason.OUTDATED_CLIENT
         );
         expect(connection.hasCompression).toBe(false);
     });
@@ -97,7 +99,7 @@ describe('RequestNetworkSettingsHandler', () => {
 
         expect(sent).toHaveLength(1);
         expect(sent[0]!.packet).toMatchObject({ status: PlayStatusType.LoginFailedServer });
-        expect(disconnect).toHaveBeenCalledWith('Outdated server!', false);
+        expect(disconnect).toHaveBeenCalledWith('Outdated server!', false, DisconnectReason.OUTDATED_SERVER);
     });
 
     it('logs both protocol numbers when it refuses one', async () => {
