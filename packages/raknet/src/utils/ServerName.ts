@@ -10,6 +10,18 @@ export interface ServerNameSource {
     getIdentifiers(): { Protocol: number; MinecraftVersions: readonly string[] };
 }
 
+/** The default Bedrock port, advertised until {@link ServerName.setPort} says otherwise. */
+const DEFAULT_PORT = 19_132;
+
+/**
+ * The tenth field, which is a flag and not a count.
+ *
+ * A pong of ten or more fields is dropped by the client unless this one is exactly 1, so it
+ * is the price of advertising the ports at all.
+ * @see https://github.com/Sandertv/gophertunnel/blob/master/minecraft/listener.go (updatePongData)
+ */
+const NINTH_FIELD_FLAG = 1;
+
 export class ServerName {
     private readonly server: ServerNameSource;
     private motd: string;
@@ -20,6 +32,7 @@ export class ServerName {
     private onlinePlayers: number = 0;
     private gamemode: string;
     private serverId = 0n;
+    private port = DEFAULT_PORT;
 
     /**
      * Create a new server name for a RakNet server.
@@ -139,6 +152,33 @@ export class ServerName {
         this.serverId = id;
     }
 
+    /**
+     * Get the port advertised in the MOTD.
+     * @returns {number} The port.
+     */
+    public getPort(): number {
+        return this.port;
+    }
+    /**
+     * Set the port advertised in the MOTD. {@link ServerSocket.start} sets it from the socket
+     * once it has bound, so a server asked to bind port 0 still advertises the port it got.
+     * @param {number} port - The port the server is listening on.
+     */
+    public setPort(port: number): void {
+        this.port = port;
+    }
+
+    /**
+     * The MOTD line an `UnconnectedPong` carries, in the order a Bedrock Dedicated Server
+     * broadcasts it.
+     *
+     * Semicolon separated and terminated, and positional throughout: the client reads the
+     * ports to connect to a server it found on the local network, so a line that stops at the
+     * gamemode shows up in the list and cannot be joined from it. The tenth field is a flag
+     * rather than a count, and a line this long is dropped unless it is exactly 1.
+     * @see https://github.com/Sandertv/gophertunnel/blob/master/minecraft/listener.go (updatePongData)
+     * @returns {string} The MOTD line.
+     */
     public toString(): string {
         return (
             [
@@ -150,7 +190,12 @@ export class ServerName {
                 this.getMaxPlayerCount(),
                 this.getServerId(),
                 this.getName(),
-                this.getGamemode()
+                this.getGamemode(),
+                NINTH_FIELD_FLAG,
+                this.getPort(),
+                this.getPort(),
+                0,
+                0
             ].join(';') + ';'
         );
     }

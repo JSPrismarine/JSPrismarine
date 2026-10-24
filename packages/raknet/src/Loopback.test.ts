@@ -15,7 +15,11 @@ import { MessageIdentifiers } from './protocol/MessageIdentifiers';
  */
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
-const serverName: any = { toString: () => 'MCPE;test;748;1.21.40;0;10;', setOnlinePlayerCount: vi.fn() };
+const serverName: any = {
+    toString: () => 'MCPE;test;748;1.21.40;0;10;',
+    setOnlinePlayerCount: vi.fn(),
+    setPort: vi.fn()
+};
 
 let teardown: Array<() => void> = [];
 

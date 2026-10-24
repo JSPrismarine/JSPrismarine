@@ -48,7 +48,10 @@ export default class ServerSocket extends EventEmitter implements RakNetPeer {
 
     public start(address: string, port: number): void {
         try {
-            this.socket.bind(port, address);
+            // The MOTD advertises the port, and the one that was asked for is not always the
+            // one that was granted: binding port 0 means "any", which the tests use and which
+            // a client reading the MOTD would then be told to connect to.
+            this.socket.bind(port, address, () => this.serverName.setPort(this.socket.address().port));
         } catch (error: unknown) {
             if (error instanceof Error) {
                 this.logger.error('Failed to bind socket, error message=%s', 'RakNet/ServerSocket/Start');

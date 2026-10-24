@@ -15,7 +15,7 @@ import { MessageIdentifiers } from './protocol/MessageIdentifiers';
  */
 
 const logger = { info: vi.fn(), warn: vi.fn(), error: vi.fn(), verbose: vi.fn(), debug: vi.fn(), silly: vi.fn() };
-const serverName: any = { toString: () => 'MCPE;test;0;0;0;0;0;', setOnlinePlayerCount: vi.fn() };
+const serverName: any = { toString: () => 'MCPE;test;0;0;0;0;0;', setOnlinePlayerCount: vi.fn(), setPort: vi.fn() };
 
 const CLIENT_GUID = 0x0123456789abcdefn;
 
