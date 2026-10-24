@@ -1,3 +1,6 @@
 export * from './brarchive';
+export * from './diagnostics';
+export * from './formatVersion';
 export * from './lenientJson';
+export * from './manifest';
 export * from './zip';
