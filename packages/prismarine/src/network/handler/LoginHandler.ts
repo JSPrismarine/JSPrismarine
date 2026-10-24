@@ -37,8 +37,10 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
     }
 
     /**
-     * @TODO: Check if player count >= max players
-     * @TODO: encryption handshake.
+     * Turns a login into a player, or refuses it with the matching `PlayStatus`.
+     *
+     * Known gap: the server never sends `ServerToClientHandshake`, so sessions stay in
+     * plaintext. A client accepts that when no handshake arrives.
      */
     public async handle(packet: LoginPacket, server: Server, connection: ClientConnection): Promise<void> {
         const playStatus = new PlayStatusPacket();
@@ -49,6 +51,14 @@ export default class LoginHandler implements PreLoginPacketHandler<LoginPacket> 
                 packet.protocol < Identifiers.Protocol
                     ? PlayStatusType.LoginFailedClient
                     : PlayStatusType.LoginFailedServer;
+            await connection.sendDataPacket(playStatus, true);
+            return;
+        }
+
+        // The client renders this status as "server full", so the player learns why without
+        // the server building a player it would only tear down again.
+        if (server.getSessionManager().getAllPlayers().length >= server.getConfig().getMaxPlayers()) {
+            playStatus.status = PlayStatusType.LoginFailedServerFull;
             await connection.sendDataPacket(playStatus, true);
             return;
         }

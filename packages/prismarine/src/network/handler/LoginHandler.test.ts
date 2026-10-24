@@ -1,8 +1,9 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
-import { describe, expect, it, vi } from 'vitest';
+import { assert, describe, expect, it, vi } from 'vitest';
 
+import type Player from '../../Player';
 import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import type BanManager from '../../ban/BanManager';
@@ -14,7 +15,10 @@ import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
 import type ClientConnection from '../ClientConnection';
 import Identifiers from '../Identifiers';
+import type DataPacket from '../packet/DataPacket';
 import LoginPacket from '../packet/LoginPacket';
+import PlayStatusPacket from '../packet/PlayStatusPacket';
+import PlayStatusType from '../type/PlayStatusType';
 import LoginHandler from './LoginHandler';
 
 /** A well-formed client identity; every real login carries one. */
@@ -54,6 +58,7 @@ describe('network', () => {
             const config = (): Config =>
                 stub<Config>({
                     getOnlineMode: () => false,
+                    getMaxPlayers: () => 2,
                     getGamemode: () => 'survival',
                     getProximityBroadcast: () => true,
                     getEntityTrackingHysteresis: () => 2,
@@ -179,6 +184,36 @@ describe('network', () => {
 
                 const handler = new LoginHandler();
                 await handler.handle(pk, server, connection);
+            });
+
+            it('refuses a login once the server is full', async () => {
+                const pk = new LoginPacket();
+                pk.displayName = 'late';
+                pk.identity = '11111111-2222-3333-4444-555555555555';
+                pk.protocol = Identifiers.Protocol;
+
+                const sent: DataPacket[] = [];
+                const fullServer = stub<Server>({
+                    ...server,
+                    getSessionManager: () =>
+                        stub<SessionManager>({ getAllPlayers: () => [stub<Player>(), stub<Player>()] }),
+                    getConfig: () => stub<Config>({ getMaxPlayers: () => 2 })
+                });
+                const connection = stub<ClientConnection>({
+                    sendDataPacket: async (packet) => {
+                        sent.push(packet);
+                    },
+                    attachPlayerSession: vi.fn()
+                });
+
+                await new LoginHandler().handle(pk, fullServer, connection);
+
+                expect(sent).toHaveLength(1);
+                const [status] = sent;
+                expect(status).toBeInstanceOf(PlayStatusPacket);
+                assert(status instanceof PlayStatusPacket);
+                expect(status.status).toBe(PlayStatusType.LoginFailedServerFull);
+                expect(connection.attachPlayerSession).not.toHaveBeenCalled();
             });
 
             it('handle outdated server', async () => {
