@@ -15,7 +15,7 @@ describe('PlayerLocationPacket', () => {
         packet.decode();
 
         expect(packet.targetActorId).toBe(1234n);
-        expect(packet.packetType).toBe(PlayerLocationPacketType.Coordinates);
+        expect(packet.packetType).toBe(PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES);
         expect(packet.position).toEqual(new Vector3(1.5, 2.5, -3));
         expect(packet.feof()).toBe(true);
     });
@@ -26,7 +26,7 @@ describe('PlayerLocationPacket', () => {
         packet.decode();
 
         expect(packet.targetActorId).toBe(1n);
-        expect(packet.packetType).toBe(PlayerLocationPacketType.Hide);
+        expect(packet.packetType).toBe(PlayerLocationPacketType.PLAYER_LOCATION_HIDE);
         expect(packet.position).toBeNull();
         expect(packet.feof()).toBe(true);
     });
@@ -40,7 +40,7 @@ describe('PlayerLocationPacket', () => {
     it('encodes a hide as the two discriminators', () => {
         const packet = new PlayerLocationPacket();
         packet.targetActorId = 1n;
-        packet.packetType = PlayerLocationPacketType.Hide;
+        packet.packetType = PlayerLocationPacketType.PLAYER_LOCATION_HIDE;
         packet.encode();
 
         expect(packet.getBuffer()).toEqual(Buffer.from([0xc6, 0x02, 0x02, 0x01, 0x02]));

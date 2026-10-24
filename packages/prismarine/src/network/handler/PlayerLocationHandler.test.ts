@@ -24,7 +24,7 @@ describe('PlayerLocationHandler', () => {
         const { logged, server, session } = fakeSession();
         const packet = Object.assign(new PlayerLocationPacket(), {
             targetActorId: 9n,
-            packetType: PlayerLocationPacketType.Coordinates,
+            packetType: PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES,
             position: new Vector3(1, 2, 3)
         });
 

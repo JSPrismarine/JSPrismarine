@@ -3,12 +3,15 @@ import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
-/** The docs' `PlayerLocationPacketType`: the two forms of a player location update. */
+/**
+ * The docs' `PlayerLocationPacketType`: the two forms of a player location update, with the
+ * docs' member names.
+ */
 export enum PlayerLocationPacketType {
     /** Coordinates follow. */
-    Coordinates = 0,
+    PLAYER_LOCATION_COORDINATES = 0,
     /** Hide the player; no coordinates follow. */
-    Hide = 1
+    PLAYER_LOCATION_HIDE = 1
 }
 
 /**
@@ -27,7 +30,7 @@ export default class PlayerLocationPacket extends DataPacket {
     /** Unique id of the player whose location is updated or hidden. */
     public targetActorId = 0n;
 
-    public packetType = PlayerLocationPacketType.Hide;
+    public packetType = PlayerLocationPacketType.PLAYER_LOCATION_HIDE;
 
     /** The tracked player's position, or `null` for a hide. */
     public position: Vector3 | null = null;
@@ -39,10 +42,10 @@ export default class PlayerLocationPacket extends DataPacket {
         this.packetType = this.readVarInt();
 
         switch (selector) {
-            case PlayerLocationPacketType.Coordinates:
+            case PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES:
                 this.position = NetworkUtil.readVector3(this);
                 break;
-            case PlayerLocationPacketType.Hide:
+            case PlayerLocationPacketType.PLAYER_LOCATION_HIDE:
                 this.position = null;
                 break;
             default:
@@ -55,6 +58,7 @@ export default class PlayerLocationPacket extends DataPacket {
         this.writeVarLong(this.targetActorId);
         this.writeUnsignedVarInt(this.packetType);
         this.writeVarInt(this.packetType);
-        if (this.packetType === PlayerLocationPacketType.Coordinates) NetworkUtil.writeVector3(this, this.position);
+        if (this.packetType === PlayerLocationPacketType.PLAYER_LOCATION_COORDINATES)
+            NetworkUtil.writeVector3(this, this.position);
     }
 }
