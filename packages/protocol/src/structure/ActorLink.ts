@@ -8,7 +8,7 @@ import NetworkStructure from '../NetworkStructure';
  * `Type` (uint8 `ActorLinkType`: 0 `None`, 1 `Riding`, 2 `Passenger`), `Immediate` (boolean),
  * `Passenger Initiated` (boolean, whether the passenger changed the link), and
  * `Vehicle Angular Velocity` (float little endian).
- * {@link https://mojang.github.io/bedrock-protocol-docs/html/ActorLink.html}
+ * {@link https://mojang.github.io/bedrock-protocol-docs/1.26.51/types/actor-link/}
  */
 export default class ActorLink extends NetworkStructure {
     /**
