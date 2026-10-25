@@ -1,12 +1,18 @@
 /**
  * What a block yields when it breaks, rolled out of Java's loot tables.
  *
- * Bedrock ships no block loot tables at all: a Bedrock Dedicated Server
- * carries tables for chests, entities, equipment and gameplay and none for
- * blocks, because the engine holds them in code. Java publishes all 1447 as
- * data, so this is where the Java half of the pack stack pays for itself -
- * gravel's one-in-ten flint, the fortune curves, the silk touch branches and
- * the shears rules are read rather than written.
+ * Bedrock publishes almost none of them. A Bedrock Dedicated Server 1.26.51.1
+ * carries 99 block tables in `vanilla_1.26.50`, against Java's 1201, because
+ * the engine holds the rest in code. Of the 99, 96 are the 16 dye colors times
+ * the concrete and wool slabs, double slabs and stairs; the other three are
+ * the red shrub and the two growth stages of the shelf mushroom. Java 26.3
+ * publishes a table for every block among them, so none of the 99 is read
+ * here. Reading them would be a second answer to a question the Java half
+ * already answers, and the two would part company the first time one edition
+ * changed a drop.
+ *
+ * So the drops are Java's: gravel's one-in-ten flint, the fortune curves, the
+ * silk touch branches and the shears rules are read rather than written.
  *
  * The one thing that has to be bridged is the name. A loot table is keyed by
  * the Java block id and the server's blocks are Bedrock ones, so the index
