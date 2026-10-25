@@ -275,9 +275,17 @@ fluid flow through a wall uses it.
 
 `isFullCube` derives it from the mapping table's light dampening, which is 15 for every opaque cube
 and 0 or 1 for the slabs, stairs, fences and plates that are not cubes, plus a short list of
-transparent cubes by name. Conductivity then applies the 26 explicit overrides read out of `Blocks`
-in the jar: the blocks whose registration calls `isRedstoneConductor(Blocks::never)` and the two
-that call `isRedstoneConductor(Blocks::always)`.
+transparent cubes by name. Conductivity then applies the explicit overrides read out of `Blocks` in
+the jar: the blocks whose registration calls `isRedstoneConductor(Blocks::never)` and the two that
+call `isRedstoneConductor(Blocks::always)`.
+
+There are 26 call sites, 24 refusing and 2 accepting, but five of the 24 sit in shared property
+factories and so cover 65 blocks between them: `leavesProperties` the twelve leaves,
+`pistonProperties` the two pistons, and three lambdas handed to `ColorCollection.registerBlocks` and
+`WeatheringCopperCollection.registerBlocks` the sixteen stained glass colors, the eight copper grates
+and the eight copper bulbs. 26 of those 65 are written down here, which is 26 blocks and not the 26
+call sites. The other 39 dampen light by less than 15 and are not named as transparent cubes, so
+`isFullCube` already refuses them and the override would change no answer.
 
 ## Left for later
 

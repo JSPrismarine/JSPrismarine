@@ -78,38 +78,63 @@ const TRANSPARENT_FULL_CUBES: ReadonlySet<string> = new Set([
 ]);
 
 /**
- * The blocks whose Java registration calls `isRedstoneConductor(Blocks::never)`,
- * read out of `Blocks` in the 26.3 jar and written with their Bedrock names.
+ * The blocks whose Java registration calls `isRedstoneConductor(Blocks::never)`
+ * and that {@link isFullCube} would otherwise read as conductors, written with
+ * their Bedrock names.
  *
  * Every one is a full cube that carries no redstone: this is why a redstone
- * block next to dust does not power the dust through itself, and why glowstone
- * and a sea lantern are not conductors despite being solid and opaque.
+ * block next to dust does not power the dust through itself, why glowstone
+ * and a sea lantern are not conductors despite being solid and opaque, and why
+ * a copper bulb cannot be used to carry a signal through a wall.
+ *
+ * `Blocks` in the 26.3 jar has 24 `Blocks::never` call sites, but five of them
+ * are in shared property factories, so they cover 65 blocks rather than 24:
+ * `leavesProperties` covers the twelve leaves, `pistonProperties` the two
+ * pistons, and three lambdas handed to `ColorCollection.registerBlocks` and
+ * `WeatheringCopperCollection.registerBlocks` cover the sixteen stained glass
+ * colors, the eight copper grates and the eight copper bulbs. 26 of those 65
+ * are here. The other 39 are left out because their light dampening is already
+ * below 15 and they are not in `TRANSPARENT_FULL_CUBES`, so {@link isFullCube}
+ * refuses them and the override would change no answer.
+ *
+ * Two names that were here before are gone: Java's `REPEATER` registration is
+ * `of().instabreak().sound(STONE).pushReaction(POPPED)` and calls
+ * `isRedstoneConductor` not at all, so `powered_repeater` and
+ * `unpowered_repeater` had no basis. They answer the same either way.
  */
 export const NON_CONDUCTING_FULL_CUBES: ReadonlySet<string> = new Set([
     'minecraft:bamboo',
     'minecraft:beacon',
     'minecraft:chorus_flower',
+    'minecraft:copper_bulb',
+    'minecraft:exposed_copper_bulb',
     'minecraft:frosted_ice',
     'minecraft:glass',
     'minecraft:glowstone',
     'minecraft:ice',
     'minecraft:moving_block',
     'minecraft:observer',
+    'minecraft:oxidized_copper_bulb',
+    'minecraft:piston',
     'minecraft:pointed_dripstone',
     'minecraft:powder_snow',
-    'minecraft:powered_repeater',
     'minecraft:redstone_block',
     'minecraft:scaffolding',
     'minecraft:sea_lantern',
+    'minecraft:sticky_piston',
     'minecraft:tinted_glass',
     'minecraft:tnt',
-    'minecraft:unpowered_repeater'
+    'minecraft:waxed_copper_bulb',
+    'minecraft:waxed_exposed_copper_bulb',
+    'minecraft:waxed_oxidized_copper_bulb',
+    'minecraft:waxed_weathered_copper_bulb',
+    'minecraft:weathered_copper_bulb'
 ]);
 
 /**
  * The blocks whose Java registration calls `isRedstoneConductor(Blocks::always)`,
  * read out of the same place: soul sand and mud conduct although neither is a
- * full cube.
+ * full cube. Two call sites, two blocks, with no shared factory between them.
  */
 export const ALWAYS_CONDUCTING: ReadonlySet<string> = new Set(['minecraft:mud', 'minecraft:soul_sand']);
 
@@ -130,9 +155,11 @@ export const isFullCube = (block: BlockRef): boolean =>
  * Java's `isRedstoneConductor`: whether the block carries redstone power into
  * itself and passes it to its neighbors.
  *
- * `BlockBehaviour.Properties` defaults it to `isCollisionShapeFullBlock`, and
- * 26 blocks override it. The overrides are listed in
- * {@link NON_CONDUCTING_FULL_CUBES} and {@link ALWAYS_CONDUCTING}.
+ * `BlockBehaviour.Properties` defaults it to `isCollisionShapeFullBlock`.
+ * `Blocks` overrides that at 26 call sites, 24 refusing and 2 accepting, which
+ * expand to 65 blocks and 2. The ones where the override changes an answer here
+ * are listed in {@link NON_CONDUCTING_FULL_CUBES} and
+ * {@link ALWAYS_CONDUCTING}; both JSDoc blocks say what the rest are.
  */
 export const isRedstoneConductor = (block: BlockRef): boolean => {
     if (ALWAYS_CONDUCTING.has(block.name)) return true;
