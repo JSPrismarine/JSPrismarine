@@ -110,9 +110,19 @@ export class ChunkSampler {
         };
     }
 
-    /** Samples only the block state, avoiding the result object used by inspection callers. */
-    public stateAt(x: number, y: number, z: number): string {
-        return this.aquifer.computeSubstance(x, y, z, this.density(x, y, z)) ?? this.defaultBlock;
+    /** Visits a column from the top down without allocating one result object per block. */
+    public forEachColumnBlock(
+        x: number,
+        z: number,
+        visit: (y: number, state: string, scheduleFluidUpdate: boolean) => void
+    ): void {
+        for (let y = this.volume.maxBlockY; y >= this.volume.minBlockY; y--) {
+            const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+            const state = substance ?? this.defaultBlock;
+            const scheduleFluidUpdate =
+                substance !== undefined && substance !== AIR && this.aquifer.shouldScheduleFluidUpdate();
+            visit(y, state, scheduleFluidUpdate);
+        }
     }
 
     /**
@@ -124,9 +134,9 @@ export class ChunkSampler {
         const minY = this.volume.minBlockY;
         const height = this.volume.maxBlockY - minY + 1;
         const column: ColumnBlock[] = new Array(height);
-        for (let index = height - 1; index >= 0; index--) {
-            column[index] = this.blockAt(x, minY + index, z);
-        }
+        this.forEachColumnBlock(x, z, (y, state, scheduleFluidUpdate) => {
+            column[y - minY] = { state, scheduleFluidUpdate };
+        });
         return column;
     }
 

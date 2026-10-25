@@ -9,6 +9,7 @@ import { LegacyRandomSource } from '../random/LegacyRandomSource';
 import type { PositionalRandomFactory, RandomSource } from '../random/RandomSource';
 import { RandomState } from '../RandomState';
 import type { NoiseGeneratorSettings, NoiseRouter } from '../settings/NoiseGeneratorSettings';
+import { WorldgenData } from '../WorldgenData';
 import { ChunkSampler } from './ChunkSampler';
 import { AIR, createGlobalFluidPicker, FluidStatus, LAVA, WATER } from './FluidPicker';
 import { compileOreVeinRule, parseOreVeinRule } from './oreVein';
@@ -25,6 +26,57 @@ describe('FluidStatus', () => {
         expect(new FluidStatus(63, WATER).equals(new FluidStatus(63, WATER))).toBe(true);
         expect(new FluidStatus(63, WATER).equals(new FluidStatus(62, WATER))).toBe(false);
         expect(new FluidStatus(63, WATER).equals(new FluidStatus(63, LAVA))).toBe(false);
+    });
+});
+
+describe('column visitation', () => {
+    it('matches column output while visiting top down without requiring result objects', () => {
+        const router = {
+            temperature: 0,
+            vegetation: 0,
+            continents: 0,
+            erosion: 0,
+            depth: 0,
+            ridges: 0,
+            chunk_surface_level: 0,
+            final_density: 1
+        };
+        const data = new WorldgenData({
+            densityFunctions: new Map(),
+            noises: new Map(),
+            noiseSettings: new Map([
+                [
+                    'test:flat',
+                    {
+                        noise: { min_y: 0, height: 16 },
+                        default_block: 'minecraft:stone',
+                        default_fluid: 'minecraft:water',
+                        noise_router: router,
+                        material_rule: 'test:surface',
+                        sea_level: 8,
+                        disable_mob_generation: true,
+                        legacy_random_source: true
+                    }
+                ]
+            ])
+        });
+        const sampler = new ChunkSampler(new RandomState(data, 1n, data.settings('test:flat')), {
+            chunkX: 0,
+            chunkZ: 0
+        });
+        const visited: { y: number; state: string; scheduleFluidUpdate: boolean }[] = [];
+
+        sampler.forEachColumnBlock(0, 0, (y, state, scheduleFluidUpdate) => {
+            visited.push({ y, state, scheduleFluidUpdate });
+        });
+
+        expect(visited.map(({ y }) => y)).toEqual(Array.from({ length: 16 }, (_, index) => 15 - index));
+        expect(
+            visited
+                .slice()
+                .reverse()
+                .map(({ state, scheduleFluidUpdate }) => ({ state, scheduleFluidUpdate }))
+        ).toEqual(sampler.column(0, 0));
     });
 });
 
@@ -185,10 +237,8 @@ describe.skipIf(!vanilla)('the overworld chunk sampler', () => {
             });
 
             const stateOnly = new ChunkSampler(state, { chunkX: chunkVectors.chunkX, chunkZ: chunkVectors.chunkZ });
-            const sampledFromTop = [];
-            for (let y = sampler.volume.maxBlockY; y >= sampler.volume.minBlockY; y--) {
-                sampledFromTop.push(stateOnly.stateAt(expected.x, y, expected.z));
-            }
+            const sampledFromTop: string[] = [];
+            stateOnly.forEachColumnBlock(expected.x, expected.z, (_y, state) => sampledFromTop.push(state));
             expect(sampledFromTop.reverse()).toEqual(column.map((entry) => entry.state));
         }
     });
