@@ -1,7 +1,7 @@
 import { availableParallelism } from 'node:os';
 
 import BaseGenerator from '../BaseGenerator';
-import type { SurfaceProbe } from '../Generator';
+import type { StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import type { TerrainPoolOptions } from './datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultTerrainPipeline } from './datadriven/DataDrivenGenerator';
@@ -70,6 +70,11 @@ export default class Overworld extends BaseGenerator {
     /** @inheritDoc */
     public surfaceAt(x: number, z: number, seed?: number): SurfaceProbe {
         return this.require().surfaceAt(x, z, seed);
+    }
+
+    /** @inheritDoc */
+    public locate(request: StructureSearchRequest): StructureSearchResult | undefined {
+        return this.require().locate(request);
     }
 
     /** @inheritDoc */

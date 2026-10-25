@@ -1,3 +1,5 @@
+import type { GenerationPriority } from '@jsprismarine/chunkgen';
+
 import type { WorldConfig } from './World';
 import type Chunk from './chunk/Chunk';
 
@@ -27,11 +29,62 @@ export class GenerationStopped extends Error {
  */
 export type SurfaceProbe = { readonly y: number; readonly name: string } | undefined;
 
+/**
+ * What a structure search was asked for.
+ *
+ * The origin is in blocks because that is what a player's position is; the radius is in chunks
+ * because that is the unit a structure set is spaced in.
+ */
+export interface StructureSearchRequest {
+    readonly x: number;
+    readonly z: number;
+    /** How far out to look, in chunks. */
+    readonly radiusInChunks: number;
+    /**
+     * Whether a structure identifier is one the caller wants.
+     *
+     * A predicate so a caller naming a tag does not have to flatten it first, and so a search
+     * for "any village" costs the same as one for a single identifier.
+     */
+    readonly wanted: (structure: string) => boolean;
+    readonly seed?: number;
+}
+
+/** Where a structure search found something. */
+export interface StructureSearchResult {
+    /** The structure identifier, for example `minecraft:village_plains`. */
+    readonly structure: string;
+    /** The generation point, in blocks. */
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
+/** How a chunk request is scheduled against every other outstanding one. */
+export interface ChunkRequestOptions {
+    /**
+     * How badly the chunk is wanted, which decides its turn when the generator is busy.
+     *
+     * Defaults to `immediate`, so a caller that has not thought about it waits the way it
+     * always did. See {@link GenerationPriority}.
+     */
+    readonly urgency?: GenerationPriority;
+}
+
 export interface Generator {
     /**
      * This function should return the generated chunk by given parameters.
+     *
+     * @param options - How the request is scheduled. A generator that answers one at a time
+     * may ignore it; a pooled one orders its backlog by it.
      */
-    generateChunk(cx: number, cz: number, seed?: number, config?: WorldConfig): Promise<Chunk>;
+    generateChunk(
+        cx: number,
+        cz: number,
+        seed?: number,
+        config?: WorldConfig,
+        options?: ChunkRequestOptions
+    ): Promise<Chunk>;
 
     /**
      * The topmost block of one column, without generating the chunk it is in.
@@ -46,6 +99,24 @@ export interface Generator {
      * add here and a caller falls back to generating one.
      */
     surfaceAt?(x: number, z: number, seed?: number): SurfaceProbe;
+
+    /**
+     * The nearest structure a search accepts, without generating anything.
+     *
+     * This is what `/locate` asks. A structure's position is a function of the seed and the
+     * placement grid alone, so the answer comes from laying candidates out against the bare
+     * noise terrain: no chunk is built, nothing is written, and a search over thousands of
+     * blocks costs a few hundred layout attempts rather than thousands of chunks.
+     *
+     * Synchronous, like {@link Generator.surfaceAt} and for the same reason: the command layer
+     * that asks is synchronous, and the work is arithmetic rather than a chunk.
+     *
+     * Optional, because a generator that places no structures has nothing to find.
+     *
+     * @param request - Where to search from, how far, and which structures count.
+     * @returns The nearest match, or undefined when the radius held none.
+     */
+    locate?(request: StructureSearchRequest): StructureSearchResult | undefined;
 
     /**
      * Gives up every chunk request that has not started yet, for a server that is shutting down.

@@ -128,6 +128,25 @@ const drawAll = (biomes: readonly string[], assemble: (chunkX: number, chunkZ: n
     return { kept, points, assemblies };
 };
 
+/** A source over the fake registries, with the biome accepting everywhere. */
+const sourceOf = (biomes: readonly string[] = [HERE]): StructureStartSource =>
+    new StructureStartSource({
+        seed: SEED,
+        registries: registriesOf(biomes),
+        level,
+        templates,
+        isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
+        builders: new Map<string, StructureBuilder>([
+            [
+                'test:hut',
+                (context) => ({
+                    origin: { x: context.chunkX * 16 + 8, y: 64, z: context.chunkZ * 16 + 8 },
+                    pieces: () => [pieceAt(context.chunkX, context.chunkZ)]
+                })
+            ]
+        ])
+    });
+
 describe('StructureStartSource', () => {
     it('does not assemble a structure the biome at its generation point refuses', () => {
         const { kept, points, assemblies } = drawAll([ELSEWHERE], (x, z) => [pieceAt(x, z)]);
@@ -150,5 +169,109 @@ describe('StructureStartSource', () => {
 
         expect(kept).toEqual([]);
         expect(assemblies).toBe(points);
+    });
+
+    describe('locate', () => {
+        it('finds the nearest start to the origin, not whichever candidate came first', () => {
+            const source = sourceOf();
+            const origin = { originChunkX: 40, originChunkZ: 40, radiusInChunks: 24 };
+
+            const found = source.locate({ ...origin, wanted: (structure) => structure === 'test:hut' });
+            expect(found).toBeDefined();
+
+            // Nothing inside the radius may be closer to the origin than what was returned.
+            const distance = (chunkX: number, chunkZ: number): number =>
+                (chunkX - origin.originChunkX) ** 2 + (chunkZ - origin.originChunkZ) ** 2;
+            const nearest = source
+                .usedSets()
+                .flatMap((named) =>
+                    candidateChunksIn(named.set.placement, SEED, {
+                        minChunkX: origin.originChunkX - origin.radiusInChunks,
+                        minChunkZ: origin.originChunkZ - origin.radiusInChunks,
+                        maxChunkX: origin.originChunkX + origin.radiusInChunks,
+                        maxChunkZ: origin.originChunkZ + origin.radiusInChunks
+                    })
+                )
+                .map((at) => distance(at.x, at.z))
+                .sort((left, right) => left - right)[0];
+
+            expect(distance(found!.chunkX, found!.chunkZ)).toBe(nearest);
+        });
+
+        it('answers the generation point the layout settled on', () => {
+            const found = sourceOf().locate({
+                originChunkX: 0,
+                originChunkZ: 0,
+                radiusInChunks: 16,
+                wanted: () => true
+            });
+
+            expect(found?.origin).toEqual({ x: found!.chunkX * 16 + 8, y: 64, z: found!.chunkZ * 16 + 8 });
+        });
+
+        it('finds nothing when the predicate wants a structure this world does not place', () => {
+            const found = sourceOf().locate({
+                originChunkX: 0,
+                originChunkZ: 0,
+                radiusInChunks: 32,
+                wanted: (structure) => structure === 'test:mansion'
+            });
+
+            expect(found).toBe(undefined);
+        });
+
+        it('finds nothing when the biome refuses every candidate in range', () => {
+            const found = sourceOf([ELSEWHERE]).locate({
+                originChunkX: 0,
+                originChunkZ: 0,
+                radiusInChunks: 32,
+                wanted: () => true
+            });
+
+            expect(found).toBe(undefined);
+        });
+
+        it('finds nothing when the radius reaches no candidate at all', () => {
+            // A spacing of four chunks guarantees a candidate within four, so a radius of zero
+            // on a chunk that is not itself one has nothing to offer.
+            const source = sourceOf();
+            const atOrigin = source.locate({
+                originChunkX: 1,
+                originChunkZ: 1,
+                radiusInChunks: 0,
+                wanted: () => true
+            });
+
+            expect(atOrigin).toBe(undefined);
+        });
+
+        it('lays out no more candidates than it has to, stopping at the first match', () => {
+            let assemblies = 0;
+            const source = new StructureStartSource({
+                seed: SEED,
+                registries: registriesOf([HERE]),
+                level,
+                templates,
+                isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
+                builders: new Map<string, StructureBuilder>([
+                    [
+                        'test:hut',
+                        (context) => ({
+                            origin: { x: context.chunkX * 16 + 8, y: 64, z: context.chunkZ * 16 + 8 },
+                            pieces: () => {
+                                assemblies++;
+                                return [pieceAt(context.chunkX, context.chunkZ)];
+                            }
+                        })
+                    ]
+                ])
+            });
+
+            // A radius of 40 chunks over a spacing of four covers about 400 candidates. The
+            // nearest one matches, so the scan must not walk the rest of them.
+            source.locate({ originChunkX: 0, originChunkZ: 0, radiusInChunks: 40, wanted: () => true });
+
+            expect(assemblies).toBe(1);
+        });
     });
 });

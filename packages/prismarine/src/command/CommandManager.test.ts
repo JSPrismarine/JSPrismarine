@@ -8,6 +8,7 @@ import type { Logger } from '@jsprismarine/logger';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
 import type { ChatManager } from '../chat/ChatManager';
+import type { ServerContent } from '../content/ServerContent';
 import Console from '../Console';
 import Player from '../Player';
 import { PermissionManager } from '../permission/PermissionManager';
@@ -16,6 +17,8 @@ import { stub, stubOf } from '../testing/stub.test.helper';
 import UUID from '../utils/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { GameRuleEntry } from '../world/GameRuleManager';
+import { Dimensions } from '../world/Dimension';
+import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { CommandParameterFlags } from '../network/type/CommandParameter';
@@ -317,17 +320,29 @@ describe('command', () => {
                     warn: () => {},
                     error: () => {}
                 });
-                const target = stubOf(Player, {
+                // Annotated, because these three doubles refer to each other in a cycle -
+                // a player knows its server, the server its session manager, and that manager
+                // the player - which inference alone cannot resolve.
+                const target: Player = stubOf(Player, {
                     getName: () => 'Target',
                     getUUID: () => UUID.fromString(targetUuid),
                     getNetworkSession: () =>
                         stub<ReturnType<Player['getNetworkSession']>>({ sendAvailableCommands: async () => {} }),
                     getServer: () => server,
+                    // A vanilla command names its targets as `EntityRef`s and resolves them
+                    // back by scanning the loaded worlds, so a target has to have a runtime
+                    // id, a position and a world the way a connected player does.
+                    getRuntimeId: () => 2n,
+                    getType: () => 'minecraft:player',
+                    getPosition: () => new Position(0, 64, 0, world),
+                    getWorld: () => world,
                     sendSettings: async () => {}
                 });
-                const sessionManager = stub<SessionManager>({
-                    getAllPlayers: () => [],
-                    getPlayerByExactName: (name) => (name === 'Target' ? target : undefined)
+                const sessionManager: SessionManager = stub<SessionManager>({
+                    // Both, and agreeing: a vanilla command resolves its targets through the
+                    // player list where a legacy one looked the name up directly.
+                    getAllPlayers: () => [target],
+                    getPlayerByExactName: (name) => (name === 'Target' ? target : null)
                 });
                 const permissionManager = new PermissionManager({
                     getLogger: () => logger,
@@ -341,16 +356,32 @@ describe('command', () => {
                     sendMessage: () => {}
                 });
                 const world = stub<World>({
-                    getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] })
+                    getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
+                    getDimension: () => Dimensions.Overworld,
+                    getEntities: () => [target]
                 });
-                const server = stub<Server>({
+                const server: Server = stub<Server>({
+                    // Empty registries rather than no content: `enable` builds the vanilla
+                    // command set from them, so the arguments validate against Mojang's lists
+                    // alone, which is what a server with no pack stack offers.
+                    getContent: () =>
+                        stub<ServerContent>({
+                            entities: stub<ServerContent['entities']>({
+                                registry: stub<ServerContent['entities']['registry']>({ keys: () => [] })
+                            }),
+                            blocks: stub<ServerContent['blocks']>({ types: new Map() }),
+                            items: stub<ServerContent['items']>({ types: new Map() }),
+                            enchantments: stub<ServerContent['enchantments']>({ ids: [] })
+                        }),
                     emit: async () => {},
                     post: () => 0,
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,
                     getPermissionManager: () => permissionManager,
                     getConsoleSender: () => console,
-                    getChatManager: () => stub<ChatManager>({ send: async () => {} })
+                    getChatManager: () => stub<ChatManager>({ send: async () => {} }),
+                    getWorldManager: () =>
+                        stub<WorldManager>({ getWorlds: () => [world], getDefaultWorld: () => world })
                 });
                 const permissionOwner = stub<Player>({
                     getName: () => 'Filfat',
@@ -367,6 +398,8 @@ describe('command', () => {
                     getRuntimeId: () => 1n,
                     getPermissions: () => grants,
                     isOp: () => permissionManager.isOp(ownerUuid),
+                    getType: () => 'minecraft:player',
+                    getPosition: () => new Position(0, 64, 0, world),
                     getWorld: () => world,
                     getServer: () => server,
                     sendMessage: async () => {}

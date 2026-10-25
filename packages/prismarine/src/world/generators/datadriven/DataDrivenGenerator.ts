@@ -62,7 +62,7 @@ import Chunk from '../../chunk/Chunk';
 import SubChunk from '../../chunk/SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
-import type { Generator, SurfaceProbe } from '../../Generator';
+import type { Generator, StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../../Generator';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
@@ -506,6 +506,22 @@ export class DataDrivenGenerator implements Generator {
     /** The structure types this server has no builder for, which therefore generate nothing. */
     public unbuiltStructureTypes(seed = 0): ReadonlySet<string> {
         return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
+    }
+
+    /** @inheritDoc */
+    public locate(request: StructureSearchRequest): StructureSearchResult | undefined {
+        const starts = this.pipelineFor(BigInt(Math.trunc(request.seed ?? 0))).structures;
+        if (starts === undefined) return undefined;
+
+        const found = starts.locate({
+            originChunkX: request.x >> 4,
+            originChunkZ: request.z >> 4,
+            radiusInChunks: Math.max(0, Math.trunc(request.radiusInChunks)),
+            wanted: request.wanted
+        });
+        if (found === undefined) return undefined;
+
+        return { structure: found.structure, x: found.origin.x, y: found.origin.y, z: found.origin.z };
     }
 
     /** @inheritDoc */

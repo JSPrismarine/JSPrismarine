@@ -357,7 +357,14 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
 
             return carryOut(player.getNetworkSession().send(packet), true);
         },
-        locate: () => unsupported('structure, biome and point-of-interest search'),
+        // Structures only. A biome search would have to walk the climate sampler outwards and a
+        // point of interest is a thing this server does not keep, so those two stay refused
+        // rather than answering something that looks like a position and is not one.
+        locate: (kind, name, origin, dimension) => {
+            if (kind !== 'structure') return unsupported(`${kind} search`);
+
+            return worldOf(server, dimension).locateStructure(name, origin);
+        },
         place: () => unsupported('runtime feature and structure placement'),
 
         particle: (name, position, dimension, parameters) => {

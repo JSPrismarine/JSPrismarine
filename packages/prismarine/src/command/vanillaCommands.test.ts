@@ -128,9 +128,9 @@ describe('the vanilla command set this server runs', () => {
         );
     });
 
-    it('offers 53 commands', () => {
+    it('offers 54 commands', () => {
         // The number a player sees in their client. Stated outright because
         // it is what a release note reports and what a regression moves.
-        expect(registry.getNames()).toHaveLength(53);
+        expect(registry.getNames()).toHaveLength(54);
     });
 });

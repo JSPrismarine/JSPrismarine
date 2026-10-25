@@ -464,10 +464,16 @@ export class CommandManager implements Service {
      * `defaultOperatorPermissions` is `*`, so an operator may run everything
      * and a player may run what `permissions.json` names. The level is what
      * the client is told, and the node is what the dispatch checks.
+     *
+     * Holding `*` counts as being an operator, not only standing on the ops
+     * list. They are two ways of saying the same thing - `*` is what being an
+     * operator grants - and reading only the list refused the owner
+     * `permissions.json` ships with every command that asks for a level, while
+     * `canExecute` was letting the same player through on the node.
      */
     private vanillaSource(sender: CommandExecutor, target: CommandExecutor): CommandSource {
         const entity = target instanceof Player ? entityRefOf(target) : undefined;
-        const operator = sender instanceof Player ? sender.isOp() : true;
+        const operator = sender instanceof Player ? sender.isOp() || sender.getPermissions().includes('*') : true;
         const world = sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
 
         return createCommandSource({

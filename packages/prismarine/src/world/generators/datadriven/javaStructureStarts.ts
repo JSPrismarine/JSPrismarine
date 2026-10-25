@@ -19,7 +19,7 @@ import { createLegacyRandom, parseTemplatePool } from '@jsprismarine/structures'
 
 import type { TerrainAdaptation } from './javaStructureBeard';
 import { terrainAdaptationOf } from './javaStructureBeard';
-import type { NamedStructureSet } from './javaStructurePlacement';
+import type { ChunkRange, NamedStructureSet } from './javaStructurePlacement';
 import { candidateChunksIn, chooseStructure, createBiomeExpander, loadStructureSets } from './javaStructurePlacement';
 import { structureRandomSeed } from './javaStructurePlacement';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
@@ -98,6 +98,22 @@ export interface StructureStart {
     readonly pieces: readonly StructurePiece[];
     /** Java's generation point. */
     readonly origin: { readonly x: number; readonly y: number; readonly z: number };
+}
+
+/** What {@link StructureStartSource.locate} is asked to find. */
+export interface StructureSearchOptions {
+    /** The chunk the search radiates out from. */
+    readonly originChunkX: number;
+    readonly originChunkZ: number;
+    /** How far out to look, in chunks, as a square around the origin. */
+    readonly radiusInChunks: number;
+    /**
+     * Whether a structure identifier is one the caller is looking for.
+     *
+     * A predicate rather than a list so a tag, which is how `/locate` names a group of them,
+     * does not have to be flattened before the search starts.
+     */
+    readonly wanted: (structure: string) => boolean;
 }
 
 /** How a {@link StructureStartSource} is built. */
@@ -179,6 +195,57 @@ export class StructureStartSource {
     /** The structure sets this dimension uses, which is what the placement scan runs over. */
     public usedSets(): readonly NamedStructureSet[] {
         return this.sets;
+    }
+
+    /**
+     * The nearest structure a predicate accepts, or undefined when the search radius held none.
+     *
+     * This is Java's `ChunkGenerator.findNearestMapStructure`, which is what `/locate` is. The
+     * scan runs over candidate chunks rather than over chunks: a random spread placement offers
+     * one chunk per region, so a 6400-block search asks about a few hundred positions instead
+     * of the 160 thousand chunks it covers.
+     *
+     * Candidates are laid out nearest first and the first accepted one wins, so the expensive
+     * half - {@link StructureStartSource.startAt}, which draws the structure and assembles its
+     * pieces - runs for as few of them as the answer allows. "Nearest" is by candidate chunk
+     * rather than by the generation point the layout settles on, the same approximation Java's
+     * ring scan makes; the two differ by less than a chunk.
+     *
+     * Nothing here touches a chunk, so this costs no terrain and writes nothing.
+     *
+     * @param options - Where to search from, how far, and which structures count.
+     * @returns The start, or undefined when nothing matched inside the radius.
+     */
+    public locate(options: StructureSearchOptions): StructureStart | undefined {
+        const { originChunkX, originChunkZ, radiusInChunks } = options;
+        const range: ChunkRange = {
+            minChunkX: originChunkX - radiusInChunks,
+            minChunkZ: originChunkZ - radiusInChunks,
+            maxChunkX: originChunkX + radiusInChunks,
+            maxChunkZ: originChunkZ + radiusInChunks
+        };
+
+        const candidates: Array<{ named: NamedStructureSet; x: number; z: number; distance: number }> = [];
+        for (const named of this.sets) {
+            // A set none of whose structures are wanted cannot answer, and skipping it here is
+            // what keeps the scan to the one or two sets a `/locate` names.
+            if (!named.set.structures.some((entry) => options.wanted(entry.structure))) continue;
+
+            for (const chunk of candidateChunksIn(named.set.placement, this.options.seed, range)) {
+                const dx = chunk.x - originChunkX;
+                const dz = chunk.z - originChunkZ;
+                candidates.push({ named, x: chunk.x, z: chunk.z, distance: dx * dx + dz * dz });
+            }
+        }
+
+        candidates.sort((left, right) => left.distance - right.distance);
+
+        for (const candidate of candidates) {
+            const start = this.startAt(candidate.named, candidate.x, candidate.z);
+            if (start !== null && options.wanted(start.structure)) return start;
+        }
+
+        return undefined;
     }
 
     /**
