@@ -1,5 +1,7 @@
 import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { LogLevel } from '@jsprismarine/logger';
+import type { StoredInventory } from '../inventory/persistence';
+import type { StoredSpawnPoint } from '../world/RespawnPoint';
 
 /** One layer of a flat world, bottom first. */
 export interface FlatLayer {
@@ -180,4 +182,44 @@ export interface WorldPlayerData {
      * reason: a table that redrew on every join would be a different table.
      */
     enchantmentSeed?: number;
+    /**
+     * Everything the player was carrying: the 36 main slots, the hand slot, the four armor
+     * slots, the off hand and the 27 ender chest slots.
+     *
+     * Absent until this was written, so a logout threw away every item a player held along
+     * with its durability, its name and its enchantments.
+     */
+    inventory?: StoredInventory;
+    /** Half-hearts, out of the player's maximum. */
+    health?: number;
+    /** The food bar, out of twenty. */
+    food?: number;
+    /** The hidden buffer that is spent before food is. */
+    saturation?: number;
+    /**
+     * Experience, as the two numbers Bedrock carries: whole levels, and how far along the
+     * current level the bar is.
+     */
+    experience?: {
+        level: number;
+        progress: number;
+    };
+    /**
+     * Where this player comes back after a death, or absent for the world spawn.
+     *
+     * Nothing modeled one before this: every respawn answered with the world spawn, which is
+     * also why `/spawnpoint` was left out of the command registry. See
+     * {@link import('../world/RespawnPoint').resolveRespawn} for when a stored point stops
+     * being used.
+     */
+    spawn?: StoredSpawnPoint;
+    /**
+     * When this record was written, in milliseconds since the epoch.
+     *
+     * Each world keeps its own player records, so a player who logged out of the nether has a
+     * record there and a stale one in the overworld. The instant is what tells the two apart:
+     * see {@link import('../world/PlayerRecords').lastPlayerRecord}. Absent on a record written
+     * before this field existed, which reads as older than any record that carries one.
+     */
+    savedAt?: number;
 }

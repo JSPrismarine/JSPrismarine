@@ -35,6 +35,7 @@ import type { Generator } from './Generator';
 import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
+import type { WorldManager } from './WorldManager';
 import { World } from './World';
 
 const WORLD_NAME = 'persistence';
@@ -45,8 +46,11 @@ const PICKAXE_SLOT = 7;
 let scratch: string;
 let previousDirectory: string | undefined;
 
-const testServer = (): Server => {
+const testServer = (worlds: () => World[] = () => []): Server => {
     const server: Server = stub<Server>({
+        // A login now looks for the player's record in every loaded world, because each world
+        // keeps its own: see `lastPlayerRecord`.
+        getWorldManager: () => stub<WorldManager>({ getWorlds: () => worlds() }),
         on: () => server,
         post: () => 0,
         emit: async () => {},
@@ -134,8 +138,10 @@ const pickaxe = (): Item => {
 
 /** Logs a player out of a world and brings a fresh one back into it. */
 const logOutAndIn = async () => {
-    const server = testServer();
+    let built: World | undefined;
+    const server = testServer(() => (built === undefined ? [] : [built]));
     const { world, provider } = buildWorld(server);
+    built = world;
     await provider.enable();
 
     const uuid = UUID.fromRandom();
