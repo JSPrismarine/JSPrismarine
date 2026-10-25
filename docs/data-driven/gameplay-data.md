@@ -46,14 +46,14 @@ Here is what Java 26.3's vanilla datapack contributes, counted from the extracte
 The datapack Mojang's data generator writes carries no item modifier files and no functions, but
 both registries route, so a datapack of yours can fill them.
 
-## Turning the pack stack on
+## What the server loads at startup
 
-The content build is off by default while the subsystems migrate, and nothing on this page happens
-until you turn it on. Four keys in `config.yaml` control it, and the server writes them with their
-comments the first time it starts:
+Every server builds its content from the pack stack, so everything on this page is running by
+default. There is no setting that turns it off. Three keys in `config.yaml` add to the stack and
+decide what a broken pack does, and the server writes them with their comments the first time it
+starts:
 
 ```yaml
-content-packs: true
 content-strict: false
 content-world-packs: []
 content-datapacks: []
@@ -66,9 +66,16 @@ pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 pnpm --filter @jsprismarine/bedrock-data run datagen:java
 ```
 
-Without them the stack loads short and reports each missing member as a `pack.missing` warning.
-`JSP_CONTENT=1` turns the build on for a single run without editing the file, and
-`JSP_VANILLA_DATAPACK` points at a datapack directory of your own instead of the cached one.
+Without them the stack loads short. Each missing member is reported as a `pack.missing` warning and
+the server starts on what is left, which for the Java half means none of the loot, recipes,
+advancements or enchantments below is registered. `JSP_VANILLA_DATAPACK` points at a datapack
+directory of your own instead of the cached one.
+
+A stack that cannot be loaded at all stops the server. Nothing stands behind the content, so
+`Server.enable` logs the failure and refuses to start rather than running a world with no blocks
+in it. `content-strict` decides the softer half: with it on, a single pack that reports an error
+fails the whole build too, where normally the error goes into the report and the rest of the stack
+loads.
 
 The stack is assembled in a fixed order: the vanilla Bedrock behavior pack, this project's
 `jsprismarine_vanilla` overlay, the Java vanilla datapack, then your `content-world-packs`, then
@@ -370,7 +377,6 @@ field of an enchantment. Ship the complete file you want.
 To add a datapack, point `content-datapacks` at its directory:
 
 ```yaml
-content-packs: true
 content-datapacks:
     - worlds/world/datapacks/gameplay-tweaks
 ```

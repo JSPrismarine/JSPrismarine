@@ -80,20 +80,20 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements 60 commands. This server registers 52 of them when
-`content-packs` is on and 50 when it is off:
+`@jsprismarine/commands` implements 60 commands, and this server registers 53 of them:
 
 ```
 clear clone damage deop difficulty enchant execute fill function gamemode gamerule give help kick
 kill list loot me op particle playsound recipe reload say schedule scoreboard setblock
 setworldspawn spawnpoint spreadplayers stop stopsound summon tag teleport tell tellraw time title
-transfer xp random camerashake daylock fog playanimation replaceitem testfor testforblock
-testforblocks titleraw
+transfer weather xp random return camerashake daylock fog playanimation replaceitem testfor
+testforblock testforblocks titleraw
 ```
 
-`/loot` and `/recipe` are the two that come and go with the pack stack, because both read Java data
-the content build loads. With `content-packs` off there is no loot table to roll and no recipe book
-to unlock, so neither command is registered.
+The set does not vary. `/loot` and `/recipe` used to come and go with the pack stack, because both
+read Java data the content build loads; every server builds that content now, so both are always
+registered. Rolling a table or unlocking a recipe that nothing in the stack declared still refuses
+by name, which is a different answer from the command not existing.
 
 Four names are aliases, registered as redirects onto the real command so they parse the same
 arguments and run the same code: `/tp` is `/teleport`, `/msg` and `/w` are `/tell`, and
@@ -121,7 +121,7 @@ The first is this server's named permissions, in `permissions.json`. A vanilla c
 `permissions.json` grants every player `minecraft.command.help`, `minecraft.command.list` and
 `minecraft.command.me`, and grants every operator `*`. The command list each player receives is
 filtered by these nodes, so a player who was granted nothing sees three Minecraft commands in their
-client rather than all 51.
+client rather than all 53.
 
 The second is the command's own permission level, which is Java's. The console runs at level 5, an
 operator at 4 and everyone else at 0. Most of the set is declared at level 1, which is Java's
@@ -130,7 +130,7 @@ and `/deop` sit higher still.
 
 ## What the server leaves out, and why
 
-Eight commands are deliberately not wired. The rule the project follows is worth stating plainly,
+Seven commands are deliberately not wired. The rule the project follows is worth stating plainly,
 because it decides what you see when you type one: an unwired command is **not registered at all**.
 Nothing parses it, no alias is registered for it, and it never reaches your client's command list.
 Type `/effect give @s minecraft:speed` and you get `Unknown command. Type "/help" for help.` A
@@ -150,7 +150,6 @@ it, so the gap closes by deleting a row:
 | `/locate`    | a radial search; the generator places structures and never looks one up         |
 | `/place`     | feature, jigsaw and structure placement outside the generator                   |
 | `/ride`      | entity riding outside the data-driven entity runtime                            |
-| `/weather`   | a weather cycle; nothing raises rain or thunder                                 |
 
 `vanillaCommands.test.ts` asserts that the registered set plus this table equals everything the
 package implements, so a command cannot fall out of both.
@@ -353,16 +352,13 @@ Bedrock's equivalent ceiling is a smaller per-call cap of 10000 commands, export
 
 Here is the whole loop: a datapack on disk, a macro, a tag, and watching it run.
 
-Functions only load when the content build is on, so set these two keys in `config.yaml` and point
-the second at your pack. The paths resolve from the directory you start the server in.
+Functions come out of the pack stack, which every server builds, so the only setting involved is
+the one naming your pack. The paths resolve from the directory you start the server in.
 
 ```yaml
-content-packs: true
 content-datapacks:
     - worlds/world/datapacks/greeter
 ```
-
-`JSP_CONTENT=1` turns the build on for one run without editing the file.
 
 Lay the pack out the way a Java datapack 121 is laid out:
 
@@ -487,5 +483,5 @@ nothing is written rather than guessed.
   the queue executor, and the diagnostics.
 - [The research note on commands, functions and datapack execution](../research/commands-functions-and-datapack-execution.md):
   where every count on this page was measured, and what could not be confirmed.
-- [gameplay-data.md](gameplay-data.md): turning the pack stack on, and the rest of the Java data a
-  datapack can replace.
+- [gameplay-data.md](gameplay-data.md): what the pack stack loads at startup, and the rest of the
+  Java data a datapack can replace.

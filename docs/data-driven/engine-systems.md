@@ -275,10 +275,11 @@ callbacks, which the host raises instead.
 
 ## What happens to a block the world destroys
 
-A player breaking a block goes through `blockBreak.ts` whenever the content build is on. The
-block's behavior family gets `onBreak` before the block goes, which is what spills a container and
-unpairs a double chest, and Java's loot table decides what falls with the player's tool in the roll.
-With `content-packs` off the path declines and the server breaks blocks the way it always did.
+A player breaking a block goes through `blockBreak.ts`. The block's behavior family gets `onBreak`
+before the block goes, which is what spills a container and unpairs a double chest, and Java's loot
+table decides what falls with the player's tool in the roll. The path still declines for a block
+the stack declares no type for, and for one whose chunk is not in memory; then `World.breakBlock`
+makes the drop it always has.
 
 Everything else that destroys a block used to have a rule of its own, and there were four of them.
 None raised a hook. A chest the blast caught kept its contents, a double chest left its other half
