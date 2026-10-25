@@ -15,6 +15,7 @@ permissions.json
 *.log
 /logs/
 /jsp/
+/packages/prismarine/schemas/
 
 # Build
 .tsup

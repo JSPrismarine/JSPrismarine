@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import pkg from '../../package.json' with { type: 'json' };
 import { ConfigBuilder } from './ConfigBuilder';
 
 const YAML_FILE = [
@@ -78,6 +79,19 @@ describe('config', () => {
 
             expect(config.get('port', 19132)).toBe(19132);
             expect(readFileSync(nested, 'utf8')).toBe('port: 19132\n');
+        });
+
+        it('should write the versioned schema when creating and updating config.json', () => {
+            const jsonConfigPath = path.join(directory, 'config.json');
+            const config = new ConfigBuilder(jsonConfigPath);
+            const schemaUrl = `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/config.schema.json`;
+
+            expect(readFileSync(jsonConfigPath, 'utf8')).toContain(schemaUrl);
+            expect(config.get('port', 19132)).toBe(19132);
+
+            const text = readFileSync(jsonConfigPath, 'utf8');
+            expect(text.split(schemaUrl)).toHaveLength(2);
+            expect(config.get('port')).toBe(19132);
         });
 
         it('should fall back to the default when the stored value is of another kind', () => {

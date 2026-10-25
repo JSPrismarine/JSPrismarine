@@ -2,13 +2,11 @@ import fs from 'node:fs';
 
 import type Player from '../Player';
 import type Server from '../Server';
+import type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
 
-export type BannedPlayerEntry = {
-    name: string;
-    reason: string | '';
-};
+export type { BannedPlayerEntry } from '../config/JsonConfigTypes';
 
 /** Whether a value read from the ban file is an entry this manager can use. */
 const isBannedPlayerEntry = (value: unknown): value is BannedPlayerEntry =>
@@ -63,7 +61,7 @@ export default class BanManager {
             const dir = withCwd(FILE_NAME);
             if (!fs.existsSync(dir)) {
                 this.server.getLogger().warn(`Failed to load ban list!`);
-                fs.writeFileSync(dir, '[]');
+                await writeJsonFile(dir, await readJsonFile(dir, '[]'));
             }
 
             const banned = (await readJsonFile(dir, '[]')).get([]);
@@ -81,7 +79,7 @@ export default class BanManager {
      * Rewrites one player's line in the ban file, leaving the other lines and any comments as
      * they are, so a note somebody put beside a ban survives the next `/ban`.
      */
-    private async writeEntry(username: string, entry: BannedPlayerEntry | null): Promise<void> {
+    private async writeEntry(username: string, entry: (BannedPlayerEntry & { reason: string }) | null): Promise<void> {
         const file = withCwd(FILE_NAME);
         const document = await readJsonFile(file, '[]');
         const sameName = (candidate: unknown) => isBannedPlayerEntry(candidate) && candidate.name === username;

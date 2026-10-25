@@ -8,15 +8,9 @@ import Anvil from './providers/anvil/Anvil';
 import LevelDB from './providers/leveldb/LevelDB';
 
 import fs from 'node:fs';
+import type { WorldData } from '../config/JsonConfigTypes';
 
-/**
- * Standard world data.
- */
-export interface WorldData {
-    seed: number;
-    provider?: string;
-    generator?: string;
-}
+export type { WorldData } from '../config/JsonConfigTypes';
 
 const WORLDS_FOLDER = 'worlds';
 /**

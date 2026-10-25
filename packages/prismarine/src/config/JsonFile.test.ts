@@ -1,8 +1,9 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import pkg from '../../package.json' with { type: 'json' };
 import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from './JsonFile';
 
@@ -60,6 +61,35 @@ describe('config', () => {
             await writeJsonFile(file, document);
 
             expect(readFileSync(file, 'utf8')).toBe(LIST);
+        });
+
+        it.each([
+            { file: 'config.json', empty: '{}' as const, schema: 'config.schema.json' },
+            { file: 'permissions.json', empty: '{}' as const, schema: 'permissions.schema.json' },
+            { file: 'ops.json', empty: '[]' as const, schema: 'ops.schema.json' },
+            { file: 'banned-players.json', empty: '[]' as const, schema: 'banned-players.schema.json' },
+            { file: 'worlds/main/level.json', empty: '{}' as const, schema: 'level.schema.json' },
+            {
+                file: 'worlds/main/playerdata/123.json',
+                empty: '{}' as const,
+                schema: 'player-data.schema.json'
+            }
+        ])('writes the versioned $schema reference for $file', async ({ file: relativeFile, empty, schema }) => {
+            const file = path.join(directory, relativeFile);
+            mkdirSync(path.dirname(file), { recursive: true });
+
+            await writeJsonFile(file, await readJsonFile(file, empty));
+            const document = await readJsonFile(file, empty);
+            await writeJsonFile(file, document);
+
+            const text = readFileSync(file, 'utf8');
+            const schemaUrl = `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/${schema}`;
+            expect(text.split(schemaUrl)).toHaveLength(2);
+            if (empty === '[]') {
+                expect(text).toContain(`// JSPrismarine schema: ${schemaUrl}`);
+            } else {
+                expect(document.get(['$schema'])).toBe(schemaUrl);
+            }
         });
 
         it('replaces a matching entry in place and appends a new one with its comment', () => {
