@@ -170,6 +170,22 @@ Entries come out sorted by identifier, so the array is a pure function of the re
 By default only the items the table marks component based carry a compound, which is what the
 captured server does; `components: 'all'` sends the projection for every item.
 
+### Seven names the pack and the capture disagree on
+
+Mojang's vanilla behavior pack still files seven items under the identifiers Bedrock used before it
+flattened them: `minecraft:appleEnchanted`, `minecraft:clownfish`, `minecraft:cooked_fish`,
+`minecraft:fish`, `minecraft:melon`, `minecraft:muttonCooked` and `minecraft:muttonRaw`. A Bedrock
+Dedicated Server renames each to `minecraft:enchanted_golden_apple`, `minecraft:tropical_fish`,
+`minecraft:cooked_cod`, `minecraft:cod`, `minecraft:melon_slice`, `minecraft:cooked_mutton` and
+`minecraft:mutton` before it writes the table, and this package does not: it takes the identifier it
+is given, finds no row, and allocates an id.
+
+A caller that builds from the vanilla stack therefore sends seven entries a client cannot draw. All
+seven modern names are in the registry too, from Java's side of the item set, so nothing a player
+can be handed is missing. Renaming them belongs wherever the pack's identifiers are resolved, not
+here, because this package's contract is that the identifier it is given is the identifier it
+sends.
+
 ## buildCreativeContent
 
 The headings and the entries, built from a catalog in the shape `@jsprismarine/bedrock-data`
