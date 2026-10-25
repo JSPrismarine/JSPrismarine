@@ -2,8 +2,8 @@
 
 Status: accepted
 
-Bedrock's entity definitions and Java Edition's attribute suppliers publish 423 of the same stats
-for the same entity, and they disagree on 144 of them. Preferring one edition everywhere is wrong
+Bedrock's entity definitions and Java Edition's attribute suppliers publish 438 of the same stats
+for the same entity, and they disagree on 151 of them. Preferring one edition everywhere is wrong
 in both directions, so the decision is per stat. Java decides `max_health`, `attack_damage`,
 `follow_range` and `knockback_resistance`. Bedrock decides `movement_speed`, `flying_speed`,
 `jump_strength`, `width` and `height`. Fifteen reviewed rows keep Bedrock's value inside a stat
@@ -87,11 +87,18 @@ Every exception is a case where the Java number is published but not played.
 
 ## Consequences
 
-31 of the 144 disagreements now resolve to Java's value: 19 follow ranges, 10 attack damages and 2
-max healths. 113 keep Bedrock's, of which 98 are stats Bedrock decides and 15 are the reviewed
+33 of the 151 disagreements now resolve to Java's value: 21 follow ranges, 10 attack damages and 2
+max healths. 118 keep Bedrock's, of which 103 are stats Bedrock decides and 15 are the reviewed
 exceptions above. The corpus test in `vanillaEntities.test.ts` fails when a disagreement on a
 Java-decided stat is not on the exception list, so a Mojang retune that opens a new one has to be
 reviewed rather than absorbed.
+
+Java's dump is keyed by Java's entity names, and five of the 93 are a Bedrock entity that kept the
+identifier Mojang renamed away from: the evoker spawns as `evocation_illager`, the villager and
+zombie villager as `villager_v2` and `zombie_villager_v2`, the tropical fish as `tropicalfish` and
+the zombified piglin as `zombie_pigman`. `javaAttributeBases` resolves those through
+`@jsprismarine/mapping`, which owns the identifier seam, so the decision reaches them rather than
+silently passing them over.
 
 The 113 are accepted divergences, not defects, and the parity dashboard should carry them as
 allow-list rows built from `statRuling`.

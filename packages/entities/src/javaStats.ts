@@ -3,13 +3,15 @@
  * that go the other way.
  *
  * Bedrock's entity definitions and Java Edition's attribute suppliers publish
- * 423 of the same stats, and they disagree on 144. Taking the Bedrock number
+ * 438 of the same stats, and they disagree on 151. Taking the Bedrock number
  * everywhere would give up Java's gameplay rules; taking the Java number
  * everywhere would hand the Bedrock client a hitbox that does not match the
  * model it draws. The decision is per stat, and it is recorded in
  * [ADR 0001](../../../docs/adr/0001-entity-stat-authority.md) and in decision
  * 11 of [the data-driven plan](../../../docs/plans/data-driven-vanilla.md).
  */
+
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 
 import type { AttributeName } from './attributes';
 
@@ -225,6 +227,57 @@ export interface JavaEntityStats {
  */
 export type JavaStatSource = Readonly<Record<string, JavaEntityStats>>;
 
+/**
+ * A Java stat table re-keyed by the Bedrock identifier each row's entity
+ * spawns under, for the rows whose two editions spell the name differently.
+ *
+ * Five of the 93 types in Java's dump are a Bedrock entity that kept its
+ * legacy identifier: `minecraft:evoker` spawns as `minecraft:evocation_illager`,
+ * and `villager`, `zombie_villager`, `tropical_fish` and `zombified_piglin`
+ * spawn as `villager_v2`, `zombie_villager_v2`, `tropicalfish` and
+ * `zombie_pigman`. Looking those up by the name they spawned under finds
+ * nothing, so the decision never reached them and they kept the pack's number.
+ *
+ * The renames come from `@jsprismarine/mapping`, which owns the Java to Bedrock
+ * identifier seam, rather than from a second list here. A Bedrock identifier
+ * that several Java types map onto, such as the one every boat variant lands
+ * on, is left out: the two editions have no one row to compare, and guessing
+ * which Java type's stats to take would be worse than leaving the pack's.
+ */
+const bedrockKeyedSources = new WeakMap<JavaStatSource, ReadonlyMap<string, JavaEntityStats>>();
+
+/** Builds a source's Bedrock-keyed view on first use and keeps it. */
+const bedrockKeyed = (source: JavaStatSource): ReadonlyMap<string, JavaEntityStats> => {
+    const cached = bedrockKeyedSources.get(source);
+    if (cached !== undefined) return cached;
+
+    const byBedrock = new Map<string, JavaEntityStats>();
+    const ambiguous = new Set<string>();
+    for (const [javaIdentifier, stats] of Object.entries(source)) {
+        const mapped = javaEntityTypeToBedrock(javaIdentifier);
+        if (mapped.kind !== 'mapped' || mapped.bedrock === javaIdentifier) continue;
+        if (ambiguous.has(mapped.bedrock)) continue;
+        if (byBedrock.has(mapped.bedrock)) {
+            byBedrock.delete(mapped.bedrock);
+            ambiguous.add(mapped.bedrock);
+            continue;
+        }
+        byBedrock.set(mapped.bedrock, stats);
+    }
+
+    bedrockKeyedSources.set(source, byBedrock);
+    return byBedrock;
+};
+
+/**
+ * Java's stats for the entity a Bedrock identifier spawns, by that identifier.
+ *
+ * Most of the dump is keyed by a name both editions spell the same way, so the
+ * direct read answers first and the rename index is only consulted for the rest.
+ */
+export const javaEntityStats = (identifier: string, source: JavaStatSource | undefined): JavaEntityStats | undefined =>
+    source === undefined ? undefined : (source[identifier] ?? bedrockKeyed(source).get(identifier));
+
 /** The stats Java decides, in the order {@link SHARED_STATS} declares them. */
 const javaDecided = Object.entries(SHARED_STATS).filter(
     (entry): entry is [SharedStat, StatAuthority & { attribute: AttributeName; javaAttribute: string }] =>
@@ -239,6 +292,10 @@ const javaDecided = Object.entries(SHARED_STATS).filter(
  * Attributes Java does not publish for the type are absent, so the pack's value
  * stands.
  *
+ * The identifier is the one the entity spawns under, which for five types is
+ * Bedrock's legacy spelling rather than Java's, so the row is found through
+ * {@link javaEntityStats} rather than by a direct read.
+ *
  * @param identifier - The Bedrock entity identifier, such as `minecraft:wither`.
  * @param source - Java's stat table, or undefined to run on the pack's values alone.
  * @returns Attribute name to the base value, empty when nothing is overridden.
@@ -248,7 +305,7 @@ export const javaAttributeBases = (
     source: JavaStatSource | undefined
 ): ReadonlyMap<AttributeName, number> => {
     const bases = new Map<AttributeName, number>();
-    const stats = source?.[identifier];
+    const stats = javaEntityStats(identifier, source);
     if (stats === undefined) return bases;
 
     for (const [stat, authority] of javaDecided) {

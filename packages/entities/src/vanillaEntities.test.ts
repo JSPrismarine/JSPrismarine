@@ -1,4 +1,5 @@
 import { java_entity_attributes } from '@jsprismarine/bedrock-data';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { parseLenientJson, readBrarchive } from '@jsprismarine/packs';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -9,7 +10,7 @@ import type { EntityFile } from './entityTypes';
 import { EntityTypes } from './entityTypes';
 import { eventActions } from './events';
 import type { SharedStat } from './javaStats';
-import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from './javaStats';
+import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaEntityStats, statRuling } from './javaStats';
 import { TRIGGER_COMPONENTS } from './triggers';
 import { hasFilterTest } from './filters';
 
@@ -71,8 +72,12 @@ const bedrockSamplesPack = (): string | undefined => {
 /**
  * How many stats both editions publish for the same entity, over the 93 Java
  * types the golden holds and the 129 Bedrock definitions.
+ *
+ * 423 of them are a type both editions spell the same way. The other 15 belong
+ * to the five the pack still names the way Bedrock did before Mojang renamed
+ * them, which the comparison reaches through `javaEntityTypeToBedrock`.
  */
-const JAVA_STATS_COMPARED = 423;
+const JAVA_STATS_COMPARED = 438;
 
 /**
  * How many of those stats the pack's own values disagree with Java on, before
@@ -83,13 +88,13 @@ const JAVA_STATS_COMPARED = 423;
  * a Java height such as 1.95 to 1.9. A change in this count means either a
  * component stopped reading the pack or a golden moved.
  */
-const JAVA_STAT_DISAGREEMENTS = 144;
+const JAVA_STAT_DISAGREEMENTS = 151;
 
 /**
  * How many of those the server resolves to Java's value, which is every
  * disagreement on a stat Java decides that is not a reviewed exception.
  */
-const RESOLVED_TO_JAVA = 31;
+const RESOLVED_TO_JAVA = 33;
 
 /**
  * The empty markers the entity reads back itself rather than through a hook,
@@ -296,11 +301,18 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         const measured: Measured[] = [];
 
-        for (const [identifier, java] of Object.entries(java_entity_attributes)) {
+        for (const [javaIdentifier, java] of Object.entries(java_entity_attributes)) {
+            // The pack names five of these types the way Bedrock did before Mojang
+            // renamed them, so reaching them by Java's name alone would skip them
+            // and leave the stat decision untested on every one.
+            const mapped = javaEntityTypeToBedrock(javaIdentifier);
+            const identifier = mapped.kind === 'mapped' ? mapped.bedrock : javaIdentifier;
             if (!types.registry.has(identifier)) continue;
             const environment = { random: { next: () => 0 } };
             const packEntity = types.spawn(identifier, { environment });
-            const entity = types.spawn(identifier, { environment: { ...environment, javaStats: java_entity_attributes } });
+            const entity = types.spawn(identifier, {
+                environment: { ...environment, javaStats: java_entity_attributes }
+            });
             const box = entity.componentParams('minecraft:collision_box');
             const size = isCollisionBox(box) ? box : undefined;
 
@@ -309,7 +321,10 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
                 if (authority.attribute === undefined || authority.javaAttribute === undefined) {
                     return [undefined, undefined];
                 }
-                return [packEntity.attributes.get(authority.attribute)?.base, entity.attributes.get(authority.attribute)?.base];
+                return [
+                    packEntity.attributes.get(authority.attribute)?.base,
+                    entity.attributes.get(authority.attribute)?.base
+                ];
             };
 
             const rows: readonly (readonly [SharedStat, number | undefined, number | undefined, number | undefined])[] =
@@ -353,7 +368,12 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         const unreviewed = unresolved.filter((row) => statRuling(row.identifier, row.stat).kind === 'java');
 
         const byStat = (rows: readonly Measured[]): string =>
-            [...rows.reduce((counts, row) => counts.set(row.stat, (counts.get(row.stat) ?? 0) + 1), new Map<string, number>())]
+            [
+                ...rows.reduce(
+                    (counts, row) => counts.set(row.stat, (counts.get(row.stat) ?? 0) + 1),
+                    new Map<string, number>()
+                )
+            ]
                 .map(([stat, count]) => `${stat} ${count}`)
                 .join(', ');
 
@@ -383,9 +403,34 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(unresolved).toHaveLength(JAVA_STAT_DISAGREEMENTS - RESOLVED_TO_JAVA);
     });
 
+    it('applies the decision to an entity the pack names the way Bedrock used to', () => {
+        // Java's dump is keyed by Java's name, and these five spawn under an older
+        // Bedrock one, so looking the row up by the identifier the entity spawned
+        // under used to find nothing and leave them on the pack's numbers. The
+        // follow ranges are the two where that showed: Bedrock's evoker follows
+        // from 64 blocks and its villager from 128.
+        const javaFollowRange = (identifier: string): number | undefined =>
+            types
+                .spawn(identifier, { environment: { random: { next: () => 0 }, javaStats: java_entity_attributes } })
+                .attributes.get('follow_range')?.base;
+
+        for (const identifier of [
+            'minecraft:evocation_illager',
+            'minecraft:villager_v2',
+            'minecraft:zombie_villager_v2',
+            'minecraft:tropicalfish',
+            'minecraft:zombie_pigman'
+        ]) {
+            expect(javaEntityStats(identifier, java_entity_attributes), identifier).toBeDefined();
+        }
+
+        expect(javaFollowRange('minecraft:evocation_illager')).toBe(12);
+        expect(javaFollowRange('minecraft:villager_v2')).toBe(16);
+    });
+
     it('keeps every reviewed exception on a stat the two editions still disagree on', () => {
         for (const row of JAVA_STAT_EXCEPTIONS) {
-            const java = java_entity_attributes[row.identifier];
+            const java = javaEntityStats(row.identifier, java_entity_attributes);
             const authority = SHARED_STATS[row.stat];
             expect(java, `${row.identifier} has no Java stats`).toBeDefined();
             expect(authority.decidedBy, `${row.stat} is not a stat Java decides`).toBe('java');
@@ -393,7 +438,8 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
             const entity = types.spawn(row.identifier, {
                 environment: { random: { next: () => 0 }, javaStats: java_entity_attributes }
             });
-            const resolved = authority.attribute === undefined ? undefined : entity.attributes.get(authority.attribute)?.base;
+            const resolved =
+                authority.attribute === undefined ? undefined : entity.attributes.get(authority.attribute)?.base;
             const value = authority.javaAttribute === undefined ? undefined : java?.attributes[authority.javaAttribute];
 
             expect(resolved, `${row.identifier} declares no ${row.stat}`).toBeDefined();
