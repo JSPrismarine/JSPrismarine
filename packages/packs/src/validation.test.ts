@@ -72,6 +72,40 @@ describe('structuralValidator', () => {
         expect(findings).toEqual([]);
     });
 
+    it('accepts the filter shapes the vanilla entity files write', () => {
+        const findings = structuralValidator({
+            registry: 'entities',
+            path: 'entities/thing.json',
+            data: entity({
+                // tnt_minecart and mooshroom: two combinators in one group map.
+                'minecraft:interact': {
+                    interactions: [
+                        {
+                            on_interact: {
+                                filters: {
+                                    all_of: [{ test: 'is_family', subject: 'other', value: 'player' }],
+                                    any_of: [{ test: 'has_equipment', domain: 'hand', value: 'flint_and_steel' }]
+                                }
+                            }
+                        }
+                    ]
+                },
+                // skeleton: the legacy shorthand that names the test in the key.
+                'minecraft:damage_sensor': {
+                    triggers: { deals_damage: 'no', on_damage: { filters: { other_with_families: 'lightning' } } }
+                },
+                // witch: a combinator over one test, and piglin: an integer domain.
+                'minecraft:behavior.drink_potion': {
+                    potions: [
+                        { filters: { none_of: { test: 'has_mob_effect', value: 'water_breathing' } } },
+                        { filters: { AND: [{ test: 'has_equipment', subject: 1, operator: 1, domain: 4 }] } }
+                    ]
+                }
+            })
+        });
+        expect(findings).toEqual([]);
+    });
+
     it('reports a malformed filter as an error', () => {
         const findings = structuralValidator({
             registry: 'entities',
