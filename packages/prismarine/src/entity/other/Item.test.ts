@@ -65,6 +65,9 @@ const fakePlayer = (x: number, y: number, z: number) => {
         getRuntimeId: () => 99n,
         isOnline: () => true,
         getInventory: () => ({ addItem: (entry: ContainerEntry) => void held.push(entry) }),
+        // A pickup raises `inventory_changed`, which asks whether any content
+        // is loaded. This double loads none.
+        getServer: () => ({ getContent: () => undefined }),
         viewDistance: 10,
         getNetworkSession: () => ({
             send: async (packet: any) => void sent.push(packet),

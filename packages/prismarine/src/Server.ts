@@ -280,6 +280,10 @@ export default class Server extends EventEmitter {
         await this.commandManager.enable();
         await this.worldManager.enable();
 
+        // `#minecraft:load` runs once the packs are loaded and the worlds are
+        // up, because its functions are allowed to touch a world.
+        await this.commandManager.runLoadFunctions();
+
         // The console reads commands as soon as it is enabled, and piped input is already
         // waiting, so it comes last: commands need the registry and the default world.
         await this.console?.enable();

@@ -1,3 +1,4 @@
+import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import type { LogLevel } from '@jsprismarine/logger';
 
 /** One layer of a flat world, bottom first. */
@@ -161,4 +162,13 @@ export interface WorldPlayerData {
         yaw: number;
         headYaw: number;
     };
+    /**
+     * Advancement progress: advancement id to the criteria the player has
+     * completed, each with the instant it was granted.
+     *
+     * Stored here rather than in a file of its own so that whatever a provider
+     * does with player data - the LevelDB provider writes a `player_server_`
+     * record, the file provider a JSON file - carries the progress with it.
+     */
+    advancements?: PlayerProgressJson;
 }

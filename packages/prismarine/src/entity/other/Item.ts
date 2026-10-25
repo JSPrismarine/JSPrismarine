@@ -1,6 +1,7 @@
 import type Player from '../../Player';
 import type { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
+import { advancementPickedUpItem } from '../../advancement/triggers';
 import type ContainerEntry from '../../inventory/ContainerEntry';
 import type PlayerSession from '../../network/PlayerSession';
 import { TakeItemActorPacket } from '../../network/Packets';
@@ -228,6 +229,12 @@ export class Item extends Entity {
             this.taken = false;
             return;
         }
+
+        // Here rather than in the inventory, which has no idea whose it is.
+        // This is how nearly every "get this item" advancement is earned: Java
+        // has no block-break trigger, so breaking stone earns
+        // `story/mine_stone` through the cobblestone landing in a slot.
+        advancementPickedUpItem(taker, this.item.toItemStack());
 
         const pk = new TakeItemActorPacket();
         pk.itemRuntimeEntityId = this.getRuntimeId();

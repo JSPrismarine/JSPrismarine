@@ -2,6 +2,7 @@ import GameRuleManager, { GameRules } from './GameRuleManager';
 
 import fs from 'node:fs';
 
+import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { Block, Server, Service } from '../';
@@ -11,6 +12,8 @@ import UUID from '../utils/UUID';
 // `./world/` before `Player`, so reaching for it via '../' lands back in a module that is
 // still initializing and the binding is not a constructor yet when `instanceof` runs.
 import Player from '../Player';
+import { advancementPlacedBlock } from '../advancement/triggers';
+import { storedAdvancements } from '../advancement/progress';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
 import { spawnableEntities } from '../entity/Entities';
@@ -956,6 +959,16 @@ export class World implements Service {
         this.changes.blockChanged(placedPosition, runtimeId);
 
         this.changes.blockSound(placedPosition, LevelSoundEvent.PLACE, runtimeId);
+
+        advancementPlacedBlock(player, {
+            origin: {
+                x: placedPosition.getX(),
+                y: placedPosition.getY(),
+                z: placedPosition.getZ()
+            },
+            block: block.getName(),
+            tool: itemInHand instanceof Item ? itemInHand : Item.air()
+        });
     }
 
     /**
@@ -1676,7 +1689,8 @@ export class World implements Service {
                 pitch: player.pitch,
                 yaw: player.yaw,
                 headYaw: player.headYaw
-            }
+            },
+            advancements: storedAdvancements(player)
         } satisfies WorldPlayerData;
 
         try {

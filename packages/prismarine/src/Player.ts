@@ -30,6 +30,8 @@ import type { ChunkCoord } from './network/packet/NetworkChunkPublisherUpdatePac
 import PositionMode from './network/type/PositionMode';
 import PlayStatus from './network/type/PlayStatus';
 import TextPacketType from './network/type/TextPacketType';
+import { loadAdvancements } from './advancement/progress';
+import { advancementChangedDimension, advancementPlayerTick } from './advancement/triggers';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
 import type UUID from './utils/UUID';
@@ -51,6 +53,9 @@ const EXHAUSTION_PER_FOOD_POINT = 4;
  * What the things a player does cost in exhaustion, from the vanilla hunger table.
  * @see https://minecraft.wiki/w/Hunger#Exhaustion_level_increase
  */
+/** How often the two per-player triggers are checked, which is Java's one second. */
+const ADVANCEMENT_CHECK_TICKS = 20;
+
 export const EXHAUSTION = {
     /** Per meter walked. */
     walking: 0.01,
@@ -253,6 +258,10 @@ export default class Player extends Human {
     public async enable(): Promise<void> {
         const playerData = await this.getWorld().getPlayerData(this);
 
+        // Before anything can be earned, so a returning player keeps what they
+        // had rather than earning their first advancement twice.
+        loadAdvancements(this, playerData.advancements);
+
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
 
@@ -421,6 +430,8 @@ export default class Player extends Human {
         // Out of the old world first, so it stops broadcasting to us and its players are
         // told we left. Then the old world's entities come off this client, before
         // `addEntity` below fills the tracker with the new world's.
+        const left = this.getWorld().getDimension().name;
+
         await this.getWorld().removeEntity(this);
         await this.getNetworkSession().despawnAllTrackedEntities();
 
@@ -444,6 +455,8 @@ export default class Player extends Human {
         await this.getNetworkSession().clearChunks();
         await this.getNetworkSession().needNewChunks();
         await this.getNetworkSession().sendPlayStatus(PlayStatus.PlayerSpawn);
+
+        advancementChangedDimension(this, left, world.getDimension().name);
     }
 
     public isOnline(): boolean {
@@ -459,6 +472,12 @@ export default class Player extends Human {
         // Anything that moved an attribute this tick - hunger, most of the time - goes out
         // here, as a single packet holding just what changed.
         await this.getNetworkSession().syncAttributes();
+
+        // Every second, which is Java's own period for this pair. The
+        // `location` conditions are about where the player is standing rather
+        // than about anything that happened, so there is nothing else to hang
+        // the 67 vanilla criteria that use them on.
+        if (tick % ADVANCEMENT_CHECK_TICKS === 0) advancementPlayerTick(this);
 
         // TODO: get documentation about timings from vanilla
         // 1 second / 20 = 1 tick, 20 * 5 = 1 second
