@@ -25,6 +25,16 @@ export interface CommandOutcome {
      * that runs in one context reports nothing.
      */
     forks?: number;
+    /**
+     * Set when the line ended the function it belongs to, which is what
+     * `/return` does. The executor drops that function's remaining lines and
+     * carries on with whatever called it.
+     *
+     * `value` is what the function returns. `/return fail`, and a
+     * `/return run` whose command failed, end the function without one, which
+     * is the case `execute if function` does not match.
+     */
+    returned?: { readonly value?: number };
 }
 
 /** Runs one command line. The server's dispatcher is the real adapter at this seam. */

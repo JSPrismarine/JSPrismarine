@@ -140,6 +140,16 @@ a pack author can inspect it without a world.
 A runner may throw. The executor reports the failure and continues with the next line, because one
 failing command does not abort a Java function.
 
+`/return` is split across the seam. The runner implements the command, because it is one, and
+reports it back as `returned`; only the executor can act on it, because ending a function means
+dropping a frame. A line that reports `returned` ends the function it came from, and the loop
+carries on with whatever called it. `returned.value` is what the function returns, and a
+`/return fail` or a `return run` whose command failed ends the function without one. The report
+collects the values of the functions the entry point invoked directly, in `returnValues`, so
+`#a:tag` whose three members returned 0, nothing and 5 reports `[0, 5]`. A `/return` deeper in the
+call tree ends its own function and contributes nothing, which is Java's rule: `/return` returns
+from one function, not from its caller.
+
 The one exception is a `function` line, which the executor reads itself. A call is control flow
 rather than a command, and handling it here is what keeps nesting on the queue. The line form is
 `function <id>`, `function #<tag>`, or either of those followed by an argument compound. The

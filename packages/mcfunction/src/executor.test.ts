@@ -262,3 +262,82 @@ describe('FunctionExecutor tags', () => {
         expect(report.diagnostics[0]).toMatchObject({ code: 'call.unknown-tag', line: 1 });
     });
 });
+
+describe('FunctionExecutor and /return', () => {
+    /** Reads `return <value>`, `return fail` and nothing else, as the real dispatcher would. */
+    const respondToReturn = (commandLine: string): CommandOutcome => {
+        if (commandLine === 'return fail') return { returned: {} };
+        if (!commandLine.startsWith('return ')) return {};
+        return { returned: { value: Number(commandLine.slice('return '.length)) } };
+    };
+
+    it('reports no value for a function that runs to its last line', () => {
+        const { executor } = executorOf({ 'pack:plain': 'say one\nsay two\n' }, { respond: respondToReturn });
+        const report = executor.run('pack:plain', { source });
+
+        expect(report.returnValues).toEqual([]);
+        expect(report.commands).toBe(2);
+    });
+
+    it('drops the rest of the function and reports the value', () => {
+        const { executor, runner } = executorOf(
+            { 'pack:early': 'say before\nreturn 7\nsay after\n' },
+            { respond: respondToReturn }
+        );
+        const report = executor.run('pack:early', { source });
+
+        expect(runner.commandLines).toEqual(['say before', 'return 7']);
+        expect(report.returnValues).toEqual([7]);
+    });
+
+    it('reports a zero return, which is a value and not the absence of one', () => {
+        const { executor } = executorOf({ 'pack:zero': 'return 0\n' }, { respond: respondToReturn });
+
+        expect(executor.run('pack:zero', { source }).returnValues).toEqual([0]);
+    });
+
+    it('ends the function without a value when the return produced none', () => {
+        const { executor, runner } = executorOf(
+            { 'pack:failing': 'return fail\nsay after\n' },
+            { respond: respondToReturn }
+        );
+        const report = executor.run('pack:failing', { source });
+
+        expect(runner.commandLines).toEqual(['return fail']);
+        expect(report.returnValues).toEqual([]);
+    });
+
+    it('returns from the function the line is in, not from its caller', () => {
+        const { executor, runner } = executorOf(
+            { 'pack:outer': 'function pack:inner\nsay after\n', 'pack:inner': 'return 3\nsay skipped\n' },
+            { respond: respondToReturn }
+        );
+        const report = executor.run('pack:outer', { source });
+
+        expect(runner.commandLines).toEqual(['return 3', 'say after']);
+        expect(report.returnValues).toEqual([]);
+    });
+
+    it('collects one value per tag member that returned', () => {
+        const tags = new FunctionTagRegistry();
+        tags.add('pack:group', { values: ['pack:quiet', 'pack:loud'] });
+        const { executor } = executorOf(
+            { 'pack:quiet': 'return 0\n', 'pack:loud': 'say hi\nreturn 5\n' },
+            { tags, respond: respondToReturn }
+        );
+        const report = executor.run('#pack:group', { source });
+
+        expect(report.returnValues).toEqual([0, 5]);
+    });
+
+    it('lets a tail call return on the caller it replaced', () => {
+        // The last line of `pack:outer` is the call, so `pack:tail` runs in
+        // the frame `pack:outer` gave up rather than on top of it.
+        const { executor } = executorOf(
+            { 'pack:outer': 'function pack:tail\n', 'pack:tail': 'return 9\n' },
+            { respond: respondToReturn }
+        );
+
+        expect(executor.run('pack:outer', { source }).returnValues).toEqual([9]);
+    });
+});
