@@ -3,7 +3,7 @@
 Status: accepted
 
 `DataDrivenGenerator.generateChunk` builds a 3 by 3 region, generates terrain for nine chunks,
-decorates the centre, extracts one chunk and serializes the whole body behind one promise, at
+decorates the center, extracts one chunk and serializes the whole body behind one promise, at
 1572 ms per chunk. We replace it with Java's model: a chunk exists at a named status, a holder
 owns one promise per status, a step table declares what each status may read and write, and a
 scheduler advances statuses in layers. Every status becomes a pure function of the world seed,
@@ -26,7 +26,7 @@ accumulated radius and buys an exact match with Java's dependency tables, so the
 transcription rather than a derivation, and attaching lighting later is wiring a body rather than
 reshaping the pyramid.
 
-**A step table.** Per status, the status each neighbour at Chebyshev distance d is guaranteed to
+**A step table.** Per status, the status each neighbor at Chebyshev distance d is guaranteed to
 have reached, and the radius the status may write blocks into. The numbers are Java's, read out of
 `ChunkPyramid.GENERATION_PYRAMID`
 ([java-chunk-generation-pipeline.md](../research/java-chunk-generation-pipeline.md) section 2).
@@ -38,16 +38,16 @@ compare-and-exchange, because the Node event loop makes the map insert atomic. T
 a (chunk, status) body runs exactly once is therefore free, and it holds whether the body runs
 inline or in a worker, because only the owning thread touches the holder.
 
-**A proto chunk.** The intermediate state a neighbour can be handed partway through: a block
+**A proto chunk.** The intermediate state a neighbor can be handed partway through: a block
 palette and a `Uint16Array` of indices, the four heightmaps, the biome palette, and the block
 entity and entity spawn requests. Flat typed arrays throughout, so the whole thing moves between
 threads in a transfer list for 18 microseconds rather than being cloned.
 
 **A feature patch, merged in a fixed order.** A chunk's feature pass reads its own live proto
-chunk and the `terrain`-status snapshot of its eight neighbours, and every write that lands
-outside its own chunk is recorded as a patch rather than applied to the neighbour. A chunk's
+chunk and the `terrain`-status snapshot of its eight neighbors, and every write that lands
+outside its own chunk is recorded as a patch rather than applied to the neighbor. A chunk's
 final blocks are its terrain, then its own feature writes, then the eight inbound patches applied
-in a fixed neighbour order. A chunk may only reach `full` once it and all eight neighbours have
+in a fixed neighbor order. A chunk may only reach `full` once it and all eight neighbors have
 passed `features`, which is Java's rule and is what makes a tree whole across a border.
 
 **A worker pool.** piscina, six workers, each holding one seed's compiled pipeline, fed the
@@ -65,7 +65,7 @@ last numbers taken end to end ([worldgen-defects.md](../research/worldgen-defect
 | Structures: starts laid out against the noise, plus piece placement | 875 | 56% |
 | Terrain for the 3 by 3 window | 681 | 43% |
 | of which the chunk's own tile | 227 | 14% |
-| of which the two neighbouring columns | 454 | 29% |
+| of which the two neighboring columns | 454 | 29% |
 | Feature decoration | 16 | 1% |
 | Carvers | 0 | 0% |
 
@@ -98,7 +98,7 @@ per candidate entering the window, so the eight-chunk sample that produced 875 h
 couple of jigsaw candidates. The same walk over 40 chunks reads 311 ms per chunk. Filling a 102 by
 102 area reads 9.4 ms per chunk, because a 1-D front drags 19 fresh chunks into the window at
 every step where a 2-D fill drags one. Java pays the same total, since its radius-8
-`structure_references` requires that neighbourhood to have reached `structure_starts` too.
+`structure_references` requires that neighborhood to have reached `structure_starts` too.
 
 The structure-level column sampling is badly shaped and is not the bottleneck. One
 `StructureLevel.baseHeight` call samples an entire 384-block column top to bottom with aquifers on
@@ -158,7 +158,7 @@ times against the original 227 ms rather than against the 2.5 times row above it
 Read the rows as follows.
 
 **The ladder buys 3 to 6 times, and it is not optional.** It removes the 454 ms of duplicate
-neighbour terrain outright, because each chunk's terrain is computed once into its holder and read
+neighbor terrain outright, because each chunk's terrain is computed once into its holder and read
 by up to nine feature passes. It computes each chunk's structure reference set once rather than
 the four times `startsFor` is called for it today, which is worth about 8 ms. It does not make one
 terrain tile or one structure layout any faster, and it does not reduce the total structure layout
@@ -239,7 +239,7 @@ This is the project's parity claim and it is the thing most easily lost, so each
 stated with the mechanism that enforces it rather than as an intention.
 
 **1. Every status body is a pure function of the seed, the chunk position and the frozen outputs
-of lower statuses.** The step table declares, per status, the status each neighbour at each
+of lower statuses.** The step table declares, per status, the status each neighbor at each
 distance is guaranteed to have reached. The proto chunk view a status is handed refuses a read
 outside that window and throws, the way `WorldGenRegion.getChunk` builds a `CrashReport` rather
 than returning a chunk at the wrong status. An undeclared input is a crash on the first chunk, not
@@ -264,7 +264,7 @@ under the generation packages, and ordered data uses `Map` rather than a plain o
 its own chunk. `features` writes radius 1, and its writes outside its own chunk are recorded as a
 patch rather than applied, so two feature passes that overlap never race. Each produces an
 independent patch, and the owning holder merges them. The merge order is fixed by position, the
-chunk's own writes first and then the eight inbound patches in a fixed neighbour order, so the
+chunk's own writes first and then the eight inbound patches in a fixed neighbor order, so the
 merged result is a function of position alone.
 
 **5. Float arithmetic is identical across isolates.** Measured: transcendentals, `a*b+c` without
@@ -282,19 +282,19 @@ across pool sizes (inline, 1, 2, 4, 6, 8).
 
 ## The one divergence from Java we accept
 
-Java's feature pass writes through a live `WorldGenRegion` straight into the neighbour's
+Java's feature pass writes through a live `WorldGenRegion` straight into the neighbor's
 `ProtoChunk`, so a tree in chunk C can see and be blocked by a tree that chunk N's own feature
 pass already placed. Whether it does depends on which of C and N reached `features` first, which
 depends on scheduling. Java's own output at a chunk border is therefore not a function of the seed
 alone.
 
 Recording a patch instead of writing through makes our output a function of the seed alone, at the
-price of one case: a feature whose placement decision reads a block that a neighbouring chunk's
-own feature pass wrote. That feature now reads the neighbour's terrain and does not see the
-neighbour's features. The failure mode is two features from different chunks occupying the same
+price of one case: a feature whose placement decision reads a block that a neighboring chunk's
+own feature pass wrote. That feature now reads the neighbor's terrain and does not see the
+neighbor's features. The failure mode is two features from different chunks occupying the same
 space instead of the second being refused.
 
-This is not a new divergence. `DataDrivenGenerator.generateChunk` already reads neighbours through
+This is not a new divergence. `DataDrivenGenerator.generateChunk` already reads neighbors through
 `copyCenterFrom` over radius-0 terrain regions, so the current generator has the same read
 semantics; what changes is only that the writes stop being replayed into already-emitted chunks.
 The size of the affected set is measurable: the same chunk generated first and generated last
@@ -304,18 +304,18 @@ cut the feature count per chunk.
 The alternative, a positional total order over feature passes, was rejected on cost rather than on
 principle. Any such order needs a proper colouring of the conflict graph, two chunks conflict when
 their Chebyshev distance is 2 or less, and the chromatic number of that graph is nine. A nine-deep
-colour chain means one cold chunk drags a 33 by 33 neighbourhood of feature passes with it before
+colour chain means one cold chunk drags a 33 by 33 neighborhood of feature passes with it before
 it can finish, which is a stall on every teleport into ungenerated terrain.
 
 **What it cost in the step table.** One row. Java's `full` step declares no dependency at distance
 1, because the feature pass has already written through and there is nothing left to collect; ours
-reads its eight neighbours at `features` to take their patches, so it declares that and the read is
+reads its eight neighbors at `features` to take their patches, so it declares that and the read is
 checked like every other. The accumulated table does not move, because `full` already guaranteed
 `initialize_light` at distance 1 and `initialize_light` is above `features`. Every radius,
 `RADIUS_AROUND_FULL_CHUNK` and `SAFETY_MARGIN_CHUNKS` read what they read before.
 
 **What it cost at the border, measured.** Over the generation corpus, 1.4% to 1.9% of a decorated
-chunk's positions, and the whole of it in one direction: a chunk gains blocks its neighbours' feature
+chunk's positions, and the whole of it in one direction: a chunk gains blocks its neighbors' feature
 passes owe it. None of it is a block changing its mind. The 169-position figure above sizes
 something narrower, the order-dependent set, and it is not the size of the one-time move.
 
