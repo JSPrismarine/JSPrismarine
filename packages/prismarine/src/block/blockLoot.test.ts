@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
-import { fixtureContentOptions } from '../content/testing';
+import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import { lootLevelOf } from '../world/lootLevel';
 import { Block } from './Block';
 import { blockLootTableOf, rollBlockDrops } from './blockLoot';
 
