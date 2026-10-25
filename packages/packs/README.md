@@ -56,6 +56,11 @@ Spyglass project service and fetches its schema tarball at runtime. Unknown keys
 reported once per pack; `strict: true` turns an error into a `PackLoadError`, and a warning never
 fails a load.
 
+Repeats of the same pack, code and message collapse into one diagnostic, so a pattern that holds
+for a whole pack costs one line of the report rather than one per file. A collapsed diagnostic
+carries `occurrences`, the number of files it covers, and `paths`, the first five of them, so the
+report still leads to the files.
+
 A Bedrock file that does not parse is an error, unless a later pack in the stack provides the same
 pack-relative path. That copy replaces the broken one whole, so the broken file cannot reach the
 composed result, and the loader reports it as a warning instead. The shipped vanilla layers need
