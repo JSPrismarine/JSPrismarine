@@ -36,6 +36,12 @@ export interface ItemView {
     damage?(stack: ItemStack): number;
     /** Whether `material` repairs `stack` in the anvil's right slot. */
     repairsWith?(stack: ItemStack, material: ItemStack): boolean;
+    /**
+     * The name the client shows for a stack, which the anvil compares a typed
+     * name against. Without it the anvil only knows the custom name, so
+     * renaming an unnamed item back to its default name still costs a level.
+     */
+    displayName?(stack: ItemStack): string | undefined;
 }
 
 const levelsFrom = (component: unknown): ReadonlyMap<string, number> => {
