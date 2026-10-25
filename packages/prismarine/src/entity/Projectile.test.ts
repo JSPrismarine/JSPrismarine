@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { Difficulty } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { testEntityServer } from '../testing/entityServer';
 import { Position } from '../world/Position';
 import { drawPower, lookVector } from './Archery';
 import { DamageCause } from './DamageCause';
@@ -24,13 +24,7 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            // No pack stack, so the enchantment step has no definitions to run.
-            getContent: () => undefined
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},

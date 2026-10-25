@@ -6,6 +6,7 @@ import Chicken from './passive/Chicken';
 import Cow from './passive/Cow';
 import IronGolem from './neutral/IronGolem';
 import Wolf from './neutral/Wolf';
+import { testEntityServer } from '../testing/entityServer';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
 import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
@@ -68,12 +69,7 @@ const scene = ({ mobLoot = true } = {}) => {
         getName: () => 'test',
         getTicks: () => 0,
         getDimension: () => ({ name: 'minecraft:overworld' }),
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getRandom: () => () => 0.5,
-            getContent: () => content
-        }),
+        getServer: () => testEntityServer({ content }),
         sendActorEvent: async (_entity: unknown, event: ActorEvent) => void flashes.push(event),
         sendActorSound: async (_entity: unknown, sound: LevelSoundEvent) => void noises.push(sound),
         broadcastMove: async () => {},

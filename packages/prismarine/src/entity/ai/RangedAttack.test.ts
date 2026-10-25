@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import { Gametype } from '@jsprismarine/minecraft';
+import { testEntityServer } from '../../testing/entityServer';
 import { Position } from '../../world/Position';
 import type { Entity } from '../Entity';
 import Human from '../Human';
@@ -28,12 +29,7 @@ const scene = () => {
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         // The whole point of the question: does a metadata change actually go anywhere?

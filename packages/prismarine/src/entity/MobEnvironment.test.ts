@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { Difficulty } from '@jsprismarine/minecraft';
+import { testEntityServer } from '../testing/entityServer';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
@@ -39,11 +39,7 @@ const scene = ({
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         broadcastMove: async () => {},

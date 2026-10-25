@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import { testEntityServer } from '../../testing/entityServer';
 import type { Entity } from '../Entity';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
@@ -38,15 +39,7 @@ const scene = () => {
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getRandom: () => () => 0.5,
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            // No pack stack, so no enchantment definitions to run.
-            getContent: () => undefined
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
