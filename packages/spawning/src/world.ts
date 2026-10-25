@@ -60,6 +60,16 @@ export interface SpawnWorld {
      */
     block(at: SpawnPosition): string | undefined;
     /**
+     * Whether the block at one position stops an entity standing in it.
+     *
+     * The underground pass draws a y uniformly between the world floor and the
+     * surface, so most of what it draws is inside rock. Java rejects such a
+     * draw in `NaturalSpawner.isSpawnPositionOk`; without this the spawner
+     * puts a zombie inside a stone block, where it can path nowhere and never
+     * despawns.
+     */
+    solid(at: SpawnPosition): boolean;
+    /**
      * The light level at one position, 0 to 15, before this package applies the
      * weather darkening that `adjust_for_weather` asks for.
      */

@@ -212,7 +212,12 @@ export class Spawner {
         return requests;
     }
 
-    /** Draws one position inside a chunk for one pass, or undefined when the column is unloaded. */
+    /**
+     * Draws one position inside a chunk for one pass.
+     *
+     * @returns The position, or undefined when the column is unloaded or the draw landed
+     *   somewhere no entity fits.
+     */
     private positionIn(chunkX: number, chunkZ: number, pass: SpawnPass): SpawnPosition | undefined {
         const x = chunkX * 16 + this.random.nextInt(16);
         const z = chunkZ * 16 + this.random.nextInt(16);
@@ -222,7 +227,18 @@ export class Spawner {
 
         const floor = this.world.minY();
         if (top - 1 < floor) return undefined;
-        return { x, y: between(this.random, floor, top - 1), z };
+
+        // The draw is uniform over the column, so in a world with few caves most of it is
+        // inside rock. One attempt, one draw, the way Java's `NaturalSpawner` rejects a
+        // position rather than searching for a better one: a spawn inside a block is a mob
+        // that can path nowhere, never despawns and fills the pool so nothing else can spawn.
+        const at = { x, y: between(this.random, floor, top - 1), z };
+        return this.fits(at) ? at : undefined;
+    }
+
+    /** Whether an entity fits at a position: its own block and the one over its head are free. */
+    private fits(at: SpawnPosition): boolean {
+        return !this.world.solid(at) && !this.world.solid({ ...at, y: at.y + 1 });
     }
 
     /** Runs one attempt: collect the rules that pass here, draw one, and build its herd. */
