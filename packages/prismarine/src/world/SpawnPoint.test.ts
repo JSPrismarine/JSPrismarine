@@ -50,6 +50,7 @@ import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import { World } from './World';
 import type WorldManager from './WorldManager';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };
@@ -127,9 +128,11 @@ const buildScene = async (name: string) => {
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getBlockManager: () => (blocksOf ??= new BlockManager(server)),
         getItemManager: () => (itemsOf ??= new ItemManager(server)),
-        getContent: () => content,
-        // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => undefined,
+        getContent: () => {
+            if (content === undefined) throw new Error('the content was read before it was built');
+            return content;
+        },
+        getEntityRuntime: () => inertEntityRuntime(),
         getWorldManager: () =>
             stub<WorldManager>({
                 getWorlds: () => (world === undefined ? [] : [world]),

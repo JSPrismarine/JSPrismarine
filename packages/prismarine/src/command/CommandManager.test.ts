@@ -19,6 +19,7 @@ import type { GameRuleEntry } from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { CommandParameterFlags } from '../network/type/CommandParameter';
+import { testContent } from '../testing/entityServer';
 import * as Commands from './Commands';
 import { Command, argument, literal } from './Command';
 import { isCommandArgument } from './CommandArguments';
@@ -41,7 +42,7 @@ describe('command', () => {
             }),
             // No content build, which is what decides whether the commands
             // whose subsystem is the pack stack are registered at all.
-            getContent: () => undefined,
+            getContent: () => testContent(),
             on: vi.fn(),
             emit: vi.fn().mockResolvedValue({})
         }))();

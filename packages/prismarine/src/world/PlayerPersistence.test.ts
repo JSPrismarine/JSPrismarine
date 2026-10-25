@@ -37,6 +37,7 @@ import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
 import type WorldManager from './WorldManager';
 import { World } from './World';
+import { testContent } from '../testing/entityServer';
 
 const WORLD_NAME = 'persistence';
 
@@ -63,7 +64,7 @@ const testServer = (worlds: () => World[] = () => []): Server => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
-        getContent: () => undefined,
+        getContent: () => testContent(),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',

@@ -87,6 +87,6 @@ export const loadAdvancements = (player: Player, stored: unknown): void => {
  * reader that is not this server - a tool, a migration - has to go on.
  */
 export const storedAdvancements = (player: Player): PlayerProgressJson => {
-    const engine = player.getServer().getContent()?.advancements;
-    return advancementsOf(player).toJSON(engine ? (id) => engine.get(id) : undefined);
+    const engine = player.getServer().getContent().advancements;
+    return advancementsOf(player).toJSON((id) => engine.get(id));
 };

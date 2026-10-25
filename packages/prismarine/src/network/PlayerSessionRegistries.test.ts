@@ -30,6 +30,7 @@ import CreativeContentPacket from './packet/CreativeContentPacket';
 import type DataPacket from './packet/DataPacket';
 
 import type { CraftingData } from '@jsprismarine/protocol';
+import { testContent } from '../testing/entityServer';
 
 /** A session whose connection records what goes out, speaking for a server. */
 const sessionFor = (server: Server) => {
@@ -61,7 +62,7 @@ const captureServer = (overrides: StubMembers<Server> = {}) =>
     stub<Server>({
         getLogger: logger,
         getConfig: everyRecipe,
-        getContent: () => undefined,
+        getContent: () => testContent(),
         // The server's own registries are the full managers, not the two methods the
         // creative menu reads off them, so they are stood in for separately.
         getBlockManager: () => stub<BlockManager>({ getBlocks: () => [] }),

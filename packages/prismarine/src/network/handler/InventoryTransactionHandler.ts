@@ -37,15 +37,11 @@ const FACE_COUNT = 6;
 /**
  * One right click on a block, offered to the content hooks.
  *
- * Declines whenever there is no content, which is what `content-packs` off means, so the caller
- * falls through to `World.useItemOn` and a server without content behaves as it always has.
- *
  * @returns Whether a behavior family or a content placement consumed the click.
  */
 const contentUse = (server: Server, player: Player, data: UseItemData): InteractionResult => {
     const content = server.getContent();
-    const actors = server.getContentWorld()?.actorsAt(player.getWorld().getDimension().name);
-    if (content === undefined || actors === undefined) return 'declined';
+    const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
     try {
         return useItemOnBlock({
@@ -80,8 +76,7 @@ const contentUse = (server: Server, player: Player, data: UseItemData): Interact
  */
 const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntityData): InteractionResult => {
     const content = server.getContent();
-    const actors = server.getContentWorld()?.actorsAt(player.getWorld().getDimension().name);
-    if (content === undefined || actors === undefined) return 'declined';
+    const actors = server.getContentWorld().actorsAt(player.getWorld().getDimension().name);
 
     const target = player.getWorld().getEntity(data.entityRuntimeId);
     if (target === null) return 'declined';

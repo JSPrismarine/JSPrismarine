@@ -202,10 +202,6 @@ export const runLootCommand = (
     destination: LootDestination
 ): number => {
     const content = server.getContent();
-    if (content === undefined) {
-        refuse('This server has loaded no loot tables; turn on content-packs to roll one');
-    }
-
     const drops = rollLoot(server, content, loot, source);
     if (drops.length === 0) return 0;
 

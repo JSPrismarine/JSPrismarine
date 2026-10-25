@@ -10,6 +10,7 @@ import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { Entity } from './Entity';
 import { stub } from '../testing/stub.test.helper';
+import { testContent } from '../testing/entityServer';
 
 /**
  * The damage pipeline on `Entity`: grace periods, absorption, knockback and the events.
@@ -58,7 +59,7 @@ const scene = () => {
         // No pack stack, which is the default a server boots with. The
         // enchantment step then has no definitions to run and takes nothing
         // off, which is what these cases assume.
-        getContent: () => undefined
+        getContent: () => testContent()
     });
 
     const world: any = {

@@ -8,7 +8,6 @@ import { Logger } from '@jsprismarine/logger';
 import Server from '../Server';
 import { Config } from '../config/Config';
 import { PACK_STACK_ENV } from './packStack';
-import { CONTENT_ENABLED_ENV } from './settings';
 import { buildServerContent } from './ServerContent';
 import { fixtureContentOptions } from './testing';
 
@@ -73,7 +72,7 @@ const bootstrap = async (levelName: string): Promise<Server> => {
     return server;
 };
 
-describe('the server with the content flag', () => {
+describe('the server building its content at startup', () => {
     let root: string;
 
     beforeAll(() => {
@@ -86,37 +85,30 @@ describe('the server with the content flag', () => {
         rmSync(root, { recursive: true, force: true });
     });
 
-    it('boots with the flag off and builds no content', async () => {
-        vi.stubEnv(CONTENT_ENABLED_ENV, '0');
-        const server = await bootstrap('content-off');
-
-        expect(server.getContent()).toBeUndefined();
-        await expect(() => server.shutdown()).not.toThrow();
-    });
-
-    it('boots with the flag on and builds the content it found', async () => {
+    it('builds the content it found, with no setting asking it to', async () => {
         // Mojang's two halves are pointed at nothing, so the stack is the committed
         // `jsprismarine_vanilla` overlay alone: 1477 real block files, no fetched data.
         // That `enableContent` reports the two missing members rather than refusing to
         // start is the half of this that a server without the fetch depends on.
-        vi.stubEnv(CONTENT_ENABLED_ENV, '1');
         vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
         vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
 
         const server = await bootstrap('content-on');
 
-        expect(server.getContent()?.blocks.types.size).toBe(1477);
-        expect(server.getContent()?.diagnostics.filter((entry) => entry.code === 'pack.missing')).toHaveLength(2);
+        expect(server.getContent().blocks.types.size).toBe(1477);
+        expect(server.getContent().diagnostics.filter((entry) => entry.code === 'pack.missing')).toHaveLength(2);
         await expect(() => server.shutdown()).not.toThrow();
     }, 60_000);
 
     it('runs on content a test or a plugin composed itself', async () => {
-        vi.stubEnv(CONTENT_ENABLED_ENV, '0');
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
+        vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
+
         const server = await bootstrap('content-supplied');
         server.setContent(buildServerContent(fixtureContentOptions()));
 
-        expect(server.getContent()?.blocks.types.size).toBe(2);
-        expect(server.getContent()?.items.registry.size).toBe(3);
+        expect(server.getContent().blocks.types.size).toBe(2);
+        expect(server.getContent().items.registry.size).toBe(3);
         await expect(() => server.shutdown()).not.toThrow();
-    });
+    }, 60_000);
 });

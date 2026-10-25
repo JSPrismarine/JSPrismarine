@@ -21,6 +21,7 @@ import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import { World } from './World';
 import type { SystemBlock } from './WorldSystems';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
 
 /**
  * The engine systems, driven by a real world tick.
@@ -90,8 +91,8 @@ const testServer = (): Server =>
         getBlockManager: () => stub<BlockManager>({ findBlock: () => null }),
         // No content, so no data-driven entities, no block families to notify when a write
         // changes a position, and no loot table behind a block the engine takes out.
-        getContent: () => undefined,
-        getEntityRuntime: () => undefined
+        getContent: () => testContent(),
+        getEntityRuntime: () => inertEntityRuntime()
     });
 
 /**

@@ -10,6 +10,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
+import { inertEntityRuntime, testContent } from '../testing/entityServer';
 
 /**
  * `getLoadedChunk` answers from a one entry cache, so the thing worth pinning is that the cache
@@ -30,8 +31,8 @@ const testWorld = () => {
         server: stub<Server>({
             getLogger: () => logger,
             getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),
-            getContent: () => undefined,
-            getEntityRuntime: () => undefined
+            getContent: () => testContent(),
+            getEntityRuntime: () => inertEntityRuntime()
         }),
         provider: stub<BaseProvider & Provider>({
             readChunk: async (x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)

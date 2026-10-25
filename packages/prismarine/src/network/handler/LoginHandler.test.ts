@@ -22,6 +22,7 @@ import PlayStatusPacket from '../packet/PlayStatusPacket';
 import ResourcePacksInfoPacket from '../packet/ResourcePacksInfoPacket';
 import PlayStatus from '../type/PlayStatus';
 import LoginHandler from './LoginHandler';
+import { testContent } from '../../testing/entityServer';
 
 /** A well-formed client identity; every real login carries one. */
 const IDENTITY = 'd1b3f8a24c5e4f6a9b7c8d9e0f1a2b3c';
@@ -75,7 +76,7 @@ describe('network', () => {
             const server: Server = stub<Server>({
                 getChunkScheduler: chunkScheduler,
                 // No pack stack, so a restored inventory resolves no item through the content.
-                getContent: () => undefined,
+                getContent: () => testContent(),
                 getLogger: logger,
                 getSessionManager: sessionManager,
                 // `getWorlds` because a login looks for the player's record in every loaded

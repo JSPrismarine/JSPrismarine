@@ -155,12 +155,10 @@ export default class Server extends EventEmitter {
     private random: Random = Math.random;
 
     /**
-     * Every content registry built from the pack stack, or undefined while `content-packs` is off.
+     * Every content registry built from the pack stack.
      *
-     * Off by default: the managers below still own blocks, items, entities and world generation,
-     * and they are being moved across one subsystem at a time. A manager that has been moved
-     * reads this when it is there and falls back to its own table when it is not, so a server
-     * with the flag off behaves exactly as it did before.
+     * Undefined only before {@link Server.enableContent} has run, which is why the field is
+     * private and {@link Server.getContent} throws rather than handing out `undefined`.
      */
     private content: ServerContent | undefined;
 
@@ -177,8 +175,8 @@ export default class Server extends EventEmitter {
      * The data-driven entity runtimes, one per dimension.
      *
      * Filled by the content world source as it assembles each dimension's adapter, and read
-     * by that dimension's `World` to tick it. Empty while `content-packs` is off, which is
-     * what leaves `MobSpawner` and the written entity classes in charge.
+     * by that dimension's `World` to tick it. A dimension gains its runtime the first time
+     * anything asks for its adapter, so the map is empty until then.
      */
     private entityRuntimes = new EntityRuntimes();
 
@@ -300,11 +298,12 @@ export default class Server extends EventEmitter {
     }
 
     /**
-     * Builds the content registries from the pack stack, when `content-packs` is on.
+     * Builds the content registries from the pack stack.
      *
-     * Reported rather than thrown unless the stack is strict. A pack that will not load is
-     * worth a loud log line; it is not worth refusing to start a server whose managers still
-     * hold their own tables. Strict mode is the opposite choice and is what a test uses.
+     * The build is what blocks, items, entities, recipes, loot and spawning are, so a failure
+     * stops the server rather than leaving it running on nothing. `content-strict` decides the
+     * softer half: whether a single pack that reports an error also fails the build, or whether
+     * the stack loads short and writes the error into the content report.
      * @internal
      */
     private enableContent(): void {
@@ -314,7 +313,6 @@ export default class Server extends EventEmitter {
         // A fresh registry per build: the runtimes hold a closure over the content that is
         // about to be replaced, and an entity driven by the old one would read the old types.
         this.entityRuntimes = new EntityRuntimes();
-        if (!settings.enabled) return;
 
         const seed = this.worldSeed();
         const timer = new Timer();
@@ -344,8 +342,9 @@ export default class Server extends EventEmitter {
             });
         } catch (error: unknown) {
             this.logger.error(error);
-            this.logger.error('Failed to build the content registries; the pack stack was not loaded');
-            return;
+            throw new Error('Failed to build the content registries; the pack stack was not loaded', {
+                cause: error
+            });
         }
 
         const errors = this.content.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
@@ -925,38 +924,38 @@ export default class Server extends EventEmitter {
     /**
      * Every content registry built from the pack stack.
      *
-     * Undefined while `content-packs` is off, which is the default, and undefined after a
-     * build that failed. A caller that needs content either falls back to the manager it
-     * replaced or reports that the flag is off; it must not assume a value.
-     * @returns {ServerContent | undefined} The content, or undefined when none was built.
+     * @returns {ServerContent} The content.
+     * @throws When read before {@link Server.enable} has built it.
      */
-    public getContent(): ServerContent | undefined {
+    public getContent(): ServerContent {
+        if (!this.content) throw new Error('the content was read before the pack stack was built');
         return this.content;
     }
 
     /**
      * The world the content acts through, for the interaction path.
      *
-     * Undefined whenever {@link Server.getContent} is, since the two are built together.
-     * @returns {ServerWorldHandle | undefined} The handle, or undefined when no content was built.
+     * @returns {ServerWorldHandle} The handle.
+     * @throws When read before {@link Server.enable} has built it.
      */
-    public getContentWorld(): ServerWorldHandle | undefined {
+    public getContentWorld(): ServerWorldHandle {
+        if (!this.contentWorld) throw new Error('the content world was read before the pack stack was built');
         return this.contentWorld;
     }
 
     /**
-     * The data-driven entities of one dimension, or undefined when it has none.
+     * The data-driven entities of one dimension.
      *
      * Asking builds the dimension's content adapter if nothing has yet, so a world that
-     * loads after the content was built still gets a runtime. Undefined while `content-packs`
-     * is off, which is what tells a `World` to keep running the written entity classes and
-     * `MobSpawner` instead.
+     * loads after the content was built still gets a runtime.
      * @param {string} dimension - The namespaced dimension identifier.
-     * @returns {LiveEntityRuntime | undefined} The runtime, or undefined when none was built.
+     * @returns {LiveEntityRuntime} The runtime for that dimension.
      */
-    public getEntityRuntime(dimension: string): LiveEntityRuntime | undefined {
-        this.contentWorld?.at(dimension);
-        return this.entityRuntimes.at(dimension);
+    public getEntityRuntime(dimension: string): LiveEntityRuntime {
+        this.getContentWorld().at(dimension);
+        const runtime = this.entityRuntimes.at(dimension);
+        if (!runtime) throw new Error(`no entity runtime was built for ${dimension}`);
+        return runtime;
     }
 
     /**
@@ -965,9 +964,9 @@ export default class Server extends EventEmitter {
      * For a test and for a plugin that composes its own stack. Hands over a whole build, not
      * a patch: a registry's numeric ids are positional, so a half-replaced content set would
      * leave the flattened tables indexed against a palette that no longer matches.
-     * @param content - The build to run on, or undefined to go back to the managers' tables.
+     * @param content - The build to run on from here.
      */
-    public setContent(content: ServerContent | undefined): void {
+    public setContent(content: ServerContent): void {
         this.content = content;
         // The compiled functions came from the stack this build replaces, so
         // they go with it rather than outliving the pack that declared them.

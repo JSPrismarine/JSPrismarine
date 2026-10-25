@@ -62,27 +62,20 @@ export class UnlockedRecipes {
 /**
  * Unlocks or locks recipes for players.
  *
- * @param book - The compiled recipe book, or undefined when `content-packs`
- *   is off. Without it a name cannot be checked against anything, so `*` has
- *   nothing to expand to and a name is refused rather than unlocked blindly.
+ * @param book - The compiled recipe book the stack loaded.
  * @param recipe - A recipe id, or `*` for every recipe in the book.
  * @param give - True to unlock, false to lock.
  * @returns How many players had their book changed.
- * @throws {CommandSyntaxException} When no book is loaded, or when the name
- *   is not one the book holds.
+ * @throws {CommandSyntaxException} When the name is not one the book holds.
  */
 export const changeRecipes = (
     server: Server,
     unlocked: UnlockedRecipes,
-    book: RecipeBook | undefined,
+    book: RecipeBook,
     players: readonly EntityRef[],
     recipe: string,
     give: boolean
 ): number => {
-    if (book === undefined) {
-        refuse('This server has loaded no recipes; turn on content-packs to unlock one');
-    }
-
     const all = recipe === ALL_RECIPES;
     if (!all && book.get(recipe) === undefined) refuse(`There is no recipe called ${recipe}`);
 

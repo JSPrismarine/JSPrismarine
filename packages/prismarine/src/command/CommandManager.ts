@@ -31,7 +31,7 @@ import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
-import { buildVanillaCommands, contentRegistryIds, unwiredCommands } from './vanillaCommands';
+import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './vanillaCommands';
 
 /**
  * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
@@ -232,19 +232,16 @@ export class CommandManager implements Service {
         const timer = new Timer();
 
         // Rebuilt here rather than in the constructor, because the content
-        // build runs between the two and decides whether the commands whose
-        // whole subsystem is the pack stack can be offered at all.
-        // The registry arguments validate against what this build loaded, so
-        // a pack's own entity, block, item or enchantment is spellable.
-        const content = this.server.getContent();
-        const unwired = unwiredCommands(content !== undefined);
-        this.vanilla = buildVanillaCommands(content === undefined ? undefined : contentRegistryIds(content));
+        // build runs between the two and the registry arguments validate
+        // against what it loaded, so a pack's own entity, block, item or
+        // enchantment is spellable.
+        this.vanilla = buildVanillaCommands(contentRegistryIds(this.server.getContent()));
 
         this.server
             .getLogger()
             .verbose(
                 `Registered §b${this.vanilla.getNames().length}§r vanilla command(s); ` +
-                    `§e${Object.keys(unwired).length}§r need a subsystem this server does not have`
+                    `§e${Object.keys(UNWIRED_COMMANDS).length}§r need a subsystem this server does not have`
             );
 
         const commands = Object.values(Commands);

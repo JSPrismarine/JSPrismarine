@@ -41,13 +41,13 @@ import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandl
  */
 const harness = ({
     cancelSpawn = false,
-    content = undefined,
+    content = fixtureJoinPayloads().content,
     joinSpawn = null,
     spawn = new Vector3(0, 64, 0)
 }: {
     cancelSpawn?: boolean;
-    /** The content build, or undefined for a server with `content-packs` off. */
-    content?: ServerContent | undefined;
+    /** The content build whose registries the join burst writes from. */
+    content?: ServerContent;
     /** Where the player was placed on joining; null, the default, is a returning player. */
     joinSpawn?: PlayerSpawn | null;
     /** The world spawn `getSpawnPosition` answers with. */
@@ -266,19 +266,6 @@ describe('ResourcePackClientResponseHandler', () => {
         expect(startGame?.playerPos).toEqual(new Vector3(4.5, 69 + 1.62, -6.5));
     });
 
-    it('leaves StartGame on the captured definitions when no content was built', async () => {
-        const { packets, server, session } = harness();
-
-        await new ResourcePackClientResponseHandler().handle(
-            response(ResourcePackStatusType.Completed),
-            server,
-            session
-        );
-
-        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
-        expect(startGame?.blockProperties).toBeNull();
-    });
-
     it('declares what the content build holds in StartGame', async () => {
         const { content } = fixtureJoinPayloads();
         const { packets, server, session } = harness({ content });
@@ -294,19 +281,6 @@ describe('ResourcePackClientResponseHandler', () => {
         // empty list where the captured path would have sent all 98.
         const startGame = packets.find((packet) => packet instanceof StartGamePacket);
         expect(startGame?.blockProperties).toEqual([]);
-    });
-
-    it('leaves the item registry on the captured table when no content was built', async () => {
-        const { packets, server, session } = harness();
-
-        await new ResourcePackClientResponseHandler().handle(
-            response(ResourcePackStatusType.Completed),
-            server,
-            session
-        );
-
-        const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
-        expect(items?.entries).toBeNull();
     });
 
     it('sends the content build item registry', async () => {

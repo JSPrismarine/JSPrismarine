@@ -10,9 +10,9 @@
  * So the registry is built with an include filter. An excluded command is not
  * registered, so nothing can parse it, no alias is registered for it, and the
  * flattener never puts it in `AvailableCommandsPacket`.
- * {@link UNWIRED_COMMANDS} and {@link CONTENT_ONLY_COMMANDS} are the two
- * lists, with the reason for each, and `vanillaCommands.test.ts` asserts that
- * they and the registered set add up to what the package implements.
+ * {@link UNWIRED_COMMANDS} is that list, with the reason for each, and
+ * `vanillaCommands.test.ts` asserts that it and the registered set add up to
+ * what the package implements.
  */
 import type { CommandSource, ContentRegistryIds } from '@jsprismarine/commands';
 import { CommandRegistry, registerVanillaCommands } from '@jsprismarine/commands';
@@ -35,32 +35,6 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     place: 'feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk',
     ride: 'entity riding outside the data-driven entity runtime'
 };
-
-/**
- * The commands whose whole subsystem is the pack stack, and which are
- * therefore advertised only when `content-packs` is on.
- *
- * `/loot` rolls Java's tables and `/recipe` unlocks out of Java's book, and
- * there is neither without a content build, so with the packs off the two
- * could do nothing at all. The rest of the set either works without content
- * or reports the same thing Java reports for an empty datapack: `/function`
- * on a server with no functions answers that the function does not exist,
- * which is the truth and is useful.
- */
-export const CONTENT_ONLY_COMMANDS: Readonly<Record<string, string>> = {
-    loot: "Java's loot tables, which come from the pack stack; turn on content-packs",
-    recipe: "Java's recipe book, which comes from the pack stack; turn on content-packs"
-};
-
-/**
- * Every command this server leaves out, with the reason.
- *
- * @param contentLoaded - Whether a content build exists, which decides the
- * {@link CONTENT_ONLY_COMMANDS} half.
- * @returns {Readonly<Record<string, string>>} Command name to reason.
- */
-export const unwiredCommands = (contentLoaded: boolean): Readonly<Record<string, string>> =>
-    contentLoaded ? UNWIRED_COMMANDS : { ...UNWIRED_COMMANDS, ...CONTENT_ONLY_COMMANDS };
 
 /**
  * The four registries whose contents a command argument validates against.
@@ -98,18 +72,17 @@ export const contentRegistryIds = (content: ServerContent): ContentRegistryIds =
  * serves every sender.
  *
  * @param content - What the pack stack holds, from
- * {@link contentRegistryIds}, or undefined when there is no content build.
- * Its presence decides whether the content-backed commands are offered, and
- * its lists are what the registry arguments accept on top of Mojang's.
+ * {@link contentRegistryIds}. Its lists are what the registry arguments
+ * accept on top of Mojang's. Left out before the content build has run, which
+ * is the registry `CommandManager`'s constructor holds until `enable`
+ * replaces it.
  * @returns {CommandRegistry<CommandSource>} The registry, with
- * {@link unwiredCommands} left out.
+ * {@link UNWIRED_COMMANDS} left out.
  */
-export const buildVanillaCommands = (content?: ContentRegistryIds): CommandRegistry<CommandSource> => {
-    const unwired = unwiredCommands(content !== undefined);
-    return registerVanillaCommands(
+export const buildVanillaCommands = (content?: ContentRegistryIds): CommandRegistry<CommandSource> =>
+    registerVanillaCommands(
         new CommandRegistry<CommandSource>({
-            include: (name) => !Object.hasOwn(unwired, name),
+            include: (name) => !Object.hasOwn(UNWIRED_COMMANDS, name),
             ...(content === undefined ? {} : { content })
         })
     );
-};

@@ -56,6 +56,7 @@ import LevelDB from '../world/providers/leveldb/LevelDB';
 import { World } from '../world/World';
 import ContainerEntry from './ContainerEntry';
 import { openContainerContents } from './containerStore';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /** Where the chest stands, and the slot of the player's inventory the diamonds start in. */
 const CHEST = { x: 4, y: 64, z: 4 };
@@ -155,9 +156,11 @@ const buildScene = async (name: string) => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
-        getContent: () => content,
-        // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => undefined,
+        getContent: () => {
+            if (content === undefined) throw new Error('the content was read before it was built');
+            return content;
+        },
+        getEntityRuntime: () => inertEntityRuntime(),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',

@@ -155,7 +155,7 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
         },
 
         recipes: (players, recipe, give) =>
-            changeRecipes(server, unlocked, server.getContent()?.recipes, players, recipe, give),
+            changeRecipes(server, unlocked, server.getContent().recipes, players, recipe, give),
 
         sendMessage: (targets, kind, text) => {
             for (const player of playersOf(server, targets)) {

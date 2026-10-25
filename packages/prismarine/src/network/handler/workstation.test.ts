@@ -117,8 +117,8 @@ const openScreen = (screen: WindowTypes): OpenBlockContainer => ({
 });
 
 /** A player at a workstation, with the levels to pay for what it offers. */
-const scene = (open: OpenBlockContainer, withContent = true) => {
-    const built = withContent ? content() : undefined;
+const scene = (open: OpenBlockContainer) => {
+    const built = content();
     const inventory = new HumanInventory();
     const attributes = new Attributes(Attributes.getPlayerDefaults());
     const sent: DataPacket[] = [];
