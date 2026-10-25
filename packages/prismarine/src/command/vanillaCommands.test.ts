@@ -82,8 +82,16 @@ describe('the vanilla command set this server runs', () => {
     });
 
     it('leaves the package itself holding everything', () => {
-        // The filter is this server's, not the package's: a different host
-        // with a scoreboard gets all fifty from the same call.
+        // The filter is this server's, not the package's: a host that can
+        // answer every verb gets all 60 from the same call.
+        expect(registerVanillaCommands().getNames()).toHaveLength(60);
         expect(registerVanillaCommands().getNames().sort()).toEqual([...implemented].sort());
+    });
+
+    it('offers 52 commands with the pack stack on and 50 with it off', () => {
+        // The number a player sees in their client. Stated outright because
+        // it is what a release note reports and what a regression moves.
+        expect(registry.getNames()).toHaveLength(52);
+        expect(buildVanillaCommands(false).getNames()).toHaveLength(50);
     });
 });

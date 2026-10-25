@@ -173,7 +173,7 @@ describe('the command layer on a booted server', () => {
     it('reads and writes a gamerule under the name the world keeps', async () => {
         await expect(run('/gamerule fall_damage false')).resolves.toBe(true);
 
-        expect(world.getGameRuleManager().getGameRule('fallDamage')?.[0]).toBe(false);
+        expect(world.getGameRuleManager()?.getGameRule('fallDamage')?.[0]).toBe(false);
     });
 
     it('answers /help with the usage lines of the wired set', async () => {
@@ -239,8 +239,14 @@ describe('the command layer on a booted server', () => {
                 'data/fixture/function/under.mcfunction': 'setblock ~ ~-1 ~ minecraft:diamond_block\n',
                 'data/fixture/function/call.mcfunction': 'function fixture:build\n',
                 'data/fixture/function/ticked.mcfunction': 'setblock 11 70 11 minecraft:emerald_block\n',
+                'data/fixture/function/plain.mcfunction': 'setblock 14 70 14 minecraft:iron_block\n',
+                'data/fixture/function/wins.mcfunction': 'return 1\n',
+                'data/fixture/function/loses.mcfunction': 'return 0\n',
                 'data/fixture/tags/function/both.json': JSON.stringify({
                     values: ['fixture:build', 'fixture:place']
+                }),
+                'data/fixture/tags/function/either.json': JSON.stringify({
+                    values: ['fixture:loses', 'fixture:wins']
                 }),
                 'data/minecraft/tags/function/tick.json': JSON.stringify({ values: ['fixture:ticked'] })
             };
@@ -322,6 +328,53 @@ describe('the command layer on a booted server', () => {
 
             await server.getCommandManager().tickFunctions();
             expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
+        });
+
+        it('reads a /schedule delay in seconds as the 100 ticks it is', async () => {
+            await run('/setblock 10 71 10 minecraft:air');
+            await expect(run('/schedule function fixture:build 5s')).resolves.toBe(true);
+
+            for (let tick = 0; tick < 99; tick += 1) await server.getCommandManager().tickFunctions();
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:air');
+
+            await server.getCommandManager().tickFunctions();
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
+        });
+
+        /** Runs the body only when the named function matched, and says whether it did. */
+        const ifFunction = async (reference: string, at: [number, number, number]) => {
+            const [x, y, z] = at;
+            await run(`/setblock ${x} ${y} ${z} minecraft:air`);
+            await run(`/execute if function ${reference} run setblock ${x} ${y} ${z} minecraft:gold_block`);
+            return world.loadedBlockAt(x, y, z)?.name === 'minecraft:gold_block';
+        };
+
+        it('does not match a function that ran its lines and never returned', async () => {
+            // The old rule answered with the number of lines that ran, so a
+            // one-line function matched and almost everything else did too.
+            await expect(ifFunction('fixture:plain', [5, 70, 5])).resolves.toBe(false);
+
+            // And it did run: the condition evaluates the function either way.
+            expect(world.loadedBlockAt(14, 70, 14)?.name).toBe('minecraft:iron_block');
+        });
+
+        it('matches a function that returned a non-zero value', async () => {
+            await expect(ifFunction('fixture:wins', [5, 71, 5])).resolves.toBe(true);
+        });
+
+        it('does not match a function that returned zero', async () => {
+            await expect(ifFunction('fixture:loses', [5, 72, 5])).resolves.toBe(false);
+        });
+
+        it('matches a tag when any of its members matched', async () => {
+            // `fixture:loses` runs first and returns 0; the tag still matches
+            // because `fixture:wins` is also run and does.
+            await expect(ifFunction('#fixture:either', [7, 70, 7])).resolves.toBe(true);
+        });
+
+        it('refuses a /return typed outside a function', async () => {
+            await expect(run('/return 1')).resolves.toBe(false);
+            expect(answers.some((line) => line.includes('inside a function'))).toBe(true);
         });
     });
 });

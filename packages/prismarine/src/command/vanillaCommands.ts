@@ -1,7 +1,7 @@
 /**
  * The vanilla command set this server runs, and the part of it that it does not.
  *
- * `@jsprismarine/commands` implements 59 commands against its `CommandHost`
+ * `@jsprismarine/commands` implements 60 commands against its `CommandHost`
  * seam. The ones this server cannot answer call into a subsystem that does not
  * exist, and a command whose body cannot do anything is worse than one the
  * client was never offered: the player types it, the server accepts it, and
