@@ -1,6 +1,6 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 
-import { Command, literal } from '../Command';
+import { Command, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class StopCommand extends Command {
@@ -14,12 +14,14 @@ export default class StopCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
-            literal('stop').executes(async (context) => {
-                const source = context.getSource();
+            literal('stop').executes(
+                asyncCommand(async (context) => {
+                    const source = context.getSource();
 
-                await source.getServer().getServer().shutdown();
-                return 'Stopping the server...';
-            })
+                    await source.getServer().getServer().shutdown();
+                    return 'Stopping the server...';
+                })
+            )
         );
     }
 }

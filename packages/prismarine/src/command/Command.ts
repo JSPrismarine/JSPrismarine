@@ -1,10 +1,74 @@
-import type { ArgumentType, CommandDispatcher } from '@jsprismarine/brigadier';
+import type { ArgumentType, CommandContext, CommandDispatcher } from '@jsprismarine/brigadier';
 import {
     ArgumentCommandNode,
     argument as brigadierArgument,
     literal as brigadierLiteral
 } from '@jsprismarine/brigadier';
 import type { CommandExecutor } from './CommandExecutor';
+
+/**
+ * The feedback a command body produces, which {@link CommandManager.dispatchCommand} broadcasts
+ * to the operator channel. A body that answers the sender itself produces none.
+ */
+// biome-ignore lint/suspicious/noConfusingVoidType: undefined would reject an async body that returns nothing, which most of these bodies do
+export type CommandFeedback = string | void;
+
+/**
+ * The result a command that ran reports.
+ *
+ * Brigadier's result is a count, where 0 means the command did nothing and a positive number is
+ * what `execute store result` captures. None of this server's commands count anything yet, so a
+ * body that ran reports 1.
+ */
+const COMMAND_RAN = 1;
+
+/** The bodies {@link collectAsyncCommands} is currently collecting. */
+const running: Promise<CommandFeedback>[] = [];
+
+/**
+ * Wraps a command body that has work to await as a Brigadier command.
+ *
+ * `CommandDispatcher.execute` is synchronous and upstream Brigadier's `Command.run` returns an
+ * `int`, so a body cannot hand the dispatcher a promise: the dispatcher would push it into its
+ * result list and give it to the `ResultConsumer` unresolved. Almost every command here answers
+ * the sender, touches a world or shuts the server down, so almost every body has to await
+ * something.
+ *
+ * The body is started synchronously and its promise is parked on a queue, which
+ * {@link collectAsyncCommands} hands back to `CommandManager.dispatchCommand`. The command is
+ * awaited there, so nothing is fired and forgotten: a rejection still reaches the sender and the
+ * feedback string a body returns is still broadcast.
+ */
+export const asyncCommand =
+    (run: (context: CommandContext<CommandExecutor>) => Promise<CommandFeedback>) =>
+    (context: CommandContext<CommandExecutor>): number => {
+        running.push(run(context));
+        return COMMAND_RAN;
+    };
+
+/**
+ * Runs `execute` and returns the bodies {@link asyncCommand} started while it ran.
+ *
+ * One module-level queue is enough for any number of dispatchers. `CommandDispatcher.execute` is
+ * synchronous and so is this, so the only thing that can reach the queue in between is a nested
+ * dispatch from a body that has not awaited yet, which `/execute` does. That case parks the outer
+ * queue rather than clearing it.
+ *
+ * @throws Whatever `execute` throws, after absorbing the rejections of the bodies it had already
+ *   started, which nothing will await.
+ */
+export const collectAsyncCommands = (execute: () => void): Promise<CommandFeedback>[] => {
+    const outer = running.splice(0);
+    try {
+        execute();
+        return running.splice(0);
+    } catch (error: unknown) {
+        for (const pending of running.splice(0)) void pending.catch(() => {});
+        throw error;
+    } finally {
+        running.push(...outer);
+    }
+};
 
 /**
  * Starts a lowercase literal node whose callbacks receive the command source as a `CommandExecutor`.

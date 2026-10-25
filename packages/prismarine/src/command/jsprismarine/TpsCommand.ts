@@ -1,6 +1,6 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 
-import { Command, literal } from '../Command';
+import { Command, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class TpsCommand extends Command {
@@ -23,13 +23,15 @@ export default class TpsCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
-            literal('tps').executes(async (context) => {
-                const source = context.getSource();
-                const tps = source.getServer().getTPS();
-                const tick = source.getServer().getTick();
+            literal('tps').executes(
+                asyncCommand(async (context) => {
+                    const source = context.getSource();
+                    const tps = source.getServer().getTPS();
+                    const tick = source.getServer().getTick();
 
-                await source.sendMessage(`TPS: ${this.formatTPS(tps)} (Tick: ${tick})`);
-            })
+                    await source.sendMessage(`TPS: ${this.formatTPS(tps)} (Tick: ${tick})`);
+                })
+            )
         );
     }
 }

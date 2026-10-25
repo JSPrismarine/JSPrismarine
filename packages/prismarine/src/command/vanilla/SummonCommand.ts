@@ -4,7 +4,7 @@ import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { CommandArgumentMob, getString } from '../CommandArguments';
 
 import Player from '../../Player';
-import { Command, argument, literal } from '../Command';
+import { Command, argument, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class SummonCommand extends Command {
@@ -21,25 +21,28 @@ export default class SummonCommand extends Command {
             literal('summon').then(
                 argument('entity', new CommandArgumentMob()) /* .then(
                     argument('position', new CommandArgumentPosition()) */
-                    .executes(async (context) => {
-                        const source = context.getSource();
-                        if (!(source instanceof Player)) throw new Error(`This command can't be run from the console`);
+                    .executes(
+                        asyncCommand(async (context) => {
+                            const source = context.getSource();
+                            if (!(source instanceof Player))
+                                throw new Error(`This command can't be run from the console`);
 
-                        // const position = CommandArgumentPosition.getPosition(context, 'position');
-                        const entityId = getString(context, 'entity').toLowerCase();
-                        const mobId = entityId.includes(':') ? entityId : `minecraft:${entityId}`;
+                            // const position = CommandArgumentPosition.getPosition(context, 'position');
+                            const entityId = getString(context, 'entity').toLowerCase();
+                            const mobId = entityId.includes(':') ? entityId : `minecraft:${entityId}`;
 
-                        const Entity = spawnableEntities().find((value) => value.MOB_ID === mobId);
-                        if (!Entity) throw new Error(`No such entity "${entityId}"!`);
+                            const Entity = spawnableEntities().find((value) => value.MOB_ID === mobId);
+                            if (!Entity) throw new Error(`No such entity "${entityId}"!`);
 
-                        // Summoned where the player stands.
-                        const mob = new Entity({ position: source.getPosition() });
-                        await source.getWorld().addEntity(mob);
+                            // Summoned where the player stands.
+                            const mob = new Entity({ position: source.getPosition() });
+                            await source.getWorld().addEntity(mob);
 
-                        const res = `Summoned ${Entity.MOB_ID}`;
-                        await source.sendMessage(res);
-                        return res;
-                    })
+                            const res = `Summoned ${Entity.MOB_ID}`;
+                            await source.sendMessage(res);
+                            return res;
+                        })
+                    )
                 // )
             )
         );

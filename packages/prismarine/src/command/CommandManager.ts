@@ -9,6 +9,7 @@ import {
 
 import type { Command, Entity, Server, Service } from '../';
 import { Chat } from '../chat/Chat';
+import { collectAsyncCommands } from './Command';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
 // `./world/` before `Player`, so reaching for it via '../' lands in a half-initialized
 // module and the binding is not a constructor yet by the time `instanceof` runs.
@@ -285,13 +286,15 @@ export class CommandManager implements Service {
                 }
             }
 
-            let res: string[] = [];
             // Handle aliases and IDs.
             if (command.name !== id) {
                 return this.dispatchCommand(sender, target, input.replace(id, command.name));
             }
 
-            res = await Promise.all(this.dispatcher.execute(parsed));
+            // The dispatcher is synchronous and a command body returns a result code, so the
+            // work a body awaits is collected here and awaited before the feedback goes out.
+            // See `asyncCommand` for why the bodies cannot return their promises directly.
+            const res = await Promise.all(collectAsyncCommands(() => this.dispatcher.execute(parsed)));
 
             // `sendCommandFeedback` is a per-world gamerule, so it is read from the world the
             // sender is standing in. The console stands in none; the default world answers
@@ -304,10 +307,10 @@ export class CommandManager implements Service {
             if (!feedback) return true;
 
             await Promise.all(
-                res.map(async (res: any) => {
+                res.map(async (feedback) => {
                     const chat = new Chat({
                         sender: this.server.getConsole()!,
-                        message: `§o§7[${target.getName()}: ${res ?? `issued server command: /${input}`}]§r`,
+                        message: `§o§7[${target.getName()}: ${feedback ?? `issued server command: /${input}`}]§r`,
                         channel: '*.ops'
                     });
 

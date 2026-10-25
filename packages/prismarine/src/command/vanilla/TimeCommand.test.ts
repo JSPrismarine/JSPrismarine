@@ -5,6 +5,7 @@ import { stub, stubOf } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type { CommandExecutor } from '../CommandExecutor';
 import TimeCommand from './TimeCommand';
+import { collectAsyncCommands } from '../Command';
 
 describe('command', () => {
     describe('TimeCommand', () => {
@@ -38,7 +39,7 @@ describe('command', () => {
 
             vi.mocked(world.getTicks).mockReturnValue(1000);
 
-            await dispatcher.execute('time', player);
+            await Promise.all(collectAsyncCommands(() => dispatcher.execute('time', player)));
 
             expect(player.sendMessage).toHaveBeenCalledWith('The current time is 1000');
         });
