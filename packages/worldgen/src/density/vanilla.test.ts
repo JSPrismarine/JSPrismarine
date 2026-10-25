@@ -19,8 +19,8 @@ interface DimensionVectors {
 const dimensions: DimensionVectors[] = vectors.density.dimensions;
 
 /**
- * These run only with `JSP_WORLDGEN_VANILLA` set, because they read the pinned Java Edition
- * server jar, which a clean checkout does not have.
+ * These read the pinned Java Edition server jar,
+ * which a clean checkout does not have.
  */
 describe.skipIf(!vanilla)('the real vanilla worldgen data', () => {
     if (!vanilla) return;

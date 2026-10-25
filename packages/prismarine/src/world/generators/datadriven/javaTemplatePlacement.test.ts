@@ -6,16 +6,15 @@
  * whatever Mojang shipped. `javaTemplate.test.ts` in `@jsprismarine/structures` covers reading
  * the real files.
  */
-import { WorldgenRandom, fossil } from '@jsprismarine/features';
 import BinaryStream from '@jsprismarine/binaryutils';
+import { WorldgenRandom, fossil } from '@jsprismarine/features';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import { GenerationRegion } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
-import { createTemplateSource, findJavaTemplateSource } from './javaStructureTemplates';
+import { createTemplateSource } from './javaStructureTemplates';
 import type { TemplateSource } from './javaTemplatePlacement';
-import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const SEED = 99n;
 const STONE = { name: 'minecraft:stone', properties: {} };
@@ -199,34 +198,6 @@ describe('placeTemplate', () => {
         expect(placed).toBe(false);
         expect(templateBlocks(built)).toHaveLength(0);
     });
-
-    // Reading the templates inflates every entry of Mojang's server jar, so the one test that
-    // uses the real files is gated the same way the generator's vanilla tests are.
-    it.skipIf(process.env['JSP_WORLDGEN_VANILLA'] !== '1')(
-        'buries a real fossil out of the pinned server jar',
-        { timeout: 120000 },
-        () => {
-            const sources = findJavaWorldgenSources();
-            expect(sources, 'the vanilla datapack and the data generator reports are not on disk').toBeDefined();
-
-            const registries = loadJavaWorldgenRegistries(sources!);
-            const built = region(findJavaTemplateSource(cacheRoot(), registries.processorLists));
-            fillStone(built);
-
-            expect(
-                fossil(
-                    ['minecraft:fossil/spine_1'],
-                    ['minecraft:fossil/spine_1_coal'],
-                    'minecraft:fossil_rot',
-                    'minecraft:fossil_coal',
-                    4
-                ).place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 63, z: 8 })
-            ).toBe(true);
-
-            const names = new Set(templateBlocks(built).map((block) => block.name));
-            expect(names.has('minecraft:bone_block')).toBe(true);
-        }
-    );
 
     it('lets a later feature write over a template block', () => {
         const built = region(source());

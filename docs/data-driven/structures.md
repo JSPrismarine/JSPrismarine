@@ -143,7 +143,7 @@ reports and the structure templates:
 ```sh
 pnpm --filter @jsprismarine/bedrock-data run fetch:sources
 pnpm --filter @jsprismarine/bedrock-data run datagen:java
-JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
+pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
 ```
 
 `datagen:java` also extracts the 1511 structure templates out of the pinned server jar;

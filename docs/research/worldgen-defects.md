@@ -479,7 +479,7 @@ pnpm --filter @jsprismarine/bedrock-data run datagen:java
 Then the gated suite, which covers the generator as it stands:
 
 ```sh
-JSP_WORLDGEN_VANILLA=1 pnpm vitest run packages/prismarine/src/world/generators
+pnpm vitest run packages/prismarine/src/world/generators
 ```
 
 The measurements above came from a scratch Vitest file placed at

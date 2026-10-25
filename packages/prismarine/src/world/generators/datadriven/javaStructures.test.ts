@@ -11,7 +11,7 @@
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
  * pnpm --filter @jsprismarine/bedrock-data run datagen:java
- * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
+ * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -23,7 +23,7 @@ import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
-const enabled = process.env.JSP_WORLDGEN_VANILLA === '1' && sources !== undefined;
+const enabled = sources !== undefined;
 
 /** Generating a chunk that holds a structure runs the whole stack, which is not fast. */
 const CHUNK_TIMEOUT = 900_000;

@@ -6,7 +6,7 @@
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
- * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
+ * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
 import { describe, expect, it } from 'vitest';
@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
-const enabled = process.env.JSP_WORLDGEN_VANILLA === '1' && sources !== undefined;
+const enabled = sources !== undefined;
 
 describe.skipIf(!enabled)('the Java world generation registries', () => {
     const registries = enabled ? loadJavaWorldgenRegistries(sources!) : undefined;
