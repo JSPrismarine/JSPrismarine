@@ -251,13 +251,10 @@ describe.skipIf(!enabled)('the vanilla 26.3 enchantment corpus', () => {
         expect(tagFiles.size).toBe(22);
         expect(diagnostics.entries.filter((entry) => entry.severity === 'error')).toEqual([]);
 
-        // One warning, and it is not this package's: `lunge.json` reaches for
-        // the `food` member of the player sub-predicate, which
-        // `@jsprismarine/predicates` reports as unimplemented. Asserting the
-        // exact list keeps a new gap from slipping in unnoticed.
-        expect(diagnostics.entries.map((entry) => entry.message)).toEqual([
-            'the food member of a player predicate is not implemented'
-        ]);
+        // No warnings either. `lunge.json` reaches for the `food` member of the
+        // player sub-predicate, which `@jsprismarine/predicates` now implements.
+        // Asserting the exact list keeps a new gap from slipping in unnoticed.
+        expect(diagnostics.entries.map((entry) => entry.message)).toEqual([]);
 
         // Every definition goes into a registry, which expands the tags the
         // files name and proves the exclusive sets resolve.
