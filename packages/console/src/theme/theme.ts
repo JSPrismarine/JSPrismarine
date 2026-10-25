@@ -1,13 +1,14 @@
+import { LOG_LEVELS } from '@jsprismarine/logger';
 import type { ColorInput } from '@opentui/core';
 import { RGBA } from '@opentui/core';
 import type { AnsiColorName, ChatPalette } from './minecraftColors';
 import { ANSI_COLOR_NAMES, chatPaletteFrom } from './minecraftColors';
 
 /**
- * Log levels the console colors, in severity order. The first six are the
- * logger's levels; `dev` marks notices from the dev supervisor.
+ * Log levels the console colors, in the logger's severity order. Supervisor notices render as
+ * status segments and toasts, never as log lines, so there is no level role for them.
  */
-export const LEVEL_ROLES = ['error', 'warn', 'info', 'verbose', 'debug', 'silly', 'dev'] as const;
+export const LEVEL_ROLES = LOG_LEVELS;
 
 /** One of `LEVEL_ROLES`. */
 export type LevelRole = (typeof LEVEL_ROLES)[number];
@@ -75,7 +76,6 @@ export const defaultTheme: Theme = {
     verbose: '#8fbcbb',
     debug: '#7b8394',
     silly: '#b48ead',
-    dev: '#6c7383',
     ok: '#a3be8c',
     warning: '#ebcb8b',
     danger: '#bf616a',
@@ -102,7 +102,6 @@ export const ansiTheme: Theme = {
     verbose: ansiColor('cyan'),
     debug: ansiColor('brightBlack'),
     silly: ansiColor('magenta'),
-    dev: ansiColor('brightBlack'),
     ok: ansiColor('green'),
     warning: ansiColor('yellow'),
     danger: ansiColor('red'),
@@ -135,7 +134,6 @@ export const monochromeTheme: Theme = (() => {
         verbose: foreground,
         debug: foreground,
         silly: foreground,
-        dev: foreground,
         ok: foreground,
         warning: foreground,
         danger: foreground,

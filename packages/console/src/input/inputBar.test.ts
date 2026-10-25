@@ -1,6 +1,7 @@
 import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it } from 'vitest';
 
+import { defaultTheme } from '../theme/theme';
 import { CommandHistory } from './history';
 import type { CompletionResult, InputBarProps } from './inputBar';
 import { createInputBar } from './inputBar';
@@ -20,12 +21,8 @@ async function setup(overrides: Partial<InputBarProps> = {}) {
     let clock = 10_000;
 
     const bar = createInputBar(
-        { renderer: test.renderer },
+        { renderer: test.renderer, theme: defaultTheme },
         {
-            promptColor: '#ffffff',
-            textColor: '#ffffff',
-            ghostColor: '#888888',
-            disabledColor: '#444444',
             history,
             onSubmit: (line) => submitted.push(line),
             onComplete: noCompletions,

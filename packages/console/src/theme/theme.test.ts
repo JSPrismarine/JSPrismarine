@@ -1,3 +1,4 @@
+import { LOG_LEVELS } from '@jsprismarine/logger';
 import { parseColor, RGBA } from '@opentui/core';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import { MINECRAFT_COLORS } from './minecraftColors';
@@ -14,8 +15,8 @@ describe('theme roles', () => {
         void unknownRole;
     });
 
-    it('covers the levels the logger emits plus the supervisor level', () => {
-        expect(LEVEL_ROLES).toEqual(['error', 'warn', 'info', 'verbose', 'debug', 'silly', 'dev']);
+    it('covers exactly the levels the logger emits', () => {
+        expect(LEVEL_ROLES).toEqual(LOG_LEVELS);
     });
 
     it.each(Object.entries(themes))('%s resolves every role and chat color', (_, theme) => {

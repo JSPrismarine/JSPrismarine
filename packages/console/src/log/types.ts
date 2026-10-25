@@ -1,11 +1,4 @@
 import type { LogEntry } from '@jsprismarine/console-protocol';
-import type { LogLevel } from '@jsprismarine/logger';
-
-/**
- * Log levels from most to least severe. The logger package keeps its weights private, so the
- * console orders levels here for the level filter and the error and warning jump keys.
- */
-export const LOG_LEVELS = ['error', 'warn', 'info', 'verbose', 'debug', 'silly'] as const satisfies readonly LogLevel[];
 
 /** Child process output streams the host forwards as raw lines. */
 export type RawStream = 'stdout' | 'stderr';
@@ -22,8 +15,3 @@ export type StoredRecord = LogEntry & { generation: number } & (
         | { kind: 'raw'; stream: RawStream }
         | { kind: 'dropped'; count: number }
     );
-
-/** Compares two levels; negative when `a` is more severe than `b`. */
-export function compareLevels(a: LogLevel, b: LogLevel): number {
-    return LOG_LEVELS.indexOf(a) - LOG_LEVELS.indexOf(b);
-}

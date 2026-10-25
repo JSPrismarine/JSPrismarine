@@ -1,20 +1,14 @@
-import type { CliRenderer, MouseEvent } from '@opentui/core';
+import type { MouseEvent } from '@opentui/core';
 import { BoxRenderable, TextRenderable } from '@opentui/core';
-import type { Theme } from '../theme';
+import type { ConsoleContext } from '../context';
 import { formatLogLine } from './logLine';
 import type { LogStore } from './logStore';
 import { LogWindow } from './logWindow';
-
-/** Renderer-level dependencies the log view needs. Matches the console's component contract. */
-export interface LogViewContext {
-    renderer: CliRenderer;
-}
 
 /** Inputs for {@link createLogView}. */
 export interface LogViewProps {
     /** Source of records; the view repaints on every change. */
     store: LogStore;
-    theme: Theme;
     /** Wrap messages instead of truncating them. Defaults to false. */
     wrap?: boolean;
     /** Show the namespace column. Defaults to true. */
@@ -49,9 +43,9 @@ const WHEEL_ROWS = 3;
  * regardless of how many records the store holds. Rows are repainted from the store's visible
  * list on change and on resize, coalesced into one repaint per animation frame.
  */
-export function createLogView(ctx: LogViewContext, props: LogViewProps): LogView {
-    const { renderer } = ctx;
-    const { store, theme } = props;
+export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: LogViewProps): LogView {
+    const { renderer, theme } = ctx;
+    const { store } = props;
     let wrap = props.wrap ?? false;
     let showNamespace = props.showNamespace ?? true;
     const levelWidth = props.levelWidth ?? 'full';

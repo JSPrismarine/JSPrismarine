@@ -18,7 +18,7 @@ export const LEVEL_TOKEN_WIDTH = Math.max(...LEVEL_ROLES.map((level) => level.le
 
 /**
  * Attributes that emphasize a level without color: errors and warnings stand
- * out in bold, the verbose levels and supervisor notices recede in dim.
+ * out in bold, the verbose levels recede in dim.
  */
 const LEVEL_ATTRIBUTES: Readonly<Record<LevelRole, number>> = {
     error: TextAttributes.BOLD,
@@ -26,8 +26,7 @@ const LEVEL_ATTRIBUTES: Readonly<Record<LevelRole, number>> = {
     info: TextAttributes.NONE,
     verbose: TextAttributes.DIM,
     debug: TextAttributes.DIM,
-    silly: TextAttributes.DIM,
-    dev: TextAttributes.DIM
+    silly: TextAttributes.DIM
 };
 
 const chunk = (text: string, fg: ColorInput, attributes: number): TextChunk => ({

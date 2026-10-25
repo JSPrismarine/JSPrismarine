@@ -1,15 +1,11 @@
-import type { CliRenderer, KeyEvent } from '@opentui/core';
+import type { KeyEvent } from '@opentui/core';
 import { BoxRenderable, InputRenderable, TextRenderable } from '@opentui/core';
 
+import type { ConsoleContext } from '../context';
 import { CompletionState, formatCompletionStrip } from './completion';
 import type { CommandHistory } from './history';
 import type { InterruptKind, ToggleAction } from './keys';
 import { keyToAction } from './keys';
-
-/** The renderer the input bar draws into. */
-export interface InputBarContext {
-    renderer: CliRenderer;
-}
 
 /** Candidates for the text before the cursor, as returned by `onComplete`. */
 export interface CompletionResult {
@@ -19,16 +15,10 @@ export interface CompletionResult {
     replace: string;
 }
 
-/** Colors, callbacks, and history for the input bar. */
+/** Callbacks and history for the input bar. */
 export interface InputBarProps {
     /** Text drawn before the line; defaults to `> `. */
     prompt?: string;
-    promptColor: string;
-    textColor: string;
-    /** Color for the placeholder and the completion strip. */
-    ghostColor: string;
-    /** Prompt and hint color while the bar is disabled. */
-    disabledColor: string;
     history: CommandHistory;
     /** Called with the trimmed line after Enter; the line is already in the history. */
     onSubmit(line: string): void;
@@ -73,7 +63,8 @@ const STOP_HINT = 'press Ctrl+C again to stop the server';
 export const INTERRUPT_WINDOW_MS = 2000;
 
 /**
- * Builds the command input bar.
+ * Builds the command input bar. The prompt takes the theme's `prompt` color, the line its `text`
+ * color, and the placeholder, the completion strip, and the disabled prompt its `textMuted` color.
  *
  * Keys reach the bar only while its line is focused. `keyToAction` decides what each key
  * means; this function applies the action to the line, the history, and the completion strip
@@ -84,8 +75,8 @@ export const INTERRUPT_WINDOW_MS = 2000;
  * the prompt with the first candidate applied, and Tab and Shift+Tab cycle through them.
  * Any other key closes the strip and keeps the applied candidate.
  */
-export function createInputBar(ctx: InputBarContext, props: InputBarProps): InputBar {
-    const { renderer } = ctx;
+export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: InputBarProps): InputBar {
+    const { renderer, theme } = ctx;
     const { history } = props;
     const now = props.now ?? Date.now;
     const completion = new CompletionState();
@@ -99,15 +90,15 @@ export function createInputBar(ctx: InputBarContext, props: InputBarProps): Inpu
     let lastInterruptAt = 0;
     let hintShown = false;
 
-    const strip = new TextRenderable(renderer, { height: 1, fg: props.ghostColor, visible: false });
-    const promptText = new TextRenderable(renderer, { content: props.prompt ?? DEFAULT_PROMPT, fg: props.promptColor });
+    const strip = new TextRenderable(renderer, { height: 1, fg: theme.textMuted, visible: false });
+    const promptText = new TextRenderable(renderer, { content: props.prompt ?? DEFAULT_PROMPT, fg: theme.prompt });
     const input = new InputRenderable(renderer, {
         flexGrow: 1,
         placeholder: PLACEHOLDER,
-        placeholderColor: props.ghostColor,
-        textColor: props.textColor,
-        focusedTextColor: props.textColor,
-        cursorColor: props.textColor,
+        placeholderColor: theme.textMuted,
+        textColor: theme.text,
+        focusedTextColor: theme.text,
+        cursorColor: theme.text,
         onKeyDown: handleKey
     });
     const row = new BoxRenderable(renderer, { flexDirection: 'row', height: 1, width: '100%' });
@@ -264,9 +255,8 @@ export function createInputBar(ctx: InputBarContext, props: InputBarProps): Inpu
         focus: () => input.focus(),
         setDisabled: (flag, hint) => {
             disabled = flag;
-            promptText.fg = flag ? props.disabledColor : props.promptColor;
+            promptText.fg = flag ? theme.textMuted : theme.prompt;
             input.placeholder = flag ? (hint ?? DISABLED_HINT) : PLACEHOLDER;
-            input.placeholderColor = flag ? props.disabledColor : props.ghostColor;
             if (flag) closeCompletion();
         },
         setValue: (value) => {

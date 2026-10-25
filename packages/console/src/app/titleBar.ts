@@ -1,14 +1,7 @@
 import { BoxRenderable, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { CliRenderer } from '@opentui/core';
 
-import type { Theme } from '../theme';
+import type { ConsoleContext } from '../context';
 import type { DevBadge } from './devState';
-
-/** Renderer-level dependencies the title bar needs. */
-export interface TitleBarContext {
-    renderer: CliRenderer;
-    theme: Theme;
-}
 
 /** Static text of the title bar. */
 export interface TitleBarProps {
@@ -33,7 +26,7 @@ const titleText = ({ serverName, version }: TitleBarProps): string => {
  * Creates the title bar: the product name, version, and server name on the left and the dev
  * badge on the right. The app hides it below 30 rows.
  */
-export function createTitleBar(ctx: TitleBarContext, props: TitleBarProps): TitleBar {
+export function createTitleBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: TitleBarProps): TitleBar {
     const { renderer, theme } = ctx;
 
     const renderable = new BoxRenderable(renderer, {
