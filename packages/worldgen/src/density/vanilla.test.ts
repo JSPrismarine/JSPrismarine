@@ -12,7 +12,8 @@ const SEED = BigInt(vectors.density.seed);
 interface DimensionVectors {
     settings: string;
     router: Record<string, number[]>;
-    aquifers: Record<string, number[]>;
+    /** The nether and the end carry no aquifers, so every key here is optional. */
+    aquifers: Partial<Record<string, number[]>>;
 }
 
 const dimensions: DimensionVectors[] = vectors.density.dimensions;
@@ -67,17 +68,18 @@ describe.skipIf(!vanilla)('the real vanilla worldgen data', () => {
     it('covers the operator types the vanilla data uses', () => {
         const seen = new Set<string>();
         const visited = new Set<object>();
+        const isRecord = (value: unknown): value is Record<string, unknown> =>
+            typeof value === 'object' && value !== null;
         const walk = (value: unknown): void => {
-            if (!value || typeof value !== 'object') return;
+            if (!isRecord(value)) return;
             if (visited.has(value)) return;
             visited.add(value);
             if (Array.isArray(value)) {
                 for (const entry of value) walk(entry);
                 return;
             }
-            const record: Record<string, unknown> = value;
-            if (typeof record['type'] === 'string') seen.add(record['type']);
-            for (const child of Object.values(record)) walk(child);
+            if (typeof value['type'] === 'string') seen.add(value['type']);
+            for (const child of Object.values(value)) walk(child);
         };
         for (const id of data.densityFunctionIds) walk(data.densityFunction(id));
         for (const id of data.noiseSettingsIds) walk(data.settings(id));

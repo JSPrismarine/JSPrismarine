@@ -190,7 +190,7 @@ describe('the end biome source', () => {
 describe('the fixed and checkerboard biome sources', () => {
     it('answers with one biome everywhere', () => {
         const source = new FixedBiomeSource('minecraft:plains');
-        const resolve = source.resolver({} as unknown as ClimateSampler);
+        const resolve = source.resolver();
         expect(resolve(0, 0, 0)).toBe('minecraft:plains');
         expect(resolve(-1000, 4, 9999)).toBe('minecraft:plains');
         expect(source.possibleBiomes()).toEqual(['minecraft:plains']);
@@ -198,7 +198,7 @@ describe('the fixed and checkerboard biome sources', () => {
 
     it('tiles its biomes into squares of the configured scale', () => {
         const source = new CheckerboardBiomeSource(['minecraft:plains', 'minecraft:desert'], 0);
-        const resolve = source.resolver({} as unknown as ClimateSampler);
+        const resolve = source.resolver();
         expect(resolve(0, 0, 0)).toBe('minecraft:plains');
         expect(resolve(4, 0, 0)).toBe('minecraft:desert');
         expect(resolve(4, 0, 4)).toBe('minecraft:plains');
