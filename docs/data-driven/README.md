@@ -49,6 +49,12 @@ categories; [parity.md](parity.md) explains how the claim is tested.
   functions, the generated tables and the reviewed loss list.
 - [parity.md](parity.md): the `@jsprismarine/parity` test suite and dashboard that measure the
   claim above against committed reference data.
+- [gameplay-data.md](gameplay-data.md): the loot, recipes, advancements, enchantments, predicates
+  and tags the server runs out of Java's data, how a datapack replaces any of them, and what will
+  not take effect.
+- [entities.md](entities.md): how a Bedrock entity definition becomes a running mob, what its
+  components, events, filters, goals and brains do here, and what a custom mob will and will not
+  manage.
 - [block-properties.md](block-properties.md): the per-state block property table dumped from the
   Java 26.3 jar and how the server reads it.
 - [structures.md](structures.md): which of Java's 52 structures the overworld generates, how
