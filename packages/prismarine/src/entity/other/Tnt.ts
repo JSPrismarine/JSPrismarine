@@ -90,6 +90,7 @@ export default class Tnt extends Entity {
         return this.fuse;
     }
 
+    /** Falls a step and burns a tick of fuse, and sets the blast off when the fuse runs out. */
     public override async update(tick: number): Promise<void> {
         await super.update(tick);
         if (this.spent) return;
