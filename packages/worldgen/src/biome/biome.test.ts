@@ -6,7 +6,13 @@ import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
 import { BiomeManager } from './BiomeManager';
 import type { BiomeResolver } from './BiomeSource';
-import { CheckerboardBiomeSource, FixedBiomeSource, MultiNoiseBiomeSource, TheEndBiomeSource } from './BiomeSource';
+import {
+    CheckerboardBiomeSource,
+    FixedBiomeSource,
+    MultiNoiseBiomeSource,
+    TheEndBiomeSource,
+    memoizeBiomeResolver
+} from './BiomeSource';
 import type { ClimateEntry, ClimateTargetPoint } from './Climate';
 import { ClimateParameterList, climateFitness, climateTarget, quantizeClimateCoord } from './Climate';
 import type { ClimateSampler } from './ClimateSampler';
@@ -197,6 +203,37 @@ describe('the fixed and checkerboard biome sources', () => {
         expect(resolve(4, 0, 0)).toBe('minecraft:desert');
         expect(resolve(4, 0, 4)).toBe('minecraft:plains');
         expect(resolve(-4, 0, 0)).toBe('minecraft:desert');
+    });
+});
+
+describe('the memoized biome resolver', () => {
+    it('resolves a cell once and answers the rest from the cache', () => {
+        const asked: string[] = [];
+        const memoized = memoizeBiomeResolver((quartX, quartY, quartZ) => {
+            asked.push(`${quartX},${quartY},${quartZ}`);
+            return `biome:${quartX}.${quartY}.${quartZ}`;
+        });
+
+        expect(memoized(3, -4, 7)).toBe('biome:3.-4.7');
+        expect(memoized(3, -4, 7)).toBe('biome:3.-4.7');
+        expect(memoized(3, -4, 8)).toBe('biome:3.-4.8');
+        expect(asked).toEqual(['3,-4,7', '3,-4,8']);
+    });
+
+    it('answers every cell of a chunk-sized walk the way the source would', () => {
+        const source: BiomeResolver = (quartX, quartY, quartZ) => `biome:${(quartX * 31 + quartY * 17 + quartZ) % 7}`;
+        const memoized = memoizeBiomeResolver(source);
+
+        // Walked twice: the second pass reads only cached cells, including evicted ones.
+        for (let pass = 0; pass < 2; pass++) {
+            for (let quartX = -40; quartX < 40; quartX++) {
+                for (let quartY = -16; quartY < 24; quartY++) {
+                    for (let quartZ = -40; quartZ < 40; quartZ++) {
+                        expect(memoized(quartX, quartY, quartZ)).toBe(source(quartX, quartY, quartZ));
+                    }
+                }
+            }
+        }
     });
 });
 
