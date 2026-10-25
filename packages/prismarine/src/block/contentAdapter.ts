@@ -93,6 +93,39 @@ const hooksOf = (content: ContentLookup, identifier: string, states: Readonly<Re
 };
 
 /**
+ * Whether any state of a block reacts to a neighbor changing, by identifier.
+ *
+ * A neighbor notification is six of these questions per block write, and every block write
+ * in the world now asks them; see {@link import('../world/neighborContent')}. Answering by
+ * identifier costs one map read, where answering properly costs resolving the state out of
+ * its permutations and then a dispatch into an empty table. Most of the palette - stone,
+ * dirt, every ore, every log - reacts to nothing, so most writes stop here.
+ *
+ * Per identifier rather than per state, because a permutation that adds the hook to one
+ * state of a block is rare and a false positive only costs the dispatch that would have
+ * happened anyway. Held weakly against the build, so a reload drops it.
+ */
+const reactingBlocks = new WeakMap<object, Map<string, boolean>>();
+
+/** Whether a block identifier has a family that declares `onNeighborChanged`. */
+const reactsToNeighbors = (content: ContentLookup, identifier: string): boolean => {
+    const built = content();
+    let known = reactingBlocks.get(built);
+    if (known === undefined) {
+        known = new Map();
+        reactingBlocks.set(built, known);
+    }
+
+    const answered = known.get(identifier);
+    if (answered !== undefined) return answered;
+
+    const type = built.blocks.types.get(identifier);
+    const reacts = type !== undefined && type.states.some((state) => state.content.hooks.has('onNeighborChanged'));
+    known.set(identifier, reacts);
+    return reacts;
+};
+
+/**
  * Builds the six block adapter members over one dimension's storage.
  *
  * `set` commits the write before it raises `onPlace`, because the hook is
@@ -130,11 +163,17 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         try {
             for (const face of BLOCK_FACES) {
                 const position = relative(at, face);
-                const neighbor = hookBlockAt(storage, dimension, position);
-                if (!neighbor) continue;
+                const neighbor = storage.at(position);
+                if (!neighbor || !reactsToNeighbors(content, neighbor.identifier)) continue;
 
+                const reacting: HookBlock = {
+                    identifier: neighbor.identifier,
+                    position,
+                    dimension,
+                    states: neighbor.states
+                };
                 hooksOf(content, neighbor.identifier, neighbor.states)?.dispatch('onNeighborChanged', {
-                    block: neighbor,
+                    block: reacting,
                     // The face the changed block sits on, read from the neighbor's side.
                     face: opposite(face),
                     neighbor: changed

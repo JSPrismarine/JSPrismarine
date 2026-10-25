@@ -70,7 +70,9 @@ const testServer = (): Server =>
                 getEntityTrackingInterval: () => 20
             }),
         getBlockManager: () => stub<BlockManager>({ findBlock: () => null }),
-        // No content, so no data-driven entities; the world keeps the written classes.
+        // No content, so no data-driven entities, no block families to notify when a write
+        // changes a position, and no loot table behind a block the engine takes out.
+        getContent: () => undefined,
         getEntityRuntime: () => undefined
     });
 

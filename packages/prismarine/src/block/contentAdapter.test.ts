@@ -104,7 +104,7 @@ describe('block', () => {
         });
 
         it('tells each loaded neighbor which of its own faces the change was on', () => {
-            const { blocks } = harness({ '0,0,0': stone, '0,1,0': lamp, '0,-1,0': stone, '5,5,5': stone });
+            const { blocks } = harness({ '0,0,0': stone, '0,1,0': lamp, '0,-1,0': lamp, '5,5,5': lamp });
             const seen = watchNeighborHooks();
 
             blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
@@ -113,6 +113,17 @@ describe('block', () => {
             // its `down` face; the four unloaded neighbors and the distant
             // block hear nothing.
             expect(seen.sort()).toEqual(['0,-1,0 up', '0,1,0 down']);
+        });
+
+        it('says nothing to a neighbor whose families react to nothing', () => {
+            // Every block write in the world now raises this, so the dispatch is skipped
+            // for a block that could not react to it. Stone is most of a world.
+            const { blocks } = harness({ '0,0,0': lamp, '0,1,0': stone, '0,-1,0': lamp });
+            const seen = watchNeighborHooks();
+
+            blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
+
+            expect(seen).toEqual(['0,-1,0 up']);
         });
 
         it('says nothing about a position whose own chunk is not loaded', () => {
@@ -125,7 +136,7 @@ describe('block', () => {
         });
 
         it('notifies the neighbors only when the write asks for it', () => {
-            const { blocks } = harness({ '0,1,0': stone });
+            const { blocks } = harness({ '0,1,0': lamp });
             const seen = watchNeighborHooks();
 
             blocks.set({ x: 0, y: 0, z: 0 }, stone, false);
