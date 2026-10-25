@@ -19,21 +19,31 @@
  * The camel and the happy ghast run both 1 and 2, which is what
  * `BrainMobDefinition.alsoRunsGoals` is for.
  */
-import type { EntityActuator, EntityPosition, OutgoingTrigger, TransformRequest } from '@jsprismarine/entities';
-import { EntityInstance, noEffects } from '@jsprismarine/entities';
+import type {
+    EntityActuator,
+    EntityPosition,
+    FilterContext,
+    OutgoingTrigger,
+    TransformRequest
+} from '@jsprismarine/entities';
+import { EntityInstance, isRecord, noEffects } from '@jsprismarine/entities';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
 import type { ServerContent } from '../../content/ServerContent';
+import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
-import { actuatorOf, blockPositionOf, goalWorldOf } from './goalWorld';
+import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { brainMobOf, brainWorldOf } from './brainWorld';
+import { entityFilterContextOf } from './filterView';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
+import { PointsOfInterest } from './poi';
+import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
 
@@ -74,6 +84,10 @@ export class EntityRuntime implements EntityScene {
     private readonly pools = new Map<number, string>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
+    /** Who rides whom, which both the rider's and the vehicle's goals read. */
+    private readonly rides = new RideIndex();
+    /** The points of interest of the dimension, which eleven goals search. */
+    private readonly interest = new PointsOfInterest({ navigation: () => this.navigation() });
     private readonly lookupContent: () => ServerContent;
     private readonly onReport: (message: string) => void;
     private facts: EntityFactsLookup | undefined;
@@ -163,6 +177,7 @@ export class EntityRuntime implements EntityScene {
             id,
             environment: {
                 actuator: actuatorOf(body, this),
+                filterContext: (): FilterContext => entityFilterContextOf(body, this),
                 random: { next: () => this.world.random.nextFloat() },
                 remove: (removed, reason) => this.removeInstance(removed, reason),
                 transform: (from, request) => this.transform(from, request),
@@ -198,6 +213,7 @@ export class EntityRuntime implements EntityScene {
         this.byInstance.delete(entity.instance);
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.rides.remove(id);
     }
 
     /**
@@ -209,9 +225,12 @@ export class EntityRuntime implements EntityScene {
     public tick(tick: number): void {
         for (const entity of this.all()) {
             if (entity.removed !== undefined) continue;
+            this.tickTimers(entity.body);
             entity.instance.tick();
             this.tickBrain(entity);
+            this.coast(entity.body);
             entity.step();
+            this.carryRiders(entity);
         }
         this.runSpawnCycle(tick);
     }
@@ -293,14 +312,47 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Item stacks lying within a radius.
+     * Item stacks lying within a radius, nearest first.
      *
      * Dropped items are the item subsystem's entities rather than this
-     * runtime's, so nothing is found yet and the pickup goals stay asleep
-     * rather than picking up something that is not there.
+     * runtime's, so they come from the host. A host with no item index finds
+     * none, and the pickup goals stay asleep rather than reaching for
+     * something that is not there.
      */
-    public items(): readonly GoalItem[] {
-        return [];
+    public items(center: EntityPosition, radius: number): readonly GoalItem[] {
+        return (this.host.items?.() ?? [])
+            .filter((lying) => distance(center, lying.position) <= radius)
+            .sort((a, b) => distance(center, a.position) - distance(center, b.position))
+            .map((lying) => ({
+                id: lying.id,
+                position: () => lying.position,
+                identifier: () => lying.item.identifier,
+                count: () => lying.item.count
+            }));
+    }
+
+    /** One entity or player, by runtime id, as a goal sees it. */
+    public mobById(id: number): GoalMob | undefined {
+        const entity = this.entities.get(id);
+        if (entity !== undefined) return goalMobOf(entity, this);
+
+        const player = this.host.players().find((candidate) => candidate.id === id);
+        return player === undefined ? undefined : playerGoalMob(player.id, player.identifier, player.position);
+    }
+
+    /** The nearest point of interest of a kind, for the eleven goals that ask. */
+    public poi(kind: string, center: EntityPosition, radius: number): EntityPosition | undefined {
+        return this.interest.nearest(kind, center, radius);
+    }
+
+    /**
+     * Records a point of interest nothing in the blocks marks.
+     *
+     * The warden's `suspicious_location` and the dolphin's `buried_treasure`
+     * arrive this way, from the subsystem that knows where they are.
+     */
+    public recordPointOfInterest(kind: string, at: EntityPosition): void {
+        this.interest.record(kind, at);
     }
 
     /** Every block matching a query around a position, nearest first. */
@@ -329,11 +381,24 @@ export class EntityRuntime implements EntityScene {
         const other = typeof target.id === 'number' ? this.entities.get(target.id) : undefined;
         if (other === undefined) return;
 
-        const health = other.instance.attributes.get('health');
+        this.hurt(other, attacker.id, 'entity_attack', attacker.facts.attackDamage);
+    }
+
+    /**
+     * Takes health off one entity and remembers who took it.
+     *
+     * The record is what `hurt_by_target`, `panic`, `play_dead` and the
+     * wither's targeting read, so every path that deals damage goes through
+     * here rather than writing the attribute itself.
+     */
+    public hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): void {
+        const health = entity.instance.attributes.get('health');
         if (health === undefined) return;
-        const remaining = health.current - attacker.facts.attackDamage;
-        other.instance.attributes.set('health', remaining);
-        if (remaining <= 0) this.kill(other);
+
+        entity.body.damage.record(sourceId, cause, amount);
+        const remaining = health.current - amount;
+        entity.instance.attributes.set('health', remaining);
+        if (remaining <= 0) this.kill(entity);
     }
 
     /** Knocks a mob away from the entity, scaled by what the target resists. */
@@ -350,6 +415,211 @@ export class EntityRuntime implements EntityScene {
             y: other.position.y + vertical * resisted,
             z: other.position.z + ((other.position.z - source.position.z) / away) * horizontal * resisted
         };
+        // Being knocked about is what `minecraft:behavior.target_when_pushed` answers to, and
+        // it is a separate record from the damage, because a push is not damage.
+        other.body.lastPusher = source.id;
+    }
+
+    /**
+     * Fires one entity's projectile at a mob.
+     *
+     * The projectile the goal named wins, and `minecraft:shooter` is the
+     * fallback, which is where every vanilla shooter writes it. The arrow is
+     * created at the shooter's eye with the velocity that points it at the
+     * target; what it does on arrival belongs to the projectile component and
+     * not here.
+     */
+    public shoot(shooter: MobBody, target: GoalMob, projectile: string | undefined): void {
+        const identifier = projectile ?? this.shooterDefinitionOf(shooter);
+        if (identifier === undefined) {
+            this.report(`${shooter.identifier} has no projectile to shoot, and its goal named none`);
+            return;
+        }
+
+        const from = {
+            x: shooter.position.x,
+            y: shooter.position.y + shooter.facts.box.height * EYE_HEIGHT,
+            z: shooter.position.z
+        };
+        const arrow = this.spawn(identifier, from);
+        if (arrow === undefined) return;
+
+        const at = target.position();
+        const away = distance(from, at) || 1;
+        arrow.body.push({
+            x: ((at.x - from.x) / away) * PROJECTILE_SPEED,
+            y: ((at.y - from.y) / away) * PROJECTILE_SPEED,
+            z: ((at.z - from.z) / away) * PROJECTILE_SPEED
+        });
+        arrow.body.owner = shooter.id;
+        arrow.body.lookAt(at);
+    }
+
+    /**
+     * Detonates an entity, which is what `minecraft:behavior.swell` stands
+     * still for.
+     *
+     * The blast is the entities in range and the entity itself. Blocks are
+     * left alone: breaking them is the explosion system's, and it does not
+     * exist yet, so a creeper takes the fence with it and leaves the hole for
+     * later.
+     */
+    public explode(source: MobBody): void {
+        const params = this.entities.get(source.id)?.instance.componentParams('minecraft:explode');
+        const power = isRecord(params) && typeof params.power === 'number' ? params.power : DEFAULT_EXPLOSION_POWER;
+        const radius = power * EXPLOSION_RADIUS_PER_POWER;
+
+        this.world.effects.playSound(blockPositionOf(source.position), 'random.explode');
+        for (const caught of this.near(source.position, radius)) {
+            if (caught.id === source.id) continue;
+            const away = distance(source.position, caught.position);
+            this.hurt(caught, source.id, 'entity_explosion', Math.max(1, Math.round(power * (1 - away / radius) * 7)));
+        }
+
+        const self = this.entities.get(source.id);
+        if (self !== undefined) this.remove(self.id, 'explosion');
+        this.report(`${source.identifier} exploded, and nothing breaks the blocks around it yet`);
+    }
+
+    /** Puts an entity on a mob as a rider, if the mob has a seat free for it. */
+    public mount(rider: MobBody, vehicle: GoalMob): void {
+        if (typeof vehicle.id !== 'number') return;
+        const mount = this.entities.get(vehicle.id);
+        if (mount === undefined) return;
+        if (this.rides.ridersOf(mount.id).length >= seatCountOf(mount)) return;
+        this.rides.mount(rider.id, mount.id);
+    }
+
+    /** Takes an entity off whatever it rides. */
+    public dismount(rider: MobBody): void {
+        this.rides.dismount(rider.id);
+    }
+
+    /** What an entity rides, or undefined when it rides nothing. */
+    public vehicleOf(rider: MobBody): GoalMob | undefined {
+        const vehicle = this.rides.vehicleOf(rider.id);
+        return vehicle === undefined ? undefined : this.mobById(vehicle);
+    }
+
+    /** Who rides an entity, in the order they got on. */
+    public ridersOf(vehicle: MobBody): readonly GoalMob[] {
+        return this.rides.ridersOf(vehicle.id).flatMap((rider) => {
+            const mob = this.mobById(rider);
+            return mob === undefined ? [] : [mob];
+        });
+    }
+
+    /** Takes an item stack lying in the world into an entity's inventory. */
+    public pickUp(taker: MobBody, item: GoalItem): void {
+        if (typeof item.id !== 'number') return;
+        const taken = this.host.takeItem?.(item.id);
+        if (taken === undefined) return;
+        for (let index = 0; index < taken.count; index += 1) taker.inventory.push(taken.identifier);
+    }
+
+    /**
+     * Moves one item from an entity's inventory to another entity.
+     *
+     * A taker this runtime does not hold, such as a player, gets the stack
+     * dropped at its feet, which is what the allay and the villager do in
+     * vanilla: they throw the item rather than reaching into a container.
+     */
+    public giveItem(giver: MobBody, taker: GoalMob, identifier: string): void {
+        const held = giver.inventory.indexOf(identifier);
+        if (held === -1) return;
+        giver.inventory.splice(held, 1);
+
+        const other = typeof taker.id === 'number' ? this.entities.get(taker.id) : undefined;
+        if (other === undefined) {
+            this.host.drop(blockPositionOf(taker.position()), { identifier, count: 1 });
+            return;
+        }
+        other.body.inventory.push(identifier);
+    }
+
+    /** Breaks a block and drops what its loot table rolls. */
+    public breakBlock(at: EntityPosition): void {
+        const position = blockPositionOf(at);
+        const block = this.world.blocks.get(position);
+        if (block === undefined || block.identifier === AIR) return;
+
+        this.world.blocks.set(position, { identifier: AIR, states: {} }, true);
+
+        // A block the loot registry has no table for drops nothing rather than reporting,
+        // because a block with no table is the normal case for most of the palette.
+        const table = javaBlockLootIdOf(block.identifier);
+        if (this.content().loot.table(table) === undefined) return;
+        for (const stack of this.content().loot.roll(table))
+            this.host.drop(position, { identifier: stack.id, count: stack.count });
+    }
+
+    /**
+     * Opens one entity's trade screen for a player.
+     *
+     * The merchant is built on the first ask and kept, so the offers a player
+     * sees are the ones the entity has had all along.
+     */
+    public openTrade(trader: MobBody, player: GoalMob): void {
+        if (typeof player.id !== 'number') return;
+        const entity = this.entities.get(trader.id);
+        if (entity === undefined) return;
+        if (this.merchant(entity) === undefined) {
+            this.report(`${trader.identifier} was asked to trade, and it carries no trade table`);
+            return;
+        }
+        trader.tradingPlayer = player.id;
+    }
+
+    /** Whether two entities may breed with each other now. */
+    public canBreedWith(parent: MobBody, mate: GoalMob): boolean {
+        const self = this.entities.get(parent.id);
+        const other = typeof mate.id === 'number' ? this.entities.get(mate.id) : undefined;
+        if (self === undefined || other === undefined) return false;
+        return canBreed(self, other);
+    }
+
+    /**
+     * Produces the offspring of a successful breeding.
+     *
+     * The child is born halfway between its parents and runs
+     * `minecraft:entity_born`, which is the event that makes it a baby. Both
+     * parents spend their love and start their cooldown.
+     */
+    public breedWith(parent: MobBody, mate: GoalMob): void {
+        const self = this.entities.get(parent.id);
+        const other = typeof mate.id === 'number' ? this.entities.get(mate.id) : undefined;
+        if (self === undefined || other === undefined || !canBreed(self, other)) return;
+
+        const child = offspringOf(self, other);
+        if (child === undefined) return;
+
+        spendLove(self);
+        spendLove(other);
+        this.spawn(child.identifier, midpoint(self.position, other.position), {
+            cause: 'born',
+            ...(child.event === undefined ? {} : { event: child.event })
+        });
+    }
+
+    /**
+     * Records who tamed an entity.
+     *
+     * The taming interaction is what calls this; nothing in the server reads
+     * `minecraft:tameable` yet, so until it does an owner is set from a test
+     * or from a loaded world and the pet goals follow whoever it names.
+     */
+    public setOwner(id: number, owner: number | undefined): void {
+        const entity = this.entities.get(id);
+        if (entity !== undefined) entity.body.owner = owner;
+    }
+
+    /**
+     * Puts an entity in love for a number of ticks, which is what feeding it
+     * a breeding item does in Java's `Animal.setInLove`.
+     */
+    public setInLove(id: number, ticks: number): void {
+        const entity = this.entities.get(id);
+        if (entity !== undefined) entity.body.loveTicks = Math.max(0, ticks);
     }
 
     /**
@@ -421,6 +691,59 @@ export class EntityRuntime implements EntityScene {
         this.onReport(message);
     }
 
+    /** Counts down the two timers the body keeps: being in love and waiting to breed again. */
+    private tickTimers(body: MobBody): void {
+        if (body.loveTicks > 0) body.loveTicks -= 1;
+        if (body.breedCooldown > 0) body.breedCooldown -= 1;
+    }
+
+    /**
+     * Spends one tick of whatever impulse a leap, a charge or a ram gave the
+     * entity.
+     *
+     * The numbers are Java's `LivingEntity.travel`: 0.08 of gravity a tick
+     * and 0.91 of horizontal drag. The entity lands when the cell it is
+     * falling into is not passable, which is the only ground model this
+     * runtime has.
+     */
+    private coast(body: MobBody): void {
+        if (!body.airborne) return;
+
+        const velocity = body.velocity;
+        const next = {
+            x: body.position.x + velocity.x,
+            y: body.position.y + velocity.y,
+            z: body.position.z + velocity.z
+        };
+
+        const navigation = this.navigation();
+        if (velocity.y <= 0 && !navigation.isPassable(blockPositionOf(next))) {
+            body.position = { x: next.x, y: Math.floor(next.y) + 1, z: next.z };
+            body.land();
+            return;
+        }
+
+        body.position = next;
+        body.velocity = { x: velocity.x * DRAG, y: velocity.y - GRAVITY, z: velocity.z * DRAG };
+    }
+
+    /** Keeps every rider where its vehicle is, which is what being carried means. */
+    private carryRiders(vehicle: DataEntity): void {
+        for (const rider of this.rides.ridersOf(vehicle.id)) {
+            const carried = this.entities.get(rider);
+            if (carried === undefined) continue;
+            carried.position = vehicle.position;
+            carried.body.stopMoving();
+        }
+    }
+
+    /** The `def` of the entity's `minecraft:shooter`, which names what it fires. */
+    private shooterDefinitionOf(shooter: MobBody): string | undefined {
+        const params = this.entities.get(shooter.id)?.instance.componentParams('minecraft:shooter');
+        if (!isRecord(params)) return undefined;
+        return typeof params.def === 'string' ? params.def : undefined;
+    }
+
     /** Routes an event one entity triggered on another. */
     private route(trigger: OutgoingTrigger, from: EntityInstance): void {
         const source = this.bodyOf(from);
@@ -451,5 +774,44 @@ export class EntityRuntime implements EntityScene {
 
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
+
+/** Where an entity's eyes are up its hitbox, which is Java's 0.85 for a standing mob. */
+const EYE_HEIGHT = 0.85;
+
+/** How fast a fired projectile leaves the shooter, from Java's `AbstractArrow` launch velocity. */
+const PROJECTILE_SPEED = 1.6;
+
+/** Java's `LivingEntity` gravity, in blocks per tick per tick. */
+const GRAVITY = 0.08;
+
+/** Java's horizontal drag on an airborne entity, applied once a tick. */
+const DRAG = 0.91;
+
+/** The `power` a `minecraft:explode` with none declared uses, which is the creeper's. */
+const DEFAULT_EXPLOSION_POWER = 3;
+
+/** How far a blast of one power reaches, from Java's `Explosion` radius of twice the power. */
+const EXPLOSION_RADIUS_PER_POWER = 2;
+
+/** The identifier a broken block leaves behind. */
+const AIR = 'minecraft:air';
+
+/** Java's loot table id for one block, which is where its drops are declared. */
+const javaBlockLootIdOf = (identifier: string): string =>
+    `minecraft:blocks/${identifier.startsWith('minecraft:') ? identifier.slice('minecraft:'.length) : identifier}`;
+
+/** How many riders an entity's `minecraft:rideable` seats, or none when it carries none. */
+const seatCountOf = (vehicle: DataEntity): number => {
+    const params = vehicle.instance.componentParams('minecraft:rideable');
+    if (params === null || typeof params !== 'object' || !('seatCount' in params)) return 0;
+    return typeof params.seatCount === 'number' ? params.seatCount : 0;
+};
+
+/** Halfway between two positions, which is where a child is born. */
+const midpoint = (from: EntityPosition, to: EntityPosition): EntityPosition => ({
+    x: (from.x + to.x) / 2,
+    y: (from.y + to.y) / 2,
+    z: (from.z + to.z) / 2
+});
 
 export type { EntityFacts };

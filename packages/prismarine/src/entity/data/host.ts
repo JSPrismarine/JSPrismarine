@@ -22,6 +22,14 @@ import type {
     RandomSource
 } from '../../content/world/adapter';
 
+/** One item stack lying in the world, as the pickup goals read it. */
+export interface ContentItemEntity {
+    /** The runtime id, which is what {@link EntityHostFacts.takeItem} takes. */
+    readonly id: number;
+    readonly position: ContentPosition;
+    readonly item: ContentItemDrop;
+}
+
 /** The groups the blocks, world and network subsystems own, as the entity runtime reads them. */
 export interface EntityWorldFacts {
     readonly level: ContentLevelFacts;
@@ -43,6 +51,20 @@ export interface EntityHostFacts {
     players(): readonly ContentEntity[];
     /** Drops an item stack as an entity at a position. */
     drop(at: ContentPosition, item: ContentItemDrop): void;
+    /**
+     * Every item stack lying in the dimension.
+     *
+     * Left out by a server whose item entities are not indexed, which makes
+     * the pickup goals find nothing rather than find a guess.
+     */
+    items?(): readonly ContentItemEntity[];
+    /**
+     * Takes one item entity out of the world.
+     *
+     * @returns What it held, or undefined when nothing of that id is lying
+     *   there, which is what two mobs reaching for the same stack get.
+     */
+    takeItem?(id: number): ContentItemDrop | undefined;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */
     mobEventActive(event: string): boolean;
     /**
