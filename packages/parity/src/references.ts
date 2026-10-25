@@ -181,16 +181,20 @@ export const REFERENCES = {
     },
 
     /**
-     * The generated reference world of plan section 6 step 4: a whole Java-generated region
-     * with its heightmaps and terrain classes. The capture job does not generate one yet, so
-     * the reference region every worldgen row can reach is the nine committed columns.
+     * The generated reference world of plan section 6 step 4: a whole region with its
+     * heightmaps, biome arrays and terrain classes. `dump:bedrock` generates one, and no run
+     * has committed the golden yet, so the reference region the worldgen rows reach today is
+     * the nine Java columns the oracle dumped.
      */
     referenceWorld: {
         id: 'reference-world',
         kind: 'unbuilt',
-        holds: 'a Java-generated reference region with heightmaps and terrain classes',
-        howToGet: 'the capture job of plan section 6 step 4 does not generate one yet',
-        locate: () => undefined
+        holds: 'a generated reference region with heightmaps, biomes and terrain classes',
+        howToGet: 'no run of `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` has committed its golden',
+        locate: () => {
+            const golden = join(repoRoot, 'packages/bedrock-data/src/jsp/reference_world.json');
+            return existsSync(golden) ? golden : undefined;
+        }
     },
 
     /**
