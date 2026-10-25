@@ -18,7 +18,7 @@ maps the model onto this repository.
    one `terrain` status whose task runs noise fill, surface materials and carvers back to back.
 2. The dependency radii are declared in `ChunkPyramid.GENERATION_PYRAMID` and computed by
    `ChunkStep.Builder.buildAccumulatedDependencies`. Generating one chunk to `full` from nothing
-   touches a 23x23 neighbourhood at `structure_starts`, 7x7 at `biomes`, 5x5 at `terrain` and 3x3 at
+   touches a 23x23 neighborhood at `structure_starts`, 7x7 at `biomes`, 5x5 at `terrain` and 3x3 at
    `features`. The full tables are in section 2.
 3. Exactly one status may write blocks outside its own chunk: `features`, with
    `blockStateWriteRadius(1)`. `terrain` has radius 0. Every other step leaves
@@ -30,20 +30,20 @@ maps the model onto this repository.
    `new ImposterProtoChunk(levelChunk, false)`, whose `setBlockState` returns null and writes
    nothing. A late write into an already-promoted chunk is therefore dropped, not applied.
 5. `WorldGenRegion` is the only thing a generation step sees of the world. Its chunk cache is keyed
-   by Chebyshev distance from the centre and capped per distance by
+   by Chebyshev distance from the center and capped per distance by
    `ChunkStep.directDependencies()`. Asking for a chunk beyond that radius, or at a status above the
    cap for that distance, throws `ReportedException`. Writing outside the write zone logs through
    `Util.logAndPauseIfInIde` and `setBlock` returns false.
-6. A tree straddling a chunk border comes out whole because `features` writes into the neighbour's
-   `ProtoChunk` while that neighbour sits at exactly `terrain`, and the neighbour cannot reach `full`
-   until every one of its own neighbours has passed `features` (`full`'s accumulated dependency at
+6. A tree straddling a chunk border comes out whole because `features` writes into the neighbor's
+   `ProtoChunk` while that neighbor sits at exactly `terrain`, and the neighbor cannot reach `full`
+   until every one of its own neighbors has passed `features` (`full`'s accumulated dependency at
    radius 1 is `initialize_light`, which is after `features`).
 7. Java parallelizes two statuses and serializes the rest. `biomes` and `terrain` return
    `CompletableFuture.supplyAsync(..., Util.backgroundExecutor())`, a ForkJoinPool of
    `availableProcessors() - 1` threads, and both write only their own chunk. Everything else runs
    inline on a single `ConsecutiveExecutor` named "worldgen" (one task at a time), light runs on a
    second `ConsecutiveExecutor` named "light", and `full` runs on the main thread. The step that
-   writes into neighbours is therefore never concurrent with itself.
+   writes into neighbors is therefore never concurrent with itself.
 8. Determinism comes from reseeding, not from ordering. Every random source used during generation is
    reseeded from the level seed plus a position plus a fixed index immediately before use, and no
    state carries from one chunk to the next. `WorldgenRandom.setDecorationSeed`,
@@ -83,19 +83,19 @@ so the list is a chain and `isOrAfter` is an integer comparison.
 `WORLDGEN_HEIGHTMAPS` is `EnumSet.of(OCEAN_FLOOR_WG, WORLD_SURFACE_WG)`; `FINAL_HEIGHTMAPS` is
 `EnumSet.of(OCEAN_FLOOR, WORLD_SURFACE, MOTION_BLOCKING, MOTION_BLOCKING_NO_LEAVES)`.
 `ProtoChunk.setBlockState` updates whichever set `getPersistedStatus().heightmapsAfter()` names, so a
-feature writing into a neighbour keeps that neighbour's motion-blocking heightmap correct.
+feature writing into a neighbor keeps that neighbor's motion-blocking heightmap correct.
 
 What each task does, from `ChunkStatusTasks`:
 
 - **`generateStructureStarts`** calls `ChunkGenerator.createStructures(...)` when
   `generateStructures()` is on, then `ServerLevel.onStructureStartsAvailable(chunk)`. For every
   structure set whose `StructurePlacement.isStructureChunk(state, x, z)` accepts this chunk, it
-  generates a `StructureStart` and stores it on the centre chunk. It writes no blocks. The biome
+  generates a `StructureStart` and stores it on the center chunk. It writes no blocks. The biome
   check happens before the structure is assembled, not after; section 8 has the order.
 - **`generateStructureReferences`** builds a `WorldGenRegion` and calls
   `ChunkGenerator.createReferences(region, ..., chunk)`, which loops `sourceX, sourceZ` over
   `[-8, +8]` and, for every `StructureStart` in each of those 289 chunks whose bounding box
-  intersects the centre chunk's 16x16 column, records a reference. This loop is the reason the
+  intersects the center chunk's 16x16 column, records a reference. This loop is the reason the
   radius-8 requirement exists, and it is why `ChunkStatus.MAX_STRUCTURE_DISTANCE = 8`.
 - **`generateBiomes`** calls `ChunkGenerator.createBiomes`, which runs
   `protoChunk.fillBiomesFromNoise(...)` on the background pool. It writes only its own chunk.
@@ -119,7 +119,7 @@ There is a second pyramid. `ChunkPyramid.LOADING_PYRAMID` has the same ten statu
 tasks: `loadStructureStarts` at `structure_starts`, `initializeLight`, `light` (requiring
 `initialize_light` at radius 1) and `full`. The other six steps are `ChunkStatusTasks::passThrough`
 with no requirements. `ChunkGenerationTask.canLoadWithoutGeneration` picks between the two pyramids:
-if the centre chunk and every chunk inside the loading pyramid's accumulated radius are already
+if the center chunk and every chunk inside the loading pyramid's accumulated radius are already
 persisted at or past the required status, the chunk loads from disk and nothing is generated.
 
 ## 2. The dependency radii
@@ -181,7 +181,7 @@ status.
 | `full` | `spawn`, `initialize_light`, `terrain`, `biomes`, then `structure_starts` x 8 | 12 |
 
 Inverting the `full` row through `ChunkDependencies.getRadiusOf` gives the number this design turns
-on, the radius each status must reach before the centre chunk can become `full`:
+on, the radius each status must reach before the center chunk can become `full`:
 
 | Status | Radius required around a chunk reaching `full` | Neighbourhood |
 |---|---|---|
@@ -206,7 +206,7 @@ and `ChunkLevel.MAX_LEVEL = 33 + 11 = 44`. `ChunkPyramid.SAFETY_MARGIN_CHUNKS` i
 `ChunkStep.blockStateWriteRadius` defaults to -1 and is only set twice: 0 for `terrain`, 1 for
 `features`. `WorldGenRegion.isWithinWriteZone(chunkX, chunkZ)` is
 `abs(centerChunkX - chunkX) <= writeRadius && abs(centerChunkZ - chunkZ) <= writeRadius`, so a radius
-of -1 is false everywhere including the centre chunk. Steps with the default therefore cannot write
+of -1 is false everywhere including the center chunk. Steps with the default therefore cannot write
 a block through the region. `generateBiomes` and `buildTerrain` sidestep this by writing straight to
 the `ChunkAccess` they were handed rather than through a region.
 
@@ -247,8 +247,8 @@ heightmaps and the sky light sources. It then calls
 including `full` with a completed future holding that imposter. `ImposterProtoChunk` with
 `allowWrites = false` returns `null` from `setBlockState`, ignores `setBlockEntity`, ignores
 `addEntity` and ignores `setPersistedStatus`. The consequence for writes landing outside the chunk
-being worked on is exact: while a neighbour is still a `ProtoChunk`, a feature write into it lands in
-the shared section array and survives; once that neighbour has been promoted, the same write is
+being worked on is exact: while a neighbor is still a `ProtoChunk`, a feature write into it lands in
+the shared section array and survives; once that neighbor has been promoted, the same write is
 silently discarded. The dependency radii exist so the second case never happens during normal
 generation.
 
@@ -280,7 +280,7 @@ and no on-demand generation. `hasChunk(x, z)` is just `distance < directDependen
 
 `getBlockState`, `getFluidState`, `getHeight` and `findBlocksIn` additionally call
 `warnIfReadOutsideWriteZone`, which logs "Detected unsafe terrain read during worldgen" through
-`Util.logAndPauseIfInIde` when the read is outside the write radius and not the centre chunk. The
+`Util.logAndPauseIfInIde` when the read is outside the write radius and not the center chunk. The
 read still succeeds. This is a correctness warning, not an enforcement.
 
 Writes. `setBlock(pos, state, flags, updateLimit)` first calls `ensureCanWrite(pos)`. If
@@ -292,9 +292,9 @@ chunk is already a `LEVELCHUNK`) or stores a `{"id": "DUMMY", x, y, z}` tag on t
 
 This is the whole mechanism behind a tree that straddles a chunk border. When chunk C runs
 `features`, the region's write radius is 1, so `TreeFeature` can place a log or a leaf into any of the
-eight neighbours. Those neighbours are at exactly `terrain`: they are past noise, surface and carvers,
+eight neighbors. Those neighbors are at exactly `terrain`: they are past noise, surface and carvers,
 so the tree lands on finished ground, and they are not yet at `features`, so they are still
-`ProtoChunk`s whose sections accept the write. Later, when the neighbour runs its own `features`
+`ProtoChunk`s whose sections accept the write. Later, when the neighbor runs its own `features`
 step, its trees write back into C by the same rule. Neither chunk can reach `full` until the other has
 passed `features`, because `full`'s accumulated dependency at radius 1 is `initialize_light`, which is
 after `features`. By the time the sections are handed to a `LevelChunk`, all nine contributions are
@@ -302,7 +302,7 @@ already in them.
 
 `WorldGenRegion.getRandom()` is not a general-purpose random. It is
 `randomState.getOrCreateRandomFactory(Identifier.withDefaultNamespace("worldgen_region_random")).at(center.getPos().getWorldPosition())`,
-so it is derived from the level seed and the centre chunk position.
+so it is derived from the level seed and the center chunk position.
 
 ## 5. How Java schedules this
 
@@ -397,7 +397,7 @@ future and advanced `startedWork`.
 | `full` | `context.mainThreadExecutor()`, the server thread | no |
 
 The two statuses Java runs on many threads at once are exactly the two expensive ones, and both of
-them are confined to a single chunk. The one status that writes into neighbours runs on a mailbox
+them are confined to a single chunk. The one status that writes into neighbors runs on a mailbox
 that executes one task at a time, so chunk A's `features` and chunk B's `features` are never
 concurrent even when both are eligible. `full` is on the main thread because it registers block
 entities and tick containers with the live level, and because promotion must be ordered against
@@ -535,7 +535,7 @@ is the whole decoration pass. In order:
 4. `random = new WorldgenRandom(new XoroshiroRandomSource(RandomSupport.generateUniqueSeed()))` and
    `decorationSeed = random.setDecorationSeed(level.getSeed(), origin.getX(), origin.getZ())`.
 5. `possibleBiomes` is filled by iterating `ChunkPos.rangeClosed(sectionPos.chunk(), 1)`, the 3x3
-   chunk neighbourhood, calling `level.getChunk(x, z)` and collecting every biome in every section's
+   chunk neighborhood, calling `level.getChunk(x, z)` and collecting every biome in every section's
    palette, then `retainAll(this.biomeSource.possibleBiomes())`.
 6. `for (stepIndex = 0; stepIndex < max(GenerationStep.Decoration.values().length, featureStepCount); stepIndex++)`.
 
@@ -561,7 +561,7 @@ for (Structure structure : structuresByStep.getOrDefault(stepIndex, List.of())) 
 
 `index` here counts structures within the step, starting again at 0, so a structure and a feature in
 the same step can share a feature seed. `getWritableArea(chunk)` is a `BoundingBox` covering only the
-centre chunk's 16x16 column from `minY + 1` to `maxY`, so structure pieces write into the centre
+center chunk's 16x16 column from `minY + 1` to `maxY`, so structure pieces write into the center
 chunk and nowhere else.
 
 Then features:
@@ -592,7 +592,7 @@ whose order every biome agrees with. `globalIndexOfFeature` is the position in t
 in different biomes that share a feature give it the same seed.
 
 **The candidate set is a set of indices.** A feature listed by six of the nine biomes in the 3x3
-neighbourhood is added six times to an `IntArraySet` and runs once. The count of feature invocations
+neighborhood is added six times to an `IntArraySet` and runs once. The count of feature invocations
 per chunk per step is the size of the union, not the sum.
 
 **The iteration is over sorted global indices.** The order is the same in every chunk in the world
@@ -631,21 +631,21 @@ traversal order fixes the draw sequence, so an implementation has to match it ex
 `placeWithBiomeCheck` differs from `place` only in passing `Optional.of(placedFeature)` as the
 context's `topFeature`, which is what `BiomeFilter` needs.
 
-### Why features need the neighbours at an earlier status
+### Why features need the neighbors at an earlier status
 
 Three reads in the pass cross the chunk boundary, and all three are satisfied by the radius-1
 `terrain` requirement:
 
-1. Collecting `possibleBiomes` reads the biome palettes of the 3x3 neighbourhood, which requires
+1. Collecting `possibleBiomes` reads the biome palettes of the 3x3 neighborhood, which requires
    those chunks to be at least at `biomes`.
 2. Placement modifiers that resolve a height, `minecraft:heightmap` and
    `minecraft:surface_water_depth_filter`, call `WorldGenLevel.getHeight`, which reads the
-   neighbour's heightmap. Those maps are only final after `buildTerrain` calls
+   neighbor's heightmap. Those maps are only final after `buildTerrain` calls
    `Heightmap.primeHeightmaps`.
 3. The feature body itself reads and writes blocks up to one chunk away, so the ground it lands on
    must already have had noise, surface and carvers applied.
 
-Equally, the neighbours must not be past `terrain`. If a neighbour had already run `features`, it
+Equally, the neighbors must not be past `terrain`. If a neighbor had already run `features`, it
 would have been free to run its own `features` concurrently, and once it reaches `full` its sections
 are behind a read-only `ImposterProtoChunk`. The dependency being exactly "`terrain` at radius 1" is
 what pins the window.
@@ -657,9 +657,9 @@ what pins the window.
 Two guards, applied in sequence.
 
 The candidate list for a chunk is the union of the placed features of every biome in the 3x3
-neighbourhood, so a plains chunk next to an ice spikes chunk does consider `minecraft:trees_plains`
+neighborhood, so a plains chunk next to an ice spikes chunk does consider `minecraft:trees_plains`
 and `minecraft:trees_snowy` in the same pass. That is intentional: a tree rooted in plains must be
-able to spill into the neighbouring chunk.
+able to spill into the neighboring chunk.
 
 The filter is the `minecraft:biome` placement modifier, `BiomeFilter`:
 
@@ -685,7 +685,7 @@ order of modifiers is part of the data.
 Two further things keep a feature on ground it belongs on. The placement chain resolves its Y from
 the finished heightmap of the chunk it is landing in, which exists because that chunk is at
 `terrain`. And the structure part of the pass is clamped to `getWritableArea(chunk)`, a bounding box
-that is exactly the centre chunk's column.
+that is exactly the center chunk's column.
 
 ### Carvers running in the air or inverted
 
@@ -746,7 +746,7 @@ hardcoding air. Exposed dirt below grass is re-surfaced through
 `MaterialSystem.topMaterial` in the same visit.
 
 Two further details worth copying. The biome used to pick a source chunk's carver list is cached on
-that chunk through `ChunkAccess.carverBiome(Supplier)`, so neighbouring target chunks agree on it. And
+that chunk through `ChunkAccess.carverBiome(Supplier)`, so neighboring target chunks agree on it. And
 the random is reseeded on every (source chunk, carver index) pair, so a carver's path does not depend
 on how many carvers ran before it.
 
@@ -761,9 +761,9 @@ chain of each feature, which the data controls: `count`, `noise_threshold_count`
 Three places where a naive implementation inflates the count:
 
 1. Running the feature list per biome rather than per deduplicated index. `plains.json` lists 29
-   features in `underground_ores` alone and shares most of them with every neighbouring biome; a
+   features in `underground_ores` alone and shares most of them with every neighboring biome; a
    per-biome loop over a 3x3 palette can multiply that by nine.
-2. Running the decoration pass once per chunk in a 3x3 region instead of once for the centre chunk.
+2. Running the decoration pass once per chunk in a 3x3 region instead of once for the center chunk.
    Java runs `applyBiomeDecoration` exactly once per chunk, in that chunk's own `features` step.
 3. Treating `count` as a count of successes rather than of candidate positions. Each position a
    `count` modifier emits is a candidate that the later filters, including `biome`, may reject.
@@ -877,7 +877,7 @@ The two libraries match Java's per-stage algorithms closely and are not the prob
 **`Generator` has no intermediate state.**
 `packages/prismarine/src/world/Generator.ts` is one method,
 `generateChunk(cx, cz, seed?, config?): Promise<Chunk>`. A chunk is either absent or a finished
-Bedrock `Chunk`. There is nothing a neighbour can be handed partway through, which is the one thing
+Bedrock `Chunk`. There is nothing a neighbor can be handed partway through, which is the one thing
 Java's design is built around. `grep -i 'chunkstatus|protochunk'` across `packages/worldgen`,
 `packages/features` and `packages/prismarine/src/world` returns nothing.
 
@@ -885,11 +885,11 @@ Java's design is built around. `grep -i 'chunkstatus|protochunk'` across `packag
 (`packages/prismarine/src/world/generators/datadriven/DataDrivenGenerator.ts:206`) builds nine
 independent `radius: 0` terrain regions through `terrainFor`, then merges all nine centres into one
 `radius: 1` region with `copyCenterFrom`. Java never copies chunk data between chunks. Its region is
-a map of holders, so a write into the neighbour lands in the neighbour's own sections. Here the
+a map of holders, so a write into the neighbor lands in the neighbor's own sections. Here the
 write lands in a scratch buffer and is replayed afterwards by `applyFeaturePatch`, which is where
 the tree-across-the-border problem reappears: the patch is applied to the cached terrain region if
-one is live, appended to `pipeline.featurePatches` for replay if the neighbour is built later, and
-written straight into an already-returned `Chunk` with `applyPatchToChunk` if the neighbour has
+one is live, appended to `pipeline.featurePatches` for replay if the neighbor is built later, and
+written straight into an already-returned `Chunk` with `applyPatchToChunk` if the neighbor has
 already been handed out. Java's equivalent of that third case is
 `ImposterProtoChunk(levelChunk, false)`, which drops the write. Mutating a chunk after it has been
 emitted is the opposite choice, and it means a chunk already sent to a client can change.
@@ -899,7 +899,7 @@ emitted is the opposite choice, and it means a chunk already sent to a client ca
 every biome in the world, and collects the union of their per-step feature lists into one
 `ScheduledFeature[]`. `decorate` (`DataDrivenGenerator.ts:508`) then runs every entry of
 `pipeline.planByStep.get(step)` in every chunk. Java runs the union of the nine chunks actually
-present in the 3x3 neighbourhood (`applyBiomeDecoration`, step 5 of section 7). This alone accounts
+present in the 3x3 neighborhood (`applyBiomeDecoration`, step 5 of section 7). This alone accounts
 for the feature-count blowup, and for trees of biomes nowhere near the chunk being attempted.
 
 **`minecraft:biome` is inert.** `biomeFilter` in
@@ -975,7 +975,7 @@ single writer, which is the arrangement that makes Java fast without making it n
 
 - The jar does not say why `spawn` requires `biomes` at radius 1 rather than radius 0. The likely
   reason is that `NaturalSpawner.spawnMobsForChunkGeneration` reads biomes through the region's
-  `BiomeManager`, which samples a 2x2x2 neighbourhood of biome quarts and can cross the chunk
+  `BiomeManager`, which samples a 2x2x2 neighborhood of biome quarts and can cross the chunk
   boundary, but this note did not trace that call chain.
 - `ChunkStatusTasks.full` is the only task on the main thread. Whether the cost is dominated by
   `registerAllBlockEntitiesAfterLevelLoad`, `registerTickContainerInLevel` or the entity load was not
