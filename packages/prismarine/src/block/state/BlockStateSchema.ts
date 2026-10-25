@@ -37,14 +37,26 @@ export class BlockStateSchema {
      */
     private defaultState: BlockState | null = null;
 
+    /** Built once for the same reason {@link defaultState} is: the schema cannot change. */
+    private propertyTypes: Record<string, BlockStatePropertyType> | null = null;
+
     public constructor(name: string, properties: Record<string, BlockStateProperty> = {}) {
         this.name = name;
         this.properties = Object.freeze({ ...properties });
     }
 
-    /** The NBT type of every property, in the shape {@link BlockState.toNBT} wants. */
+    /**
+     * The NBT type of every property, in the shape {@link BlockState.toNBT} wants.
+     *
+     * The same object every time. Reading and writing a sub chunk asks once per palette entry,
+     * and rebuilding the record meant two intermediate arrays and an object per ask.
+     */
     public getPropertyTypes(): Record<string, BlockStatePropertyType> {
-        return Object.fromEntries(Object.entries(this.properties).map(([key, property]) => [key, property.type]));
+        this.propertyTypes ??= Object.freeze(
+            Object.fromEntries(Object.entries(this.properties).map(([key, property]) => [key, property.type]))
+        );
+
+        return this.propertyTypes;
     }
 
     /**
