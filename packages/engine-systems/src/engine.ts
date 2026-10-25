@@ -32,6 +32,8 @@ import {
 } from './diodes';
 import type { NeighborUpdates } from './neighborUpdates';
 import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborUpdates';
+import type { FluidSourceRules } from './fluids';
+import { DEFAULT_SOURCE_RULES, fluidKindOf, fluidNeighborChanged, fluidTick } from './fluids';
 import { pistonNeighborChanged } from './pistons';
 import {
     TORCH_MAX_RECENT_TOGGLES,
@@ -47,6 +49,8 @@ import { DIRECTIONS, positionKey, relative } from './world';
 
 /** How to build an {@link Engine}. */
 export interface EngineOptions {
+    /** The two source-conversion game rules, defaulting to vanilla. */
+    sourceRules?: FluidSourceRules;
     /** The neighbor update chain limit, defaulting to Java's 1000000. */
     maxChainedNeighborUpdates?: number;
 }
@@ -79,6 +83,7 @@ interface TorchToggle {
  * ```
  */
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
+    const sourceRules = options.sourceRules ?? DEFAULT_SOURCE_RULES;
     let torchToggles: TorchToggle[] = [];
 
     const torchToggledTooOften = (at: BlockPosition, record: boolean): boolean => {
@@ -112,6 +117,10 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
                 }
                 if (isPiston(name)) {
                     pistonNeighborChanged(updates, world, at);
+                    return;
+                }
+                if (fluidKindOf(block) !== undefined) {
+                    fluidNeighborChanged(world, at);
                     return;
                 }
                 void fromBlock;
@@ -171,7 +180,12 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             updates.updateNeighborsAt(relative(at, 'down'), to.name);
             return;
         }
-        if (isRepeater(to.name) || isComparator(to.name)) updateDiodeNeighborsInFront(updates, at, to);
+        if (isRepeater(to.name) || isComparator(to.name)) {
+            updateDiodeNeighborsInFront(updates, at, to);
+            return;
+        }
+        // `LiquidBlock.onPlace` schedules the new fluid's own first tick.
+        if (fluidKindOf(to) !== undefined) fluidNeighborChanged(world, at);
     };
 
     const setBlockAndUpdate = (at: BlockPosition, to: BlockRef): void => {
@@ -182,7 +196,10 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
     };
 
     const runScheduledTick = (kind: TickKind, at: BlockPosition, type: string): void => {
-        if (kind !== 'block') return;
+        if (kind === 'fluid') {
+            fluidTick(updates, world, at, sourceRules);
+            return;
+        }
 
         const block = world.getBlock(at);
         const { name } = block;
