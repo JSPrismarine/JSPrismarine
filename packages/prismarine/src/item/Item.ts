@@ -7,6 +7,7 @@ import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protoco
 
 import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { attributeValueOf } from '../enchantment/attributes';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
 import { vanillaItemTypes } from './vanillaItemTypes';

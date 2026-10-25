@@ -1,7 +1,9 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { GameRules } from '../world/GameRuleManager';
+import { meleeEnchantmentBonus } from '../enchantment/melee';
 import { AttributeIds } from './Attribute';
+import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
 import { sizeOf } from './EntitySize';
@@ -136,11 +138,32 @@ export const meleeAttack = async (attacker: Entity, target: Entity, options: Mel
 
     const world = attacker.getWorld();
     const base = options.damage ?? attacker.attributes.getValue(AttributeIds.AttackDamage);
-    const damage = critical ? base * CRITICAL_MULTIPLIER : base;
+
+    // Read here rather than passed in, which is what lets the handler, the
+    // mob goal and anything else swing an enchanted weapon without each
+    // learning what an enchantment is. It is also where Java reads it.
+    const weapon = attacker.getEquipment().mainhand;
+    const bonus = meleeEnchantmentBonus(
+        {
+            content: attacker.getServer().getContent(),
+            weapon,
+            victim: target,
+            victimEquipment: target.getEquipment(),
+            source: { cause: DamageCause.Attack, attacker, projectile: null }
+        },
+        base
+    );
+
+    // The critical multiplies the weapon's own damage and not the
+    // enchantment's: Java scales the two separately and adds them, which is
+    // why a sharpened sword keeps all of its Sharpness on an uncharged swing
+    // and almost none of its own damage.
+    const damage = (critical ? base * CRITICAL_MULTIPLIER : base) + bonus.damage;
+    const shove = knockbackLevels + bonus.knockbackLevels;
 
     // Something that does no damage still makes a noise, because the alternative is a swing that
     // produces nothing at all and reads as the server having missed the packet.
-    const landed = damage > NO_DAMAGE && (await target.damage(damage, DamageSource.entity(attacker, knockbackLevels)));
+    const landed = damage > NO_DAMAGE && (await target.damage(damage, DamageSource.entity(attacker, shove)));
 
     if (!landed) {
         await world.sendActorSound(attacker, LevelSoundEvent.ATTACK_NODAMAGE);

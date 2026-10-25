@@ -142,11 +142,10 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
                 // `CRACK_BLOCK`.
                 await world.hitBlock(blockPosition, blockFace);
 
-                // Bare-handed, always. Known gap: `getBreakTime` takes the tool as its first
-                // argument and is passed none, so a pickaxe animates at a fist's pace. The
-                // held item is `player.getInventory().getItemInHand()`; what is missing is
-                // the tool-to-block speed table it would be looked up in.
-                const breakTime = Math.ceil(block.getBreakTime(null, server) * 20);
+                // The held item, so a pickaxe animates at a pickaxe's pace. This passed null
+                // for as long as it existed, which made every block crack at a fist's rate
+                // and left Efficiency with nothing to speed up.
+                const breakTime = Math.ceil(block.getBreakTime(player.getInventory().getItemInHand(), server) * 20);
 
                 // A block that gives way instantly has no progress to animate, and the
                 // 65535/0 the client would be handed is not a number this packet can carry.

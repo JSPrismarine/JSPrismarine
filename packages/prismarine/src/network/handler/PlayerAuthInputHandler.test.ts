@@ -6,6 +6,8 @@ import { describe, expect, it, vi } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Block } from '../../block/Block';
+import type HumanInventory from '../../inventory/HumanInventory';
+import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
 import { Position } from '../../world/Position';

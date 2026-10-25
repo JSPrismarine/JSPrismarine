@@ -176,8 +176,14 @@ export class Block {
      * How long, in seconds, the block takes to break.
      *
      * Hardness on its own is not that time. Vanilla scales it by whether the
-     * tool in hand can actually harvest the block: 1.5x when it can, 5x when
-     * it cannot, which is why dirt takes 0.75s by hand and stone 7.5s.
+     * tool in hand can actually harvest the block - 1.5x when it can, 5x when
+     * it cannot, which is why dirt takes 0.75s by hand and stone 7.5s - and
+     * then divides by how fast the tool mines. Those two factors are Java's
+     * `destroyProgress` written the other way up: `speed / hardness / 30` for
+     * a correct tool and `/ 100` for anything else, in progress per tick.
+     *
+     * The divisor is what Efficiency moves: the enchantment is an `add_value`
+     * on `minecraft:mining_efficiency`, which Java adds to the tool's speed.
      *
      * @param item - What is in hand, or null for a bare fist.
      */
@@ -186,7 +192,11 @@ export class Block {
         // Negative hardness is Java's marker for the unbreakable blocks:
         // bedrock, barriers, portals. They never give way.
         if (hardness < 0) return Number.POSITIVE_INFINITY;
-        return hardness * (this.isCompatibleWithTool(item) ? 1.5 : 5);
+
+        const scale = this.isCompatibleWithTool(item) ? 1.5 : 5;
+        const speed = Math.max(1, item?.getMiningSpeed(this.getName()) ?? 1);
+
+        return (hardness * scale) / speed;
     }
 
     /** Java's explosion resistance. */

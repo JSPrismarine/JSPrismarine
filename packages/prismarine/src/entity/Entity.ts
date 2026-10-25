@@ -13,8 +13,10 @@ import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import EntityDamageEvent from '../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../events/entity/EntityDeathEvent';
+import { enchantmentProtection } from '../enchantment/mitigation';
 import { sizeOf } from './EntitySize';
 import { Metadata, MetadataFlag } from './Metadata';
+import type { ViewableEquipment } from './predicateView';
 
 /**
  * Re-exported so that `import { DamageCause } from './entity/Entity'` keeps resolving.
@@ -589,13 +591,35 @@ export class Entity {
     }
 
     /**
+     * What this entity is wearing and holding, by equipment slot.
+     *
+     * Empty here, because a plain entity wears nothing. A `Human` overrides it
+     * from the armor container, the hand and the off hand.
+     */
+    public getEquipment(): ViewableEquipment {
+        return {};
+    }
+
+    /**
      * The summed Enchantment Protection Factor of whatever is worn.
-     * @param {DamageSource} _source - What did the damage, since Fire and Blast Protection only
-     * count against the thing they name.
+     *
+     * Run out of the `minecraft:damage_protection` components of the
+     * enchantments actually on the armor, so Protection, Fire Protection,
+     * Blast Protection, Projectile Protection and Feather Falling each decide
+     * for themselves whether this blow is one they answer - through the
+     * `damage_source_properties` condition each of their files carries. This
+     * was a literal zero, which made the whole Protection family inert.
+     *
+     * @param {DamageSource} source - What did the damage, and who.
      * @returns {number} The factor, capped later by the damage formula.
      */
-    protected getEnchantmentProtection(_source: DamageSource): number {
-        return 0;
+    protected getEnchantmentProtection(source: DamageSource): number {
+        return enchantmentProtection({
+            content: this.server.getContent(),
+            victim: this,
+            equipment: this.getEquipment(),
+            source
+        });
     }
 
     /** The level of the Resistance effect. Zero until there is an effect system. */

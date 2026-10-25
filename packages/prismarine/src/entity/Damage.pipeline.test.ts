@@ -54,7 +54,11 @@ const scene = () => {
             listener(pair);
             return posted.push(pair);
         },
-        getTick: () => 0
+        getTick: () => 0,
+        // No pack stack, which is the default a server boots with. The
+        // enchantment step then has no definitions to run and takes nothing
+        // off, which is what these cases assume.
+        getContent: () => undefined
     });
 
     const world: any = {
