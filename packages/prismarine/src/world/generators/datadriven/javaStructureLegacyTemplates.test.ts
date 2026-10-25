@@ -9,7 +9,7 @@ import { buildRuinedPortal } from './javaStructureRuinedPortal';
 import type { StructureBuildContext, StructureLayout } from './javaStructureStarts';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import type { TemplateSource } from './javaTemplatePlacement';
-import type { StructureLevel, StructureWriter } from './javaStructureWorld';
+import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
 
 /** The flat terrain every case here is laid out against. */
 const GROUND = 70;
@@ -134,8 +134,17 @@ const contextOf = (
     pool: () => undefined
 });
 
+/**
+ * A builder's layout with its deferred pieces assembled.
+ *
+ * Assembling draws from the context's stream, so every case here assembles once and reads the
+ * result, the way `StructureStartSource` does after the biome check.
+ */
+const laidOut = (layout: StructureLayout | undefined) =>
+    layout === undefined ? undefined : { origin: layout.origin, pieces: layout.pieces() };
+
 /** Runs every piece of a layout and reports what landed. */
-const placed = (layout: StructureLayout, level = levelOf()): Written => {
+const placed = (layout: { readonly pieces: readonly StructurePiece[] }, level = levelOf()): Written => {
     const written = writerOf(level);
     for (const piece of layout.pieces) piece.place(written.writer, createLegacyRandom(7));
     return written;
@@ -145,7 +154,7 @@ describe('buildShipwreck', () => {
     const hull = sourceOf(() => template(8, 6, 20, 'minecraft:oak_planks', 'supply_chest'));
 
     it('sinks an open-water hull onto the ocean floor', () => {
-        const layout = buildShipwreck(contextOf({ is_beached: false }, hull, 42, levelOf({ flooded: true })));
+        const layout = laidOut(buildShipwreck(contextOf({ is_beached: false }, hull, 42, levelOf({ flooded: true }))));
 
         expect(layout).toBeDefined();
         expect(layout!.pieces).toHaveLength(1);
@@ -154,14 +163,14 @@ describe('buildShipwreck', () => {
     });
 
     it('buries a beached hull into the shore rather than resting it on top', () => {
-        const layout = buildShipwreck(contextOf({ is_beached: true }, hull, 42));
+        const layout = laidOut(buildShipwreck(contextOf({ is_beached: true }, hull, 42)));
 
         expect(layout).toBeDefined();
         expect(layout!.pieces[0]!.boundingBox.minY).toBeLessThan(GROUND + 1);
     });
 
     it('gives a supply chest its loot table', () => {
-        const layout = buildShipwreck(contextOf({ is_beached: true }, hull, 42))!;
+        const layout = laidOut(buildShipwreck(contextOf({ is_beached: true }, hull, 42)))!;
         const written = placed(layout);
 
         expect(written.entities.map((entry) => entry.request.lootTable)).toContain('minecraft:chests/shipwreck_supply');
@@ -169,7 +178,9 @@ describe('buildShipwreck', () => {
 
     it('lays the same hull out for the same seed and turns it differently for others', () => {
         const boxOf = (seed: number) =>
-            JSON.stringify(buildShipwreck(contextOf({ is_beached: false }, hull, seed))?.pieces[0]?.boundingBox);
+            JSON.stringify(
+                laidOut(buildShipwreck(contextOf({ is_beached: false }, hull, seed)))?.pieces[0]?.boundingBox
+            );
 
         expect(boxOf(42)).toBe(boxOf(42));
         expect(new Set(SPREAD_SEEDS.map(boxOf)).size).toBeGreaterThan(1);
@@ -184,7 +195,7 @@ describe('buildIgloo', () => {
     );
 
     it('settles the dome onto the surface', () => {
-        const layout = buildIgloo(contextOf({}, igloo, 11))!;
+        const layout = laidOut(buildIgloo(contextOf({}, igloo, 11)))!;
         const dome = layout.pieces.at(-1)!;
 
         expect(layout.origin.y).toBe(GROUND + 1);
@@ -192,14 +203,14 @@ describe('buildIgloo', () => {
     });
 
     it('digs a basement under some igloos and not others', () => {
-        const counts = SPREAD_SEEDS.map((seed) => buildIgloo(contextOf({}, igloo, seed))!.pieces.length);
+        const counts = SPREAD_SEEDS.map((seed) => laidOut(buildIgloo(contextOf({}, igloo, seed)))!.pieces.length);
 
         expect(counts.some((count) => count === 1)).toBe(true);
         expect(counts.some((count) => count > 1)).toBe(true);
     });
 
     it('gives the basement chest its loot table', () => {
-        const withBasement = SPREAD_SEEDS.map((seed) => buildIgloo(contextOf({}, igloo, seed))!).find(
+        const withBasement = SPREAD_SEEDS.map((seed) => laidOut(buildIgloo(contextOf({}, igloo, seed)))!).find(
             (layout) => layout.pieces.length > 1
         )!;
 
@@ -213,10 +224,12 @@ describe('buildOceanRuin', () => {
     const ruin = sourceOf(() => template(10, 8, 10, 'minecraft:stone_bricks', 'chest'));
 
     it('always takes a large ruin when the probability is one', () => {
-        const layout = buildOceanRuin(
-            contextOf({ biome_temp: 'warm', large_probability: 1 }, ruin, 5)
-            // The template store answers every identifier, so the size is the same either way;
-            // the loot table is what the size decides.
+        const layout = laidOut(
+            buildOceanRuin(
+                contextOf({ biome_temp: 'warm', large_probability: 1 }, ruin, 5)
+                // The template store answers every identifier, so the size is the same either
+                // way; the loot table is what the size decides.
+            )
         )!;
 
         expect(placed(layout).entities.map((entry) => entry.request.lootTable)).toContain(
@@ -225,7 +238,7 @@ describe('buildOceanRuin', () => {
     });
 
     it('takes a small ruin when the probability is zero', () => {
-        const layout = buildOceanRuin(contextOf({ biome_temp: 'cold', large_probability: 0 }, ruin, 5))!;
+        const layout = laidOut(buildOceanRuin(contextOf({ biome_temp: 'cold', large_probability: 0 }, ruin, 5)))!;
 
         expect(placed(layout).entities.map((entry) => entry.request.lootTable)).toContain(
             'minecraft:chests/underwater_ruin_small'
@@ -233,7 +246,7 @@ describe('buildOceanRuin', () => {
     });
 
     it('rests the ruin on the lowest column of its footprint', () => {
-        const layout = buildOceanRuin(contextOf({ biome_temp: 'cold', large_probability: 0 }, ruin, 5))!;
+        const layout = laidOut(buildOceanRuin(contextOf({ biome_temp: 'cold', large_probability: 0 }, ruin, 5)))!;
 
         expect(layout.pieces[0]!.boundingBox.minY).toBe(GROUND);
     });
@@ -243,17 +256,19 @@ describe('buildNetherFossil', () => {
     const fossil = sourceOf(() => template(5, 4, 5, 'minecraft:bone_block'));
 
     it('places the bones at the drawn height and leaves the rock between them', () => {
-        const layout = buildNetherFossil(
-            contextOf(
-                {
-                    height: {
-                        type: 'minecraft:uniform',
-                        min_inclusive: { absolute: 40 },
-                        max_inclusive: { absolute: 44 }
-                    }
-                },
-                fossil,
-                3
+        const layout = laidOut(
+            buildNetherFossil(
+                contextOf(
+                    {
+                        height: {
+                            type: 'minecraft:uniform',
+                            min_inclusive: { absolute: 40 },
+                            max_inclusive: { absolute: 44 }
+                        }
+                    },
+                    fossil,
+                    3
+                )
             )
         )!;
 
@@ -286,7 +301,7 @@ describe('buildRuinedPortal', () => {
     });
 
     it('rests a surface portal on the terrain and spreads netherrack around it', () => {
-        const layout = buildRuinedPortal(contextOf(setup(), portal, 17))!;
+        const layout = laidOut(buildRuinedPortal(contextOf(setup(), portal, 17)))!;
         const written = placed(layout);
 
         expect(layout.pieces).toHaveLength(2);

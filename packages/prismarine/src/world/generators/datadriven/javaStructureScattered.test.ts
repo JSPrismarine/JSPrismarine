@@ -137,13 +137,24 @@ const contextFor = (seed: number, options: BuildOptions = {}): StructureBuildCon
 });
 
 /** Lays a structure out and writes it, which is what every case below starts from. */
+/**
+ * A builder's layout with its deferred pieces assembled.
+ *
+ * Assembling draws from the context's stream, so every case here assembles once and reads the
+ * result, the way `StructureStartSource` does after the biome check.
+ */
+const laidOut = (builder: StructureBuilder, seed: number, options: BuildOptions = {}) => {
+    const layout = builder(contextFor(seed, options));
+    if (layout === undefined) throw new Error('the builder laid out nothing');
+    return { origin: layout.origin, pieces: layout.pieces() };
+};
+
 const placed = (
     builder: StructureBuilder,
     seed: number,
     options: BuildOptions = {}
 ): Recording & { pieces: readonly StructurePiece[] } => {
-    const layout = builder(contextFor(seed, options));
-    if (layout === undefined) throw new Error('the builder laid out nothing');
+    const layout = laidOut(builder, seed, options);
 
     const recording = recordingWriter(options.level ?? flatLevel());
     for (const piece of layout.pieces) piece.place(recording.writer, createLegacyRandom(seed));
@@ -163,7 +174,7 @@ const fingerprint = (recording: Recording): string[] =>
 
 describe('the desert pyramid', () => {
     it('lays out a 21 by 21 piece settled on the terrain', () => {
-        const layout = buildDesertPyramid(contextFor(42))!;
+        const layout = laidOut(buildDesertPyramid, 42);
         const box = layout.pieces[0]!.boundingBox;
 
         expect(box.maxX - box.minX).toBe(20);
@@ -216,7 +227,7 @@ describe('the desert pyramid', () => {
 
 describe('the jungle temple', () => {
     it('lays out a 12 by 15 piece settled on the terrain', () => {
-        const layout = buildJungleTemple(contextFor(7))!;
+        const layout = laidOut(buildJungleTemple, 7);
         const box = layout.pieces[0]!.boundingBox;
         const footprint = [box.maxX - box.minX + 1, box.maxZ - box.minZ + 1].sort((a, b) => a - b);
 
@@ -265,7 +276,7 @@ describe('the jungle temple', () => {
 
 describe('the swamp hut', () => {
     it('lays out a 7 by 9 piece settled on the terrain', () => {
-        const layout = buildSwampHut(contextFor(99))!;
+        const layout = laidOut(buildSwampHut, 99);
         const box = layout.pieces[0]!.boundingBox;
         const footprint = [box.maxX - box.minX + 1, box.maxZ - box.minZ + 1].sort((a, b) => a - b);
 
@@ -305,7 +316,7 @@ describe('the swamp hut', () => {
 
 describe('buried treasure', () => {
     it('puts its one block nine blocks into the chunk, under the sea floor', () => {
-        const layout = buildBuriedTreasure(contextFor(5, { chunkX: 3, chunkZ: -2 }))!;
+        const layout = laidOut(buildBuriedTreasure, 5, { chunkX: 3, chunkZ: -2 });
         const box = layout.pieces[0]!.boundingBox;
 
         expect(box.minX).toBe(3 * 16 + 9);
@@ -318,7 +329,7 @@ describe('buried treasure', () => {
     });
 
     it('walks down through the sea floor until it finds a block it can bury into', () => {
-        const layout = buildBuriedTreasure(contextFor(5, { level: seabedLevel() }))!;
+        const layout = laidOut(buildBuriedTreasure, 5, { level: seabedLevel() });
 
         // Four blocks of gravel sit over the stone, and gravel is not one Java buries into.
         expect(layout.pieces[0]!.boundingBox.minY).toBe(SURFACE - 4);
@@ -366,7 +377,7 @@ describe('the piece facing', () => {
         const footprints = new Map<string, string>();
 
         for (const [direction, seed] of Object.entries(SEEDS)) {
-            const box = buildSwampHut(contextFor(seed))!.pieces[0]!.boundingBox;
+            const box = laidOut(buildSwampHut, seed).pieces[0]!.boundingBox;
             footprints.set(direction, `${box.maxX - box.minX + 1} by ${box.maxZ - box.minZ + 1}`);
         }
 

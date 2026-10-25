@@ -2,11 +2,11 @@
  * Where a structure starts and what it is made of.
  *
  * Java's `ChunkGenerator.createStructures` asks every structure set whether a chunk is one of
- * its, draws the structure the set offers there, lays it out against the bare terrain and keeps
- * the result if the biome at its generation point allows it. `createReferences` then finds, for
- * the chunk being generated, every start within eight chunks whose box reaches into it. Both are
- * here, with one cache in front of them, because a village is laid out once and written into
- * each of the dozen chunks it covers.
+ * its, draws the structure the set offers there, finds its generation point against the bare
+ * terrain, and lays the structure out only if the biome at that point allows it.
+ * `createReferences` then finds, for the chunk being generated, every start within eight chunks
+ * whose box reaches into it. Both are here, with one cache in front of them, because a village is
+ * laid out once and written into each of the dozen chunks it covers.
  *
  * Laying a structure out touches no chunk and writes nothing, so a start is a pure function of
  * the world seed and the chunk it starts in. That is what makes the cache safe and what makes
@@ -51,14 +51,35 @@ export interface StructureBuildContext {
     readonly pool: (identifier: string) => TemplatePool | undefined;
 }
 
-/** What a builder produced: the pieces and the point the biome check is made at. */
+/**
+ * What a builder produced: the point the biome check is made at, and the pieces, deferred.
+ *
+ * This is Java's `Structure.GenerationStub`, which pairs a position with a
+ * `Consumer<StructurePiecesBuilder>` that `Structure.generate` runs only once
+ * `findValidGenerationPoint` has accepted the biome at that position. A structure drawn into a
+ * biome that refuses it is therefore never assembled, and {@link StructureLayout.pieces} being a
+ * call rather than a field is what keeps that true here.
+ */
 export interface StructureLayout {
-    readonly pieces: readonly StructurePiece[];
     /** Java's generation point, which is also what `/locate` reports. */
     readonly origin: { readonly x: number; readonly y: number; readonly z: number };
+    /**
+     * Assembles the pieces, which is Java's `GenerationStub.getPiecesBuilder`.
+     *
+     * Called at most once per layout, and never before the biome at {@link StructureLayout.origin}
+     * has been accepted. A builder may keep drawing from {@link StructureBuildContext.random}
+     * inside it: nothing touches that stream between the two, so the draws land in Java's order.
+     */
+    readonly pieces: () => readonly StructurePiece[];
 }
 
-/** Lays one structure type out. Returns undefined when the structure cannot start here. */
+/**
+ * Lays one structure type out, as far as its generation point.
+ *
+ * Returns undefined when the structure cannot start here at all. A structure that places its
+ * start but then assembles nothing answers an empty {@link StructureLayout.pieces} instead,
+ * which Java reports the same way through `StructureStart.isValid`.
+ */
 export type StructureBuilder = (context: StructureBuildContext) => StructureLayout | undefined;
 
 /** One structure that starts in a chunk, laid out and ready to be written. */
@@ -221,8 +242,16 @@ export class StructureStartSource {
             templates: this.options.templates,
             pool: (identifier) => this.poolAt(identifier)
         });
-        if (layout === undefined || layout.pieces.length === 0) return null;
+        if (layout === undefined) return null;
+
+        // Java's order, from `Structure.generate`: `findValidGenerationPoint` filters the stub by
+        // the biome at its position, and only the stub that survives has its pieces built. The
+        // rejected ones are the overwhelming majority, and assembling them first is what made
+        // structure layout the most expensive part of generating a chunk.
         if (!this.biomeAllows(structure, layout.origin)) return null;
+
+        const pieces = layout.pieces();
+        if (pieces.length === 0) return null;
 
         return {
             structure,
@@ -231,8 +260,8 @@ export class StructureStartSource {
             chunkZ,
             step: stepOf(definition.step),
             terrainAdaptation: terrainAdaptationOf(definition.terrain_adaptation),
-            boundingBox: unionOf(layout.pieces),
-            pieces: layout.pieces,
+            boundingBox: unionOf(pieces),
+            pieces,
             origin: layout.origin
         };
     }

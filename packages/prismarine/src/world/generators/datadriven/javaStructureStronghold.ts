@@ -32,7 +32,7 @@ import { DIRECTION_STEPS, HORIZONTAL_DIRECTIONS, oppositeDirection } from '@jspr
 import type { BoundingBox, RandomSource } from '@jsprismarine/structures';
 import { createLegacyRandom, largeFeatureSeed } from '@jsprismarine/structures';
 
-import type { StructureBuilder, StructureLayout } from './javaStructureStarts';
+import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
 import { movedBox, unionOf } from './javaStructureWorld';
 
@@ -1571,6 +1571,17 @@ export const buildStronghold: StructureBuilder = (context): StructureLayout | un
     const blockX = context.chunkX * 16;
     const blockZ = context.chunkZ * 16;
 
+    // Java's generation point is the chunk's own world position, decided before a single room is
+    // drawn, so the whole retry loop sits behind the biome check.
+    return { origin: { x: blockX, y: 0, z: blockZ }, pieces: () => strongholdPieces(context, blockX, blockZ) };
+};
+
+/** The rooms one stronghold grew, or none when no attempt produced a portal room. */
+const strongholdPieces = (
+    context: StructureBuildContext,
+    blockX: number,
+    blockZ: number
+): readonly StructurePiece[] => {
     for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
         // Java reseeds the shared worldgen stream per attempt. The first attempt's seed is the
         // one the context's stream already carries, so that one is used as it was handed over.
@@ -1600,10 +1611,8 @@ export const buildStronghold: StructureBuilder = (context): StructureLayout | un
 
         settleBelowSeaLevel(layout.pieces, context.level.seaLevel, context.level.minY, random);
 
-        if (layout.portalRoom !== undefined) {
-            return { pieces: layout.pieces, origin: { x: blockX, y: 0, z: blockZ } };
-        }
+        if (layout.portalRoom !== undefined) return layout.pieces;
     }
 
-    return undefined;
+    return [];
 };

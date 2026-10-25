@@ -1177,6 +1177,11 @@ export const mineshaftPieceDepth = (piece: StructurePiece): number | undefined =
 /**
  * Lays out an abandoned mineshaft: a room in the start chunk, the tunnels that chain off it, and
  * the one vertical move that settles all of them together.
+ *
+ * This is the one structure Java also assembles before it checks the biome, and for the same
+ * reason: the settling move the tunnels make is what decides the generation point's own y, so
+ * there is nothing to check until the tunnels exist. `MineshaftStructure.findGenerationPoint`
+ * answers with `Either.right` of a built pieces list rather than a consumer.
  */
 export const buildMineshaft: StructureBuilder = (context): StructureLayout | undefined => {
     const variant: MineshaftVariant = context.definition.mineshaft_type === 'mesa' ? 'mesa' : 'normal';
@@ -1193,7 +1198,7 @@ export const buildMineshaft: StructureBuilder = (context): StructureLayout | und
     for (const piece of graph.pieces) piece.moveVertically(shift);
 
     return {
-        pieces: graph.pieces,
-        origin: { x: context.chunkX * 16 + 8, y: LAYOUT_Y + shift, z: context.chunkZ * 16 + 8 }
+        origin: { x: context.chunkX * 16 + 8, y: LAYOUT_Y + shift, z: context.chunkZ * 16 + 8 },
+        pieces: () => graph.pieces
     };
 };

@@ -93,30 +93,35 @@ export const buildRuinedPortal: StructureBuilder = (context): StructureLayout | 
     const surface = context.level.baseHeight(centerX, centerZ, heightmap) - 1;
     const y = suitableY(context, setup, airPocket, surface, size[1], box, heightmap);
 
-    const cold = setup.canBeCold && (context.level.coldEnoughToSnow?.(centerX, y, centerZ) ?? false);
-    const portal = new TemplatePiece({
-        store: context.templates,
-        template,
-        position: [corner[0], y, corner[2]],
-        placement,
-        processors: portalProcessors(setup, cold),
-        // Java swaps `BlockIgnoreProcessor.STRUCTURE_AND_AIR` in when the portal has no air
-        // pocket, which is what lets the terrain fill the gaps in a buried frame.
-        overwrite: airPocket
-    });
-    if (!portal.isPresent) return undefined;
+    // Everything above settles the portal's y, which is the generation point's own y, so it is
+    // Java's `findGenerationPoint`. Only the pieces themselves wait for the biome check.
+    return {
+        origin: { x: context.chunkX * 16, y, z: context.chunkZ * 16 },
+        pieces: (): readonly StructurePiece[] => {
+            const cold = setup.canBeCold && (context.level.coldEnoughToSnow?.(centerX, y, centerZ) ?? false);
+            const portal = new TemplatePiece({
+                store: context.templates,
+                template,
+                position: [corner[0], y, corner[2]],
+                placement,
+                processors: portalProcessors(setup, cold),
+                // Java swaps `BlockIgnoreProcessor.STRUCTURE_AND_AIR` in when the portal has no
+                // air pocket, which is what lets the terrain fill the gaps in a buried frame.
+                overwrite: airPocket
+            });
+            if (!portal.isPresent) return [];
 
-    const pieces: StructurePiece[] = [
-        portal,
-        new NetherrackSpread({
-            box: { ...box, minY: y, maxY: y + size[1] - 1 },
-            placement: setup.placement,
-            heightmap,
-            cold
-        })
-    ];
-
-    return { pieces, origin: { x: context.chunkX * 16, y, z: context.chunkZ * 16 } };
+            return [
+                portal,
+                new NetherrackSpread({
+                    box: { ...box, minY: y, maxY: y + size[1] - 1 },
+                    placement: setup.placement,
+                    heightmap,
+                    cold
+                })
+            ];
+        }
+    };
 };
 
 /** Reads the `setups` list, which every ruined portal carries and nothing else does. */

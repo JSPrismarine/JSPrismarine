@@ -3,7 +3,7 @@ import { createLegacyRandom } from '@jsprismarine/structures';
 import { describe, expect, it } from 'vitest';
 
 import { buildOceanMonument } from './javaStructureOceanMonument';
-import type { StructureBuildContext, StructureLayout } from './javaStructureStarts';
+import type { StructureBuildContext } from './javaStructureStarts';
 import type { StructureLevel, StructureWriter } from './javaStructureWorld';
 
 /** The flat ocean floor every case here is laid out against. */
@@ -90,7 +90,11 @@ const OTHER_SEED = 15_485_863;
 /** The seed most cases here read, kept in one place because the placements are cached. */
 const SEED = 42;
 
-const monumentFor = (seed: number): StructureLayout => buildOceanMonument(contextOf(seed))!;
+/** One monument laid out, with its deferred pieces assembled once. */
+const monumentFor = (seed: number) => {
+    const layout = buildOceanMonument(contextOf(seed))!;
+    return { origin: layout.origin, pieces: layout.pieces() };
+};
 
 const placements = new Map<number, Written>();
 
@@ -118,7 +122,7 @@ const sameBlocks = (one: Written, other: Written): boolean => {
 };
 
 /** The smallest box holding every piece, which is the whole monument. */
-const extentOf = (layout: StructureLayout) => {
+const extentOf = (layout: ReturnType<typeof monumentFor>) => {
     const boxes = layout.pieces.map((piece) => piece.boundingBox);
     return {
         width: Math.max(...boxes.map((box) => box.maxX)) - Math.min(...boxes.map((box) => box.minX)) + 1,

@@ -9,7 +9,7 @@
  * trial chambers and the eighteen abandoned camps are all this one builder.
  */
 import type { PlacedPiece, PoolElement, Rotation } from '@jsprismarine/structures';
-import { assembleJigsaw, createLegacyRandom, parsePoolAliases } from '@jsprismarine/structures';
+import { createLegacyRandom, parsePoolAliases, startJigsaw } from '@jsprismarine/structures';
 
 import { sampleStructureHeight } from './javaStructureHeight';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
@@ -40,7 +40,7 @@ const GROUND_LEVEL_DELTA = 1;
 const ROTATIONS: readonly Rotation[] = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90'];
 
 /**
- * Lays out one jigsaw structure.
+ * Places one jigsaw structure's start piece, and leaves the rest to `pieces`.
  *
  * The start position is the chunk's minimum block corner, not its middle, which is what decides
  * where a village centers. The `size` field is Java's `maxDepth`.
@@ -54,7 +54,7 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
     const startJigsawName = definition.start_jigsaw_name;
     const heightmap = definition.project_start_to_heightmap;
 
-    const assembly = assembleJigsaw(
+    const start = startJigsaw(
         {
             startPool,
             maxDepth: typeof definition.size === 'number' ? definition.size : 0,
@@ -75,11 +75,13 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
         }
     );
 
-    const origin = assembly.origin;
+    const origin = start.origin;
     if (origin === undefined) return undefined;
 
-    const pieces = assembly.pieces.flatMap((piece) => piecesOf(piece, context));
-    return pieces.length === 0 ? undefined : { pieces, origin: { x: origin[0], y: origin[1], z: origin[2] } };
+    return {
+        origin: { x: origin[0], y: origin[1], z: origin[2] },
+        pieces: () => start.expand().pieces.flatMap((piece) => piecesOf(piece, context))
+    };
 };
 
 /**

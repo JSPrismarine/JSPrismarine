@@ -92,7 +92,7 @@ const recordingWriter = (): Recording => {
 };
 
 /** Writes a laid-out mineshaft once, the way one chunk writes the part of it that it holds. */
-const placeAll = (layout: StructureLayout, seed: bigint): Recording => {
+const placeAll = (layout: Mineshaft, seed: bigint): Recording => {
     const recording = recordingWriter();
     const random = createLegacyRandom(seed);
     for (const piece of layout.pieces) piece.place(recording.writer, random);
@@ -100,7 +100,7 @@ const placeAll = (layout: StructureLayout, seed: bigint): Recording => {
 };
 
 /** The boxes of a layout, which is what two seeds are compared on. */
-const shapeOf = (layout: StructureLayout): string =>
+const shapeOf = (layout: Mineshaft): string =>
     layout.pieces.map((piece) => JSON.stringify(piece.boundingBox)).join('|');
 
 const overlaps = (a: StructurePiece, b: StructurePiece): boolean => {
@@ -116,11 +116,17 @@ const overlaps = (a: StructurePiece, b: StructurePiece): boolean => {
     );
 };
 
-const layoutFor = (seed: bigint, variant: 'normal' | 'mesa' = 'normal'): StructureLayout => {
+/** One mineshaft laid out, with its deferred pieces assembled once. */
+interface Mineshaft {
+    readonly origin: StructureLayout['origin'];
+    readonly pieces: readonly StructurePiece[];
+}
+
+const layoutFor = (seed: bigint, variant: 'normal' | 'mesa' = 'normal'): Mineshaft => {
     const layout = buildMineshaft(contextFor(seed, variant));
     if (layout === undefined) throw new Error(`seed ${seed} laid out no mineshaft`);
 
-    return layout;
+    return { origin: layout.origin, pieces: layout.pieces() };
 };
 
 describe('buildMineshaft', () => {

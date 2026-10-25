@@ -1814,18 +1814,21 @@ const layOutMonument = (
  *   start chunk, one block into the sea floor.
  */
 export const buildOceanMonument: StructureBuilder = (context): StructureLayout | undefined => {
-    const orientation = HORIZONTAL_DIRECTIONS[context.random.nextInt(HORIZONTAL_DIRECTIONS.length)]!;
-    const pieces = layOutMonument(
-        context.random,
-        context.chunkX * 16 - MONUMENT_REACH,
-        context.chunkZ * 16 - MONUMENT_REACH,
-        orientation
-    );
-
     const x = context.chunkX * 16 + 8;
     const z = context.chunkZ * 16 + 8;
 
-    // Java's `getFirstOccupiedHeight` is the heightmap minus one, which is the topmost block of
-    // the sea floor rather than the water above it.
-    return { pieces, origin: { x, y: context.level.baseHeight(x, z, 'OCEAN_FLOOR_WG') - 1, z } };
+    return {
+        // Java's `getFirstOccupiedHeight` is the heightmap minus one, which is the topmost block
+        // of the sea floor rather than the water above it.
+        origin: { x, y: context.level.baseHeight(x, z, 'OCEAN_FLOOR_WG') - 1, z },
+        pieces: () => {
+            const orientation = HORIZONTAL_DIRECTIONS[context.random.nextInt(HORIZONTAL_DIRECTIONS.length)]!;
+            return layOutMonument(
+                context.random,
+                context.chunkX * 16 - MONUMENT_REACH,
+                context.chunkZ * 16 - MONUMENT_REACH,
+                orientation
+            );
+        }
+    };
 };
