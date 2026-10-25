@@ -10,7 +10,7 @@
 import { Activities } from '../activity.js';
 import type { ActivityData } from '../brain.js';
 import { activityData, Brain, prioritized } from '../brain.js';
-import { countDownCooldownTicks, triggerIf } from '../behavior/builder.js';
+import { behavior, countDownCooldownTicks, triggerIf } from '../behavior/builder.js';
 import {
     animalMakeLove,
     animalPanic,
@@ -99,27 +99,33 @@ function croak(): BehaviorControl {
 /**
  * Java's `TryLaySpawnOnFluidNearLand`: places frogspawn and clears `IS_PREGNANT`.
  *
- * The block placement is the host's; what the brain owns is the end of the pregnancy, and that is
- * what this does.
+ * The frog must be out of the water and on the ground, and it looks only at the four blocks
+ * horizontally adjacent to the one below it. The block placement is the host's; what the brain
+ * owns is the end of the pregnancy.
  */
 function tryLaySpawn(): BehaviorControl {
-    return triggerIf('TryLaySpawnOnFluidNearLand', (body, context) => {
-        if (!body.brain.hasMemoryValue(MemoryModuleTypes.IS_PREGNANT)) {
-            return false;
-        }
-        const water = context.world.findBlock(
-            blockContaining(body.position),
-            1,
-            1,
-            (block) => block === 'minecraft:water'
-        );
-        if (water === undefined) {
-            return false;
-        }
-        context.world.emitGameEvent('minecraft:block_place', body.position, body);
-        body.brain.eraseMemory(MemoryModuleTypes.IS_PREGNANT);
-        return true;
-    });
+    return behavior('TryLaySpawnOnFluidNearLand')
+        .absent(MemoryModuleTypes.ATTACK_TARGET)
+        .present(MemoryModuleTypes.WALK_TARGET)
+        .present(MemoryModuleTypes.IS_PREGNANT)
+        .build((context, _attackTarget, _walkTarget, pregnant) => {
+            if (has(context.body, EntityCondition.IN_WATER) || !has(context.body, EntityCondition.ON_GROUND)) {
+                return false;
+            }
+            const water = context.world.findBlock(
+                blockContaining(context.body.position),
+                1,
+                1,
+                (block) => block === 'minecraft:water'
+            );
+            if (water === undefined) {
+                return true;
+            }
+            context.world.emitGameEvent('minecraft:block_place', context.body.position, context.body);
+            context.body.playSound('minecraft:entity.frog.lay_spawn');
+            pregnant.erase();
+            return true;
+        });
 }
 
 /**
@@ -131,6 +137,11 @@ function tryLaySpawn(): BehaviorControl {
  */
 function longJump(interval: typeof FROG.timeBetweenLongJumps, sound: string): BehaviorControl {
     return timedState('LongJumpToPreferredBlock', 20, {
+        entryCondition: conditions(
+            [MemoryModuleTypes.LOOK_TARGET, 'registered'],
+            [MemoryModuleTypes.LONG_JUMP_COOLDOWN_TICKS, 'value_absent'],
+            [MemoryModuleTypes.LONG_JUMP_MID_JUMP, 'value_absent']
+        ),
         onStart: (context) => {
             context.body.brain.setMemory(MemoryModuleTypes.LONG_JUMP_MID_JUMP, true);
             context.body.jump();
