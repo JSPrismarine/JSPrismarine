@@ -1,0 +1,68 @@
+{
+    "provenance": "Mojang publishes no spawn attempt rate, no cap value, no spawn radius and no light algorithm for Bedrock Edition. The only published numbers are the tilde-hedged 'Typical Cap' column of EntitySpawningDeepDive.md. Every number below is therefore this project's choice; the `source` string on each one says where it came from, and a host may replace the whole table.",
+    "pools": {
+        "animal": {
+            "cap": 10,
+            "scope": "per_player",
+            "cycleTicks": 400,
+            "source": "EntitySpawningDeepDive.md gives '~10 per player'. The 400-tick cadence is Java's animal pass, because Bedrock publishes none."
+        },
+        "water_animal": {
+            "cap": 5,
+            "scope": "per_player",
+            "cycleTicks": 400,
+            "source": "EntitySpawningDeepDive.md gives '~5 per water body'. This project counts per player instead, because a water body is not a quantity the server tracks."
+        },
+        "water_ambient": {
+            "cap": 20,
+            "scope": "per_player",
+            "cycleTicks": 400,
+            "source": "EntitySpawningDeepDive.md gives '~20 per water body'. No vanilla spawn rule names this pool."
+        },
+        "ambient": {
+            "cap": 15,
+            "scope": "per_player",
+            "cycleTicks": 400,
+            "source": "EntitySpawningDeepDive.md gives '~15 in caves'. Only the bat uses this pool."
+        },
+        "monster": {
+            "cap": 70,
+            "scope": "per_region",
+            "cycleTicks": 20,
+            "source": "EntitySpawningDeepDive.md gives '~70 in loaded chunks', so the cap covers the whole spawn region rather than scaling with players. The 20-tick cadence is this project's choice; Java runs the monster pass every tick, which costs more than this server wants to pay."
+        },
+        "cat": {
+            "cap": 5,
+            "scope": "per_region",
+            "cycleTicks": 1200,
+            "source": "DataDrivenSpawning.md says only that cat limits are 'based upon the amount within a village' and gives no number. Five per region and one cycle per minute are this project's choice."
+        },
+        "pillager": {
+            "cap": null,
+            "scope": "per_region",
+            "cycleTicks": 20,
+            "source": "EntitySpawningDeepDive.md says 'Limited by patrols', so this pool has no cap of its own and `minecraft:delay_filter` plus `minecraft:mob_event_filter` gate it."
+        },
+        "villager": {
+            "cap": null,
+            "scope": "per_region",
+            "cycleTicks": 400,
+            "source": "DataDrivenSpawning.md says the pool exists in the game files and no entity uses it."
+        }
+    },
+    "spawnRadiusChunks": 4,
+    "spawnRadiusSource": "Bedrock's documented default simulation distance is 4 chunks, and the ticking area documentation says 'all forms of mob spawning attempts are done in a radius centered on a player'. Mojang publishes no spawn radius, so this project uses the simulation distance.",
+    "chunksPerCycle": 8,
+    "positionsPerChunk": 3,
+    "attemptSource": "Mojang publishes no attempt rate. Eight chunks per player per cycle with three positions in each is this project's budget, picked so one player standing in an empty plains biome reaches the animal cap of 10 within a few animal cycles.",
+    "herdRadius": 5,
+    "herdRadiusSource": "Mojang publishes no herd placement rule. Five blocks is the horizontal spread Java gives a pack spawn.",
+    "densityRadius": 16,
+    "densityRadiusSource": "Mojang says `minecraft:density_limit` caps 'the amount of mobs to spawn in certain locations' and names no radius. One chunk's width is this project's reading of 'location'.",
+    "rainDarkening": 5,
+    "thunderDarkening": 10,
+    "darkeningSource": "Mojang publishes neither the light value `minecraft:brightness_filter` compares nor what `adjust_for_weather` does to it. Java's `Level.getSkyDarken` subtracts 5 under rain and 10 under thunder, so this project subtracts the same amounts from the light the world reports.",
+    "despawnRadiusChunks": 8,
+    "despawnFloorY": -128,
+    "despawnSource": "128 blocks is the documented default of `minecraft:despawn.despawn_from_distance.max_distance`, which is 8 chunks, and is the only published spawning distance. The Y floor is published: all mobs despawn at Y=-128 and below in both editions."
+}
