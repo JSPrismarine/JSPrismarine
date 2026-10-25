@@ -58,12 +58,22 @@ const DUMP = 'pnpm --filter @jsprismarine/bedrock-data run dump:java';
 /**
  * The paths the suites read.
  *
- * `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` are both a gate and a path: the pack, loot,
- * advancement, predicate and enchantment suites only check that they are set, while the feature
- * corpus and the data-driven generator read them as directories. One correct path satisfies both.
+ * `JSP_VANILLA_BEHAVIOR_PACK`, `JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` are each both a gate
+ * and a path: the pack, loot, advancement, predicate and enchantment suites only check that they
+ * are set, while the feature corpus, the data-driven generator and `resolvePackStack` read them as
+ * directories. One correct path satisfies both. Setting one of them to `1` is worse than leaving it
+ * unset, because `resolvePackStack` treats a path somebody typed as a statement of intent and drops
+ * the member rather than falling back to the cache.
  */
 const paths: RequiredPath[] = [
     { name: 'JSP_BDS_PATH', value: path.join(cacheRoot, 'bds', sources.bds.version, 'unpacked'), filledBy: FETCH },
+    {
+        // `packages/prismarine/src/content/packStack.ts` reads this as the folder of BDS vanilla
+        // layers, and composes the content stack out of whichever of them are named `vanilla`.
+        name: 'JSP_VANILLA_BEHAVIOR_PACK',
+        value: path.join(cacheRoot, 'bds', sources.bds.version, 'unpacked', 'behavior_packs'),
+        filledBy: FETCH
+    },
     {
         name: 'JSP_JAVA_JAR_PATH',
         value: path.join(cacheRoot, 'java-server', sources.javaServer.version, 'server.jar'),

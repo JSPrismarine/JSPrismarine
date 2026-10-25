@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 /**
  * The classification table the parity claim counts: one row per measured difference between
@@ -12,8 +11,8 @@ import { dirname, join } from 'node:path';
  * the table actually holds.
  */
 
-const require = createRequire(import.meta.url);
-const repoRoot = join(dirname(require.resolve('@jsprismarine/parity/package.json')), '..', '..');
+// This file is `packages/parity/src/classification.ts`, so the repository root is three up.
+const repoRoot = join(import.meta.dirname, '..', '..', '..');
 
 /** Who decides a difference's outcome. */
 export const AXIS_A = ['Server', 'Client', 'Mixed'] as const;
