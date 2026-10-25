@@ -70,6 +70,14 @@ export interface MovementView {
     readonly fallDistance?: number;
 }
 
+/** The hunger state the `food` member of `type_specific/player` reads. */
+export interface FoodView {
+    /** Food level, which runs from 0 to 20 in vanilla. */
+    readonly level: number;
+    /** Saturation, which vanilla keeps at or below the food level. */
+    readonly saturation: number;
+}
+
 /**
  * Everything the entity sub-predicates can ask about one entity. Every member
  * is optional: a host fills in what it can answer, and a sub-predicate that
@@ -107,6 +115,8 @@ export interface EntityView {
     readonly experienceLevel?: number;
     /** Game mode identifier, read by `type_specific/player`. */
     readonly gameMode?: string;
+    /** Hunger state, read by `type_specific/player`. */
+    readonly food?: FoodView;
     /** Whether the entity is a captain of a raid, whether a sheep is sheared, and the rest of the per-type flags. */
     readonly typeSpecific?: Readonly<Record<string, unknown>>;
     /** Parsed NBT for the `nbt` sub-predicate, in whatever shape the host uses. */
