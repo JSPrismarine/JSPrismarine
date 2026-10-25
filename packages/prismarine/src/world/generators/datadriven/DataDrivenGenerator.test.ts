@@ -272,6 +272,41 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
     );
 
     it(
+        'leaves no refusal for nobody to catch, the way the start region asks for a batch',
+        async () => {
+            // `World.preloadSpawnRegion` asks for thirty-two in one turn through `Promise.all`
+            // over an async function that catches `GenerationStopped` itself. The server runs
+            // with `--unhandled-rejections=strict`, so a refusal nothing is awaiting kills the
+            // process, and refusing the whole queue the instant the stop arrives is exactly the
+            // shape that produces one. This mirrors the real caller and fails the run if one
+            // escapes, because Vitest reports an unhandled rejection as a run error.
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const stopping = new DataDrivenGenerator({ registries, decorate: false, carve: false });
+
+            const preloadChunk = async (x: number, z: number): Promise<boolean> => {
+                try {
+                    await stopping.generateChunk(x, z, SEED);
+                    return true;
+                } catch (error: unknown) {
+                    if (error instanceof GenerationStopped) return false;
+                    throw error;
+                }
+            };
+
+            const batch = Promise.all(Array.from({ length: 32 }, (_entry, index) => preloadChunk(index, -11)));
+            await new Promise((resolve) => setImmediate(resolve));
+            stopping.stopGenerating();
+
+            const loaded = await batch;
+            expect(loaded.filter((generated) => generated).length).toBeLessThan(loaded.length);
+
+            // A few turns for anything still floating to be reported before the test ends.
+            for (let turn = 0; turn < 4; turn++) await new Promise((resolve) => setImmediate(resolve));
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'refuses a request made after the shutdown, for a world it had never been asked about',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);
