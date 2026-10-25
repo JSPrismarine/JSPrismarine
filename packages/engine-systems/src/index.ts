@@ -74,6 +74,21 @@ export {
 } from './diodes';
 export { SCHEDULED_TICK_BLOCKS, createEngine, type Engine, type EngineOptions } from './engine';
 export {
+    FIRE,
+    FIRE_AGE_STATE,
+    FIRE_MAX_AGE,
+    FIRE_TICK_DELAY_MIN,
+    FIRE_TICK_DELAY_SPREAD,
+    INFINITE_FIRE_SOURCES,
+    canBurn,
+    checkBurnOut,
+    fireTick,
+    fireTickDelay,
+    igniteOddsAround,
+    isNearRain,
+    isValidFireLocation
+} from './fire';
+export {
     DEFAULT_SOURCE_RULES,
     FALLING_AMOUNT,
     FLUID_BLOCKS,
@@ -115,6 +130,14 @@ export {
     resolvePistonStructure,
     type PistonStructure
 } from './pistons';
+export {
+    BlockRandomPositions,
+    DEFAULT_RANDOM_TICK_SPEED,
+    SECTION_SIZE,
+    drawSectionPositions,
+    runRandomTicks,
+    type SectionOrigin
+} from './randomTick';
 export {
     TORCH_MAX_RECENT_TOGGLES,
     TORCH_RESTART_DELAY,

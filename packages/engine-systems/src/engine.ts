@@ -1,5 +1,5 @@
 /**
- * The driver that wires the systems to one world.
+ * The driver that wires the four systems to one world.
  *
  * It owns the three things the systems share: the neighbor updater, the
  * dispatch from a block identifier to the behavior that handles it, and the
@@ -30,11 +30,14 @@ import {
     repeaterTick,
     updateDiodeNeighborsInFront
 } from './diodes';
-import type { NeighborUpdates } from './neighborUpdates';
-import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborUpdates';
+import { FIRE, fireTick } from './fire';
 import type { FluidSourceRules } from './fluids';
 import { DEFAULT_SOURCE_RULES, fluidKindOf, fluidNeighborChanged, fluidTick } from './fluids';
+import type { NeighborUpdates } from './neighborUpdates';
+import { MAX_CHAINED_NEIGHBOR_UPDATES, createNeighborUpdates } from './neighborUpdates';
 import { pistonNeighborChanged } from './pistons';
+import type { BlockRandomPositions, SectionOrigin } from './randomTick';
+import { DEFAULT_RANDOM_TICK_SPEED, runRandomTicks } from './randomTick';
 import {
     TORCH_MAX_RECENT_TOGGLES,
     TORCH_RESTART_DELAY,
@@ -53,6 +56,20 @@ export interface EngineOptions {
     sourceRules?: FluidSourceRules;
     /** The neighbor update chain limit, defaulting to Java's 1000000. */
     maxChainedNeighborUpdates?: number;
+    /**
+     * What to run when a random tick lands on a block, keyed by identifier.
+     *
+     * The engine handles the fluids and leaves the rest open, which is the
+     * hook `@jsprismarine/block-behaviors` fills with crop growth, ice melting
+     * and the rest of the randomly ticking blocks.
+     */
+    randomTickHandlers?: Readonly<Record<string, (at: BlockPosition) => void>>;
+    /**
+     * Java's `INCREASED_FIRE_BURNOUT` environment attribute, which the humid
+     * biomes set. It takes 50 off every burn-out denominator and halves the
+     * spread odds.
+     */
+    increasedFireBurnout?: (at: BlockPosition) => boolean;
 }
 
 /** What a host calls to run the engine. */
@@ -63,6 +80,15 @@ export interface Engine {
     setBlockAndUpdate(at: BlockPosition, to: BlockRef): void;
     /** Run one tick the host drained from its scheduler. */
     runScheduledTick(kind: TickKind, at: BlockPosition, type: string): void;
+    /**
+     * Run one chunk tick's random ticks.
+     *
+     * @param positions - The draw source, shared across the world.
+     * @param sections - The randomly ticking sections of the chunk.
+     * @param tickSpeed - `random_tick_speed`, Java's 3 by default.
+     * @returns How many positions were ticked.
+     */
+    runRandomTicks(positions: BlockRandomPositions, sections: readonly SectionOrigin[], tickSpeed?: number): number;
 }
 
 interface TorchToggle {
@@ -84,6 +110,8 @@ interface TorchToggle {
  */
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
     const sourceRules = options.sourceRules ?? DEFAULT_SOURCE_RULES;
+    const randomTickHandlers = options.randomTickHandlers ?? {};
+    const increasedFireBurnout = options.increasedFireBurnout ?? (() => false);
     let torchToggles: TorchToggle[] = [];
 
     const torchToggledTooOften = (at: BlockPosition, record: boolean): boolean => {
@@ -219,10 +247,31 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             observerTick(updates, world, at);
             return;
         }
+        if (name === FIRE) {
+            fireTick(updates, world, at, increasedFireBurnout(at));
+            return;
+        }
         void type;
     };
 
-    return { updates, setBlockAndUpdate, runScheduledTick };
+    return {
+        updates,
+        setBlockAndUpdate,
+        runScheduledTick,
+        runRandomTicks(positions, sections, tickSpeed = DEFAULT_RANDOM_TICK_SPEED) {
+            return runRandomTicks(
+                world,
+                positions,
+                sections,
+                (at) => {
+                    const block = world.getBlock(at);
+                    const handler = randomTickHandlers[block.name];
+                    if (handler !== undefined) handler(at);
+                },
+                tickSpeed
+            );
+        }
+    };
 };
 
 /** The identifiers the engine dispatches a scheduled block tick for. */
@@ -233,5 +282,6 @@ export const SCHEDULED_TICK_BLOCKS: readonly string[] = [
     REPEATER.unpowered,
     COMPARATOR.powered,
     COMPARATOR.unpowered,
-    OBSERVER
+    OBSERVER,
+    FIRE
 ];
