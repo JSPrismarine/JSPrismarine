@@ -62,6 +62,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/loot",
     "devDependencies": {
         "@jsprismarine/mapping": "workspace:*",
+        "@jsprismarine/packs": "workspace:*",
         "@types/node": "24.19.2",
         "glob": "13.0.6",
         "rimraf": "6.1.3",
