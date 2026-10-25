@@ -45,8 +45,9 @@ export const serverCli = (argv: readonly string[]) =>
         .version('version', 'Show the server version', pkg.version)
         .completion('completion', 'Generate a shell completion script')
         .strict()
-        .check(({ _, port }) => {
+        .check(({ _, port, watch, headless }) => {
             if (_.length > 0) throw new Error(`Unexpected argument "${_.join(' ')}"`);
+            if (watch && headless) throw new Error('--watch needs a console; drop --headless or --watch');
             if (port !== undefined && (!Number.isInteger(port) || port < 1 || port > 65535)) {
                 throw new Error('--port must be a whole number between 1 and 65535');
             }
