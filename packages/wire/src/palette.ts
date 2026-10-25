@@ -1,97 +1,40 @@
 /**
- * Block runtime ids, and the check that keeps a generated block registry
- * from desynchronizing a client.
+ * The checks that keep a generated block registry from desynchronizing a
+ * client.
  *
  * `StartGamePacket.BlockNetworkIds Are Hashes` is true on this server, which
  * means a block state's runtime id is the FNV-1a 32 hash of its own
  * `{name, states}` compound and nothing else. That is the scheme that makes
  * a data-driven block registry possible: neither side needs the other's
- * ordering, and adding a block renumbers nothing. The alternative, an index
- * into a palette both sides sort by the FNV-1 64 hash of the block name,
- * renumbers every vanilla block the moment a pack adds one.
+ * ordering, and adding a block renumbers nothing. The hash and the
+ * serialization it runs over live in `@jsprismarine/protocol`, which owns the
+ * wire format; they are re-exported here so a caller building block payloads
+ * has them in one import.
  *
- * The price is that the two sides have to agree byte for byte on what they
- * hash. {@link verifyBlockRuntimeIds} checks the hash against the ids a real
- * server put in the creative catalog, and {@link assertBlockPaletteAgrees}
- * checks that a generated `Block Properties` list declares the states the
- * captured palette has, so a mismatch fails a build rather than a session.
+ * The price of the scheme is that the two sides have to agree byte for byte
+ * on what they hash. {@link verifyBlockRuntimeIds} checks the hash against
+ * the ids a real server put in the creative catalog, and
+ * {@link assertBlockPaletteAgrees} checks that a generated `Block Properties`
+ * list declares the states the captured palette has, so a mismatch fails a
+ * build rather than a session.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
+import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { blockRuntimeId } from '@jsprismarine/protocol';
 import type { BlockProperty } from '@jsprismarine/protocol';
 
-import type { NbtValue } from './nbt';
-import { nbtByte, nbtCompound, nbtInt, nbtString, readNetworkNbt } from './nbt';
+import { readNetworkNbt } from './nbt';
 
 import type { BlockPalette, BlockStateValue } from '@jsprismarine/blocks';
 
-const FNV1_32_OFFSET_BASIS = 0x811c9dc5;
-const FNV1_32_PRIME = 0x01000193;
-
-/**
- * FNV-1a, 32 bit, as a signed integer.
- *
- * @see http://www.isthe.com/chongo/tech/comp/fnv/
- */
-export const fnv1a32 = (data: Buffer): number => {
-    let hash = FNV1_32_OFFSET_BASIS;
-    for (const byte of data) {
-        hash ^= byte;
-        // 32 bit multiplication; `*` would lose precision above 2^53.
-        hash = Math.imul(hash, FNV1_32_PRIME);
-    }
-
-    return hash | 0;
-};
-
-/** The id vanilla reserves for a state it cannot resolve. */
-export const UNKNOWN_RUNTIME_ID = -2;
-
-/** The name whose every state is {@link UNKNOWN_RUNTIME_ID}. */
-export const UNKNOWN_BLOCK_NAME = 'minecraft:unknown';
-
-const stateTag = (value: BlockStateValue): NbtValue => {
-    if (typeof value === 'boolean') return nbtByte(value);
-    if (typeof value === 'number') return nbtInt(value);
-    return nbtString(value);
-};
-
-/**
- * The `{name, states}` compound a runtime id is the hash of.
- *
- * The states are sorted by name, which `nbtCompound` does, because the two
- * sides hash the bytes and not the meaning: a different key order is a
- * different id. For the same reason a flag has to arrive as a boolean and
- * not as 0 or 1: Bedrock writes a flag as a byte and a number as an int,
- * and the two hash differently. `BlockStateModel` already normalizes a flag
- * to a boolean, so a state read off the palette is in the right shape.
- */
-export const blockStateCompound = (
-    name: string,
-    states: Readonly<Record<string, BlockStateValue>> = {}
-): NBTTagCompound => {
-    const tags: Record<string, NbtValue> = {};
-    for (const [key, value] of Object.entries(states)) tags[key] = stateTag(value);
-
-    return nbtCompound({ name: nbtString(name), states: nbtCompound(tags) });
-};
-
-/**
- * The bytes a block state hashes to: little endian NBT with fixed-width
- * lengths, not the varint network flavor, which would hash differently.
- */
-export const serializeBlockState = (name: string, states: Readonly<Record<string, BlockStateValue>> = {}): Buffer => {
-    const stream = new BinaryStream();
-    const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-    writer.setUseVarint(false);
-    writer.writeCompound(blockStateCompound(name, states));
-
-    return stream.getBuffer();
-};
-
-/** The number a block state travels as in a chunk palette. */
-export const blockRuntimeId = (name: string, states: Readonly<Record<string, BlockStateValue>> = {}): number =>
-    name === UNKNOWN_BLOCK_NAME ? UNKNOWN_RUNTIME_ID : fnv1a32(serializeBlockState(name, states));
+export {
+    UNKNOWN_BLOCK_NAME,
+    UNKNOWN_RUNTIME_ID,
+    blockRuntimeId,
+    blockStateCompound,
+    fnv1a32,
+    writeBlockStateNbt
+} from '@jsprismarine/protocol';
 
 /** One block state a real server recorded, together with the number it gave it. */
 export interface CapturedBlockState {
