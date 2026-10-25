@@ -19,6 +19,7 @@ import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import ItemManager from './item/ItemManager';
 import ClientConnection from './network/ClientConnection';
+import { joinContentPayloads } from './network/contentPayloads';
 import Identifiers from './network/Identifiers';
 import { WorldReplicators } from './network/NetworkWorldReplicator';
 import { PacketLogFilter } from './network/PacketLogFilter';
@@ -230,6 +231,10 @@ export default class Server extends EventEmitter {
         await this.console?.enable();
         await this.logger.enable();
         this.enableContent();
+        // Built before a player arrives, so the report of what the content
+        // build invented reads as a startup line and a build that cannot
+        // produce payloads says so here rather than on the first join.
+        joinContentPayloads(this.content, this.logger);
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
         await this.itemManager.enable();

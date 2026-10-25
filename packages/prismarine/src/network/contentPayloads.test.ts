@@ -1,14 +1,21 @@
 import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
+import { Logger } from '@jsprismarine/logger';
 import { blockRuntimeId } from '@jsprismarine/protocol';
 import { nbtToPlain, readNetworkNbt } from '@jsprismarine/wire';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { ContentPaletteError } from './contentPalette';
-import { buildNetworkContentPayloads, networkContentPayloads } from './contentPayloads';
+import {
+    buildNetworkContentPayloads,
+    contentPayloadWarning,
+    joinContentPayloads,
+    networkContentPayloads
+} from './contentPayloads';
 
+import type { ContentPayloadReport } from './contentPayloads';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import type { Definition, Definitions } from '@jsprismarine/packs';
@@ -174,6 +181,73 @@ describe('network', () => {
             const first = networkContentPayloads(content, { clientPalette: client() });
 
             expect(networkContentPayloads(content)).toBe(first);
+        });
+    });
+
+    describe('joinContentPayloads', () => {
+        it('has nothing to give when no content was built', () => {
+            expect(joinContentPayloads(undefined, new Logger())).toBeUndefined();
+        });
+
+        it('writes one line saying what the content sends, and builds once', () => {
+            const logger = new Logger();
+            const info = vi.spyOn(logger, 'info').mockReturnValue(undefined);
+            vi.spyOn(logger, 'warn').mockReturnValue(undefined);
+            const content = contentWith();
+
+            const first = joinContentPayloads(content, logger, { clientPalette: client() });
+
+            expect(first).toBeDefined();
+            expect(info).toHaveBeenCalledTimes(1);
+            expect(info.mock.calls[0]?.[0]).toContain('3§r items');
+
+            expect(joinContentPayloads(content, logger)).toBe(first);
+            expect(info).toHaveBeenCalledTimes(1);
+        });
+
+        it('falls back rather than throwing when the payloads cannot be built', () => {
+            const logger = new Logger();
+            vi.spyOn(logger, 'error').mockReturnValue(undefined);
+            const warn = vi.spyOn(logger, 'warn').mockReturnValue(undefined);
+            const content = contentWith();
+            const other = new BlockPalette([['minecraft:stone', new BlockStateModel([])]]);
+
+            expect(joinContentPayloads(content, logger, { clientPalette: other })).toBeUndefined();
+            expect(warn.mock.calls[0]?.[0]).toContain('the captured ones go out instead');
+
+            // The second call answers from the record of the failure, so a
+            // join does not pay for a build that already threw.
+            expect(joinContentPayloads(content, logger, { clientPalette: other })).toBeUndefined();
+            expect(warn).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('contentPayloadWarning', () => {
+        const nothingInvented = {
+            inventedBlocks: 0,
+            allocatedItemIds: [],
+            untranslatedComponents: [],
+            unknownCreativeItems: [],
+            omittedRecipes: 0,
+            widenedIngredients: 0,
+            smithingTrimRecipes: 0,
+            furnaceRecipes: 0
+        } satisfies ContentPayloadReport;
+
+        it('says nothing about a build that said everything exactly', () => {
+            expect(contentPayloadWarning(nothingInvented)).toBeUndefined();
+        });
+
+        it('names only what the build had to invent', () => {
+            const warning = contentPayloadWarning({
+                ...nothingInvented,
+                inventedBlocks: 2,
+                allocatedItemIds: ['mypack:wand']
+            });
+
+            expect(warning).toContain('invented §e2§r blocks');
+            expect(warning).toContain('gave §e1§r items an id of its own');
+            expect(warning).not.toContain('cooking');
         });
     });
 });

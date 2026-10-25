@@ -36,6 +36,7 @@ import { assertContentPaletteAgrees } from './contentPalette';
 
 import type { ServerContent } from '../content/ServerContent';
 import type { BlockPalette } from '@jsprismarine/blocks';
+import type { Logger } from '@jsprismarine/logger';
 import type {
     BlockProperty,
     CraftingData,
@@ -287,6 +288,9 @@ export const buildNetworkContentPayloads = (
 /** One build per content object, since the payloads are the same for every player. */
 const cache = new WeakMap<ServerContent, NetworkContentPayloads>();
 
+/** Builds that threw, so a join does not pay for the same failure again. */
+const failed = new WeakSet<ServerContent>();
+
 /**
  * The payloads for one content build, built on first use and kept.
  *
@@ -304,4 +308,88 @@ export const networkContentPayloads = (
     cache.set(content, built);
 
     return built;
+};
+
+/** The recipes of every kind the crafting payload carries. */
+const recipeCount = (crafting: CraftingData): number =>
+    crafting.shaped.length +
+    crafting.shapeless.length +
+    crafting.smithingTransform.length +
+    crafting.potionMixes.length;
+
+/** What the join burst sends, as the line an operator reads at startup. */
+export const contentPayloadSummary = (payloads: NetworkContentPayloads): string =>
+    `Join payloads from the content: §e${payloads.blockProperties.length}§r block definitions, ` +
+    `§e${payloads.items.length}§r items, §e${payloads.creative.entries.length}§r creative entries ` +
+    `under §e${payloads.creative.groups.length}§r headings, §e${recipeCount(payloads.crafting)}§r recipes`;
+
+/**
+ * What the build had to invent or could not say, or undefined when it said
+ * everything exactly.
+ *
+ * Each clause is left out when its count is zero, so a clean build produces
+ * nothing and anything printed is worth reading.
+ */
+export const contentPayloadWarning = (report: ContentPayloadReport): string | undefined => {
+    const clauses = [
+        [report.inventedBlocks, 'invented §e%§r blocks the client has to be told about'],
+        [report.allocatedItemIds.length, 'gave §e%§r items an id of its own'],
+        [report.untranslatedComponents.length, 'could not translate §e%§r block components'],
+        [report.unknownCreativeItems.length, 'left §e%§r creative entries out, since no item names them'],
+        [report.omittedRecipes, 'left §e%§r recipes out, since the wire has no list for them'],
+        [report.widenedIngredients, 'narrowed §e%§r recipe ingredients to one item'],
+        [report.smithingTrimRecipes, 'held back §e%§r smithing trim recipes'],
+        [report.furnaceRecipes, 'held back §e%§r cooking recipes']
+    ] as const;
+
+    const said = clauses.filter(([count]) => count > 0).map(([count, text]) => text.replace('%', String(count)));
+
+    return said.length === 0 ? undefined : `The content build ${said.join(', ')}`;
+};
+
+/**
+ * The join payloads for a content build, or undefined when there is no build
+ * and when the build could not produce them.
+ *
+ * This is what the join burst reads, so it never throws. A build whose
+ * payloads cannot be produced leaves every packet on the captured path it
+ * used before the content build existed, which is a server that still works
+ * rather than a client that cannot join.
+ *
+ * The first call does the work and logs what the content build invented;
+ * every call after it answers from the cache without logging again. Calling
+ * it once at startup is what puts that line in front of an operator before a
+ * player arrives.
+ *
+ * @param content - `Server.getContent()`, which is undefined while
+ *   `content-packs` is off.
+ * @param logger - Where the report, and any failure, go.
+ */
+export const joinContentPayloads = (
+    content: ServerContent | undefined,
+    logger: Logger,
+    options: ContentPayloadOptions = {}
+): NetworkContentPayloads | undefined => {
+    if (content === undefined) return undefined;
+
+    const existing = cache.get(content);
+    if (existing !== undefined) return existing;
+    if (failed.has(content)) return undefined;
+
+    try {
+        const built = buildNetworkContentPayloads(content, options);
+        cache.set(content, built);
+
+        logger.info(contentPayloadSummary(built));
+        const warning = contentPayloadWarning(built.report);
+        if (warning !== undefined) logger.warn(warning);
+
+        return built;
+    } catch (error: unknown) {
+        failed.add(content);
+        logger.error(error);
+        logger.warn('The content build produced no join payloads; the captured ones go out instead');
+
+        return undefined;
+    }
 };

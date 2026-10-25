@@ -10,6 +10,7 @@ export * from './commands/world';
 export * from './flatten';
 export * from './gamerules';
 export * from './host';
+export * from './matching';
 export * from './packet';
 export * from './parameterTypes';
 export * from './selector';
