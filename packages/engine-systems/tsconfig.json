@@ -1,0 +1,17 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig.json",
+    "extends": ["../../tsconfig.build.json"],
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "../../",
+        // `@jsprismarine/blocks` resolves to its TypeScript source, and
+        // `blocks/src/overlay.ts` imports `./families.ts` with the extension so
+        // its generator can load the module under plain `node`. Checking that
+        // source needs the same two options the blocks package sets.
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
+        "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
+    },
+    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"],
+    "include": ["src/**/*", "src/**/*.json"]
+}

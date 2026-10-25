@@ -1,0 +1,211 @@
+/**
+ * A small voxel world that satisfies {@link WorldAccess}.
+ *
+ * It exists so the four systems can be tested as they run in the server: real
+ * circuits, real fluid columns, real fire. Positions live in a map, so the world
+ * is unbounded in x and z and bounded in y by `minY` and `maxY`. Nothing here is
+ * a mock; every call does the thing a chunk would do.
+ */
+
+import { TickScheduler } from './scheduler';
+import type {
+    BlockEntityData,
+    BlockPosition,
+    BlockRef,
+    BlockStateValue,
+    Difficulty,
+    Dimension,
+    DroppedItem,
+    TickKind,
+    WorldAccess,
+    Weather
+} from './world';
+import { AIR, positionKey } from './world';
+
+/** A sound the world was asked to play. */
+export interface PlayedSound {
+    readonly at: BlockPosition;
+    readonly sound: string;
+}
+
+/** An item stack the world was asked to drop. */
+export interface SpawnedItem {
+    readonly at: BlockPosition;
+    readonly item: DroppedItem;
+}
+
+/** A block the world was asked to write with neighbor notification. */
+export interface BlockUpdate {
+    readonly at: BlockPosition;
+    readonly to: BlockRef;
+}
+
+/** How to build a {@link TestWorld}. */
+export interface TestWorldOptions {
+    difficulty?: Difficulty;
+    weather?: Weather;
+    dimension?: Dimension;
+    minY?: number;
+    maxY?: number;
+    /** The random source, defaulting to one that always returns 0. */
+    randomInt?: (bound: number) => number;
+    /** The float source, defaulting to one that always returns 0. */
+    randomFloat?: () => number;
+}
+
+/** The world a test drives, with the observation helpers a test needs. */
+export interface TestWorld extends WorldAccess {
+    /** The scheduler the world queues into, so a test can drain it. */
+    readonly scheduler: TickScheduler;
+    /** Write a block without running any update, which is how a test builds a circuit. */
+    place(at: BlockPosition, to: BlockRef): void;
+    /** Write the same block over a run of positions along one axis. */
+    placeLine(from: BlockPosition, axis: 'x' | 'y' | 'z', length: number, to: BlockRef): void;
+    /** The block identifier at one position. */
+    nameAt(at: BlockPosition): string;
+    /** One state value at one position. */
+    stateAt(at: BlockPosition, state: string): BlockStateValue | undefined;
+    /** Every sound played so far, oldest first. */
+    readonly sounds: readonly PlayedSound[];
+    /** Every item dropped so far, oldest first. */
+    readonly items: readonly SpawnedItem[];
+    /** Every notifying write so far, oldest first. */
+    readonly updates: readonly BlockUpdate[];
+    /** Install the handler a notifying `setBlock` runs, which is where the engine hooks in. */
+    onBlockUpdated(handler: (at: BlockPosition, to: BlockRef) => void): void;
+    /** Move the clock without running a tick. */
+    setGameTime(tick: number): void;
+    /** Replace the random source mid-test. */
+    setRandomInt(randomInt: (bound: number) => number): void;
+    /** Replace the float source mid-test. */
+    setRandomFloat(randomFloat: () => number): void;
+    setDifficulty(difficulty: Difficulty): void;
+    setWeather(weather: Weather): void;
+    /**
+     * Advance the clock by one game tick and run every tick due on it.
+     *
+     * @param run - Called once per due tick, which is where the engine dispatches.
+     * @returns How many ticks ran.
+     */
+    runGameTick(run: (kind: TickKind, at: BlockPosition, type: string) => void): number;
+}
+
+/**
+ * Build a world for tests.
+ *
+ * @param options - Difficulty, weather, dimension, height bounds and the random source.
+ * @returns A world that satisfies {@link WorldAccess}, plus the test helpers.
+ * @example
+ * ```typescript
+ * const world = createTestWorld();
+ * world.place({ x: 0, y: 0, z: 0 }, block('minecraft:stone'));
+ * ```
+ */
+export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
+    const blocks = new Map<string, BlockRef>();
+    const blockEntities = new Map<string, BlockEntityData>();
+    const scheduler = new TickScheduler();
+    const sounds: PlayedSound[] = [];
+    const items: SpawnedItem[] = [];
+    const updates: BlockUpdate[] = [];
+
+    let difficulty: Difficulty = options.difficulty ?? 'normal';
+    let weather: Weather = options.weather ?? 'clear';
+    let randomInt = options.randomInt ?? (() => 0);
+    let randomFloat = options.randomFloat ?? (() => 0);
+    let gameTime = 0;
+    let blockUpdated: (at: BlockPosition, to: BlockRef) => void = () => {};
+
+    const dimension: Dimension = options.dimension ?? 'overworld';
+    const minY = options.minY ?? -64;
+    const maxY = options.maxY ?? 319;
+
+    const getBlock = (at: BlockPosition): BlockRef => {
+        if (at.y < minY || at.y > maxY) return AIR;
+        return blocks.get(positionKey(at)) ?? AIR;
+    };
+
+    const place = (at: BlockPosition, to: BlockRef): void => {
+        if (to.name === AIR.name) blocks.delete(positionKey(at));
+        else blocks.set(positionKey(at), to);
+    };
+
+    const world: TestWorld = {
+        scheduler,
+        sounds,
+        items,
+        updates,
+        place,
+        placeLine(from, axis, length, to) {
+            for (let i = 0; i < length; i++) {
+                place({ ...from, [axis]: from[axis] + i }, to);
+            }
+        },
+        nameAt: (at) => getBlock(at).name,
+        stateAt: (at, state) => getBlock(at).states[state],
+        onBlockUpdated(handler) {
+            blockUpdated = handler;
+        },
+        setGameTime(tick) {
+            gameTime = tick;
+        },
+        setRandomInt(next) {
+            randomInt = next;
+        },
+        setRandomFloat(next) {
+            randomFloat = next;
+        },
+        setDifficulty(next) {
+            difficulty = next;
+        },
+        setWeather(next) {
+            weather = next;
+        },
+        runGameTick(run) {
+            gameTime += 1;
+            return scheduler.tick(gameTime, (kind, tick) => run(kind, tick.at, tick.type));
+        },
+
+        getBlock,
+        setBlock(at, to, notifyNeighbors) {
+            place(at, to);
+            if (to.name === AIR.name) blockEntities.delete(positionKey(at));
+            if (notifyNeighbors) {
+                updates.push({ at, to });
+                blockUpdated(at, to);
+            }
+        },
+        getBlockEntityData: (at) => blockEntities.get(positionKey(at)),
+        setBlockEntityData(at, data) {
+            blockEntities.set(positionKey(at), data);
+        },
+        scheduleTick(kind, at, type, delay, priority) {
+            scheduler.list(kind).schedule(at, type, gameTime + delay, priority);
+        },
+        hasScheduledTick: (kind, at, type) => scheduler.list(kind).hasScheduledTick(at, type),
+        willTickThisTick: (kind, at, type) => scheduler.list(kind).willTickThisTick(at, type),
+        spawnItem(at, item) {
+            items.push({ at, item });
+        },
+        playSound(at, sound) {
+            sounds.push({ at, sound });
+        },
+        getDifficulty: () => difficulty,
+        getWeather: () => weather,
+        isRainingAt(at) {
+            if (weather === 'clear') return false;
+            for (let y = at.y + 1; y <= maxY; y++) {
+                if (getBlock({ x: at.x, y, z: at.z }).name !== AIR.name) return false;
+            }
+            return true;
+        },
+        getDimension: () => dimension,
+        getGameTime: () => gameTime,
+        randomInt: (bound) => randomInt(bound),
+        randomFloat: () => randomFloat(),
+        getMinY: () => minY,
+        getMaxY: () => maxY
+    };
+
+    return world;
+};
