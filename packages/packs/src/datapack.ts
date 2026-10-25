@@ -3,8 +3,9 @@ import { basename, join, relative, sep } from 'node:path';
 
 import type { Diagnostic } from './diagnostics';
 import type { DiagnosticCollector } from './diagnostics';
-import { routeDatapackPath } from './javaRegistries';
-import type { Definition, DefinitionRegistries } from './load';
+import { MERGE_MODES, routeDatapackPath } from './javaRegistries';
+import type { MergeMode } from './javaRegistries';
+import type { DefinitionRegistries } from './load';
 import { DATA_PACK_FORMAT, coversFormat, formatToString, parseMcmeta } from './mcmeta';
 import type { PackMcmeta } from './mcmeta';
 import type { DefinitionValidator } from './validation';
@@ -108,38 +109,81 @@ const readMcmeta = (
 };
 
 /**
- * Applies the overlays whose format range covers 121.0 over the base files.
- * Overlays apply in declaration order, each overriding whole files, so a later
- * entry wins over an earlier one and every entry wins over the base.
+ * Resolves the pack's overlay directories into one view of its files.
+ *
+ * A declared overlay directory is never content on its own: it is dropped
+ * from the base view whether or not its range applies, which is how the
+ * engine reads it. The overlays whose range covers 121.0 then apply in
+ * declaration order, each overriding whole files, so a later entry wins over
+ * an earlier one and every entry wins over the base. Within one pack an
+ * overlay replaces the base file outright, tags included; merging is what
+ * happens between packs, not between a pack and its own overlay.
+ *
+ * A declared overlay with no files is reported: it is dead weight at best and
+ * a misspelled directory name at worst, and either way it silently does
+ * nothing.
  */
-const applyOverlays = (files: Map<string, Uint8Array>, mcmeta: PackMcmeta | undefined): Map<string, Uint8Array> => {
-    const applicable = (mcmeta?.overlays ?? []).filter((overlay) => coversFormat(overlay.formats, DATA_PACK_FORMAT));
-    if (applicable.length === 0) return files;
+const applyOverlays = (
+    files: Map<string, Uint8Array>,
+    mcmeta: PackMcmeta | undefined,
+    pack: string,
+    collector: DiagnosticCollector
+): Map<string, Uint8Array> => {
+    const overlays = mcmeta?.overlays ?? [];
+    if (overlays.length === 0) return files;
 
-    const overlayDirs = new Set((mcmeta?.overlays ?? []).map((overlay) => overlay.directory));
+    const directories = new Set(overlays.map((overlay) => overlay.directory));
     const effective = new Map<string, Uint8Array>();
     for (const [path, bytes] of files) {
-        if (!overlayDirs.has(path.split('/')[0]!)) effective.set(path, bytes);
+        if (!directories.has(path.split('/')[0]!)) effective.set(path, bytes);
     }
-    for (const overlay of applicable) {
+
+    for (const overlay of overlays) {
         const prefix = `${overlay.directory}/`;
+        const applies = coversFormat(overlay.formats, DATA_PACK_FORMAT);
+        let found = 0;
         for (const [path, bytes] of files) {
-            if (path.startsWith(prefix)) effective.set(path.slice(prefix.length), bytes);
+            if (!path.startsWith(prefix)) continue;
+            found += 1;
+            if (applies) effective.set(path.slice(prefix.length), bytes);
+        }
+        if (found === 0) {
+            collector.add({
+                severity: 'warning',
+                code: 'mcmeta.empty-overlay',
+                pack,
+                path: 'pack.mcmeta',
+                message: `the overlay directory ${overlay.directory} holds no files`
+            });
         }
     }
     return effective;
 };
 
 /** Merges one tag file over what earlier packs accumulated for the same id. */
-const mergeTag = (previous: Definition | undefined, data: Record<string, unknown>): TagData => {
+const mergeTag = (previous: Record<string, unknown> | undefined, data: Record<string, unknown>): TagData => {
     const replaces = data.replace === true;
-    const previousData = previous && isRecord(previous.data) ? previous.data : undefined;
-    const previousValues = Array.isArray(previousData?.values) ? previousData.values : [];
+    const previousValues = Array.isArray(previous?.values) ? previous.values : [];
     const values = Array.isArray(data.values) ? data.values : [];
     return {
-        replace: replaces || previousData?.replace === true,
+        replace: replaces || previous?.replace === true,
         values: replaces ? [...values] : [...previousValues, ...values]
     };
+};
+
+/**
+ * Composes one file over what earlier packs in the stack left for the same
+ * id, by the registry's merge mode.
+ *
+ * @param previous - What earlier packs left, or undefined for the first one.
+ * @returns The composed definition data.
+ */
+export const mergeJavaDefinition = (mode: MergeMode, previous: unknown, data: unknown): unknown => {
+    if (mode === 'override' || !isRecord(data)) return data;
+
+    const earlier = isRecord(previous) ? previous : undefined;
+    if (mode === 'assign') return { ...earlier, ...data };
+    return mergeTag(earlier, data);
 };
 
 /**
@@ -171,7 +215,7 @@ export const loadDatapack = (
 
     const mcmeta = readMcmeta(files, pack, collector);
 
-    for (const [filePath, bytes] of applyOverlays(files, mcmeta)) {
+    for (const [filePath, bytes] of applyOverlays(files, mcmeta, pack, collector)) {
         const route = routeDatapackPath(filePath);
         if (!route) continue;
 
@@ -197,8 +241,7 @@ export const loadDatapack = (
         if (failed) continue;
 
         const registry = registries[route.registry];
-        const merged =
-            route.registry === 'tags' && isRecord(data) ? mergeTag(registry.get(route.identifier), data) : data;
+        const merged = mergeJavaDefinition(MERGE_MODES[route.registry], registry.get(route.identifier)?.data, data);
         registry.set(route.identifier, {
             identifier: route.identifier,
             registry: route.registry,

@@ -165,6 +165,30 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
     },
 
+    ...randomizedHealthEntries(),
+    ...sizedHealthEntries(),
+    {
+        family: 'entities.stats',
+        id: 'no-health:minecraft:player',
+        kind: 'accepted',
+        reason: "Mojang's player.json declares no health component; the server owns a player's health.",
+        reference: 'bedrock-samples 1.26.50.4 entities/player.json'
+    },
+    {
+        family: 'entities.stats',
+        id: 'health:minecraft:armor_stand',
+        kind: 'defect',
+        reason: "Bedrock's armor stand has 6 health where Java's has 20. The amount of damage an armor stand takes is server-decided and invisible, so the claim covers it and the row should take Java's value.",
+        reference: 'docs/research/edition-behavior-differences.md section 13'
+    },
+    {
+        family: 'entities.stats',
+        id: 'health:minecraft:wither',
+        kind: 'defect',
+        reason: "Bedrock's wither has 600 health where Java's has 300. Boss health is server-decided, so the claim covers it and the row should take Java's value.",
+        reference: 'docs/research/edition-behavior-differences.md section 13'
+    },
+
     ...mappingLossEntries()
 ];
 

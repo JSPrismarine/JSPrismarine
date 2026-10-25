@@ -10,6 +10,7 @@ import { damagerSubjects } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
+import type { RideableParams } from '../riding';
 import type { TriggerComponentParams } from '../triggers';
 import type { ComponentRecord } from './schemas';
 import {
@@ -486,32 +487,17 @@ export const equipment: ComponentFactory<EntityHooks, EquipmentParams> = {
     create: () => ({})
 };
 
-/** One seat of `minecraft:rideable`. */
-export interface RideableSeat {
-    readonly position: readonly [number, number, number];
-    readonly minRiderCount: number;
-    readonly maxRiderCount: number;
-    readonly lockRiderRotation: number;
-}
-
-/** What `minecraft:rideable` declares. */
-export interface RideableParams {
-    readonly seatCount: number;
-    /** Written as one object in 50 vanilla instances and an array in 17. */
-    readonly seats: readonly RideableSeat[];
-    /** The type families allowed to ride; empty means any. */
-    readonly familyTypes: readonly string[];
-    readonly interactText?: string;
-    readonly crouchingSkipInteract: boolean;
-    readonly pullInEntities: boolean;
-    readonly onRiderEnterEvent?: string;
-    readonly onRiderExitEvent?: string;
-}
-
-/** `minecraft:rideable`, the seats a passenger takes. */
+/**
+ * `minecraft:rideable`, carried by 36 vanilla entities.
+ *
+ * The seats themselves are state the vehicle holds, so mounting goes through
+ * {@link EntityInstance.mount} and the component's part is the seat count, the
+ * families allowed in and the two events. Taking the component off empties the
+ * seats, which is what a group swap that removes a saddle does.
+ */
 export const rideable: ComponentFactory<EntityHooks, RideableParams> = {
     name: 'minecraft:rideable',
-    hooks: [],
+    hooks: ['onRemove'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         const seats = asList(value.seats)
@@ -521,11 +507,13 @@ export const rideable: ComponentFactory<EntityHooks, RideableParams> = {
                     ? seat.position.filter((part): part is number => typeof part === 'number')
                     : [];
                 const minRiderCount = numberAt(seat, 'min_rider_count', 0);
+                const rotate = seat.rotate_rider_by;
                 return {
                     position: [position[0] ?? 0, position[1] ?? 0, position[2] ?? 0] as const,
                     minRiderCount,
                     maxRiderCount: numberAt(seat, 'max_rider_count', minRiderCount),
-                    lockRiderRotation: numberAt(seat, 'lock_rider_rotation', 181)
+                    lockRiderRotation: numberAt(seat, 'lock_rider_rotation', 181),
+                    rotateRiderBy: typeof rotate === 'number' || typeof rotate === 'string' ? rotate : undefined
                 };
             });
         return accepted({
@@ -539,7 +527,9 @@ export const rideable: ComponentFactory<EntityHooks, RideableParams> = {
             onRiderExitEvent: stringAt(value, 'on_rider_exit_event')
         });
     },
-    create: () => ({})
+    create: () => ({
+        onRemove: (entity) => entity.ejectRiders()
+    })
 };
 
 /** What `minecraft:navigation.*` declares; every field is a capability of the path finder. */

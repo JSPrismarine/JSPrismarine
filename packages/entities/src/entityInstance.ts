@@ -482,8 +482,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         rider.mounted?.dismount(rider);
         this.seated.push(rider);
         rider.mounted = this;
-        if (params.onRiderEnterEvent !== undefined)
-            this.raise(params.onRiderEnterEvent, 'self', 'minecraft:rideable');
+        if (params.onRiderEnterEvent !== undefined) this.raise(params.onRiderEnterEvent, 'self', 'minecraft:rideable');
         return true;
     }
 
@@ -690,6 +689,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         if (name === 'is_tamed') return this.hasComponent('minecraft:is_tamed');
         if (name === 'is_persistent') return this.hasComponent('minecraft:persistent');
         if (name === 'has_target') return this.target !== undefined;
+        if (name === 'is_riding') return this.mounted !== undefined;
+        return undefined;
+    }
+
+    /** The name sets the entity answers from its own components and its seats. */
+    private ownNames(name: EntityNameSet): readonly string[] | undefined {
+        if (name === 'is_family') return this.families();
+        // The controlling passenger is whoever took the first seat.
+        if (name === 'is_controlling_passenger_family') return this.seated[0]?.families();
         return undefined;
     }
 
@@ -699,6 +707,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
                 return this.attributes.get('health')?.current;
             case 'home_distance':
                 return this.homeDistance();
+            case 'rider_count':
+                return this.seated.length;
             case 'is_variant':
                 return this.integerValue('minecraft:variant');
             case 'is_mark_variant':

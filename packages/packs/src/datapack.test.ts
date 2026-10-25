@@ -120,6 +120,59 @@ describe('datapack sources', () => {
         expect(definitions.recipesJava.get('fixture:older_only')).toBeUndefined();
     });
 
+    it('keeps a declared overlay directory out of the base view even when its range misses 121.0', () => {
+        const pack = writeDatapack({
+            'pack.mcmeta': JSON.stringify({
+                pack: { min_format: 107, max_format: 121 },
+                overlays: { entries: [{ directory: 'older', min_format: 107, max_format: 107 }] }
+            }),
+            'data/fixture/recipe/base.json': RECIPE,
+            'older/data/fixture/recipe/older_only.json': RECIPE
+        });
+
+        const { definitions } = load([{ kind: 'datapack', path: pack }]);
+        expect(definitions.recipesJava.get('fixture:base')).toBeDefined();
+        expect(definitions.recipesJava.size).toBe(1);
+    });
+
+    it('warns about a declared overlay directory the pack does not carry', () => {
+        const pack = writeDatapack({
+            'pack.mcmeta': JSON.stringify({
+                pack: { min_format: 121, max_format: 121 },
+                overlays: { entries: [{ directory: 'typod', min_format: 121, max_format: 121 }] }
+            }),
+            'data/fixture/recipe/base.json': RECIPE
+        });
+
+        const { diagnostics } = load([{ kind: 'datapack', path: pack }]);
+        expect(diagnostics).toMatchObject([
+            {
+                severity: 'warning',
+                code: 'mcmeta.empty-overlay',
+                message: 'the overlay directory typod holds no files'
+            }
+        ]);
+    });
+
+    it('lets an overlay replace a base tag file outright rather than merging it', () => {
+        // Merging is between packs. Within one pack the overlay is the same
+        // pack's file at a higher priority, so the base copy is not read.
+        const pack = writeDatapack({
+            'pack.mcmeta': JSON.stringify({
+                pack: { min_format: 121, max_format: 121 },
+                overlays: { entries: [{ directory: 'patch', min_format: 121, max_format: 121 }] }
+            }),
+            'data/fixture/tags/item/gems.json': JSON.stringify({ values: ['fixture:ruby'] }),
+            'patch/data/fixture/tags/item/gems.json': JSON.stringify({ values: ['fixture:sapphire'] })
+        });
+
+        const { definitions } = load([{ kind: 'datapack', path: pack }], { strict: true });
+        expect(definitions.tags.get('item/fixture:gems')?.data).toEqual({
+            replace: false,
+            values: ['fixture:sapphire']
+        });
+    });
+
     it('merges tag values across packs and lets replace discard earlier ones', () => {
         const first = writeDatapack({
             'pack.mcmeta': MCMETA,
