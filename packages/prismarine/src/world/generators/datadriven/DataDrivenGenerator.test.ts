@@ -16,6 +16,7 @@ import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
+import { bedrockBiomeIdOf } from './javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
@@ -151,6 +152,57 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
             }
 
             expect(changed).toBeGreaterThan(0);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    /** Every block of the chunk whose name contains a fragment, counted by name. */
+    const census = (chunk: Chunk, fragment: string): Map<string, number> => {
+        const counts = new Map<string, number>();
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                for (let y = chunk.getMinY(); y <= chunk.getMaxY(); y++) {
+                    const name = chunk.getBlock(x, y, z).name;
+                    if (name.includes(fragment)) counts.set(name, (counts.get(name) ?? 0) + 1);
+                }
+            }
+        }
+        return counts;
+    };
+
+    // These two chunks sit far enough inside their biome that all nine chunks of the decoration
+    // neighborhood are the same biome, so nothing a neighbor lists can reach them either.
+    const ICE_SPIKES_CHUNK = [-228, 64] as const;
+    const TAIGA_CHUNK = [-516, -434] as const;
+
+    it(
+        'grows no tree on an ice spikes chunk',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const decorated = new DataDrivenGenerator({ registries, structures: false });
+            const chunk = await decorated.generateChunk(...ICE_SPIKES_CHUNK, SEED);
+
+            expect(chunk.getBiome(8, 70, 8)).toBe(bedrockBiomeIdOf('minecraft:ice_spikes'));
+            expect([...census(chunk, '_log').keys()]).toEqual([]);
+            expect([...census(chunk, 'leaves').keys()]).toEqual([]);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'grows one species of tree on a taiga chunk',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const decorated = new DataDrivenGenerator({ registries, structures: false });
+            const chunk = await decorated.generateChunk(...TAIGA_CHUNK, SEED);
+            const logs = census(chunk, '_log');
+
+            expect(chunk.getBiome(8, 70, 8)).toBe(bedrockBiomeIdOf('minecraft:taiga'));
+            // A vanilla chunk holds one or two species. Seven is what running every biome's
+            // features in every chunk looked like.
+            expect(logs.size).toBeGreaterThan(0);
+            expect(logs.size).toBeLessThanOrEqual(2);
+            expect([...logs.keys()]).toContain('minecraft:spruce_log');
         },
         CHUNK_TIMEOUT
     );
