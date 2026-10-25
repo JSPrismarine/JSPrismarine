@@ -1,9 +1,8 @@
-import { LootRegistry, packJson } from '@jsprismarine/loot';
 import { expect, it } from 'vitest';
 
 import { checkAllowList } from './allowlist.ts';
 import { FAMILIES } from './families.ts';
-import { loadVanillaDatapack } from './javaDatapack.ts';
+import { loadVanillaDatapack, vanillaLootRegistry } from './javaDatapack.ts';
 import { describeFamily } from './measure.ts';
 import { REFERENCES } from './references.ts';
 

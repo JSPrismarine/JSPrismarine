@@ -11,8 +11,15 @@
  * [`javaWorldgenData.ts`](javaWorldgenData.ts). A server with neither cannot run this
  * generator, and says so rather than producing a world that is quietly not Java's.
  */
-import type { BlockOracle, PlacedFeature, ScheduledFeature } from '@jsprismarine/features';
-import { DECORATION_STEPS, FeatureLoader, decorateChunk } from '@jsprismarine/features';
+import type { BlockOracle, DecorationStep, PlacedFeature, ScheduledFeature } from '@jsprismarine/features';
+import {
+    DECORATION_STEPS,
+    FeatureLoader,
+    WorldgenRandom,
+    decorationStepIndex,
+    orderDecoration,
+    placeFeature
+} from '@jsprismarine/features';
 import type { BiomeClimate, CarverConfig, MaterialRuleNode, NoiseGeneratorSettings } from '@jsprismarine/worldgen';
 import {
     BiomeManager,
@@ -37,6 +44,13 @@ import type { Generator } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
+import { createNoiseStructureLevel } from './javaStructureLevel';
+import { asStructureRandom } from './javaStructureRandom';
+import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
+import type { StructureBuilder, StructureStart } from './javaStructureStarts';
+import { StructureStartSource, structureStepCounts } from './javaStructureStarts';
+import { createStructureTemplateStore } from './javaStructureTemplatePiece';
+import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
@@ -56,6 +70,14 @@ export interface DataDrivenGeneratorOptions {
     /** Whether to run the carvers. On by default. */
     readonly carve?: boolean;
     /**
+     * Whether to place structures. On by default, and only meaningful when the decoration pass
+     * runs, because Java places a structure's pieces inside the decoration step the structure
+     * names.
+     */
+    readonly structures?: boolean;
+    /** Overrides the builder for a `worldgen/structure` type, which a test uses to isolate one. */
+    readonly structureBuilders?: ReadonlyMap<string, StructureBuilder>;
+    /**
      * Where the structure templates `template` and `fossil` stamp come from.
      *
      * Absent by default: the templates are `.nbt` inside Mojang's server jar rather than in the
@@ -73,6 +95,12 @@ interface SeededPipeline {
     readonly biomes: BiomeManager;
     readonly possibleBiomes: ReadonlySet<string>;
     readonly plan: readonly ScheduledFeature[];
+    /** The plan split by step, so the decoration loop can interleave the structures. */
+    readonly planByStep: ReadonlyMap<DecorationStep, readonly ScheduledFeature[]>;
+    /** The structure starts this world has, or undefined when structures are turned off. */
+    readonly structures?: StructureStartSource;
+    /** The bare terrain the structures were laid out against. */
+    readonly level: ReturnType<typeof createNoiseStructureLevel>;
     readonly carversOf: (biome: string) => readonly CarverConfig[];
     readonly climateOf: (biome: string) => BiomeClimate;
     readonly oracle: BlockOracle;
@@ -84,6 +112,20 @@ const BEDROCK = 'minecraft:bedrock';
 
 /** What a carver leaves behind. Java's carvers write cave air rather than ordinary air. */
 const CAVE_AIR = { name: 'minecraft:cave_air', properties: {} } as const;
+
+/** The source a generator with no templates uses, which places the structures that need none. */
+const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
+
+/** The decoration plan split by step, which is how the decoration loop walks it. */
+const byStep = (plan: readonly ScheduledFeature[]): ReadonlyMap<DecorationStep, readonly ScheduledFeature[]> => {
+    const buckets = new Map<DecorationStep, ScheduledFeature[]>();
+    for (const entry of orderDecoration(plan)) {
+        const bucket = buckets.get(entry.step);
+        if (bucket === undefined) buckets.set(entry.step, [entry]);
+        else bucket.push(entry);
+    }
+    return buckets;
+};
 
 const identifiersOf = (value: unknown): readonly string[] => {
     if (typeof value === 'string') return [value];
@@ -146,6 +188,22 @@ export class DataDrivenGenerator implements Generator {
     /** Every Java state the translator could not place, for a caller that wants to report them. */
     public unmappedStates(seed: number): readonly string[] {
         return this.pipelineFor(BigInt(Math.trunc(seed))).translator.unmappedStates();
+    }
+
+    /**
+     * The structure starts that reach into a chunk, without generating it.
+     *
+     * A start is laid out against the bare noise terrain and touches no chunk, so this is the
+     * cheap way to ask where a structure is: a comparison against Java's `/locate` needs the
+     * generation point and the box, and neither needs a block placed.
+     */
+    public structureStartsAt(chunkX: number, chunkZ: number, seed = 0): readonly StructureStart[] {
+        return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.startsFor(chunkX, chunkZ) ?? [];
+    }
+
+    /** The structure types this server has no builder for, which therefore generate nothing. */
+    public unbuiltStructureTypes(seed = 0): ReadonlySet<string> {
+        return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
     }
 
     private buildTerrain(cx: number, cz: number, pipeline: SeededPipeline): GenerationRegion {
@@ -234,8 +292,51 @@ export class DataDrivenGenerator implements Generator {
         }
     }
 
+    /**
+     * Runs Java's `applyBiomeDecoration`: for each of the eleven steps, the structures of that
+     * step and then its features.
+     *
+     * The two share one index counter, which is what seeds each of them. Java counts the
+     * structures of a step first, so a step's features are seeded from the count onward;
+     * {@link buildFeaturePlan} applies that offset, which means turning structures off does not
+     * move a feature.
+     */
     private decorate(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): void {
-        decorateChunk(pipeline.plan, { world: region.featureWorld() }, pipeline.randomState.seed, cx, cz);
+        const random = new WorldgenRandom();
+        const origin = { x: cx * 16, y: this.dimension.minY, z: cz * 16 };
+        const populationSeed = random.setDecorationSeed(pipeline.randomState.seed, origin.x, origin.z);
+        const context = { world: region.featureWorld() };
+        const starts = pipeline.structures?.startsFor(cx, cz) ?? [];
+        const writer =
+            starts.length === 0
+                ? undefined
+                : createRegionStructureWriter(
+                      region,
+                      pipeline.level,
+                      chunkWriteBox(cx, cz, this.dimension.minY, this.dimension.minY + this.dimension.height - 1)
+                  );
+
+        for (const step of DECORATION_STEPS) {
+            const stepIndex = decorationStepIndex(step);
+
+            if (writer !== undefined && pipeline.structures !== undefined) {
+                pipeline.structures.structuresInStep(step).forEach((structure, index) => {
+                    const placing = starts.filter((start) => start.structure === structure);
+                    if (placing.length === 0) return;
+
+                    random.setFeatureSeed(populationSeed, index, stepIndex);
+                    const pieceRandom = asStructureRandom(random);
+                    for (const start of placing) {
+                        for (const piece of start.pieces) piece.place(writer, pieceRandom);
+                    }
+                });
+            }
+
+            for (const entry of pipeline.planByStep.get(step) ?? []) {
+                random.setFeatureSeed(populationSeed, entry.index, stepIndex);
+                placeFeature(entry.feature, context, random, origin);
+            }
+        }
     }
 
     /** Translates the region's Java states into the Bedrock chunk, and records the biomes. */
@@ -342,11 +443,20 @@ export class DataDrivenGenerator implements Generator {
         const climateOf = this.climateLookup();
 
         const possibleBiomes = new Set(this.biomeSource.possibleBiomes());
-        const biomes = new BiomeManager(
-            this.biomeSource.resolver(createClimateSampler(randomState)),
-            BiomeManager.obfuscateSeed(seed)
-        );
+        const resolver = this.biomeSource.resolver(createClimateSampler(randomState));
+        const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(seed));
+        const oracle = createJavaBlockOracle(registries.blockTags);
+        const level = createNoiseStructureLevel({
+            randomState,
+            settings,
+            minY: this.dimension.minY,
+            height: this.dimension.height,
+            noiseBiome: resolver,
+            isSolid: (state) => oracle.isSolid(state),
+            isFluid: (state) => oracle.fluid(state) !== 'empty'
+        });
 
+        const plan = this.buildFeaturePlan();
         return {
             randomState,
             settings,
@@ -354,10 +464,24 @@ export class DataDrivenGenerator implements Generator {
             materialRule: this.materialRules.rule(settings.materialRule),
             biomes,
             possibleBiomes,
-            plan: this.buildFeaturePlan(),
+            plan,
+            planByStep: byStep(plan),
+            level,
+            ...(this.options.structures === false
+                ? {}
+                : {
+                      structures: new StructureStartSource({
+                          seed,
+                          registries,
+                          level,
+                          templates: createStructureTemplateStore(this.options.templates ?? EMPTY_TEMPLATES),
+                          isPossibleBiome: (biome) => possibleBiomes.has(biome),
+                          builders: this.options.structureBuilders ?? STRUCTURE_BUILDERS
+                      })
+                  }),
             carversOf: this.carverLookup(),
             climateOf,
-            oracle: createJavaBlockOracle(registries.blockTags),
+            oracle,
             translator: new JavaStateTranslator()
         };
     }
@@ -437,9 +561,15 @@ export class DataDrivenGenerator implements Generator {
             });
         }
 
+        // Java counts a step's structures and its features through one index, structures first,
+        // so a step that holds 44 structures seeds its first feature as index 44.
+        const structureCounts = structureStepCounts(registries.structures);
+
         const plan: ScheduledFeature[] = [];
         perStep.forEach((references, step) => {
-            references.forEach((reference, index) => {
+            const offset = structureCounts.get(DECORATION_STEPS[step] ?? 'raw_generation') ?? 0;
+            references.forEach((reference, position) => {
+                const index = offset + position;
                 let feature: PlacedFeature;
                 try {
                     feature = loader.placedFeatureById(reference);
