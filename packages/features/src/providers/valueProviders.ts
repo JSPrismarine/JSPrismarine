@@ -168,9 +168,11 @@ export const parseIntProvider = (source: unknown, path: string): IntProvider => 
                 asInteger(raw['max_inclusive'], `${path}.max_inclusive`)
             );
         case 'trapezoid':
+            // The int trapezoid spells its bounds `min` and `max`, unlike every other int
+            // provider and unlike the height provider of the same name.
             return trapezoidInt(
-                asInteger(raw['min_inclusive'], `${path}.min_inclusive`),
-                asInteger(raw['max_inclusive'], `${path}.max_inclusive`),
+                asInteger(raw['min'], `${path}.min`),
+                asInteger(raw['max'], `${path}.max`),
                 asInteger(raw['plateau'], `${path}.plateau`, 0)
             );
         case 'clamped':

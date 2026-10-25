@@ -32,8 +32,14 @@ export const DIRECTION_STEPS: Readonly<Record<Direction, readonly [number, numbe
     east: [1, 0, 0]
 };
 
-/** The four compass directions in Java's `Direction.Plane.HORIZONTAL` order. */
-export const HORIZONTAL_DIRECTIONS = ['north', 'south', 'west', 'east'] as const satisfies readonly Direction[];
+/**
+ * The four compass directions in Java's `Direction.Plane.HORIZONTAL` order.
+ *
+ * This is north, east, south, west, which is not the order of `Direction.values()`. Anything
+ * that draws a random horizontal direction indexes into this array, so the order is part of the
+ * seed contract rather than a presentation detail.
+ */
+export const HORIZONTAL_DIRECTIONS = ['north', 'east', 'south', 'west'] as const satisfies readonly Direction[];
 
 /** Every direction in Java's declaration order, which decides iteration order in several features. */
 export const ALL_DIRECTIONS = ['down', 'up', 'north', 'south', 'west', 'east'] as const satisfies readonly Direction[];

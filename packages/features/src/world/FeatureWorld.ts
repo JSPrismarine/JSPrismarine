@@ -97,6 +97,13 @@ export interface FeatureWorld {
     readonly height: number;
     /** The dimension's sea level, which `relative_to_sea_level` anchors resolve against. */
     readonly seaLevel: number;
+    /**
+     * The world seed.
+     *
+     * Only the geode reads it, to build a noise field that is the same everywhere in one world
+     * and different between worlds.
+     */
+    readonly seed: bigint;
     /** The static block facts, shared across worlds. */
     readonly blocks: BlockOracle;
     /** Returns the state at a position, or air outside the generated region. */
@@ -107,6 +114,71 @@ export interface FeatureWorld {
     getHeight(heightmap: HeightmapType, x: number, z: number): number;
     /** Returns the biome identifier at a position. */
     getBiome(position: BlockPos): string;
+    /**
+     * Answers Java's `Biome.getTemperature(pos) < 0.15`, which is the whole of what decides
+     * whether `freeze_top_layer` acts.
+     *
+     * Optional, because biome climate lives in the biome source rather than here. When absent
+     * nothing freezes, which is the right answer for a warm world and a visible one for a cold
+     * world rather than a silent miss.
+     */
+    isColdEnoughToSnow?(position: BlockPos): boolean;
+    /**
+     * Attaches block entity data to a block this package just wrote.
+     *
+     * Optional, because only six features need it: the two chests, the spawner, the two end
+     * gateway kinds and the end podium. A world that cannot store it loses the contents rather
+     * than the block.
+     */
+    setBlockEntity?(position: BlockPos, data: BlockEntityRequest): void;
+    /**
+     * Places a structure template, which `template` and `fossil` delegate to.
+     *
+     * Optional, and the seam to `@jsprismarine/structures`: this package names a template and a
+     * processor list and does not read NBT. A world that cannot place one reports failure, which
+     * propagates through the pipeline the same way an obstructed placement does.
+     */
+    placeTemplate?(request: TemplateRequest): boolean;
+    /**
+     * Spawns an entity a feature builds around, which is only the end spike's crystal.
+     *
+     * Optional, because entities belong to the server rather than to world generation.
+     */
+    spawnEntity?(type: string, position: BlockPos, yaw: number): void;
+}
+
+/** What a feature asks a world to record on a block it just placed. */
+export interface BlockEntityRequest {
+    /** The block entity type, for example `minecraft:chest`. */
+    readonly id: string;
+    /** The loot table to roll when the block is first opened, when there is one. */
+    readonly lootTable?: string;
+    /** The entity a spawner produces, when the block is a spawner. */
+    readonly spawnEntity?: string;
+    /** Where an end gateway sends a traveller, when the block is one. */
+    readonly exitPortal?: BlockPos;
+    /** Whether an end gateway places its own exit platform. */
+    readonly exactTeleport?: boolean;
+}
+
+/** What a feature asks a world to stamp out of a structure template. */
+export interface TemplateRequest {
+    /** The template identifier, for example `minecraft:trail_ruins/tower/tower_top`. */
+    readonly template: string;
+    /** Where the template's origin corner lands. */
+    readonly origin: BlockPos;
+    /** The quarter turns to apply, 0 through 3. */
+    readonly rotation: number;
+    /** The mirror to apply before the rotation. */
+    readonly mirror: 'none' | 'left_right' | 'front_back';
+    /** The processor list to run over the template, when the feature names one. */
+    readonly processors?: string;
+    /** The template's own offset, which `template` carries as `offset`. */
+    readonly offset?: BlockPos;
+    /** Whether the template's project-to-heightmap mode is set, and to which heightmap. */
+    readonly projectToHeightmap?: HeightmapType;
+    /** Whether air in the template overwrites the world. */
+    readonly overwrite?: boolean;
 }
 
 /** Answers whether `y` is outside the dimension's generated range. */
@@ -146,6 +218,7 @@ export const translatingWorld = <Target>(
     minY: target.minY,
     height: target.height,
     seaLevel: target.seaLevel,
+    seed: target.seed,
     blocks,
     getBlock: (position) => mapper.toJava(target.getBlock(position)),
     setBlock: (position, state) => target.setBlock(position, mapper.toTarget(state)),
