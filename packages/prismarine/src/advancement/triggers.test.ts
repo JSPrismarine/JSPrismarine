@@ -8,6 +8,7 @@ import Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import { Attributes } from '../entity/Attribute';
+import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import type { Entity } from '../entity/Entity';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -364,7 +365,7 @@ describe('earning vanilla advancements by playing', () => {
     it('does not credit a kill nobody is answerable for', () => {
         const { player } = scene();
 
-        advancementKill(mob('minecraft:zombie'), DamageSource.of(0));
+        advancementKill(mob('minecraft:zombie'), DamageSource.of(DamageCause.Generic));
         expect(done(player, 'minecraft:adventure/kill_a_mob')).toBe(false);
     });
 

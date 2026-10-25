@@ -15,7 +15,8 @@ describe('candidateChunksIn', () => {
         salt: 10387312,
         frequency: 1,
         frequencyReductionMethod: 'default',
-        locateOffset: [0, 0, 0]
+        locateOffset: [0, 0, 0],
+        spreadType: 'linear'
     } as const;
 
     it('finds one chunk per region the range covers', () => {
@@ -102,7 +103,8 @@ describe('chooseStructure', () => {
                 salt: 0,
                 frequency: 1,
                 frequencyReductionMethod: 'default',
-                locateOffset: [0, 0, 0]
+                locateOffset: [0, 0, 0],
+                spreadType: 'linear'
             },
             structures: [
                 { structure: 'minecraft:village_plains', weight: 1 },

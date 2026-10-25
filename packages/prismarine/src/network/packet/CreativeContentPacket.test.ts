@@ -148,7 +148,13 @@ describe('CreativeContentPacket', () => {
         // without going back through a class the build does not use.
         const stack = { runtimeId: 5, count: 64, meta: 0, blockRuntimeId: 0, userData: Buffer.alloc(0) };
         const packet = new CreativeContentPacket();
-        packet.groups = [{ category: CreativeItemCategory.NATURE, name: 'ignored', icon: new Item({ id: 1 }) }];
+        packet.groups = [
+            {
+                category: CreativeItemCategory.NATURE,
+                name: 'ignored',
+                icon: new Item({ id: 1, name: 'minecraft:stone' })
+            }
+        ];
         packet.payload = {
             groups: [{ category: CreativeItemCategory.CONSTRUCTION, name: 'itemGroup.name.planks', icon: stack }],
             entries: [{ item: stack, group: 0 }]

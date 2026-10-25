@@ -1,3 +1,4 @@
+import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
 import type { Block } from '../block/Block';
@@ -5,14 +6,14 @@ import BlockManager from '../block/BlockManager';
 import type { BlockManagerServer } from '../block/BlockManager';
 import { BlockState } from '../block/state/BlockState';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
-import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
 import { World } from './World';
 
 /** A block manager over the shipped catalog, with nothing of the server it does not read. */
 const blockManager = () => {
     const server: BlockManagerServer = {
-        getLogger: () => ({ debug: () => {}, verbose: () => {} }) as unknown as ReturnType<Server['getLogger']>,
-        emit: (async () => true) as Server['emit']
+        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
+        emit: async () => {}
     };
 
     return new BlockManager(server);

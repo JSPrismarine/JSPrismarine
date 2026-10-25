@@ -27,8 +27,13 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
     const sink: WorldChangeSink = {
         blockChanged: () => calls.push('blockChanged'),
         blockSound: () => calls.push('blockSound'),
+        namedSound: () => calls.push('namedSound'),
+        namedParticle: () => calls.push('namedParticle'),
+        actorSound: () => calls.push('actorSound'),
         worldEffect: () => calls.push('worldEffect'),
         entityMoved: () => calls.push('entityMoved'),
+        entityAttributesChanged: record('entityAttributesChanged'),
+        entityMetadataChanged: record('entityMetadataChanged'),
         actorEffect: record('actorEffect'),
         entityAdded: record('entityAdded'),
         entityRemoved: record('entityRemoved'),

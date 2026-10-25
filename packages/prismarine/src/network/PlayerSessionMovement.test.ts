@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
+import { Position } from '../world/Position';
+import type { World } from '../world/World';
 import type MovePlayerPacket from './packet/MovePlayerPacket';
 import type SetActorMotionPacket from './packet/SetActorMotionPacket';
 import PlayerSession from './PlayerSession';
@@ -15,10 +17,13 @@ import PositionMode from './type/PositionMode';
  * inputs. The server's own tick counter is neither.
  */
 
+/** The world a position has to name; nothing on this path reads it back out. */
+const nowhere = stub<World>();
+
 const playerAt = (runtimeId: bigint) =>
     stub<Player>({
         getRuntimeId: () => runtimeId,
-        getPosition: () => new Vector3(1, 64, 1),
+        getPosition: () => new Position(1, 64, 1, nowhere),
         pitch: 10,
         yaw: 20,
         headYaw: 30,

@@ -3,14 +3,14 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { Vector3 } from '@jsprismarine/math';
+import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { REDSTONE_TORCH, REPEATER, SIGNAL_STATE } from '@jsprismarine/engine-systems';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import type BlockManager from '../block/BlockManager';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import type Config from '../config/Config';
-import type LoggerBuilder from '../utils/Logger';
+import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -57,7 +57,7 @@ const flatChunk = (x: number, z: number): Chunk => {
 const testServer = (): Server =>
     stub<Server>({
         getLogger: () =>
-            stub<LoggerBuilder>({
+            stub<Logger>({
                 info: () => {},
                 warn: () => {},
                 error: () => {},
@@ -76,10 +76,24 @@ const testServer = (): Server =>
         getEntityRuntime: () => undefined
     });
 
+/**
+ * Sets the random tick speed on a world that has finished being built.
+ *
+ * `getGameRuleManager` still answers `null`, because the manager's own change callback can
+ * fire while the world's constructor is still running. By the time a test holds a world it
+ * cannot be null, so an absent one is a failure rather than a rule quietly left unset.
+ */
+const setRandomTickSpeed = (world: World, blocksPerSubChunk: number): void => {
+    const rules = world.getGameRuleManager();
+    if (rules === null) throw new Error('the world was built without a game rule manager');
+    rules.setGameRule('randomTickSpeed', blocksPerSubChunk, true);
+};
+
 /** A world with nine flat chunks around the origin already in memory. */
 const flatWorld = async (randomTickHandlers?: Record<string, (at: { x: number; y: number; z: number }) => void>) => {
     const world = new World({
         name: 'engine-systems-test',
+        path: path.join(os.tmpdir(), 'engine-systems-test'),
         server: testServer(),
         provider: stub<BaseProvider & Provider>({ readChunk: async (x, z) => flatChunk(x, z) }),
         seed: 0,
@@ -259,7 +273,7 @@ describe('world', () => {
 
                 // Far above Java's three, so a handful of ticks is certain to land on the one
                 // layer of the chunk that holds a crop.
-                world.getGameRuleManager().setGameRule('randomTickSpeed', 50, true);
+                setRandomTickSpeed(world, 50);
                 standInPlayer(world);
 
                 await runTicks(world, 3);
@@ -274,7 +288,7 @@ describe('world', () => {
             it('draws nothing at all with nobody in the world', async () => {
                 const ticked: string[] = [];
                 const world = await flatWorld({ 'minecraft:wheat': (at) => ticked.push(`${at.x},${at.y},${at.z}`) });
-                world.getGameRuleManager().setGameRule('randomTickSpeed', 50, true);
+                setRandomTickSpeed(world, 50);
 
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++)
@@ -291,7 +305,7 @@ describe('world', () => {
             it('draws nothing when the random tick speed game rule is zero', async () => {
                 const ticked: string[] = [];
                 const world = await flatWorld({ 'minecraft:wheat': (at) => ticked.push(`${at.x},${at.y},${at.z}`) });
-                world.getGameRuleManager().setGameRule('randomTickSpeed', 0, true);
+                setRandomTickSpeed(world, 0);
                 standInPlayer(world);
 
                 for (let x = 0; x < 16; x++) {

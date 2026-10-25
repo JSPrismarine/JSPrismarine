@@ -16,7 +16,11 @@ import type { Config } from '../config/Config';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../content/testing';
 import type RecipeManager from '../crafting/RecipeManager';
+import type BlockManager from '../block/BlockManager';
+import type { CreativeRegistries } from '../inventory/CreativeInventory';
 import CreativeInventory from '../inventory/CreativeInventory';
+import type ItemManager from '../item/ItemManager';
+import type { StubMembers } from '../testing/stub.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
 import type ClientConnection from './ClientConnection';
@@ -47,18 +51,21 @@ const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () =>
 const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1 });
 
 /** The registries the creative menu reads, with nothing registered. */
-const emptyRegistries = {
+const emptyRegistries: CreativeRegistries = {
     getBlockManager: () => ({ getBlocks: () => [] }),
     getItemManager: () => ({ getItems: () => [] })
 };
 
 /** A server with nothing registered and no content build. */
-const captureServer = (overrides: Partial<Server> = {}) =>
+const captureServer = (overrides: StubMembers<Server> = {}) =>
     stub<Server>({
         getLogger: logger,
         getConfig: everyRecipe,
         getContent: () => undefined,
-        ...emptyRegistries,
+        // The server's own registries are the full managers, not the two methods the
+        // creative menu reads off them, so they are stood in for separately.
+        getBlockManager: () => stub<BlockManager>({ getBlocks: () => [] }),
+        getItemManager: () => stub<ItemManager>({ getItems: () => [] }),
         getCreativeInventory: () => new CreativeInventory(emptyRegistries),
         ...overrides
     });

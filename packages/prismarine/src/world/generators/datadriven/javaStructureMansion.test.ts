@@ -1,6 +1,6 @@
 import type { BlockEntityRequest, BlockState, HeightmapType } from '@jsprismarine/features';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import type { BoundingBox, JavaStructureTemplate } from '@jsprismarine/structures';
+import type { BoundingBox, JavaStructureTemplate, JavaTemplateBlock } from '@jsprismarine/structures';
 import { createLegacyRandom } from '@jsprismarine/structures';
 import { describe, expect, it } from 'vitest';
 
@@ -71,7 +71,7 @@ const footprintOf = (name: string): readonly [number, number] => {
 const template = (name: string, marker?: string): JavaStructureTemplate => {
     const [sizeX, sizeZ] = footprintOf(name);
     const sizeY = 8;
-    const blocks: JavaStructureTemplate['blocks'] = [
+    const blocks: JavaTemplateBlock[] = [
         { pos: [0, 0, 0], state: 0 },
         { pos: [sizeX - 1, sizeY - 1, sizeZ - 1], state: 0 }
     ];

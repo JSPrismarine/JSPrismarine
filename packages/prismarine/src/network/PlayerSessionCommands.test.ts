@@ -12,7 +12,7 @@ import type { CommandExecutor } from '../command/CommandExecutor';
 import { CommandManager } from '../command/CommandManager';
 import { UNWIRED_COMMANDS } from '../command/vanillaCommands';
 import type { Config } from '../config/Config';
-import type PermissionManager from '../permission/PermissionManager';
+import type { PermissionManager } from '../permission/PermissionManager';
 import { canExecute } from '../permission/PermissionManager';
 import { stub } from '../testing/stub.test.helper';
 import type ClientConnection from './ClientConnection';
@@ -162,8 +162,8 @@ describe('PlayerSession', () => {
                     // Two nodes, one description: both hold a target the client sees as `victim`.
                     dispatcher.register(
                         literal('echo')
-                            .then(argument('a', new CommandArgumentEntity({ name: 'victim' })).executes(() => {}))
-                            .then(argument('b', new CommandArgumentEntity({ name: 'victim' })).executes(() => {}))
+                            .then(argument('a', new CommandArgumentEntity({ name: 'victim' })).executes(() => 0))
+                            .then(argument('b', new CommandArgumentEntity({ name: 'victim' })).executes(() => 0))
                     );
                 }
             }

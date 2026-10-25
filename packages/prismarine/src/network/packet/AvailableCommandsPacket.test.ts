@@ -7,7 +7,7 @@ import type Server from '../../Server';
 import type SessionManager from '../../SessionManager';
 import { CommandManager } from '../../command/CommandManager';
 import type { Config } from '../../config/Config';
-import type PermissionManager from '../../permission/PermissionManager';
+import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { NetworkUtil } from '../NetworkUtil';

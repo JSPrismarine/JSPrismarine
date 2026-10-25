@@ -216,8 +216,8 @@ describe('command', () => {
             if (!redirectedKeyword || !isCommandArgument(redirectedKeyword))
                 throw new Error('Expected a redirected literal parameter');
 
-            const [nestedParameter] = nestedKeyword.getParameters();
-            const [redirectedParameter] = redirectedKeyword.getParameters();
+            const [nestedParameter] = nestedKeyword.getParameters(server) ?? [];
+            const [redirectedParameter] = redirectedKeyword.getParameters(server) ?? [];
             expect(nestedParameter?.enum?.values).toEqual(['sub']);
             expect(nestedParameter?.enum?.soft).toBe(false);
             expect(nestedParameter?.flags).toBe(CommandParameterFlags.FORCE_COLLAPSE_ENUM);
@@ -269,7 +269,8 @@ describe('command', () => {
                     dispatcher.register(
                         literal('ping').executes((context) => {
                             runs.push(context.getInput());
-                            return 'pong';
+                            // The result count `execute store result` would capture: one ping.
+                            return 1;
                         })
                     );
                 }

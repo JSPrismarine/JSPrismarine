@@ -48,7 +48,7 @@
         "generate": "node utils/generate-schemas.cjs",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
-        "typecheck": "tsc-ts --noEmit",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "prepack": "pnpm run generate"
     },
     "keywords": [

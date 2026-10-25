@@ -35,8 +35,17 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
         getLoadedChunk: () => null
     };
 
-    const spawn = <T extends Entity>(Species: new (options: any) => T, options: any): T => {
-        const entity = new Species({ ...options, position: new Position(...options.at, world) });
+    /**
+     * Builds one of this file's species at a place in `world`.
+     *
+     * The options are the union of what the species here take: `Projectile` adds a velocity and
+     * an owner to the position every entity needs, and the passive mobs ignore both.
+     */
+    const spawn = <T extends Entity>(
+        Species: new (options: { position: Position; velocity?: Vector3; owner?: Entity | null }) => T,
+        { at, ...rest }: { at: readonly [x: number, y: number, z: number]; velocity?: Vector3; owner?: Entity | null }
+    ): T => {
+        const entity = new Species({ ...rest, position: new Position(...at, world) });
         nearby.push(entity);
         return entity;
     };

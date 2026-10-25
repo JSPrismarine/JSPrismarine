@@ -7,6 +7,7 @@ import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -25,7 +26,7 @@ interface Scenario {
     /** The window ids the session has open; the handler's close is checked against them. */
     openWindows?: number[];
     /** The three fields the client sent. */
-    packet?: Partial<ContainerClosePacket>;
+    packet?: StubMembers<ContainerClosePacket>;
 }
 
 /** Runs the handler against one close, and reports what it sent, closed, dropped and logged. */
