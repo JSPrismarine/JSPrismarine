@@ -5,6 +5,8 @@ import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 
 import type { ServerContent } from '../content/ServerContent';
 import { Item } from '../item/Item';
+import type { LootLevelWorld } from '../world/lootLevel';
+import { lootLevelOf } from '../world/lootLevel';
 import { rollBlockDrops } from './blockLoot';
 
 /**
@@ -269,10 +271,11 @@ export class Block {
         const content = this.content ?? server?.getContent?.();
         if (!content) return this.isCompatibleWithTool(item) ? [this] : [];
 
+        const world = server?.getWorldManager?.().getDefaultWorld();
         const rolled = rollBlockDrops(
             content,
             { identifier: this.getStateName(), states: this.states },
-            { tool: item?.asPredicateStack() }
+            { tool: item?.asPredicateStack(), level: world && lootLevelOf(world) }
         );
 
         return rolled.map((drop) => new Item({ name: drop.identifier, count: drop.count, content }));
@@ -284,7 +287,16 @@ export class Block {
     }
 }
 
-/** What {@link Block.getDrops} reads off the server: its content, when it built one. */
+/** What {@link Block.getDrops} reads off the server: its content and its worlds. */
 export interface BlockDropServer {
     getContent?(): ServerContent | undefined;
+    /**
+     * The worlds, for the level view the loot conditions read.
+     *
+     * The default one, because a `Block` carries no dimension of its own.
+     * The clock is the only member of that view two dimensions could
+     * disagree about, and Bedrock keeps one time for all of them, so the
+     * answer is the right one until a break can say where it happened.
+     */
+    getWorldManager?(): { getDefaultWorld(): LootLevelWorld | undefined };
 }

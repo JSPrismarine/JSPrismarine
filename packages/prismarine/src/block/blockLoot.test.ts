@@ -45,5 +45,66 @@ describe('block', () => {
 
             expect(drops.map((drop) => drop?.getName())).toEqual(['minecraft:cobblestone']);
         });
+
+        /**
+         * A table whose pool only runs in one dimension, which is the
+         * shortest condition that cannot be answered without a level view.
+         */
+        const dimensionKeyed = () =>
+            buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: {
+                            ...fixtureDefinitions(),
+                            lootTablesJava: new Map([
+                                [
+                                    'minecraft:blocks/stone',
+                                    definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+                                        type: 'minecraft:block',
+                                        pools: [
+                                            {
+                                                rolls: 1,
+                                                condition: {
+                                                    type: 'minecraft:location_check',
+                                                    predicate: { dimension: 'minecraft:overworld' }
+                                                },
+                                                entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }]
+                                            }
+                                        ]
+                                    })
+                                ]
+                            ])
+                        },
+                        diagnostics: []
+                    })
+                })
+            );
+
+        it('evaluates the conditions that ask about the world', () => {
+            const content = dimensionKeyed();
+            const level = lootLevelOf({ getTicks: () => 0, getDimension: () => ({ name: 'minecraft:overworld' }) });
+
+            expect(rollBlockDrops(content, { identifier: 'minecraft:stone', states: {} }, { level })).toEqual([
+                { identifier: 'minecraft:cobblestone', count: 1 }
+            ]);
+        });
+
+        it('takes the level from the server the break happened on', () => {
+            // Without the world the condition cannot be reached at all, so a
+            // break in the nether proves the view arrived rather than that
+            // nothing read it.
+            const content = dimensionKeyed();
+            const stone = new Block({ name: 'minecraft:stone', content });
+            const serverIn = (dimension: string) => ({
+                getWorldManager: () => ({
+                    getDefaultWorld: () => ({ getTicks: () => 0, getDimension: () => ({ name: dimension }) })
+                })
+            });
+
+            expect(stone.getDrops(null, serverIn('minecraft:overworld')).map((drop) => drop?.getName())).toEqual([
+                'minecraft:cobblestone'
+            ]);
+            expect(stone.getDrops(null, serverIn('minecraft:the_nether'))).toEqual([]);
+        });
     });
 });

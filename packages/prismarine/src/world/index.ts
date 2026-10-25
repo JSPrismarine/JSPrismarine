@@ -6,6 +6,7 @@ export * from './GeneratorManager';
 export * from './MobSpawner';
 export * from './Position';
 export * from './World';
+export * from './lootLevel';
 
 export * from './generators/datadriven';
 
