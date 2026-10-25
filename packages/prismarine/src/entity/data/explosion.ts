@@ -129,8 +129,17 @@ const caughtFrom = (entity: DataEntity): Caught => {
     };
 };
 
-/** Rolls one destroyed block's loot, with Java's `1 / radius` explosion chance. */
+/**
+ * Takes one block out, with Java's `1 / radius` explosion chance on what it yields.
+ *
+ * The host's own destruction path first, which is the one that raises `onBreak`. The bare
+ * roll below is the fallback for a host that has no world to raise it against; it leaves a
+ * chest's contents in the chest the blast just removed, which is the bug the host path
+ * exists to fix.
+ */
 const dropBlock = (options: ContentBlastOptions, at: BlockPosition, block: BlockRef): void => {
+    if (options.destroy?.(at) === true) return;
+
     const { content, drop } = options;
     if (content === undefined || drop === undefined) return;
 
