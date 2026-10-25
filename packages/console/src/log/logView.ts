@@ -29,8 +29,13 @@ export interface LogView {
     pageDown(): void;
     toTop(): void;
     toBottom(): void;
+    /** Scrolls the visible record at `index` into view, moving as little as possible. */
+    scrollTo(index: number): void;
+    /** Hides every record shown so far without touching the store; later records paint from the top. */
+    clearView(): void;
     setWrap(wrap: boolean): void;
     setShowNamespace(show: boolean): void;
+    setLevelStyle(style: LevelStyle): void;
     /** Marks occurrences of `query` in visible messages; `undefined` clears the marks. */
     setSearchHighlight(query: string | undefined): void;
     /** Unsubscribes from the store and destroys the renderables. */
@@ -49,7 +54,7 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
     const { store } = props;
     let wrap = props.wrap ?? false;
     let showNamespace = props.showNamespace ?? true;
-    const levelStyle = props.levelStyle ?? 'full';
+    let levelStyle = props.levelStyle ?? 'full';
     let highlight: string | undefined;
 
     const window = new LogWindow(1);
@@ -162,12 +167,24 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
             window.toBottom();
             schedule();
         },
+        scrollTo(index) {
+            window.scrollTo(index);
+            schedule();
+        },
+        clearView() {
+            window.clear();
+            schedule();
+        },
         setWrap(value) {
             wrap = value;
             schedule();
         },
         setShowNamespace(value) {
             showNamespace = value;
+            schedule();
+        },
+        setLevelStyle(style) {
+            levelStyle = style;
             schedule();
         },
         setSearchHighlight(query) {

@@ -160,4 +160,53 @@ describe('createLogView', () => {
             await t.dispose();
         }
     });
+
+    it('clears the view without touching the store and shows later records', async () => {
+        const t = await setup();
+        try {
+            for (let i = 1; i <= 50; i += 1) t.store.append(entry(`line ${i}`));
+            await t.frame();
+            t.view.clearView();
+            const cleared = await t.frame();
+            expect(cleared.join('\n')).not.toContain('line');
+            expect(t.store.visible()).toHaveLength(50);
+
+            t.store.append(entry('after clear'));
+            const rows = await t.frame();
+            expect(rows[0]).toContain('after clear');
+            expect(rows.join('\n')).not.toContain('line 50');
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('scrolls a record into view with scrollTo and pauses follow', async () => {
+        const t = await setup();
+        try {
+            for (let i = 1; i <= 50; i += 1) t.store.append(entry(`line ${i}`));
+            await t.frame();
+            t.view.scrollTo(9);
+            const rows = await t.frame();
+            expect(rows[0]).toContain('line 10');
+            expect(rows[19]).toContain('line 29');
+            t.store.append(entry('line 51'));
+            expect((await t.frame()).join('\n')).toContain('1 new lines');
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('switches the level column style in place', async () => {
+        const t = await setup();
+        try {
+            t.store.append(entry('styled'));
+            t.view.setShowNamespace(false);
+            t.view.setLevelStyle('short');
+            expect((await t.frame())[0]).toBe('12:05:33 I styled');
+            t.view.setLevelStyle('full');
+            expect((await t.frame())[0]).toBe('12:05:33 INFO    styled');
+        } finally {
+            await t.dispose();
+        }
+    });
 });
