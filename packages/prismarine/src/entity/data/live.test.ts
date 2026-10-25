@@ -35,6 +35,7 @@ import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
+import { GenericEntity } from '../GenericEntity';
 import { Item as ItemEntity } from '../other/Item';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
@@ -806,6 +807,32 @@ describe('the data-driven entity runtime over a live world', () => {
             const villager = second.live.runtime.all()[0];
             expect(villager?.brainMob?.id).toBe('minecraft:villager');
             expect(villager?.brain).toBeDefined();
+        });
+
+        it('displaces the copy level.json rebuilt rather than standing beside it', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-duplicate-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            first.live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 3.5 });
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            // What `World.enable` rebuilds out of `level.json`: the same mob at the same spot,
+            // as a body with no actor NBT behind it. Before the actor record displaced it, the
+            // world ended up with two cows and only one of them driven by anything.
+            await second.world.addEntity(
+                new GenericEntity({
+                    identifier: 'minecraft:cow',
+                    position: new Position(2.5, GROUND_Y, 3.5, second.world)
+                })
+            );
+            await second.world.loadChunk(0, 0);
+
+            expect(typesIn(second.world).filter((type) => type === 'minecraft:cow')).toHaveLength(1);
+            expect(second.live.runtime.all()).toHaveLength(1);
         });
 
         it('leaves an actor the data path never wrote to the written classes', async () => {
