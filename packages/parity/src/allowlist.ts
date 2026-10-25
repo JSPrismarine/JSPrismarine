@@ -246,6 +246,24 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
     },
 
+    // Two vanilla recipes make an item Bedrock has no identifier for, so the recipe compiles
+    // onto the fallback item the reviewed item loss names. The loss is in `ITEM_LOSSES`; these
+    // rows record that a recipe carries it, which is what a player would see in the book.
+    {
+        family: 'recipes.registry',
+        id: 'loss:minecraft:furnace_minecart',
+        kind: 'accepted',
+        reason: 'Bedrock has no furnace minecart item, so the recipe makes the listed fallback.',
+        reference: 'docs/research/java-to-bedrock-translation.md section 3'
+    },
+    {
+        family: 'recipes.registry',
+        id: 'loss:minecraft:spectral_arrow',
+        kind: 'accepted',
+        reason: 'Bedrock has no spectral arrow, so the recipe makes a plain arrow.',
+        reference: 'docs/research/java-to-bedrock-translation.md section 3'
+    },
+
     ...engineActorEntries(),
     ...bodilessActorEntries(),
     ...randomizedHealthEntries(),

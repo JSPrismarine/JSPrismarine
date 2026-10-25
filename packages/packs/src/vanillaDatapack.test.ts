@@ -4,6 +4,8 @@ import { describe, expect, it } from 'vitest';
 
 import { reportIdentifiers } from './identifiers';
 import { load } from './load';
+import { createMcdocValidator } from './mcdocValidator';
+import { composeValidators, structuralValidator } from './validation';
 import { readZip } from './zip';
 
 /**
@@ -66,6 +68,19 @@ const extractVanillaDatapack = (): string => {
     return target;
 };
 
+/** The `vanilla-mcdoc` checkout, whose folder name carries a commit hash. */
+const mcdocCheckout = (): string => {
+    const root = join(cacheRoot, 'vanilla-mcdoc');
+    for (const commit of readdirSync(root)) {
+        const unpacked = join(root, commit, 'unpacked');
+        if (!existsSync(unpacked)) continue;
+        for (const checkout of readdirSync(unpacked)) {
+            if (existsSync(join(unpacked, checkout, 'java'))) return join(unpacked, checkout);
+        }
+    }
+    throw new Error(`no vanilla-mcdoc checkout under ${root}; run the bedrock-data fetch:sources script`);
+};
+
 describe.skipIf(!enabled)('the vanilla 26.3 datapack', () => {
     it('loads with the counts from the research notes', { timeout: 120_000 }, () => {
         const { definitions, diagnostics } = load([{ kind: 'datapack', path: extractVanillaDatapack() }]);
@@ -83,5 +98,56 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', () => {
         expect(report.length).toBeGreaterThan(1000);
         expect(report.every((entry) => entry.resolution === 'unknown')).toBe(true);
         expect(report.some((entry) => entry.registry === 'item' && entry.id === 'minecraft:diamond')).toBe(true);
+    });
+
+    it('validates every definition against vanilla-mcdoc', { timeout: 600_000 }, async () => {
+        // The one finding is vanilla-mcdoc trailing Mojang: 26.3 ships
+        // `recipe/map_extending.json` with `"result": {}`, and the schema
+        // requires an `id`. It reports as a warning, so the recipe still
+        // loads and the count below stays 2042.
+        const validator = composeValidators(structuralValidator, await createMcdocValidator({ root: mcdocCheckout() }));
+        const { definitions, diagnostics } = load([{ kind: 'datapack', path: extractVanillaDatapack() }], {
+            validator
+        });
+
+        expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
+        expect(diagnostics).toEqual([
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.schema',
+                path: 'data/minecraft/recipe/map_extending.json',
+                message: expect.stringContaining('/result Missing key')
+            })
+        ]);
+        expect(definitions.recipesJava.size).toBe(2042);
+        expect(definitions.lootTablesJava.size).toBe(1447);
+    });
+
+    it('names the file, the field and the reason for a corrupted definition', { timeout: 600_000 }, async () => {
+        // The run above passes if the checker silently checks nothing, so
+        // this one plants two faults in a real vanilla loot table: a value
+        // outside the allowed set, and a key the schema does not know.
+        const mcdoc = await createMcdocValidator({ root: mcdocCheckout() });
+        const path = 'data/minecraft/loot_table/blocks/stone.json';
+        // Vanilla data is parsed JSON, which the compiler cannot see the
+        // shape of; the two fields touched below are asserted on.
+        const stone: { type: string; pools: { entries: Record<string, unknown>[] }[] } = JSON.parse(
+            readFileSync(join(extractVanillaDatapack(), ...path.split('/')), 'utf8')
+        );
+        stone.type = 'minecraft:blok';
+        stone.pools[0]!.entries[0]!.quantity = 3;
+
+        expect(mcdoc({ registry: 'lootTablesJava', path, data: stone })).toEqual([
+            {
+                severity: 'warning',
+                code: 'definition.schema',
+                message: expect.stringMatching(/^\/type Expected .*\u201Cblock\u201D/u)
+            },
+            {
+                severity: 'warning',
+                code: 'definition.schema',
+                message: expect.stringContaining('/pools/0/entries/0/quantity Unknown key')
+            }
+        ]);
     });
 });
