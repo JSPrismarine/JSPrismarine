@@ -8,11 +8,10 @@
  * module memoizes the translation by state, which collapses a chunk's roughly 18000 placements
  * onto the handful of distinct states a chunk actually holds.
  */
-import { javaBlockStateToBedrock, javaIdentifierToBedrock } from '@jsprismarine/mapping';
+import { bedrockBiomeToJava, javaBlockStateToBedrock, javaIdentifierToBedrock } from '@jsprismarine/mapping';
 
 import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
-import { BEDROCK_BIOME_IDS } from './bedrockBiomeIds';
 
 /** A Java block state: an identifier and the property values that pick one state of it. */
 export interface JavaState {
@@ -103,9 +102,9 @@ export class JavaStateTranslator {
 /**
  * The number the Bedrock client calls a Java biome.
  *
- * Two steps, because the two halves live in different places: `@jsprismarine/mapping` owns
- * which Bedrock biome a Java one is, and {@link BEDROCK_BIOME_IDS} owns what the client
- * numbers that biome.
+ * Two steps through `@jsprismarine/mapping`: which Bedrock biome a Java one is, and what
+ * number the client calls that biome. The number is Mojang's own rather than a registry
+ * position, and the mapping's generated registry table is where it is recorded.
  *
  * @returns The client's id, or plains for a Java biome with no Bedrock counterpart. Plains
  *   rather than a refusal because a biome id travels in every chunk payload and the client
@@ -116,5 +115,8 @@ export const bedrockBiomeIdOf = (javaBiome: string): number => {
     const bedrock =
         mapped.kind === 'loss' ? mapped.loss.bedrockFallback : mapped.kind === 'unknown' ? undefined : mapped.bedrock;
 
-    return (bedrock === undefined ? undefined : BEDROCK_BIOME_IDS[bedrock]) ?? PLAINS_BIOME;
+    if (bedrock === undefined) return PLAINS_BIOME;
+
+    const resolved = bedrockBiomeToJava(bedrock);
+    return resolved.kind === 'unknown' ? PLAINS_BIOME : resolved.bedrock.id;
 };

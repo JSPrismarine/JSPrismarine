@@ -12,7 +12,6 @@ export {
     type RegionBlockEntity,
     type RegionEntitySpawn
 } from './GenerationRegion';
-export { BEDROCK_BIOME_IDS } from './bedrockBiomeIds';
 export { createJavaBlockOracle } from './javaBlockOracle';
 export { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 export {

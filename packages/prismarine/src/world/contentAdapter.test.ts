@@ -2,7 +2,7 @@
  * The biome half of the world's content groups, over the real biome tables.
  *
  * The first two cases run always: they cover every biome id this server can write, which is
- * exactly the set the data-driven generator's `BEDROCK_BIOME_IDS` holds. The last one generates
+ * exactly the set the data-driven generator can write. The last one generates
  * a real overworld chunk and reads the biomes back out of it, and is gated the same way
  * `generators/datadriven/DataDrivenGenerator.test.ts` is:
  *
@@ -20,7 +20,7 @@ import { worldContentGroups } from './contentAdapter';
 import type { WorldContentBiomes } from './contentAdapter';
 import { Dimensions } from './Dimension';
 import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator';
-import { BEDROCK_BIOME_IDS } from './generators/datadriven/bedrockBiomeIds';
+import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
 import { World } from './World';
 
@@ -61,17 +61,25 @@ const groupsOver = (chunk: Chunk, content: WorldContentBiomes) => {
 
 describe('the biome a chunk stores', () => {
     it('resolves every id the generator can write back to a Java biome', () => {
-        const ids = Object.entries(BEDROCK_BIOME_IDS);
+        // Derived from the mapping rather than from a list of numbers kept here: every Bedrock
+        // biome with a Java source behind it is one the generator may write.
+        const ids = Array.from({ length: 256 }, (_unused, id) => id).filter(
+            (id) => bedrockBiomeToJava(id).kind === 'mapped'
+        );
         expect(ids.length).toBeGreaterThan(0);
 
-        for (const [bedrockId, id] of ids) {
+        for (const id of ids) {
             const result = bedrockBiomeToJava(id);
-            expect(result.kind, `${bedrockId} (${id})`).toBe('mapped');
             if (result.kind !== 'mapped') continue;
 
-            expect(result.bedrock.identifier, `${id}`).toBe(bedrockId);
+            // The generator reaches that very id when it is given the Java biome behind it.
+            expect(bedrockBiomeIdOf(result.java), `${id}`).toBe(id);
+
             // And back again: the Java biome the inverse names maps onto the same Bedrock one.
-            expect(javaIdentifierToBedrock('biome', result.java)).toEqual({ kind: 'mapped', bedrock: bedrockId });
+            expect(javaIdentifierToBedrock('biome', result.java)).toEqual({
+                kind: 'mapped',
+                bedrock: result.bedrock.identifier
+            });
         }
     });
 
@@ -80,7 +88,7 @@ describe('the biome a chunk stores', () => {
         const content = contentWith({ 'minecraft:mesa': ['mesa', 'overworld'] });
         const { blocks } = groupsOver(chunk, content);
 
-        chunk.getBiomes().fillColumn(3, 9, BEDROCK_BIOME_IDS['minecraft:mesa']!);
+        chunk.getBiomes().fillColumn(3, 9, bedrockBiomeIdOf('minecraft:badlands'));
 
         expect(blocks.biome({ x: 3, y: 64, z: 9 })).toBe('minecraft:mesa');
         expect(blocks.biomeTags({ x: 3, y: 64, z: 9 })).toEqual(['mesa', 'overworld']);
