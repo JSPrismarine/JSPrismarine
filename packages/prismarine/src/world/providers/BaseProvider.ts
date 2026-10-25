@@ -1,5 +1,6 @@
 import type { WorldConfig } from '../World';
 import type { Generator, World } from '../';
+import type { ChunkRequestOptions } from '../Generator';
 import type { Server } from '../../';
 import type Chunk from '../chunk/Chunk';
 import type Provider from './Provider';
@@ -59,7 +60,8 @@ export default abstract class BaseProvider implements Provider {
         cz: number,
         seed: number,
         generator: Generator,
-        config?: WorldConfig
+        config?: WorldConfig,
+        options?: ChunkRequestOptions
     ): Promise<Chunk>;
 
     /**

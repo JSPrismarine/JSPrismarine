@@ -177,6 +177,53 @@ describe('the generation pool queue', () => {
         });
     });
 
+    describe('promote', () => {
+        it('moves a waiting task up and leaves the order inside the band alone', async () => {
+            const { pool, runner } = open(1, 1);
+
+            void ask(pool, 0, 'immediate');
+            await settle();
+
+            void ask(pool, 1, 'soon');
+            void ask(pool, 2, 'idle');
+            void ask(pool, 3, 'idle');
+            await settle();
+
+            expect(pool.promote((task) => task.chunkX === 3, 'soon')).toBe(1);
+
+            for (let release = 0; release < 3; release++) {
+                runner.finishOne();
+                await settle();
+            }
+
+            // 1 was already waiting in `soon`, so the promoted 3 goes behind it, and 2 is
+            // left in `idle` where it was.
+            expect(startedXs(runner)).toEqual([0, 1, 3, 2]);
+        });
+
+        it('leaves a task that is already in the band or above it', async () => {
+            const { pool } = open(1, 1);
+
+            void ask(pool, 0, 'immediate');
+            await settle();
+            void ask(pool, 1, 'immediate');
+            void ask(pool, 2, 'soon');
+            await settle();
+
+            expect(pool.promote(() => true, 'soon')).toBe(0);
+        });
+
+        it('does nothing to a task a worker already has', async () => {
+            const { pool, runner } = open(1, 1);
+
+            void ask(pool, 0, 'idle');
+            await settle();
+
+            expect(pool.promote(() => true, 'immediate')).toBe(0);
+            expect(startedXs(runner)).toEqual([0]);
+        });
+    });
+
     describe('destroy', () => {
         it('refuses the backlog rather than leaving it waiting for a turn that will not come', async () => {
             const { pool } = open(1, 1);

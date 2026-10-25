@@ -6,6 +6,7 @@ import {
     StringArgumentType,
     StringType
 } from '@jsprismarine/brigadier';
+import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import { Vector3 } from '@jsprismarine/math';
 import {
     BuildPlatform,
@@ -103,6 +104,15 @@ import TextPacketType from './type/TextPacketType';
  * ticks a second this still carries far more than generation can produce.
  */
 const CHUNKS_PER_BATCH = 4;
+
+/**
+ * How close a chunk has to be for a player to be counted as waiting on it.
+ *
+ * Two rings out: the chunk they stand in, the eight around it and the sixteen around those.
+ * That is what a player walking at full speed reaches inside a second, and what they are
+ * looking at when the terrain in front of them has not arrived.
+ */
+const URGENT_CHUNK_DISTANCE = 2;
 
 /**
  * The name each argument node under `node` was registered with, keyed by the type it holds.
@@ -682,8 +692,29 @@ export default class PlayerSession {
     }
 
     public async requestChunk(x: number, z: number): Promise<void> {
-        const chunk = await this.player.getWorld().getChunk(x, z);
+        const chunk = await this.player.getWorld().getChunk(x, z, { urgency: this.urgencyOf(x, z) });
         this.chunkSendQueue.push(chunk);
+    }
+
+    /**
+     * How badly this player needs one of their chunks, by how close it is to them.
+     *
+     * The queue is already drained nearest first, so this is about what happens when the
+     * generator is behind: the ring a player can see into has to come before the rim of
+     * somebody else's view distance, whichever was asked for first.
+     *
+     * Chebyshev distance, because that is the shape of a view distance square.
+     *
+     * @param x - Chunk x.
+     * @param z - Chunk z.
+     */
+    private urgencyOf(x: number, z: number): GenerationPriority {
+        if (this.lastChunkX === null || this.lastChunkZ === null) return 'immediate';
+
+        const distance = Math.max(Math.abs(x - this.lastChunkX), Math.abs(z - this.lastChunkZ));
+        if (distance <= URGENT_CHUNK_DISTANCE) return 'immediate';
+
+        return distance <= this.player.viewDistance / 2 ? 'soon' : 'idle';
     }
 
     /**

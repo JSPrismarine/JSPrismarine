@@ -1,6 +1,6 @@
 import type { WorldConfig } from '../../World';
 import type Server from '../../../Server';
-import type { Generator } from '../../Generator';
+import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Chunk from '../../chunk/Chunk';
 import BaseProvider from '../BaseProvider';
 
@@ -44,9 +44,10 @@ export default class Anvil extends BaseProvider {
         cz: number,
         seed: number,
         generator: Generator,
-        config?: WorldConfig
+        config?: WorldConfig,
+        options?: ChunkRequestOptions
     ): Promise<Chunk> {
-        return generator.generateChunk(cx, cz, seed, config);
+        return generator.generateChunk(cx, cz, seed, config, options);
     }
     public async writeChunk(_chunk: Chunk): Promise<void> {
         // TODO.

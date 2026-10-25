@@ -350,6 +350,40 @@ export class GenerationPool {
     }
 
     /**
+     * Moves waiting tasks up into a band, and reports how many moved.
+     *
+     * What a chunk that has become more urgent needs. A rim chunk asked for as `idle` is the
+     * same chunk a player is standing on a moment later, and without this it would keep the
+     * turn it was given when nobody wanted it. A task already in the band or above it is left
+     * where it is, so this only ever moves work forward.
+     *
+     * Order inside the destination band is arrival order, and a promoted task arrives now: it
+     * goes behind everything already waiting there, not in front of it.
+     *
+     * @param wanted - Answers true for a task that should move.
+     * @param to - The band to move it into.
+     * @returns How many tasks moved.
+     */
+    public promote(wanted: (task: GenerationTask) => boolean, to: GenerationPriority): number {
+        const destination = GENERATION_PRIORITIES.indexOf(to);
+        const moved: Waiting[] = [];
+
+        for (const [band, tasks] of this.waiting) {
+            if (GENERATION_PRIORITIES.indexOf(band) <= destination) continue;
+
+            const keep: Waiting[] = [];
+            for (const entry of tasks) {
+                if (wanted(entry.task)) moved.push(entry);
+                else keep.push(entry);
+            }
+            this.waiting.set(band, keep);
+        }
+
+        this.waiting.get(to)!.push(...moved);
+        return moved.length;
+    }
+
+    /**
      * Stops every worker, interrupting whatever they are doing.
      *
      * Worker threads do not receive signals, so terminating them is the only way to stop one

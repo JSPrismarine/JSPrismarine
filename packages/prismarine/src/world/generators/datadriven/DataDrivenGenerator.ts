@@ -15,10 +15,11 @@ import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
-import type { StepRegion } from '@jsprismarine/chunkgen';
+import type { GenerationPriority, StepRegion } from '@jsprismarine/chunkgen';
 import {
     ChunkHolderMap,
     FEATURE_PATCH_ORDER,
+    GENERATION_PRIORITIES,
     GenerationPool,
     GenerationScheduler,
     InboundFeaturePatches
@@ -62,7 +63,14 @@ import Chunk from '../../chunk/Chunk';
 import SubChunk from '../../chunk/SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
-import type { Generator, StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../../Generator';
+import type { WorldConfig } from '../../World';
+import type {
+    ChunkRequestOptions,
+    Generator,
+    StructureSearchRequest,
+    StructureSearchResult,
+    SurfaceProbe
+} from '../../Generator';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
@@ -331,6 +339,14 @@ export class DataDrivenGenerator implements Generator {
      */
     private pool: GenerationPool | undefined;
 
+    /**
+     * The band each chunk somebody asked for is waiting in, while it is being built.
+     *
+     * Only the chunks a caller named, not the neighbors built to satisfy them: see
+     * {@link DataDrivenGenerator.urgencyOf}. Entries live for one request.
+     */
+    private readonly urgencies = new Map<string, GenerationPriority>();
+
     /** Whether a worker has ever answered, which is what tells a startup failure from a bug. */
     private poolAnswered = false;
 
@@ -431,8 +447,25 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** @inheritDoc */
-    public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
+    public async generateChunk(
+        cx: number,
+        cz: number,
+        seed = 0,
+        _config?: WorldConfig,
+        options?: ChunkRequestOptions
+    ): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
+        const key = this.chunkKey(cx, cz);
+        this.urgencies.set(key, options?.urgency ?? 'immediate');
+        try {
+            return await this.buildChunk(cx, cz, pipeline);
+        } finally {
+            this.urgencies.delete(key);
+        }
+    }
+
+    /** The body of {@link DataDrivenGenerator.generateChunk}, once its urgency is recorded. */
+    private async buildChunk(cx: number, cz: number, pipeline: SeededPipeline): Promise<Chunk> {
         return pipeline.queue.run(cx, cz, async () => {
             this.retain(pipeline, cx, cz);
 
@@ -587,12 +620,15 @@ export class DataDrivenGenerator implements Generator {
 
         let result;
         try {
-            result = await pool.run({
-                status: 'terrain',
-                chunkX: cx,
-                chunkZ: cz,
-                input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
-            });
+            result = await pool.run(
+                {
+                    status: 'terrain',
+                    chunkX: cx,
+                    chunkZ: cz,
+                    input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
+                },
+                this.urgencyOf(cx, cz)
+            );
             this.poolAnswered = true;
         } catch (error) {
             if (!this.abandonPool(error)) throw error;
@@ -843,6 +879,29 @@ export class DataDrivenGenerator implements Generator {
 
     private chunkKey(chunkX: number, chunkZ: number): string {
         return `${chunkX},${chunkZ}`;
+    }
+
+    /**
+     * Which band a chunk's terrain task waits in.
+     *
+     * A chunk somebody asked for carries the band they asked with. A chunk being built only
+     * because a neighbor needs it is `soon`: it is wanted, and it should not be ahead of a
+     * chunk a player is waiting on.
+     */
+    private urgencyOf(chunkX: number, chunkZ: number): GenerationPriority {
+        return this.urgencies.get(this.chunkKey(chunkX, chunkZ)) ?? 'soon';
+    }
+
+    /** @inheritDoc */
+    public raiseUrgency(cx: number, cz: number, urgency: GenerationPriority): void {
+        const key = this.chunkKey(cx, cz);
+        const current = this.urgencies.get(key);
+        if (current !== undefined && GENERATION_PRIORITIES.indexOf(current) <= GENERATION_PRIORITIES.indexOf(urgency)) {
+            return;
+        }
+
+        this.urgencies.set(key, urgency);
+        this.pool?.promote((task) => task.chunkX === cx && task.chunkZ === cz, urgency);
     }
 
     private trimCache<T>(cache: Map<string, T>): void {

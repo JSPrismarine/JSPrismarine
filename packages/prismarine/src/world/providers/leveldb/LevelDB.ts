@@ -32,7 +32,7 @@ import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import type { Entity } from '../../../entity/Entity';
 import type { DimensionDefinition } from '../../Dimension';
-import type { Generator } from '../../Generator';
+import type { ChunkRequestOptions, Generator } from '../../Generator';
 import type Server from '../../../Server';
 
 /** The `Version` byte written since 1.21.120. Older values make the game run upgrade passes. */
@@ -132,7 +132,8 @@ export default class LevelDB extends BaseProvider {
         cz: number,
         seed: number,
         generator: Generator,
-        config?: WorldConfig
+        config?: WorldConfig,
+        options?: ChunkRequestOptions
     ): Promise<Chunk> {
         const database = this.requireDatabase();
         const dimension = this.dimension();
@@ -143,7 +144,7 @@ export default class LevelDB extends BaseProvider {
         // not recognize included - is a chunk that exists and must not be overwritten by a fresh
         // one, so it is read as best we can.
         if (database.get(key(ChunkTag.Version)) === null && database.get(key(ChunkTag.LegacyVersion)) === null) {
-            return generator.generateChunk(cx, cz, seed, config);
+            return generator.generateChunk(cx, cz, seed, config, options);
         }
 
         const subChunks = new Map<number, ReturnType<typeof decodeSubChunk>['subChunk']>();

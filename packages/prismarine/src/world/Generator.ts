@@ -101,6 +101,24 @@ export interface Generator {
     surfaceAt?(x: number, z: number, seed?: number): SurfaceProbe;
 
     /**
+     * Says that a chunk already asked for is wanted more than it was.
+     *
+     * A chunk is requested once and waited on by everybody who wants it, so the band it was
+     * given is whoever asked first. A rim chunk queued as `idle` is the chunk a player is
+     * standing on a moment later, and nothing else would move it up.
+     *
+     * Only affects a request still waiting for a worker. One already being built finishes at
+     * the speed it was going to finish at either way.
+     *
+     * Optional, because a generator with no queue has no turn to move.
+     *
+     * @param cx - Chunk x of the request.
+     * @param cz - Chunk z of the request.
+     * @param urgency - The band to move it into. Never lowers one.
+     */
+    raiseUrgency?(cx: number, cz: number, urgency: GenerationPriority): void;
+
+    /**
      * The nearest structure a search accepts, without generating anything.
      *
      * This is what `/locate` asks. A structure's position is a function of the seed and the

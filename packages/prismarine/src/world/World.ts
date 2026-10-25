@@ -46,7 +46,7 @@ import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
-import type { Generator, StructureSearchResult } from './Generator';
+import type { ChunkRequestOptions, Generator, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
 import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
@@ -248,7 +248,7 @@ export class World implements Service {
      * What makes a second request for a chunk already on its way wait for that one instead of
      * generating it again. See {@link World.loadChunk}.
      */
-    private readonly loading: Map<number, Promise<Chunk>> = new Map();
+    private readonly loading: Map<number, { readonly chunk: Promise<Chunk> }> = new Map();
 
     /** The last chunk {@link getLoadedChunk} answered with. A packed key is never negative. */
     private lastChunkIndex = -1;
@@ -648,10 +648,13 @@ export class World implements Service {
     /**
      * Returns the chunk in the specifies x and z, if the chunk doesn't exists
      * it is generated.
+     *
+     * @param options - How badly the chunk is wanted. Defaults to `immediate`, which is what a
+     * caller that is about to read blocks out of it means.
      */
-    public async getChunk(cx: number, cz: number): Promise<Chunk> {
+    public async getChunk(cx: number, cz: number, options?: ChunkRequestOptions): Promise<Chunk> {
         const index = Chunk.packXZ(cx, cz);
-        if (!this.chunks.has(index)) return this.loadChunk(cx, cz);
+        if (!this.chunks.has(index)) return this.loadChunk(cx, cz, options);
 
         return this.chunks.get(index)!;
     }
@@ -763,7 +766,10 @@ export class World implements Service {
      */
     private async preloadChunk(x: number, z: number): Promise<boolean> {
         try {
-            await this.loadChunk(x, z, true);
+            // Nobody is waiting on the start region: a chunk it does not reach is generated on
+            // demand instead, so a player who connects mid-preload should be served first and
+            // the rest of the region should fill in behind them.
+            await this.loadChunk(x, z, { urgency: 'idle' });
             return true;
         } catch (error: unknown) {
             if (error instanceof GenerationStopped) return false;
@@ -783,10 +789,14 @@ export class World implements Service {
      *
      * @param {number} x - x coordinate.
      * @param {number} z - z coordinate.
+     * @param options - How badly the chunk is wanted. A caller that joins a load already in
+     * flight and wants it more than whoever started it moves that load up the generator's
+     * queue, so a chunk asked for as the far rim and then stood on does not keep the turn it
+     * was given when nobody needed it.
      * @throws {Error} When the world has been closed, since its provider is gone and a chunk
      * generated now would be generated after the save that was meant to persist it.
      */
-    public async loadChunk(x: number, z: number, _ignoreWarn?: boolean): Promise<Chunk> {
+    public async loadChunk(x: number, z: number, options?: ChunkRequestOptions): Promise<Chunk> {
         // Refused here rather than left to the provider, which answers with "The world
         // provider is not enabled" - the symptom, not the reason. The caller asked a world
         // that has shut down for a chunk, and that is what it should be told.
@@ -794,23 +804,26 @@ export class World implements Service {
 
         const index = Chunk.packXZ(x, z);
         const running = this.loading.get(index);
-        if (running !== undefined) return running;
+        if (running !== undefined) {
+            this.generator.raiseUrgency?.(x, z, options?.urgency ?? 'immediate');
+            return running.chunk;
+        }
 
         // The entry is dropped whether the load worked or not, so a chunk whose provider threw
         // is asked for again next time rather than handing out the same failure forever.
-        const load = this.readChunkInto(index, x, z);
-        this.loading.set(index, load);
+        const chunk = this.readChunkInto(index, x, z, options);
+        this.loading.set(index, { chunk });
         try {
-            return await load;
+            return await chunk;
         } finally {
             this.loading.delete(index);
         }
     }
 
     /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
-    private async readChunkInto(index: number, x: number, z: number): Promise<Chunk> {
+    private async readChunkInto(index: number, x: number, z: number, options?: ChunkRequestOptions): Promise<Chunk> {
         // Try - catch for provider errors
-        const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
+        const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config, options);
         this.chunks.set(index, chunk);
         // The only thing that changes what `getLoadedChunk` should answer.
         this.lastChunkIndex = -1;

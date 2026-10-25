@@ -1,6 +1,6 @@
 import type { WorldConfig, WorldPlayerData } from '../World';
 import type { Service } from '../../utils';
-import type { Generator } from '../Generator';
+import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 
 export default interface Provider extends Service {
@@ -16,8 +16,16 @@ export default interface Provider extends Service {
      * @param seed - world seed.
      * @param generator - chunk generator.
      * @param config - config object.
+     * @param options - how the request is scheduled, for a generator that queues.
      */
-    readChunk(cx: number, cz: number, seed: number, generator: Generator, config?: WorldConfig): Promise<Chunk>;
+    readChunk(
+        cx: number,
+        cz: number,
+        seed: number,
+        generator: Generator,
+        config?: WorldConfig,
+        options?: ChunkRequestOptions
+    ): Promise<Chunk>;
 
     /**
      * Writes a chunk

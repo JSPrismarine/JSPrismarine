@@ -5,6 +5,7 @@
  * asked for from the preload, from every player whose view distance reaches it, and from the
  * engine systems, and those arrive in the same turn far more often than not.
  */
+import type { GenerationPriority } from '@jsprismarine/chunkgen';
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -20,7 +21,7 @@ import type Provider from './providers/Provider';
 import { World } from './World';
 
 /** A world whose provider counts its reads and answers only when the test lets it. */
-const testWorld = (readChunk: BaseProvider['readChunk']) => {
+const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = stub<Generator>({})) => {
     const logger = stub<Logger>({
         info: () => {},
         warn: () => {},
@@ -40,7 +41,7 @@ const testWorld = (readChunk: BaseProvider['readChunk']) => {
         }),
         provider: stub<BaseProvider & Provider>({ readChunk }),
         seed: 0,
-        generator: stub<Generator>({})
+        generator
     });
 };
 
@@ -99,6 +100,42 @@ describe('world chunk requests', () => {
 
         expect(readChunk).toHaveBeenCalledTimes(1);
         expect(second).toBe(first);
+    });
+
+    it('passes the urgency a caller asked with down to the provider', async () => {
+        const seen: Array<GenerationPriority | undefined> = [];
+        const readChunk: BaseProvider['readChunk'] = async (x, z, _seed, _generator, _config, options) => {
+            seen.push(options?.urgency);
+            return new Chunk(x, z, new Map(), Dimensions.Overworld);
+        };
+        const world = testWorld(readChunk);
+
+        await world.getChunk(0, 0, { urgency: 'idle' });
+        await world.getChunk(1, 0, { urgency: 'soon' });
+        await world.getChunk(2, 0);
+
+        expect(seen).toEqual(['idle', 'soon', undefined]);
+    });
+
+    it('moves a chunk already in flight up when a caller wants it more', async () => {
+        const gate = deferred<void>();
+        const raised: Array<[number, number, GenerationPriority]> = [];
+        const generator = stub<Generator>({
+            raiseUrgency: (cx, cz, urgency) => void raised.push([cx, cz, urgency])
+        });
+        const world = testWorld(async (x: number, z: number) => {
+            await gate.promise;
+            return new Chunk(x, z, new Map(), Dimensions.Overworld);
+        }, generator);
+
+        const slow = world.getChunk(5, 6, { urgency: 'idle' });
+        // The second caller joins the load the first started, so the only way it can be
+        // served sooner is for that load to change bands.
+        const urgent = world.getChunk(5, 6, { urgency: 'immediate' });
+        gate.resolve();
+        await Promise.all([slow, urgent]);
+
+        expect(raised).toEqual([[5, 6, 'immediate']]);
     });
 
     it('lets a later caller try again after a request failed', async () => {
