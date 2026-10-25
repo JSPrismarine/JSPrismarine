@@ -21,9 +21,12 @@ import type Server from '../../Server';
 import { rollBlockDrops } from '../../block/blockLoot';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ContentItemDrop } from '../../content/world/adapter';
+import { bedrockItemDrops } from '../../item/bedrockDrops';
+import { dropOfRolledStack } from '../../item/lootStack';
 import { rollMobDrops } from '../../entity/mobLoot';
 import ContainerEntry from '../../inventory/ContainerEntry';
-import { Item } from '../../item/Item';
+import { itemOfDrop } from '../../inventory/persistence';
+import type { Item } from '../../item/Item';
 import { lootLevelOf } from '../../world/lootLevel';
 import { setItemSlot } from './inventory';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, worldOf } from './support';
@@ -123,13 +126,17 @@ const rollLoot = (
 
     if (content.loot.table(loot.table) === undefined) refuse(`There is no loot table called ${loot.table}`);
 
-    return content.loot
-        .roll(loot.table, {
-            parameters: { origin, tool },
-            level: lootLevelOf(worldOf(server, loot.kind === 'fish' ? loot.dimension : source.dimension))
-        })
-        .filter((stack) => stack.count > 0)
-        .map((stack) => ({ identifier: stack.id, count: stack.count }));
+    // A named table is rolled here rather than through `rollBlockDrops` or `rollMobDrops`, so
+    // this is the one source whose ids are not translated on the way out of those two.
+    return bedrockItemDrops(
+        content.loot
+            .roll(loot.table, {
+                parameters: { origin, tool },
+                level: lootLevelOf(worldOf(server, loot.kind === 'fish' ? loot.dimension : source.dimension))
+            })
+            .filter((stack) => stack.count > 0)
+            .map(dropOfRolledStack)
+    );
 };
 
 /** One rolled drop as a stack this server can put somewhere, or null when it names nothing. */
@@ -138,13 +145,9 @@ const stackOf = (server: Server, drop: ContentItemDrop): Item | null => {
     if (registered === null) return null;
 
     // A fresh stack rather than the registry's own, whose count the registry
-    // shares with every other holder of that item.
-    return new Item({
-        id: registered.getId(),
-        name: registered.getName(),
-        meta: registered.getMeta(),
-        count: drop.count
-    });
+    // shares with every other holder of that item - and carrying what the roll
+    // put on it, so `/loot give` hands over the enchanted book the table rolled.
+    return itemOfDrop({ meta: registered.getMeta(), ...drop });
 };
 
 /** Puts what was rolled into the players' inventories. */

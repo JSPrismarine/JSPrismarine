@@ -31,6 +31,7 @@ import { blockLootTableOf, rollBlockDrops } from '../block/blockLoot';
 import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
+import { itemOfDrop } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import { lootLevelOf } from './lootLevel';
 import type { SystemBlock } from './WorldSystems';
@@ -279,14 +280,14 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
                 position,
                 tool: held?.asPredicateStack(),
                 level: lootLevelOf(world),
-                explosionRadius: breaking.explosionRadius
+                explosionRadius: breaking.explosionRadius,
+                // What the block was holding before the hook ran, for the tables that copy
+                // it onto what falls: a shulker box leaves with its contents this way.
+                blockEntity: { items: contents }
             }
         );
 
-        return [
-            ...rolled.map((drop) => new Item({ name: drop.identifier, count: drop.count, content })),
-            ...spilledContents(captured, contents)
-        ];
+        return [...rolled.flatMap((drop) => itemOfDrop(drop, content) ?? []), ...spilledContents(captured, contents)];
     } catch (error: unknown) {
         // A behavior that throws must not cost the player the block, and it must not go
         // unreported either. The drop the server has always made stands in, and the throw

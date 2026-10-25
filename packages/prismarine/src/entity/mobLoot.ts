@@ -33,6 +33,8 @@ import type {
 } from '@jsprismarine/predicates';
 
 import type { ContentItemDrop } from '../content/world/adapter';
+import { bedrockItemDrops } from '../item/bedrockDrops';
+import { dropOfRolledStack } from '../item/lootStack';
 import type { ServerContent } from '../content/ServerContent';
 import { DamageCause } from './DamageCause';
 
@@ -167,7 +169,9 @@ export const rollMobDrops = (
         random: context.random
     });
 
-    return rolled.map((stack) => ({ identifier: stack.id, count: stack.count }));
+    // Java ids, because the table is Java's; `bedrockItemDrops` turns them into the names a
+    // Bedrock client resolves.
+    return bedrockItemDrops(rolled.map(dropOfRolledStack));
 };
 
 /**
