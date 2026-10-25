@@ -6,6 +6,9 @@ export interface BlockEntry {
     value: Buffer;
 }
 
+/** The predecessor a restart point's key is decoded against: it shares nothing with anything. */
+const EMPTY_KEY = Buffer.alloc(0);
+
 /**
  * Reads a decompressed block: the entries, plus the restart array that makes it searchable.
  *
@@ -60,7 +63,7 @@ export class BlockReader {
 
     public *entries(): IterableIterator<BlockEntry> {
         let offset = 0;
-        let previousKey: Buffer = Buffer.alloc(0);
+        let previousKey: Buffer = EMPTY_KEY;
 
         while (offset < this.restartOffset) {
             const { entry, next } = this.decodeAt(offset, previousKey);
@@ -71,12 +74,16 @@ export class BlockReader {
     }
 
     /**
-     * The first entry whose key is at or after `target`, or null when every key sorts before it.
+     * Every entry from the first one at or after `target`, in order, to the end of the block.
      *
      * Binary search over the restart points to find the last one that starts at or before the
-     * target, then a linear scan forward - the only way to read prefix-compressed entries.
+     * target, then a linear scan forward - the only way to read prefix-compressed entries. The
+     * scan is bounded by the restart interval, so this reads about sixteen entries rather than
+     * the whole block.
      */
-    public seek(target: Buffer): BlockEntry | null {
+    public *seekFrom(target: Buffer): IterableIterator<BlockEntry> {
+        if (this.restartCount === 0) return;
+
         let low = 0;
         let high = this.restartCount - 1;
 
@@ -84,7 +91,7 @@ export class BlockReader {
             const middle = Math.ceil((low + high) / 2);
             const offset = this.restartAt(middle);
             // A restart point stores its key in full, so it can be read without any predecessor.
-            const { entry } = this.decodeAt(offset, Buffer.alloc(0));
+            const { entry } = this.decodeAt(offset, EMPTY_KEY);
 
             if (this.compare(entry.key, target) < 0) {
                 low = middle;
@@ -93,18 +100,25 @@ export class BlockReader {
             }
         }
 
-        if (this.restartCount === 0) return null;
-
         let offset = this.restartAt(low);
-        let previousKey: Buffer = Buffer.alloc(0);
+        let previousKey: Buffer = EMPTY_KEY;
+        let reached = false;
 
         while (offset < this.restartOffset) {
             const { entry, next } = this.decodeAt(offset, previousKey);
-            if (this.compare(entry.key, target) >= 0) return entry;
+            if (reached || this.compare(entry.key, target) >= 0) {
+                reached = true;
+                yield entry;
+            }
 
             previousKey = entry.key;
             offset = next;
         }
+    }
+
+    /** The first entry whose key is at or after `target`, or null when every key sorts before it. */
+    public seek(target: Buffer): BlockEntry | null {
+        for (const entry of this.seekFrom(target)) return entry;
 
         return null;
     }
