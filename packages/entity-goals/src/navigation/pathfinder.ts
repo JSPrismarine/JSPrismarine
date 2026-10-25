@@ -303,6 +303,22 @@ const unwind = (node: SearchNode): readonly EntityPosition[] => {
 };
 
 /**
+ * Whether the profile can stand in one cell.
+ *
+ * The same two tests {@link findPath} applies to every cell it expands, so a
+ * caller that draws a candidate destination can reject an impossible one for
+ * a handful of block reads instead of a whole search. That matters because a
+ * wander draws ten candidates a time and a search that fails expands its
+ * whole node budget before it says so. Java's `RandomPos` validates its draw
+ * the same way and for the same reason.
+ */
+export const canOccupy = (view: NavigationView, profile: NavigationProfile, at: EntityPosition): boolean => {
+    const { x, y, z } = blockOf(at);
+    if (cellCost(view, profile, x, y, z) === undefined) return false;
+    return holdsPosition(view, profile, x, y, z) || climbs(view, profile, x, y, z);
+};
+
+/**
  * Finds a route from one position to another.
  *
  * @returns The path, or undefined when the goal is out of reach and the

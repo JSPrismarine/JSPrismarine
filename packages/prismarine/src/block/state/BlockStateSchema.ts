@@ -27,6 +27,16 @@ export class BlockStateSchema {
     public readonly name: string;
     public readonly properties: Readonly<Record<string, BlockStateProperty>>;
 
+    /**
+     * The default state, built once.
+     *
+     * A schema is immutable, so the state its defaults describe never changes, and a
+     * {@link BlockState} is frozen, so handing the same instance to every caller is the same
+     * answer they built for themselves before. Built lazily rather than in the constructor
+     * because the vanilla catalog is ~1300 schemas and most of them are never placed.
+     */
+    private defaultState: BlockState | null = null;
+
     public constructor(name: string, properties: Record<string, BlockStateProperty> = {}) {
         this.name = name;
         this.properties = Object.freeze({ ...properties });
@@ -37,12 +47,20 @@ export class BlockStateSchema {
         return Object.fromEntries(Object.entries(this.properties).map(([key, property]) => [key, property.type]));
     }
 
-    /** The state a freshly placed block starts in. */
+    /**
+     * The state a freshly placed block starts in.
+     *
+     * The same frozen instance every time. Reading a position no sub chunk covers answers with
+     * air's default state, so an idle world's random tick pass called this tens of thousands of
+     * times a tick and spent most of the tick in the constructor.
+     */
     public getDefaultState(): BlockState {
-        return new BlockState(
+        this.defaultState ??= new BlockState(
             this.name,
             Object.fromEntries(Object.entries(this.properties).map(([key, property]) => [key, property.default]))
         );
+
+        return this.defaultState;
     }
 
     /**
