@@ -14,6 +14,12 @@
  * running total, so four pieces of Protection IV is four applications of the
  * effect and not one. Merging the maps first would collapse them into a single
  * Protection IV and quarter the result.
+ *
+ * `armor_effectiveness` is deliberately absent. Breach is the only enchantment
+ * that declares it, and where Java multiplies the result in - against the armor
+ * value or against the toughness - is not something the file says and not
+ * something this repository's pinned sources settle. A fold that was applied to
+ * the wrong term would be worse than the gap.
  */
 import type { EffectComponentType, EnchantmentRegistry } from '@jsprismarine/enchantments';
 import { enchantmentsOf } from '@jsprismarine/enchantments';
@@ -125,14 +131,3 @@ export const knockbackBonusOf = (
     weapon: PredicateItemStack,
     context: EnchantedDamageContext
 ): number => foldEnchantedValue(registry, 'knockback', 0, [weapon], context);
-
-/**
- * How much of the victim's armor the weapon lets through, which is Java's
- * `EnchantmentHelper.getArmorEffectiveness` from one. Breach is the only
- * enchantment that declares it, at -0.15 per level.
- */
-export const armorEffectivenessOf = (
-    registry: EnchantmentRegistry,
-    weapon: PredicateItemStack,
-    context: EnchantedDamageContext
-): number => foldEnchantedValue(registry, 'armor_effectiveness', 1, [weapon], context);
