@@ -156,20 +156,23 @@ describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
 
         expect(registry.diagnostics.errors).toEqual([]);
 
-        // `functions` is the one member the dialect names and does not apply,
-        // so the warnings are all of that one kind and each names its path.
+        // Three functions, and they are the whole of what the gear this server
+        // rolls goes without: a skeleton's bow is unenchanted, a looting kill
+        // adds nothing to a drop, and a raid captain's banner is plain.
         const kinds = new Set(registry.diagnostics.entries.map((entry) => entry.message));
-        expect([...kinds]).toEqual([
-            'this package reads no functions on a bedrock loot item entry, so the item functions is lost'
+        expect([...kinds].sort()).toEqual([
+            "this package does not apply the bedrock loot function enchant_random_gear, so a mob's gear arrives unenchanted",
+            "this package does not apply the bedrock loot function looting_enchant, so a killer's looting level adds nothing",
+            "this package does not apply the bedrock loot function set_banner_details, so a raid captain's banner is a plain one"
         ]);
     });
 
     it('states its own gap over all 309 tables rather than rolling past it', { timeout: 300_000 }, () => {
         const registry = registryOf('bedrock');
-        for (const id of registry.ids) registry.table(id);
+        const reported = registry.validate();
 
         const counted = new Map<string, number>();
-        for (const entry of registry.diagnostics.entries) {
+        for (const entry of reported) {
             const kind = `${entry.severity}: ${entry.message}`;
             counted.set(kind, (counted.get(kind) ?? 0) + 1);
         }
@@ -184,31 +187,75 @@ describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
 
         expect(registry.ids.length).toBe(309);
 
-        // What the dialect does not reach yet, counted so it cannot grow
-        // unnoticed. 12 Bedrock condition types beyond the three chance ones,
-        // which close their gates; Bedrock's untyped `{ min, max }` provider
-        // on 71 chest `rolls`; and the two `functions` and `count` members this
-        // package names and leaves alone. The equipment tables need none of
-        // them, which is why they come out clean above.
+        // Nothing is an error any more, which is the point: every remaining
+        // gap is in `BEDROCK_REVIEWED_CONDITIONS` or `BEDROCK_REVIEWED_FUNCTIONS`
+        // with a reason, so `content-strict` can refuse the unreviewed ones
+        // without refusing a stock Bedrock server. Counted here so a gap cannot
+        // grow, shrink or change kind unnoticed.
+        expect(reported.filter((entry) => entry.severity === 'error')).toEqual([]);
+        expect(reported.length).toBe(1484);
         expect(Object.fromEntries(counted)).toEqual({
-            'warning: this package reads no functions on a bedrock loot item entry, so the item functions is lost': 1106,
-            'error: a provider object needs a type': 71,
-            'warning: this package reads no count on a bedrock loot item entry, so the stack count is lost': 26,
-            'error: this package does not implement the bedrock loot condition killed_by_player': 16,
-            'error: this package does not implement the bedrock loot condition random_chance_with_looting': 15,
-            'error: this package does not implement the bedrock loot condition has_mark_variant': 14,
-            'error: this package does not implement the bedrock loot condition killed_by_player_or_pets': 10,
-            'error: this package does not implement the bedrock loot condition biome_has_tag': 9,
-            'error: this package does not implement the bedrock loot condition killed_by_entity': 5,
-            'error: this package does not implement the bedrock loot condition entity_killed': 4,
-            'error: this package does not implement the bedrock loot condition has_variant': 3,
-            'error: a loot pool needs rolls': 2,
-            'error: a loot pool needs entries': 2,
-            'error: unknown loot_table loot_tables/gameplay/fishing/fish': 2,
-            'error: this package does not implement the bedrock loot condition passenger_of_entity': 2,
-            'error: this package does not implement the bedrock loot condition is_baby': 2,
-            'error: this package does not implement the bedrock loot condition damaged_by_entity': 1,
-            'error: this package does not implement the bedrock loot condition bool_property': 1
+            'warning: this package does not apply the bedrock loot function set_count, so an entry produces the one item it names': 700,
+            "warning: this package does not apply the bedrock loot function enchant_random_gear, so a mob's gear arrives unenchanted": 143,
+            "warning: this package does not apply the bedrock loot function looting_enchant, so a killer's looting level adds nothing": 114,
+            'warning: this package does not apply the bedrock loot function explosion_decay, so a nearby explosion destroys none of the drop': 96,
+            'warning: this package does not apply the bedrock loot function set_damage, so a rolled tool arrives undamaged': 63,
+            'warning: this package does not apply the bedrock loot function enchant_with_levels, so the result arrives unenchanted': 52,
+            'warning: this package does not apply the bedrock loot function enchant_randomly, so the result arrives unenchanted': 44,
+            'warning: this package does not apply the bedrock loot function set_potion, so a rolled bottle holds water': 42,
+            'warning: this package does not apply the bedrock loot function specific_enchants, so the named enchantments are missing': 33,
+            'warning: this package does not apply the bedrock loot function set_data, so a variant such as a dye color comes out as the default': 30,
+            'warning: this package does not apply the bedrock loot function set_armor_trim, so a rolled piece arrives untrimmed': 24,
+            'warning: this package does not apply the bedrock loot function exploration_map, so a rolled map points nowhere': 18,
+            'warning: this package does not evaluate the bedrock loot condition killed_by_player, which reads whether a player landed the killing blow, so its gate never opens': 16,
+            'warning: this package does not apply the bedrock loot function furnace_smelt, so a burning mob drops its loot raw': 15,
+            "warning: this package does not evaluate the bedrock loot condition random_chance_with_looting, which reads a chance scaled by the killer's looting level, so its gate never opens": 15,
+            "warning: this package does not evaluate the bedrock loot condition has_mark_variant, which reads the entity's minecraft:mark_variant, so its gate never opens": 14,
+            'warning: this package does not evaluate the bedrock loot condition killed_by_player_or_pets, which reads whether a player or a tamed pet of one landed the killing blow, so its gate never opens': 10,
+            "warning: this package does not apply the bedrock loot function enchant_book_for_trading, so a villager's trade book arrives blank": 10,
+            'warning: this package does not evaluate the bedrock loot condition biome_has_tag, which reads a tag on the biome the roll happens in, so its gate never opens': 9,
+            'warning: this package does not apply the bedrock loot function set_ominous_bottle_amplifier, so the bottle carries the lowest bad omen': 7,
+            "warning: this package does not apply the bedrock loot function set_data_from_color_index, so the entity's color does not reach the drop": 6,
+            'warning: this package does not evaluate the bedrock loot condition killed_by_entity, which reads which entity type landed the killing blow, so its gate never opens': 5,
+            'warning: this package does not evaluate the bedrock loot condition entity_killed, which reads a predicate over the entity that was killed, so its gate never opens': 4,
+            "warning: this package does not evaluate the bedrock loot condition has_variant, which reads the entity's minecraft:variant, so its gate never opens": 3,
+            'warning: this package does not apply the bedrock loot function random_aux_value, so the aux value stays at zero': 2,
+            "warning: this package does not apply the bedrock loot function set_banner_details, so a raid captain's banner is a plain one": 2,
+            'warning: this package does not evaluate the bedrock loot condition passenger_of_entity, which reads what the entity is riding, so its gate never opens': 2,
+            "warning: this package does not evaluate the bedrock loot condition is_baby, which reads the entity's age, so its gate never opens": 2,
+            'warning: this package does not evaluate the bedrock loot condition damaged_by_entity, which reads which entity type dealt the last damage, so its gate never opens': 1,
+            'warning: this package does not apply the bedrock loot function set_stew_effect, so a suspicious stew carries no effect': 1,
+            'warning: this package does not evaluate the bedrock loot condition bool_property, which reads an entity property a behavior pack declared, so its gate never opens': 1
         });
+    });
+
+    it('refuses the whole registry in strict mode only when something is unreviewed', { timeout: 300_000 }, () => {
+        // Strict over the stock vanilla stack has to pass, or `content-strict`
+        // would be a setting nobody could turn on.
+        expect(() =>
+            new LootRegistry(
+                { ...definitions(), lootTables: bedrockLootTables(definitions().lootTables) },
+                { worldSeed: 1234n, strict: true }
+            ).validate()
+        ).not.toThrow();
+
+        const unreviewed = new Map(definitions().lootTables);
+        unreviewed.set('loot_tables/made_up.json', {
+            data: {
+                pools: [
+                    {
+                        rolls: 1,
+                        entries: [{ type: 'item', name: 'minecraft:stone', functions: [{ function: 'set_mood' }] }]
+                    }
+                ]
+            }
+        });
+
+        expect(() =>
+            new LootRegistry(
+                { ...definitions(), lootTables: bedrockLootTables(unreviewed) },
+                { worldSeed: 1234n, strict: true }
+            ).validate()
+        ).toThrow(/set_mood/);
     });
 });

@@ -95,15 +95,12 @@ const JAVA_KEYS: DialectKeys = {
 const BEDROCK_KEYS: DialectKeys = {
     table: { read: ['type', 'pools'] },
     pool: { read: ['conditions', 'rolls', 'bonus_rolls', 'tiers', 'entries'] },
-    entry: {
-        read: ['type', 'weight', 'quality', 'conditions', 'pools'],
-        skipped: { functions: 'the item functions' }
-    },
+    entry: { read: ['type', 'weight', 'quality', 'conditions', 'functions', 'pools'] },
     byEntryType: {
         empty: { read: [] },
         item: {
-            read: ['name'],
-            skipped: { count: 'the stack count', aux_val: 'the aux value', auxVal: 'the aux value' }
+            read: ['name', 'count'],
+            skipped: { aux_val: 'the aux value', auxVal: 'the aux value' }
         },
         loot_table: { read: ['name'] },
         dynamic: { read: ['name'] },
@@ -146,6 +143,109 @@ export const reportEntryKeys = (value: JsonObject, context: ParseContext, dialec
         `${type} entry`
     );
 };
+
+/**
+ * The Bedrock loot functions this package reads and does not apply, each
+ * naming what a result comes out as without it.
+ *
+ * Nineteen of them, and only three reach anything the server rolls today:
+ * `enchant_random_gear` and `looting_enchant` on the equipment tables, and
+ * `set_banner_details` on the raid captains. So a skeleton's bow arrives
+ * unenchanted and a pillager captain's banner is a plain white one. The other
+ * sixteen are on chest, fishing and death-drop tables, which the server draws
+ * from the Java registry, where the same work is already done by
+ * `@jsprismarine/predicates`.
+ *
+ * A listed function warns and is skipped. An unlisted one is an error, for the
+ * reason {@link reportUnreadKeys} gives: a reviewed gap has a known effect and
+ * an unreviewed one has an unknown effect, and a new Bedrock function should
+ * reach someone rather than quietly change what a table produces.
+ */
+export const BEDROCK_REVIEWED_FUNCTIONS = {
+    set_count: 'an entry produces the one item it names',
+    looting_enchant: "a killer's looting level adds nothing",
+    set_data: 'a variant such as a dye color comes out as the default',
+    enchant_randomly: 'the result arrives unenchanted',
+    enchant_with_levels: 'the result arrives unenchanted',
+    enchant_random_gear: "a mob's gear arrives unenchanted",
+    specific_enchants: 'the named enchantments are missing',
+    enchant_book_for_trading: "a villager's trade book arrives blank",
+    explosion_decay: 'a nearby explosion destroys none of the drop',
+    furnace_smelt: 'a burning mob drops its loot raw',
+    set_damage: 'a rolled tool arrives undamaged',
+    set_potion: 'a rolled bottle holds water',
+    set_armor_trim: 'a rolled piece arrives untrimmed',
+    set_banner_details: "a raid captain's banner is a plain one",
+    set_stew_effect: 'a suspicious stew carries no effect',
+    set_ominous_bottle_amplifier: 'the bottle carries the lowest bad omen',
+    set_data_from_color_index: "the entity's color does not reach the drop",
+    random_aux_value: 'the aux value stays at zero',
+    exploration_map: 'a rolled map points nowhere'
+} as const satisfies Readonly<Record<string, string>>;
+
+/** {@link BEDROCK_REVIEWED_FUNCTIONS} as a lookup, for a name read out of a file rather than written here. */
+const REVIEWED_FUNCTIONS: ReadonlyMap<string, string> = new Map(Object.entries(BEDROCK_REVIEWED_FUNCTIONS));
+
+/**
+ * Reports each member of a Bedrock entry's `functions` array against
+ * {@link BEDROCK_REVIEWED_FUNCTIONS}, so the gap reads as which functions went
+ * unapplied rather than as a count of entries that had some.
+ *
+ * @param value - The `functions` member, absent when the entry carries none.
+ * @param context - The parse context at `functions`.
+ */
+export const reportBedrockFunctions = (value: unknown, context: ParseContext): void => {
+    if (value === undefined) return;
+    if (!Array.isArray(value)) {
+        context.error('a bedrock functions member must be an array');
+        return;
+    }
+
+    for (const [index, member] of value.entries()) {
+        const at = context.at(index);
+        if (!isJsonObject(member)) {
+            at.error('a bedrock loot function must be an object');
+            continue;
+        }
+
+        const declared = asString(member['function']);
+        if (declared === undefined) {
+            at.error('a bedrock loot function needs a function');
+            continue;
+        }
+
+        const name = namespaced(declared).slice('minecraft:'.length);
+        const lost = REVIEWED_FUNCTIONS.get(name);
+        if (lost === undefined) {
+            at.error(
+                `this package has no entry for the bedrock loot function ${declared}, ` +
+                    'so what it changes about a result is unknown'
+            );
+            continue;
+        }
+
+        at.warn(`this package does not apply the bedrock loot function ${name}, so ${lost}`);
+    }
+};
+
+/**
+ * Rewrites Bedrock's untyped range into the provider Java spells out.
+ *
+ * Bedrock writes a range as `{ "min": 2, "max": 4 }` where Java writes
+ * `{ "type": "minecraft:uniform", "min": 2, "max": 4 }`, and the two mean the
+ * same draw. Naming the type the shared provider grammar already implements is
+ * the whole translation, so a Bedrock `rolls` and a Java one are one
+ * implementation rather than two that have to be kept agreeing.
+ *
+ * Anything else passes through untouched, including an object that does name a
+ * type, so a Bedrock table using Java's spelling still parses.
+ *
+ * @param value - A `rolls`, `bonus_rolls` or `count` member.
+ */
+export const bedrockRange = (value: unknown): unknown =>
+    isJsonObject(value) && value['type'] === undefined && ('min' in value || 'max' in value)
+        ? { ...value, type: 'minecraft:uniform' }
+        : value;
 
 /** Bedrock's four difficulty settings, which `random_difficulty_chance` names a chance for. */
 export const BEDROCK_DIFFICULTIES = ['peaceful', 'easy', 'normal', 'hard'] as const;
@@ -246,6 +346,44 @@ const BEDROCK_CONDITIONS: Readonly<Record<string, BedrockConditionParser>> = {
     }
 };
 
+/**
+ * The Bedrock loot conditions this package does not evaluate, each naming what
+ * it reads.
+ *
+ * All twelve want the same two things and this package has neither for a
+ * Bedrock roll: the entity the table is being rolled for, and the world around
+ * it. A roll here carries a random source and a parameter set, so there is no
+ * killer to ask about, no variant to read off a mob and no biome under it.
+ *
+ * Being on this list changes the report, not the roll: the gate still closes,
+ * because a condition nothing evaluates must not pass. It drops from an error
+ * to a warning for the reason {@link reportUnreadKeys} already applies to
+ * keys — what is lost is known and bounded, which is the whole difference
+ * between a reviewed gap and an unreviewed one. An unlisted condition stays an
+ * error.
+ *
+ * None of the twelve appear in the 18 equipment tables, which are the only
+ * Bedrock tables this server rolls. All 79 uses are on entity death drops and
+ * chest tables, and the server draws both from the Java registry.
+ */
+export const BEDROCK_REVIEWED_CONDITIONS = {
+    killed_by_player: 'whether a player landed the killing blow',
+    killed_by_player_or_pets: 'whether a player or a tamed pet of one landed the killing blow',
+    killed_by_entity: 'which entity type landed the killing blow',
+    damaged_by_entity: 'which entity type dealt the last damage',
+    entity_killed: 'a predicate over the entity that was killed',
+    random_chance_with_looting: "a chance scaled by the killer's looting level",
+    has_variant: "the entity's minecraft:variant",
+    has_mark_variant: "the entity's minecraft:mark_variant",
+    is_baby: "the entity's age",
+    passenger_of_entity: 'what the entity is riding',
+    bool_property: 'an entity property a behavior pack declared',
+    biome_has_tag: 'a tag on the biome the roll happens in'
+} as const satisfies Readonly<Record<string, string>>;
+
+/** {@link BEDROCK_REVIEWED_CONDITIONS} as a lookup, for a name read out of a file rather than written here. */
+const REVIEWED_CONDITIONS: ReadonlyMap<string, string> = new Map(Object.entries(BEDROCK_REVIEWED_CONDITIONS));
+
 /** The keys each Bedrock condition type reads, so one carrying anything else is reported. */
 const BEDROCK_CONDITION_KEYS: Readonly<Record<string, readonly string[]>> = {
     random_chance: ['condition', 'chance'],
@@ -272,7 +410,15 @@ const bedrockConditionAt = (value: unknown, context: ParseContext, difficulty: L
     const name = namespaced(declared).slice('minecraft:'.length);
     const parser = BEDROCK_CONDITIONS[name];
     if (parser === undefined) {
-        context.error(`this package does not implement the bedrock loot condition ${declared}`);
+        const reads = REVIEWED_CONDITIONS.get(name);
+        if (reads === undefined) {
+            context.error(`this package does not implement the bedrock loot condition ${declared}`);
+        } else {
+            context.warn(
+                `this package does not evaluate the bedrock loot condition ${name}, ` +
+                    `which reads ${reads}, so its gate never opens`
+            );
+        }
         return CLOSED;
     }
 
