@@ -19,7 +19,8 @@ import {
     integerArgument,
     positionArgument,
     resourceArgument,
-    stringArgument
+    stringArgument,
+    timeArgument
 } from '../argumentTypes';
 import { JAVA_GAME_RULES } from '../gamerules';
 import type { BlockRef, CommandSource } from '../host';
@@ -142,7 +143,7 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             )
             .then(
                 lit('set').then(
-                    arg('amount', integerArgument({ min: 0 })).executes(
+                    arg('amount', timeArgument({ min: 0 })).executes(
                         command((context) => {
                             const current = source(context);
                             const ticks = value<number>(context, 'amount');
@@ -154,7 +155,7 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             )
             .then(
                 lit('add').then(
-                    arg('amount', integerArgument()).executes(
+                    arg('amount', timeArgument()).executes(
                         command((context) => {
                             const current = source(context);
                             const ticks = current.host.world.addTime(value(context, 'amount'));
@@ -171,7 +172,7 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
             arg('weather', enumArgument('Weather', ['clear', 'rain', 'thunder'] as const))
                 .executes(command((context) => setWeather(context, undefined)))
                 .then(
-                    arg('duration', integerArgument({ min: 0 })).executes(
+                    arg('duration', timeArgument({ min: 0 })).executes(
                         command((context) => setWeather(context, value<number>(context, 'duration')))
                     )
                 )

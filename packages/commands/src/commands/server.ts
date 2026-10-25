@@ -17,7 +17,8 @@ import {
     jsonArgument,
     messageArgument,
     rawTextArgument,
-    stringArgument
+    stringArgument,
+    timeArgument
 } from '../argumentTypes';
 import type { CommandSource } from '../host';
 import type { CommandRegistry } from '../tree';
@@ -259,9 +260,9 @@ const titleTree = (name: 'title' | 'titleraw', raw: boolean) => {
             )
             .then(
                 lit('times').then(
-                    arg('fadeIn', integerArgument({ min: 0 })).then(
-                        arg('stay', integerArgument({ min: 0 })).then(
-                            arg('fadeOut', integerArgument({ min: 0 })).executes(
+                    arg('fadeIn', timeArgument({ min: 0 })).then(
+                        arg('stay', timeArgument({ min: 0 })).then(
+                            arg('fadeOut', timeArgument({ min: 0 })).executes(
                                 command((context) => {
                                     const current = source(context);
                                     const targets = select(current, value(context, 'targets'));

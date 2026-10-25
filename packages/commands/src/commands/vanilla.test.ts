@@ -257,6 +257,19 @@ describe('the world commands', () => {
 
         expect(seen).toEqual([{ weather: 'rain', duration: 600 }]);
     });
+
+    it('/weather takes a suffixed duration, as its Java argument does', () => {
+        const seen: unknown[] = [];
+        run('weather thunder 30s', {
+            world: {
+                setWeather: (weather, duration) => {
+                    seen.push({ weather, duration });
+                }
+            }
+        });
+
+        expect(seen).toEqual([{ weather: 'thunder', duration: 600 }]);
+    });
 });
 
 describe('the data-driven commands', () => {
@@ -422,6 +435,28 @@ describe('the data-driven commands', () => {
         });
 
         expect(seen).toEqual([{ name: 'mypack:later', delay: 100, mode: 'replace' }]);
+    });
+
+    it('/schedule reads the delay as Java time, suffixes and all', () => {
+        const delays: number[] = [];
+        const record = {
+            data: {
+                schedule: (_name: string, delay: number) => {
+                    delays.push(delay);
+                    return true;
+                }
+            }
+        } satisfies TestCommandHostOverrides;
+
+        for (const written of ['5s', '2d', '7t', '100', '0.5s']) {
+            run(`schedule function mypack:later ${written}`, record);
+        }
+
+        expect(delays).toEqual([100, 48_000, 7, 100, 10]);
+    });
+
+    it('/schedule refuses a unit that is not a unit', () => {
+        expect(() => run('schedule function mypack:later 5w')).toThrow("'w' is not a time unit");
     });
 });
 

@@ -28,7 +28,8 @@ import {
     resourceArgument,
     scoreHolderArgument,
     softEnumArgument,
-    stringArgument
+    stringArgument,
+    timeArgument
 } from '../argumentTypes';
 import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot, LootSource } from '../host';
 import type { CommandRegistry } from '../tree';
@@ -119,7 +120,7 @@ export const registerDataCommands = (registry: CommandRegistry<CommandSource>): 
             .then(
                 lit('function').then(
                     arg('name', filePathArgument()).then(
-                        arg('delay', integerArgument({ min: 0 }))
+                        arg('delay', timeArgument({ min: 0 }))
                             .executes(command((context) => schedule(context, 'replace')))
                             .then(
                                 arg('mode', enumArgument('ScheduleMode', ['append', 'replace'] as const)).executes(
