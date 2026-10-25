@@ -78,7 +78,9 @@ describe('network', () => {
                 getContent: () => undefined,
                 getLogger: logger,
                 getSessionManager: sessionManager,
-                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),
+                // `getWorlds` because a login looks for the player's record in every loaded
+                // world, each world keeping its own: see `lastPlayerRecord`.
+                getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world, getWorlds: () => [world()] }),
                 getConfig: config,
                 getPermissionManager: permissionManager,
                 getBanManager: banManager,

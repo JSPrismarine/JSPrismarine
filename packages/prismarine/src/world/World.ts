@@ -37,6 +37,7 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions } from './Dimension';
 import MobSpawner from './MobSpawner';
 import { placePlayerSpawn } from './SpawnPlacement';
+import type { StoredSpawnPoint } from './RespawnPoint';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
 import type { LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
@@ -188,7 +189,7 @@ export class World implements Service {
     private lastChunk: Chunk | null = null;
     private lastChunkSource: Map<number, Chunk> | null = null;
 
-    private readonly gameRuleManager: GameRuleManager;
+    private readonly gameRuleManager: GameRuleManager | null = null;
     private currentTick = 0;
 
     /** Two minutes at the server's twenty ticks per second. */
@@ -934,7 +935,7 @@ export class World implements Service {
         itemInHand: Item | Block | null,
         blockPosition: Vector3,
         face: number,
-        clickPosition: Vector3,
+        _clickPosition: Vector3,
         player: Player
     ): Promise<void> {
         // TODO: checks
@@ -1814,7 +1815,12 @@ export class World implements Service {
             experience: {
                 level: player.attributes.getValue(AttributeIds.PlayerLevel),
                 progress: player.attributes.getValue(AttributeIds.PlayerExperience)
-            }
+            },
+            // Written whether or not the player has a spawn point of their own, because a
+            // record is the whole state: leaving the field out of a save after `/kill` would
+            // keep a bed this player no longer has.
+            ...(player.getSpawnPoint() === undefined ? {} : { spawn: player.getSpawnPoint() }),
+            savedAt: Date.now()
         } satisfies WorldPlayerData;
 
         try {

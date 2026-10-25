@@ -153,6 +153,39 @@ describe('world', () => {
             await reopened.provider.disable();
         });
 
+        it("writes a player's spawn point under Bedrock's own SpawnX tags", async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const data: WorldPlayerData = {
+                username: 'Player',
+                gamemode: 'Survival',
+                position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 },
+                spawn: { x: 10, y: 64, z: -3, dimension: 'minecraft:overworld', forced: true },
+                savedAt: 1_700_000_000_000
+            };
+
+            await provider.enable();
+            await provider.writePlayerData('player-xuid', data);
+            await provider.disable();
+
+            const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+            const value = database.get(encodePlayerServerKey('player-xuid'));
+            if (value === null) throw new Error('Expected player_server record');
+
+            const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+            reader.setUseVarint(false);
+            const nbt = reader.parse();
+            expect(nbt.getNumber('SpawnX', 0)).toBe(10);
+            expect(nbt.getNumber('SpawnY', 0)).toBe(64);
+            expect(nbt.getNumber('SpawnZ', 0)).toBe(-3);
+            await database.close();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect((await reopened.provider.readPlayerData('player-xuid'))?.spawn).toEqual(data.spawn);
+            await reopened.provider.disable();
+        });
+
         it("writes a player's items as the Items NBT a vanilla tool reads", async () => {
             const worldPath = scratch();
             const { provider } = harness(worldPath);

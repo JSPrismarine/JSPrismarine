@@ -32,7 +32,6 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     locate: 'a radial search; the generator places structures and never looks one up by position',
     place: 'feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk',
     ride: 'entity riding outside the data-driven entity runtime',
-    spawnpoint: 'per-player spawn points; a respawn reads the world spawn',
     weather: 'a weather cycle; nothing raises rain or thunder'
 };
 

@@ -29,6 +29,7 @@ import StopSoundPacket from '../../network/packet/StopSoundPacket';
 import PositionMode from '../../network/type/PositionMode';
 import type { World } from '../../world/World';
 import { blockPositionOf, carryOut, loadedDimensions, playersOf, unsupported, worldOf } from './support';
+import assert from 'node:assert';
 
 /**
  * The most blocks one `/fill` or `/clone` may touch.
@@ -286,20 +287,22 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
         setWeather: () => unsupported('weather'),
 
         getGameRule: (name) => {
-            const stored = defaultWorld().getGameRuleManager().getGameRule(serverGameRuleName(name));
-            return stored === null ? undefined : stored[0];
+            const stored = defaultWorld().getGameRuleManager()?.getGameRule(serverGameRuleName(name));
+            return !stored ? undefined : stored[0];
         },
         setGameRule: (name, value) => {
             if (typeof value === 'string') return false;
 
-            const rules = defaultWorld().getGameRuleManager();
+            const gameRules = defaultWorld().getGameRuleManager();
+            assert(gameRules);
+
             const spelling = serverGameRuleName(name);
             // Only a rule the world already holds; this server's 19 rules are
             // the ones it reads, and inventing a twentieth would store a value
             // nothing ever looks at.
-            if (rules.getGameRule(spelling) === null) return false;
+            if (gameRules.getGameRule(spelling) === null) return false;
 
-            rules.setGameRule(spelling, value, true);
+            gameRules.setGameRule(spelling, value, true);
             return true;
         },
 
@@ -331,7 +334,29 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             );
         },
 
-        setSpawnPoint: () => unsupported('per-player spawn points'),
+        setSpawnPoint: (target, dimension, position, _angle) => {
+            const [player] = playersOf(server, [target]);
+            if (player === undefined) return false;
+
+            const at = blockPositionOf(position);
+            // Forced, which is what Java's `/spawnpoint` sets: the point is used whatever is
+            // standing there, where a bed only holds a spawn while the bed is there.
+            player.setSpawnPoint({
+                x: at.getX(),
+                y: at.getY(),
+                z: at.getZ(),
+                dimension: worldOf(server, dimension).getDimension().name,
+                forced: true
+            });
+
+            const packet = new SetSpawnPositionPacket();
+            packet.type = SpawnPositionType.PlayerRespawn;
+            packet.position = at;
+            packet.blockPosition = at;
+            packet.dimension = worldOf(server, dimension).getDimension().id;
+
+            return carryOut(player.getNetworkSession().send(packet), true);
+        },
         locate: () => unsupported('structure, biome and point-of-interest search'),
         place: () => unsupported('runtime feature and structure placement'),
 

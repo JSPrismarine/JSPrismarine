@@ -21,6 +21,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
 import type { WorldPlayerData } from '../../World';
+import type { StoredSpawnPoint } from '../../RespawnPoint';
 import { bedrockEnchantType, javaEnchantmentId } from '../../../enchantment/bedrockIds';
 
 /** The compound holding every field Bedrock has no schema for. */
@@ -276,6 +277,30 @@ const inventoryFromNbt = (root: NBTTagCompound): StoredInventory | undefined => 
     };
 };
 
+/**
+ * Bedrock's own tags for a player's spawn point.
+ *
+ * `SpawnX`, `SpawnY` and `SpawnZ` are what the game writes, and `SpawnDimension` is the numeric
+ * dimension beside them. Whether the point was forced is not a thing Bedrock records - it has no
+ * `/spawnpoint` that sets one - so that flag goes under {@link SAVED_TAG} with the dimension's
+ * namespaced identifier, which is what this server addresses a world by.
+ */
+const SPAWN_TAGS = { x: 'SpawnX', y: 'SpawnY', z: 'SpawnZ' } as const;
+
+/** The spawn point as the record carries it, out of whichever half of it is there. */
+const spawnFromNbt = (root: NBTTagCompound, saved: NBTTagCompound | null): StoredSpawnPoint | undefined => {
+    const dimension = saved?.getString('spawnDimension', '') ?? '';
+    if (dimension === '' || !root.has(SPAWN_TAGS.x)) return undefined;
+
+    return {
+        x: root.getNumber(SPAWN_TAGS.x, 0),
+        y: root.getNumber(SPAWN_TAGS.y, 0),
+        z: root.getNumber(SPAWN_TAGS.z, 0),
+        dimension,
+        ...(saved?.getByte('spawnForced', 0) === 1 ? { forced: true } : {})
+    };
+};
+
 /** A player data record as the compound stored under `player_server_<key>`. */
 export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     const root = new NBTTagCompound('');
@@ -286,12 +311,23 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
     root.addValue('Attributes', attributesToNbt(data));
     inventoryToNbt(root, data.inventory);
 
+    if (data.spawn !== undefined) {
+        root.addValue(SPAWN_TAGS.x, new Types.NumberVal(Math.floor(data.spawn.x)));
+        root.addValue(SPAWN_TAGS.y, new Types.NumberVal(Math.floor(data.spawn.y)));
+        root.addValue(SPAWN_TAGS.z, new Types.NumberVal(Math.floor(data.spawn.z)));
+    }
+
     const saved = new NBTTagCompound(SAVED_TAG);
     if (data.uuid !== undefined) saved.addValue('uuid', new Types.StringVal(data.uuid));
     if (data.username !== undefined) saved.addValue('username', new Types.StringVal(data.username));
     saved.addValue('gamemode', new Types.StringVal(data.gamemode));
     if (data.enchantmentSeed !== undefined) {
         saved.addValue('enchantmentSeed', new Types.NumberVal(data.enchantmentSeed));
+    }
+    if (data.savedAt !== undefined) saved.addValue('savedAt', new Types.DoubleVal(data.savedAt));
+    if (data.spawn !== undefined) {
+        saved.addValue('spawnDimension', new Types.StringVal(data.spawn.dimension));
+        saved.addValue('spawnForced', new Types.ByteVal(data.spawn.forced === true ? 1 : 0));
     }
     if (data.advancements !== undefined) {
         // JSON under one string tag, for the reason `contentRecord.ts` gives: Bedrock has no
@@ -324,6 +360,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
     const attributes = attributesFromNbt(nbt);
     const inventory = inventoryFromNbt(nbt);
     const advancements = saved?.getString('advancements', '') ?? '';
+    const spawn = spawnFromNbt(nbt, saved);
 
     return {
         ...(saved?.has('uuid') ? { uuid: saved.getString('uuid', '') } : {}),
@@ -339,6 +376,8 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
         },
         ...(saved?.has('enchantmentSeed') ? { enchantmentSeed: saved.getNumber('enchantmentSeed', 0) } : {}),
         ...(advancements === '' ? {} : { advancements: parseAdvancements(advancements) }),
+        ...(spawn === undefined ? {} : { spawn }),
+        ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
         ...(attributes.health === undefined ? {} : { health: attributes.health }),
         ...(attributes.food === undefined ? {} : { food: attributes.food }),

@@ -33,6 +33,8 @@ import { advancementBlockUsed, advancementItemUsedOnBlock } from '../advancement
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
+import { isRespawnBlock } from '../world/RespawnPoint';
+import TextPacketType from '../network/type/TextPacketType';
 import { openContainerContents } from '../inventory/containerStore';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
@@ -162,6 +164,44 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
 };
 
 /**
+ * Moves the player's spawn point to a bed or a respawn anchor they clicked.
+ *
+ * This is the server's job rather than a block behavior's for the same reason the screens are:
+ * a behavior family has no player to move the spawn of and no client to tell. The bed family's
+ * own `onPlayerInteract` does the block half, setting `occupied_bit` when it is dark enough.
+ *
+ * Vanilla moves the point on use, day or night, and says so. Sleeping itself is not modeled, so
+ * nothing here waits for morning.
+ *
+ * @returns Whether the block was one that holds a spawn.
+ */
+const claimRespawnBlock = (interaction: BlockInteraction, block: HookBlock): boolean => {
+    if (!isRespawnBlock(block.identifier)) return false;
+
+    const { player, position } = interaction;
+    const already = player.getSpawnPoint();
+    const dimension = player.getWorld().getDimension().name;
+    player.setSpawnPoint({ x: position.x, y: position.y, z: position.z, dimension });
+
+    // Only when it moved. Vanilla says it once, and a player clicking the same bed twice is the
+    // ordinary way to find out whether it took.
+    const moved =
+        already === undefined ||
+        already.x !== position.x ||
+        already.y !== position.y ||
+        already.z !== position.z ||
+        already.dimension !== dimension;
+    if (!moved) return true;
+
+    void player
+        .getNetworkSession()
+        .sendMessage({ message: 'tile.bed.respawnSet', type: TextPacketType.Translate, needsTranslation: true })
+        .catch((error: unknown) => player.getServer().getLogger().error(error));
+
+    return true;
+};
+
+/**
  * Runs the content hooks for one right click on a block.
  *
  * @returns Whether the content consumed the click, or `declined` for the caller to fall back to
@@ -207,7 +247,8 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             // `true`, a chest's plays the open sound and declines, and neither opens a screen -
             // `jsprismarine:utility` says in as many words that the screens belong here.
             const opened = openContainer(interaction, block);
-            if (opened || consumed === true) {
+            const claimed = claimRespawnBlock(interaction, block);
+            if (opened || claimed || consumed === true) {
                 advancementBlockUsed(player, { origin: origin(interaction), block: block.identifier }, true);
                 return 'handled';
             }

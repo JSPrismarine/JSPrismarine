@@ -42,6 +42,9 @@ import type { World, WorldPlayerData } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
 import { respawnPoint } from './world/SpawnPlacement';
+import { resolveRespawn } from './world/RespawnPoint';
+import type { StoredSpawnPoint } from './world/RespawnPoint';
+import { lastPlayerRecord } from './world/PlayerRecords';
 import type { PlayerSpawn } from './world/SpawnPlacement';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
@@ -189,6 +192,15 @@ export default class Player extends Human {
         return this.joinSpawn;
     }
 
+    /**
+     * Where this player comes back after a death, or undefined for the world spawn.
+     *
+     * Set by `/spawnpoint`, by sleeping in a bed and by using a respawn anchor, and carried
+     * across a logout on the player record. See {@link Player.getRespawnPoint} for when a
+     * stored point stops being used.
+     */
+    private spawnPoint: StoredSpawnPoint | undefined;
+
     public platformChatId = ''; // TODO: read this value from Login
     public device: Device | null = null;
 
@@ -258,7 +270,15 @@ export default class Player extends Human {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        const playerData = await this.getWorld().getPlayerData(this);
+        // The world that last wrote a record for this player, which is not always the one the
+        // login built them in. Each world keeps its own player records, so a player who logged
+        // out of the nether used to come back in the default world at whatever stale position
+        // that world's own record held. Moved before anything reads the record, and without a
+        // packet: nothing has been told where this player is yet.
+        const record = await lastPlayerRecord(this, this.server.getWorldManager().getWorlds());
+        if (record.world !== this.getWorld()) this.position = this.position.withWorld(record.world);
+
+        const playerData = record.data;
 
         // Before anything can be earned, so a returning player keeps what they
         // had rather than earning their first advancement twice.
@@ -327,6 +347,8 @@ export default class Player extends Human {
             this.attributes.setValue(AttributeIds.PlayerLevel, data.experience.level);
             this.attributes.setValue(AttributeIds.PlayerExperience, data.experience.progress);
         }
+
+        this.spawnPoint = data.spawn;
     }
 
     /**
@@ -843,7 +865,9 @@ export default class Player extends Human {
 
         // Healing is not free: it is the main thing a well-fed player spends food on. A world with
         // natural regeneration turned off is one where food only stops you starving.
-        const [regenerates] = this.getWorld().getGameRuleManager().getGameRule(GameRules.NaturalRegeneration) ?? [true];
+        const [regenerates] = this.getWorld().getGameRuleManager()?.getGameRule(GameRules.NaturalRegeneration) ?? [
+            true
+        ];
         if (!regenerates) return;
 
         if (food >= REGENERATION_FOOD_LEVEL && this.getHealth() < this.getMaxHealth()) {
@@ -901,12 +925,67 @@ export default class Player extends Human {
         await this.server.emit('chat', event);
     }
 
+    /** This player's own spawn point, or undefined when they come back at the world spawn. */
+    public getSpawnPoint(): StoredSpawnPoint | undefined {
+        return this.spawnPoint;
+    }
+
     /**
-     * Where this player comes back after a death: the world spawn, given as a Bedrock
-     * Dedicated Server gives it. See {@link respawnPoint}.
+     * Moves this player's own spawn point, or clears it back to the world spawn.
+     *
+     * @param spawn - The block that holds it, or undefined to go back to the world spawn.
+     */
+    public setSpawnPoint(spawn: StoredSpawnPoint | undefined): void {
+        this.spawnPoint = spawn;
+    }
+
+    /**
+     * Where this player comes back after a death, given as a Bedrock Dedicated Server gives it.
+     *
+     * Their own spawn point when they have one that still holds, and the world spawn otherwise.
+     * A bed or a respawn anchor only holds a spawn while the block is still there with somewhere
+     * free to stand beside it, which is Java's rule and is what {@link resolveRespawn} decides;
+     * a point `/spawnpoint` set is used whatever is standing there. A spawn that stopped holding
+     * is cleared here, so the player is told once rather than on every death.
+     *
+     * @see {@link respawnPoint} for the three positions the exchange needs.
      */
     public async getRespawnPoint(): Promise<ReturnType<typeof respawnPoint>> {
-        return respawnPoint(await this.getWorld().getSpawnPosition(), EYE_HEIGHT);
+        const own = await this.resolveOwnSpawn();
+        return respawnPoint(own ?? (await this.getWorld().getSpawnPosition()), EYE_HEIGHT);
+    }
+
+    /** This player's own spawn point as a position, or undefined when it no longer holds. */
+    private async resolveOwnSpawn(): Promise<Vector3 | undefined> {
+        const spawn = this.spawnPoint;
+        if (spawn === undefined) return undefined;
+
+        // Only the world the point was set in. This server loads one world per dimension, and a
+        // bed in the nether is not a spawn point for the overworld.
+        const world = this.getWorld();
+        if (spawn.dimension !== world.getDimension().name) return undefined;
+
+        const { minY, height } = world.getDimension();
+        const resolved = await resolveRespawn(spawn, {
+            minY,
+            maxY: minY + height,
+            isObstructed: async (x, y, z) => (await world.getBlock(x, y, z)).isSolid(),
+            getBlockName: async (x, y, z) => (await world.getBlockState(x, y, z)).name
+        });
+
+        if (resolved.kind === 'honored') return resolved.position;
+
+        // Java's "Your home bed was missing or obstructed", which is a message this server has
+        // no translation path for yet. Cleared so the next death goes straight to the world
+        // spawn rather than walking the bed's neighbors again.
+        this.spawnPoint = undefined;
+        await this.getNetworkSession().sendMessage({
+            message: 'tile.bed.notValid',
+            type: TextPacketType.Translate,
+            needsTranslation: true
+        });
+
+        return undefined;
     }
 
     /**
