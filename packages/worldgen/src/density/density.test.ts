@@ -361,6 +361,26 @@ describe('cell operators', () => {
         expect(run.noiseCalls()).toBe(16);
     });
 
+    it('evaluates a chunk-sized walk once per corner of the lattice', () => {
+        const run = harness({
+            type: 'minecraft:interpolated',
+            input: { type: 'minecraft:noise', noise: 'minecraft:test' },
+            cell_size_xz: 4,
+            cell_size_y: 8
+        });
+
+        // The order the terrain pass walks a chunk in: a column at a time, top down. The
+        // lattice over 16 by 384 by 16 blocks is 5 by 49 by 5 corners, and a cache indexed by
+        // hash rather than by cell used to recompute four fifths of them.
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                for (let y = 319; y >= -64; y--) run.sample(x, y, z);
+            }
+        }
+
+        expect(run.noiseCalls()).toBe(5 * 49 * 5);
+    });
+
     it('walks down from the upper bound until the density turns positive', () => {
         // density(y) = 1 - y / 32, so the first probe above zero is y = 24.
         const density = {
