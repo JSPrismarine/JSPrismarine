@@ -1,3 +1,4 @@
+import { java_entity_attributes } from '@jsprismarine/bedrock-data';
 import { parseLenientJson, readBrarchive } from '@jsprismarine/packs';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
@@ -63,6 +64,29 @@ const bedrockSamplesPack = (): string | undefined => {
     }
     return undefined;
 };
+
+/**
+ * How many stats both editions publish for the same entity, over the 93 Java
+ * types the golden holds and the 129 Bedrock definitions.
+ */
+const JAVA_STATS_COMPARED = 423;
+
+/**
+ * How many of those stats the two editions disagree on.
+ *
+ * These are findings, not defects. The wither has 600 health on Bedrock and
+ * 300 on Java, the witch follows from 64 blocks against Java's 16, and most of
+ * the hitbox rows are Bedrock rounding a Java height such as 1.95 to 1.9. The
+ * `attack_damage` rows are partly a modeling difference: Bedrock writes a
+ * `{range_min, range_max}` pair where Java writes one number, and the
+ * comparison reads the low end. A change in this count means either a
+ * component stopped reading the pack or a golden moved.
+ */
+const JAVA_STAT_DISAGREEMENTS = 144;
+
+/** Whether a parsed component body is the `minecraft:collision_box` shape. */
+const isCollisionBox = (value: unknown): value is { readonly width: number; readonly height: number } =>
+    typeof value === 'object' && value !== null && 'width' in value && 'height' in value;
 
 const isEntityFile = (data: unknown): boolean =>
     typeof data === 'object' && data !== null && 'minecraft:entity' in data;
@@ -231,6 +255,59 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
             stop_movement: 1
         });
         expect([...unparsed]).toEqual([]);
+    });
+
+    it('measures the Bedrock stats against Java Edition and names every disagreement', () => {
+        const disagreements: string[] = [];
+        let compared = 0;
+        let agreed = 0;
+
+        for (const [identifier, java] of Object.entries(java_entity_attributes)) {
+            if (!types.registry.has(identifier)) continue;
+            const entity = types.spawn(identifier, { environment: { random: { next: () => 0 } } });
+            const box = entity.componentParams('minecraft:collision_box');
+            const size = isCollisionBox(box) ? box : undefined;
+
+            const measured: readonly (readonly [string, number | undefined, number | undefined])[] = [
+                ['max_health', entity.attributes.get('health')?.base, java.attributes['minecraft:max_health']],
+                ['movement_speed', entity.attributes.get('movement')?.base, java.attributes['minecraft:movement_speed']],
+                ['attack_damage', entity.attributes.get('attack_damage')?.base, java.attributes['minecraft:attack_damage']],
+                ['follow_range', entity.attributes.get('follow_range')?.base, java.attributes['minecraft:follow_range']],
+                ['knockback_resistance', entity.attributes.get('knockback_resistance')?.base, java.attributes['minecraft:knockback_resistance']],
+                ['flying_speed', entity.attributes.get('flying_speed')?.base, java.attributes['minecraft:flying_speed']],
+                ['jump_strength', entity.attributes.get('jump_strength')?.base, java.attributes['minecraft:jump_strength']],
+                ['width', size?.width, java.width],
+                ['height', size?.height, java.height]
+            ];
+
+            for (const [stat, bedrock, value] of measured) {
+                if (bedrock === undefined || value === undefined) continue;
+                compared += 1;
+                if (Math.abs(bedrock - value) <= Math.max(1e-5, Math.abs(value) * 1e-5)) agreed += 1;
+                else disagreements.push(`${identifier} ${stat}: bedrock ${bedrock}, java ${value}`);
+            }
+        }
+
+        const byStat = new Map<string, number>();
+        for (const line of disagreements) {
+            const stat = line.split(' ')[1]?.replace(':', '') ?? '';
+            byStat.set(stat, (byStat.get(stat) ?? 0) + 1);
+        }
+
+        process.stdout.write(
+            [
+                `stats compared against Java: ${compared}, agreeing: ${agreed}`,
+                `disagreements by stat: ${[...byStat].map(([stat, count]) => `${stat} ${count}`).join(', ')}`,
+                ...disagreements.map((line) => `  ${line}`),
+                ''
+            ].join('\n')
+        );
+
+        // The two editions genuinely differ on these stats, so the count is a
+        // recorded finding rather than a target. A change here means either
+        // the components stopped reading the pack or Mojang changed a value.
+        expect(compared).toBe(JAVA_STATS_COMPARED);
+        expect(disagreements).toHaveLength(JAVA_STAT_DISAGREEMENTS);
     });
 
     it('spawns every entity that declares a spawn event without throwing', () => {

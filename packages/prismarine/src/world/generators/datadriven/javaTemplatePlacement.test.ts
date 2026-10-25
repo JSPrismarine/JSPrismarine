@@ -1,0 +1,242 @@
+/**
+ * Templates stamped into a region, through the vanilla `fossil` feature.
+ *
+ * The templates are hand-built rather than read out of the server jar, so the test says what a
+ * rotation and a processor list are supposed to do to a known block instead of asserting against
+ * whatever Mojang shipped. `javaTemplate.test.ts` in `@jsprismarine/structures` covers reading
+ * the real files.
+ */
+import { WorldgenRandom, fossil } from '@jsprismarine/features';
+import BinaryStream from '@jsprismarine/binaryutils';
+import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { describe, expect, it } from 'vitest';
+
+import { GenerationRegion } from './GenerationRegion';
+import { createJavaBlockOracle } from './javaBlockOracle';
+import { createTemplateSource, findJavaTemplateSource } from './javaStructureTemplates';
+import type { TemplateSource } from './javaTemplatePlacement';
+import { cacheRoot, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
+
+const SEED = 99n;
+const STONE = { name: 'minecraft:stone', properties: {} };
+
+type Tag = NBTTagCompound | Set<unknown> | Types.StringVal | Types.NumberVal;
+
+const int = (value: number) => new Types.NumberVal(value);
+const str = (value: string) => new Types.StringVal(value);
+const triple = (x: number, y: number, z: number) => new Set([int(x), int(y), int(z)]);
+
+const compound = (children: Record<string, Tag>, name = ''): NBTTagCompound => {
+    const tag = new NBTTagCompound(name);
+    for (const [key, value] of Object.entries(children)) {
+        if (value instanceof NBTTagCompound) value.setName(key);
+        tag.addValue(key, value);
+    }
+    return tag;
+};
+
+const encode = (root: NBTTagCompound): Buffer => {
+    const stream = new BinaryStream();
+    root.writeToStream(stream, ByteOrder.BIG_ENDIAN);
+    return stream.getBuffer();
+};
+
+/**
+ * A two by one by one template: a bone block lying along x, then a coal ore beside it.
+ *
+ * The bone block's axis is what a quarter turn has to change, and the coal ore is what the
+ * fossil's overlay processor replaces.
+ */
+const boneTemplate = () =>
+    encode(
+        compound({
+            DataVersion: int(5023),
+            size: triple(2, 1, 1),
+            palette: new Set([
+                compound({ id: str('minecraft:bone_block'), properties: compound({ axis: str('x') }) }),
+                compound({ id: str('minecraft:coal_ore') })
+            ]),
+            blocks: new Set([
+                compound({ pos: triple(0, 0, 0), state: int(0) }),
+                compound({ pos: triple(1, 0, 0), state: int(1) })
+            ]),
+            entities: new Set([])
+        })
+    );
+
+const source = (processorLists: Record<string, unknown> = {}): TemplateSource =>
+    createTemplateSource(
+        () => new Map([['minecraft:fossil/spine_1', boneTemplate()]]),
+        new Map(Object.entries(processorLists))
+    );
+
+const region = (templates?: TemplateSource): GenerationRegion =>
+    new GenerationRegion({
+        chunkX: 0,
+        chunkZ: 0,
+        minY: -64,
+        height: 384,
+        seaLevel: 63,
+        seed: SEED,
+        blocks: createJavaBlockOracle(new Map()),
+        biomeAt: () => 'minecraft:plains',
+        ...(templates === undefined ? {} : { templates })
+    });
+
+/** Fills the window with stone, so the fossil has something to be buried in. */
+const fillStone = (built: GenerationRegion): void => {
+    for (let x = -16; x < 32; x++) {
+        for (let z = -16; z < 32; z++) {
+            for (let y = 0; y <= 63; y++) built.write(x, y, z, STONE);
+        }
+    }
+};
+
+/** The one position in the center chunk holding a block out of the template. */
+const templateBlocks = (built: GenerationRegion) => {
+    const found: { x: number; y: number; z: number; name: string; states: Record<string, string | number> }[] = [];
+    built.forEachCenterBlock((localX, y, localZ, block) => {
+        if (block.bedrock === undefined) return;
+
+        found.push({ x: localX, y, z: localZ, name: block.bedrock.name, states: { ...block.bedrock.states } });
+    });
+    return found;
+};
+
+const placeFossil = (built: GenerationRegion, processors = 'minecraft:empty', overlay = 'minecraft:empty'): boolean =>
+    fossil(['minecraft:fossil/spine_1'], ['minecraft:fossil/spine_1'], processors, overlay, 4).place(
+        built.featureWorld(),
+        new WorldgenRandom(SEED),
+        { x: 8, y: 63, z: 8 }
+    );
+
+describe('placeTemplate', () => {
+    it('buries a fossil as the Bedrock states the template reader resolved', () => {
+        const built = region(source());
+        fillStone(built);
+
+        expect(placeFossil(built)).toBe(true);
+
+        const placed = templateBlocks(built);
+        expect(placed.map((block) => block.name).sort()).toEqual(['minecraft:bone_block', 'minecraft:coal_ore']);
+        // Java buries the fossil between 10 and 25 blocks under the column's floor.
+        for (const block of placed) expect(block.y).toBeLessThan(63);
+    });
+
+    it('turns the direction-valued states with the template', () => {
+        const axes = new Set<unknown>();
+        // The feature draws its own rotation, so every quarter turn is reached over four seeds.
+        for (let seed = 0; seed < 8; seed++) {
+            const built = region(source());
+            fillStone(built);
+            fossil(
+                ['minecraft:fossil/spine_1'],
+                ['minecraft:fossil/spine_1'],
+                'minecraft:empty',
+                'minecraft:empty',
+                4
+            ).place(built.featureWorld(), new WorldgenRandom(BigInt(seed)), { x: 8, y: 63, z: 8 });
+
+            for (const block of templateBlocks(built)) {
+                if (block.name === 'minecraft:bone_block') axes.add(block.states['pillar_axis']);
+            }
+        }
+
+        expect([...axes].sort()).toEqual(['x', 'z']);
+    });
+
+    it('runs the processor list the feature named', () => {
+        const built = region(
+            source({
+                'minecraft:fossil_diamonds': {
+                    processors: [
+                        {
+                            processor_type: 'minecraft:rule',
+                            rules: [
+                                {
+                                    input_predicate: {
+                                        predicate_type: 'minecraft:block_match',
+                                        block: 'minecraft:coal_ore'
+                                    },
+                                    location_predicate: { predicate_type: 'minecraft:always_true' },
+                                    output_state: 'minecraft:deepslate_diamond_ore'
+                                }
+                            ]
+                        }
+                    ]
+                }
+            })
+        );
+        fillStone(built);
+
+        expect(placeFossil(built, 'minecraft:empty', 'minecraft:fossil_diamonds')).toBe(true);
+
+        const names = new Set(templateBlocks(built).map((block) => block.name));
+        expect(names.has('minecraft:deepslate_diamond_ore')).toBe(true);
+        expect(names.has('minecraft:coal_ore')).toBe(false);
+    });
+
+    it('places nothing on a server that carries no templates', () => {
+        const built = region();
+        fillStone(built);
+
+        expect(placeFossil(built)).toBe(false);
+        expect(templateBlocks(built)).toHaveLength(0);
+    });
+
+    it('places nothing for a template identifier the source does not know', () => {
+        const built = region(source());
+        fillStone(built);
+
+        const placed = fossil(
+            ['minecraft:fossil/skull_9'],
+            ['minecraft:fossil/skull_9'],
+            'minecraft:empty',
+            'minecraft:empty',
+            4
+        ).place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 63, z: 8 });
+
+        expect(placed).toBe(false);
+        expect(templateBlocks(built)).toHaveLength(0);
+    });
+
+    // Reading the templates inflates every entry of Mojang's server jar, so the one test that
+    // uses the real files is gated the same way the generator's vanilla tests are.
+    it.skipIf(process.env['JSP_WORLDGEN_VANILLA'] !== '1')(
+        'buries a real fossil out of the pinned server jar',
+        { timeout: 120000 },
+        () => {
+            const sources = findJavaWorldgenSources();
+            expect(sources, 'the vanilla datapack and the data generator reports are not on disk').toBeDefined();
+
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const built = region(findJavaTemplateSource(cacheRoot(), registries.processorLists));
+            fillStone(built);
+
+            expect(
+                fossil(
+                    ['minecraft:fossil/spine_1'],
+                    ['minecraft:fossil/spine_1_coal'],
+                    'minecraft:fossil_rot',
+                    'minecraft:fossil_coal',
+                    4
+                ).place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 63, z: 8 })
+            ).toBe(true);
+
+            const names = new Set(templateBlocks(built).map((block) => block.name));
+            expect(names.has('minecraft:bone_block')).toBe(true);
+        }
+    );
+
+    it('lets a later feature write over a template block', () => {
+        const built = region(source());
+        fillStone(built);
+        placeFossil(built);
+
+        const first = templateBlocks(built)[0]!;
+        built.write(first.x, first.y, first.z, STONE);
+
+        expect(built.blockAt(first.x, first.y, first.z).bedrock).toBeUndefined();
+        expect(built.stateAt(first.x, first.y, first.z).name).toBe('minecraft:stone');
+    });
+});

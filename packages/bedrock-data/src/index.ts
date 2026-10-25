@@ -140,3 +140,27 @@ export const jigsaw_structure_data: Buffer = toBuffer(jigsaw_structure_data_data
  * biomes and gives up - so a server that generates any world has to send the real thing.
  */
 export const biome_definitions_network: Buffer = toBuffer(biome_definitions_network_data);
+
+import java_entity_attributes_data from './jsp/java/entity_attributes.json';
+
+/** One Java entity type's hitbox and the attributes its class declares. */
+export interface JavaEntityAttributes {
+    /** The `MobCategory` the class belongs to, such as `monster` or `creature`. */
+    category: string;
+    /** The hitbox width in blocks, which Bedrock writes as `minecraft:collision_box.width`. */
+    width: number;
+    /** The hitbox height in blocks, which Bedrock writes as `minecraft:collision_box.height`. */
+    height: number;
+    /** Java attribute id to its base value, such as `minecraft:max_health`. */
+    attributes: Record<string, number>;
+}
+
+/**
+ * Every attribute Java Edition's entity classes declare, by entity type.
+ *
+ * 2619 values over 93 types, dumped from the pinned unobfuscated 26.3 server jar by
+ * `utils/java-dump/run.mjs`. Bedrock publishes the same stats as entity components, so this is
+ * what a cross-edition check compares those components against; the two editions genuinely
+ * differ on some of them, which is a finding rather than a defect.
+ */
+export const java_entity_attributes: Record<string, JavaEntityAttributes> = java_entity_attributes_data;
