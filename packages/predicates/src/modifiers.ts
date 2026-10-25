@@ -259,7 +259,8 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
             const smelt = requireHost(evaluation.content.smeltingResult, evaluation, path, 'furnace_smelt');
             const smelted = smelt?.(stack);
             if (!smelted) return stack;
-            return useInputCount ? evaluation.items.withCount(smelted, stack.count) : smelted;
+            const count = (useInputCount ? stack.count : 1) * smelted.count;
+            return evaluation.items.withCount(smelted, Math.min(count, evaluation.items.maxStackSize(smelted)));
         };
     },
     enchanted_count_increase: (value, context) => {

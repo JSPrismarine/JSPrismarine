@@ -477,6 +477,24 @@ describe('host-backed modifiers', () => {
         expect(result?.id).toBe('minecraft:iron_ingot');
     });
 
+    it('multiplies the input count by the count the recipe yields', () => {
+        const content = { smeltingResult: () => stack('minecraft:charcoal', 3) };
+
+        expect(apply({ type: 'minecraft:furnace_smelt' }, stack('minecraft:log', 2), { content })?.count).toBe(3);
+        expect(
+            apply({ type: 'minecraft:furnace_smelt', use_input_count: true }, stack('minecraft:log', 2), { content })
+                ?.count
+        ).toBe(6);
+    });
+
+    it('clamps a smelted count to the stack size', () => {
+        const result = apply({ type: 'minecraft:furnace_smelt', use_input_count: true }, stack('minecraft:log', 30), {
+            content: { smeltingResult: () => stack('minecraft:charcoal', 3) }
+        });
+
+        expect(result?.count).toBe(64);
+    });
+
     it('warns and leaves the stack alone when the host cannot smelt', () => {
         const { value } = parseItemModifier({ type: 'minecraft:furnace_smelt' });
         const context = new PredicateContext();
