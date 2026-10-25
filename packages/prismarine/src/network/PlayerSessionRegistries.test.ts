@@ -46,14 +46,20 @@ const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () =>
 /** The config both paths read, with everything the server has set to go out. */
 const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1 });
 
+/** The registries the creative menu reads, with nothing registered. */
+const emptyRegistries = {
+    getBlockManager: () => ({ getBlocks: () => [] }),
+    getItemManager: () => ({ getItems: () => [] })
+};
+
 /** A server with nothing registered and no content build. */
 const captureServer = (overrides: Partial<Server> = {}) =>
     stub<Server>({
         getLogger: logger,
         getConfig: everyRecipe,
         getContent: () => undefined,
-        getBlockManager: () => ({ getBlocks: () => [] }),
-        getItemManager: () => ({ getItems: () => [] }),
+        ...emptyRegistries,
+        getCreativeInventory: () => new CreativeInventory(emptyRegistries),
         ...overrides
     });
 
@@ -86,7 +92,6 @@ const craftingPacket = (sent: readonly DataPacket[]): CraftingDataPacket => {
 describe('PlayerSession', () => {
     describe('sendCreativeContents', () => {
         it('sends the captured catalog when no content was built', async () => {
-            CreativeInventory.reset();
             const { session, sent } = sessionFor(captureServer());
 
             await session.sendCreativeContents();

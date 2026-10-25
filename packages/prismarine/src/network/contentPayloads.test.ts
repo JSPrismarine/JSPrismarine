@@ -443,8 +443,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
         // The menu a pick is read against, so the order and the length are
         // the whole of the agreement: an entry at a different position hands
         // a player an item they did not click.
-        CreativeInventory.reset();
-        const theirs = CreativeInventory.getEntries(emptyRegistries);
+        const theirs = new CreativeInventory(emptyRegistries).getEntries();
         const ours = vanilla().creative.entries;
 
         expect(ours).toHaveLength(theirs.length);

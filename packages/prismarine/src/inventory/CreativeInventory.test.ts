@@ -32,7 +32,11 @@ const emptyServer = {
 };
 
 describe('CreativeInventory', () => {
-    beforeEach(() => CreativeInventory.reset());
+    /** A fresh menu per case, which is what owning one rather than sharing a static buys. */
+    let menu: CreativeInventory;
+    beforeEach(() => {
+        menu = new CreativeInventory(emptyServer);
+    });
 
     it('shows every creative entry the item table still names, with nothing registered', () => {
         // An entry the table has never heard of is left out on purpose - that is the guard
@@ -40,7 +44,7 @@ describe('CreativeInventory', () => {
         // what it should and nothing more.
         const nameable = CreativeItems.filter((entry) => entry.name in ItemTable);
 
-        expect(CreativeInventory.getItems(emptyServer)).toHaveLength(nameable.length);
+        expect(menu.getItems()).toHaveLength(nameable.length);
     });
 
     it('leaves out nothing, because both files describe the same version', () => {
@@ -55,10 +59,10 @@ describe('CreativeInventory', () => {
     it('files every entry under a group the client will have been sent', () => {
         // An entry names its group by position, so a group index past the end of the list is
         // a menu the client cannot draw.
-        const groups = CreativeInventory.getGroups(emptyServer);
+        const groups = menu.getGroups();
 
         expect(groups).toHaveLength(CreativeGroups.length);
-        for (const entry of CreativeInventory.getEntries(emptyServer)) {
+        for (const entry of menu.getEntries()) {
             expect(groups[entry.group]).toBeDefined();
         }
     });
@@ -66,7 +70,7 @@ describe('CreativeInventory', () => {
     it('puts every group in a tab the client knows', () => {
         // Four tabs are used by vanilla. Anything else would mean a heading the client files
         // under the catch-all, which is the fallback working rather than the data being read.
-        const tabs = new Set(CreativeInventory.getGroups(emptyServer).map((group) => group.category));
+        const tabs = new Set(menu.getGroups().map((group) => group.category));
 
         expect([...tabs].sort()).toEqual([
             CreativeItemCategory.CONSTRUCTION,
@@ -80,7 +84,7 @@ describe('CreativeInventory', () => {
         // 88 of the 124 groups carry a heading. The other 36 are anonymous: vanilla draws
         // loose runs of items between its headings, and a group with no name and an air icon
         // is how it says so.
-        const groups = CreativeInventory.getGroups(emptyServer);
+        const groups = menu.getGroups();
 
         expect(groups.filter((group) => group.name !== '').length).toBeGreaterThan(0);
         for (const group of groups) {
@@ -94,7 +98,7 @@ describe('CreativeInventory', () => {
         // whose id is not in that table is one it has been shown and cannot look up.
         const ids = new Set(Object.values(ItemTable).map((entry) => entry.runtime_id));
 
-        for (const item of CreativeInventory.getItems(emptyServer)) {
+        for (const item of menu.getItems()) {
             expect(ids.has(item.getNetworkId())).toBe(true);
         }
     });
@@ -104,7 +108,7 @@ describe('CreativeInventory', () => {
         // of whichever block class happened to share its name, so all six planks went out as
         // 5 and all the stained glass as 241: 308 entries collapsing onto 157 ids, each one a
         // duplicate of the wrong item.
-        const items = CreativeInventory.getItems(emptyServer);
+        const items = menu.getItems();
 
         for (const item of items) {
             expect(item.getNetworkId()).toBe(ItemTable[item.getName()]!.runtime_id);
@@ -123,7 +127,7 @@ describe('CreativeInventory', () => {
 
     it('sends each block entry with the block state vanilla shows', () => {
         const shown = CreativeItems.filter((entry) => entry.name in ItemTable);
-        const items = CreativeInventory.getItems(emptyServer);
+        const items = menu.getItems();
 
         expect(items).toHaveLength(shown.length);
         for (const [i, entry] of shown.entries()) {
@@ -135,7 +139,7 @@ describe('CreativeInventory', () => {
     it('sends the state the menu shows, not the default, where the two differ', () => {
         // A piston faces up in the menu. Resolving its name gave the default state, which is
         // a different hash, and so a different block as far as the client could tell.
-        const piston = CreativeInventory.getItems(emptyServer).find((item) => item.getName() === 'minecraft:piston');
+        const piston = menu.getItems().find((item) => item.getName() === 'minecraft:piston');
 
         expect(piston).toBeDefined();
         expect(piston!.getBlockRuntimeId()).not.toBe(BlockRuntimeIds.getByName('minecraft:piston'));
@@ -144,14 +148,14 @@ describe('CreativeInventory', () => {
     it('sends no block for the item form of a door, as vanilla does', () => {
         // The server has a block schema under the door's name, which is what made a lookup by
         // name put a block id on an item vanilla sends with none.
-        const door = CreativeInventory.getItems(emptyServer).find((item) => item.getName() === 'minecraft:cherry_door');
+        const door = menu.getItems().find((item) => item.getName() === 'minecraft:cherry_door');
 
         expect(BlockRuntimeIds.tryGetByName('minecraft:cherry_door')).not.toBeNull();
         expect(door?.getBlockRuntimeId()).toBe(0);
     });
 
     it('gives every group icon the block state vanilla draws', () => {
-        const groups = CreativeInventory.getGroups(emptyServer);
+        const groups = menu.getGroups();
 
         for (const [i, group] of CreativeGroups.entries()) {
             const expected = group.icon_block_states === undefined ? 0 : vanillaBlockId(group.icon_block_states);
@@ -162,10 +166,27 @@ describe('CreativeInventory', () => {
     it('resolves a pick back to the entry that was shown', () => {
         // Net ids are positions in this list, so the list the client was sent and the list a
         // pick is read against have to be the same one.
-        const items = CreativeInventory.getItems(emptyServer);
+        const items = menu.getItems();
 
-        expect(CreativeInventory.get(emptyServer, 1)).toBe(items[0]);
-        expect(CreativeInventory.get(emptyServer, items.length)).toBe(items.at(-1));
-        expect(CreativeInventory.get(emptyServer, items.length + 1)).toBeNull();
+        expect(menu.get(1)).toBe(items[0]);
+        expect(menu.get(items.length)).toBe(items.at(-1));
+        expect(menu.get(items.length + 1)).toBeNull();
+    });
+
+    it('reads its own registries, so two servers in one process do not share a menu', () => {
+        // The menu used to be a static built on the first read, so whichever server read it
+        // first decided what every other server in the process served.
+        const withStone = new CreativeInventory({
+            getBlockManager: () => ({ getBlocks: () => [{ getName: () => 'minecraft:stone', getId: () => 42 }] }),
+            getItemManager: () => ({ getItems: () => [] })
+        });
+        const idOfStone = (inventory: CreativeInventory) =>
+            inventory
+                .getItems()
+                .find((item) => item.getName() === 'minecraft:stone')
+                ?.getId();
+
+        expect(idOfStone(withStone)).toBe(42);
+        expect(idOfStone(new CreativeInventory(emptyServer))).toBe(0);
     });
 });

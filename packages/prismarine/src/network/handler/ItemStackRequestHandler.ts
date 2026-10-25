@@ -4,7 +4,6 @@ import type Server from '../../Server';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
-import CreativeInventory from '../../inventory/CreativeInventory';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
@@ -44,7 +43,7 @@ let nextStackId = 1;
  *
  * The client answers with the position of the entry it was shown, so this
  * has to read the list `CreativeContentPacket` sent: the content build's menu
- * when there is one, and `CreativeInventory`'s otherwise. Reading the other
+ * when there is one, and the server's own `CreativeInventory` otherwise. Reading the other
  * one hands the player an item they did not click.
  *
  * @param netId - The one-based creative net id the client sent back.
@@ -52,7 +51,7 @@ let nextStackId = 1;
  */
 const creativePick = (server: Server, netId: number): Item | null => {
     const payloads = joinContentPayloads(server.getContent(), server.getLogger());
-    if (payloads === undefined) return CreativeInventory.get(server, netId);
+    if (payloads === undefined) return server.getCreativeInventory().get(netId);
 
     const picked = payloads.creativeItems[netId - 1];
     if (picked === undefined) return null;
