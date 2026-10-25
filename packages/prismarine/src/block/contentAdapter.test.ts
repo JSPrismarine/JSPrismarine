@@ -69,6 +69,15 @@ const watchNeighborHooks = () => {
     return seen;
 };
 
+/** Every dispatch of the named hooks, by hook name, in the order they ran. */
+const watchHooks = (names: readonly string[]) => {
+    const seen: string[] = [];
+    vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook) {
+        if (names.includes(hook)) seen.push(hook);
+    });
+    return seen;
+};
+
 describe('block', () => {
     describe('content block group', () => {
         afterEach(() => vi.restoreAllMocks());
@@ -138,6 +147,30 @@ describe('block', () => {
             const { blocks } = harness({ '0,0,0': stone, '0,1,0': stone, '1,0,0': stone });
 
             expect(blocks.power({ x: 0, y: 0, z: 0 })).toBe(0);
+        });
+
+        it('calls a new block a placement and the same block in a new state a state change', () => {
+            const { blocks } = harness({ '0,0,0': stone });
+            const seen = watchHooks(['onPlace', 'onBlockStateChange']);
+
+            blocks.set({ x: 0, y: 0, z: 0 }, { identifier: 'minecraft:redstone_lamp', states: { lit: false } }, false);
+            expect(seen).toEqual(['onPlace']);
+
+            seen.length = 0;
+            blocks.set({ x: 0, y: 0, z: 0 }, { identifier: 'minecraft:redstone_lamp', states: { lit: true } }, false);
+
+            // `onPlace` here would be the hook calling the family that is writing it, which
+            // is how every family that rewrites its own state - a door, a crop - recurses.
+            expect(seen).toEqual(['onBlockStateChange']);
+        });
+
+        it('says nothing about a state value a rewrite left where it was', () => {
+            const { blocks } = harness({ '0,0,0': lamp });
+            const seen = watchHooks(['onBlockStateChange']);
+
+            blocks.set({ x: 0, y: 0, z: 0 }, lamp, false);
+
+            expect(seen).toEqual([]);
         });
     });
 });

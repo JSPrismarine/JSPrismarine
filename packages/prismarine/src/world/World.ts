@@ -39,7 +39,7 @@ import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
 import { createEngineWorld } from './EngineWorld';
-import type { SystemBlock } from './WorldSystems';
+import type { SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import Chunk from './chunk/Chunk';
@@ -115,6 +115,14 @@ export interface WorldData {
     config?: WorldConfig;
     /** Defaults to the Overworld, which is the only one the server generates today. */
     dimension?: DimensionDefinition;
+    /**
+     * What to run when a random tick lands on a block, keyed by block identifier.
+     *
+     * The world draws the positions and `@jsprismarine/engine-systems` filters them; what a
+     * crop, a fire or a melting block then does is the behavior families' business, so it
+     * arrives from outside. Left out, the draws still happen and nothing answers them.
+     */
+    randomTickHandlers?: WorldSystemsOptions['randomTickHandlers'];
 }
 
 /** How a broadcast narrows its audience beyond "everyone who can see the place". */
@@ -184,7 +192,7 @@ export class World implements Service {
      */
     private changes: WorldChangeSink = NULL_WORLD_CHANGE_SINK;
 
-    public constructor({ name, server, provider, seed, generator, config, dimension }: WorldData) {
+    public constructor({ name, server, provider, seed, generator, config, dimension, randomTickHandlers }: WorldData) {
         this.name = name;
         this.server = server;
         this.provider = provider;
@@ -212,12 +220,13 @@ export class World implements Service {
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
                 }
             },
-            world: createEngineWorld(this)
-            // No `randomTickHandlers` yet: the blocks that answer a random tick are the
-            // behavior families in `@jsprismarine/block-behaviors`, and reaching them needs
-            // the content world adapter this world does not supply yet. The positions are
+            world: createEngineWorld(this),
+            // Nothing passes these yet. The blocks that answer a random tick are the behavior
+            // families in `@jsprismarine/block-behaviors`, and reaching them needs the content
+            // world adapter no subsystem supplies to a live world so far. The positions are
             // drawn either way, so the draw sequence - which decides where crops grow - does
-            // not shift when they are wired.
+            // not shift when they arrive.
+            randomTickHandlers
         });
 
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);

@@ -11,6 +11,7 @@
 import type { ArgumentType, StringReader } from '@jsprismarine/brigadier';
 import { CommandSyntaxException } from '@jsprismarine/brigadier';
 
+import { bedrockCommandEnum } from './bedrockTable';
 import type { BedrockParameterShape, BedrockParameterTypeName } from './parameterTypes';
 import type { SelectorDialect, SelectorModel } from './selector';
 import { parseSelector } from './selector';
@@ -216,9 +217,21 @@ export const jsonArgument = (): BedrockDescribedType<string> =>
         return text;
     });
 
-/** A `["name"="value"]` block state list, the `BLOCK_STATE_ARRAY` type. */
+/**
+ * A `["name"="value"]` block state list, the `BLOCK_STATE_ARRAY` type.
+ *
+ * The leading bracket is required, and that is what keeps `/setblock` and
+ * `/fill` unambiguous. Mojang's own grammar gives each of them two overloads,
+ * `<block> <states> [mode]` and `<block> [mode]`, which only tell apart
+ * because a state list cannot be spelled as a bare word: reading any token
+ * here made `/setblock 1 2 3 dirt keep` parse `keep` as an empty state list
+ * and place the block in replace mode.
+ */
 export const blockStatesArgument = (): BedrockDescribedType<string> =>
-    basic('BLOCK_STATE_ARRAY', (reader) => readToken(reader));
+    basic('BLOCK_STATE_ARRAY', (reader) => {
+        if (!reader.canRead() || reader.peek() !== '[') fail(reader, 'Expected a ["name"="value"] block state list');
+        return readToken(reader);
+    });
 
 /** A function path, the `PATHCOMMAND` type. */
 export const filePathArgument = (): BedrockDescribedType<string> => basic('PATHCOMMAND', readToken);
@@ -365,16 +378,57 @@ export const lootTableArgument = (): BedrockDescribedType<string> =>
     unrepresentable('Bedrock has no loot_table parameter type', readToken);
 
 /**
+ * The Bedrock hard enum Mojang's own command set completes each Java registry
+ * from.
+ *
+ * `/summon <entityType: EntityType>` and `/give <itemName: Item>` are enums in
+ * `mojang-commands.json`, with their contents published in the same file, so a
+ * Java registry argument that has a Bedrock counterpart sends Mojang's own
+ * list rather than degrading to an unvalidated string. Only the registries the
+ * table names are here; the rest have no Bedrock parameter type at all.
+ */
+const BEDROCK_RESOURCE_ENUMS: Readonly<Record<string, string>> = {
+    'minecraft:biome': 'Biome',
+    'minecraft:block': 'Block',
+    'minecraft:damage_type': 'DamageCause',
+    'minecraft:enchantment': 'Enchant',
+    'minecraft:entity_type': 'EntityType',
+    'minecraft:item': 'Item',
+    'minecraft:mob_effect': 'Effect'
+};
+
+/**
  * A registry id, `minecraft:resource` and its tag-accepting variants.
  *
- * Geyser's rule is the one to copy: five registries become enums of their
- * contents and everything else degrades to a string. Pass `values` for the
- * registries whose contents the caller can enumerate.
+ * Geyser's rule is the one to copy: the registries Bedrock publishes an enum
+ * for become enums of their contents and everything else degrades to a string.
+ * Pass `values` to override Mojang's list with the server's own, which is what
+ * a server running content packs wants.
  *
- * @param registry - The registry id, used in the enum name and the report.
+ * @param registry - The registry id, used in the report and in the enum name
+ *   when `values` is given.
  * @param values - The registry contents, when the caller can list them.
  */
-export const resourceArgument = (registry: string, values?: readonly string[]): BedrockDescribedType<string> =>
-    values === undefined
-        ? unrepresentable(`Bedrock has no parameter type for the ${registry} registry`, readToken)
-        : enumArgument(registry.replace(/[^\w]/g, '_'), values);
+export const resourceArgument = (registry: string, values?: readonly string[]): BedrockDescribedType<string> => {
+    if (values !== undefined) return enumArgument(registry.replace(/[^\w]/g, '_'), values);
+
+    const published = BEDROCK_RESOURCE_ENUMS[registry];
+    const table = published === undefined ? undefined : bedrockCommandEnum(published);
+    if (table === undefined) {
+        return unrepresentable(`Bedrock has no parameter type for the ${registry} registry`, readToken);
+    }
+
+    // Mojang's lists are unnamespaced, `speed` rather than `minecraft:speed`,
+    // and Java's commands take the full id. Both spellings parse, and the
+    // value handed to a command body is always the id, so a host never has to
+    // guess which edition wrote the line.
+    return {
+        parse: (reader) => {
+            const token = readToken(reader);
+            const bare = token.startsWith('minecraft:') ? token.slice('minecraft:'.length) : token;
+            if (!table.values.includes(bare)) fail(reader, `'${token}' is not in the ${registry} registry`);
+            return `minecraft:${bare}`;
+        },
+        describeBedrock: () => ({ kind: 'enum', name: table.name, values: table.values })
+    };
+};

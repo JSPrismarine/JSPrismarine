@@ -1,22 +1,23 @@
 /**
- * The light engine and the tick scheduler, driven from one world tick.
+ * The light engine, the tick scheduler and the engine systems, driven from one world tick.
  *
- * Both are published packages with no idea a chunk exists. This is the one place that owns
- * them: it builds the light view out of the world's blocks, drains the two scheduled tick
- * lists in Java's order, draws the random tick positions, and keeps all three inside a budget
- * so no single tick can stall on a light flood or a backlog of fluid ticks.
+ * All three are published packages with no idea a chunk exists. This is the one place that
+ * owns them: it builds the light view out of the world's blocks, drains the two scheduled
+ * tick lists in Java's order into `@jsprismarine/engine-systems`, hands that engine the
+ * chunk sections a random tick may land in, and keeps all three inside a budget so no single
+ * tick can stall on a light flood or a backlog of fluid ticks.
  */
 import type { BlockPosition, LightFlushResult } from '@jsprismarine/lighting';
 import { LightEngine } from '@jsprismarine/lighting';
 import type { BlockLightProperties, BlockLightView } from '@jsprismarine/lighting';
-import type { ScheduledTick, TickKind } from '@jsprismarine/engine-systems';
+import type { Engine, EngineOptions, ScheduledTick, SectionOrigin, TickKind } from '@jsprismarine/engine-systems';
+import type { WorldAccess } from '@jsprismarine/engine-systems';
 import {
     DEFAULT_RANDOM_TICK_SPEED,
     SECTION_SIZE,
     TickScheduler,
-    drawSectionPositions,
     BlockRandomPositions,
-    isRandomlyTicking
+    createEngine
 } from '@jsprismarine/engine-systems';
 import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
 
@@ -68,18 +69,23 @@ export interface WorldSystemsView {
     randomTickSpeed?(): number;
 }
 
-/** What the systems hand back to the world when something comes due. */
-export interface WorldSystemsHandlers {
-    /** Runs one scheduled block or fluid tick. */
-    scheduledTick(kind: TickKind, at: BlockPosition, type: string): void;
-    /**
-     * Runs one random tick.
-     *
-     * Optional because choosing the positions is the world's job and acting on them is the
-     * block behaviors' job. Until that side is wired the positions are still drawn, so the
-     * draw sequence - which decides where crops grow - does not shift when it is.
-     */
-    randomTick?(at: BlockPosition): void;
+/**
+ * The engine's world, minus the scheduling it does not own.
+ *
+ * `@jsprismarine/engine-systems` reads and writes everything through one `WorldAccess`,
+ * scheduling included. The three scheduling members are left out here because
+ * {@link WorldSystems} already holds the tick lists the world tick drains, so it fills them
+ * from {@link WorldSystems.ticks} rather than asking the world for a second scheduler to
+ * keep in step with the first.
+ */
+export type WorldSystemsAccess = Omit<WorldAccess, 'scheduleTick' | 'hasScheduledTick' | 'willTickThisTick'>;
+
+/** What a world gives {@link WorldSystems} to run on. */
+export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers'> {
+    /** The reads the light pass and the random tick draw need, which a chunk answers. */
+    readonly view: WorldSystemsView;
+    /** Everything redstone, fluids and fire do to the world. */
+    readonly world: WorldSystemsAccess;
 }
 
 /** The two numbers the light engine reads, for a block this server's mapping table knows. */
@@ -94,25 +100,60 @@ const lightPropertiesOf = (block: SystemBlock): BlockLightProperties | undefined
 const TRANSPARENT: BlockLightProperties = { lightEmission: 0, lightDampening: 0 };
 
 /**
- * The light engine and the scheduler for one dimension.
+ * The light engine, the scheduler and the engine systems for one dimension.
  *
  * A world builds one, reports its block changes and chunk loads to it, and calls
  * {@link WorldSystems.tick} once per world tick.
  */
 export class WorldSystems {
-    /** The two scheduled tick lists, which the content adapter's `ticks` group writes into. */
+    /**
+     * The two scheduled tick lists.
+     *
+     * The engine schedules into them through its own world, and the content adapter's
+     * `ticks` group writes into them directly.
+     */
     public readonly ticks = new TickScheduler();
 
     /** The server's own light, which no packet carries; see `@jsprismarine/lighting`. */
     public readonly lighting: LightEngine;
 
+    /** Redstone, fluid flow, fire spread and the random tick driver. */
+    private readonly engine: Engine;
+
+    private readonly view: WorldSystemsView;
+
     private readonly randomPositions = new BlockRandomPositions();
 
-    public constructor(
-        private readonly view: WorldSystemsView,
-        private readonly handlers: WorldSystemsHandlers
-    ) {
+    public constructor(options: WorldSystemsOptions) {
+        this.view = options.view;
         this.lighting = new LightEngine(this.lightView());
+        this.engine = createEngine(
+            {
+                ...options.world,
+                // Java schedules by delay and the list stores the absolute tick, so the
+                // conversion happens here rather than in every system that schedules.
+                scheduleTick: (kind, at, type, delay, priority) => {
+                    this.ticks.list(kind).schedule(at, type, options.world.getGameTime() + delay, priority);
+                },
+                hasScheduledTick: (kind, at, type) => this.ticks.list(kind).hasScheduledTick(at, type),
+                willTickThisTick: (kind, at, type) => this.ticks.list(kind).willTickThisTick(at, type)
+            },
+            { randomTickHandlers: options.randomTickHandlers }
+        );
+    }
+
+    /**
+     * Runs every update a block change causes: the neighbor updates, the extra updates a
+     * signal source or a new fluid raises, and the shape updates around the position.
+     *
+     * Java's `Level.setBlockAndUpdate` with the write already done. A world calls it after
+     * writing a block, which is what starts a circuit when a lever goes down and what gives
+     * a placed bucket of water its first fluid tick. The engine writes the block again on the
+     * way through, which costs a palette read and changes nothing, because the block it would
+     * write is the one standing there.
+     */
+    public updateAround(at: BlockPosition, block: SystemBlock): void {
+        this.engine.setBlockAndUpdate(at, { name: block.name, states: block.states });
     }
 
     /** Computes a newly loaded chunk's light and re-seeds across its neighbors' borders. */
@@ -149,7 +190,7 @@ export class WorldSystems {
     public tick(currentTick: number): WorldSystemsReport {
         const scheduled = this.ticks.tick(
             currentTick,
-            (kind: TickKind, tick: ScheduledTick) => this.handlers.scheduledTick(kind, tick.at, tick.type),
+            (kind: TickKind, tick: ScheduledTick) => this.engine.runScheduledTick(kind, tick.at, tick.type),
             SCHEDULED_TICK_BUDGET_PER_TICK
         );
 
@@ -161,35 +202,32 @@ export class WorldSystems {
     }
 
     /**
-     * Draws this tick's random positions for every loaded chunk.
+     * Hands every loaded chunk's sections to the engine's random tick driver.
      *
-     * The draw happens before the filter, as it does in Java: a section of nothing but stone
-     * still consumes its draws, so the sequence does not depend on what the world holds.
+     * The driver draws before it filters, as Java does: a section of nothing but stone still
+     * consumes its draws, so the sequence does not depend on what the world holds. One chunk
+     * at a time rather than all of them at once, because the draw state is shared across the
+     * world and the order it is stepped in is part of the result.
      */
     private runRandomTicks(): number {
         const speed = this.view.randomTickSpeed?.() ?? DEFAULT_RANDOM_TICK_SPEED;
         if (speed <= 0) return 0;
 
         const floor = minSubChunk(this.view.dimension);
-        const sections = subChunkCount(this.view.dimension);
+        const count = subChunkCount(this.view.dimension);
 
         let ticked = 0;
         for (const chunk of this.view.loadedChunks()) {
-            for (let section = 0; section < sections; section++) {
-                const origin = {
+            const sections: SectionOrigin[] = [];
+            for (let section = 0; section < count; section++) {
+                sections.push({
                     x: chunk.x * SECTION_SIZE,
                     y: (floor + section) * SECTION_SIZE,
                     z: chunk.z * SECTION_SIZE
-                };
-
-                for (const at of drawSectionPositions(this.randomPositions, origin, speed)) {
-                    const block = this.view.blockAt(at.x, at.y, at.z);
-                    if (block === undefined || !isRandomlyTicking(block)) continue;
-
-                    ticked++;
-                    this.handlers.randomTick?.(at);
-                }
+                });
             }
+
+            ticked += this.engine.runRandomTicks(this.randomPositions, sections, speed);
         }
 
         return ticked;
