@@ -1,8 +1,9 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { WatchDirectory } from './Watcher';
 import { Watcher } from './Watcher';
 
 const roots: string[] = [];
@@ -14,10 +15,49 @@ const makePackages = () => {
     const packagesDir = path.join(root, 'packages');
     mkdirSync(path.join(packagesDir, 'alpha', 'src'), { recursive: true });
     mkdirSync(path.join(packagesDir, 'bedrock-data', 'src', 'generated'), { recursive: true });
+    mkdirSync(path.join(packagesDir, 'bedrock-data', 'utils'), { recursive: true });
     return packagesDir;
 };
 
-const startWatcher = (packagesDir: string, generate = () => true) => {
+/**
+ * Stands in for `fs.watch`, whose delivery on macOS is too uneven to test against: it records
+ * the listener per directory and lets the test fire a change under one of them.
+ */
+const fakeWatch = () => {
+    const listeners = new Map<string, (event: string, filename: string | null) => void>();
+    const closed: string[] = [];
+    const watch: WatchDirectory = (dir, _options, listener) => {
+        listeners.set(dir, listener);
+        return {
+            close() {
+                closed.push(dir);
+            }
+        };
+    };
+    const change = (dir: string, filename: string | null): void => {
+        const listener = listeners.get(dir);
+        if (!listener) throw new Error(`nothing watches ${dir}`);
+        listener('change', filename);
+    };
+    return { watch, change, closed, watched: () => [...listeners.keys()] };
+};
+
+/** A generator the test finishes by hand, so a change can arrive while it runs. */
+const manualGenerator = () => {
+    let finish: ((ok: boolean) => void) | undefined;
+    const generate = vi.fn(
+        () =>
+            new Promise<boolean>((done) => {
+                finish = done;
+            })
+    );
+    return { generate, finish: (ok: boolean) => finish?.(ok) };
+};
+
+const DEBOUNCE_MS = 20;
+
+const startWatcher = async (packagesDir: string, generate: () => boolean | Promise<boolean> = () => true) => {
+    const fs = fakeWatch();
     const events: SupervisorEvent[] = [];
     const requestRestart = vi.fn<(reason: string) => void>();
     const watcher = new Watcher({
@@ -25,18 +65,21 @@ const startWatcher = (packagesDir: string, generate = () => true) => {
         onEvent: (event) => events.push(event),
         requestRestart,
         generate,
-        debounceMs: 50
+        watch: fs.watch,
+        debounceMs: DEBOUNCE_MS
     });
     watchers.push(watcher);
-    watcher.start();
-    return { events, requestRestart, watcher };
+    const started = watcher.start();
+    return { events, requestRestart, watcher, fs, started };
 };
+
+const debounced = () => new Promise((done) => setTimeout(done, DEBOUNCE_MS * 3));
 
 const until = async (ready: () => boolean, ms = 3000): Promise<void> => {
     const deadline = Date.now() + ms;
     while (!ready()) {
         if (Date.now() > deadline) throw new Error('timed out');
-        await new Promise((done) => setTimeout(done, 20));
+        await new Promise((done) => setTimeout(done, 5));
     }
 };
 
@@ -46,11 +89,12 @@ afterEach(() => {
 });
 
 describe('Watcher', () => {
-    it('generates once on start and reports what it watches', () => {
-        const generate = vi.fn(() => true);
+    it('generates once on start and reports what it watches', async () => {
+        const generate = vi.fn(async () => true);
         const packagesDir = makePackages();
 
-        const { events, requestRestart } = startWatcher(packagesDir, generate);
+        const { events, requestRestart, fs, started } = await startWatcher(packagesDir, generate);
+        await started;
 
         expect(generate).toHaveBeenCalledTimes(1);
         expect(events).toEqual([
@@ -58,40 +102,119 @@ describe('Watcher', () => {
             { type: 'supervisor.generating', ok: true },
             { type: 'supervisor.watching', root: packagesDir }
         ]);
+        expect(fs.watched()).toEqual([
+            path.join(packagesDir, 'bedrock-data', 'src', 'resources'),
+            path.join(packagesDir, 'bedrock-data', 'utils'),
+            path.join(packagesDir, 'alpha', 'src'),
+            path.join(packagesDir, 'bedrock-data', 'src')
+        ]);
         expect(requestRestart).not.toHaveBeenCalled();
     });
 
     it('requests one restart for a burst of source changes', async () => {
         const packagesDir = makePackages();
-        const { events, requestRestart } = startWatcher(packagesDir);
+        const { events, requestRestart, fs, started } = await startWatcher(packagesDir);
+        await started;
 
-        writeFileSync(path.join(packagesDir, 'alpha', 'src', 'a.ts'), 'export const a = 1;\n');
-        writeFileSync(path.join(packagesDir, 'alpha', 'src', 'b.ts'), 'export const b = 2;\n');
-        await until(() => requestRestart.mock.calls.length > 0);
-        await new Promise((done) => setTimeout(done, 150));
+        fs.change(path.join(packagesDir, 'alpha', 'src'), 'a.ts');
+        fs.change(path.join(packagesDir, 'alpha', 'src'), 'b.ts');
+        await debounced();
 
         expect(requestRestart).toHaveBeenCalledTimes(1);
-        expect(requestRestart.mock.calls[0]?.[0]).toMatch(/^packages\/alpha\/src\/[ab]\.ts$/);
+        expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'src', 'a.ts'));
         expect(events.filter((event) => event.type === 'supervisor.changed')).toHaveLength(1);
     });
 
-    it('ignores tests and the generated bedrock data', async () => {
+    it('ignores tests, prose, and the generated bedrock data', async () => {
         const packagesDir = makePackages();
-        const { requestRestart } = startWatcher(packagesDir);
+        const { requestRestart, fs, started } = await startWatcher(packagesDir);
+        await started;
 
-        writeFileSync(path.join(packagesDir, 'alpha', 'src', 'a.test.ts'), 'test\n');
-        writeFileSync(path.join(packagesDir, 'bedrock-data', 'src', 'generated', 'x.json'), '{}\n');
-        writeFileSync(path.join(packagesDir, 'alpha', 'src', 'notes.md'), 'prose\n');
-        await new Promise((done) => setTimeout(done, 300));
+        fs.change(path.join(packagesDir, 'alpha', 'src'), 'a.test.ts');
+        fs.change(path.join(packagesDir, 'bedrock-data', 'src'), path.join('generated', 'x.json'));
+        fs.change(path.join(packagesDir, 'alpha', 'src'), 'notes.md');
+        fs.change(path.join(packagesDir, 'alpha', 'src'), null);
+        await debounced();
 
         expect(requestRestart).not.toHaveBeenCalled();
     });
 
-    it('reports a failed generation', () => {
+    it('reports a failed generation', async () => {
         const packagesDir = makePackages();
 
-        const { events } = startWatcher(packagesDir, () => false);
+        const { events, started } = await startWatcher(packagesDir, async () => false);
+        await started;
 
         expect(events).toContainEqual({ type: 'supervisor.generating', ok: false });
+    });
+
+    it('reports a generator that throws as a failed generation', async () => {
+        const packagesDir = makePackages();
+
+        const { events, started } = await startWatcher(packagesDir, async () => {
+            throw new Error('pnpm is not installed');
+        });
+        await started;
+
+        expect(events).toContainEqual({ type: 'supervisor.generating', ok: false });
+    });
+
+    it('does not block the caller while the generator runs', async () => {
+        const packagesDir = makePackages();
+        const { generate, finish } = manualGenerator();
+        const { events, started } = await startWatcher(packagesDir, generate);
+
+        expect(events).toEqual([{ type: 'supervisor.generating' }]);
+        finish(true);
+        await started;
+
+        expect(events.at(-1)).toEqual({ type: 'supervisor.watching', root: packagesDir });
+    });
+
+    it('holds restarts while the generator runs and requests one when it finishes', async () => {
+        const packagesDir = makePackages();
+        const { generate, finish } = manualGenerator();
+        const { requestRestart, fs, started } = await startWatcher(packagesDir, generate);
+        finish(true);
+        await started;
+
+        fs.change(path.join(packagesDir, 'bedrock-data', 'utils'), 'build.js');
+        await until(() => generate.mock.calls.length === 2);
+        fs.change(path.join(packagesDir, 'alpha', 'src'), 'a.ts');
+        await debounced();
+        expect(requestRestart).not.toHaveBeenCalled();
+
+        finish(true);
+        await debounced();
+
+        expect(requestRestart).toHaveBeenCalledTimes(1);
+        expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'bedrock-data', 'src', 'generated'));
+    });
+
+    it('runs the generator once more when its inputs change mid-run', async () => {
+        const packagesDir = makePackages();
+        const { generate, finish } = manualGenerator();
+        const { fs, started } = await startWatcher(packagesDir, generate);
+        finish(true);
+        await started;
+
+        fs.change(path.join(packagesDir, 'bedrock-data', 'utils'), 'build.js');
+        await until(() => generate.mock.calls.length === 2);
+        fs.change(path.join(packagesDir, 'bedrock-data', 'src', 'resources'), 'blocks.json');
+        await debounced();
+        expect(generate).toHaveBeenCalledTimes(2);
+
+        finish(true);
+        await until(() => generate.mock.calls.length === 3);
+    });
+
+    it('closes every watch', async () => {
+        const packagesDir = makePackages();
+        const { watcher, fs, started } = await startWatcher(packagesDir);
+        await started;
+
+        watcher.close();
+
+        expect(fs.closed).toEqual(fs.watched());
     });
 });
