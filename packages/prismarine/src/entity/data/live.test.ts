@@ -191,6 +191,30 @@ const LOOT = new Map([
             type: 'minecraft:entity',
             pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:leather' }] }]
         })
+    ],
+    [
+        'minecraft:blocks/stone',
+        definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+            type: 'minecraft:block',
+            pools: [
+                {
+                    rolls: 1,
+                    // Two halves of the break's context in one condition: the y range
+                    // reads `origin`, which only a break that said where it happened
+                    // supplies, and the dimension reads the level view, which only a
+                    // break that bound one supplies. A roll with neither drops nothing.
+                    condition: {
+                        type: 'minecraft:location_check',
+                        predicate: {
+                            position: { y: { min: FLOOR_Y, max: FLOOR_Y } },
+                            dimension: DIMENSION
+                        }
+                    },
+                    entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }]
+                }
+            ],
+            random_sequence: 'minecraft:blocks/stone'
+        })
     ]
 ]);
 
@@ -342,7 +366,9 @@ const buildOver = (world: World, runtimes: EntityRuntimes): ServerContent => {
         }),
         blockPalette: fixturePalette(),
         itemDefinitions: vanillaItemDefinitions().filter((definition) =>
-            ['minecraft:leather', 'minecraft:wheat', 'minecraft:emerald'].includes(definition.identifier)
+            ['minecraft:leather', 'minecraft:wheat', 'minecraft:emerald', 'minecraft:cobblestone'].includes(
+                definition.identifier
+            )
         ),
         seed: 1234n,
         world: serverWorldSource({
@@ -497,6 +523,36 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             expect(cow.instance.attributes.get('health')?.current).toBe(6);
+        });
+    });
+
+    describe('harvesting', () => {
+        /** What is lying on the ground, as item identifiers. */
+        const lying = (): Array<string | undefined> =>
+            world
+                .getEntities()
+                .filter((entity) => entity instanceof ItemEntity)
+                .map((entity) => entity.getItem()?.getItem().getName());
+
+        it('rolls Java’s table for the block a mob broke, with the position and the world', async () => {
+            live.runtime.breakBlock({ x: 8, y: FLOOR_Y, z: 8 });
+            await run(1);
+
+            expect(world.loadedBlockAt(8, FLOOR_Y, 8)?.name).toBe('minecraft:air');
+            // The stone table's only pool is behind a `location_check`, so cobblestone on
+            // the ground means the roll was told where the break happened and which world
+            // to read. The harvest used to roll with neither and the pool refused.
+            expect(lying()).toEqual(['minecraft:cobblestone']);
+        });
+
+        it('takes the block and leaves nothing with doTileDrops off', async () => {
+            world.getGameRuleManager()?.setGameRule('doTileDrops', false, true);
+
+            live.runtime.breakBlock({ x: 8, y: FLOOR_Y, z: 8 });
+            await run(1);
+
+            expect(world.loadedBlockAt(8, FLOOR_Y, 8)?.name).toBe('minecraft:air');
+            expect(lying()).toEqual([]);
         });
     });
 
