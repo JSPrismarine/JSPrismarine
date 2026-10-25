@@ -20,6 +20,7 @@ import {
     orderDecoration,
     placeFeature
 } from '@jsprismarine/features';
+import { boxesOverlap } from '@jsprismarine/structures';
 import type { BiomeClimate, CarverConfig, MaterialRuleNode, NoiseGeneratorSettings } from '@jsprismarine/worldgen';
 import {
     BiomeManager,
@@ -351,14 +352,8 @@ export class DataDrivenGenerator implements Generator {
         const populationSeed = random.setDecorationSeed(pipeline.randomState.seed, origin.x, origin.z);
         const context = { world: region.featureWorld() };
         const starts = pipeline.structures?.startsFor(cx, cz) ?? [];
-        const writer =
-            starts.length === 0
-                ? undefined
-                : createRegionStructureWriter(
-                      region,
-                      pipeline.level,
-                      chunkWriteBox(cx, cz, this.dimension.minY, this.dimension.minY + this.dimension.height - 1)
-                  );
+        const clip = chunkWriteBox(cx, cz, this.dimension.minY, this.dimension.minY + this.dimension.height - 1);
+        const writer = starts.length === 0 ? undefined : createRegionStructureWriter(region, pipeline.level, clip);
 
         for (const step of DECORATION_STEPS) {
             const stepIndex = decorationStepIndex(step);
@@ -371,7 +366,12 @@ export class DataDrivenGenerator implements Generator {
                     random.setFeatureSeed(populationSeed, index, stepIndex);
                     const pieceRandom = asStructureRandom(random);
                     for (const start of placing) {
-                        for (const piece of start.pieces) piece.place(writer, pieceRandom);
+                        // Java skips a piece whose box misses the chunk, which is what keeps a
+                        // mineshaft's 170 pieces from each running in all thirty chunks it
+                        // covers. The skipped piece draws nothing, so the stream moves with it.
+                        for (const piece of start.pieces) {
+                            if (boxesOverlap(piece.boundingBox, clip)) piece.place(writer, pieceRandom);
+                        }
                     }
                 });
             }
