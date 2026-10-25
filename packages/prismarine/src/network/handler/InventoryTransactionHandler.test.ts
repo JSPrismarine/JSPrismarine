@@ -3,6 +3,9 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
+// A reused Vitest worker may already have the handler's real dependencies in its module cache.
+vi.hoisted(() => vi.resetModules());
+
 import type Player from '../../Player';
 import type Server from '../../Server';
 import { loose } from '../../entity/Archery';
