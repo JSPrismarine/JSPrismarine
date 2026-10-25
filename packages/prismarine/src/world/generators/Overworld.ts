@@ -1,7 +1,13 @@
 import BaseGenerator from '../BaseGenerator';
 import type Chunk from '../chunk/Chunk';
 import { DataDrivenGenerator } from './datadriven/DataDrivenGenerator';
-import { JAVA_WORLDGEN_ENV, findJavaWorldgenSources, loadJavaWorldgenRegistries } from './datadriven/javaWorldgenData';
+import { findJavaTemplateSource } from './datadriven/javaStructureTemplates';
+import {
+    JAVA_WORLDGEN_ENV,
+    cacheRoot,
+    findJavaWorldgenSources,
+    loadJavaWorldgenRegistries
+} from './datadriven/javaWorldgenData';
 
 /**
  * The overworld, generated from Java Edition's published world generation data.
@@ -37,12 +43,16 @@ export default class Overworld extends BaseGenerator {
             throw new Error(
                 'The overworld generator needs Java Edition 26.3 world generation data. Run ' +
                     '`pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
-                    '`pnpm --filter @jsprismarine/bedrock-data run dump:java`, or set ' +
+                    '`pnpm --filter @jsprismarine/bedrock-data run datagen:java`, or set ' +
                     `${JAVA_WORLDGEN_ENV.datapack} and ${JAVA_WORLDGEN_ENV.reports}.`
             );
         }
 
-        this.generator = new DataDrivenGenerator({ registries: loadJavaWorldgenRegistries(sources) });
+        const registries = loadJavaWorldgenRegistries(sources);
+        this.generator = new DataDrivenGenerator({
+            registries,
+            templates: findJavaTemplateSource(cacheRoot(), registries.processorLists)
+        });
         return this.generator;
     }
 }

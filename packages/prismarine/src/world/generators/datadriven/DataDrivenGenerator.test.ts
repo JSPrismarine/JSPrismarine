@@ -6,7 +6,7 @@
  *
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
- * pnpm --filter @jsprismarine/bedrock-data run dump:java
+ * pnpm --filter @jsprismarine/bedrock-data run datagen:java
  * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */

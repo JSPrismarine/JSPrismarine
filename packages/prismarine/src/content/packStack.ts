@@ -207,7 +207,8 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         else {
             missing(
                 'the Java vanilla datapack',
-                `run the Java data generator or set ${PACK_STACK_ENV.vanillaDatapack}`
+                'run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` or set ' +
+                    PACK_STACK_ENV.vanillaDatapack
             );
         }
     }
