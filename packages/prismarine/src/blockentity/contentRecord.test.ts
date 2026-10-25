@@ -93,6 +93,42 @@ describe('block entity records', () => {
         expect(blockEntityRecord(filed.toNBT()).capacity).toBe(3);
     });
 
+    it("writes a chest's pair under Bedrock's own tags, so the client draws one screen", () => {
+        const nbt = blockEntityCompound(null, { x: 4, y: 64, z: 4 }, 'minecraft:chest');
+        applyBlockEntityRecord(nbt, { capacity: 27, pairedWith: { x: 5, y: 64, z: 4 } });
+
+        expect(nbt.getNumber('pairx', -1)).toBe(5);
+        expect(nbt.getNumber('pairz', -1)).toBe(4);
+        // The lower x leads, which is the half the server orders the 54 slots from.
+        expect(nbt.getByte('pairlead', -1)).toBe(1);
+
+        const partner = blockEntityCompound(null, { x: 5, y: 64, z: 4 }, 'minecraft:chest');
+        applyBlockEntityRecord(partner, { capacity: 27, pairedWith: { x: 4, y: 64, z: 4 } });
+        expect(partner.getByte('pairlead', -1)).toBe(0);
+    });
+
+    it('takes the pair back off those tags for a chest the game itself paired', () => {
+        const nbt = new NBTTagCompound('');
+        nbt.addValue('id', new Types.StringVal('Chest'));
+        nbt.addValue('x', new Types.NumberVal(4));
+        nbt.addValue('y', new Types.NumberVal(64));
+        nbt.addValue('z', new Types.NumberVal(4));
+        nbt.addValue('pairx', new Types.NumberVal(5));
+        nbt.addValue('pairz', new Types.NumberVal(4));
+
+        expect(blockEntityRecord(nbt)['pairedWith']).toEqual({ x: 5, y: 64, z: 4 });
+    });
+
+    it('takes the pair tags off again when the other half is gone', () => {
+        const nbt = blockEntityCompound(null, { x: 4, y: 64, z: 4 }, 'minecraft:chest');
+        applyBlockEntityRecord(nbt, { capacity: 27, pairedWith: { x: 5, y: 64, z: 4 } });
+        applyBlockEntityRecord(nbt, { capacity: 27, pairedWith: undefined });
+
+        expect(nbt.has('pairx')).toBe(false);
+        expect(nbt.has('pairlead')).toBe(false);
+        expect(blockEntityRecord(nbt)['pairedWith']).toBeUndefined();
+    });
+
     it('drops the record tag when nothing is left to store in it', () => {
         const nbt = blockEntityCompound(null, { x: 0, y: 0, z: 0 }, 'minecraft:chest');
         applyBlockEntityRecord(nbt, { capacity: 27 });

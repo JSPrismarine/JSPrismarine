@@ -25,6 +25,18 @@ export const CONTENT_DATA_TAG = 'jsprismarine:data';
 /** Bedrock's own container list, which `items` maps onto. */
 const ITEMS_TAG = 'Items';
 
+/**
+ * The record field the container family records a chest's other half under, and Bedrock's own
+ * three tags for the same thing.
+ *
+ * The field is read back through `pairedPosition` in `@jsprismarine/block-behaviors`, and the
+ * tags are what the client reads to draw a double chest as one screen.
+ */
+const PAIRED_WITH_FIELD = 'pairedWith';
+const PAIR_X_TAG = 'pairx';
+const PAIR_Z_TAG = 'pairz';
+const PAIR_LEAD_TAG = 'pairlead';
+
 /** One stack of a container, as the record carries one. */
 type RecordItem = NonNullable<NonNullable<BlockEntityData['items']>[number]>;
 
@@ -96,6 +108,19 @@ const fieldsFromNbt = (nbt: NBTTagCompound): RecordFields => {
 };
 
 /**
+ * The chest half a compound is paired with, out of Bedrock's own tags.
+ *
+ * `pairx` and `pairz` are how vanilla records a double chest, and how the client learns to draw
+ * one screen of 54 slots over two blocks. The y is the block's own: the two halves of a double
+ * chest are side by side, never stacked.
+ */
+const pairFromNbt = (nbt: NBTTagCompound): { x: number; y: number; z: number } | undefined => {
+    if (!nbt.has(PAIR_X_TAG) || !nbt.has(PAIR_Z_TAG)) return undefined;
+
+    return { x: nbt.getNumber(PAIR_X_TAG, 0), y: nbt.getNumber('y', 0), z: nbt.getNumber(PAIR_Z_TAG, 0) };
+};
+
+/**
  * The record a behavior reads, out of the compound a chunk holds.
  *
  * @returns The record, with `items` present only when the compound carries an `Items` list.
@@ -105,7 +130,13 @@ export const blockEntityRecord = (nbt: NBTTagCompound): BlockEntityData => {
     const capacity = typeof fields['capacity'] === 'number' ? fields['capacity'] : 0;
     const items = itemsFromNbt(nbt, capacity);
 
-    return items === undefined ? fields : { ...fields, items };
+    // A chest the game itself paired, in a world this server did not write. The field the
+    // behaviors read is the same one either way, so a vanilla double chest is a double chest
+    // here without the family having to pair it again.
+    const paired = fields[PAIRED_WITH_FIELD] === undefined ? pairFromNbt(nbt) : undefined;
+    const withPair = paired === undefined ? fields : { ...fields, [PAIRED_WITH_FIELD]: paired };
+
+    return items === undefined ? withPair : { ...withPair, items };
 };
 
 /**
@@ -123,12 +154,49 @@ export const applyBlockEntityRecord = (nbt: NBTTagCompound, data: BlockEntityDat
         nbt.addValue(ITEMS_TAG, itemsToNbt(items));
     }
 
+    applyPairToNbt(nbt, fields[PAIRED_WITH_FIELD]);
+
     const encoded = JSON.stringify(fields);
     if (encoded === undefined || encoded === '{}') {
         nbt.remove(CONTENT_DATA_TAG);
     } else {
         nbt.addValue(CONTENT_DATA_TAG, new Types.StringVal(encoded));
     }
+};
+
+/**
+ * Writes a chest's pair under Bedrock's own tags beside the record's own field.
+ *
+ * The client decides whether to draw one screen of 54 slots from these, so a double chest that
+ * only had `pairedWith` under {@link CONTENT_DATA_TAG} was 54 slots on the server and 27 on the
+ * screen. `pairlead` goes on the half with the lower `x` and then `z`, which is the half the
+ * server orders the slots from.
+ */
+const applyPairToNbt = (nbt: NBTTagCompound, paired: unknown): void => {
+    const partner = positionOf(paired);
+    if (partner === undefined) {
+        nbt.remove(PAIR_X_TAG);
+        nbt.remove(PAIR_Z_TAG);
+        nbt.remove(PAIR_LEAD_TAG);
+        return;
+    }
+
+    const [x, z] = [nbt.getNumber('x', 0), nbt.getNumber('z', 0)];
+    const lead = x !== partner.x ? x < partner.x : z < partner.z;
+
+    nbt.addValue(PAIR_X_TAG, new Types.NumberVal(partner.x));
+    nbt.addValue(PAIR_Z_TAG, new Types.NumberVal(partner.z));
+    nbt.addValue(PAIR_LEAD_TAG, new Types.ByteVal(lead ? 1 : 0));
+};
+
+/** A `{ x, y, z }` out of an open record field, or undefined when the field is not one. */
+const positionOf = (value: unknown): { x: number; y: number; z: number } | undefined => {
+    if (typeof value !== 'object' || value === null) return undefined;
+    if (!('x' in value) || !('y' in value) || !('z' in value)) return undefined;
+
+    const { x, y, z } = value;
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') return undefined;
+    return { x, y, z };
 };
 
 /** `minecraft:trapped_chest` as vanilla's block entity id would spell it: `TrappedChest`. */
