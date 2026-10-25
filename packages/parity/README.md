@@ -22,7 +22,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `recipes.*`     | registry                            | Java's 2042 recipe files, parsed and compiled through the mapping                                                     |
 | `loot.*`        | tables, distribution                | Java's 1447 loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
 | `entities.*`    | stats, addactor                     | All nine shared mob stats against Java's attribute dump; a packet row per advertised actor                            |
-| `worldgen.*`    | biomes, terrain, features           | Java's biome lookups and dumped columns; feature counts are not measured                                              |
+| `worldgen.*`    | biomes, terrain, features           | Java's biome lookups and dumped columns; feature counts wait on the reference world                                   |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
 

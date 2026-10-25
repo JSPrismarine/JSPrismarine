@@ -13,6 +13,7 @@ import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import EntityDamageEvent from '../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../events/entity/EntityDeathEvent';
+import { advancementDamage, advancementKill } from '../advancement/triggers';
 import { enchantmentProtection } from '../enchantment/mitigation';
 import { sizeOf } from './EntitySize';
 import { Metadata, MetadataFlag } from './Metadata';
@@ -476,6 +477,12 @@ export class Entity {
         }
 
         await this.setHealth(this.getHealth() - taken, damageSource);
+
+        // After the health, so that a criterion asking how hurt the player is
+        // sees the answer this blow produced. Both numbers go, because Java's
+        // `DamagePredicate` compares `dealt` before armor and `taken` after and
+        // a criterion may name either.
+        advancementDamage(this, damageSource, landed, taken, false);
         return true;
     }
 
@@ -662,6 +669,11 @@ export class Entity {
      */
     protected async onDeath(source: DamageSource): Promise<void> {
         this.server.post(['entityDeath', new EntityDeathEvent(this, source)]);
+
+        // Raised from both sides of the kill: Java has one trigger for the
+        // killer and another for the victim, and a player killed by a player
+        // raises both.
+        advancementKill(this, source);
     }
 
     /**
