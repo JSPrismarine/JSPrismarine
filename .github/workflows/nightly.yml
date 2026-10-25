@@ -109,6 +109,9 @@ jobs:
         name: 🌙 Publish nightly release
         needs: [nightly-version, nightly]
         runs-on: ubuntu-latest
+        concurrency:
+            group: jsprismarine-nightly-release
+            cancel-in-progress: false
         permissions:
             contents: write
         env:
@@ -116,24 +119,54 @@ jobs:
             BUILD_TYPE: nightly
             BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
         steps:
+            - name: 🕕 Check nightly release interval
+              id: release_cadence
+              shell: bash
+              run: |
+                  latest_nightly="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" \
+                      --jq '[.[] | select(.prerelease == true and (.tag_name | startswith("jsprismarine@")) and (.tag_name | contains("-nightly.")) and (.published_at != null)) | [.tag_name, .published_at]] | first // empty | @tsv')"
+                  if [[ -n "$latest_nightly" ]]; then
+                      IFS=$'\t' read -r latest_tag latest_published_at <<< "$latest_nightly"
+                      if [[ "$latest_tag" != "jsprismarine@${BUILD_VERSION}" ]]; then
+                          latest_published_epoch="$(date -u --date="$latest_published_at" +%s)"
+                          current_epoch="$(date -u +%s)"
+                          if (( current_epoch - latest_published_epoch < 6 * 60 * 60 )); then
+                              echo "publish=false" >> "$GITHUB_OUTPUT"
+                              echo "Skipping nightly release; the previous one was published at $latest_published_at."
+                              {
+                                  echo '### Nightly release skipped'
+                                  echo
+                                  echo "The previous nightly was published less than six hours ago. This run's executables remain available as workflow artifacts."
+                              } >> "$GITHUB_STEP_SUMMARY"
+                              exit 0
+                          fi
+                      fi
+                  fi
+                  echo "publish=true" >> "$GITHUB_OUTPUT"
+
             - name: 🕶️ Checkout repository
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
 
             - name: 🏷️ Set build metadata
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               run: node .github/scripts/set-build-metadata.mjs
 
             - name: 📥 Download executables
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
                   path: dist
                   merge-multiple: true
 
             - name: 📝 Generate release highlights
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               run: node .github/scripts/generate-release-highlights.mjs > dist/highlights.md
 
             - name: 🌙 Publish nightly release
+              if: ${{ steps.release_cadence.outputs.publish == 'true' }}
               run: |
                   tag="jsprismarine@${BUILD_VERSION}"
                   title="JSPrismarine ${BUILD_VERSION}"
