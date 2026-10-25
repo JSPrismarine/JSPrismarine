@@ -30,7 +30,9 @@ import type Human from '../entity/Human';
 import { Mob } from '../entity/Mob';
 import type { Item as ItemEntity } from '../entity/other/Item';
 import { Projectile } from '../entity/other/Projectile';
+import type ContainerEntry from '../inventory/ContainerEntry';
 import CreativeInventory from '../inventory/CreativeInventory';
+import { blockContainerOf } from '../inventory/blockContainers';
 import { WindowIds } from '../inventory/WindowIds';
 import { WindowTypes } from '../inventory/WindowTypes';
 import { Item } from '../item/Item';
@@ -124,6 +126,18 @@ const argumentNamesOf = (node: CommandTreeNode): Map<CommandArgumentType, string
     return names;
 };
 
+/** A screen a block opened for one player, as the session remembers it. */
+export interface OpenBlockContainer {
+    /** The `Container Id` it was opened under. */
+    readonly windowId: number;
+    /** The block it belongs to, which is what an enchanting table needs to count bookshelves. */
+    readonly position: Vector3;
+    /** The block standing there when it was opened. */
+    readonly identifier: string;
+    /** The `Container Type` the client is drawing. */
+    readonly screen: WindowTypes;
+}
+
 export default class PlayerSession {
     private connection: ClientConnection;
     private readonly server: Server;
@@ -187,6 +201,16 @@ export default class PlayerSession {
      * the client is checked against it, see {@link PlayerSession.closeWindow}.
      */
     private readonly openWindows = new Map<number, number>();
+
+    /**
+     * The block container this session has open, or undefined for none.
+     *
+     * One at a time, which is what the client allows: a player with a chest open who clicks a
+     * furnace has closed the chest. Kept because a later `ItemStackRequest` names a container
+     * by its `ContainerUiId` and not by the block it belongs to, so the block it belongs to has
+     * to be remembered here.
+     */
+    private blockContainer: OpenBlockContainer | undefined;
 
     /**
      * The tick of the last `PlayerAuthInputPacket` handled for this client, or `0n` before the
@@ -753,6 +777,57 @@ export default class PlayerSession {
     }
 
     /**
+     * Opens the screen a block draws, with whatever the block is holding.
+     *
+     * The one call the interaction path needs. Until this existed no block opened a container
+     * anywhere in this server: a chest, a furnace and a crafting table all did nothing when
+     * they were clicked, because `openMainInventory` was the only `ContainerOpen` ever sent.
+     *
+     * The contents follow the open for the same reason they do there: a window whose contents
+     * never arrive is one the client has no reason to keep. A workstation stores nothing of its
+     * own, so nothing follows its open.
+     *
+     * @param at - The block position, which is what `ContainerOpen` carries for a block.
+     * @param identifier - The block standing there, which decides the screen.
+     * @param contents - What the block holds, one entry per slot.
+     * @returns The window it was opened under, or undefined when the block opens no screen.
+     */
+    public async openBlockContainer(
+        at: Vector3,
+        identifier: string,
+        contents: ContainerEntry[] = []
+    ): Promise<OpenBlockContainer | undefined> {
+        const container = blockContainerOf(identifier);
+        if (container === undefined) return undefined;
+
+        const packet = new ContainerOpenPacket();
+        packet.windowId = this.nextWindowId();
+        packet.containerType = container.screen;
+        packet.containerPos = at;
+        // -1 for a block's container, which is what the field means: the actor it belongs to,
+        // and a block is not an actor.
+        packet.containerEntityId = -1n;
+        this.openWindows.set(packet.windowId, packet.containerType);
+        await this.connection.sendDataPacket(packet);
+
+        if (container.slots > 0) {
+            const content = new InventoryContentPacket();
+            content.windowId = packet.windowId;
+            content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
+            content.items = contents;
+            await this.connection.sendDataPacket(content);
+        }
+
+        this.blockContainer = { windowId: packet.windowId, position: at, identifier, screen: container.screen };
+        return this.blockContainer;
+    }
+
+    /** The block container this session has open, or undefined for none. */
+    public getOpenBlockContainer(): OpenBlockContainer | undefined {
+        return this.blockContainer;
+    }
+
+    /**
      * Forgets a window the client reports closed.
      *
      * The docs have the server delete its container manager when the client's `ContainerClose`
@@ -762,6 +837,8 @@ export default class PlayerSession {
      * @returns {boolean} whether a window with that id was open.
      */
     public closeWindow(windowId: number): boolean {
+        if (this.blockContainer?.windowId === windowId) this.blockContainer = undefined;
+
         return this.openWindows.delete(windowId);
     }
 

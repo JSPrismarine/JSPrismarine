@@ -6,10 +6,9 @@
  * names. Translating per write would cost a mapping lookup for each of a chunk's roughly 18000
  * placements, so the whole chunk is built here and translated once at the end.
  *
- * The region is three chunks square, centered on the chunk being generated, because Java's
- * `WorldGenRegion` lets a feature spill into its neighbors. Only the center chunk is kept: a
- * tree that crosses into a neighbor is clipped at the border, where Java carries it over into
- * that neighbor's saved chunk.
+ * The region can hold one chunk of terrain or a three by three feature view. The latter mirrors
+ * Java's `WorldGenRegion`: features read neighboring terrain, and writes beyond the center are
+ * returned as chunk patches for those chunks.
  */
 import type {
     BlockEntityRequest,
@@ -26,10 +25,8 @@ import type { SurfaceChunk } from '@jsprismarine/worldgen';
 import type { TemplateSource, TemplateTarget } from './javaTemplatePlacement';
 import { placeJavaTemplate } from './javaTemplatePlacement';
 
-/** The chunk radius a feature may write into, which is Java's `WorldGenRegion` size. */
-const REGION_RADIUS = 1;
-const REGION_CHUNKS = REGION_RADIUS * 2 + 1;
-const REGION_WIDTH = REGION_CHUNKS * 16;
+/** The radius of Java's feature view around its generating chunk. */
+const FEATURE_RADIUS = 1;
 
 const AIR = 'minecraft:air';
 const AIR_STATE: BlockState = { name: AIR, properties: {} };
@@ -42,6 +39,8 @@ export interface GenerationRegionOptions {
     readonly minY: number;
     /** How many y levels the dimension generates. */
     readonly height: number;
+    /** Chunk radius held in memory; zero is used for cached terrain tiles. Defaults to one. */
+    readonly radius?: number;
     readonly seaLevel: number;
     readonly seed: bigint;
     /** The static block facts, which the features package reads through the world. */
@@ -91,8 +90,33 @@ export interface RegionEntitySpawn {
     readonly yaw: number;
 }
 
+/** A block state written during decoration, in world coordinates. */
+export interface RegionBlockWrite {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly block: RegionBlock;
+}
+
+/** Decoration output that belongs to one chunk. */
+export interface RegionChunkPatch {
+    readonly chunkX: number;
+    readonly chunkZ: number;
+    readonly blocks: readonly RegionBlockWrite[];
+    readonly blockEntities: readonly RegionBlockEntity[];
+    readonly entitySpawns: readonly RegionEntitySpawn[];
+}
+
+interface MutableRegionPatch {
+    readonly chunkX: number;
+    readonly chunkZ: number;
+    readonly blocks: RegionBlockWrite[];
+    readonly blockEntities: RegionBlockEntity[];
+    readonly entitySpawns: RegionEntitySpawn[];
+}
+
 /**
- * A three by three chunk window of Java block states.
+ * A rectangular chunk window of Java block states.
  *
  * States are held as indices into a per-region palette, so the buffer is two bytes a block
  * rather than one object reference. {@link surfaceChunk} and {@link featureWorld} project the
@@ -108,6 +132,8 @@ export class GenerationRegion {
     private readonly chunkX: number;
     private readonly chunkZ: number;
     private readonly height: number;
+    private readonly radius: number;
+    private readonly width: number;
     private readonly originX: number;
     private readonly originZ: number;
     private readonly states: Uint16Array;
@@ -123,6 +149,11 @@ export class GenerationRegion {
     /** The entities features asked for, in the order they asked. */
     private readonly entitySpawns: RegionEntitySpawn[] = [];
 
+    private trackingWrites = false;
+    private readonly trackedWrites = new Map<number, RegionBlockWrite>();
+    private readonly trackedBlockEntities = new Map<number, RegionBlockEntity>();
+    private readonly trackedEntitySpawns: RegionEntitySpawn[] = [];
+
     /** The `WORLD_SURFACE_WG` heights frozen after the terrain fill, as Java freezes them. */
     private frozenSurface: Int32Array | null = null;
 
@@ -131,12 +162,14 @@ export class GenerationRegion {
         this.chunkZ = options.chunkZ;
         this.minY = options.minY;
         this.height = options.height;
+        this.radius = options.radius ?? FEATURE_RADIUS;
+        this.width = (this.radius * 2 + 1) * 16;
         this.maxY = options.minY + options.height - 1;
 
-        this.originX = (options.chunkX - REGION_RADIUS) * 16;
-        this.originZ = (options.chunkZ - REGION_RADIUS) * 16;
-        this.states = new Uint16Array(REGION_WIDTH * REGION_WIDTH * options.height);
-        this.highest = new Int32Array(REGION_WIDTH * REGION_WIDTH).fill(options.minY - 1);
+        this.originX = (options.chunkX - this.radius) * 16;
+        this.originZ = (options.chunkZ - this.radius) * 16;
+        this.states = new Uint16Array(this.width * this.width * options.height);
+        this.highest = new Int32Array(this.width * this.width).fill(options.minY - 1);
     }
 
     /** The state at a block position, air outside the region. */
@@ -157,6 +190,18 @@ export class GenerationRegion {
 
         this.states[index] = this.paletteSlot(state);
         this.afterWrite(index, x, y, z, state.name === AIR);
+        this.trackWrite(index, x, y, z);
+        return true;
+    }
+
+    /** Writes a name-only state without allocating a `BlockState` for terrain samples. */
+    public writeName(x: number, y: number, z: number, name: string): boolean {
+        const index = this.indexOf(x, y, z);
+        if (index === -1) return false;
+
+        this.states[index] = this.paletteSlotForName(name);
+        this.afterWrite(index, x, y, z, name === AIR);
+        this.trackWrite(index, x, y, z);
         return true;
     }
 
@@ -174,7 +219,91 @@ export class GenerationRegion {
 
         this.states[index] = this.bedrockSlot(state);
         this.afterWrite(index, x, y, z, state.name === AIR);
+        this.trackWrite(index, x, y, z);
         return true;
+    }
+
+    /** Starts collecting decoration writes so neighboring chunks can receive their share. */
+    public beginWriteTracking(): void {
+        this.trackingWrites = true;
+        this.trackedWrites.clear();
+        this.trackedBlockEntities.clear();
+        this.trackedEntitySpawns.length = 0;
+    }
+
+    /** Returns the writes grouped by destination chunk, then stops tracking. */
+    public takeTrackedPatches(): readonly RegionChunkPatch[] {
+        this.trackingWrites = false;
+        const patches = new Map<string, MutableRegionPatch>();
+        const patchFor = (chunkX: number, chunkZ: number): MutableRegionPatch => {
+            const key = `${chunkX},${chunkZ}`;
+            let patch = patches.get(key);
+            if (patch === undefined) {
+                patch = { chunkX, chunkZ, blocks: [], blockEntities: [], entitySpawns: [] };
+                patches.set(key, patch);
+            }
+            return patch;
+        };
+
+        for (const write of this.trackedWrites.values()) {
+            patchFor(Math.floor(write.x / 16), Math.floor(write.z / 16)).blocks.push(write);
+        }
+        for (const blockEntity of this.trackedBlockEntities.values()) {
+            patchFor(Math.floor(blockEntity.x / 16), Math.floor(blockEntity.z / 16)).blockEntities.push(blockEntity);
+        }
+        for (const spawn of this.trackedEntitySpawns) {
+            patchFor(Math.floor(spawn.x / 16), Math.floor(spawn.z / 16)).entitySpawns.push(spawn);
+        }
+
+        this.trackedWrites.clear();
+        this.trackedBlockEntities.clear();
+        this.trackedEntitySpawns.length = 0;
+        return [...patches.values()];
+    }
+
+    /** Copies another tile's center terrain and frozen surface heights into this region. */
+    public copyCenterFrom(source: GenerationRegion): void {
+        if (source.minY !== this.minY || source.maxY !== this.maxY) {
+            throw new RangeError('Cannot combine generation regions with different vertical extents');
+        }
+
+        source.forEachCenterBlock((localX, y, localZ, block) => {
+            const x = source.chunkX * 16 + localX;
+            const z = source.chunkZ * 16 + localZ;
+            if (block.bedrock === undefined) this.write(x, y, z, block.java);
+            else this.writeBedrock(x, y, z, block.bedrock);
+        });
+        for (const blockEntity of source.centerBlockEntities()) {
+            this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
+        }
+        this.entitySpawns.push(...source.centerEntitySpawns());
+
+        if (source.frozenSurface !== null) {
+            this.frozenSurface ??= new Int32Array(this.highest.length).fill(this.minY - 1);
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const x = source.chunkX * 16 + localX;
+                    const z = source.chunkZ * 16 + localZ;
+                    const sourceColumn = source.columnIndex(x, z);
+                    const targetColumn = this.columnIndex(x, z);
+                    if (sourceColumn !== -1 && targetColumn !== -1) {
+                        this.frozenSurface[targetColumn] = source.frozenSurface[sourceColumn]!;
+                    }
+                }
+            }
+        }
+    }
+
+    /** Applies a previous feature write before this chunk's own decoration runs. */
+    public applyPatch(patch: RegionChunkPatch): void {
+        for (const write of patch.blocks) {
+            if (write.block.bedrock === undefined) this.write(write.x, write.y, write.z, write.block.java);
+            else this.writeBedrock(write.x, write.y, write.z, write.block.bedrock);
+        }
+        for (const blockEntity of patch.blockEntities) {
+            this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
+        }
+        this.entitySpawns.push(...patch.entitySpawns);
     }
 
     /** The bookkeeping every write does once its state has landed in the buffer. */
@@ -182,6 +311,7 @@ export class GenerationRegion {
         // A block entity belongs to the block it was attached to, so overwriting that block
         // takes it away, as Java's `setBlock` does.
         if (this.blockEntities.size > 0) this.blockEntities.delete(index);
+        if (this.trackingWrites) this.trackedBlockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
         if (!isAir) {
@@ -301,7 +431,9 @@ export class GenerationRegion {
         const index = this.indexOf(position.x, position.y, position.z);
         if (index === -1) return;
 
-        this.blockEntities.set(index, { x: position.x, y: position.y, z: position.z, request });
+        const blockEntity = { x: position.x, y: position.y, z: position.z, request };
+        this.blockEntities.set(index, blockEntity);
+        if (this.trackingWrites) this.trackedBlockEntities.set(index, blockEntity);
     }
 
     /**
@@ -313,7 +445,9 @@ export class GenerationRegion {
     private recordEntity(type: string, position: BlockPos, yaw: number): void {
         if (this.indexOf(position.x, position.y, position.z) === -1) return;
 
-        this.entitySpawns.push({ type, x: position.x + 0.5, y: position.y, z: position.z + 0.5, yaw });
+        const spawn = { type, x: position.x + 0.5, y: position.y, z: position.z + 0.5, yaw };
+        this.entitySpawns.push(spawn);
+        if (this.trackingWrites) this.trackedEntitySpawns.push(spawn);
     }
 
     /** Whether a block column belongs to the chunk being generated rather than to a neighbor. */
@@ -329,6 +463,21 @@ export class GenerationRegion {
         const state: BlockState = { name, properties: {} };
         this.paletteIndex.set(name, this.palette.push({ java: state }) - 1);
         return state;
+    }
+
+    private paletteSlotForName(name: string): number {
+        const existing = this.paletteIndex.get(name);
+        if (existing !== undefined) return existing;
+
+        const slot = this.palette.push({ java: { name, properties: {} } }) - 1;
+        this.paletteIndex.set(name, slot);
+        return slot;
+    }
+
+    private trackWrite(index: number, x: number, y: number, z: number): void {
+        if (!this.trackingWrites) return;
+
+        this.trackedWrites.set(index, { x, y, z, block: this.palette[this.states[index]!]! });
     }
 
     private heightAt(heightmap: HeightmapType, x: number, z: number): number {
@@ -387,9 +536,9 @@ export class GenerationRegion {
     private columnIndex(x: number, z: number): number {
         const localX = x - this.originX;
         const localZ = z - this.originZ;
-        if (localX < 0 || localX >= REGION_WIDTH || localZ < 0 || localZ >= REGION_WIDTH) return -1;
+        if (localX < 0 || localX >= this.width || localZ < 0 || localZ >= this.width) return -1;
 
-        return localX * REGION_WIDTH + localZ;
+        return localX * this.width + localZ;
     }
 
     private heightmapPredicate(heightmap: HeightmapType): (state: BlockState) => boolean {

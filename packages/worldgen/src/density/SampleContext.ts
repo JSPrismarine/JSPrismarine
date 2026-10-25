@@ -8,6 +8,16 @@ class CacheCell {
     public value = 0;
 }
 
+/** The eight density samples surrounding one interpolated block. */
+export type InterpolationCorners = readonly [number, number, number, number, number, number, number, number];
+
+interface CurrentInterpolationCell {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    readonly corners: InterpolationCorners;
+}
+
 /**
  * The cell-corner values an `interpolated` function has already computed, indexed by block x,
  * then y, then z.
@@ -40,6 +50,7 @@ export class SampleContext {
 
     private readonly cells: CacheCell[] = [];
     private readonly interpolationGrids: InterpolationGrid[] = [];
+    private readonly currentInterpolationCells: (CurrentInterpolationCell | undefined)[] = [];
 
     /** Returns the memo slot a compiled `cache` node owns, creating it on first use. */
     public cell(id: number): CacheCell {
@@ -59,6 +70,17 @@ export class SampleContext {
         return created;
     }
 
+    /** Returns the last interpolated cell's eight corners when the sampler stays in that cell. */
+    public currentInterpolationCell(id: number, x: number, y: number, z: number): InterpolationCorners | undefined {
+        const cell = this.currentInterpolationCells[id];
+        return cell !== undefined && cell.x === x && cell.y === y && cell.z === z ? cell.corners : undefined;
+    }
+
+    /** Remembers the eight corners used for one interpolation cell until the next cell is visited. */
+    public rememberInterpolationCell(id: number, x: number, y: number, z: number, corners: InterpolationCorners): void {
+        this.currentInterpolationCells[id] = { x, y, z, corners };
+    }
+
     /**
      * Drops every memoized value.
      *
@@ -68,5 +90,6 @@ export class SampleContext {
     public reset(): void {
         for (const cell of this.cells) cell.valid = false;
         for (const grid of this.interpolationGrids) grid.clear();
+        this.currentInterpolationCells.fill(undefined);
     }
 }

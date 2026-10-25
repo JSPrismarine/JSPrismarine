@@ -6,7 +6,7 @@ import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
 import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
-import type { InterpolationGrid, SampleContext } from './SampleContext';
+import type { InterpolationCorners, InterpolationGrid, SampleContext } from './SampleContext';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
@@ -341,26 +341,41 @@ export class DensityFunctionCompiler {
                     const x0 = x - xInCell;
                     const y0 = y - yInCell;
                     const z0 = z - zInCell;
-                    const grid = context.interpolationGrid(id);
                     if (xInCell === 0 && yInCell === 0 && zInCell === 0) {
-                        return cornerValue(grid, context, input, x0, y0, z0);
+                        return cornerValue(context.interpolationGrid(id), context, input, x0, y0, z0);
                     }
 
                     const x1 = x0 + cellSizeXz;
                     const y1 = y0 + cellSizeY;
                     const z1 = z0 + cellSizeXz;
+                    let corners = context.currentInterpolationCell(id, x0, y0, z0);
+                    if (corners === undefined) {
+                        const grid = context.interpolationGrid(id);
+                        corners = [
+                            cornerValue(grid, context, input, x0, y0, z0),
+                            cornerValue(grid, context, input, x1, y0, z0),
+                            cornerValue(grid, context, input, x0, y1, z0),
+                            cornerValue(grid, context, input, x1, y1, z0),
+                            cornerValue(grid, context, input, x0, y0, z1),
+                            cornerValue(grid, context, input, x1, y0, z1),
+                            cornerValue(grid, context, input, x0, y1, z1),
+                            cornerValue(grid, context, input, x1, y1, z1)
+                        ] satisfies InterpolationCorners;
+                        context.rememberInterpolationCell(id, x0, y0, z0, corners);
+                    }
+
                     return lerp3F(
                         f32(xInCell / cellSizeXz),
                         f32(yInCell / cellSizeY),
                         f32(zInCell / cellSizeXz),
-                        cornerValue(grid, context, input, x0, y0, z0),
-                        cornerValue(grid, context, input, x1, y0, z0),
-                        cornerValue(grid, context, input, x0, y1, z0),
-                        cornerValue(grid, context, input, x1, y1, z0),
-                        cornerValue(grid, context, input, x0, y0, z1),
-                        cornerValue(grid, context, input, x1, y0, z1),
-                        cornerValue(grid, context, input, x0, y1, z1),
-                        cornerValue(grid, context, input, x1, y1, z1)
+                        corners[0]!,
+                        corners[1]!,
+                        corners[2]!,
+                        corners[3]!,
+                        corners[4]!,
+                        corners[5]!,
+                        corners[6]!,
+                        corners[7]!
                     );
                 };
             }
