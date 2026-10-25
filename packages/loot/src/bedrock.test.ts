@@ -93,7 +93,9 @@ describe('the plural conditions array', () => {
 
 describe('the three chance conditions', () => {
     it('random_chance draws against its stated chance', () => {
-        const table = { pools: [{ rolls: 1, conditions: [{ condition: 'random_chance', chance: 0.2 }], entries: [sword] }] };
+        const table = {
+            pools: [{ rolls: 1, conditions: [{ condition: 'random_chance', chance: 0.2 }], entries: [sword] }]
+        };
 
         expect(rollIds(table, { random: scriptedRandom([0.199]) })).toEqual(['minecraft:iron_sword']);
         expect(rollIds(table, { random: scriptedRandom([0.201]) })).toEqual([]);

@@ -145,9 +145,12 @@ describe('strict parsing', () => {
     it('throws with every error the table reported', () => {
         let thrown: unknown;
         try {
-            parseLootTable({ type: 'minecraft:chest', pools: [{ rolls: 1, entries: [bread], conditions: [] }] }, {
-                strict: true
-            });
+            parseLootTable(
+                { type: 'minecraft:chest', pools: [{ rolls: 1, entries: [bread], conditions: [] }] },
+                {
+                    strict: true
+                }
+            );
         } catch (error) {
             thrown = error;
         }
