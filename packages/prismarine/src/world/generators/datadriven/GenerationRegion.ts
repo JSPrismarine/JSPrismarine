@@ -79,6 +79,13 @@ export interface RegionBlockEntity {
     readonly request: BlockEntityRequest;
 }
 
+/** A block entity a later feature write removed, in world coordinates. */
+export interface RegionBlockEntityRemoval {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
 /** An entity a feature asked for, at the entity coordinates it stands on. */
 export interface RegionEntitySpawn {
     /** The Java entity type the feature named, for example `minecraft:end_crystal`. */
@@ -103,6 +110,7 @@ export interface RegionChunkPatch {
     readonly chunkX: number;
     readonly chunkZ: number;
     readonly blocks: readonly RegionBlockWrite[];
+    readonly blockEntityRemovals: readonly RegionBlockEntityRemoval[];
     readonly blockEntities: readonly RegionBlockEntity[];
     readonly entitySpawns: readonly RegionEntitySpawn[];
 }
@@ -111,6 +119,7 @@ interface MutableRegionPatch {
     readonly chunkX: number;
     readonly chunkZ: number;
     readonly blocks: RegionBlockWrite[];
+    readonly blockEntityRemovals: RegionBlockEntityRemoval[];
     readonly blockEntities: RegionBlockEntity[];
     readonly entitySpawns: RegionEntitySpawn[];
 }
@@ -151,6 +160,7 @@ export class GenerationRegion {
 
     private trackingWrites = false;
     private readonly trackedWrites = new Map<number, RegionBlockWrite>();
+    private readonly trackedBlockEntityRemovals = new Map<number, RegionBlockEntityRemoval>();
     private readonly trackedBlockEntities = new Map<number, RegionBlockEntity>();
     private readonly trackedEntitySpawns: RegionEntitySpawn[] = [];
 
@@ -227,6 +237,7 @@ export class GenerationRegion {
     public beginWriteTracking(): void {
         this.trackingWrites = true;
         this.trackedWrites.clear();
+        this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
     }
@@ -239,7 +250,7 @@ export class GenerationRegion {
             const key = `${chunkX},${chunkZ}`;
             let patch = patches.get(key);
             if (patch === undefined) {
-                patch = { chunkX, chunkZ, blocks: [], blockEntities: [], entitySpawns: [] };
+                patch = { chunkX, chunkZ, blocks: [], blockEntityRemovals: [], blockEntities: [], entitySpawns: [] };
                 patches.set(key, patch);
             }
             return patch;
@@ -247,6 +258,9 @@ export class GenerationRegion {
 
         for (const write of this.trackedWrites.values()) {
             patchFor(Math.floor(write.x / 16), Math.floor(write.z / 16)).blocks.push(write);
+        }
+        for (const removal of this.trackedBlockEntityRemovals.values()) {
+            patchFor(Math.floor(removal.x / 16), Math.floor(removal.z / 16)).blockEntityRemovals.push(removal);
         }
         for (const blockEntity of this.trackedBlockEntities.values()) {
             patchFor(Math.floor(blockEntity.x / 16), Math.floor(blockEntity.z / 16)).blockEntities.push(blockEntity);
@@ -256,6 +270,7 @@ export class GenerationRegion {
         }
 
         this.trackedWrites.clear();
+        this.trackedBlockEntityRemovals.clear();
         this.trackedBlockEntities.clear();
         this.trackedEntitySpawns.length = 0;
         return [...patches.values()];
@@ -267,12 +282,41 @@ export class GenerationRegion {
             throw new RangeError('Cannot combine generation regions with different vertical extents');
         }
 
-        source.forEachCenterBlock((localX, y, localZ, block) => {
-            const x = source.chunkX * 16 + localX;
-            const z = source.chunkZ * 16 + localZ;
-            if (block.bedrock === undefined) this.write(x, y, z, block.java);
-            else this.writeBedrock(x, y, z, block.bedrock);
+        // A feature view copies nine terrain tiles. Move their palette indices in bulk so this
+        // boundary does not allocate a RegionBlock and sort state properties for every block.
+        const destinationSlots = source.palette.map((block, slot) => {
+            if (slot === 0) return 0;
+            return block.bedrock === undefined ? this.paletteSlot(block.java) : this.bedrockSlot(block.bedrock);
         });
+        for (let localX = 0; localX < 16; localX++) {
+            for (let localZ = 0; localZ < 16; localZ++) {
+                const x = source.chunkX * 16 + localX;
+                const z = source.chunkZ * 16 + localZ;
+                const sourceColumn = source.columnIndex(x, z);
+                const targetColumn = this.columnIndex(x, z);
+                if (sourceColumn === -1 || targetColumn === -1) continue;
+
+                const sourceTop = source.highest[sourceColumn]!;
+                for (let y = this.minY; y <= sourceTop; y++) {
+                    const sourceIndex = sourceColumn * this.height + (y - this.minY);
+                    const sourceSlot = source.states[sourceIndex]!;
+                    if (sourceSlot === 0) continue;
+
+                    const targetIndex = targetColumn * this.height + (y - this.minY);
+                    const targetSlot = destinationSlots[sourceSlot]!;
+                    const block = this.palette[targetSlot]!;
+                    if (block.java.name === AIR) continue;
+
+                    this.states[targetIndex] = targetSlot;
+                    this.blockEntities.delete(targetIndex);
+                    if (this.trackingWrites) {
+                        this.trackedBlockEntities.delete(targetIndex);
+                        this.trackedWrites.set(targetIndex, { x, y, z, block });
+                    }
+                    if (y > this.highest[targetColumn]!) this.highest[targetColumn] = y;
+                }
+            }
+        }
         for (const blockEntity of source.centerBlockEntities()) {
             this.attachBlockEntity({ x: blockEntity.x, y: blockEntity.y, z: blockEntity.z }, blockEntity.request);
         }
@@ -296,6 +340,10 @@ export class GenerationRegion {
 
     /** Applies a previous feature write before this chunk's own decoration runs. */
     public applyPatch(patch: RegionChunkPatch): void {
+        for (const removal of patch.blockEntityRemovals) {
+            const index = this.indexOf(removal.x, removal.y, removal.z);
+            if (index !== -1) this.blockEntities.delete(index);
+        }
         for (const write of patch.blocks) {
             if (write.block.bedrock === undefined) this.write(write.x, write.y, write.z, write.block.java);
             else this.writeBedrock(write.x, write.y, write.z, write.block.bedrock);
@@ -310,7 +358,11 @@ export class GenerationRegion {
     private afterWrite(index: number, x: number, y: number, z: number, isAir: boolean): void {
         // A block entity belongs to the block it was attached to, so overwriting that block
         // takes it away, as Java's `setBlock` does.
-        if (this.blockEntities.size > 0) this.blockEntities.delete(index);
+        const removedBlockEntity = this.blockEntities.get(index);
+        if (removedBlockEntity !== undefined) {
+            if (this.trackingWrites) this.trackedBlockEntityRemovals.set(index, { x, y, z });
+            this.blockEntities.delete(index);
+        }
         if (this.trackingWrites) this.trackedBlockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
@@ -433,7 +485,10 @@ export class GenerationRegion {
 
         const blockEntity = { x: position.x, y: position.y, z: position.z, request };
         this.blockEntities.set(index, blockEntity);
-        if (this.trackingWrites) this.trackedBlockEntities.set(index, blockEntity);
+        if (this.trackingWrites) {
+            this.trackedBlockEntityRemovals.delete(index);
+            this.trackedBlockEntities.set(index, blockEntity);
+        }
     }
 
     /**

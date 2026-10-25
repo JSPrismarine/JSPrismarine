@@ -30,6 +30,19 @@ const region = (): GenerationRegion =>
         biomeAt: () => 'minecraft:plains'
     });
 
+const terrainTile = (chunkX: number, chunkZ: number): GenerationRegion =>
+    new GenerationRegion({
+        chunkX,
+        chunkZ,
+        minY: -64,
+        height: 384,
+        radius: 0,
+        seaLevel: 63,
+        seed: SEED,
+        blocks: createJavaBlockOracle(new Map()),
+        biomeAt: () => 'minecraft:plains'
+    });
+
 /** Fills the whole three by three chunk window with stone up to `top`. */
 const fillStone = (built: GenerationRegion, top: number): void => {
     for (let x = -16; x < 32; x++) {
@@ -146,5 +159,63 @@ describe('spawnEntity', () => {
         built.featureWorld().spawnEntity?.('minecraft:end_crystal', { x: 500, y: 64, z: 500 }, 0);
 
         expect(built.centerEntitySpawns()).toHaveLength(0);
+    });
+});
+
+describe('neighbor chunk data', () => {
+    it('copies neighboring terrain into the feature view', () => {
+        const source = terrainTile(1, 0);
+        source.writeName(16, 50, 8, 'minecraft:stone');
+        source.freezeSurfaceHeights();
+
+        const built = region();
+        built.copyCenterFrom(source);
+
+        expect(built.featureWorld().getBlock({ x: 16, y: 50, z: 8 }).name).toBe('minecraft:stone');
+        expect(built.featureWorld().getHeight('WORLD_SURFACE_WG', 16, 8)).toBe(51);
+    });
+
+    it('returns cross-chunk blocks, block entities, and entity spawns as a patch', () => {
+        const built = region();
+        const world = built.featureWorld();
+        built.beginWriteTracking();
+        world.setBlock({ x: 16, y: 64, z: 8 }, { name: 'minecraft:chest', properties: {} });
+        world.setBlockEntity?.({ x: 16, y: 64, z: 8 }, { id: 'minecraft:chest' });
+        world.spawnEntity?.('minecraft:end_crystal', { x: 16, y: 65, z: 8 }, 90);
+
+        const [patch] = built.takeTrackedPatches();
+        if (patch === undefined) throw new Error('Cross-chunk writes did not produce a patch');
+        expect(patch).toMatchObject({ chunkX: 1, chunkZ: 0 });
+        expect(patch?.blocks).toHaveLength(1);
+        expect(patch?.blockEntities).toHaveLength(1);
+        expect(patch?.entitySpawns).toHaveLength(1);
+
+        const destination = terrainTile(1, 0);
+        destination.applyPatch(patch);
+        expect(destination.stateAt(16, 64, 8).name).toBe('minecraft:chest');
+        expect(destination.centerBlockEntities()).toHaveLength(1);
+        expect(destination.centerEntitySpawns()).toHaveLength(1);
+    });
+
+    it('returns block entity removals in patches', () => {
+        const position = { x: 16, y: 64, z: 8 };
+        const built = terrainTile(1, 0);
+        const builtWorld = built.featureWorld();
+        builtWorld.setBlock(position, { name: 'minecraft:chest', properties: {} });
+        builtWorld.setBlockEntity?.(position, { id: 'minecraft:chest' });
+
+        built.beginWriteTracking();
+        builtWorld.setBlock(position, { name: 'minecraft:stone', properties: {} });
+
+        const [patch] = built.takeTrackedPatches();
+        if (patch === undefined) throw new Error('Overwriting a block entity did not produce a patch');
+        expect(patch.blockEntityRemovals).toEqual([position]);
+
+        const destination = terrainTile(1, 0);
+        const destinationWorld = destination.featureWorld();
+        destinationWorld.setBlock(position, { name: 'minecraft:chest', properties: {} });
+        destinationWorld.setBlockEntity?.(position, { id: 'minecraft:chest' });
+        destination.applyPatch(patch);
+        expect(destination.centerBlockEntities()).toHaveLength(0);
     });
 });
