@@ -35,7 +35,12 @@ export interface TradeOffer {
     readonly rewardExp: boolean;
 }
 
-/** What a trader and the player it faces look like to a trade item's filters. */
+/**
+ * What a trader and the player facing it look like to a trade table.
+ *
+ * Offer generation reads `filters`; the economy reads the other three, which
+ * are the whole of the player state the discounts need.
+ */
 export interface TradeContext {
     /**
      * The filter context `TradeItem.filters` reads. Vanilla's two uses are
@@ -44,6 +49,12 @@ export interface TradeContext {
      * variant.
      */
     readonly filters?: FilterContext;
+    /** The level of Hero of the Village the trading player carries, zero for none. */
+    readonly heroOfTheVillage?: number;
+    /** Whether the trading player cured this trader of being a zombie villager. */
+    readonly curedByPlayer?: boolean;
+    /** How many other cured villagers stand near this trader. */
+    readonly nearbyCured?: number;
 }
 
 /** How to generate one trader's offers. */
