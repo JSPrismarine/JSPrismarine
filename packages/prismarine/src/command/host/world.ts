@@ -283,8 +283,8 @@ export const worldCommandHost = (server: Server): WorldCommandHost => {
             return next;
         },
 
-        getWeather: () => unsupported('weather'),
-        setWeather: () => unsupported('weather'),
+        getWeather: () => defaultWorld().getWeather(),
+        setWeather: (kind, durationTicks) => defaultWorld().setWeather(kind, durationTicks),
 
         getGameRule: (name) => {
             const stored = defaultWorld().getGameRuleManager()?.getGameRule(serverGameRuleName(name));
