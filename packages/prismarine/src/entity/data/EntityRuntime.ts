@@ -35,6 +35,7 @@ import type { Merchant } from '@jsprismarine/trading';
 import type { ServerContent } from '../../content/ServerContent';
 import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
+import { detonate } from './explosion';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
@@ -120,6 +121,8 @@ export class EntityRuntime implements EntityScene {
     private spawner: Spawner | undefined;
     /** The world the spawn rules read, kept because the despawn pass reads the same one. */
     private spawnWorld: SpawnWorld | undefined;
+    /** The path finder's view, built once; see {@link EntityRuntime.navigation}. */
+    private navigationView: NavigationView | undefined;
     private nextId = 1;
 
     public constructor(options: EntityRuntimeOptions) {
@@ -337,9 +340,17 @@ export class EntityRuntime implements EntityScene {
         brain.tick(context);
     }
 
-    /** The blocks as the path finder reads them. */
+    /**
+     * The blocks as the path finder reads them.
+     *
+     * One view for the whole runtime rather than one per query. The view
+     * closes over nothing that changes, and it memoizes the block reads a
+     * path search repeats thousands of times per tick, which a view rebuilt
+     * per call would throw away each time.
+     */
     public navigation(): NavigationView {
-        return navigationViewOf(this.world.blocks, () => this.content());
+        this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content());
+        return this.navigationView;
     }
 
     /**
@@ -542,26 +553,32 @@ export class EntityRuntime implements EntityScene {
      * Detonates an entity, which is what `minecraft:behavior.swell` stands
      * still for.
      *
-     * The blast is the entities in range and the entity itself. Blocks are
-     * left alone: breaking them is the explosion system's, and it does not
-     * exist yet, so a creeper takes the fence with it and leaves the hole for
-     * later.
+     * Java's ray cast through {@link detonate}, so a creeper now carves the
+     * hole it should: the blocks it can reach come out through their own loot
+     * tables, everything in range is hurt by how much of the blast it can see,
+     * and the entity itself goes with it.
      */
     public explode(source: MobBody): void {
         const params = this.entities.get(source.id)?.instance.componentParams('minecraft:explode');
         const power = isRecord(params) && typeof params.power === 'number' ? params.power : DEFAULT_EXPLOSION_POWER;
-        const radius = power * EXPLOSION_RADIUS_PER_POWER;
 
         this.world.effects.playSound(blockPositionOf(source.position), 'random.explode');
-        for (const caught of this.near(source.position, radius)) {
-            if (caught.id === source.id) continue;
-            const away = distance(source.position, caught.position);
-            this.hurt(caught, source.id, 'entity_explosion', Math.max(1, Math.round(power * (1 - away / radius) * 7)));
+
+        const blast = detonate(this.world, {
+            center: source.position,
+            power,
+            candidates: this.all().filter((caught) => caught.id !== source.id),
+            content: this.content(),
+            drop: (at, item) => this.host.drop(at, item)
+        });
+
+        for (const hit of blast.hits) {
+            this.hurt(hit.entity, source.id, 'entity_explosion', hit.damage);
+            hit.entity.body.push(hit.knockback);
         }
 
         const self = this.entities.get(source.id);
         if (self !== undefined) this.remove(self.id, 'explosion');
-        this.report(`${source.identifier} exploded, and nothing breaks the blocks around it yet`);
     }
 
     /** Puts an entity on a mob as a rider, if the mob has a seat free for it. */
@@ -872,9 +889,6 @@ const DRAG = 0.91;
 
 /** The `power` a `minecraft:explode` with none declared uses, which is the creeper's. */
 const DEFAULT_EXPLOSION_POWER = 3;
-
-/** How far a blast of one power reaches, from Java's `Explosion` radius of twice the power. */
-const EXPLOSION_RADIUS_PER_POWER = 2;
 
 /** The identifier a broken block leaves behind. */
 const AIR = 'minecraft:air';

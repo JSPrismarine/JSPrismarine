@@ -531,5 +531,41 @@ describe('the goal world over the entity runtime', () => {
             expect(bystander.instance.attributes.get('health')?.current).toBeLessThan(20);
             expect(world.sounds).toContain('random.explode');
         });
+
+        it('takes the ground out from under it', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(world.world.blocks.get({ x: 0, y: FLOOR_Y, z: 0 })?.identifier).toBe('minecraft:air');
+        });
+
+        it('cannot get through obsidian, whose 1200 outruns a creeper', () => {
+            const world = new TestEntityWorld();
+            for (let x = -4; x <= 4; x += 1) {
+                for (let z = -4; z <= 4; z += 1) {
+                    world.setBlock({ x, y: FLOOR_Y, z }, 'minecraft:obsidian');
+                }
+            }
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(world.world.blocks.get({ x: 0, y: FLOOR_Y, z: 0 })?.identifier).toBe('minecraft:obsidian');
+        });
+
+        it('shoves what it does not kill away from itself', () => {
+            const world = new TestEntityWorld();
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+            const bystander = spawned(fixture, 'jsprismarine:pet', groundAt(4, 0));
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(bystander.body.velocity.x).toBeGreaterThan(0);
+        });
     });
 });
