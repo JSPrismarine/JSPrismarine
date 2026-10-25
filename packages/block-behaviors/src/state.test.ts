@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { bareName, hasState, patchStates, setStates, sibling, stateBoolean, stateNumber, stateString } from './state';
 import { createVoxelWorld } from './voxelWorld';
+import type { WorldActions } from './world';
 
 const block = (states: HookBlock['states']): HookBlock => ({
     identifier: 'minecraft:oak_door',
@@ -55,15 +56,77 @@ describe('patchStates', () => {
 });
 
 describe('setStates', () => {
+    const at = { x: 1, y: 1, z: 1 };
+
+    /** The dimension with its `setBlock` counted, which is how a test sees a write it did not want. */
+    const counting = (world: WorldActions): { world: WorldActions; writes: () => number } => {
+        let writes = 0;
+        return {
+            world: {
+                ...world,
+                setBlock: (position, identifier, states) => {
+                    writes += 1;
+                    world.setBlock(position, identifier, states);
+                }
+            },
+            writes: () => writes
+        };
+    };
+
     it('rewrites the block in place, keeping its identifier', () => {
         const world = createVoxelWorld().overworld;
-        world.set({ x: 1, y: 1, z: 1 }, 'minecraft:oak_door', { open_bit: false, direction: 1 });
+        world.set(at, 'minecraft:oak_door', { open_bit: false, direction: 1 });
 
-        setStates(world, world.block({ x: 1, y: 1, z: 1 }), { open_bit: true });
+        setStates(world, world.block(at), { open_bit: true });
 
-        expect(world.identifierAt({ x: 1, y: 1, z: 1 })).toBe('minecraft:oak_door');
-        expect(world.stateAt({ x: 1, y: 1, z: 1 }, 'open_bit')).toBe(true);
-        expect(world.stateAt({ x: 1, y: 1, z: 1 }, 'direction')).toBe(1);
+        expect(world.identifierAt(at)).toBe('minecraft:oak_door');
+        expect(world.stateAt(at, 'open_bit')).toBe(true);
+        expect(world.stateAt(at, 'direction')).toBe(1);
+    });
+
+    it('writes nothing when the patch moves nothing', () => {
+        // The write is not free: it notifies the six neighbors, so a family that
+        // recomputes a derived state on a neighbor change would rewrite its unchanged
+        // value and notify back, and a settled run would never reach a fixed point.
+        const dimension = createVoxelWorld().overworld;
+        dimension.set(at, 'minecraft:scaffolding', { stability: 3, stability_check: false });
+        const counted = counting(dimension);
+
+        setStates(counted.world, dimension.block(at), { stability: 3, stability_check: false });
+
+        expect(counted.writes()).toBe(0);
+    });
+
+    it('counts a boolean and the 0 or 1 the wire carries as the same value', () => {
+        const dimension = createVoxelWorld().overworld;
+        dimension.set(at, 'minecraft:oak_door', { open_bit: 1 });
+        const counted = counting(dimension);
+
+        setStates(counted.world, dimension.block(at), { open_bit: true });
+
+        expect(counted.writes()).toBe(0);
+    });
+
+    it('still writes when one value of the patch moves', () => {
+        const dimension = createVoxelWorld().overworld;
+        dimension.set(at, 'minecraft:scaffolding', { stability: 3, stability_check: false });
+        const counted = counting(dimension);
+
+        setStates(counted.world, dimension.block(at), { stability: 3, stability_check: true });
+
+        expect(counted.writes()).toBe(1);
+        expect(dimension.stateAt(at, 'stability_check')).toBe(true);
+    });
+
+    it('writes a state the block does not carry yet', () => {
+        const dimension = createVoxelWorld().overworld;
+        dimension.set(at, 'minecraft:oak_door', {});
+        const counted = counting(dimension);
+
+        setStates(counted.world, dimension.block(at), { open_bit: false });
+
+        expect(counted.writes()).toBe(1);
+        expect(dimension.stateAt(at, 'open_bit')).toBe(false);
     });
 });
 
