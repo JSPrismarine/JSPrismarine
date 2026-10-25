@@ -188,10 +188,51 @@ that buffer. `@jsprismarine/prismarine` does: its generation stages speak Java b
 properties, which a flat string palette would have to encode on the way in and decode on the way
 out, twice per status. `ProtoChunk` stays the representation a worker transfers.
 
+## The worker pool
+
+`GenerationPool` runs status bodies in worker threads, over piscina. It knows a chunk position
+and a status name and nothing else about world generation, so this package does not depend on the
+server.
+
+A caller names a **pipeline module**. Each worker imports it once, hands it the pool's `setup`
+value, and keeps whatever it builds for the life of the worker. That is the whole reason a worker
+is worth starting: a seed's noise tables cost 55 to 134 ms to build and the 7594-entry climate
+biome source 145 to 345 ms, so a worker is pinned to one world rather than told which world each
+task belongs to.
+
+```ts
+const pool = new GenerationPool({
+    pipeline: '/path/to/built/terrainPipeline.js',
+    workers: 6,
+    setup: { seed: 1234n, registryBundle }
+});
+
+const { payload } = await pool.run({ status: 'terrain', chunkX: 3, chunkZ: -14, input: beardPieces });
+```
+
+The pipeline module exports `createGenerationPipeline`, which answers with an object that has a
+`run`. A body hands back a payload and the list of `ArrayBuffer`s inside it, and the pool
+transfers those rather than copying them: 18 microseconds for a 192 KiB column against 76 cloned
+and 1370 as a `number[]`.
+
+Two constraints are not negotiable.
+
+**Only a status that writes radius 0 belongs in a worker.** `terrain` is one, which is why Java
+sends it to a thread pool and keeps `features`, which writes radius 1, on a single executor. Two
+`terrain` bodies can never touch the same block, so no two workers can race.
+
+**The module has to be something Node can `import()` from a worker thread.** A built `.js` in a
+published package; in a dev checkout Node loads this package's own worker entry straight from
+TypeScript, but a pipeline module that imports other workspace packages needs them built.
+
+`Math.random` is shadowed inside the worker and throws. It is seeded independently per V8
+isolate, so a main thread and six workers produce seven different sequences and a decorator that
+reached for it would give a different world depending on which worker ran the chunk.
+
 ## What is not here yet
 
-The worker pool. It lands in a later slice of
-[the plan](../../docs/plans/chunk-generation-rewrite.md).
+The server's own terrain pipeline module, and the wiring that hands `terrain` to the pool. They
+land in a later slice of [the plan](../../docs/plans/chunk-generation-rewrite.md).
 
 ## Installation
 

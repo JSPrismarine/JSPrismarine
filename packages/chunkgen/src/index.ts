@@ -37,3 +37,13 @@ export {
     FeaturePatchOutOfRangeError,
     InboundFeaturePatches
 } from './FeaturePatch';
+export type {
+    GenerationPoolOptions,
+    GenerationResult,
+    GenerationTask,
+    GenerationWorkerData,
+    TaskRunnerFactory,
+    WorkerPipeline,
+    WorkerPipelineFactory
+} from './GenerationPool';
+export { defaultGenerationWorker, GenerationPool, GenerationPoolClosedError } from './GenerationPool';
