@@ -377,14 +377,12 @@ export class DataDrivenGenerator implements Generator {
         const own = chunk.ownFeatureWrites;
         if (own !== undefined) final.applyPatch(own);
 
-        const arrivals: { at: number; patch: RegionChunkPatch }[] = [];
+        const inbound = new InboundFeaturePatches<RegionChunkPatch>();
         for (const [dx, dz] of FEATURE_PATCH_ORDER) {
-            const neighbor = region.neighbor(dx, dz, 'features');
-            const patch = neighbor.featureWritesInto(chunk.chunkX, chunk.chunkZ);
-            if (patch !== undefined) arrivals.push({ at: neighbor.featuresRanAt, patch });
+            const patch = region.neighbor(dx, dz, 'features').featureWritesInto(chunk.chunkX, chunk.chunkZ);
+            if (patch !== undefined) inbound.receive(dx, dz, patch);
         }
-        arrivals.sort((left, right) => left.at - right.at);
-        for (const arrival of arrivals) final.applyPatch(arrival.patch);
+        for (const patch of inbound.inMergeOrder()) final.applyPatch(patch);
 
         chunk.recordChunk(this.toChunk(chunk.chunkX, chunk.chunkZ, final, pipeline));
         return chunk;
