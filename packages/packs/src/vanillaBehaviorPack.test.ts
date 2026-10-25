@@ -119,7 +119,9 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
             expect.objectContaining({
                 severity: 'warning',
                 code: 'definition.missing-key',
-                message: 'description must be an object; a later pack supersedes this file'
+                message: 'description must be an object; a later pack supersedes this file',
+                // Both layers call themselves `vanilla`, so the pair collapses.
+                occurrences: 2
             })
         ]);
         // 129 entities, 60 spawn rules, 309 loot tables and 27 trade tables
