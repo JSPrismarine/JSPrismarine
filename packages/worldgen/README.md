@@ -159,8 +159,10 @@ injection point rather than a stub:
   magnitude rather than a budget. About a quarter of it is Perlin evaluation on the 1225 cell
   corners, which is already the fewest evaluations the lattice allows, and about a third is the
   per-block walk of the density graph. Java samples whole volumes at once where this samples
-  positions. The levers left are interpolating incrementally inside a cell, compiling the graph
-  to one function body instead of a tree of closures, and a WebAssembly kernel.
+  positions. The levers left are interpolating incrementally inside a cell and compiling the
+  graph to one function body instead of a tree of closures. Per-chunk cost is not the only
+  lever: a chunk's fill reads nothing outside itself, so a server gets throughput by running
+  several of them at once rather than by making one faster.
 - The random sources use `BigInt` for their 64-bit state. That is exact and slow, and it is the
   reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
 - Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,

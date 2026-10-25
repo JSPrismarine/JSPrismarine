@@ -44,8 +44,6 @@ export interface ChunkSamplerOptions {
 export class ChunkSampler {
     /** The block extent this sampler covers. */
     public readonly volume: AquiferVolume;
-    /** The aquifer bound to this chunk, shared across every column in it. */
-    public readonly aquifer: Aquifer;
     /** The per-chunk mutable state the compiled samplers read. */
     public readonly context: SampleContext;
 
@@ -64,6 +62,8 @@ export class ChunkSampler {
     private readonly cellsX: number;
     private readonly cellsY: number;
     private readonly cellsZ: number;
+    private readonly fluidPicker: FluidPicker;
+    private noiseAquifer: Aquifer | undefined;
 
     public constructor(
         private readonly randomState: RandomState,
@@ -85,17 +85,7 @@ export class ChunkSampler {
         this.finalDensity = randomState.sampler(settings.noiseRouter.finalDensity);
         this.defaultBlock = settings.defaultBlock;
 
-        const fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
-        this.aquifer = settings.aquifers
-            ? createNoiseAquifer(
-                  settings.aquifers,
-                  (node) => randomState.sampler(node),
-                  this.context,
-                  randomState.randomFactory(AQUIFER_SEED),
-                  this.volume,
-                  fluidPicker
-              )
-            : createDisabledAquifer(fluidPicker);
+        this.fluidPicker = options.fluidPicker ?? createGlobalFluidPicker(settings);
 
         // Read after the samplers are compiled, because compiling is what registers the
         // `interpolated` nodes the cell size is taken from.
@@ -106,6 +96,27 @@ export class ChunkSampler {
         this.cellsY = this.cellSpan(this.volume.minBlockY, this.volume.maxBlockY, this.cellSizeY);
         this.cellsZ = this.cellSpan(this.volume.minBlockZ, this.volume.maxBlockZ, this.cellSizeXz);
         this.cellCount = this.cellsX * this.cellsY * this.cellsZ;
+    }
+
+    /**
+     * The aquifer bound to this chunk, shared across every column in it.
+     *
+     * Built on first use. Its constructor samples the preliminary surface height of 121 quart
+     * columns, which is 0.7 milliseconds that a sampler asked only for densities - a surface
+     * probe, a structure height walk - never has to spend.
+     */
+    public get aquifer(): Aquifer {
+        this.noiseAquifer ??= this.randomState.settings.aquifers
+            ? createNoiseAquifer(
+                  this.randomState.settings.aquifers,
+                  (node) => this.randomState.sampler(node),
+                  this.context,
+                  this.randomState.randomFactory(AQUIFER_SEED),
+                  this.volume,
+                  this.fluidPicker
+              )
+            : createDisabledAquifer(this.fluidPicker);
+        return this.noiseAquifer;
     }
 
     /** The final density at one block position. */
