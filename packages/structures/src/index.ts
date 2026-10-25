@@ -92,6 +92,7 @@ export {
     type JointType,
     type PlacedPiece,
     type PoolElement,
+    type PoolElementProcessors,
     type PoolElementType,
     type Projection,
     type TemplatePool

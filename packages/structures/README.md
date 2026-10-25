@@ -158,11 +158,23 @@ joint is `rollable` or the two share a top facing. Bedrock spells the orientatio
 `facing_direction` and `rotation` pair where Java spells it as one `orientation` value, and the
 package joins the two through the mapping rather than writing the encoding down.
 
-`assembleJigsaw(config, sources)` starts from a pool, draws an element by weight, picks a rotation,
-and walks the connections breadth first. For each jigsaw of each placed piece it draws candidates
-from the target pool, then from the pool's fallback, tries the four rotations in a shuffled order,
-and takes the first candidate whose own jigsaw faces back and whose bounding box shares no block
-with a piece already placed. `maxDepth` stops the walk and `maxDistanceFromCenter` bounds it.
+`assembleJigsaw(config, sources)` picks a rotation, draws an element by weight, and walks the
+connections breadth first. For each jigsaw of each placed piece it draws candidates from the
+target pool, then from the pool's fallback, tries the four rotations in a shuffled order, and
+takes the first candidate whose own jigsaw faces back and whose bounding box shares no block with
+a piece already placed. `maxDepth` stops the walk and `maxDistanceFromCenter` bounds it.
+
+Three things decide where a piece sits vertically. A `rigid` element hanging off a `rigid` parent
+takes the y its jigsaw lands on. Anything else, which is the 183 `terrain_matching` elements of
+the village street pools, takes the terrain height at its parent's jigsaw instead, read through
+`JigsawSources.terrainHeight`. And `use_expansion_hack`, which 24 of the 28 vanilla jigsaw
+structures set, makes a piece whose own jigsaw points back into its own box as tall as the pool
+that jigsaw targets, so nothing lands in the room it is about to grow into.
+
+The start piece settles the same way: `projectStartToHeightmap` adds the structure's start height
+to the terrain at the middle of the piece, and the piece moves so its ground layer, one above its
+floor, lands there. `JigsawAssembly.origin` reports the point Java calls the generation point,
+which is where the structure's biome check is made and what `/locate` names.
 
 Every draw goes through the injected `RandomSource`, so a seed and a set of pools always produce
 the same layout. `createLegacyRandom` is Java's own `java.util.Random` generator, reproduced bit for
@@ -172,9 +184,9 @@ The result reports what it could not do: `rejectedForCollision` counts candidate
 bounding box refused, and `unresolvedConnections` counts jigsaws that found no pool, no candidate
 or no room.
 
-Two parts of Java's placer are left out, because they need a world this package does not have: the
-terrain-matching projection's height adjustment with its `use_expansion_hack` y search, and the
-voxel-accurate free-space shape, which here is a list of piece bounding boxes.
+Two parts of Java's placer are left out. Its free space is a voxel shape and here it is a list of
+piece bounding boxes, which rejects a few placements Java's deflated shape accepts. And
+`placement_priority`, which only the trial chambers use, does not reorder the queue.
 
 ## Structure sets and placement
 

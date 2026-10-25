@@ -353,15 +353,15 @@ describe('assembleJigsaw', () => {
         // by the tests around this one: four streets leave the center, each
         // reaches one house, and nothing overlaps.
         expect(layout(assembleJigsaw(config, sources(2024)))).toEqual([
-            'test:center@0,64,0/clockwise_180',
-            'test:street@-3,64,0/clockwise_90',
-            'test:street@0,64,-3/clockwise_180',
-            'test:street@0,64,3/clockwise_180',
-            'test:street@3,64,0/clockwise_90',
-            'test:house_a@-6,64,0/clockwise_90',
-            'test:house_b@0,64,-6/none',
-            'test:house_a@0,64,6/none',
-            'test:house_a@6,64,0/counterclockwise_90'
+            'test:center@0,63,0/clockwise_180',
+            'test:street@-3,63,0/clockwise_90',
+            'test:street@0,63,-3/clockwise_180',
+            'test:street@0,63,3/clockwise_180',
+            'test:street@3,63,0/clockwise_90',
+            'test:house_a@-6,63,0/clockwise_90',
+            'test:house_b@0,63,-6/none',
+            'test:house_a@0,63,6/none',
+            'test:house_a@6,63,0/counterclockwise_90'
         ]);
     });
 
@@ -434,5 +434,126 @@ describe('assembleJigsaw', () => {
         const plain = assembleJigsaw(config, sources(2024));
 
         expect(anchored.pieces[0]?.position).not.toEqual(plain.pieces[0]?.position);
+    });
+
+    it('places nothing when the start piece carries no jigsaw of the named kind', () => {
+        const assembly = assembleJigsaw({ ...config, startJigsawName: 'nowhere' }, sources(2024));
+
+        expect(assembly.pieces).toEqual([]);
+        expect(assembly.unresolvedConnections).toBe(1);
+    });
+
+    it('settles a projected start onto the terrain, with the start height added', () => {
+        const assembly = assembleJigsaw(
+            { ...config, startPosition: [0, -7, 0], projectStartToHeightmap: 'WORLD_SURFACE_WG' },
+            sources(2024, { terrainHeight: () => 71 })
+        );
+
+        // Java moves the piece so its ground layer, one above its floor, lands on the terrain.
+        expect(assembly.pieces[0]?.position[1]).toBe(63);
+        expect(assembly.origin).toEqual([1, 64, 1]);
+    });
+
+    it('reports the generation point the biome check is made at', () => {
+        const assembly = assembleJigsaw(config, sources(2024));
+
+        expect(assembly.origin).toEqual([1, 64, 1]);
+    });
+
+    it('sits a terrain-matching element on the terrain rather than on its parent', () => {
+        const terrainPools: Record<string, TemplatePool> = {
+            ...POOLS,
+            'test:streets': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:street',
+                            projection: 'terrain_matching'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            })
+        };
+
+        const { pieces } = assembleJigsaw(
+            config,
+            sources(2024, { pool: (identifier) => terrainPools[identifier], terrainHeight: () => 40 })
+        );
+        const streets = pieces.filter((piece) => piece.location === 'test:street');
+
+        expect(streets).not.toHaveLength(0);
+        for (const street of streets) expect(street.position[1]).toBe(40);
+    });
+
+    it('reserves vertical room for a piece whose jigsaw points back into itself', () => {
+        // One jigsaw on the south edge faces out, which is how this piece attaches to the
+        // center; the other sits on the north edge facing south, so its connection point is a
+        // block of its own box and whatever grows there has nowhere reserved for it yet.
+        const inward: BedrockStructureTemplate = {
+            size: [3, 1, 3],
+            palette: [bedrockOf('minecraft:stone'), bedrockOf('minecraft:jigsaw', { orientation: 'south_up' })],
+            blocks: [
+                {
+                    pos: [1, 0, 2],
+                    state: 1,
+                    extraState: NO_BLOCK,
+                    nbt: jigsawNbt({
+                        name: 'street',
+                        target: 'house',
+                        pool: 'test:houses',
+                        joint: 'aligned',
+                        final_state: 'minecraft:air'
+                    })
+                },
+                {
+                    pos: [1, 0, 0],
+                    state: 1,
+                    extraState: NO_BLOCK,
+                    nbt: jigsawNbt({
+                        name: 'street',
+                        target: 'house',
+                        pool: 'test:houses',
+                        joint: 'aligned',
+                        final_state: 'minecraft:air'
+                    })
+                }
+            ],
+            entities: []
+        };
+
+        const inwardPools: Record<string, TemplatePool> = {
+            ...POOLS,
+            'test:streets': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:inward',
+                            projection: 'rigid'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            })
+        };
+
+        const inwardSources = (seed: number) =>
+            sources(seed, {
+                pool: (identifier: string) => inwardPools[identifier],
+                template: (location: string) => (location === 'test:inward' ? inward : TEMPLATES[location])
+            });
+
+        const heightOf = (assembly: { pieces: readonly { boundingBox: { minY: number; maxY: number } }[] }) =>
+            assembly.pieces.map((piece) => piece.boundingBox.maxY - piece.boundingBox.minY);
+
+        const reserved = assembleJigsaw({ ...config, useExpansionHack: true }, inwardSources(2024));
+        const plain = assembleJigsaw(config, inwardSources(2024));
+
+        expect(Math.max(...heightOf(plain))).toBe(0);
+        expect(Math.max(...heightOf(reserved))).toBe(2);
     });
 });
