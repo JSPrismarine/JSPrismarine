@@ -165,6 +165,40 @@ describe('world', () => {
             });
         });
 
+        describe('pistons', () => {
+            it('extends an arm into the block in front and takes it back when the power goes', async () => {
+                const world = await flatWorld();
+
+                // Facing east, written the way the palette holds it: Bedrock's piston calls
+                // east 4, and its north and south are the other way round from everything
+                // else's, which is why the engine never spells a direction itself.
+                place(world, 0, GROUND + 1, 0, named('minecraft:piston', { facing_direction: 4 }));
+
+                // A redstone block against the back of the piston powers it.
+                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
+
+                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:piston_arm_collision');
+                expect(stateAt(world, 1, GROUND + 1, 0, 'facing_direction')).toBe(4);
+
+                world.setLoadedBlockState(-1, GROUND + 1, 0, named('minecraft:air'), true);
+
+                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:air');
+                expect(nameAt(world, 0, GROUND + 1, 0)).toBe('minecraft:piston');
+            });
+
+            it('pushes the block in front of it along', async () => {
+                const world = await flatWorld();
+
+                place(world, 0, GROUND + 1, 0, named('minecraft:piston', { facing_direction: 4 }));
+                place(world, 1, GROUND + 1, 0, named('minecraft:dirt'));
+
+                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
+
+                expect(nameAt(world, 2, GROUND + 1, 0)).toBe('minecraft:dirt');
+                expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:piston_arm_collision');
+            });
+        });
+
         describe('fluids', () => {
             it('spreads a placed water source across the floor over the ticks that follow', async () => {
                 const world = await flatWorld();

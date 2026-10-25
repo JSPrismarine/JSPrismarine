@@ -13,6 +13,7 @@
  * allowed to know that two editions exist. Without it a piston arm came out as a state this
  * palette does not hold and the write was declined, so pistons never extended.
  */
+import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { Vector3 } from '@jsprismarine/math';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
 import type { BlockEntityData, BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
@@ -59,12 +60,31 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
      */
     const blockEntities = new Map<string, BlockEntityData>();
 
+    /**
+     * The states the engine carries that the Bedrock block has no room for.
+     *
+     * Bedrock keeps a piston's `extended` in a block entity behind the arm rather than in the
+     * block state, and this server models no piston block entity, so the value is held here
+     * between the write that set it and the read that wants it back - the same bargain the
+     * comparator's output above makes, and for the same reason. It does not reach disk: a
+     * piston forgets it is extended across a restart, and the arm block standing in front of
+     * it is what a client sees either way.
+     *
+     * Keyed by position and checked against the identifier, so a block replaced by another
+     * one does not inherit the old one's states.
+     */
+    const dropped = new Map<string, { name: string; states: BlockRef['states'] }>();
+
     const dimension = world.getDimension();
 
     return {
         getBlock: (at): BlockRef => {
             const block = world.loadedBlockAt(at.x, at.y, at.z);
-            return block === undefined ? AIR : { name: block.name, states: javaBlockStates(block.name, block.states) };
+            if (block === undefined) return AIR;
+
+            const states = javaBlockStates(block.name, block.states);
+            const kept = dropped.get(positionKey(at));
+            return { name: block.name, states: kept?.name === block.name ? { ...states, ...kept.states } : states };
         },
 
         /**
@@ -76,6 +96,12 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
          */
         setBlock: (at, to, notifyNeighbors) => {
             const states = bedrockBlockStates(to.name, to.states);
+
+            const key = positionKey(at);
+            const extra = Object.entries(to.states).filter(([state]) => !(state in states));
+            if (extra.length === 0) dropped.delete(key);
+            else dropped.set(key, { name: to.name, states: Object.fromEntries(extra) });
+
             world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states }, notifyNeighbors);
         },
 
