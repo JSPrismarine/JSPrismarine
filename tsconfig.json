@@ -2,8 +2,12 @@
     "extends": "./tsconfig.build.json",
 
     "compilerOptions": {
-        "noEmit": true
+        "noEmit": true,
+
+        // `@jsprismarine/parity` imports a few modules with their extension, and this project
+        // reads those sources directly rather than through a package's built types.
+        "allowImportingTsExtensions": true
     },
 
-    "exclude": ["**/*.config.*", "**/*.stories.*", "**/*.test.*"]
+    "exclude": ["**/*.config.*", "**/*.stories.*"]
 }
