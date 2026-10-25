@@ -22,6 +22,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import type { ServerWorldHandle } from '../content/world/serverSource';
 import { Item } from './Item';
 import { useItemOnBlock } from './interaction';
+import { createBlockEntity } from '../world/generators/datadriven/javaGeneratedContent';
 import BlockUpdateScheduler from '../world/BlockUpdateScheduler';
 import Chunk from '../world/chunk/Chunk';
 import { Dimensions } from '../world/Dimension';
@@ -46,11 +47,19 @@ const BLOCKS = [
     'minecraft:farmland',
     'minecraft:wheat',
     'minecraft:wooden_door',
-    'minecraft:chest'
+    'minecraft:chest',
+    'minecraft:black_shulker_box'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
-const ITEMS = ['minecraft:bone_meal', 'minecraft:chest', 'minecraft:stick'];
+const ITEMS = [
+    'minecraft:bone_meal',
+    'minecraft:bread',
+    'minecraft:chest',
+    'minecraft:stick',
+    'minecraft:black_shulker_box',
+    'minecraft:diamond_pickaxe'
+];
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -141,8 +150,8 @@ const liveWorld = (
  * Built as the members the path calls rather than on the real prototype, because a `Player` is
  * a network session and this is a test about what a click does to the world.
  */
-const playerHolding = (world: World, identifier: string, sneaking = false): Player => {
-    const item = new Item({ id: 1, name: identifier, meta: 0, count: 1 });
+const playerHolding = (world: World, holding: string | Item, sneaking = false): Player => {
+    const item = typeof holding === 'string' ? new Item({ id: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = { getItemInHand: () => item };
     const session = {
         opened: [] as { identifier: string; at: Vector3; contents: ContainerEntry[] }[],
@@ -182,6 +191,24 @@ const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Re
     chunk.setBlockRuntimeId(at.x & 0xf, at.y, at.z & 0xf, runtimeId);
 };
 
+/** The table a generated chest names, and the three bread it rolls. */
+const IGLOO_TABLE = 'minecraft:chests/igloo_chest';
+const IGLOO_LOOT = {
+    type: 'minecraft:chest',
+    pools: [
+        {
+            rolls: 1,
+            entries: [
+                {
+                    type: 'minecraft:item',
+                    name: 'minecraft:bread',
+                    modifier: [{ type: 'minecraft:set_count', count: 3 }]
+                }
+            ]
+        }
+    ]
+};
+
 describe('useItemOnBlock', () => {
     let world: World;
     let chunk: Chunk;
@@ -207,7 +234,8 @@ describe('useItemOnBlock', () => {
             load: () => ({
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
-                    advancements: blockUseAdvancements()
+                    advancements: blockUseAdvancements(),
+                    lootTablesJava: new Map([[IGLOO_TABLE, definitionOf('lootTablesJava', IGLOO_TABLE, IGLOO_LOOT)]])
                 }),
                 diagnostics: []
             }),
@@ -264,6 +292,25 @@ describe('useItemOnBlock', () => {
         expect(content.world.blockWorld.at(DIMENSION).getBlockData({ x: 4, y: 64, z: 4 })?.capacity).toBe(27);
     });
 
+    it('puts a shulker box back down holding what it was carrying', () => {
+        place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
+
+        const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', count: 1, content }).withEnchantments({
+            'minecraft:fortune': 3
+        });
+        const box = new Item({ name: 'minecraft:black_shulker_box', count: 1, content }).withContents([pickaxe]);
+
+        expect(click(playerHolding(world, box), { x: 8, y: 63, z: 8 })).toBe('handled');
+
+        const data = content.world.blockWorld.at(DIMENSION).getBlockData({ x: 8, y: 64, z: 8 });
+        expect(data?.capacity).toBe(27);
+        expect(data?.items?.[0]).toEqual({
+            identifier: 'minecraft:diamond_pickaxe',
+            count: 1,
+            enchantments: { 'minecraft:fortune': 3 }
+        });
+    });
+
     it('opens a chest, with what the chest is holding', async () => {
         place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
         click(playerHolding(world, 'minecraft:chest'), { x: 4, y: 63, z: 4 });
@@ -289,6 +336,35 @@ describe('useItemOnBlock', () => {
         expect(session.opened[0]!.contents[0]!.getCount()).toBe(5);
         expect(session.opened[0]!.contents[1]!.toItemStack().getName()).toBe('minecraft:air');
         expect(sounds).toContain('random.chestopen');
+    });
+
+    it('rolls a generated chest on the open that first shows it', async () => {
+        // The block entity is the one `javaGeneratedContent` writes for a structure's chest:
+        // a loot table, a seed, and nothing in it. Before the open hook, the player saw the
+        // 27 empty slots that tag stands for.
+        place(chunk, { x: 6, y: 64, z: 6 }, 'minecraft:chest', { 'minecraft:cardinal_direction': 'north' });
+        chunk.setBlockEntity(
+            createBlockEntity({ request: { id: 'minecraft:chest', lootTable: IGLOO_TABLE }, x: 6, y: 64, z: 6 }, 1234n)!
+        );
+
+        const player = playerHolding(world, 'minecraft:stick');
+        expect(click(player, { x: 6, y: 64, z: 6 })).toBe('handled');
+        await Promise.resolve();
+
+        const session = player.getNetworkSession() as unknown as { opened: OpenedContainer[] };
+        const shown = session.opened[0]!.contents.filter((entry) => entry.toItemStack().getName() !== 'minecraft:air');
+        // Three bread, over as many slots as Java's own split put them in: a chest with 27
+        // free slots and one stack of more than one gets the stack spread rather than piled.
+        expect(shown.every((entry) => entry.toItemStack().getName() === 'minecraft:bread')).toBe(true);
+        expect(shown.reduce((total, entry) => total + entry.getCount(), 0)).toBe(3);
+
+        // And the chest keeps it: the tag is gone and the items are in the block entity, so
+        // the next player to open it is shown the same chest rather than a fresh roll.
+        const stored = content.world.blockWorld.at(DIMENSION).getBlockData({ x: 6, y: 64, z: 6 });
+        expect(stored?.items?.filter((item) => item !== undefined)).toEqual(
+            shown.map((entry) => ({ identifier: 'minecraft:bread', count: entry.getCount() }))
+        );
+        expect(chunk.getBlockEntity(6, 64, 6)!.toNBT().has('LootTable')).toBe(false);
     });
 
     /** Whether a player earned one of the fixture's advancements. */
