@@ -32,12 +32,12 @@ const AIR = 'minecraft:air';
  * The world one destroyed block is in.
  *
  * {@link BreakWorld} plus the two things the fallback needs: the block catalog, which
- * answers what a block yields on a server with no content build, and the ground to put the
+ * answers what a block the content build has no type for yields, and the ground to put the
  * result on.
  */
 export interface DestroyWorld extends BreakWorld {
     getServer(): {
-        getContent(): ServerContent | undefined;
+        getContent(): ServerContent;
         getLogger(): { error(error: unknown): void };
         getBlockManager(): { findBlock(name: string): Block | null };
     };
@@ -71,7 +71,7 @@ export interface BlockDestruction {
 const centerOf = (at: ContentPosition): Vector3 => new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5);
 
 /**
- * The drop a server with no content build makes, which is what the block catalog says.
+ * The drop for a block the content build has no type for, which is what the block catalog says.
  *
  * `Block.getDrops` with nothing in hand, the same call {@link import('./World').World.breakBlock}
  * falls back to. It is the one drop rule left that does not go through a loot table, and it
@@ -102,9 +102,9 @@ export const destroyedBlockDrops = (destruction: BlockDestruction): Array<Block 
     const rolled = breakBlockWithContent({ world, position, explosionRadius, dropsBlock });
     if (rolled !== undefined) return rolled;
 
-    // No content build, or a block the content has no type for. The hook did not run and
-    // there is no table to roll, so the catalog's own drop stands in - and a block that was
-    // told not to yield anything still does not.
+    // A block the content has no type for, or one whose chunk went out of memory under the
+    // break. The hook did not run and there is no table to roll, so the catalog's own drop
+    // stands in - and a block that was told not to yield anything still does not.
     return dropsBlock ? catalogDrops(destruction) : [];
 };
 

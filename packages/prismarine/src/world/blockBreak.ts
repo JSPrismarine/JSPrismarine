@@ -19,8 +19,8 @@
  * family's decision, which is how a shulker box keeps what it holds.
  *
  * It reports what to put on the ground, or undefined to send the caller back to the drop it has
- * always made - which is also what happens with `content-packs` off, so a server without content
- * breaks blocks exactly as before.
+ * always made. That answer is for a block whose chunk is no longer in memory and for a block the
+ * content build has no type for, so a name no pack resolved still drops what the catalog says.
  */
 import type { HookActor, HookBlock, HookItem } from '@jsprismarine/blocks';
 import { Gametype } from '@jsprismarine/minecraft';
@@ -56,7 +56,7 @@ export interface BreakWorld {
     getTicks(): number;
     /** The server, for its content and its log. */
     getServer(): {
-        getContent(): ServerContent | undefined;
+        getContent(): ServerContent;
         getLogger(): { error(error: unknown): void };
     };
 }
@@ -228,7 +228,6 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
     const { world, position, player } = breaking;
     const server = world.getServer();
     const content = server.getContent();
-    if (content === undefined) return undefined;
 
     try {
         const standing = world.loadedBlockAt(position.x, position.y, position.z);
