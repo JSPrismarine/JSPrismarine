@@ -5,7 +5,7 @@ import { defaultTheme } from '../theme/theme';
 import { CommandHistory } from './history';
 import type { CompletionResult, InputBarProps } from './inputBar';
 import { createInputBar } from './inputBar';
-import type { InterruptKind, ToggleAction } from './keys';
+import type { InterruptKind } from './keys';
 
 const SHIFT_TAB = '\u001B[Z';
 
@@ -16,7 +16,6 @@ async function setup(overrides: Partial<InputBarProps> = {}) {
     const submitted: string[] = [];
     const interrupts: InterruptKind[] = [];
     const hints: (string | undefined)[] = [];
-    const toggles: ToggleAction[] = [];
     const history = new CommandHistory();
     let clock = 10_000;
 
@@ -28,7 +27,6 @@ async function setup(overrides: Partial<InputBarProps> = {}) {
             onComplete: noCompletions,
             onInterrupt: (kind) => interrupts.push(kind),
             onHint: (text) => hints.push(text),
-            onToggle: (action) => toggles.push(action),
             now: () => clock,
             ...overrides
         }
@@ -44,7 +42,6 @@ async function setup(overrides: Partial<InputBarProps> = {}) {
         submitted,
         interrupts,
         hints,
-        toggles,
         advance: (ms: number) => {
             clock += ms;
         }
@@ -257,26 +254,13 @@ describe('createInputBar', () => {
         });
     });
 
-    it('routes empty-line hotkeys to onToggle without typing them', async () => {
+    it('types catalog hotkeys that reach it; the app owns them, not the bar', async () => {
         const t = await setup();
         dispose = t.dispose;
 
         t.mockInput.pressKey('?');
         t.mockInput.pressKey('G');
-        expect(t.toggles).toEqual(['help', 'bottom']);
-        expect(t.bar.getValue()).toBe('');
-
-        await t.mockInput.typeText('a?');
-        expect(t.bar.getValue()).toBe('a?');
-        expect(t.toggles).toEqual(['help', 'bottom']);
-    });
-
-    it('types the hotkeys when no onToggle is wired', async () => {
-        const t = await setup({ onToggle: undefined });
-        dispose = t.dispose;
-
-        t.mockInput.pressKey('?');
-        expect(t.bar.getValue()).toBe('?');
+        expect(t.bar.getValue()).toBe('?G');
     });
 
     it('shows a hint and refuses Enter while disabled', async () => {
