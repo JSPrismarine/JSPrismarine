@@ -517,6 +517,22 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         for (const rider of [...this.seated]) this.dismount(rider);
     }
 
+    /**
+     * The pack-relative loot table path of the active `minecraft:loot` component.
+     *
+     * Read off the active set rather than off the type, because most vanilla mobs declare the
+     * component in a component group rather than in their base components: the cow carries it
+     * in `minecraft:cow_adult`, so a type-level read finds nothing and a calf and a grown cow
+     * would drop the same thing, which is nothing.
+     *
+     * @returns {string | undefined} The path, or undefined when no active component names one.
+     */
+    public lootTable(): string | undefined {
+        const params = this.componentParams('minecraft:loot');
+        if (params === null || typeof params !== 'object' || !('table' in params)) return undefined;
+        return typeof params.table === 'string' ? params.table : undefined;
+    }
+
     /** The type families of the active `minecraft:type_family` component. */
     public families(): readonly string[] {
         const params = this.componentParams('minecraft:type_family');

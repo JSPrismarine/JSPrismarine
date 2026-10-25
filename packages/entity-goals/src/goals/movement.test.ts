@@ -258,3 +258,52 @@ describe('minecraft:behavior.flee_sun', () => {
         expect(harness.running()).toEqual([]);
     });
 });
+
+describe('minecraft:behavior.mount_pathing', () => {
+    it('stays out of the way of a mob that is riding nothing', () => {
+        // The adult zombie carries this at priority 2 and `melee_box_attack` at 4, and both
+        // claim `move` and `look`. Starting on nothing more than having a target took those
+        // flags off the attack and left every zombie in the world standing still in front of
+        // the player it had chosen.
+        const victim = testMob('victim', { x: 8, y: 1, z: 8.5 });
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.mount_pathing': { priority: 2, speed_multiplier: 1.5, track_target: true },
+                'minecraft:behavior.melee_box_attack': { priority: 4, speed_multiplier: 1.25 }
+            },
+            components: walker,
+            world: {
+                ...flatWorld(),
+                target: () => victim,
+                mobs: () => [victim],
+                canSee: () => true,
+                attack: () => undefined,
+                knockback: () => undefined
+            },
+            at: { x: 2.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.running()).not.toContain('minecraft:behavior.mount_pathing');
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
+    });
+
+    it('walks a mounted mob to the target it has', () => {
+        const victim = testMob('victim', { x: 8, y: 1, z: 8.5 });
+        const horse = testMob('horse', { x: 2.5, y: 1, z: 8.5 });
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.mount_pathing': { priority: 2, speed_multiplier: 1.5, track_target: true }
+            },
+            components: walker,
+            world: { ...flatWorld(), target: () => victim, vehicle: () => horse },
+            at: { x: 2.5, y: 1, z: 8.5 }
+        });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.mount_pathing');
+        expect(harness.actuator.count('moveTo')).toBeGreaterThan(0);
+    });
+});

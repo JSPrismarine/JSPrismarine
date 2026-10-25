@@ -1740,7 +1740,15 @@ export const followTargetCaptain = goal<FollowParams & { readonly followDistance
 
 /**
  * `minecraft:behavior.mount_pathing`, which 26 vanilla entities carry. It is
- * how a ridden entity walks to its rider's target rather than its own.
+ * how a mounted entity goes after a target while it is riding something.
+ *
+ * Only while it is riding something, which is the gate this goal turns on.
+ * The adult zombie carries it at priority 2 and `minecraft:behavior.
+ * melee_box_attack` at priority 4, and both claim the `move` and `look`
+ * flags, so a version that started on nothing more than having a target took
+ * those flags off the attack at every priority below it and left the zombie
+ * standing still in front of the player it had chosen. Mojang's own wording
+ * is "while mounted", and the vanilla priorities only make sense that way.
  */
 export const mountPathing = goal<{
     readonly speedMultiplier: number;
@@ -1758,6 +1766,8 @@ export const mountPathing = goal<{
         let destination: GoalMob | undefined;
         return {
             canStart: () => {
+                if (support.world.vehicle?.() === undefined) return false;
+
                 destination = support.target() ?? support.world.riders?.()[0]?.target?.();
                 return destination !== undefined;
             },
