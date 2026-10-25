@@ -7,6 +7,7 @@
  * the real files.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
+import type { TemplateProcessors } from '@jsprismarine/features';
 import { WorldgenRandom, fossil } from '@jsprismarine/features';
 import { ByteOrder, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
@@ -63,9 +64,56 @@ const boneTemplate = () =>
         })
     );
 
+/**
+ * One suspicious sand carrying the block entity the file saves on it.
+ *
+ * This is the shape of `minecraft:desert_well/suspicious_sand`: a single block whose compound
+ * names its type and holds nothing else worth brushing until a rule appends a loot table.
+ */
+const sandTemplate = () =>
+    encode(
+        compound({
+            DataVersion: int(5023),
+            size: triple(1, 1, 1),
+            palette: new Set([compound({ id: str('minecraft:suspicious_sand') })]),
+            blocks: new Set([
+                compound({
+                    pos: triple(0, 0, 0),
+                    state: int(0),
+                    nbt: compound({ id: str('minecraft:brushable_block') })
+                })
+            ]),
+            entities: new Set([])
+        })
+    );
+
+/** The desert well's own rule, which hands its suspicious sand the archaeology table. */
+const ARCHAEOLOGY = {
+    processors: [
+        {
+            processor_type: 'minecraft:rule',
+            rules: [
+                {
+                    input_predicate: { predicate_type: 'minecraft:block_match', block: 'minecraft:suspicious_sand' },
+                    location_predicate: { predicate_type: 'minecraft:always_true' },
+                    output_state: 'minecraft:suspicious_sand',
+                    block_entity_modifier: {
+                        type: 'minecraft:append_loot',
+                        loot_table: 'minecraft:archaeology/desert_well'
+                    }
+                }
+            ]
+        }
+    ]
+};
+
 const source = (processorLists: Record<string, unknown> = {}): TemplateSource =>
     createTemplateSource(
-        () => new Map([['minecraft:fossil/spine_1', boneTemplate()]]),
+        () =>
+            new Map([
+                ['minecraft:fossil/spine_1', boneTemplate()],
+                ['minecraft:desert_well/suspicious_sand', sandTemplate()]
+            ]),
         new Map(Object.entries(processorLists))
     );
 
@@ -197,6 +245,52 @@ describe('placeTemplate', () => {
 
         expect(placed).toBe(false);
         expect(templateBlocks(built)).toHaveLength(0);
+    });
+
+    /** Stamps the suspicious sand at a position in the center chunk, as the desert well does. */
+    const stampSand = (built: GenerationRegion, x: number, processors?: TemplateProcessors): boolean =>
+        built.featureWorld().placeTemplate!({
+            template: 'minecraft:desert_well/suspicious_sand',
+            origin: { x, y: 62, z: 8 },
+            rotation: 0,
+            mirror: 'none',
+            ...(processors === undefined ? {} : { processors })
+        });
+
+    it('records the block entity a template block saved', () => {
+        const built = region(source());
+        fillStone(built);
+
+        expect(stampSand(built, 8)).toBe(true);
+
+        const entities = built.centerBlockEntities();
+        expect(entities).toHaveLength(1);
+        expect(entities[0]!.request.id).toBe('minecraft:brushable_block');
+    });
+
+    it('appends the loot table of a processor list written inline', () => {
+        const built = region(source());
+        fillStone(built);
+
+        expect(stampSand(built, 8, ARCHAEOLOGY)).toBe(true);
+
+        // Java writes the desert well's archaeology rule where the feature stands rather than
+        // naming a list. A placement that drops it leaves sand with nothing to brush out.
+        expect(built.centerBlockEntities()[0]!.request.lootTable).toBe('minecraft:archaeology/desert_well');
+    });
+
+    it('keeps one placement of a template out of the next', () => {
+        const built = region(source());
+        fillStone(built);
+
+        // `append_loot` adds the table to the compound it is handed, and the source keeps the
+        // decoded template for the life of the world. The second sand has no rule over it, so a
+        // table on it would be the first placement's, baked into the template they share.
+        expect(stampSand(built, 8, ARCHAEOLOGY)).toBe(true);
+        expect(stampSand(built, 10)).toBe(true);
+
+        const tables = built.centerBlockEntities().map((entity) => entity.request.lootTable);
+        expect(tables.sort()).toEqual(['minecraft:archaeology/desert_well', undefined]);
     });
 
     it('lets a later feature write over a template block', () => {

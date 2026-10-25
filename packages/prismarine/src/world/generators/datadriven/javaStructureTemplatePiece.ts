@@ -444,6 +444,9 @@ const dataMarkerOf = (nbt: NBTTagCompound): string | undefined => {
 /**
  * The block entity a template block carries.
  *
+ * Both halves of template placement read it: a structure piece, and the `template` and `fossil`
+ * features through `placeJavaTemplate`.
+ *
  * The type, the loot table and a spawner's entity are read out here because the pieces that
  * build a legacy structure from code set the same three fields. The saved compound rides along
  * whole, and `javaGeneratedContent` translates the rest of it when the chunk stores the block
@@ -458,7 +461,7 @@ const dataMarkerOf = (nbt: NBTTagCompound): string | undefined => {
  * @param bedrockBlock - The Bedrock identifier of the block the compound sits in.
  * @param javaBlock - The Java block it sat in, where the template saved the compound at all.
  */
-const blockEntityOf = (
+export const blockEntityOf = (
     nbt: NBTTagCompound,
     bedrockBlock: string,
     javaBlock: string | undefined

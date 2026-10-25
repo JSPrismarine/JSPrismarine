@@ -39,6 +39,16 @@ const VILLAGE_CHUNK = { x: -166, z: -80 };
 /** Where this seed's trail ruins starts, which is also the chunk most of its gravel lands in. */
 const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
 
+/**
+ * A desert well at this seed, found by the rarity draw and the biome rather than by a placement.
+ *
+ * The well is a feature rather than a structure, and it is here because it is the only feature
+ * whose template carries a block entity. The chunk is this far out because the nearest desert to
+ * the origin is: of the 1982 chunks within 700 of it that pass the 1 in 1000 rarity draw, 76 are
+ * desert, and four of those grow a well.
+ */
+const DESERT_WELL_CHUNK = { x: -691, z: -239 };
+
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', () => {
     let generator: DataDrivenGenerator;
     const chunks = new Map<string, Chunk>();
@@ -74,6 +84,19 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
             }
         }
         return names;
+    };
+
+    /** How many blocks of one identifier a chunk holds, over its whole height. */
+    const blocksNamed = (chunk: Chunk, name: string): number => {
+        let count = 0;
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                for (let y = chunk.getMinY(); y <= chunk.getMaxY(); y++) {
+                    if (chunk.getBlock(x, y, z).name === name) count++;
+                }
+            }
+        }
+        return count;
     };
 
     /** Asserts a structure starts where the seeded placement puts it, and names its blocks. */
@@ -343,6 +366,27 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
                         'loot_tables/archaeology/trail_ruins_rare.json'
                     ])
                 );
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'fills a desert well suspicious sand with something to brush out of it',
+            async () => {
+                const chunk = await chunkAt(DESERT_WELL_CHUNK.x, DESERT_WELL_CHUNK.z);
+                const brushable = [...chunk.getBlockEntities()].filter((entry) => entry.getId() === 'BrushableBlock');
+
+                // The other half of the archaeology path: a feature stamping a template rather
+                // than a structure piece, with its rule written where the feature stands rather
+                // than in a named list. The sand reaches the chunk either way; without both the
+                // block entity and the rule it is sand with nothing in it.
+                const sand = blocksNamed(chunk, 'minecraft:suspicious_sand');
+                expect(sand).toBe(2);
+                expect(brushable).toHaveLength(2);
+                expect(lootTables(chunk)).toEqual([
+                    'loot_tables/archaeology/desert_well.json',
+                    'loot_tables/archaeology/desert_well.json'
+                ]);
             },
             CHUNK_TIMEOUT
         );

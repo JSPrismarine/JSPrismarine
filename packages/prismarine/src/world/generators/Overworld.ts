@@ -1,7 +1,10 @@
+import { availableParallelism } from 'node:os';
+
 import BaseGenerator from '../BaseGenerator';
 import type { SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
-import { DataDrivenGenerator } from './datadriven/DataDrivenGenerator';
+import type { TerrainPoolOptions } from './datadriven/DataDrivenGenerator';
+import { DataDrivenGenerator, defaultTerrainPipeline } from './datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from './datadriven/javaStructureTemplates';
 import {
     JAVA_WORLDGEN_ENV,
@@ -9,6 +12,26 @@ import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
 } from './datadriven/javaWorldgenData';
+
+/**
+ * How many cores to leave for everything that is not terrain.
+ *
+ * The main thread keeps the holders, the feature pass, the Bedrock translation and the tick
+ * loop, and the server still has a network thread and a disk to serve. A host with fewer than
+ * `LEAVE_FREE + 1` cores gets no pool, because one worker was measured at 1.15 times inline and
+ * costs about 80 MiB of its own.
+ */
+const LEAVE_FREE = 2;
+
+/**
+ * The most workers worth starting.
+ *
+ * Aggregate throughput peaks at 4.7 times one thread at five or six on an Apple M1 Pro and
+ * declines past six, because six of its eight cores are performance cores and every worker is a
+ * whole V8 isolate with its own garbage collector. Measured twice; see
+ * [the architecture decision](../../../../../docs/adr/0002-chunk-generation-architecture.md).
+ */
+const MOST_WORKERS = 6;
 
 /**
  * The overworld, generated from Java Edition's published world generation data.

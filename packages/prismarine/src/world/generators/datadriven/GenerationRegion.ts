@@ -639,7 +639,8 @@ export class GenerationRegion {
             blockAt: (x, y, z) => this.stateAt(x, y, z),
             heightAt: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             hasTag: (identifier, tag) => this.options.blocks.hasTag({ name: identifier, properties: {} }, tag),
-            write: (x, y, z, state) => this.writeBedrock(x, y, z, state)
+            write: (x, y, z, state) => this.writeBedrock(x, y, z, state),
+            setBlockEntity: (x, y, z, entity) => this.attachBlockEntity({ x, y, z }, entity)
         };
 
         return placeJavaTemplate(request, source, target, this.options.seed);
