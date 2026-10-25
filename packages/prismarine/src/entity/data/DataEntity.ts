@@ -315,3 +315,19 @@ export class DataEntity {
 /** The straight-line distance between two positions. */
 export const distance = (from: EntityPosition, to: EntityPosition): number =>
     Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+
+/**
+ * The square of the straight-line distance between two positions.
+ *
+ * Squaring orders positions the same way the distance does and costs three
+ * multiplications instead of a `Math.hypot`, so a scan that only compares,
+ * either against a radius or against another candidate, uses this. Use
+ * {@link distance} wherever the number itself is the answer, because a squared
+ * distance is not one.
+ */
+export const squaredDistance = (from: EntityPosition, to: EntityPosition): number => {
+    const dx = to.x - from.x;
+    const dy = to.y - from.y;
+    const dz = to.z - from.z;
+    return dx * dx + dy * dy + dz * dz;
+};

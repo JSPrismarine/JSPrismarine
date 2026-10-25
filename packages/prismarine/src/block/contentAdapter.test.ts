@@ -115,6 +115,51 @@ describe('block', () => {
             expect(seen.sort()).toEqual(['0,-1,0 up', '0,1,0 down']);
         });
 
+        it('handles long chains of nested neighbor updates without recursion', () => {
+            const maxUpdates = 2_000;
+            const initial: Record<string, ContentBlock> = { '0,0,0': stone };
+            for (let x = 1; x <= maxUpdates; x++) initial[`${x},0,0`] = lamp;
+            const { blocks } = harness(initial);
+            const seen: string[] = [];
+
+            vi.spyOn(HookTable.prototype, 'has').mockReturnValue(true);
+            vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook, ...args) {
+                if (hook !== 'onNeighborChanged') return;
+                const event = args[0] as { block: { position: ContentPosition }; face: string };
+                if (event.face !== 'west') return;
+                seen.push(key(event.block.position));
+                blocks.notifyNeighbors(event.block.position);
+            });
+
+            blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
+
+            expect(seen).toEqual(Array.from({ length: maxUpdates }, (_, index) => `${index + 1},0,0`));
+        });
+
+        it('finishes a nested notification before the current notification continues', () => {
+            const { blocks } = harness({
+                '0,0,0': stone,
+                '0,1,0': lamp,
+                '1,0,0': lamp,
+                '1,1,0': lamp
+            });
+            const seen: string[] = [];
+
+            vi.spyOn(HookTable.prototype, 'has').mockReturnValue(true);
+            vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook, ...args) {
+                if (hook !== 'onNeighborChanged') return;
+                const event = args[0] as { block: { position: ContentPosition }; face: string };
+                seen.push(key(event.block.position));
+                if (key(event.block.position) === '0,1,0' && event.face === 'down') {
+                    blocks.notifyNeighbors(event.block.position);
+                }
+            });
+
+            blocks.notifyNeighbors({ x: 0, y: 0, z: 0 });
+
+            expect(seen).toEqual(['0,1,0', '0,0,0', '1,1,0', '1,0,0']);
+        });
+
         it('says nothing to a neighbor whose families react to nothing', () => {
             // Every block write in the world now raises this, so the dispatch is skipped
             // for a block that could not react to it. Stone is most of a world.
