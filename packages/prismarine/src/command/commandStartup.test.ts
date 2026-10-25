@@ -19,7 +19,7 @@ import { Config } from '../config/Config';
 import { buildContentTags } from '../content/tags';
 import type { World } from '../world/World';
 import type { CommandExecutor } from './CommandExecutor';
-import { UNWIRED_COMMANDS } from './vanillaCommands';
+import { unwiredCommands } from './vanillaCommands';
 
 vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
@@ -127,7 +127,9 @@ describe('the command layer on a booted server', () => {
         const registry = server.getCommandManager().getVanillaCommands();
 
         expect(registry.getNames().length).toBeGreaterThan(0);
-        expect(registry.getExcludedNames().sort()).toEqual(Object.keys(UNWIRED_COMMANDS).sort());
+        // Booted with `content-packs` off, so the content-backed half is held
+        // back as well.
+        expect(registry.getExcludedNames().sort()).toEqual(Object.keys(unwiredCommands(false)).sort());
     });
 
     it('places a block through /setblock', async () => {

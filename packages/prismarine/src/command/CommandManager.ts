@@ -31,7 +31,7 @@ import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
-import { UNWIRED_COMMANDS, buildVanillaCommands } from './vanillaCommands';
+import { buildVanillaCommands, unwiredCommands } from './vanillaCommands';
 
 /**
  * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
@@ -96,7 +96,7 @@ export class CommandManager implements Service {
      * implement still run on the old one. A command name belongs to exactly
      * one of them, which is what {@link CommandManager.vanillaName} decides.
      */
-    private readonly vanilla: CommandRegistry<CommandSource>;
+    private vanilla: CommandRegistry<CommandSource>;
 
     /**
      * The mcfunction runtime, built on first use.
@@ -231,11 +231,17 @@ export class CommandManager implements Service {
     public async enable(): Promise<void> {
         const timer = new Timer();
 
+        // Rebuilt here rather than in the constructor, because the content
+        // build runs between the two and decides whether the commands whose
+        // whole subsystem is the pack stack can be offered at all.
+        const unwired = unwiredCommands(this.server.getContent() !== undefined);
+        this.vanilla = buildVanillaCommands(this.server.getContent() !== undefined);
+
         this.server
             .getLogger()
             .verbose(
                 `Registered §b${this.vanilla.getNames().length}§r vanilla command(s); ` +
-                    `§e${Object.keys(UNWIRED_COMMANDS).length}§r need a subsystem this server does not have`
+                    `§e${Object.keys(unwired).length}§r need a subsystem this server does not have`
             );
 
         const commands = Object.values(Commands);

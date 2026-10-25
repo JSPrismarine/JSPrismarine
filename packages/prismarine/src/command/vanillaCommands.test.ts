@@ -6,13 +6,13 @@ import {
 } from '@jsprismarine/commands';
 import { describe, expect, it } from 'vitest';
 
-import { UNWIRED_COMMANDS, buildVanillaCommands } from './vanillaCommands';
+import { CONTENT_ONLY_COMMANDS, UNWIRED_COMMANDS, buildVanillaCommands, unwiredCommands } from './vanillaCommands';
 
 /** Every command `@jsprismarine/commands` implements, wired here or not. */
 const implemented = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES];
 
 describe('the vanilla command set this server runs', () => {
-    const registry = buildVanillaCommands();
+    const registry = buildVanillaCommands(true);
 
     it('accounts for every command the package implements', () => {
         // The whole point of the split: a name is either dispatchable or
@@ -21,6 +21,22 @@ describe('the vanilla command set this server runs', () => {
         const unwired = Object.keys(UNWIRED_COMMANDS);
 
         expect([...wired, ...unwired].sort()).toEqual([...implemented].sort());
+    });
+
+    it('leaves the content-backed commands out when the pack stack is off', () => {
+        // `/loot` rolls Java's tables and a server with no content build has
+        // none, so it is the one command whose availability is a question
+        // about the configuration rather than about the code.
+        const withoutContent = buildVanillaCommands(false);
+
+        expect(withoutContent.getMetadata('loot')).toBeUndefined();
+        expect(registry.getMetadata('loot')).toBeDefined();
+        expect(withoutContent.getExcludedNames().sort()).toEqual(Object.keys(unwiredCommands(false)).sort());
+    });
+
+    it('gives a reason for every content-backed command it holds back', () => {
+        expect(Object.values(CONTENT_ONLY_COMMANDS).filter((reason) => reason.trim().length === 0)).toEqual([]);
+        expect(Object.keys(CONTENT_ONLY_COMMANDS).filter((name) => !implemented.includes(name))).toEqual([]);
     });
 
     it('names a real command in every unwired row', () => {
