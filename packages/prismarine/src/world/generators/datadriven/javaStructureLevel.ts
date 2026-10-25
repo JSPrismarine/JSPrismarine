@@ -6,9 +6,16 @@
  * village be laid out identically from any of the chunks it covers, and it is why a structure
  * never sees the grass the surface pass will put on top of the stone it settles onto.
  *
+ * Aquifers are on here, which is worth stating because it is easy to assume otherwise. Java used
+ * to build this column's `NoiseChunk` with aquifers disabled; 26.3's `iterateNoiseColumn` passes
+ * the dimension's own fluid picker and the settings' `aquifers` block, so the column an
+ * underground lake reaches into reports the lake. Turning them off here moves heights by up to
+ * 20 blocks over the ocean floor, measured.
+ *
  * Sampling a column is one `final_density` evaluation per y level, so columns are memoized: a
  * village asks for the same few hundred of them while it grows, and a chunk's own neighbors ask
- * again.
+ * again. A height query does not memoize the column it walked, because it stops at the first
+ * block that matches and has no blocks below it to keep.
  */
 import type { BlockState, HeightmapType } from '@jsprismarine/features';
 import type { NoiseGeneratorSettings, RandomState } from '@jsprismarine/worldgen';
@@ -16,7 +23,7 @@ import { ChunkSampler } from '@jsprismarine/worldgen';
 
 import type { StructureLevel } from './javaStructureWorld';
 
-/** How many sampled columns are kept before the cache is dropped and rebuilt. */
+/** How many sampled columns, and how many heights, are kept before a cache is dropped. */
 const COLUMN_LIMIT = 16384;
 
 /** How many chunk samplers are kept, each of which carries its own aquifer. */
@@ -47,7 +54,16 @@ export interface NoiseStructureLevelOptions {
 export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): StructureLevel => {
     const samplers = new Map<string, ChunkSampler>();
     const columns = new Map<string, readonly string[]>();
+    const heights = new Map<string, number>();
     const noiseMinY = options.settings.noiseSettings.minY;
+
+    /**
+     * The highest y a height query starts at.
+     *
+     * Java's `NoiseSettings.clampToHeightAccessor` trims the noise column to the dimension, and
+     * a dimension shorter than its noise would otherwise report a surface it does not generate.
+     */
+    const ceiling = options.minY + options.height - 1;
 
     const samplerAt = (chunkX: number, chunkZ: number): ChunkSampler => {
         const key = `${chunkX},${chunkZ}`;
@@ -74,6 +90,16 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
         return sampled;
     };
 
+    /** The highest y of an already sampled column that matches, the way `columnTop` walks it. */
+    const topOf = (column: readonly string[], predicate: (name: string) => boolean): number | undefined => {
+        for (let index = Math.min(column.length - 1, ceiling - noiseMinY); index >= 0; index--) {
+            const name = column[index];
+            if (name !== undefined && predicate(name)) return noiseMinY + index;
+        }
+
+        return undefined;
+    };
+
     const stateAt = (x: number, y: number, z: number): BlockState => {
         const index = y - noiseMinY;
         const column = columnAt(x, z);
@@ -81,7 +107,8 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
         return name === undefined || name === AIR ? AIR_STATE : { name, properties: {} };
     };
 
-    const matches = (heightmap: HeightmapType): ((state: BlockState) => boolean) => {
+    /** Java's `Heightmap.Types.isOpaque`, over the identifier rather than the state. */
+    const test = (heightmap: HeightmapType): ((state: BlockState) => boolean) => {
         switch (heightmap) {
             case 'WORLD_SURFACE':
             case 'WORLD_SURFACE_WG':
@@ -96,22 +123,52 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
         }
     };
 
+    /**
+     * The predicate for a heightmap, memoized per identifier.
+     *
+     * The noise stage places four identifiers at most, and a height query asks about one per
+     * block, so answering from a map beats building a {@link BlockState} to ask the oracle.
+     */
+    const predicates = new Map<HeightmapType, (name: string) => boolean>();
+    const matches = (heightmap: HeightmapType): ((name: string) => boolean) => {
+        const cached = predicates.get(heightmap);
+        if (cached !== undefined) return cached;
+
+        const accepts = test(heightmap);
+        const answers = new Map<string, boolean>();
+        const predicate = (name: string): boolean => {
+            const known = answers.get(name);
+            if (known !== undefined) return known;
+
+            const answer = name !== AIR && accepts({ name, properties: {} });
+            answers.set(name, answer);
+            return answer;
+        };
+        predicates.set(heightmap, predicate);
+        return predicate;
+    };
+
     return {
         minY: options.minY,
         height: options.height,
         seaLevel: options.settings.seaLevel,
         baseHeight: (x, z, heightmap) => {
-            const column = columnAt(x, z);
-            const predicate = matches(heightmap);
-            const top = Math.min(column.length - 1, options.minY + options.height - 1 - noiseMinY);
-            for (let index = top; index >= 0; index--) {
-                const name = column[index];
-                if (name !== undefined && name !== AIR && predicate({ name, properties: {} })) {
-                    return noiseMinY + index + 1;
-                }
-            }
+            const key = `${heightmap}:${x},${z}`;
+            const cached = heights.get(key);
+            if (cached !== undefined) return cached;
 
-            return options.minY;
+            // A column already sampled for `baseBlock` answers without sampling anything again.
+            const predicate = matches(heightmap);
+            const sampled = columns.get(`${x},${z}`);
+            const top =
+                sampled === undefined
+                    ? samplerAt(x >> 4, z >> 4).columnTop(x, z, predicate, ceiling)
+                    : topOf(sampled, predicate);
+
+            const height = top === undefined ? options.minY : top + 1;
+            if (heights.size >= COLUMN_LIMIT) heights.clear();
+            heights.set(key, height);
+            return height;
         },
         baseBlock: stateAt,
         noiseBiome: options.noiseBiome,
