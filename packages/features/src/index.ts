@@ -1,5 +1,6 @@
 export * from './features/Feature';
 export * from './json';
+export * from './placement/featureSorter';
 export * from './placement/modifiers';
 export * from './placement/pipeline';
 export * from './placement/WorldgenRandom';
