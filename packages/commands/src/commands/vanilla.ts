@@ -2,10 +2,11 @@
  * The vanilla command set as data-driven definitions over the Brigadier port.
  *
  * `registerVanillaCommands` builds one registry holding the 46 command names
- * Java and Bedrock share, the four Java-only ones the datapack runtime needs -
- * `/data`, `/item`, `/attribute` and `/random` - and the nine Bedrock-only ones
- * a Bedrock operator reaches for. Every command's body is one or more calls
- * into the injected `CommandHost`, so the package holds no world state.
+ * Java and Bedrock share, the five Java-only ones the datapack runtime needs -
+ * `/data`, `/item`, `/attribute`, `/random` and `/return` - and the nine
+ * Bedrock-only ones a Bedrock operator reaches for. Every command's body is
+ * one or more calls into the injected `CommandHost`, so the package holds no
+ * world state.
  */
 import type { CommandSource } from '../host';
 import { CommandRegistry } from '../tree';
@@ -71,10 +72,10 @@ export const SHARED_COMMAND_NAMES: readonly string[] = [
 
 /**
  * The Java-only commands this package implements because the datapack
- * runtime cannot work without them. Bedrock has no parameter type for any of
- * their arguments, so the flattener degrades each one to a string and says so.
+ * runtime cannot work without them. Bedrock has no parameter type for most of
+ * their arguments, so the flattener degrades those to a string and says so.
  */
-export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 'item', 'random'];
+export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 'item', 'random', 'return'];
 
 /**
  * The Bedrock commands Java has no counterpart for that this package

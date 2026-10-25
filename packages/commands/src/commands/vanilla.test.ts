@@ -34,14 +34,14 @@ const run = (
 };
 
 describe('the command set', () => {
-    it('registers the 46 shared names, the 4 Java-only and the 9 Bedrock-only ones', () => {
+    it('registers the 46 shared names, the 5 Java-only and the 9 Bedrock-only ones', () => {
         const names = new Set(registerVanillaCommands().getNames());
 
         for (const name of [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES]) {
             expect(names.has(name), `${name} is not registered`).toBe(true);
         }
         expect(SHARED_COMMAND_NAMES).toHaveLength(46);
-        expect(names.size).toBe(59);
+        expect(names.size).toBe(60);
     });
 
     it('answers to the aliases Java gives the same command', () => {
@@ -56,7 +56,7 @@ describe('the command set', () => {
     it('flattens the whole set into a packet without dropping a command', () => {
         const { payload, notes } = buildAvailableCommands(registerVanillaCommands());
 
-        expect(payload.commands).toHaveLength(59);
+        expect(payload.commands).toHaveLength(60);
         expect(payload.commands.every((command) => command.overloads.length > 0)).toBe(true);
         expect(notes.every((note) => note.severity === 'degraded' || note.reason === 'overload-limit')).toBe(true);
     });
@@ -394,9 +394,42 @@ describe('the data-driven commands', () => {
     });
 
     it('/function returns what the function returned', () => {
-        const { results } = run('function mypack:tick', { data: { runFunction: () => 42 } });
+        const { results } = run('function mypack:tick', {
+            data: { runFunction: () => ({ result: 42, matched: false }) }
+        });
 
         expect(results).toEqual([42]);
+    });
+
+    it('/return reports the value it ends the function with', () => {
+        const seen: (number | undefined)[] = [];
+        const record = {
+            data: {
+                returnFromFunction: (value?: number) => {
+                    seen.push(value);
+                    return value ?? 0;
+                }
+            }
+        } satisfies TestCommandHostOverrides;
+
+        expect(run('return 7', record).results).toEqual([7]);
+        expect(run('return fail', record).results).toEqual([0]);
+        expect(seen).toEqual([7, undefined]);
+    });
+
+    it('/return run ends the function with what the command it ran produced', () => {
+        const seen: (number | undefined)[] = [];
+        run('return run random value 1..6', {
+            data: {
+                randomValue: () => 4,
+                returnFromFunction: (value?: number) => {
+                    seen.push(value);
+                    return value ?? 0;
+                }
+            }
+        });
+
+        expect(seen).toEqual([4]);
     });
 
     it('/scoreboard players operation returns the new score', () => {
@@ -609,6 +642,21 @@ describe('/execute as a real subcommand chain', () => {
     it('runs `if entity` on its own and returns 1 or 0', () => {
         expect(run('execute if entity @e', { entities: { select: () => [testEntity()] } }).results).toEqual([1]);
         expect(run('execute unless entity @e', { entities: { select: () => [testEntity()] } }).results).toEqual([0]);
+    });
+
+    it('matches `if function` on the return value, not on the lines that ran', () => {
+        // The 1.20.3 rule. A function that ran forty lines and never reached
+        // a `/return` returns nothing, and nothing does not match.
+        const ran = {
+            data: { runFunction: () => ({ result: 40, matched: false }) }
+        } satisfies TestCommandHostOverrides;
+        const returned = {
+            data: { runFunction: () => ({ result: 1, matched: true }) }
+        } satisfies TestCommandHostOverrides;
+
+        expect(run('execute if function mypack:work', ran).results).toEqual([0]);
+        expect(run('execute if function mypack:work', returned).results).toEqual([1]);
+        expect(run('execute unless function mypack:work', ran).results).toEqual([1]);
     });
 
     it('walks a relationship with `on`', () => {

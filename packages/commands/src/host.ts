@@ -287,14 +287,54 @@ export interface DataCommandHost {
     runLoot(loot: LootSource, source: CommandSource, destination: LootDestination): number;
     /** Evaluates a datapack predicate, for `execute if predicate`. */
     testPredicate(predicate: string, source: CommandSource): boolean;
-    /** Runs a function or `#tag`, returning the value `/return` produced. */
-    runFunction(name: string, source: CommandSource, nbt?: string): number;
+    /** Runs a function or `#tag`; see {@link FunctionOutcome} for the two things a call reports. */
+    runFunction(name: string, source: CommandSource, nbt?: string): FunctionOutcome;
+    /**
+     * Ends the function the running command line belongs to, which is
+     * `/return`.
+     *
+     * @param value - What the function returns. Undefined for `return fail`
+     *   and for a `return run` whose command failed, both of which end the
+     *   function without a value.
+     * @returns What the `/return` line itself reports, which is the value, or
+     *   0 when there is none.
+     * @throws When no function is running. Java refuses `/return` typed at a
+     *   console or a chat window the same way.
+     */
+    returnFromFunction(value: number | undefined): number;
     /** Queues a function for later. */
     schedule(name: string, delayTicks: number, mode: 'append' | 'replace'): boolean;
     clearSchedule(name: string): number;
     /** Draws from a named random sequence, as `/random` does. */
     randomValue(min: number, max: number, sequence?: string): number;
     resetRandomSequence(sequence: string | '*', seed?: number): boolean;
+}
+
+/**
+ * What running a function or a function tag produced.
+ *
+ * Two commands read a call and they want different answers, so neither
+ * field derives from the other. `/function` reports `result`; Java made it
+ * the `/return` value in 1.20.3 and the number of lines run before that, and
+ * it is still both depending on whether the function reached a `/return`.
+ * `execute if function` reads `matched`, which Java defines as "returned a
+ * non-zero value through `/return`", so a function that ran 40 lines and
+ * never returned reports 40 and does not match.
+ */
+export interface FunctionOutcome {
+    /**
+     * What `/function` reports and `execute store result` captures: the sum
+     * of the values `/return` produced, or the number of command lines that
+     * ran when nothing the call reached returned a value.
+     */
+    readonly result: number;
+    /**
+     * Whether any function the call ran returned a non-zero value through
+     * `/return`. A tag matches when any of its members did, which is why
+     * this is not `result !== 0`: members returning 1 and -1 sum to 0 and
+     * still match.
+     */
+    readonly matched: boolean;
 }
 
 /**

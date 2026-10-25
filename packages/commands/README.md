@@ -149,17 +149,18 @@ built can legitimately carry a Java-only argument on a connection whose player i
 
 ## The command set
 
-`registerVanillaCommands()` returns a `CommandRegistry` holding 59 commands: the 46 names Java 26.3
-and Bedrock 1.26.50 share, plus `/data`, `/item`, `/attribute` and `/random`, which are Java-only
-and which the datapack runtime cannot work without, plus nine of Bedrock's own. Aliases are
-registered as redirects, so `/tp`, `/msg`, `/w` and `/experience` parse and run as their owners.
+`registerVanillaCommands()` returns a `CommandRegistry` holding 60 commands: the 46 names Java 26.3
+and Bedrock 1.26.50 share, plus `/data`, `/item`, `/attribute`, `/random` and `/return`, which are
+Java-only and which the datapack runtime cannot work without, plus nine of Bedrock's own. Aliases
+are registered as redirects, so `/tp`, `/msg`, `/w` and `/experience` parse and run as their
+owners.
 
 ```
 clear clone damage deop difficulty effect enchant execute fill function gamemode gamerule give
 help kick kill list locate loot me op particle place playsound recipe reload ride say schedule
 scoreboard setblock setworldspawn spawnpoint spreadplayers stop stopsound summon tag teleport
 tell tellraw time title transfer weather xp
-attribute data item random
+attribute data item random return
 camerashake daylock fog playanimation replaceitem testfor testforblock testforblocks titleraw
 ```
 
@@ -189,6 +190,24 @@ source as a `CommandResultCallback`, which arrived with `ContextChain` in 2023; 
 it. `storeCommandResults(dispatcher)` installs a `ResultConsumer` instead, which sees the same
 thing, one call per executed context, and feeds the sinks that `withStore` attached to the derived
 source. `registerVanillaCommands` wires it.
+
+`/return run <command>` is built on the same machinery, because it asks the same question: Java
+hangs a `CommandResultCallback` off the source, and here the redirect to the dispatcher root
+attaches a `withStore` sink that reads what the command produced. The sink fires once per executed
+context, so a forked body calls it more than once and the first call is the one taken.
+
+## What a function returns, and what `execute if function` matches
+
+A function returns a value only through `/return`. A function that reaches its last line returns
+nothing, and 1.20.3's rule is that nothing does not match, so `execute if function` is false for
+it however many lines it ran. `DataCommandHost.runFunction` therefore answers a `FunctionOutcome`
+rather than a number: `result` is what `/function` reports, which is the `/return` value when
+there was one and the number of command lines run when there was not, and `matched` is the
+condition's own answer. Neither derives from the other. A tag whose members return 1 and -1 sums
+to 0 and still matches, because Java matches a tag when any member did.
+
+`/return` outside a function is an error, which is the host's call to make: nothing in this
+package knows whether a function is running.
 
 ## The CommandHost seam
 
