@@ -3,3 +3,4 @@ export * from './craftingData';
 export * from './creativeContent';
 export * from './itemRegistry';
 export * from './nbt';
+export * from './palette';

@@ -13,11 +13,12 @@ import { existsSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { block_definitions } from '@jsprismarine/bedrock-data';
-import { resolveBlocks } from '@jsprismarine/blocks';
+import { resolveBlocks, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { load } from '@jsprismarine/packs';
 import { describe, expect, it } from 'vitest';
 
 import { buildBlockProperties } from './blockProperties';
+import { assertBlockPaletteAgrees } from './palette';
 import { nbtToPlain, readNetworkNbt } from './nbt';
 
 import type { PlainNbt } from './nbt';
@@ -123,6 +124,10 @@ describe.skipIf(!enabled)('the data driven vanilla blocks against the captured s
         if (disagreements.length > 0) console.debug(disagreements.slice(0, 40).join('\n'));
 
         expect(disagreements).toEqual([]);
+    });
+
+    it('declares a registry the captured palette agrees with', () => {
+        expect(() => assertBlockPaletteAgrees(built().properties, vanillaBlockPalette())).not.toThrow();
     });
 
     it('writes bytes a real server would have written', () => {
