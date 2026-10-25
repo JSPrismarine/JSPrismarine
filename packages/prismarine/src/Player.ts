@@ -8,12 +8,12 @@ import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
 import {
-    BREAKS_A_FALL,
+    breaksAFall,
     DROWNING_DAMAGE,
     DROWNING_INTERVAL,
     FALL_GRACE,
     isAllowed,
-    WATER_BLOCKS
+    isUnderwater
 } from './entity/Environment';
 import Human, { EYE_HEIGHT, eyePositionAt } from './entity/Human';
 import { FlagType, MAX_AIR_TICKS, MetadataFlag } from './entity/Metadata';
@@ -770,7 +770,7 @@ export default class Player extends Human {
                 Math.floor(position.getZ())
             );
 
-            return WATER_BLOCKS.has(block.getName());
+            return isUnderwater(block.getName());
         } catch {
             // Asking about a block that is not there to be read - a chunk still loading,
             // a player who has walked off the edge of what is generated. Not being able to
@@ -1212,7 +1212,7 @@ export default class Player extends Human {
                 Math.floor(position.getZ())
             );
 
-            return BREAKS_A_FALL.has(feet.name) || BREAKS_A_FALL.has(below.name);
+            return breaksAFall(feet.name) || breaksAFall(below.name);
         } catch {
             // A chunk still loading, or a player off the edge of what is generated. Not being able
             // to answer is not a reason to hurt them - see `isHeadInWater`, which reasons the same
