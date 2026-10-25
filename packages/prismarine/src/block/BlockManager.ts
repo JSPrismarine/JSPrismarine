@@ -144,6 +144,13 @@ export default class BlockManager {
     /**
      * Register a block, which is how a plugin contributes one.
      *
+     * @deprecated Ship a Bedrock behavior pack that defines the block and register the behavior
+     * families its components name. Blocks come from the pack stack, so a `Block` registered here
+     * has no component list, no hooks and no entry in the block property table, and the one thing
+     * it can still do is answer for its own identifier ahead of the stack's. This method is
+     * removed in a later release; see
+     * [the migration plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md)
+     * section 10.
      * @param block - The block, which answers for its name ahead of the registry's own.
      */
     public async registerBlock(block: Block): Promise<void> {
