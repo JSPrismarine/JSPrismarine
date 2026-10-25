@@ -132,6 +132,13 @@ export type BannedPlayersFile = BannedPlayerEntry[];
 export interface LevelData {
     spawn?: { x: number; y: number; z: number };
     gameRules?: Array<[string, [boolean | number, boolean]]>;
+    /**
+     * Java's `WeatherData`: the three counters and the two flags.
+     *
+     * Unknown rather than a record type, because what is in the file is whatever was last
+     * written there; `savedWeatherOf` is the check that turns it into a record.
+     */
+    weather?: unknown;
     entities?: Array<{
         type: string;
         position: {

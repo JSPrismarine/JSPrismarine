@@ -16,7 +16,7 @@
 import { containerSignal } from '@jsprismarine/block-behaviors';
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
-import type { BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
+import type { BlockPosition, BlockRef, Difficulty } from '@jsprismarine/engine-systems';
 import { AIR } from '@jsprismarine/engine-systems';
 import { Gametype } from '@jsprismarine/minecraft';
 
@@ -33,14 +33,6 @@ import { maxY } from './Dimension';
 import { takeBlockEntity } from './blockMove';
 import type { World } from './World';
 import type { WorldSystemsAccess } from './WorldSystems';
-
-/**
- * The weather the engine reads.
- *
- * This server has no weather cycle, so fire never drowns in the rain and a fluid never
- * reacts to one. Clear is the honest answer until something drives the cycle.
- */
-const WEATHER_WITHOUT_A_CYCLE: Weather = 'clear';
 
 /** The block entity field the engine's own block states are kept under. */
 const ENGINE_STATES_FIELD = 'engineStates';
@@ -241,8 +233,8 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
         playSound: (at, sound) => world.playNamedSound(at.x, at.y, at.z, sound.replace(/^minecraft:/, '')),
 
         getDifficulty: () => difficultyName(world.getServer().getConfig().getDifficulty()),
-        getWeather: () => WEATHER_WITHOUT_A_CYCLE,
-        isRainingAt: () => false,
+        getWeather: () => world.getWeather(),
+        isRainingAt: (at) => world.isRainingAt(at.x, at.y, at.z),
 
         // The protocol numbers the dimensions in the order the engine lists them, so the id
         // this server stores indexes that list rather than needing a table of its own.
