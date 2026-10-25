@@ -13,6 +13,14 @@ type StepDeclaration = (builder: ChunkStepBuilder) => ChunkStepBuilder;
  * Only `terrain` and `features` set a write radius. Every other step keeps the default of -1,
  * which makes `isWithinWriteZone` false for every position including its own chunk, so those steps
  * cannot write a block through the region at all.
+ *
+ * One row is not the jar's. Java's `full` declares nothing, because its feature pass has already
+ * written through into the neighbor and there is nothing left to collect; ours reads its eight
+ * neighbors at `features` to take the patches they recorded for it, so it declares that. The
+ * accumulated table does not move: `full` already guaranteed `initialize_light` at distance 1,
+ * which is above `features`, so every radius, `RADIUS_AROUND_FULL_CHUNK` and `SAFETY_MARGIN_CHUNKS`
+ * read exactly what they read before. What changes is only that the read is now declared, and
+ * therefore checked, rather than reaching past the window.
  */
 const GENERATION_STEPS: Readonly<Record<ChunkStatus, StepDeclaration>> = {
     empty: (step) => step,
@@ -26,7 +34,7 @@ const GENERATION_STEPS: Readonly<Record<ChunkStatus, StepDeclaration>> = {
     initialize_light: (step) => step,
     light: (step) => step.addRequirement('initialize_light', 1),
     spawn: (step) => step.addRequirement('biomes', 1),
-    full: (step) => step
+    full: (step) => step.addRequirement('features', 1)
 };
 
 /**

@@ -57,7 +57,12 @@ undeclared read is a crash on the first chunk rather than a wrong block on the t
 | `initialize_light` | `features` | outside | | |
 | `light` | `initialize_light` | `initialize_light` | outside | |
 | `spawn` | `light` | `biomes` | outside | |
-| `full` | `spawn` | outside | | |
+| `full` | `spawn` | `features` | outside | |
+
+The `full` row is the one that is not the jar's. Java's `full` declares nothing, because its
+feature pass has already written through into the neighbor. Ours reads the eight neighbors at
+`features` to collect the patches they recorded for it. The accumulated table does not move:
+`full` already guaranteed `initialize_light` at distance 1, which is above `features`.
 
 **Accumulated dependencies.** The transitive closure of the above, which is what sizes each layer
 of a scheduler. Inverting the `full` row gives the radius each status has to reach before one chunk

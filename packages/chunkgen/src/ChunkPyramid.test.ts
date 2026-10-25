@@ -22,7 +22,9 @@ const DIRECT: Record<ChunkStatus, ChunkStatus[]> = {
     initialize_light: ['features'],
     light: ['initialize_light', 'initialize_light'],
     spawn: ['light', 'biomes'],
-    full: ['spawn']
+    // Not the jar's row. Java's `full` declares nothing; ours reads its eight neighbors at
+    // `features` to collect the patches they recorded for it, which is ADR 0002's deviation.
+    full: ['spawn', 'features']
 };
 
 /** `ChunkStep.accumulatedDependencies()` from the same section, likewise typed out by hand. */
@@ -68,6 +70,17 @@ describe('the generation pyramid against the jar tables', () => {
             const indices = byDistance.map((entry) => CHUNK_STATUSES.indexOf(entry));
             expect(indices).toEqual([...indices].sort((a, b) => b - a));
         }
+    });
+
+    it('leaves every accumulated radius where the jar has it despite the widened full row', () => {
+        // The one deviation has to be free in the accumulated table, or the scheduler's layers,
+        // `RADIUS_AROUND_FULL_CHUNK` and `SAFETY_MARGIN_CHUNKS` would all move with it. It is
+        // free because `full` already guaranteed `initialize_light` at distance 1, and
+        // `initialize_light` is above `features`.
+        const toFull = GENERATION_PYRAMID.stepTo('full');
+        expect(toFull.directDependencies.at(1)).toBe('features');
+        expect(toFull.accumulatedDependencies.at(1)).toBe('initialize_light');
+        expect(GENERATION_PYRAMID.radiusOf('features')).toBe(1);
     });
 
     it('reaches 23 by 23 at structure_starts, 7 by 7 at biomes, 5 by 5 at terrain and 3 by 3 at features', () => {
