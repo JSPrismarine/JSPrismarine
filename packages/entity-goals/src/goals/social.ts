@@ -853,7 +853,8 @@ export const takeFlower = goal<{ readonly filters: Filter | undefined; readonly 
         onTakeFlower: eventAt(body, 'on_take_flower')
     })),
     create: (params, support) => {
-        /** How long the villager watches the offer, from Java's `OfferFlowerGoal.OFFER_TICKS`. */
+        // The villager watches for as long as the golem holds the flower out,
+        // which is Java's `OfferFlowerGoal.OFFER_TICKS`.
         let remaining = 0;
         let giver: GoalMob | undefined;
 
