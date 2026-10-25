@@ -54,3 +54,5 @@ export {
     GenerationPool,
     GenerationPoolClosedError
 } from './GenerationPool';
+export type { ShardedGenerationPoolOptions } from './ShardedGenerationPool';
+export { DEFAULT_REGION_CHUNKS, DEFAULT_STEAL_AFTER, ShardedGenerationPool } from './ShardedGenerationPool';
