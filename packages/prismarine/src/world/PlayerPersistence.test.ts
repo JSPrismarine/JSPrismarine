@@ -16,7 +16,7 @@ import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type Config from '../config/Config';
+import type { Config } from '../config/Config';
 import type Console from '../Console';
 import ContainerEntry from '../inventory/ContainerEntry';
 import type { Logger } from '@jsprismarine/logger';
@@ -35,13 +35,16 @@ import type { Generator } from './Generator';
 import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import type Server from '../Server';
-import type { WorldManager } from './WorldManager';
+import type WorldManager from './WorldManager';
 import { World } from './World';
 
 const WORLD_NAME = 'persistence';
 
 /** The slot the pickaxe goes in, so the test proves a slot index survives rather than a count. */
 const PICKAXE_SLOT = 7;
+
+/** Where the shulker box sits, which is a slot holding a container of its own. */
+const BOX_SLOT = 8;
 
 let scratch: string;
 let previousDirectory: string | undefined;
@@ -157,6 +160,13 @@ const logOutAndIn = async () => {
     inventory
         .getEnderChest()
         .setItem(26, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 12 }), count: 12 }));
+    inventory.setItem(
+        BOX_SLOT,
+        new ContainerEntry({
+            item: new Item({ name: 'minecraft:black_shulker_box' }).withContents([null, pickaxe()]),
+            count: 1
+        })
+    );
 
     leaving.attributes.setValue(AttributeIds.Health, 11);
     leaving.setFood(13);
@@ -222,6 +232,21 @@ describe('a player logging out and back in', () => {
         expect(held.getMaxDurability() - held.getDurability()).toBe(37);
         expect(held.getCustomName()).toBe('Hole Maker');
         expect(held.getLore()).toEqual(['Property of the test suite']);
+    });
+
+    it('keeps what a shulker box in the inventory was holding', () => {
+        const box = returning.getInventory().getItem(BOX_SLOT);
+
+        expect(box.getName()).toBe('minecraft:black_shulker_box');
+        // The empty slot before it is kept too, so the box opens with its stacks where they
+        // were rather than shuffled up to the front.
+        expect(box.getContents()[0]).toBeNull();
+
+        const held = box.getContents()[1];
+        expect(held?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(held?.getEnchantmentLevel('minecraft:sweeping_edge')).toBe(2);
+        expect(held?.getCustomName()).toBe('Hole Maker');
+        expect((held?.getMaxDurability() ?? 0) - (held?.getDurability() ?? 0)).toBe(37);
     });
 
     it('keeps the armor, the off hand and the ender chest', () => {

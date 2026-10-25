@@ -8,27 +8,19 @@
  * `Rotation` and the `Attributes` list are all Bedrock's. The advancement progress and the
  * enchantment seed are not, so they live under {@link SAVED_TAG}.
  *
- * Item stacks use Bedrock's item compound: `Name`, `Count`, the aux value as the top-level
- * `Damage`, `Slot`, and a `tag` compound holding the durability as `tag.Damage`, the display
- * name and lore under `display`, and the enchantments as `ench`. The enchantments go out twice
- * on purpose. `ench` carries the Bedrock numbers so the client and a vanilla tool can read
- * them, and that list covers only 37 of the 43 Java enchantments and none of a datapack's - so
- * the Java ids are written beside it under {@link ENCHANTMENTS_TAG}, and read back from there
- * first. Without the second copy a Sweeping Edge sword would come back unenchanted.
+ * Item stacks go through `inventory/itemNbt.ts`, which is the one place that states Bedrock's
+ * item compound; a container block entity writes its stacks through the same module.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
+import { itemSlotsFromNbt, itemSlotsToNbt } from '../../../inventory/itemNbt';
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
 import type { WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
-import { bedrockEnchantType, javaEnchantmentId } from '../../../enchantment/bedrockIds';
 
 /** The compound holding every field Bedrock has no schema for. */
 const SAVED_TAG = 'JSPrismarine';
-
-/** The Java enchantment ids, under the stack's `tag`, beside Bedrock's own `ench` list. */
-const ENCHANTMENTS_TAG = 'jsprismarine:enchantments';
 
 /** The containers a player carries, by the tag Bedrock files each under. */
 const CONTAINER_TAGS = {
@@ -62,17 +54,9 @@ const ATTRIBUTE_BOUNDS: Record<keyof typeof ATTRIBUTE_NAMES, { min: number; max:
 const floatList = (values: readonly number[]): Set<Types.FloatVal> =>
     new Set(values.map((value) => new Types.FloatVal(value)));
 
-const stringList = (values: readonly string[]): Set<Types.StringVal> =>
-    new Set(values.map((value) => new Types.StringVal(value)));
-
 const numbersIn = (nbt: NBTTagCompound, name: string): number[] => {
     const values = nbt.getList(name, false);
     return values ? Array.from(values, (value) => Number(value?.getValue?.() ?? value ?? 0)) : [];
-};
-
-const stringsIn = (nbt: NBTTagCompound, name: string): string[] => {
-    const values = nbt.getList(name, false);
-    return values ? Array.from(values, (value) => String(value?.getValue?.() ?? value ?? '')) : [];
 };
 
 const compoundsIn = (nbt: NBTTagCompound, name: string): NBTTagCompound[] => {
@@ -93,120 +77,13 @@ const gamemodeName = (value: number): string => {
     }
 };
 
-/** One stack as Bedrock's item compound, with the slot it sits in. */
-const itemToNbt = (stack: StoredItemStack, slot: number): NBTTagCompound => {
-    const entry = new NBTTagCompound('');
-    entry.addValue('Name', new Types.StringVal(stack.name));
-    entry.addValue('Count', new Types.ByteVal(stack.count));
-    entry.addValue('Damage', new Types.ShortVal(stack.meta ?? 0));
-    entry.addValue('Slot', new Types.ByteVal(slot));
-
-    const tag = new NBTTagCompound('tag');
-    let anything = false;
-
-    if (stack.damage !== undefined && stack.damage > 0) {
-        tag.addValue('Damage', new Types.NumberVal(stack.damage));
-        anything = true;
-    }
-
-    if (stack.customName !== undefined || (stack.lore?.length ?? 0) > 0) {
-        const display = new NBTTagCompound('display');
-        if (stack.customName !== undefined) display.addValue('Name', new Types.StringVal(stack.customName));
-        if (stack.lore && stack.lore.length > 0) display.addValue('Lore', stringList(stack.lore));
-        tag.addChild(display);
-        anything = true;
-    }
-
-    const levels = Object.entries(stack.enchantments ?? {});
-    if (levels.length > 0) {
-        const ench = new Set<NBTTagCompound>();
-        for (const [id, level] of levels) {
-            const type = bedrockEnchantType(id);
-            // Nothing to write for an enchantment the client's registry does not list. The
-            // Java ids below carry it instead, which is what makes the round trip total.
-            if (type === undefined) continue;
-
-            const instance = new NBTTagCompound('');
-            instance.addValue('id', new Types.ShortVal(type));
-            instance.addValue('lvl', new Types.ShortVal(level));
-            ench.add(instance);
-        }
-        if (ench.size > 0) tag.addValue('ench', ench);
-
-        const javaIds = new NBTTagCompound(ENCHANTMENTS_TAG);
-        for (const [id, level] of levels) javaIds.addValue(id, new Types.NumberVal(level));
-        tag.addChild(javaIds);
-        anything = true;
-    }
-
-    if (anything) entry.addChild(tag);
-    return entry;
-};
-
-/** The enchantments on a stack, from the Java ids when they are there and `ench` otherwise. */
-const enchantmentsFromNbt = (tag: NBTTagCompound | null): Record<string, number> | undefined => {
-    const javaIds = tag?.getCompound(ENCHANTMENTS_TAG, false) ?? null;
-    if (javaIds !== null) {
-        const levels: Record<string, number> = {};
-        for (const [id, value] of javaIds.children) levels[id] = Number(value?.getValue?.() ?? 0);
-        if (Object.keys(levels).length > 0) return levels;
-    }
-
-    // A record written by the game itself, or by any other Bedrock tool. The numbers resolve
-    // through the same table that wrote them, read backwards.
-    const levels: Record<string, number> = {};
-    for (const instance of tag === null ? [] : compoundsIn(tag, 'ench')) {
-        const id = javaEnchantmentId(instance.getShort('id', -1));
-        if (id === undefined) continue;
-        levels[id] = instance.getShort('lvl', 1);
-    }
-
-    return Object.keys(levels).length > 0 ? levels : undefined;
-};
-
-/** One stack back out of a Bedrock item compound, or null for a slot holding nothing. */
-const itemFromNbt = (entry: NBTTagCompound): StoredItemStack | null => {
-    const name = entry.getString('Name', '');
-    const count = entry.getByte('Count', 0);
-    if (name === '' || count <= 0) return null;
-
-    const tag = entry.getCompound('tag', false);
-    const display = tag?.getCompound('display', false) ?? null;
-    const meta = entry.getShort('Damage', 0);
-    const damage = tag?.getNumber('Damage', 0) ?? 0;
-    const customName = display?.getString('Name', '') ?? '';
-    const lore = display === null ? [] : stringsIn(display, 'Lore');
-    const enchantments = enchantmentsFromNbt(tag);
-
-    return {
-        name,
-        count,
-        ...(meta === 0 ? {} : { meta }),
-        ...(damage === 0 ? {} : { damage }),
-        ...(customName === '' ? {} : { customName }),
-        ...(lore.length === 0 ? {} : { lore }),
-        ...(enchantments === undefined ? {} : { enchantments })
-    };
-};
-
-/** The filled slots of one container, which is how vanilla writes a list of items. */
-const containerToNbt = (slots: readonly (StoredItemStack | null)[]): Set<NBTTagCompound> => {
-    const list = new Set<NBTTagCompound>();
-    slots.forEach((stack, slot) => {
-        if (stack !== null) list.add(itemToNbt(stack, slot));
-    });
-    return list;
-};
-
 /** One container back as a dense slot array, since vanilla writes only the filled slots. */
 const containerFromNbt = (nbt: NBTTagCompound, tag: string, size: number): (StoredItemStack | null)[] => {
     const slots = new Array<StoredItemStack | null>(size).fill(null);
 
-    compoundsIn(nbt, tag).forEach((entry, index) => {
-        const stack = itemFromNbt(entry);
-        const slot = entry.getByte('Slot', index);
-        if (stack !== null && slot >= 0 && slot < slots.length) slots[slot] = stack;
-    });
+    for (const { slot, stack } of itemSlotsFromNbt(nbt, tag)) {
+        if (slot >= 0 && slot < slots.length) slots[slot] = stack;
+    }
 
     return slots;
 };
@@ -259,7 +136,7 @@ const inventoryToNbt = (root: NBTTagCompound, inventory: StoredInventory | undef
     if (inventory === undefined) return;
 
     for (const [field, tag] of Object.entries(CONTAINER_TAGS)) {
-        root.addValue(tag, containerToNbt(inventory[field as keyof typeof CONTAINER_TAGS]));
+        root.addValue(tag, itemSlotsToNbt(inventory[field as keyof typeof CONTAINER_TAGS]));
     }
     root.addValue('SelectedInventorySlot', new Types.NumberVal(inventory.handSlot));
 };

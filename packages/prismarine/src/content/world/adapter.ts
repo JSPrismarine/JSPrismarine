@@ -18,7 +18,7 @@
  * import('./notWired').NotWiredError} naming the subsystem that owes it.
  */
 import type { BlockStateValue } from '@jsprismarine/blocks';
-import type { BlockEntityData, BlockProperties } from '@jsprismarine/block-behaviors';
+import type { BlockEntityData, BlockProperties, ItemDrop } from '@jsprismarine/block-behaviors';
 import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
@@ -64,12 +64,14 @@ export interface ContentEntity {
     readonly position: ContentPosition;
 }
 
-/** An item stack leaving a block or an entity. */
-export interface ContentItemDrop {
-    /** The namespaced Bedrock item identifier. */
-    readonly identifier: string;
-    readonly count: number;
-}
+/**
+ * An item stack leaving a block or an entity.
+ *
+ * `@jsprismarine/block-behaviors`'s own drop, rather than a second declaration of it. The two
+ * were separate copies of `{ identifier, count }`, and widening one without the other would
+ * have dropped a stack's enchantments at whichever seam still held the narrow copy.
+ */
+export type ContentItemDrop = ItemDrop;
 
 /** Reads and writes the blocks of one dimension. */
 export interface ContentBlockAccess {

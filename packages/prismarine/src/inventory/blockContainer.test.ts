@@ -27,7 +27,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import BlockManager from '../block/BlockManager';
-import type Config from '../config/Config';
+import type { Config } from '../config/Config';
 import type Console from '../Console';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
@@ -72,7 +72,9 @@ const ITEMS = [
     'minecraft:coal',
     'minecraft:chest',
     'minecraft:black_shulker_box',
-    'minecraft:stone'
+    'minecraft:stone',
+    'minecraft:diamond_pickaxe',
+    'minecraft:diamond_sword'
 ] as const;
 
 /**
@@ -500,15 +502,17 @@ describe('a block container a player can put things in', () => {
         await provider.disable();
     }, 120_000);
 
-    it('lets a broken shulker box keep what is in it', async () => {
+    it('lets a broken shulker box leave with what is in it, enchantments and all', async () => {
         const scene = await buildScene('shulker');
-        const { server, world, blocks } = scene;
+        const { server, world, blocks, content } = scene;
         const player = buildPlayer(world, server, 'Packer');
 
         blocks.setBlock(CHEST, 'minecraft:black_shulker_box');
-        player
-            .getInventory()
-            .setItem(HELD_SLOT, new ContainerEntry({ item: new Item({ name: 'minecraft:diamond', count: 4 }) }));
+
+        const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', count: 1, content }).withEnchantments({
+            'minecraft:fortune': 3
+        });
+        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
 
         await player
             .getNetworkSession()
@@ -521,19 +525,144 @@ describe('a block container a player can put things in', () => {
             move(
                 at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
                 at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 0),
-                4
+                1
             )
         ]);
-        expect(storedItems(blocks, CHEST)[0]).toEqual({ identifier: 'minecraft:diamond', count: 4 });
+        expect(storedItems(blocks, CHEST)[0]?.enchantments).toEqual({ 'minecraft:fortune': 3 });
 
         await world.breakBlock(new Vector3(CHEST.x, CHEST.y, CHEST.z));
 
         const dropped = world
             .getEntities()
             .filter((entity): entity is ItemEntity => entity instanceof ItemEntity)
-            .map((entity) => entity.getItem()?.getItem()?.getName());
+            .map((entity) => entity.getItem()?.getItem());
 
-        expect(dropped).not.toContain('minecraft:diamond');
+        // Nothing spilled, and the box on the ground is carrying the enchanted pickaxe.
+        expect(dropped.map((item) => item?.getName())).not.toContain('minecraft:diamond_pickaxe');
+
+        const box = dropped.find((item) => item?.getName() === 'minecraft:black_shulker_box');
+        const held = box?.getContents()[0];
+        expect(held?.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(held?.getEnchantmentLevel('minecraft:fortune')).toBe(3);
+    }, 120_000);
+
+    it('gives back the enchantments, durability, name and lore a stack went in with', async () => {
+        const scene = await buildScene('metadata');
+        const { server, world, provider, blocks, content } = scene;
+        const player = buildPlayer(world, server, 'Enchanter');
+
+        blocks.setBlock(CHEST, 'minecraft:chest');
+
+        const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe', count: 1, content })
+            .withEnchantments({ 'minecraft:fortune': 3, 'minecraft:unbreaking': 2 })
+            .withDisplay('Rockbreaker', ['Mined a million blocks']);
+        pickaxe.durability = pickaxe.getMaxDurability() - 57;
+        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: pickaxe, count: 1 }));
+
+        await player
+            .getNetworkSession()
+            .openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:chest',
+                openContainerContents(player, CHEST, 'minecraft:chest')
+            );
+        await apply(server, player, [
+            move(
+                at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
+                at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5),
+                1
+            )
+        ]);
+
+        expect(storedItems(blocks, CHEST)[5]).toEqual({
+            identifier: 'minecraft:diamond_pickaxe',
+            count: 1,
+            damage: 57,
+            customName: 'Rockbreaker',
+            lore: ['Mined a million blocks'],
+            enchantments: { 'minecraft:fortune': 3, 'minecraft:unbreaking': 2 }
+        });
+
+        // Bedrock's own compound, so a vanilla tool reading this chest sees an item and not a
+        // blob of this server's JSON: the name, the count and the slot at the top level, and
+        // the client's own `ench` numbers under `tag`.
+        const chunk = await world.getChunk(0, 0);
+        const stored = chunk.getBlockEntity(CHEST.x, CHEST.y, CHEST.z)?.toNBT();
+        const entries = [...(stored?.getList('Items', false) ?? [])];
+        expect(entries).toHaveLength(1);
+        expect(entries[0].getString('Name', '')).toBe('minecraft:diamond_pickaxe');
+        expect(entries[0].getByte('Count', 0)).toBe(1);
+        expect(entries[0].getByte('Slot', -1)).toBe(5);
+        expect([...entries[0].getCompound('tag', false)!.getList('ench', false)!]).toHaveLength(2);
+
+        await world.save();
+        await provider.disable();
+
+        // Out of a fresh world over the same database, and back into a player's hand, which is
+        // the only reading of the record that proves nothing was lost on the way.
+        const reopened = await buildScene('metadata');
+        const second = buildPlayer(reopened.world, reopened.server, 'Enchanter');
+        await second
+            .getNetworkSession()
+            .openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:chest',
+                openContainerContents(second, CHEST, 'minecraft:chest')
+            );
+        await apply(reopened.server, second, [
+            move(at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 5), at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2), 1)
+        ]);
+
+        const back = second.getInventory().getItem(2);
+        expect(back.getName()).toBe('minecraft:diamond_pickaxe');
+        expect(back.getEnchantmentLevel('minecraft:fortune')).toBe(3);
+        expect(back.getEnchantmentLevel('minecraft:unbreaking')).toBe(2);
+        expect(back.getMaxDurability() - back.getDurability()).toBe(57);
+        expect(back.getCustomName()).toBe('Rockbreaker');
+        expect(back.getLore()).toEqual(['Mined a million blocks']);
+
+        await reopened.provider.disable();
+    }, 120_000);
+
+    it('keeps an enchantment no Bedrock number names, such as sweeping edge', async () => {
+        const scene = await buildScene('sweeping');
+        const { server, world, provider, blocks, content } = scene;
+        const player = buildPlayer(world, server, 'Swordsman');
+
+        blocks.setBlock(CHEST, 'minecraft:chest');
+
+        const sword = new Item({ name: 'minecraft:diamond_sword', count: 1, content }).withEnchantments({
+            'minecraft:sweeping_edge': 3
+        });
+        player.getInventory().setItem(HELD_SLOT, new ContainerEntry({ item: sword, count: 1 }));
+
+        await player
+            .getNetworkSession()
+            .openBlockContainer(
+                new Vector3(CHEST.x, CHEST.y, CHEST.z),
+                'minecraft:chest',
+                openContainerContents(player, CHEST, 'minecraft:chest')
+            );
+        await apply(server, player, [
+            move(
+                at(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, HELD_SLOT),
+                at(ContainerUiId.LEVEL_ENTITY_CONTAINER, 0),
+                1
+            )
+        ]);
+
+        // `ench` cannot carry it - the client has no number for sweeping edge - so the Java id
+        // beside it is the whole of the round trip.
+        const chunk = await world.getChunk(0, 0);
+        const entry = [...(chunk.getBlockEntity(CHEST.x, CHEST.y, CHEST.z)?.toNBT().getList('Items', false) ?? [])][0];
+        expect(entry.getCompound('tag', false)?.getList('ench', false)).toBeNull();
+
+        await world.save();
+        await provider.disable();
+
+        const reopened = await buildScene('sweeping');
+        expect(storedItems(reopened.blocks, CHEST)[0]?.enchantments).toEqual({ 'minecraft:sweeping_edge': 3 });
+        await reopened.provider.disable();
     }, 120_000);
 
     it('keeps two players at one chest looking at the same slots', async () => {
