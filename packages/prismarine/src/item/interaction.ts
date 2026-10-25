@@ -32,9 +32,8 @@ import { WindowTypes } from '@jsprismarine/minecraft';
 import { advancementBlockUsed, advancementItemUsedOnBlock } from '../advancement/triggers';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
-import ContainerEntry from '../inventory/ContainerEntry';
 import { blockContainerOf } from '../inventory/blockContainers';
-import { Item } from './Item';
+import { openContainerContents } from '../inventory/containerStore';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
@@ -127,27 +126,6 @@ const origin = (interaction: BlockInteraction) => ({
     z: interaction.position.z
 });
 
-/** What a block is holding, off its block entity record, one entry per slot the screen shows. */
-const storedContents = (interaction: BlockInteraction, slots: number): ContainerEntry[] => {
-    if (slots === 0) return [];
-
-    const { content, player } = interaction;
-    const dimension = player.getWorld().getDimension().name;
-    const items = content.world.blockWorld.at(dimension).getBlockData(interaction.position)?.items ?? [];
-
-    return Array.from({ length: slots }, (_, slot) => {
-        const held = items[slot];
-        if (held === undefined || !content.items.registry.has(held.identifier)) {
-            return new ContainerEntry({ item: Item.air() });
-        }
-
-        return new ContainerEntry({
-            item: new Item({ name: held.identifier, count: held.count, content }),
-            count: held.count
-        });
-    });
-};
-
 /**
  * Opens the screen the clicked block draws, and clears an enchanting table's three rows.
  *
@@ -164,7 +142,9 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
     if (container === undefined) return false;
 
     const at = new Vector3(interaction.position.x, interaction.position.y, interaction.position.z);
-    const contents = storedContents(interaction, container.slots);
+    // Read through the same module the request path writes through, so the slots a player is
+    // shown and the slots they can then move a stack through are one list in one order.
+    const contents = container.slots === 0 ? [] : openContainerContents(player, interaction.position, block.identifier);
     const session = player.getNetworkSession();
 
     void (async () => {
