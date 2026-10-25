@@ -14,6 +14,7 @@
  */
 import type { BlockType } from '@jsprismarine/blocks';
 import type { BlockPosition, BlockRef } from '@jsprismarine/engine-systems';
+import { bedrockBlockStates } from '@jsprismarine/mapping';
 
 import type { ServerContent } from '../content/ServerContent';
 import type { World } from './World';
@@ -56,8 +57,11 @@ export const contentRandomTickHandlers = (
         const live = world();
         if (!live) return;
 
-        type.state(block.states).content.hooks.dispatch('onRandomTick', {
-            block: { identifier, position: at, dimension: live.getDimension().name, states: block.states },
+        // The engine reads Java state words, but the content type is resolved against
+        // Bedrock's palette model. Convert before resolving the state and dispatching its hook.
+        const states = bedrockBlockStates(identifier, block.states);
+        type.state(states).content.hooks.dispatch('onRandomTick', {
+            block: { identifier, position: at, dimension: live.getDimension().name, states },
             tick: live.getTicks()
         });
     };
