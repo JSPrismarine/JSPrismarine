@@ -120,8 +120,13 @@ interface TorchToggle {
  * ```typescript
  * const world = createTestWorld();
  * const engine = createEngine(world);
- * world.onBlockUpdated((at, to) => engine.updates.updateNeighborsAt(at, to.name));
+ * world.onBlockUpdated((at, to) => engine.setBlockAndUpdate(at, to));
  * ```
+ *
+ * Route the host's block writes through {@link Engine.setBlockAndUpdate}, not through
+ * `engine.updates.updateNeighborsAt`. A host that raises only the neighbor updates leaves out
+ * the new block's own `onPlace`, so dust placed beside a live lever stays dark, a piston
+ * placed into a powered position never extends, and fire never burns anything.
  */
 export const createEngine = (world: WorldAccess, options: EngineOptions = {}): Engine => {
     const sourceRules = options.sourceRules ?? DEFAULT_SOURCE_RULES;

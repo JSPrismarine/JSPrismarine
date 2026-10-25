@@ -156,7 +156,8 @@ const entitiesNear = (world: World, at: Vector3): readonly CaughtEntity[] =>
  * double chest - and Java's table decides the rest. The blast adds one parameter:
  * `explosion_radius` is what every vanilla table's `minecraft:explosion_decay` function
  * reads, and it keeps each item of a rolled stack with a chance of `1 / radius`. So a stone
- * wall taken out by TNT yields cobblestone three times in four, which is the loss players see.
+ * wall taken out by a radius-4 TNT blast yields cobblestone one time in four, which is the
+ * loss players see.
  *
  * The drops are kept rather than put on the ground here, because the ground is `async` and
  * `castBlast` is not.

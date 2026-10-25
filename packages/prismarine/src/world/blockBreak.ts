@@ -86,8 +86,8 @@ export interface BlockBreak {
      *
      * Java's `LootContextParams.EXPLOSION_RADIUS`. Every vanilla block table reads it through
      * `minecraft:explosion_decay`, which keeps each item of a rolled stack with a chance of
-     * `1 / radius`, so stone blown up by TNT yields cobblestone three times in four. Absent
-     * for a break nothing exploded, which keeps every item.
+     * `1 / radius`, so stone caught by a radius-4 TNT blast yields cobblestone one time in
+     * four. Absent for a break nothing exploded, which keeps every item.
      */
     readonly explosionRadius?: number;
     /**

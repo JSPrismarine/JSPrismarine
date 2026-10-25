@@ -130,7 +130,7 @@ describe('explosions', () => {
             expect(furthest).toBeLessThanOrEqual(penetration(4, 0.5) + 1);
         });
 
-        it('barely dents stone, because each block costs a ray 1.98', () => {
+        it('barely dents stone, because each block costs a ray 2.115', () => {
             const buried = world();
             fill(buried, 'minecraft:stone', 8);
 
