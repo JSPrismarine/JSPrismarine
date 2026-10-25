@@ -21,20 +21,34 @@ const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
 /**
+ * Finds the cached Java server jar. `fetch:sources` writes it to
+ * `java-server/<version>/`, and the Java dump and oracle scripts download
+ * their own copy to `java/<version>/`, so a checkout can hold either or both.
+ * The fetched one comes first because its hash is verified.
+ */
+const findServerJar = (): { readonly version: string; readonly path: string } => {
+    for (const source of ['java-server', 'java']) {
+        const root = join(cacheRoot, source);
+        if (!existsSync(root)) continue;
+        const version = readdirSync(root).find((name) => existsSync(join(root, name, 'server.jar')));
+        if (version) return { version, path: join(root, version, 'server.jar') };
+    }
+    throw new Error(`no server.jar under ${cacheRoot}; run the bedrock-data fetch:sources script`);
+};
+
+/**
  * Extracts the vanilla datapack JSON out of the bundler jar's inner server jar
  * into the cache, once, and writes the pack.mcmeta the jar itself does not
  * carry. Returns the datapack directory.
  */
 const extractVanillaDatapack = (): string => {
-    const jarRoot = join(cacheRoot, 'java-server');
-    const version = readdirSync(jarRoot).find((name) => existsSync(join(jarRoot, name, 'server.jar')));
-    if (!version) throw new Error(`no server.jar under ${jarRoot}; run the bedrock-data fetch:sources script`);
+    const jar = findServerJar();
 
-    const target = join(cacheRoot, 'vanilla-datapack', version);
+    const target = join(cacheRoot, 'vanilla-datapack', jar.version);
     const mcmetaPath = join(target, 'pack.mcmeta');
     if (existsSync(mcmetaPath)) return target;
 
-    const outer = readZip(readFileSync(join(jarRoot, version, 'server.jar')));
+    const outer = readZip(readFileSync(jar.path));
     const innerName = [...outer.keys()].find((name) => /^META-INF\/versions\/[^/]+\/server-.+\.jar$/.test(name));
     if (!innerName) throw new Error('the server jar has no META-INF/versions inner jar');
 
