@@ -5,19 +5,28 @@
  * identifier rules send a copper door to `jsprismarine:door` and a copper
  * slab to `jsprismarine:slab`, so six families run the same random tick.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { HookBlock, HookItem } from '@jsprismarine/blocks';
 
-import type { FamilyContext } from '../family';
+import type { FamilyContext, FamilyHandlers } from '../family';
+import { isAxe, isHoneycomb } from '../rules/heldItem';
 import { bareName } from '../state';
 import type { ItemDrop, WorldActions } from '../world';
-import { parseCopperName, WEATHERING_CHANCE, weatheredIdentifier } from '../rules/weathering';
+import {
+    parseCopperName,
+    scrapedIdentifier,
+    waxedIdentifier,
+    WEATHERING_CHANCE,
+    weatheredIdentifier
+} from '../rules/weathering';
 
 /**
  * Drops one of the block itself.
  *
  * A block whose `jsprismarine:block_properties` says it requires the correct
- * tool drops nothing here, because the hook event carries no held item and
- * the tool check belongs to whoever knows what the breaker was holding.
+ * tool drops nothing here. The event now carries the held item, but deciding
+ * whether that item is the right tool needs the per-item mining tiers, which
+ * live in `@jsprismarine/items`, so the tool check stays with whoever has
+ * them.
  */
 export const dropSelf = (world: WorldActions, context: FamilyContext, block: HookBlock, count = 1): void => {
     if (context.properties.requiresCorrectTool) return;
@@ -47,6 +56,46 @@ export const weatherOnRandomTick = (world: WorldActions, block: HookBlock): bool
 
 /** Whether a block is one of the copper blocks that oxidize. */
 export const isWeatheringCopper = (identifier: string): boolean => parseCopperName(identifier) !== undefined;
+
+/** Whether honeycomb has already sealed a copper block against oxidation. */
+export const isWaxedCopper = (identifier: string): boolean => parseCopperName(identifier)?.waxed === true;
+
+/**
+ * Waxes a copper block with honeycomb or scrapes one with an axe.
+ *
+ * An axe takes the wax off first and only oxidation after, which is the order
+ * Bedrock applies the two, so scraping a waxed weathered block twice gets
+ * back to exposed copper.
+ *
+ * @returns True when the item changed the block, which is what the handler
+ *   returns to consume the interaction. False leaves the interaction for the
+ *   next handler and for the item's own use.
+ */
+export const waxOrScrapeOnInteract = (world: WorldActions, block: HookBlock, item: HookItem | undefined): boolean => {
+    if (isHoneycomb(item)) {
+        const waxed = waxedIdentifier(block.identifier);
+        if (waxed === undefined) return false;
+        world.setBlock(block.position, waxed, block.states);
+        world.playSound(block.position, 'copper.wax.on');
+        return true;
+    }
+
+    if (!isAxe(item)) return false;
+    const scraped = scrapedIdentifier(block.identifier);
+    if (scraped === undefined) return false;
+    const unwaxing = isWaxedCopper(block.identifier);
+    world.setBlock(block.position, scraped, block.states);
+    world.playSound(block.position, unwaxing ? 'copper.wax.off' : 'scrape');
+    return true;
+};
+
+/**
+ * The `onPlayerInteract` handler for a copper family whose only interaction
+ * is waxing and scraping. A block that is not copper, or an item that is
+ * neither honeycomb nor an axe, declines so the next handler sees it.
+ */
+export const waxOrScrapeHandler: NonNullable<FamilyHandlers['onPlayerInteract']> = (event, world) =>
+    waxOrScrapeOnInteract(world, event.block, event.itemStack) ? true : undefined;
 
 /** Whether an identifier names an iron block, which refuses a bare hand. */
 export const isIronOperated = (identifier: string): boolean => bareName(identifier).startsWith('iron_');

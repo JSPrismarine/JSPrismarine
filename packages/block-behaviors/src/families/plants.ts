@@ -15,10 +15,11 @@ import {
     MAX_CROP_GROWTH,
     SOIL_NAMES
 } from '../rules/growth';
+import { cutsCleanly } from '../rules/heldItem';
 import { breakBlock, isSolidSupport, popBlock, popWithoutGround, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber } from '../state';
 import type { WorldActions } from '../world';
-import { dropSelf } from './shared';
+import { dropSelf, selfDrop } from './shared';
 
 /** The counter state each growing block uses, by bare name. */
 const GROWTH_STATES: Readonly<Record<string, { readonly state: string; readonly max: number }>> = {
@@ -174,10 +175,10 @@ export const saplingFamily = defineFamily(
 /** The chance a decaying leaf block drops a sapling. */
 export const SAPLING_DROP_CHANCE = 1 / 20;
 
-/** Leaves, which decay when no log is within four blocks. */
+/** Leaves, which decay when no log is within four blocks and come away to shears. */
 export const leavesFamily = defineFamily(
     'jsprismarine:leaves',
-    'Decays on a random tick when no log is within four blocks through other leaves, unless persistent_bit is set, and drops a sapling by chance.',
+    'Decays on a random tick when no log is within four blocks through other leaves, unless persistent_bit is set, drops a sapling by chance, and drops itself to shears or silk touch.',
     {
         onNeighborChanged: (event, world) => {
             if (stateBoolean(event.block, 'persistent_bit')) return;
@@ -201,8 +202,12 @@ export const leavesFamily = defineFamily(
             breakBlock(world, event.block, drops);
         },
         onBreak: (event, world) => {
-            // Leaves drop to shears and silk touch only, and the event carries
-            // no tool, so the drop decision sits with whoever knows it.
+            // Leaves come away whole to shears or silk touch; anything else
+            // shreds them and the random sapling is the loot table's job.
+            if (cutsCleanly(event.itemStack)) {
+                world.dropItem(event.brokenBlock.position, selfDrop(event.brokenBlock));
+                return;
+            }
             world.spawnParticle(event.brokenBlock.position, 'minecraft:leaf_particle');
         }
     }
@@ -283,10 +288,24 @@ export const bambooFamily = defineFamily(
     }
 );
 
+/**
+ * The blocks in {@link climbingFamily} that come away only to shears or silk
+ * touch. The rest of the family, the ladders, chains and scaffolding, drops
+ * to a bare hand.
+ */
+export const SHEARED_CLIMBERS: ReadonlySet<string> = new Set([
+    'vine',
+    'glow_lichen',
+    'hanging_roots',
+    'resin_clump',
+    'leaf_litter',
+    'wildflowers'
+]);
+
 /** Ladders, vines, chains, scaffolding and the lichens. */
 export const climbingFamily = defineFamily(
     'jsprismarine:climbing',
-    'Pops without the face it hangs on, and gives scaffolding its stability distance from the supported block.',
+    'Pops without the face it hangs on, gives scaffolding its stability distance from the supported block, and holds a vine or a lichen back from anything but shears.',
     {
         onPlace: (event, world) => {
             if (!hasState(event.block, 'stability')) return;
@@ -313,6 +332,8 @@ export const climbingFamily = defineFamily(
             if (stateNumber(event.block, 'stability') >= 7) popBlock(world, event.block);
         },
         onBreak: (event, world, context) => {
+            const name = bareName(event.brokenBlock.identifier);
+            if (SHEARED_CLIMBERS.has(name) && !cutsCleanly(event.itemStack)) return;
             dropSelf(world, context, event.brokenBlock);
         }
     }

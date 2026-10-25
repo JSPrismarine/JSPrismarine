@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { FALL_DELAY } from '../rules/gravity';
 import { dripstoneFamily, iceFamily, MELT_LIGHT, snowFamily, soilFamily } from './ground';
@@ -94,6 +94,23 @@ describe('soilFamily: grass', () => {
 });
 
 describe('iceFamily', () => {
+    it('leaves water behind for a plain tool and comes away whole to silk touch', () => {
+        const harness = bindFamily(iceFamily, 'minecraft:ice');
+        harness.dimension.set(origin, 'minecraft:ice');
+
+        harness.breakBlock(origin, { itemStack: heldItem('minecraft:diamond_pickaxe') });
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:water');
+        expect(harness.dimension.drops).toEqual([]);
+
+        harness.dimension.set(origin, 'minecraft:packed_ice');
+        harness.breakBlock(origin, { itemStack: silkTouchTool() });
+
+        expect(harness.dimension.drops.map((entry) => entry.drop)).toEqual([
+            { identifier: 'minecraft:packed_ice', count: 1 }
+        ]);
+    });
+
     it('melts to water in the light and keeps packed ice solid', () => {
         const harness = bindFamily(iceFamily, 'minecraft:ice');
         harness.dimension.set(origin, 'minecraft:ice');

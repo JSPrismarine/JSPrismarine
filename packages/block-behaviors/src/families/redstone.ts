@@ -10,7 +10,9 @@ import type { HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
+import { AIR } from '../identifiers';
 import { containerSignal } from '../rules/container';
+import { isIgniter } from '../rules/heldItem';
 import { performPull, performPush } from '../rules/piston';
 import {
     BUTTON_PRESS_TICKS,
@@ -26,6 +28,9 @@ import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber } fro
 import type { WorldActions } from '../world';
 import { cardinalFacing } from './openable';
 import { dropSelf } from './shared';
+
+/** How long primed TNT burns before it goes off, in ticks. */
+export const TNT_FUSE_TICKS = 80;
 
 /** The two blocks a redstone lamp switches between. */
 const LAMP_PAIR = { off: 'redstone_lamp', on: 'lit_redstone_lamp' } as const;
@@ -229,6 +234,14 @@ export const redstoneFamily = defineFamily(
         onPlayerInteract: (event, world) => {
             const block = event.block;
             switch (bareName(block.identifier)) {
+                case 'tnt': {
+                    if (!isIgniter(event.itemStack)) return undefined;
+                    world.setBlock(block.position, AIR);
+                    world.spawnEntity(block.position, 'minecraft:tnt', { fuse: TNT_FUSE_TICKS });
+                    world.playSound(block.position, 'ignite');
+                    world.notifyNeighbors(block.position);
+                    return true;
+                }
                 case 'lever': {
                     const open = !stateBoolean(block, 'open_bit');
                     setStates(world, block, { open_bit: open });

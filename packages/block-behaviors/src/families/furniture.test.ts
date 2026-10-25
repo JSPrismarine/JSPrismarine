@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { facingDirectionOf } from '../geometry';
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem } from '../harness';
 import { AIR } from '../identifiers';
 import {
     bannerFamily,
@@ -32,6 +32,18 @@ describe('signFamily', () => {
 
         harness.dimension.setBlockData(block, { text: ['a', '', '', ''], sealed: true });
 
+        expect(harness.interact(block)).toBeUndefined();
+    });
+
+    it('seals the sign when honeycomb waxes it', () => {
+        const harness = bindFamily(signFamily, 'minecraft:standing_sign');
+        harness.dimension.set(block, 'minecraft:standing_sign', { ground_sign_direction: 0 });
+        harness.dimension.setBlockData(block, { text: ['hello', '', '', ''], sealed: false });
+
+        expect(harness.interact(block, { itemStack: heldItem('minecraft:honeycomb') })).toBe(true);
+
+        expect(harness.dimension.getBlockData(block)?.sealed).toBe(true);
+        expect(harness.dimension.getBlockData(block)?.text).toEqual(['hello', '', '', '']);
         expect(harness.interact(block)).toBeUndefined();
     });
 
@@ -124,17 +136,33 @@ describe('candleFamily', () => {
         expect(harness.dimension.stateAt(block, 'candles')).toBe(1);
     });
 
-    it('lights and snuffs on use, and goes out in water', () => {
+    it('lights to flint and steel, snuffs by hand, and goes out in water', () => {
         const harness = bindFamily(candleFamily, 'minecraft:candle');
         harness.dimension.set(block, 'minecraft:candle', { candles: 0, lit: false });
 
-        harness.interact(block);
+        expect(harness.interact(block)).toBeUndefined();
+        expect(harness.dimension.stateAt(block, 'lit')).toBe(false);
+
+        harness.interact(block, { itemStack: heldItem('minecraft:flint_and_steel') });
 
         expect(harness.dimension.stateAt(block, 'lit')).toBe(true);
 
+        harness.interact(block);
+
+        expect(harness.dimension.stateAt(block, 'lit')).toBe(false);
+
+        harness.interact(block, { itemStack: heldItem('minecraft:fire_charge') });
         harness.dimension.set({ x: 0, y: 2, z: 0 }, 'minecraft:water');
         harness.neighborChanged(block, 'up');
 
+        expect(harness.dimension.stateAt(block, 'lit')).toBe(false);
+    });
+
+    it('leaves an unlit candle alone for the item that would stack another on it', () => {
+        const harness = bindFamily(candleFamily, 'minecraft:candle');
+        harness.dimension.set(block, 'minecraft:candle', { candles: 1, lit: false });
+
+        expect(harness.interact(block, { itemStack: heldItem('minecraft:candle') })).toBeUndefined();
         expect(harness.dimension.stateAt(block, 'lit')).toBe(false);
     });
 
@@ -201,5 +229,26 @@ describe('lanternFamily', () => {
         harness.randomTick(block);
 
         expect(harness.dimension.identifierAt(block)).toBe('minecraft:exposed_copper_lantern');
+    });
+
+    it('waxes a copper lantern with honeycomb and scrapes it back with an axe', () => {
+        const harness = bindFamily(lanternFamily, 'minecraft:exposed_copper_lantern');
+        harness.dimension.set(block, 'minecraft:exposed_copper_lantern', { hanging: false });
+
+        expect(harness.interact(block, { itemStack: heldItem('minecraft:honeycomb') })).toBe(true);
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:waxed_exposed_copper_lantern');
+
+        harness.dimension.set(block, 'minecraft:waxed_exposed_copper_lantern', { hanging: false });
+
+        expect(harness.interact(block, { itemStack: heldItem('minecraft:stone_axe') })).toBe(true);
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:exposed_copper_lantern');
+    });
+
+    it('leaves a lantern that is not copper to the next handler', () => {
+        const harness = bindFamily(lanternFamily, 'minecraft:lantern');
+        harness.dimension.set(block, 'minecraft:lantern', { hanging: false });
+
+        expect(harness.interact(block, { itemStack: heldItem('minecraft:honeycomb') })).toBeUndefined();
+        expect(harness.dimension.identifierAt(block)).toBe('minecraft:lantern');
     });
 });

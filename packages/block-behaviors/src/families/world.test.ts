@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem } from '../harness';
 import { AIR } from '../identifiers';
 import { LAVA_SPREAD_TICKS, NETHER, NETHER_LAVA_SPREAD_TICKS, WATER_SPREAD_TICKS } from '../rules/fluid';
 import { copperFamily, liquidFamily, portalFamily, sculkFamily } from './world';
@@ -80,6 +80,44 @@ describe('liquidFamily', () => {
         harness.stepOn(origin);
 
         expect(harness.dimension.entitiesAt(origin)).toEqual([]);
+    });
+});
+
+describe('liquidFamily and buckets', () => {
+    it('gives a water source up to an empty bucket and leaves a flow alone', () => {
+        const harness = bindFamily(liquidFamily, 'minecraft:water');
+        harness.dimension.set(origin, 'minecraft:water', { liquid_depth: 0 });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBe(true);
+
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
+        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:water_bucket']);
+
+        harness.dimension.set(origin, 'minecraft:flowing_water', { liquid_depth: 3 });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBeUndefined();
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:flowing_water');
+    });
+
+    it('fills a bucket from lava and refuses a bottle against it', () => {
+        const harness = bindFamily(liquidFamily, 'minecraft:lava');
+        harness.dimension.set(origin, 'minecraft:lava', { liquid_depth: 0 });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBeUndefined();
+
+        harness.interact(origin, { itemStack: heldItem('minecraft:bucket') });
+
+        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:lava_bucket']);
+    });
+
+    it('scoops a bottle of water without taking the source', () => {
+        const harness = bindFamily(liquidFamily, 'minecraft:water');
+        harness.dimension.set(origin, 'minecraft:water', { liquid_depth: 0 });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBe(true);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:water');
+        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:potion']);
     });
 });
 
@@ -190,6 +228,47 @@ describe('copperFamily', () => {
         }
 
         expect(seen).toEqual(['minecraft:exposed_copper', 'minecraft:weathered_copper', 'minecraft:oxidized_copper']);
+    });
+
+    it('waxes with honeycomb and refuses a block that is already waxed', () => {
+        const harness = bindFamily(copperFamily, 'minecraft:exposed_copper');
+        harness.dimension.set(origin, 'minecraft:exposed_copper');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:honeycomb') })).toBe(true);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:waxed_exposed_copper');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:honeycomb') })).toBeUndefined();
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:waxed_exposed_copper');
+    });
+
+    it('scrapes the wax off first and the oxidation after', () => {
+        const harness = bindFamily(copperFamily, 'minecraft:waxed_weathered_copper');
+        harness.dimension.set(origin, 'minecraft:waxed_weathered_copper');
+
+        harness.interact(origin, { itemStack: heldItem('minecraft:golden_axe') });
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:weathered_copper');
+        expect(harness.dimension.sounds.at(-1)?.name).toBe('copper.wax.off');
+
+        harness.interact(origin, { itemStack: heldItem('minecraft:golden_axe') });
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:exposed_copper');
+        expect(harness.dimension.sounds.at(-1)?.name).toBe('scrape');
+
+        harness.interact(origin, { itemStack: heldItem('minecraft:golden_axe') });
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:copper_block');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:golden_axe') })).toBeUndefined();
+    });
+
+    it('leaves a bare hand and an unrelated item alone', () => {
+        const harness = bindFamily(copperFamily, 'minecraft:copper_block');
+        harness.dimension.set(origin, 'minecraft:copper_block');
+
+        expect(harness.interact(origin)).toBeUndefined();
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:stick') })).toBeUndefined();
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:copper_block');
     });
 
     it('flips a copper bulb on the rising edge and holds it on the falling one', () => {
