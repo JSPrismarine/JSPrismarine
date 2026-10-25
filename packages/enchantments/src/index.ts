@@ -4,4 +4,5 @@ export * from './effects';
 export * from './item';
 export * from './random';
 export * from './registry';
+export * from './table';
 export * from './values';
