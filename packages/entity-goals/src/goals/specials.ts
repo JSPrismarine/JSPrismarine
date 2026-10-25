@@ -5,6 +5,7 @@ import { goal } from '../goal';
 import type { GoalBody, GoalEvent, Range } from '../params';
 import { bodySchema, eventAt, numberAt, stringAt, tickRangeAt, ticksAt } from '../params';
 import type { GoalSupport } from '../support';
+import { SLIME_HOP_REACH, slimeHeadingOf } from './slimeHeading';
 
 /**
  * The goals exactly one entity uses.
@@ -183,16 +184,31 @@ export const squidOutOfWater = goal<GoalBody>({
 /**
  * `minecraft:behavior.slime_keep_on_jumping`, which the slime line carries. A
  * slime moves only by jumping, so this is its walk.
+ *
+ * Each landing is one hop: the goal jumps and sends the slime
+ * {@link SLIME_HOP_REACH} blocks along the heading
+ * {@link import('./slimeHeading').slimeHeadingOf} holds. Jumping alone leaves
+ * the slime where it stands, which is what it used to do, and a host whose
+ * actuator has no vertical impulse made that a slime that never moved at all.
  */
 export const slimeKeepOnJumping = goal<{ readonly speedMultiplier: number }>({
     name: 'minecraft:behavior.slime_keep_on_jumping',
     controlFlags: ['move', 'jump'],
     schema: bodySchema((body) => ({ speedMultiplier: numberAt(body, 'speed_multiplier', 1) })),
-    create: (_params, support) => ({
+    create: (params, support) => ({
         canStart: () => true,
         canContinue: () => true,
         tick: () => {
-            if (support.flag('on_ground')) support.actuator?.jump();
+            // The hop in flight first, so a landing is the only thing that aims a new one.
+            if (support.navigator.tick()) return;
+            if (!support.flag('on_ground')) return;
+
+            support.actuator?.jump();
+            const landing = slimeHeadingOf(support.entity).ahead(support.position(), SLIME_HOP_REACH);
+            if (landing !== undefined) support.navigator.moveTo(landing, params.speedMultiplier, 0);
+        },
+        stop: () => {
+            support.navigator.stop();
         }
     })
 });
@@ -209,7 +225,8 @@ export interface SlimeRandomDirectionParams {
 
 /**
  * `minecraft:behavior.slime_random_direction`, which the slime line carries.
- * It picks the heading that `slime_keep_on_jumping` then jumps along.
+ * It picks the heading that `slime_keep_on_jumping` then jumps along, and
+ * holds it for the drawn time so the slime travels rather than jittering.
  */
 export const slimeRandomDirection = goal<SlimeRandomDirectionParams>({
     name: 'minecraft:behavior.slime_random_direction',
@@ -229,6 +246,7 @@ export const slimeRandomDirection = goal<SlimeRandomDirectionParams>({
                     params.minChangeDirectionTime + Math.round(support.random() * params.addRandomTimeRange * 20);
                 const here = support.position();
                 const angle = ((support.random() * params.turnRange - params.turnRange / 2) * Math.PI) / 180;
+                slimeHeadingOf(support.entity).set(angle);
                 support.lookAt({ x: here.x + Math.cos(angle) * 4, y: here.y, z: here.z + Math.sin(angle) * 4 });
             },
             tick: () => {

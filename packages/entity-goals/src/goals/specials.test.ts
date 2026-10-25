@@ -65,6 +65,25 @@ describe('the squid states', () => {
     });
 });
 
+/** The goal set and the components `entities/slime.json` carries, minus the targeting goals. */
+const slimeHarness = (options: { readonly target?: ReturnType<typeof testMob> } = {}) =>
+    new GoalHarness({
+        identifier: 'minecraft:slime',
+        goals: {
+            'minecraft:behavior.slime_float': { priority: 1 },
+            'minecraft:behavior.slime_attack': { priority: 3 },
+            'minecraft:behavior.slime_random_direction': { priority: 4 },
+            'minecraft:behavior.slime_keep_on_jumping': { priority: 5 }
+        },
+        components: { 'minecraft:movement': { value: 0.6 }, 'minecraft:navigation.walk': {} },
+        flags: { on_ground: true },
+        at: { x: 0, y: 64, z: 0 },
+        world: options.target === undefined ? {} : { target: () => options.target }
+    });
+
+/** How far the slime is from where it started, ignoring height. */
+const traveled = (harness: GoalHarness): number => Math.hypot(harness.actuator.at.x, harness.actuator.at.z);
+
 describe('minecraft:behavior.slime_keep_on_jumping', () => {
     it('jumps whenever the slime is on the ground', () => {
         const harness = new GoalHarness({
@@ -76,6 +95,43 @@ describe('minecraft:behavior.slime_keep_on_jumping', () => {
 
         expect(harness.actuator.count('jump')).toBe(4);
         expect(harness.holderOf('jump')).toBe('minecraft:behavior.slime_keep_on_jumping');
+    });
+
+    it('carries the slime along the heading, because a jump in place is not a walk', () => {
+        const harness = slimeHarness();
+
+        harness.tick(200);
+
+        expect(harness.actuator.count('jump')).toBeGreaterThan(0);
+        expect(traveled(harness)).toBeGreaterThan(1);
+    });
+
+    it('hops toward the target rather than away from it', () => {
+        const target = testMob('player', { x: 40, y: 64, z: 0 }, { families: ['player'] });
+        const harness = slimeHarness({ target });
+
+        harness.tick(200);
+
+        expect(harness.actuator.at.x).toBeGreaterThan(4);
+        expect(Math.abs(harness.actuator.at.z)).toBeLessThan(harness.actuator.at.x);
+    });
+
+    it('goes nowhere while the slime is in the air', () => {
+        const harness = new GoalHarness({
+            identifier: 'minecraft:slime',
+            goals: {
+                'minecraft:behavior.slime_random_direction': { priority: 4 },
+                'minecraft:behavior.slime_keep_on_jumping': { priority: 5 }
+            },
+            components: { 'minecraft:movement': { value: 0.6 } },
+            flags: { on_ground: false },
+            at: { x: 0, y: 64, z: 0 }
+        });
+
+        harness.tick(200);
+
+        expect(harness.actuator.count('jump')).toBe(0);
+        expect(traveled(harness)).toBe(0);
     });
 });
 

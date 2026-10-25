@@ -18,6 +18,7 @@ import {
 } from '../params';
 import type { GoalSupport } from '../support';
 import type { GoalMob } from '../world';
+import { slimeHeadingOf } from './slimeHeading';
 
 /**
  * The goals that hurt the entity's target.
@@ -1136,8 +1137,11 @@ export const stompAttack = goal<StompAttackParams>({
 
 /**
  * `minecraft:behavior.slime_attack`, which the slime line carries. A slime
- * hurts whatever it lands on, so the goal only keeps the target in front of
- * the entity and lets the jumping goals do the moving.
+ * hurts whatever it lands on, so the goal aims the heading at the target and
+ * lets `slime_keep_on_jumping` do the moving.
+ *
+ * It takes `look` at a better priority than `slime_random_direction`, which is
+ * how a slime that has a target stops wandering and starts closing in.
  */
 export const slimeAttack = goal<Record<string, unknown>>({
     name: 'minecraft:behavior.slime_attack',
@@ -1149,6 +1153,7 @@ export const slimeAttack = goal<Record<string, unknown>>({
             const current = support.target();
             if (current === undefined) return;
             support.lookAt(current.position());
+            slimeHeadingOf(support.entity).toward(support.position(), current.position());
             if (support.distanceTo(current.position()) <= MELEE_REACH) support.world.attack?.(current);
         }
     })

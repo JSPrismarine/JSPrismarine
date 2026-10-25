@@ -3,6 +3,7 @@ export * from './goals/attacking';
 export * from './goals/environment';
 export * from './goals/looking';
 export * from './goals/movement';
+export * from './goals/slimeHeading';
 export * from './goals/social';
 export * from './goals/specials';
 export * from './goals/targeting';
