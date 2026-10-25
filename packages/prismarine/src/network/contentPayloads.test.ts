@@ -1,5 +1,7 @@
+import { block_definitions } from '@jsprismarine/bedrock-data';
 import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
 import { Logger } from '@jsprismarine/logger';
+import { Vector3 } from '@jsprismarine/math';
 import { blockRuntimeId } from '@jsprismarine/protocol';
 import { nbtToPlain, readNetworkNbt } from '@jsprismarine/wire';
 import { describe, expect, it, vi } from 'vitest';
@@ -7,6 +9,8 @@ import { describe, expect, it, vi } from 'vitest';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import { stub } from '../testing/stub.test.helper';
+import GameRuleManager from '../world/GameRuleManager';
 import { ContentPaletteError } from './contentPalette';
 import {
     buildNetworkContentPayloads,
@@ -14,11 +18,14 @@ import {
     joinContentPayloads,
     networkContentPayloads
 } from './contentPayloads';
+import StartGamePacket from './packet/StartGamePacket';
 
-import type { ContentPayloadReport } from './contentPayloads';
+import type { ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
+import type Server from '../Server';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import type { Definition, Definitions } from '@jsprismarine/packs';
+import type { BlockProperty } from '@jsprismarine/protocol';
 
 /** The fixture palette doubles as the client's: a client that has exactly these two blocks. */
 const client = (): BlockPalette => fixtureBlockPalette();
@@ -253,6 +260,31 @@ describe('network', () => {
 });
 
 /**
+ * A `StartGamePacket` whose only variable is `Block Properties`, encoded.
+ *
+ * Everything else is a fixed value, so two buffers that differ differ in the
+ * block definitions.
+ */
+const startGame = (blockProperties: readonly BlockProperty[] | null): Buffer => {
+    const packet = new StartGamePacket();
+    packet.entityId = 1n;
+    packet.runtimeEntityId = 1n;
+    packet.gamemode = 1;
+    packet.seed = 0;
+    packet.worldSpawnPos = new Vector3(0, 64, 0);
+    packet.levelId = 'level';
+    packet.worldName = 'world';
+    packet.serverIdentifier = 'JSPrismarine';
+    packet.scenarioIdentifier = 'JSPrismarine';
+    packet.worldIdentifier = 'world';
+    packet.gameRules = new GameRuleManager(stub<Server>());
+    packet.blockProperties = blockProperties;
+    packet.encode();
+
+    return packet.getBuffer();
+};
+
+/**
  * The real build, against Mojang's fetched packs.
  *
  * Gated the way the content tests are: it needs the caches
@@ -264,8 +296,12 @@ describe('network', () => {
  * ```
  */
 describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack stack produces', () => {
+    /** Built once: the pack stack takes seconds and every test here reads the same build. */
+    let built: NetworkContentPayloads | undefined;
+    const vanilla = (): NetworkContentPayloads => (built ??= buildNetworkContentPayloads(buildServerContent({})));
+
     it('sends every registry the client builds its world from', () => {
-        const payloads = buildNetworkContentPayloads(buildServerContent({}));
+        const payloads = vanilla();
 
         // The 98 data-driven vanilla blocks a Bedrock Dedicated Server
         // 1.26.51.1 declared, and nothing this server invented.
@@ -282,5 +318,27 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
         expect(payloads.crafting.smithingTransform).toHaveLength(12);
         // Java's 279 brewing recipes, which had no way onto the wire before.
         expect(payloads.crafting.potionMixes).toHaveLength(279);
+    }, 180_000);
+
+    it('declares the captured block definitions, byte for byte', () => {
+        const declared = vanilla().blockProperties;
+
+        expect(declared.map((entry) => entry.name)).toEqual(block_definitions.map((entry) => entry.name));
+
+        const captured = new Map(block_definitions.map((entry) => [entry.name, entry.definition]));
+        const differing = declared.filter((entry) => !entry.definition.equals(captured.get(entry.name)!));
+
+        console.debug(`block definitions: ${declared.length - differing.length}/${declared.length} byte identical`);
+        expect(differing.map((entry) => entry.name)).toEqual([]);
+    }, 180_000);
+
+    it('writes the same StartGamePacket the captured path writes', () => {
+        // Same packet twice, once told what the registries declared and once
+        // left to the captured definitions, so a difference is the block
+        // properties and nothing else.
+        const fromContent = startGame(vanilla().blockProperties);
+        const fromCapture = startGame(null);
+
+        expect(fromContent.equals(fromCapture)).toBe(true);
     }, 180_000);
 });

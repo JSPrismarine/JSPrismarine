@@ -8,6 +8,9 @@ import type { ConsoleSender } from '../../command/ConsoleSender';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
+import type { ServerContent } from '../../content/ServerContent';
+import { buildServerContent } from '../../content/ServerContent';
+import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import type { Event } from '../../events/Event';
 import { stub } from '../../testing/stub.test.helper';
 import UUID from '../../utils/UUID';
@@ -19,6 +22,7 @@ import type { World } from '../../world/World';
 import { Dimensions } from '../../world/Dimension';
 import type ClientConnection from '../ClientConnection';
 import type PlayerSession from '../PlayerSession';
+import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
 import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
@@ -36,10 +40,13 @@ import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandl
  */
 const harness = ({
     cancelSpawn = false,
+    content = undefined,
     joinSpawn = null,
     spawn = new Vector3(0, 64, 0)
 }: {
     cancelSpawn?: boolean;
+    /** The content build, or undefined for a server with `content-packs` off. */
+    content?: ServerContent | undefined;
     /** Where the player was placed on joining; null, the default, is a returning player. */
     joinSpawn?: PlayerSpawn | null;
     /** The world spawn `getSpawnPosition` answers with. */
@@ -101,7 +108,8 @@ const harness = ({
 
     const emit = vi.fn(async (_name: string, _event: unknown) => {});
     const server = stub<Server>({
-        getLogger: () => stub<Logger>({ info: () => {}, debug }),
+        getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug }),
+        getContent: () => content,
         getConfig: () => stub<Config>({ getGamemode: () => 'survival', getDifficulty: () => 1 }),
         getTick: () => 100,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
@@ -117,6 +125,24 @@ const harness = ({
 
 const response = (status: ResourcePackStatusType, packIds: string[] = []) =>
     Object.assign(new ResourcePackClientResponsePacket(), { status, packIds });
+
+/**
+ * The fixture content with its join payloads already built and cached.
+ *
+ * The handler builds against the palette a real client has, and the fixture's
+ * is two blocks, so the payloads are built here against the fixture palette
+ * and the handler's own call then answers from the cache.
+ */
+const fixtureJoinPayloads = () => {
+    const content = buildServerContent(fixtureContentOptions());
+    const payloads = joinContentPayloads(content, stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }), {
+        clientPalette: fixtureBlockPalette()
+    });
+
+    if (payloads === undefined) throw new Error('the fixture content produced no payloads');
+
+    return { content, payloads };
+};
 
 describe('ResourcePackClientResponseHandler', () => {
     it('answers "have all packs" with the pack stack and nothing else', async () => {
@@ -237,6 +263,36 @@ describe('ResourcePackClientResponseHandler', () => {
         // StartGame reports the requested spot, not the final one.
         const startGame = packets.find((packet) => packet instanceof StartGamePacket);
         expect(startGame?.playerPos).toEqual(new Vector3(4.5, 69 + 1.62, -6.5));
+    });
+
+    it('leaves StartGame on the captured definitions when no content was built', async () => {
+        const { packets, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
+        expect(startGame?.blockProperties).toBeNull();
+    });
+
+    it('declares what the content build holds in StartGame', async () => {
+        const { content } = fixtureJoinPayloads();
+        const { packets, server, session } = harness({ content });
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        // The fixture's two blocks are both in the client's palette and
+        // neither is one Mojang defines in data, so the registries declare an
+        // empty list where the captured path would have sent all 98.
+        const startGame = packets.find((packet) => packet instanceof StartGamePacket);
+        expect(startGame?.blockProperties).toEqual([]);
     });
 
     it('sends nothing game-related before StartGame', async () => {
