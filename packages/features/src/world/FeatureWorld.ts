@@ -170,6 +170,15 @@ export interface BlockEntityRequest {
     readonly javaBlock?: string;
 }
 
+/**
+ * The processors a feature runs its template through.
+ *
+ * Java's field is either an identifier naming a `worldgen/processor_list` or the list itself,
+ * written where the feature stands. The inline form stays `unknown` here, because this package
+ * names a chain and does not read one. The world parses whichever form arrives.
+ */
+export type TemplateProcessors = string | { readonly processors: readonly unknown[] };
+
 /** What a feature asks a world to stamp out of a structure template. */
 export interface TemplateRequest {
     /** The template identifier, for example `minecraft:trail_ruins/tower/tower_top`. */
@@ -180,8 +189,8 @@ export interface TemplateRequest {
     readonly rotation: number;
     /** The mirror to apply before the rotation. */
     readonly mirror: 'none' | 'left_right' | 'front_back';
-    /** The processor list to run over the template, when the feature names one. */
-    readonly processors?: string;
+    /** The processors to run over the template, when the feature carries any. */
+    readonly processors?: TemplateProcessors;
     /** The template's own offset, which `template` carries as `offset`. */
     readonly offset?: BlockPos;
     /** Whether the template's project-to-heightmap mode is set, and to which heightmap. */

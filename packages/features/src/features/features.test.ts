@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { WorldgenRandom } from '../placement/WorldgenRandom';
 import { blockState } from '../world/BlockState';
-import type { BlockPos } from '../world/FeatureWorld';
+import type { BlockPos, TemplateRequest } from '../world/FeatureWorld';
 import { createTestOracle, TestFeatureWorld } from '../world/TestFeatureWorld';
 import type { ConfiguredFeature } from './Feature';
 import { FEATURE_TYPES } from './Feature';
@@ -376,6 +376,80 @@ describe('the registry', () => {
             'minecraft:b': { type: 'minecraft:sequence', features: [{ feature: 'minecraft:a', placement: [] }] }
         };
         expect(() => loader(documents).feature('minecraft:a')).toThrow(TypeError);
+    });
+});
+
+describe('template', () => {
+    /** The rule the desert well carries, which gives its suspicious sand something to hold. */
+    const ARCHAEOLOGY = {
+        processor_type: 'minecraft:rule',
+        rules: [
+            {
+                input_predicate: { predicate_type: 'minecraft:block_match', block: 'minecraft:suspicious_sand' },
+                location_predicate: { predicate_type: 'minecraft:always_true' },
+                output_state: 'minecraft:suspicious_sand',
+                block_entity_modifier: {
+                    type: 'minecraft:append_loot',
+                    loot_table: 'minecraft:archaeology/desert_well'
+                }
+            }
+        ]
+    };
+
+    /** Places a `template` document against a world that records what it was asked to stamp. */
+    const stamped = (document: unknown): TemplateRequest[] => {
+        const requests: TemplateRequest[] = [];
+        const world = Object.assign(new TestFeatureWorld({ blocks: oracle() }), {
+            placeTemplate: (request: TemplateRequest) => {
+                requests.push(request);
+                return true;
+            }
+        });
+
+        build(document).place(world, new WorldgenRandom(7n), { x: 0, y: 64, z: 0 });
+        return requests;
+    };
+
+    it('passes a processor list named by identifier through to the world', () => {
+        const [request] = stamped({
+            type: 'minecraft:template',
+            processors: 'minecraft:fossil_rot',
+            templates: [{ data: { id: 'minecraft:fossil/spine_1' }, weight: 1 }]
+        });
+
+        expect(request?.processors).toBe('minecraft:fossil_rot');
+    });
+
+    it('passes a processor list written inline through to the world', () => {
+        // Java's codec takes the list where the feature stands as readily as a reference, and
+        // the desert well is the one vanilla feature that writes one. A dropped list places the
+        // template unprocessed, which is suspicious sand with no loot table on it.
+        const [request] = stamped({
+            type: 'minecraft:template',
+            processors: { processors: [ARCHAEOLOGY] },
+            templates: [{ data: { id: 'minecraft:desert_well/suspicious_sand' }, weight: 1 }]
+        });
+
+        expect(request?.processors).toEqual({ processors: [ARCHAEOLOGY] });
+    });
+
+    it('reads a bare list of processors, which the codec also accepts', () => {
+        const [request] = stamped({
+            type: 'minecraft:template',
+            processors: [ARCHAEOLOGY],
+            templates: [{ data: { id: 'minecraft:desert_well/suspicious_sand' }, weight: 1 }]
+        });
+
+        expect(request?.processors).toEqual({ processors: [ARCHAEOLOGY] });
+    });
+
+    it('asks for no processors when the feature names none', () => {
+        const [request] = stamped({
+            type: 'minecraft:template',
+            templates: [{ data: { id: 'minecraft:desert_well/well' }, weight: 1 }]
+        });
+
+        expect(request?.processors).toBeUndefined();
     });
 });
 
