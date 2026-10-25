@@ -32,10 +32,11 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         ['jsprismarine:say', stub<Command>({ name: 'say' })]
     ]);
     let players = overrides.players ?? 0;
+    let tps = 20;
     const events = new EventEmitter();
     const server: Server = stub<Server>({
         getVersion: () => '1.2.3',
-        getTPS: () => 20,
+        getTPS: () => tps,
         getTickMs: () => 12.5,
         getConsole: () => undefined,
         getConsoleSender: () => sender,
@@ -62,6 +63,9 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         events,
         setPlayers: (count: number) => {
             players = count;
+        },
+        setTps: (value: number) => {
+            tps = value;
         }
     };
 };
@@ -264,6 +268,32 @@ describe('RemoteConsole', () => {
 
         await vi.advanceTimersByTimeAsync(5000);
         expect(statuses()).toHaveLength(3);
+
+        await remote.disable();
+    });
+
+    it('treats a TPS wobble around a whole number as unchanged', async () => {
+        vi.useFakeTimers();
+        const { server, setTps } = fakeServer();
+        const { serverEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd), {
+            statusIntervalMs: 1000,
+            statusKeepAliveMs: 5000
+        });
+        await remote.enable();
+        const statuses = () => received.filter((message) => message.type === 'status');
+
+        // A live server's two-decimal TPS moves every second; that is noise, not a change.
+        for (const value of [19.98, 20.02, 19.97]) {
+            setTps(value);
+            await vi.advanceTimersByTimeAsync(1000);
+        }
+        expect(statuses()).toHaveLength(1);
+
+        setTps(18);
+        await vi.advanceTimersByTimeAsync(1000);
+        expect(statuses()).toHaveLength(2);
+        expect(statuses()[1]).toMatchObject({ tps: 18 });
 
         await remote.disable();
     });
