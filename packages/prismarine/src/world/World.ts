@@ -161,7 +161,7 @@ export class World implements Service {
     private name: string;
 
     private readonly entities: Map<bigint, Entity> = new Map();
-    private readonly entityChunkIndices = new Map<bigint, bigint>();
+    private readonly entityChunkIndices = new Map<bigint, number>();
 
     /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
     private readonly entityGrid = new EntityGrid();
@@ -173,7 +173,7 @@ export class World implements Service {
      * every entity in the world each time. Holding the players separately makes that a read.
      */
     private readonly players: Map<bigint, Player> = new Map();
-    private readonly chunks: Map<bigint, Chunk> = new Map();
+    private readonly chunks: Map<number, Chunk> = new Map();
     private readonly gameRuleManager: GameRuleManager;
     private currentTick = 0;
 

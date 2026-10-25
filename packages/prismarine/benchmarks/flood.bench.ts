@@ -40,11 +40,11 @@ interface Options {
 
 /**
  * The world reduced to what physics touches, but reduced faithfully: chunks are keyed exactly as
- * `World` keys them (a BigInt from `Chunk.packXZ`), and every write goes through the same
+ * `World` keys them (a packed number from `Chunk.packXZ`), and every write goes through the same
  * idempotency check, the same `Vector3`, and the same `scheduleAround`.
  */
 class BenchWorld {
-    private readonly chunks = new Map<bigint, Chunk>();
+    private readonly chunks = new Map<number, Chunk>();
     public readonly updates = new BlockUpdateScheduler();
     public currentTick = 0;
 

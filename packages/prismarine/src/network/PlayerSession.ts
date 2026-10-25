@@ -135,6 +135,14 @@ export interface OpenBlockContainer {
     readonly identifier: string;
     /** The `Container Type` the client is drawing. */
     readonly screen: WindowTypes;
+    /**
+     * The workstation's own input slots: the item and the material, in that order.
+     *
+     * An enchanting table's item and lapis, or an anvil's base and addition. They live on the
+     * window rather than on the block because they are the player's: closing the screen is
+     * what gives them back, and a second player at the same table has their own pair.
+     */
+    readonly inputs: (Item | null)[];
 }
 
 export default class PlayerSession {
@@ -154,8 +162,8 @@ export default class PlayerSession {
 
     /** What this player still has to receive, nearest first. Drained by the server's scheduler. */
     private readonly chunkSender = new ChunkSender();
-    private readonly loadedChunks: Set<bigint> = new Set();
-    private readonly loadingChunks: Set<bigint> = new Set();
+    private readonly loadedChunks: Set<number> = new Set();
+    private readonly loadingChunks: Set<number> = new Set();
 
     /**
      * Which entities this client currently has on screen.
@@ -817,7 +825,13 @@ export default class PlayerSession {
             await this.connection.sendDataPacket(content);
         }
 
-        this.blockContainer = { windowId: packet.windowId, position: at, identifier, screen: container.screen };
+        this.blockContainer = {
+            windowId: packet.windowId,
+            position: at,
+            identifier,
+            screen: container.screen,
+            inputs: [null, null]
+        };
         return this.blockContainer;
     }
 
