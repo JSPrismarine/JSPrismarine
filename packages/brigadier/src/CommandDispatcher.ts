@@ -350,8 +350,11 @@ export default class CommandDispatcher<S> {
                     context.build(truncatedInput),
                     new SuggestionsBuilder(truncatedInput, start)
                 );
-            } catch (ignored) {}
-            futures.push(future);
+            } catch {
+                // FIXME: We shouldn't catch all errors here.
+            } finally {
+                futures.push(future);
+            }
         }
 
         return Promise.resolve(Suggestions.merge(fullInput, futures)!);

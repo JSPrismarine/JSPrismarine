@@ -1,0 +1,151 @@
+/**
+ * Where the live entities are, filed by the cell each one stands in.
+ *
+ * The runtime's one quadratic cost is the neighbor search: `goalWorld.mobs`
+ * runs it once per searching goal, and a hundred mobs ask about seventy-five
+ * times a tick. Crossing the whole index each time is a hundred answers for
+ * four or five hits, because almost every goal that searches uses a radius of
+ * six or eight blocks while the mobs are spread across the simulation
+ * distance.
+ *
+ * So the entities are bucketed by their horizontal cell and a search reads
+ * only the cells its radius reaches. Y is not bucketed: an entity above or
+ * below is still in the cell's list and the exact distance check throws it
+ * out, which costs a column of mobs nothing worth a third axis of cells.
+ *
+ * The index is exact rather than a snapshot. {@link EntityGrid.refile} runs on
+ * every position write, through `MobBody.onMove`, so a search inside a tick
+ * sees the mobs that already moved in that tick where they moved to. A grid
+ * rebuilt once a tick would be cheaper and would answer a different question.
+ */
+import type { EntityPosition } from '@jsprismarine/entities';
+
+import type { DataEntity } from './DataEntity';
+import { squaredDistance } from './DataEntity';
+
+/**
+ * How wide one cell is, as the shift that divides a coordinate by it.
+ *
+ * Eight blocks. The searching goals almost all ask for six or eight, and a
+ * radius of eight over eight-block cells reads a three-by-three block of
+ * cells: twenty-four blocks across for a sixteen-block question, which is as
+ * tight as whole cells get before the map lookups cost more than the entities
+ * they save.
+ */
+const CELL_BITS = 3;
+
+/**
+ * How many bits of each cell coordinate the key keeps.
+ *
+ * Twenty-six, which packs two of them into one integer a double holds
+ * exactly, and reaches 268 million blocks each way. The world border stops at
+ * 30 million, so two cells never share a key.
+ */
+const KEY_BITS = 26;
+const KEY_MASK = (1 << KEY_BITS) - 1;
+const KEY_SPAN = 2 ** KEY_BITS;
+
+/** The cell one horizontal coordinate falls in. */
+const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
+
+/** One cell's key, which is its two coordinates packed into one number. */
+const keyOf = (cellX: number, cellZ: number): number => (cellX & KEY_MASK) * KEY_SPAN + (cellZ & KEY_MASK);
+
+/** The live entities of one dimension, indexed by where they stand. */
+export class EntityGrid {
+    /** The entities in each cell, keyed by {@link keyOf}. */
+    private readonly cells = new Map<number, DataEntity[]>();
+
+    /** The cell each entity is filed under now, so a move knows what to undo. */
+    private readonly filed = new Map<number, number>();
+
+    /**
+     * When each entity entered the index.
+     *
+     * A cell's list is in the order entities were filed into it, and a move
+     * refiles, so neither is the order the index itself holds. `goalWorld.mobs`
+     * breaks a tie in distance by that order, which decides who a zombie picks
+     * out of a crowd standing together, so {@link EntityGrid.within} puts it
+     * back. Counted here rather than read off the runtime id, because the id
+     * comes from whatever counter the host supplies.
+     */
+    private readonly arrived = new Map<number, number>();
+
+    private arrivals = 0;
+
+    /** Puts one entity in the index, at the position it stands at now. */
+    public add(entity: DataEntity): void {
+        this.arrived.set(entity.id, this.arrivals);
+        this.arrivals += 1;
+        this.file(entity, cellKeyOf(entity.position));
+    }
+
+    /** Takes one entity out of the index. */
+    public remove(entity: DataEntity): void {
+        const key = this.filed.get(entity.id);
+        if (key === undefined) return;
+        this.filed.delete(entity.id);
+        this.arrived.delete(entity.id);
+        this.unfile(entity, key);
+    }
+
+    /** Moves one entity to the cell it stands in now, which a position write calls. */
+    public refile(entity: DataEntity): void {
+        const was = this.filed.get(entity.id);
+        if (was === undefined) return;
+
+        const now = cellKeyOf(entity.position);
+        if (now === was) return;
+        this.unfile(entity, was);
+        this.file(entity, now);
+    }
+
+    /**
+     * Every entity within a radius of a position, in the order they entered
+     * the index.
+     *
+     * The same answer {@link Map.values} filtered by distance gives, which is
+     * what this replaced, so a caller that reads the first one still reads the
+     * same one.
+     */
+    public within(center: EntityPosition, radius: number): DataEntity[] {
+        const reach = radius * radius;
+        const found: DataEntity[] = [];
+
+        const lowX = cellOf(center.x - radius);
+        const highX = cellOf(center.x + radius);
+        const lowZ = cellOf(center.z - radius);
+        const highZ = cellOf(center.z + radius);
+
+        for (let cellX = lowX; cellX <= highX; cellX += 1)
+            for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
+                const cell = this.cells.get(keyOf(cellX, cellZ));
+                if (cell === undefined) continue;
+                for (const entity of cell) if (squaredDistance(center, entity.position) <= reach) found.push(entity);
+            }
+
+        if (found.length > 1) found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
+        return found;
+    }
+
+    /** Puts one entity in a cell and records that it is there. */
+    private file(entity: DataEntity, key: number): void {
+        this.filed.set(entity.id, key);
+        const cell = this.cells.get(key);
+        if (cell === undefined) this.cells.set(key, [entity]);
+        else cell.push(entity);
+    }
+
+    /** Takes one entity out of a cell, dropping the cell when it empties. */
+    private unfile(entity: DataEntity, key: number): void {
+        const cell = this.cells.get(key);
+        if (cell === undefined) return;
+
+        const at = cell.indexOf(entity);
+        if (at !== -1) cell.splice(at, 1);
+        if (cell.length === 0) this.cells.delete(key);
+    }
+}
+
+/** The key of the cell one position falls in. */
+const cellKeyOf = (position: EntityPosition): number => keyOf(cellOf(position.x), cellOf(position.z));

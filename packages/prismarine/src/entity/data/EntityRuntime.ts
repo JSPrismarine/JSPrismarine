@@ -38,7 +38,8 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { canBreed, offspringOf, spendLove } from './breeding';
-import { DataEntity, MobBody, distance, squaredDistance } from './DataEntity';
+import { DataEntity, MobBody, distance } from './DataEntity';
+import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
@@ -97,6 +98,8 @@ export class EntityRuntime implements EntityScene {
     public readonly host: EntityHostFacts;
 
     private readonly entities = new Map<number, DataEntity>();
+    /** Where each of them stands, which is what makes a neighbor search cheaper than a scan. */
+    private readonly grid = new EntityGrid();
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /**
@@ -177,18 +180,12 @@ export class EntityRuntime implements EntityScene {
      * Every live entity within a radius of a position, in spawn order.
      *
      * The hot read of the whole runtime: `goalWorld.mobs` calls it once per
-     * goal that searches for a neighbor, which at a hundred mobs is tens of
-     * calls a tick, each crossing every entity. So it walks the index itself
-     * rather than through {@link EntityRuntime.all}, which would copy the
-     * whole map into a fresh array first, and it compares squared distances,
-     * which orders the same way without a `Math.hypot` per entity.
+     * goal that searches for a neighbor, which at a hundred mobs is about
+     * seventy-five times a tick. {@link EntityGrid} is what keeps that from
+     * crossing every entity each time.
      */
     public near(center: EntityPosition, radius: number): readonly DataEntity[] {
-        const within = radius * radius;
-        const found: DataEntity[] = [];
-        for (const entity of this.entities.values())
-            if (squaredDistance(center, entity.position) <= within) found.push(entity);
-        return found;
+        return this.grid.within(center, radius);
     }
 
     /** How many live entities of one type stand within a radius of a position. */
@@ -303,6 +300,11 @@ export class EntityRuntime implements EntityScene {
         const entity = new DataEntity({ body, instance, brainMob, brain });
         this.entities.set(id, entity);
         this.byInstance.set(instance, entity);
+        // After the index, and with the hook set last: everything a component did while the
+        // instance was being built moved a body nothing was watching yet, and the grid files
+        // where the body ended up rather than where it started.
+        this.grid.add(entity);
+        body.onMove = () => this.grid.refile(entity);
         if (options.pool !== undefined) this.pools.set(id, options.pool);
 
         if (brain !== undefined) {
@@ -320,6 +322,8 @@ export class EntityRuntime implements EntityScene {
         entity.removed = reason;
         this.entities.delete(id);
         this.byInstance.delete(entity.instance);
+        this.grid.remove(entity);
+        entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
         this.rides.remove(id);
