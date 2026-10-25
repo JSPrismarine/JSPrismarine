@@ -9,10 +9,14 @@ class CacheCell {
 }
 
 /** How many cells of the corner lattice a {@link CornerCache} indexes across x and across z. */
-const CORNER_CACHE_CELLS_XZ = 16;
+const CORNER_CACHE_CELLS_XZ = 8;
 
 /** How many cells of the corner lattice a {@link CornerCache} indexes up the y axis. */
 const CORNER_CACHE_CELLS_Y = 64;
+
+/** How far a cell index is shifted per axis to reach its slot, derived from the counts above. */
+const CORNER_CACHE_SHIFT_Z = Math.log2(CORNER_CACHE_CELLS_XZ);
+const CORNER_CACHE_SHIFT_Y = CORNER_CACHE_SHIFT_Z * 2;
 
 /** The number of slots a {@link CornerCache} holds. */
 const CORNER_CACHE_SLOTS = CORNER_CACHE_CELLS_XZ * CORNER_CACHE_CELLS_XZ * CORNER_CACHE_CELLS_Y;
@@ -21,15 +25,18 @@ const CORNER_CACHE_SLOTS = CORNER_CACHE_CELLS_XZ * CORNER_CACHE_CELLS_XZ * CORNE
  * The cell-corner values an `interpolated` function has already computed.
  *
  * Corners sit on a regular lattice, so the slot is the cell index masked per axis rather than a
- * hash of the position. A chunk's lattice is 5 by 5 cells across and 48 up, which lands inside
- * one window of the 16 by 16 by 64 the masks carve out, so no two corners a chunk is working on
- * can collide. A hashed index collided often enough to compute a chunk's 1225 corners 6139
- * times, and a corner is the most expensive thing the density stack does.
+ * hash of the position. A chunk's lattice is 5 by 5 cells across and 49 up at vanilla's cell
+ * size, which lands inside one window of the 8 by 8 by 64 the masks carve out, so no two
+ * corners a chunk is working on can collide. A hashed index collided often enough to compute a
+ * chunk's 1225 corners 6139 times, and a corner is the most expensive thing the density stack
+ * does.
  *
- * The cache is still direct-mapped, so a position outside that window evicts rather than grows,
- * and the stored cell indices are compared exactly before a value is reused. Eviction costs a
- * recomputation, never an answer, because a density function tree is deterministic for one
- * context. Java fills a whole cell grid up front; this covers the same working set without
+ * The window is sized to that working set and no larger, because every `interpolated` node
+ * builds one of these per chunk and the zeroing and collection of the buffers is paid per
+ * chunk too. The cache is direct-mapped, so a position outside the window evicts rather than
+ * grows, and the stored cell indices are compared exactly before a value is reused. Eviction
+ * costs a recomputation, never an answer, because a density function tree is deterministic for
+ * one context. Java fills a whole cell grid up front; this covers the same working set without
  * having to visit the chunk in Java's cell order.
  */
 export class CornerCache {
@@ -57,8 +64,8 @@ export class CornerCache {
     ): number {
         const slot =
             (cellX & (CORNER_CACHE_CELLS_XZ - 1)) |
-            ((cellZ & (CORNER_CACHE_CELLS_XZ - 1)) << 4) |
-            ((cellY & (CORNER_CACHE_CELLS_Y - 1)) << 8);
+            ((cellZ & (CORNER_CACHE_CELLS_XZ - 1)) << CORNER_CACHE_SHIFT_Z) |
+            ((cellY & (CORNER_CACHE_CELLS_Y - 1)) << CORNER_CACHE_SHIFT_Y);
         if (
             this.filled[slot] === 1 &&
             this.keyX[slot] === cellX &&
