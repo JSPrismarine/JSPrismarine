@@ -1,10 +1,12 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { LevelSoundEvent as SoundEvent } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import Player from '../Player';
 import type Server from '../Server';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
+import BlockPosition from '../world/BlockPosition';
 import { toNetworkGameRule } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { isInView, SOUND_RADIUS, WORLD_EVENT_RADIUS } from '../world/Proximity';
@@ -14,6 +16,7 @@ import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import type { ActorEvent } from './packet/ActorEventPacket';
 import ActorEventPacket from './packet/ActorEventPacket';
+import BlockActorDataPacket from './packet/BlockActorDataPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from './packet/UpdateBlockPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
@@ -35,6 +38,12 @@ const SOUND_ACTOR_TYPE: Partial<Record<LevelSoundEvent, string>> = {
 interface BlockChange {
     position: Vector3;
     blockRuntimeId: number;
+}
+
+/** A block entity change waiting for the end of the tick. */
+interface BlockEntityChange {
+    position: Vector3;
+    tags: NBTTagCompound;
 }
 
 /**
@@ -64,6 +73,15 @@ export class NetworkWorldReplicator implements WorldChangeSink {
      * settles, and only where it ended up is worth a packet.
      */
     private readonly pendingBlocks = new Map<string, BlockChange>();
+
+    /**
+     * Block entity changes made since the last flush, keyed by position.
+     *
+     * Keyed for the same reason {@link pendingBlocks} is, and with more to gain from it: a
+     * block entity update carries the whole compound rather than a block's four bytes, so a
+     * chest written twice in a tick is two copies of its 27 slots if nothing collapses them.
+     */
+    private readonly pendingBlockEntities = new Map<string, BlockEntityChange>();
 
     public constructor(
         private readonly world: World,
@@ -218,6 +236,40 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         }
 
         return batch.getBuffer();
+    }
+
+    /** @inheritdoc */
+    public blockEntityChanged(position: Vector3, tags: NBTTagCompound): void {
+        this.pendingBlockEntities.set(`${position.getX()},${position.getY()},${position.getZ()}`, { position, tags });
+    }
+
+    /**
+     * @inheritdoc
+     *
+     * One `BlockActorDataPacket` per position rather than a shared batch, which is the
+     * opposite of what {@link flushBlockChanges} does and right for the opposite reason. The
+     * block changes are thousands of twenty-byte packets with the same contents for everyone;
+     * these are a handful of whole compounds, and the audience differs per position, so there
+     * is nothing for a shared compression to amortize.
+     *
+     * The audience is {@link getViewers}, whose test is already the disc of chunks the client
+     * was streamed - see `world/Proximity.ts`. A client without the chunk has no block entity
+     * to replace and drops the packet, and the chunk it gets later carries the new compound in
+     * its own payload, so neither order loses the change.
+     */
+    public async flushBlockEntities(): Promise<void> {
+        if (this.pendingBlockEntities.size === 0) return;
+
+        const changes = [...this.pendingBlockEntities.values()];
+        this.pendingBlockEntities.clear();
+
+        for (const { position, tags } of changes) {
+            const packet = new BlockActorDataPacket();
+            packet.blockPosition = new BlockPosition(position.getX(), position.getY(), position.getZ());
+            packet.actorDataTags = tags;
+
+            this.sendAround(position, packet);
+        }
     }
 
     /** @inheritdoc */

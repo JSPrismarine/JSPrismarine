@@ -68,7 +68,7 @@ const worldHolding = (entities: readonly BlockEntity[]): ContainerLootWorld => {
             held.set(key(...positionOf(entity)), entity);
         }
     };
-    return { getLoadedChunk: () => chunk };
+    return { getLoadedChunk: () => chunk, blockEntityChanged: () => {} };
 };
 
 const positionOf = (entity: BlockEntity): [number, number, number] => {

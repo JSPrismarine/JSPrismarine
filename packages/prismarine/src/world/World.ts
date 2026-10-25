@@ -4,6 +4,7 @@ import fs from 'node:fs';
 
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Block, Server, Service } from '../';
 import Timer from '../utils/Timer';
 import UUID from '../utils/UUID';
@@ -521,6 +522,12 @@ export class World implements Service {
         // client has not been told about yet.
         await this.changes.flushBlockChanges();
 
+        // After the block changes, never before them. A client drops a block entity update for
+        // a position it has no block entity at, and an `UpdateBlockPacket` landing afterwards
+        // makes it rebuild the block entity from its own empty data - so a chest placed and
+        // filled in one tick has to be announced as a block first.
+        await this.changes.flushBlockEntities();
+
         // After every entity has moved, so a tick's movement leaves as one batch per player rather
         // than one per mob - see `flushMovement`.
         await this.flushMovement();
@@ -989,6 +996,21 @@ export class World implements Service {
      */
     public playNamedSound(x: number, y: number, z: number, sound: string): void {
         this.changes.namedSound(new Vector3(x + 0.5, y + 0.5, z + 0.5), sound);
+    }
+
+    /**
+     * Reports that the block entity at a position is now these tags.
+     *
+     * What makes this world a {@link import('../blockentity/blockEntityWrite').BlockEntityWorld},
+     * so that every block entity write goes through one place and reaches the clients holding
+     * the chunk. Called by `writeBlockEntity` and by nothing else: it reports rather than
+     * writes, and calling it without having written the chunk tells a client something that
+     * is not true.
+     * @param {Vector3} position - The block the block entity sits in.
+     * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
+     */
+    public blockEntityChanged(position: Vector3, tags: NBTTagCompound): void {
+        this.changes.blockEntityChanged(position, tags);
     }
 
     /**

@@ -20,7 +20,7 @@ import type { Definition } from '@jsprismarine/packs';
 import type { RandomSource } from '@jsprismarine/predicates';
 
 import { applyBlockEntityRecord, blockEntityCompound, blockEntityRecord } from '../blockentity/contentRecord';
-import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
+import { writeBlockEntity } from '../blockentity/blockEntityWrite';
 import { parseBiomeTags } from '../content/biomeTags';
 import type { BiomeTagIndex } from '../content/biomeTags';
 import { gameRuleValue } from '../content/world/gameRules';
@@ -289,8 +289,9 @@ export const worldBlockEntities = (world: LiveWorld): BlockEntityStore => {
             return existing ? blockEntityRecord(existing.toNBT()) : undefined;
         },
         put: (at, data) => {
+            const live = world();
             const chunk = chunkAt(at);
-            if (chunk === null) return;
+            if (live === undefined || chunk === null) return;
 
             const nbt = blockEntityCompound(
                 chunk.getBlockEntity(at.x, at.y, at.z),
@@ -298,7 +299,12 @@ export const worldBlockEntities = (world: LiveWorld): BlockEntityStore => {
                 chunk.getBlock(at.x, at.y, at.z).name
             );
             applyBlockEntityRecord(nbt, data);
-            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(nbt));
+
+            // Not `chunk.setBlockEntity`: a write that reaches the chunk and nobody else is
+            // invisible to every client already holding it. `writeBlockEntity` also drops the
+            // write when it changes nothing, which is what keeps a comparator restating the
+            // same signal every tick from costing a packet and a chunk re-serialization.
+            writeBlockEntity(live, nbt);
         }
     };
 };
