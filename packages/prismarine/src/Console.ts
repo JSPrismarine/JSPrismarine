@@ -6,56 +6,7 @@ import type ChatEvent from './events/chat/ChatEvent';
 import process from 'node:process';
 import type { CompleterResult } from 'node:readline';
 import readline from 'node:readline';
-
-// Extend builtin `readline.Interface` type
-declare module 'node:readline' {
-    interface Interface {
-        setRawMode?(mode: boolean): void;
-        output: {
-            write: (data: string) => void;
-        };
-        input: any;
-        _refreshLine?(): void;
-    }
-}
-
-/** The minimum of a readline interface needed to print above its prompt. */
-export interface PromptWriter {
-    output: { write: (data: string) => void };
-    line?: string;
-    prompt(preserveCursor?: boolean): void;
-    _refreshLine?(): void;
-}
-
-/**
- * Prints a line without destroying whatever is half-typed at the prompt.
- *
- * A log arriving mid-keystroke lands on the same terminal row the prompt and the typed
- * text occupy. Writing it straight out leaves the row in a mess: the prompt scrolls away
- * with the message, and a message shorter than the input leaves the tail of the input
- * stranded after it.
- *
- * So the row is wiped first, the message takes it, and readline is asked to draw itself
- * again underneath - prompt, the text being typed, and the cursor wherever in that text it
- * had been left.
- */
-export const writeAbovePrompt = (cli: PromptWriter, line: string): void => {
-    // \x1b[2K erases the whole row, \r returns to its start. Both are needed: \r alone
-    // would overwrite only as far as the new text reaches.
-    cli.output.write(`\x1b[2K\r${line}\n`);
-
-    if (cli._refreshLine) {
-        // Redraws prompt, buffer and cursor in one go, which is exactly the job.
-        cli._refreshLine();
-        return;
-    }
-
-    // Without that internal, the best available is the prompt plus an echo of the buffer.
-    // The cursor ends up at the end of the text rather than where it was, which is worth
-    // it against losing the input altogether.
-    cli.prompt(true);
-    if (cli.line) cli.output.write(cli.line);
-};
+import type { Readable } from 'node:stream';
 
 /**
  * Completes a partially typed console line against the known command names.
@@ -70,41 +21,43 @@ export const completeCommand = (names: readonly string[], line: string): Complet
 };
 
 /**
- * Server console.
+ * The plain line console: one command per line of input, one log record per line of output.
+ *
+ * This is the in-process console for plain mode, where the server owns stdin and stdout
+ * itself. It never puts the terminal in raw mode, draws no prompt, and does no completion,
+ * so it works the same under a pipe, inside a container, from a panel that feeds stdin, and
+ * on a Node without a TTY. The interactive terminal UI lives in `@jsprismarine/console`.
+ *
+ * Ctrl+C is not handled here. The process entry point installs the signal handlers that
+ * stop the server.
  */
 export default class Console implements CommandExecutor, Service {
     private cli?: readline.Interface;
-
-    public constructor(private readonly server: Server) {}
+    private enabled = false;
 
     /**
-     * On enable hook.
+     * @param input - Where command lines come from. Defaults to the process's stdin.
+     */
+    public constructor(
+        private readonly server: Server,
+        private readonly input: Readable = process.stdin
+    ) {}
+
+    /**
+     * Subscribes to chat and starts reading command lines from the input.
+     *
+     * Output needs nothing to be set up, so chat forwarding and the logger hookup happen
+     * even when there is no usable input. Input is skipped when the stream is destroyed or
+     * no longer readable, which is what a host that closed stdin leaves behind. A pipe that
+     * stays open but never sends anything, as under the test runner, is harmless: readline
+     * only pauses it again on {@link disable}.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        // Make sure we don't enable the console twice.
-        if (this.cli) return;
-
-        if (typeof process.stdin.setRawMode !== 'function') {
-            // TODO: Handle headless modes better (eg unit testing).
-            return;
-        }
-
-        process.stdin.setRawMode(true);
-        // setNoDelay and setKeepAlive are Node.js-specific and not available in Bun
-        if (typeof process.stdin.setNoDelay === 'function') process.stdin.setNoDelay(true);
-        if (typeof process.stdin.setKeepAlive === 'function') process.stdin.setKeepAlive(true);
-        process.stdin.resume();
-
-        this.cli = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-            terminal: true,
-            prompt: '> ',
-            tabSize: 4,
-            removeHistoryDuplicates: true,
-            completer: this.complete.bind(this)
-        });
+        // A reload enables the server again. The chat subscription must not be added twice,
+        // and the flag rather than the readline covers the case where there was no input.
+        if (this.enabled) return;
+        this.enabled = true;
 
         this.server.on('chat', async (evt: ChatEvent) => {
             if (evt.isCanceled()) return;
@@ -112,25 +65,17 @@ export default class Console implements CommandExecutor, Service {
         });
         this.server.getLogger().setConsole(this);
 
-        this.cli.on('keypress', async (_, key) => {
-            switch (key.name) {
-                case 'c': {
-                    if (key.ctrl) {
-                        await this.server.shutdown();
-                    }
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
+        if (!this.hasUsableInput()) return;
+
+        this.cli = readline.createInterface({
+            input: this.input,
+            output: undefined,
+            terminal: false,
+            crlfDelay: Number.POSITIVE_INFINITY
         });
 
         this.cli.on('line', (input: string) => {
             if (input.trim() === '') return;
-
-            // Fix cursor positioning.
-            this.cli?.output.write(`\x1b[2D`);
 
             this.server
                 .getCommandManager()
@@ -143,42 +88,50 @@ export default class Console implements CommandExecutor, Service {
     }
 
     /**
-     * On disable hook.
+     * Stops reading command lines. Output keeps working through {@link write}.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
         this.cli?.close();
         this.cli?.removeAllListeners();
+        this.cli = undefined;
     }
 
-    private complete(line: string, callback: (err?: null | Error, result?: CompleterResult) => void): void {
-        const names = Array.from(this.server.getCommandManager().getCommands().values()).map((command) => command.name);
-
-        // TODO: Handle arguments.
-        callback(null, completeCommand(names, line));
+    private hasUsableInput(): boolean {
+        return !this.input.destroyed && this.input.readable;
     }
 
+    /**
+     * Writes one formatted log line to stdout.
+     */
     public write(line: string): void {
-        if (!this.cli) {
-            process.stdout.write(`${line}\n`);
-            return;
-        }
-
-        writeAbovePrompt(this.cli, line);
+        process.stdout.write(`${line}\n`);
     }
 
+    /**
+     * The name commands see for the console executor.
+     */
     public getName(): string {
         return 'CONSOLE';
     }
 
+    /**
+     * The console's name as shown in chat and command feedback.
+     */
     public getFormattedUsername(): string {
         return '[CONSOLE]';
     }
 
+    /**
+     * Prints a message addressed to the console through the logger at info level.
+     */
     public sendMessage(message: string): void {
         this.server.getLogger().info(message);
     }
 
+    /**
+     * Returns the server this console belongs to.
+     */
     public getServer(): Server {
         return this.server;
     }
