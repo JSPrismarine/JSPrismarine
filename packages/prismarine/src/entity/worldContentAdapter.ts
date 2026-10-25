@@ -6,22 +6,89 @@
  * has the class-based entities, and six of the seven members read or write those perfectly
  * well: they are queries over a list and a drop onto the ground.
  *
- * The seventh, `spawn`, is left throwing. Putting a new entity into the world by its
- * namespaced identifier needs a factory that covers every identifier a content pack can name,
- * and the class registry covers the handful of types this server has written classes for.
- * Spawning the wrong thing, or nothing at all, for the rest is worse than saying so.
+ * The seventh, `spawn`, puts a body into the live world rather than an `EntityInstance` into the
+ * data-driven index, because the live world is what clients are sent and what a save writes.
+ * Which identifiers may be spawned comes from the content registry, so a pack's own mob is
+ * spawnable; what gets built is a class when one of the written classes adds behavior that
+ * identifier needs, and a {@link GenericEntity} carrying the identifier otherwise. The client
+ * draws a Bedrock entity from its identifier, so the generic body is the right thing rather than
+ * a stand-in. An identifier no registry carries is reported and nothing is spawned.
  */
 import { Vector3 } from '@jsprismarine/math';
 
-import { CONTENT_AREAS, notWired } from '../content/world/notWired';
-import type { ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
+import type { BlockEntityData, ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
+import type { ContentLookup } from '../content/world/views';
 import { Item } from '../item/Item';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import type { Entity } from './Entity';
+import { spawnableEntities } from './Entities';
+import type { Entity, SpawnableEntityClass } from './Entity';
+import { GenericEntity } from './GenericEntity';
+import FallingBlock from './other/FallingBlock';
+import { applyBlockEntityRecord } from '../blockentity/contentRecord';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
 /** The live world whose entities this group reads, or undefined when none is loaded. */
 export type LiveWorld = () => World | undefined;
+
+/** What {@link worldEntityAccess} is built over. */
+export interface WorldEntityAccessOptions {
+    /** The live world, read at call time, because the content is built before any world loads. */
+    readonly world: LiveWorld;
+    /**
+     * The built content, read at call time.
+     *
+     * The entity registry decides which identifiers {@link ContentEntityAccess.spawn} accepts.
+     * Without it a typo in a pack would put an invisible body in the world that nothing could
+     * explain, which is the failure the whole adapter is written to avoid.
+     */
+    readonly content: ContentLookup;
+}
+
+/** The spawnable classes by the identifier each one carries, built once. */
+let classIndex: Map<string, SpawnableEntityClass> | null = null;
+
+/** The class for an identifier, or undefined when no written class covers it. */
+const classFor = (identifier: string): SpawnableEntityClass | undefined => {
+    classIndex ??= new Map(spawnableEntities().map((candidate) => [candidate.MOB_ID, candidate]));
+    return classIndex.get(identifier);
+};
+
+/**
+ * The block a falling block is made of, which its own data carries under `block`.
+ *
+ * The one entity whose class cannot be built from a position alone. A spawn that names no block
+ * is refused rather than given a default: a falling nothing lands as a wrong block.
+ */
+const fallingBlockName = (data: BlockEntityData | undefined): string | undefined =>
+    typeof data?.['block'] === 'string' ? data['block'] : undefined;
+
+/**
+ * Builds the body for one identifier, or reports why it could not.
+ *
+ * @returns The entity, or a string saying what stopped it, which the caller logs.
+ */
+const bodyFor = (
+    identifier: string,
+    position: Position,
+    data: BlockEntityData | undefined,
+    content: ContentLookup
+): Entity | string => {
+    if (identifier === FallingBlock.MOB_ID) {
+        const blockName = fallingBlockName(data);
+        if (blockName === undefined) return 'a falling block was spawned without the block it is made of';
+        return new FallingBlock({ position, blockName });
+    }
+
+    const written = classFor(identifier);
+    if (written !== undefined) return new written({ position });
+
+    if (!content().entities.registry.has(identifier)) {
+        return `${identifier} is not an entity any loaded pack declares`;
+    }
+
+    return new GenericEntity({ identifier, position });
+};
 
 /**
  * What the content packages identify a player as.
@@ -70,10 +137,12 @@ const distanceSquared = (entity: Entity, from: ContentPosition): number => {
 /**
  * Builds the `entities` group over one live world.
  *
- * @param world - The live world, read at call time, because the content is built before any
- *   world loads.
+ * @throws {Error} From any member, when no world is loaded. A content package asking about
+ *   entities before there is a world to hold them is a wiring mistake.
  */
-export const worldEntityAccess = (world: LiveWorld): ContentEntityAccess => {
+export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEntityAccess => {
+    const { world, content } = options;
+
     const live = (): World => {
         const loaded = world();
         if (loaded === undefined) throw new Error('no world is loaded, so its entities cannot be read or changed');
@@ -96,7 +165,33 @@ export const worldEntityAccess = (world: LiveWorld): ContentEntityAccess => {
             live()
                 .getPlayers()
                 .map((player) => ({ ...contentEntityOf(player), identifier: PLAYER_IDENTIFIER })),
-        spawn: notWired('entities.spawn', CONTENT_AREAS.entities),
+        spawn: (identifier, at, data) => {
+            const loaded = live();
+            // The middle of the block, which is where Bedrock puts a mob it spawns and what
+            // keeps a lit TNT block's entity standing where the block stood.
+            const position = Position.fromVector3(new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5), loaded);
+
+            const body = bodyFor(identifier, position, data, content);
+            if (typeof body === 'string') {
+                loaded.getServer().getLogger().debug(body, 'entity/worldContentAdapter');
+                // No id, because nothing was spawned. `remove` ignores an id it does not hold,
+                // so a behavior that keeps the number cannot remove somebody else's entity.
+                return 0;
+            }
+
+            // Everything the record carries that the body does not model - a TNT's fuse, a
+            // bucketed fish's variant - goes where the serializer already writes it back from.
+            if (data !== undefined) {
+                body.persistentNbt ??= new NBTTagCompound('');
+                applyBlockEntityRecord(body.persistentNbt, data);
+            }
+
+            void loaded.addEntity(body).catch((error: unknown) => {
+                loaded.getServer().getLogger().error(error);
+            });
+
+            return Number(body.getRuntimeId());
+        },
         remove: (id) => {
             const loaded = live();
             const entity = loaded.getEntity(BigInt(id));

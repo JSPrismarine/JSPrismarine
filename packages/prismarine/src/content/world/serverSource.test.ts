@@ -12,7 +12,9 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
+import { blockEntityRecord } from '../../blockentity/contentRecord';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import FallingBlock from '../../entity/other/FallingBlock';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/Dimension';
@@ -45,6 +47,20 @@ const BLOCKS = [
 ] as const;
 
 const DIMENSION = 'minecraft:overworld';
+
+/**
+ * An entity no class covers, which is what a pack's own mob is.
+ *
+ * Declared here rather than taken from the vanilla stack, because the point of it is that the
+ * only thing the server knows about this identifier is that a loaded pack declares it.
+ */
+const ROBOT = definitionOf('entities', 'fixture:robot', {
+    format_version: '1.26.0',
+    'minecraft:entity': {
+        description: { identifier: 'fixture:robot' },
+        components: { 'minecraft:health': { value: 10 } }
+    }
+});
 
 /** One block definition, read from the overlay the server itself loads. */
 const overlayBlock = (identifier: string) => {
@@ -80,6 +96,7 @@ const liveWorld = (): { world: World; chunk: Chunk; broadcasts: Broadcasts } => 
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
+        entityChunkIndices: new Map(),
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
@@ -133,7 +150,10 @@ describe('serverWorldSource', () => {
         let built: ServerContent | undefined;
         content = buildServerContent({
             load: () => ({
-                definitions: definitionsOf({ blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])) }),
+                definitions: definitionsOf({
+                    blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
+                    entities: new Map([['fixture:robot', ROBOT]])
+                }),
                 diagnostics: []
             }),
             blockPalette: fixturePalette(),
@@ -289,6 +309,41 @@ describe('serverWorldSource', () => {
         expect(engine.getDifficulty()).toBe('normal');
     });
 
+    it('spawns a lit TNT into the live world, carrying its fuse', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'minecraft:tnt', {
+            fuse: 80
+        });
+
+        const spawned = world.getEntity(BigInt(id));
+        expect(spawned?.getType()).toBe('minecraft:tnt');
+        expect(spawned?.getPosition().getY()).toBe(64.5);
+        expect(blockEntityRecord(spawned!.persistentNbt!)['fuse']).toBe(80);
+        expect(world.getEntities()).toHaveLength(1);
+    });
+
+    it('spawns a falling block as the block it is made of', () => {
+        const id = content.world.blockWorld
+            .at(DIMENSION)
+            .spawnEntity({ x: 3, y: 70, z: 3 }, 'minecraft:falling_block', { block: 'minecraft:stone' });
+
+        const spawned = world.getEntity(BigInt(id));
+        expect(spawned).toBeInstanceOf(FallingBlock);
+        expect((spawned as FallingBlock).getBlockName()).toBe('minecraft:stone');
+    });
+
+    it('spawns an identifier only a pack declares, with no class behind it', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 5 }, 'fixture:robot');
+
+        expect(world.getEntity(BigInt(id))?.getType()).toBe('fixture:robot');
+    });
+
+    it('spawns nothing for an identifier no pack declares', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 7 }, 'fixture:nowhere');
+
+        expect(id).toBe(0);
+        expect(world.getEntities()).toHaveLength(0);
+    });
+
     it('still refuses the members no subsystem has supplied', () => {
         const adapter = serverWorldSource({
             worldFor: () => world,
@@ -298,7 +353,7 @@ describe('serverWorldSource', () => {
         }).at(DIMENSION);
 
         expect(() => adapter.blocks.biomeTags({ x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
-        expect(() => adapter.entities.spawn('minecraft:cow', { x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
+        expect(() => adapter.effects.emitGameEvent('step', { x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
         expect(adapter.spawning).toBeUndefined();
         expect(adapter.ai).toBeUndefined();
         expect(adapter.generation).toBeUndefined();
