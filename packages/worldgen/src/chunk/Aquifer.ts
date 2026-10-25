@@ -111,6 +111,12 @@ export class NoiseBasedAquifer implements Aquifer {
     private readonly gridSizeZ: number;
     private readonly skipSamplingAboveY: number;
     private scheduleFluidUpdate = false;
+    /**
+     * The barrier noise at the position being computed, or NaN before the first draw. Java
+     * carries this in a mutable holder so the noise is sampled at most once per position; a
+     * field avoids the per-block closure and tuple that holder used to cost here.
+     */
+    private barrierNoiseValue = Number.NaN;
     private readonly barrierNoise: DensitySampler;
     private readonly floodednessNoise: DensitySampler;
     private readonly spreadNoise: DensitySampler;
@@ -264,35 +270,29 @@ export class NoiseBasedAquifer implements Aquifer {
             return fluidState;
         }
 
-        let barrierNoiseValue = Number.NaN;
-        const pressure = (first: FluidStatus, second: FluidStatus): number => {
-            const [value, noiseValue] = this.calculatePressure(
-                blockX,
-                blockY,
-                blockZ,
-                barrierNoiseValue,
-                first,
-                second
-            );
-            barrierNoiseValue = noiseValue;
-            return value;
-        };
+        this.barrierNoiseValue = Number.NaN;
 
         const status2 = this.getAquiferStatus(closest2);
-        if (density + similarity12 * pressure(status1, status2) > 0) {
+        if (density + similarity12 * this.calculatePressure(blockX, blockY, blockZ, status1, status2) > 0) {
             this.scheduleFluidUpdate = false;
             return undefined;
         }
 
         const status3 = this.getAquiferStatus(closest3);
         const similarity13 = similarity(distance1, distance3);
-        if (similarity13 > 0 && density + similarity12 * similarity13 * pressure(status1, status3) > 0) {
+        if (
+            similarity13 > 0 &&
+            density + similarity12 * similarity13 * this.calculatePressure(blockX, blockY, blockZ, status1, status3) > 0
+        ) {
             this.scheduleFluidUpdate = false;
             return undefined;
         }
 
         const similarity23 = similarity(distance2, distance3);
-        if (similarity23 > 0 && density + similarity12 * similarity23 * pressure(status2, status3) > 0) {
+        if (
+            similarity23 > 0 &&
+            density + similarity12 * similarity23 * this.calculatePressure(blockX, blockY, blockZ, status2, status3) > 0
+        ) {
             this.scheduleFluidUpdate = false;
             return undefined;
         }
@@ -453,23 +453,23 @@ export class NoiseBasedAquifer implements Aquifer {
     /**
      * The barrier strength between two aquifer cells.
      *
-     * @returns The pressure and the barrier noise value, which the caller carries forward so
-     *   the noise is sampled at most once per position, as Java's mutable holder does.
+     * Reads and updates {@link NoiseBasedAquifer.barrierNoiseValue} so the barrier noise is
+     * sampled at most once per position, as Java's mutable holder does; `computeSubstance`
+     * resets the field to NaN before the first of up to three calls for one position.
      */
     private calculatePressure(
         blockX: number,
         blockY: number,
         blockZ: number,
-        barrierNoiseValue: number,
         statusClosest1: FluidStatus,
         statusClosest2: FluidStatus
-    ): [number, number] {
+    ): number {
         const type1 = statusClosest1.at(blockY);
         const type2 = statusClosest2.at(blockY);
-        if ((type1 === LAVA && type2 === WATER) || (type1 === WATER && type2 === LAVA)) return [2, barrierNoiseValue];
+        if ((type1 === LAVA && type2 === WATER) || (type1 === WATER && type2 === LAVA)) return 2;
 
         const fluidYDiff = Math.abs(statusClosest1.fluidLevel - statusClosest2.fluidLevel);
-        if (fluidYDiff === 0) return [0, barrierNoiseValue];
+        if (fluidYDiff === 0) return 0;
 
         const averageFluidY = 0.5 * (statusClosest1.fluidLevel + statusClosest2.fluidLevel);
         const howFarAboveAverage = blockY + 0.5 - averageFluidY;
@@ -483,12 +483,12 @@ export class NoiseBasedAquifer implements Aquifer {
             gradient = centerPoint > 0 ? centerPoint / 3 : centerPoint / 10;
         }
 
-        if (gradient < -2 || gradient > 2) return [2 * (0 + gradient), barrierNoiseValue];
+        if (gradient < -2 || gradient > 2) return 2 * (0 + gradient);
 
-        const noiseValue = Number.isNaN(barrierNoiseValue)
-            ? this.barrierNoise(this.context, blockX, blockY, blockZ)
-            : barrierNoiseValue;
-        return [2 * (noiseValue + gradient), noiseValue];
+        if (Number.isNaN(this.barrierNoiseValue)) {
+            this.barrierNoiseValue = this.barrierNoise(this.context, blockX, blockY, blockZ);
+        }
+        return 2 * (this.barrierNoiseValue + gradient);
     }
 }
 
