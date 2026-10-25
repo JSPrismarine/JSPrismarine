@@ -7,11 +7,7 @@ export * from './MobSpawner';
 export * from './Position';
 export * from './World';
 
-export * from './generators/TerrainShape';
-export * from './generators/structure/Structure';
-export * from './generators/structure/StructureBlocks';
-export { default as StructurePlacement } from './generators/structure/StructurePlacement';
-export { default as VillageStructure } from './generators/structure/VillageStructure';
+export * from './generators/datadriven';
 
 import { Position } from './Position';
 
