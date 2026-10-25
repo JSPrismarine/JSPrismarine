@@ -105,6 +105,16 @@
     },
     "overrides": [
         {
+            "includes": [
+                "packages/chunkgen/src/**",
+                "packages/features/src/**",
+                "packages/structures/src/**",
+                "packages/worldgen/src/**",
+                "packages/prismarine/src/world/generators/**"
+            ],
+            "plugins": ["./.biome/no-nondeterministic-generation.grit"]
+        },
+        {
             "includes": ["scripts/**", "packages/*/scripts/**"],
             "linter": {
                 "rules": {

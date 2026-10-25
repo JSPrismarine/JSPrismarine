@@ -1,0 +1,21 @@
+language js
+
+// Chunk generation must be a pure function of the world seed and the chunk position, because
+// the same chunk is generated on a worker pool whose size and scheduling order vary. Two calls
+// break that silently rather than loudly, so they are banned under the generation packages.
+//
+// `Math.random` is seeded per V8 isolate. A main thread and six workers measured seven different
+// sequences, and no digest tells you which one produced a block.
+//
+// `localeCompare` does not agree with a plain `<` comparison: it orders `minecraft:Oak` before
+// `minecraft:_oak` where `<` does the reverse. Sorting a palette or a feature list with it moves
+// an index, and the index is an input to the feature seed.
+or {
+    `Math.random` as $token,
+    `$_.localeCompare($...)` as $token
+} where {
+    register_diagnostic(
+        span = $token,
+        message = "Chunk generation must be reproducible across workers: `Math.random` is seeded per isolate and `localeCompare` disagrees with a plain comparison. Reseed from the world seed, a position and a fixed index, and sort with `<`."
+    )
+}

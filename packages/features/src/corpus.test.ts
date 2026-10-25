@@ -173,7 +173,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
         const reachable = new Set<string>();
         for (const root of roots) for (const node of walkFeatures(root)) reachable.add(node.type);
 
-        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         process.stdout.write(
             `feature types: ${usage.size} of ${FEATURE_TYPES.length} used at the top level, ` +
                 `${reachable.size} reachable including nested features\n` +
@@ -313,7 +313,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
                 usage.set(modifier.type, (usage.get(modifier.type) ?? 0) + 1);
             }
         }
-        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+        const ranked = [...usage.entries()].sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0));
         process.stdout.write(
             `placement modifiers: ${usage.size} of 18 used\n` +
                 `${ranked.map(([type, count]) => `  ${String(count).padStart(3)} ${type}`).join('\n')}\n`

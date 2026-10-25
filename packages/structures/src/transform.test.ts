@@ -142,7 +142,7 @@ describe('the transform table against the mapping state domains', () => {
             tuples.map((values) => {
                 const states = keys
                     .map((key, axis) => [key, values[axis] ?? ''] as const)
-                    .sort(([a], [b]) => a.localeCompare(b))
+                    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
                     .map(([key, value]) => `${key}=${value}`)
                     .join(',');
                 return `minecraft:${name}|${states}`;
