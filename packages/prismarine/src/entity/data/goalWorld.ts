@@ -30,10 +30,9 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => ({
     identifier: () => entity.identifier,
     heldItem: () => entity.carried,
     health: () => entity.instance.attributes.get('health')?.current,
-    target: () => {
-        const target = entity.target === undefined ? undefined : scene.byId(entity.target);
-        return target === undefined ? undefined : goalMobOf(target, scene);
-    },
+    // Through `mobById` rather than `byId`, because a target is as often a player as a mob
+    // and the two live in different indexes.
+    target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
     lastDamager: () => {
         const last = entity.body.damage.last()?.sourceId;
         return last === undefined ? undefined : scene.mobById(last);
@@ -107,10 +106,20 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
 
     return {
         navigation: () => scene.navigation(),
+        // Players among them, because `nearest_attackable_target` searches this list and 49
+        // vanilla entities use it with an `is_family: player` entry. Java's
+        // `NearestAttackableTargetGoal` searches `LivingEntity`, which is players included;
+        // `players` stays as the player-only list the tempt and follow goals ask for.
         mobs: (radius) =>
-            sorted(scene.near(entity.position, radius).filter((other) => other.id !== entity.id)).map((other) =>
-                goalMobOf(other, scene)
-            ),
+            [
+                ...sorted(scene.near(entity.position, radius).filter((other) => other.id !== entity.id)).map((other) =>
+                    goalMobOf(other, scene)
+                ),
+                ...scene.host
+                    .players()
+                    .filter((player) => distance(entity.position, player.position) <= radius)
+                    .map((player) => playerGoalMob(player.id, player.identifier, player.position))
+            ].sort((a, b) => distance(entity.position, a.position()) - distance(entity.position, b.position())),
         players: (radius) =>
             scene.host
                 .players()
@@ -130,10 +139,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         owner: () => (entity.owner === undefined ? undefined : scene.mobById(entity.owner)),
         vehicle: () => scene.vehicleOf(entity),
         riders: () => scene.ridersOf(entity),
-        target: () => {
-            const target = entity.target === undefined ? undefined : scene.byId(entity.target);
-            return target === undefined ? undefined : goalMobOf(target, scene);
-        },
+        target: () => (entity.target === undefined ? undefined : scene.mobById(entity.target)),
         setTarget: (mob) => {
             entity.target = typeof mob?.id === 'number' ? mob.id : undefined;
         },
@@ -189,11 +195,31 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
 export const withinMeleeReach = (from: EntityPosition, to: EntityPosition): boolean =>
     distance(from, to) <= MELEE_REACH;
 
-/** A player as a goal sees one; the server answers no filter facts about it yet. */
+/**
+ * The families a player carries, which is what `is_family` compares a
+ * targeting goal's `entity_types` entry against.
+ *
+ * Both names, because vanilla's entity files write both: a zombie's
+ * `nearest_attackable_target` tests `player`, and the goals that spare
+ * anything living test `mob`.
+ */
+const PLAYER_FAMILIES = ['player', 'mob'] as const;
+
+/**
+ * A player as a goal sees one.
+ *
+ * A player is not in the entity index and carries no component set, so the
+ * only filter facts the server can answer about one are its identity and its
+ * families. A filter asking anything else gets undefined and refuses, which is
+ * the rule the whole seam follows.
+ */
 export const playerGoalMob = (id: number, identifier: string, position: EntityPosition): GoalMob => ({
     id,
     position: () => position,
-    view: () => ({}),
+    view: (): FilterEntityView => ({
+        id: () => id,
+        names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : undefined)
+    }),
     identifier: () => identifier
 });
 

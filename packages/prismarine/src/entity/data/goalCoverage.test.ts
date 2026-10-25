@@ -174,12 +174,15 @@ describe('the goals against the real goal world', () => {
     it('is reached for widely enough that the count means something', () => {
         const reached = new Set([...reads.values()].flatMap((read) => read.touched));
 
-        // Driving the inventory touches 30 of the seam's members, 15 of them ones this host
+        // Driving the inventory touches 29 of the seam's members, 15 of them ones this host
         // used to leave out, which is what makes the count above a measure of the host
-        // rather than of nothing. The six it does not reach - `mount`, `dismount`,
-        // `breedWith`, `setSitting`, `openTrade` and `explode` - need a goal to arrive
-        // somewhere or a roll to come up, and `goalWorld.test.ts` drives each of those.
-        expect(reached.size).toBeGreaterThanOrEqual(30);
+        // rather than of nothing. The seven it does not reach - `mount`, `dismount`,
+        // `breedWith`, `setSitting`, `openTrade`, `explode` and `setSleeping` - need a goal
+        // to arrive somewhere or a roll to come up, and `goalWorld.test.ts` drives each of
+        // those. `setSleeping` joined them once players entered `mobs`: the fox's
+        // `minecraft:behavior.nap` wakes for anything within six blocks, and the player in
+        // this fixture stands three away.
+        expect(reached.size).toBeGreaterThanOrEqual(29);
         expect([...reached].filter((member) => !answered.has(member))).toEqual([]);
     });
 
