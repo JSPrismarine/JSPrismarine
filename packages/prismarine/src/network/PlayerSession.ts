@@ -31,7 +31,6 @@ import { Mob } from '../entity/Mob';
 import type { Item as ItemEntity } from '../entity/other/Item';
 import { Projectile } from '../entity/other/Projectile';
 import type ContainerEntry from '../inventory/ContainerEntry';
-import CreativeInventory from '../inventory/CreativeInventory';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { WindowIds } from '../inventory/WindowIds';
 import { WindowTypes } from '../inventory/WindowTypes';
@@ -917,8 +916,9 @@ export default class PlayerSession {
         const server = this.player.getServer();
         const payloads = joinContentPayloads(server.getContent(), server.getLogger());
         if (payloads === undefined) {
-            pk.groups = CreativeInventory.getGroups(server);
-            pk.entries = CreativeInventory.getEntries(server);
+            const creative = server.getCreativeInventory();
+            pk.groups = [...creative.getGroups()];
+            pk.entries = [...creative.getEntries()];
         } else {
             pk.payload = payloads.creative;
         }

@@ -8,10 +8,14 @@
  *
  * This module is the content path for the same click, in vanilla's order. The block the player
  * clicked gets `onPlayerInteract` first, unless the player is sneaking with something in hand,
- * which is the rule that lets a player place a block against a chest. Then the item in hand gets
- * `onUseOn`. Either may consume the click by returning a value. Only when both decline does the
- * item place the block it names, through the content block adapter, so `onPlace` runs and a
- * container gets its record.
+ * which is the rule that lets a player place a block against a chest. Then, for a block with a
+ * screen, the screen opens. Then the item in hand gets `onUseOn`. Any of the three may consume
+ * the click. Only when all decline does the item place the block it names, through the content
+ * block adapter, so `onPlace` runs and a container gets its record.
+ *
+ * The screen is here and not in a block behavior family because a family has no client to send
+ * to; `jsprismarine:utility` says in as many words that the screens its workstations open belong
+ * to the server. Before this, no block opened a container anywhere in this server.
  *
  * It reports whether it handled the click. A false sends the caller back to `World.useItemOn`,
  * which is also what happens with `content-packs` off, so the path a server without content runs
@@ -22,8 +26,14 @@ import type { BlockFace, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { relative } from '@jsprismarine/engine-systems';
 import { ItemStack } from '@jsprismarine/items';
 import type { ItemSource } from '@jsprismarine/items';
+import { Vector3 } from '@jsprismarine/math';
+import { WindowTypes } from '@jsprismarine/minecraft';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { showEnchantingTable } from '../enchantment/enchantingTable';
+import ContainerEntry from '../inventory/ContainerEntry';
+import { blockContainerOf } from '../inventory/blockContainers';
+import { Item } from './Item';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
@@ -109,54 +119,58 @@ const placeBlock = (interaction: BlockInteraction, identifier: string, face: Blo
     return true;
 };
 
+/** What a block is holding, off its block entity record, one entry per slot the screen shows. */
+const storedContents = (interaction: BlockInteraction, slots: number): ContainerEntry[] => {
+    if (slots === 0) return [];
+
+    const { content, player } = interaction;
+    const dimension = player.getWorld().getDimension().name;
+    const items = content.world.blockWorld.at(dimension).getBlockData(interaction.position)?.items ?? [];
+
+    return Array.from({ length: slots }, (_, slot) => {
+        const held = items[slot];
+        if (held === undefined || !content.items.registry.has(held.identifier)) {
+            return new ContainerEntry({ item: Item.air() });
+        }
+
+        return new ContainerEntry({
+            item: new Item({ name: held.identifier, count: held.count, content }),
+            count: held.count
+        });
+    });
+};
+
 /**
- * Opens the screen the clicked block draws, and sends an enchanting table its three rows.
+ * Opens the screen the clicked block draws, and clears an enchanting table's three rows.
  *
  * Fire and forget, because the click is decided synchronously and the packets are not: the
- * caller has to answer the transaction now, and a window that arrives a tick later is a window
- * that arrives. A throw on the way reaches the log rather than the caller, for the same reason
- * a behavior that throws must not cost the player the click.
+ * caller has to answer the transaction now, and a window that arrives a tick later still
+ * arrives. A throw on the way reaches the log rather than the caller, for the same reason a
+ * behavior that throws must not cost the player the click.
  *
  * @returns Whether the block has a screen at all, which is what makes the click handled.
  */
 const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean => {
-    const { player, content } = interaction;
+    const { player } = interaction;
     const container = blockContainerOf(block.identifier);
     if (container === undefined) return false;
 
     const at = new Vector3(interaction.position.x, interaction.position.y, interaction.position.z);
+    const contents = storedContents(interaction, container.slots);
     const session = player.getNetworkSession();
-    const logger = player.getServer().getLogger();
 
     void (async () => {
-        await session.openBlockContainer(at, block.identifier, storedContents(interaction, container.slots));
+        await session.openBlockContainer(at, block.identifier, contents);
 
-        // The table's offers depend on the stack in its input slot, and nothing is in it the
-        // moment it opens - so this clears the rows rather than drawing stale ones, and is
-        // called again from the request handler once the player puts something in.
+        // A table's offers depend on the stack in its input slot, and nothing is in it the
+        // moment it opens - so this clears the rows rather than leaving the client's own
+        // placeholders, and `showEnchantingTable` is called again once something goes in.
         if (container.screen === WindowTypes.ENCHANTMENT) {
             await showEnchantingTable(player, undefined, interaction.position);
         }
-    })().catch((error: unknown) => logger.error(error));
+    })().catch((error: unknown) => player.getServer().getLogger().error(error));
 
     return true;
-
-    /** What the block is holding, read off its block entity record, one entry per slot. */
-    function storedContents(click: BlockInteraction, slots: number): ContainerEntry[] {
-        if (slots === 0) return [];
-
-        const stored = content.world.blockWorld.at(player.getWorld().getDimension().name).getBlockData(click.position);
-        const items = stored?.items ?? [];
-        const manager = player.getServer().getItemManager();
-
-        return Array.from({ length: slots }, (_, slot) => {
-            const held = items[slot];
-            const item = held === undefined ? null : manager.getItem(held.identifier);
-            return item === null
-                ? new ContainerEntry({ item: Item.air() })
-                : new ContainerEntry({ item, count: held!.count });
-        });
-    }
 };
 
 /**
@@ -199,6 +213,12 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 faceLocation: interaction.faceLocation,
                 itemStack: stack
             });
+
+            // After the hook and whatever the hook said, because for a container block the two
+            // are different halves of one click: a barrel's family sets `open_bit` and returns
+            // `true`, a chest's plays the open sound and declines, and neither opens a screen -
+            // `jsprismarine:utility` says in as many words that the screens belong here.
+            if (openContainer(interaction, block)) return 'handled';
             if (consumed === true) return 'handled';
         }
 

@@ -8,25 +8,48 @@ class CacheCell {
     public value = 0;
 }
 
-/** The eight density samples surrounding one interpolated block. */
-export type InterpolationCorners = readonly [number, number, number, number, number, number, number, number];
-
-interface CurrentInterpolationCell {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly corners: InterpolationCorners;
-}
+/** The number of slots a {@link CornerCache} holds; a chunk's corner lattice is ~1200 points. */
+const CORNER_CACHE_SLOTS = 4096;
 
 /**
- * The cell-corner values an `interpolated` function has already computed, indexed by block x,
- * then y, then z.
+ * The cell-corner values an `interpolated` function has already computed.
  *
- * Java fills a whole cell grid before interpolating; this grows the same grid on demand. It
- * is bounded by how far a caller walks before calling {@link SampleContext.reset}, which is
- * one chunk for the chunk sampler.
+ * This is a direct-mapped cache: a corner hashes to one slot, and a colliding corner evicts
+ * the previous occupant. Eviction only costs a recomputation, never correctness, because the
+ * stored coordinates are compared exactly before a value is reused and a density function tree
+ * is deterministic for one context. Java fills a whole cell grid up front; this covers the
+ * same chunk-sized working set without the per-corner map traffic the grid had.
  */
-export type InterpolationGrid = Map<number, Map<number, Map<number, number>>>;
+export class CornerCache {
+    private readonly keyX = new Int32Array(CORNER_CACHE_SLOTS);
+    private readonly keyY = new Int32Array(CORNER_CACHE_SLOTS);
+    private readonly keyZ = new Int32Array(CORNER_CACHE_SLOTS);
+    private readonly filled = new Uint8Array(CORNER_CACHE_SLOTS);
+    private readonly values = new Float64Array(CORNER_CACHE_SLOTS);
+
+    /** Returns the corner value, computing it through `input` when the slot does not hold it. */
+    public getOrCompute(context: SampleContext, input: DensitySampler, x: number, y: number, z: number): number {
+        // Three 32-bit multiplicative hashes, folded; the constants are odd and well-mixed.
+        const slot =
+            (Math.imul(x, -1640531527) ^ Math.imul(y, -2048144789) ^ Math.imul(z, -1028477379)) &
+            (CORNER_CACHE_SLOTS - 1);
+        if (this.filled[slot] === 1 && this.keyX[slot] === x && this.keyY[slot] === y && this.keyZ[slot] === z) {
+            return this.values[slot] ?? 0;
+        }
+        const value = input(context, x, y, z);
+        this.keyX[slot] = x;
+        this.keyY[slot] = y;
+        this.keyZ[slot] = z;
+        this.values[slot] = value;
+        this.filled[slot] = 1;
+        return value;
+    }
+
+    /** Drops every memoized corner. */
+    public clear(): void {
+        this.filled.fill(0);
+    }
+}
 
 /**
  * The per-chunk state a compiled density function tree reads while sampling.
@@ -49,8 +72,11 @@ export class SampleContext {
     public blendDensity: ((x: number, y: number, z: number, density: number) => number) | undefined;
 
     private readonly cells: CacheCell[] = [];
-    private readonly interpolationGrids: InterpolationGrid[] = [];
-    private readonly currentInterpolationCells: (CurrentInterpolationCell | undefined)[] = [];
+    private readonly cornerCaches: CornerCache[] = [];
+    private readonly currentCorners: Float64Array[] = [];
+    private readonly currentCellX: number[] = [];
+    private readonly currentCellY: number[] = [];
+    private readonly currentCellZ: number[] = [];
 
     /** Returns the memo slot a compiled `cache` node owns, creating it on first use. */
     public cell(id: number): CacheCell {
@@ -61,35 +87,48 @@ export class SampleContext {
         return created;
     }
 
-    /** Returns the cell grid a compiled `interpolated` node fills, creating it on first use. */
-    public interpolationGrid(id: number): InterpolationGrid {
-        const existing = this.interpolationGrids[id];
+    /** Returns the corner cache a compiled `interpolated` node fills, creating it on first use. */
+    public cornerCache(id: number): CornerCache {
+        const existing = this.cornerCaches[id];
         if (existing) return existing;
-        const created: InterpolationGrid = new Map();
-        this.interpolationGrids[id] = created;
+        const created = new CornerCache();
+        this.cornerCaches[id] = created;
         return created;
     }
 
-    /** Returns the last interpolated cell's eight corners when the sampler stays in that cell. */
-    public currentInterpolationCell(id: number, x: number, y: number, z: number): InterpolationCorners | undefined {
-        const cell = this.currentInterpolationCells[id];
-        return cell !== undefined && cell.x === x && cell.y === y && cell.z === z ? cell.corners : undefined;
+    /** Returns the eight corners of the current interpolation cell, or undefined on a cell change. */
+    public interpolationCorners(id: number, x: number, y: number, z: number): Float64Array | undefined {
+        return this.currentCellX[id] === x && this.currentCellY[id] === y && this.currentCellZ[id] === z
+            ? this.currentCorners[id]
+            : undefined;
     }
 
-    /** Remembers the eight corners used for one interpolation cell until the next cell is visited. */
-    public rememberInterpolationCell(id: number, x: number, y: number, z: number, corners: InterpolationCorners): void {
-        this.currentInterpolationCells[id] = { x, y, z, corners };
+    /**
+     * Marks one interpolation cell current and returns the reusable buffer its eight corners
+     * go into, ordered x fastest, then y, then z.
+     */
+    public beginInterpolationCell(id: number, x: number, y: number, z: number): Float64Array {
+        this.currentCellX[id] = x;
+        this.currentCellY[id] = y;
+        this.currentCellZ[id] = z;
+        const existing = this.currentCorners[id];
+        if (existing) return existing;
+        const created = new Float64Array(8);
+        this.currentCorners[id] = created;
+        return created;
     }
 
     /**
      * Drops every memoized value.
      *
      * A caller that walks more than one chunk with one context has to do this between them,
-     * or the interpolation grids keep every corner it has ever visited.
+     * or the corner caches keep serving the previous chunk's working set.
      */
     public reset(): void {
         for (const cell of this.cells) cell.valid = false;
-        for (const grid of this.interpolationGrids) grid.clear();
-        this.currentInterpolationCells.fill(undefined);
+        for (const cache of this.cornerCaches) cache.clear();
+        this.currentCellX.fill(Number.NaN);
+        this.currentCellY.fill(Number.NaN);
+        this.currentCellZ.fill(Number.NaN);
     }
 }

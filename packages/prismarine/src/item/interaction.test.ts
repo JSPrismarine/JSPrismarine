@@ -9,6 +9,7 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import BlockManager from '../block/BlockManager';
+import type ContainerEntry from '../inventory/ContainerEntry';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
@@ -27,6 +28,13 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import type Player from '../Player';
+
+/** One call to the session's container opener, as the harness records it. */
+interface OpenedContainer {
+    readonly identifier: string;
+    readonly at: Vector3;
+    readonly contents: ContainerEntry[];
+}
 
 /** The blocks the fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
@@ -96,11 +104,20 @@ const liveWorld = (blockManager: BlockManager): { world: World; chunk: Chunk; so
 const playerHolding = (world: World, identifier: string, sneaking = false): Player => {
     const item = new Item({ id: 1, name: identifier, meta: 0, count: 1 });
     const inventory = { getItemInHand: () => item };
+    const session = {
+        opened: [] as { identifier: string; at: Vector3; contents: ContainerEntry[] }[],
+        openBlockContainer: async (at: Vector3, blockIdentifier: string, contents: ContainerEntry[] = []) => {
+            session.opened.push({ identifier: blockIdentifier, at, contents });
+            return undefined;
+        },
+        send: async () => {}
+    };
 
     return {
         getWorld: () => world,
         getServer: () => world.getServer(),
         getInventory: () => inventory,
+        getNetworkSession: () => session,
         getRuntimeId: () => 7n,
         getPosition: () => new Vector3(1.5, 65, 1.5),
         getFallDistance: () => 0,
@@ -195,6 +212,43 @@ describe('useItemOnBlock', () => {
 
         expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:chest');
         expect(content.world.blockWorld.at(DIMENSION).getBlockData({ x: 4, y: 64, z: 4 })?.capacity).toBe(27);
+    });
+
+    it('opens a chest, with what the chest is holding', async () => {
+        place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+        click(playerHolding(world, 'minecraft:chest'), { x: 4, y: 63, z: 4 });
+        content.world.blockWorld
+            .at(DIMENSION)
+            .setBlockData(
+                { x: 4, y: 64, z: 4 },
+                { capacity: 27, items: [{ identifier: 'minecraft:stick', count: 5 }] }
+            );
+
+        const player = playerHolding(world, 'minecraft:stick');
+        expect(click(player, { x: 4, y: 64, z: 4 })).toBe('handled');
+
+        // The open is sent rather than awaited, so the click can be answered now.
+        await Promise.resolve();
+
+        const session = player.getNetworkSession() as unknown as { opened: OpenedContainer[] };
+        expect(session.opened).toHaveLength(1);
+        expect(session.opened[0]!.identifier).toBe('minecraft:chest');
+        expect(session.opened[0]!.at).toEqual(new Vector3(4, 64, 4));
+        expect(session.opened[0]!.contents).toHaveLength(27);
+        expect(session.opened[0]!.contents[0]!.toItemStack().getName()).toBe('minecraft:stick');
+        expect(session.opened[0]!.contents[0]!.getCount()).toBe(5);
+        expect(session.opened[0]!.contents[1]!.toItemStack().getName()).toBe('minecraft:air');
+        expect(sounds).toContain('random.chestopen');
+    });
+
+    it('opens nothing for a block that has no screen', async () => {
+        place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:stone');
+
+        const player = playerHolding(world, 'minecraft:stick');
+        click(player, { x: 8, y: 64, z: 8 });
+        await Promise.resolve();
+
+        expect((player.getNetworkSession() as unknown as { opened: OpenedContainer[] }).opened).toHaveLength(0);
     });
 
     it('leaves the click to the legacy path when nothing in the content wants it', () => {
