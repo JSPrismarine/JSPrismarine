@@ -83,10 +83,14 @@ const defaultLore = (_definition: EnchantmentDefinition | undefined, id: string,
  * wrong whenever a server-side enchantment is involved and the server has to
  * send the result rather than let the client compute it.
  *
+ * @param registry - The definitions, which only the lore builder reads. Undefined is
+ *   allowed because a stack on the wire is projected wherever it is drawn, including on a
+ *   server that loaded no enchantment data; the lore builder then gets undefined for every
+ *   enchantment and names it from its id.
  * @param levels - Enchantment id to level, as the `minecraft:enchantments` component holds it.
  */
 export const projectToBedrock = (
-    registry: EnchantmentRegistry,
+    registry: EnchantmentRegistry | undefined,
     levels: ReadonlyMap<string, number>,
     mapper: EnchantmentIdentifierMapper,
     options: BedrockProjectionOptions = {}
@@ -99,7 +103,7 @@ export const projectToBedrock = (
             enchantment,
             level,
             bedrock,
-            lore: bedrock === undefined ? lore(registry.get(enchantment), enchantment, level) : undefined
+            lore: bedrock === undefined ? lore(registry?.get(enchantment), enchantment, level) : undefined
         };
     });
 
