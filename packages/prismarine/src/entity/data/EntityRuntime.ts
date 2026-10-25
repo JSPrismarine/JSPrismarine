@@ -29,7 +29,7 @@ import type {
 import { EntityInstance, isRecord, noEffects } from '@jsprismarine/entities';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
-import { Spawner } from '@jsprismarine/spawning';
+import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
 import type { ServerContent } from '../../content/ServerContent';
@@ -61,6 +61,17 @@ export interface EntityRuntimeOptions {
     readonly host: EntityHostFacts;
     /** Receives everything the runtime met and could not carry out. */
     report?(message: string): void;
+    /**
+     * Called once per entity, after its spawn event has run.
+     *
+     * This is how a server that has to show an entity to a client learns that
+     * one exists. The runtime's index is the behavior; the body a client is
+     * sent is the host's, and it is created here rather than by every caller
+     * of {@link EntityRuntime.spawn}.
+     */
+    onSpawn?(entity: DataEntity): void;
+    /** Called once per entity, after it has left the index. */
+    onRemove?(entity: DataEntity, reason: string): void;
 }
 
 /** The live entities of one dimension, and the AI that drives them. */
@@ -92,9 +103,13 @@ export class EntityRuntime implements EntityScene {
     private readonly unindexedPoi = new Set<string>();
     private readonly lookupContent: () => ServerContent;
     private readonly onReport: (message: string) => void;
+    private readonly onSpawn: (entity: DataEntity) => void;
+    private readonly onRemove: (entity: DataEntity, reason: string) => void;
     private facts: EntityFactsLookup | undefined;
     private factsGeneration = -1;
     private spawner: Spawner | undefined;
+    /** The world the spawn rules read, kept because the despawn pass reads the same one. */
+    private spawnWorld: SpawnWorld | undefined;
     private nextId = 1;
 
     public constructor(options: EntityRuntimeOptions) {
@@ -102,6 +117,8 @@ export class EntityRuntime implements EntityScene {
         this.world = options.world;
         this.host = options.host;
         this.onReport = options.report ?? (() => undefined);
+        this.onSpawn = options.onSpawn ?? (() => undefined);
+        this.onRemove = options.onRemove ?? (() => undefined);
     }
 
     /** The built content. */
@@ -203,6 +220,9 @@ export class EntityRuntime implements EntityScene {
         }
 
         instance.spawn(options.cause ?? 'spawned', options.event);
+        // After the spawn event, so the body a client is sent already carries whatever the
+        // event added: a baby is born a baby rather than growing into one on the next tick.
+        this.onSpawn(entity);
         return entity;
     }
 
@@ -216,6 +236,7 @@ export class EntityRuntime implements EntityScene {
         this.pools.delete(id);
         this.merchants.delete(id);
         this.rides.remove(id);
+        this.onRemove(entity, reason);
     }
 
     /**
@@ -235,6 +256,7 @@ export class EntityRuntime implements EntityScene {
             this.carryRiders(entity);
         }
         this.runSpawnCycle(tick);
+        this.runDespawnCycle();
     }
 
     /**
@@ -246,6 +268,7 @@ export class EntityRuntime implements EntityScene {
      * rules to read a different world.
      */
     public startSpawning(world: SpawnWorld): void {
+        this.spawnWorld = world;
         this.spawner = new Spawner({
             rules: this.content().spawnRules,
             world,
@@ -263,6 +286,26 @@ export class EntityRuntime implements EntityScene {
         for (const request of requests)
             this.spawn(request.identifier, request.position, { event: request.spawnEvent, pool: request.pool });
         return requests;
+    }
+
+    /**
+     * Takes out every entity the population rules say should not be there.
+     *
+     * Only entities a spawn rule produced, which is what the pool record
+     * distinguishes: an animal a player bred and a villager that belongs to a
+     * village are nobody's to cull, and vanilla keeps them for the same
+     * reason. The two rules are `@jsprismarine/spawning`'s, so the Y floor and
+     * the simulation edge are one number each rather than one per caller.
+     */
+    private runDespawnCycle(): void {
+        const world = this.spawnWorld;
+        if (world === undefined) return;
+
+        for (const entity of this.all()) {
+            if (!this.pools.has(entity.id)) continue;
+            const reason = despawnReason({ position: blockPositionOf(entity.position) }, world);
+            if (reason !== undefined) this.remove(entity.id, reason);
+        }
     }
 
     /** Runs one brain mob's activity update and then its brain. */
@@ -383,12 +426,29 @@ export class EntityRuntime implements EntityScene {
         return found.sort((a, b) => distance(center, a.position) - distance(center, b.position));
     }
 
-    /** Deals one entity's melee damage to another. */
+    /**
+     * Deals one entity's melee damage to another.
+     *
+     * A target this index does not hold is a player, and a player's health is
+     * the server's rather than the runtime's, so the blow goes out through
+     * {@link EntityHostFacts.hurt}. A host that supplies no route for it is
+     * told once per swing rather than letting the mob connect with nothing.
+     */
     public attack(attacker: MobBody, target: GoalMob): void {
-        const other = typeof target.id === 'number' ? this.entities.get(target.id) : undefined;
-        if (other === undefined) return;
+        if (typeof target.id !== 'number') return;
+        const damage = attacker.facts.attackDamage;
 
-        this.hurt(other, attacker.id, 'entity_attack', attacker.facts.attackDamage);
+        const other = this.entities.get(target.id);
+        if (other !== undefined) {
+            this.hurt(other, attacker.id, 'entity_attack', damage);
+            return;
+        }
+
+        if (this.host.hurt === undefined) {
+            this.report(`${attacker.identifier} hit entity ${target.id}, which nothing routes damage to`);
+            return;
+        }
+        this.host.hurt(target.id, damage, 'entity_attack', attacker.id);
     }
 
     /**

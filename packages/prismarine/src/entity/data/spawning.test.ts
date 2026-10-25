@@ -47,6 +47,34 @@ describe('spawn rules', () => {
     });
 });
 
+describe('the despawn pass', () => {
+    it('takes out a spawned mob that nobody is near any more', () => {
+        const fixture = populated();
+        const spawnWorld = contentWorldViews(singleDimension(fixture.adapter), () => fixture.content).spawnWorld;
+        fixture.runtime.startSpawning(spawnWorld);
+
+        // Well past the eight chunks `despawnRadiusChunks` allows, and in the pool a spawn
+        // rule would have put it in.
+        const far = { x: 4000, y: FLOOR_Y + 1, z: 0 };
+        const cow = fixture.runtime.spawn('minecraft:cow', far, { pool: 'animal' });
+        fixture.runtime.tick(1);
+
+        expect(fixture.runtime.byId(cow!.id)).toBeUndefined();
+        expect(fixture.removed.at(-1)).toEqual({ entity: cow, reason: 'simulation_edge' });
+    });
+
+    it('keeps a mob no spawn rule produced, however far away it is', () => {
+        const fixture = populated();
+        const spawnWorld = contentWorldViews(singleDimension(fixture.adapter), () => fixture.content).spawnWorld;
+        fixture.runtime.startSpawning(spawnWorld);
+
+        const bred = fixture.runtime.spawn('minecraft:cow', { x: 4000, y: FLOOR_Y + 1, z: 0 }, { cause: 'born' });
+        fixture.runtime.tick(1);
+
+        expect(fixture.runtime.byId(bred!.id)).toBe(bred);
+    });
+});
+
 describe('trading', () => {
     it('builds a villager’s offers out of the table its component names', () => {
         const fixture = entityFixture();
