@@ -82,15 +82,17 @@ world reproduces every one of them exactly.
 ## Pinned upstream sources
 
 `sources.json` pins the upstream publications the data pipeline reads: the Bedrock Dedicated
-Server zip, Mojang/bedrock-samples, the Java Edition server jar and GeyserMC/mappings, each with
-a version, URL and hash, plus the CloudburstMC/Data submodule commit as a cross-reference.
+Server zip, Mojang/bedrock-samples, the Java Edition server jar, SpyglassMC/vanilla-mcdoc and
+GeyserMC/mappings, each with a version, URL and hash, plus the CloudburstMC/Data submodule commit
+as a cross-reference.
 
 `pnpm run fetch:sources` downloads each source into
 `node_modules/.cache/jsprismarine/<source>/<version>/`, verifies its hash before unpacking, and
 skips sources whose verified content is already cached. It then writes `pack-hashes.json`, a
 sha256 per top-level folder of each source, so a version bump shows which folders changed. For
-offline work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and
-`JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the download.
+offline work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,
+`JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the
+download.
 
 ## Running the Java data generator
 
