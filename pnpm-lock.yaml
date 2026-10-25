@@ -1257,6 +1257,9 @@ importers:
       '@jsprismarine/math':
         specifier: workspace:*
         version: link:../math
+      '@jsprismarine/mcfunction':
+        specifier: workspace:*
+        version: link:../mcfunction
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft

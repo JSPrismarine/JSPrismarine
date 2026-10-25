@@ -101,6 +101,35 @@ const smeltingIndex = (
     return index;
 };
 
+/**
+ * The smelting index of one content options object, built on first use and
+ * kept.
+ *
+ * Every roll builds a content view of its own, because the view has to close
+ * over the context it is attached to. The index does not: it is derived from
+ * the recipes and the tag expander alone, and indexing a datapack's whole
+ * recipe folder costs far more than the roll that might consult it. Caching it
+ * against the options object makes the first roll pay for it and the rest read
+ * it, the way Java's recipe manager indexes once per reload.
+ *
+ * A host that reloads its recipes hands over the new ones in a new options
+ * object, which is what loading a pack stack produces.
+ */
+const smeltingIndexes = new WeakMap<LootContentOptions, ReadonlyMap<string, SmeltingResult>>();
+
+/** The smelting index for one content view, or undefined when the host registered no recipes. */
+const smeltingIndexOf = (options: LootContentOptions): ReadonlyMap<string, SmeltingResult> | undefined => {
+    const recipes = options.recipes;
+    if (recipes === undefined) return undefined;
+
+    const cached = smeltingIndexes.get(options);
+    if (cached !== undefined) return cached;
+
+    const index = smeltingIndex(recipes, options.itemTag);
+    smeltingIndexes.set(options, index);
+    return index;
+};
+
 /** The default profile read: whatever `minecraft:profile` the entity already carries. */
 const profileComponent = (entity: unknown): unknown => {
     if (!isJsonObject(entity)) return undefined;

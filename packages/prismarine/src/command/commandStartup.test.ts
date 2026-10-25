@@ -214,4 +214,112 @@ describe('the command layer on a booted server', () => {
 
         expect(answers.some((line) => line.includes('JSPrismarine'))).toBe(true);
     });
+
+    describe('the mcfunction runtime, over a datapack on disk', () => {
+        /**
+         * Loaded through `@jsprismarine/packs` and handed to the command
+         * manager, rather than through a whole content build: the functions
+         * are the only half of a pack stack this exercises, and swapping the
+         * server's content would also swap the block tables the rest of this
+         * file writes through.
+         */
+        beforeAll(() => {
+            const pack = path.join(root, 'datapack');
+            const files: Record<string, string> = {
+                'pack.mcmeta': JSON.stringify({ pack: { description: 'fixture', min_format: 121, max_format: 121 } }),
+                'data/fixture/function/build.mcfunction': [
+                    '# Two blocks, one function.',
+                    'setblock 10 70 10 minecraft:stone',
+                    'setblock 10 71 10 minecraft:cobblestone',
+                    ''
+                ].join('\n'),
+                'data/fixture/function/place.mcfunction': '$setblock $(x) $(y) $(z) minecraft:gold_block\n',
+                'data/fixture/function/under.mcfunction': 'setblock ~ ~-1 ~ minecraft:diamond_block\n',
+                'data/fixture/function/call.mcfunction': 'function fixture:build\n',
+                'data/fixture/function/ticked.mcfunction': 'setblock 11 70 11 minecraft:emerald_block\n',
+                'data/fixture/tags/function/both.json': JSON.stringify({
+                    values: ['fixture:build', 'fixture:place']
+                }),
+                'data/minecraft/tags/function/tick.json': JSON.stringify({ values: ['fixture:ticked'] })
+            };
+            for (const [relative, text] of Object.entries(files)) {
+                const absolute = path.join(pack, ...relative.split('/'));
+                mkdirSync(path.dirname(absolute), { recursive: true });
+                writeFileSync(absolute, text);
+            }
+
+            const { definitions } = load([{ kind: 'datapack', path: pack }]);
+            server.getCommandManager().setFunctionContent({
+                functions: definitions.functions,
+                tags: buildContentTags(definitions.tags)
+            });
+        });
+
+        it('runs a function and changes the world', async () => {
+            await expect(run('/function fixture:build')).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(10, 70, 10)?.name).toBe('minecraft:stone');
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
+        });
+
+        it('substitutes a macro from the compound on the command line', async () => {
+            await expect(run('/function fixture:place {x:12,y:70,z:12}')).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(12, 70, 12)?.name).toBe('minecraft:gold_block');
+        });
+
+        it('runs a function from inside another one', async () => {
+            await run('/setblock 10 70 10 minecraft:air');
+
+            await expect(run('/function fixture:call')).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(10, 70, 10)?.name).toBe('minecraft:stone');
+        });
+
+        it('runs every member of a function tag', async () => {
+            await run('/setblock 10 71 10 minecraft:air');
+
+            // `fixture:place` is a macro with no arguments here, so it is
+            // skipped and `fixture:build` is what the tag actually runs.
+            await expect(run('/function #fixture:both')).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
+        });
+
+        it('runs a function once per entity under /execute as', async () => {
+            // Inside chunk (0, 0), which is the one chunk this test file asked
+            // for: a command writes through the loaded-chunk path and never
+            // generates terrain by naming a position.
+            await run('/summon minecraft:pig 13 70 13');
+            await run('/summon minecraft:pig 15 70 15');
+
+            await expect(run('/execute as @e[type=pig] at @s run function fixture:under')).resolves.toBe(true);
+
+            expect(world.loadedBlockAt(13, 69, 13)?.name).toBe('minecraft:diamond_block');
+            expect(world.loadedBlockAt(15, 69, 15)?.name).toBe('minecraft:diamond_block');
+        });
+
+        it('reports a function nobody declared instead of accepting the line', async () => {
+            await expect(run('/function fixture:nothing')).resolves.toBe(false);
+        });
+
+        it('runs #minecraft:tick once a tick', async () => {
+            expect(world.loadedBlockAt(11, 70, 11)?.name).not.toBe('minecraft:emerald_block');
+
+            await server.getCommandManager().tickFunctions();
+
+            expect(world.loadedBlockAt(11, 70, 11)?.name).toBe('minecraft:emerald_block');
+        });
+
+        it('runs what /schedule queued on the tick it comes due', async () => {
+            await run('/setblock 10 71 10 minecraft:air');
+            await expect(run('/schedule function fixture:build 2')).resolves.toBe(true);
+
+            await server.getCommandManager().tickFunctions();
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:air');
+
+            await server.getCommandManager().tickFunctions();
+            expect(world.loadedBlockAt(10, 71, 10)?.name).toBe('minecraft:cobblestone');
+        });
+    });
 });
