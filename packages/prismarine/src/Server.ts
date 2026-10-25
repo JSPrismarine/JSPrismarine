@@ -36,6 +36,45 @@ import type { Config } from './config/Config';
 import type { Logger } from '@jsprismarine/logger';
 import pkg from '../package.json' with { type: 'json' };
 
+type LateTickProfile = {
+    elapsedMs: number;
+    tickHandlersMs: number;
+    worldUpdatesMs: number;
+    chunkSchedulerMs: number;
+    timerDelayMs: number;
+    slowestWorldName: string | null;
+    slowestWorldMs: number;
+};
+
+const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
+    const totals = profiles.reduce(
+        (summary, profile) => ({
+            elapsedMs: summary.elapsedMs + profile.elapsedMs,
+            tickHandlersMs: summary.tickHandlersMs + profile.tickHandlersMs,
+            worldUpdatesMs: summary.worldUpdatesMs + profile.worldUpdatesMs,
+            chunkSchedulerMs: summary.chunkSchedulerMs + profile.chunkSchedulerMs,
+            timerDelayMs: summary.timerDelayMs + profile.timerDelayMs,
+            otherMs:
+                summary.otherMs +
+                Math.max(
+                    0,
+                    profile.elapsedMs - profile.tickHandlersMs - profile.worldUpdatesMs - profile.chunkSchedulerMs
+                )
+        }),
+        { elapsedMs: 0, tickHandlersMs: 0, worldUpdatesMs: 0, chunkSchedulerMs: 0, timerDelayMs: 0, otherMs: 0 }
+    );
+    const average = (duration: number) => `${(duration / profiles.length).toFixed(0)} ms`;
+    const slowestWorld = profiles.reduce<LateTickProfile | undefined>(
+        (slowest, profile) => (!slowest || profile.slowestWorldMs > slowest.slowestWorldMs ? profile : slowest),
+        undefined
+    );
+    const slowestWorldDetail = slowestWorld?.slowestWorldName
+        ? `; slowest world update ${slowestWorld.slowestWorldName} (${slowestWorld.slowestWorldMs.toFixed(0)} ms)`
+        : '';
+
+    return `Lag profile over ${profiles.length} late tick(s): avg work ${average(totals.elapsedMs)}/tick (tick handlers ${average(totals.tickHandlersMs)}, world updates ${average(totals.worldUpdatesMs)}, chunk scheduler ${average(totals.chunkSchedulerMs)}, other ${average(totals.otherMs)}); timer callback delays ${totals.timerDelayMs.toFixed(0)} ms total${slowestWorldDetail}`;
+};
+
 /**
  * JSPrismarine's main server class.
  * @public
@@ -403,11 +442,21 @@ export default class Server extends EventEmitter {
             // actually holding 50ms. Everything leaving the tick in a batch - entity
             // movement, chunk sends - went out in pairs separated by silence.
             let epoch = now();
+            let nextTickExpectedStartAt = epoch;
 
             // Completion times of the ticks within the last second, oldest first.
             const recentTicks: number[] = [];
+            const lateTickProfiles: LateTickProfile[] = [];
+            const maxProfileCount = Math.ceil(Server.MAX_CATCH_UP_MS / Server.MINECRAFT_TICK_TIME_MS);
             const tick = async () => {
                 if (this.stopping) return;
+                const tickStartedAt = now();
+                const timerDelayMs = Math.max(0, tickStartedAt - nextTickExpectedStartAt);
+                let tickHandlersMs = 0;
+                let worldUpdatesMs = 0;
+                let chunkSchedulerMs = 0;
+                let slowestWorldName: string | null = null;
+                let slowestWorldMs = 0;
 
                 // The next tick is scheduled from `finally`, and everything that can throw is
                 // inside the `try`, because the timer for the next tick is installed only
@@ -423,16 +472,44 @@ export default class Server extends EventEmitter {
                     // other piece of tick work. Discarding the promise let its continuation
                     // land in the middle of some later tick, and its rejection could not
                     // reach the catch below - it surfaced as an unhandled rejection instead.
-                    await this.emit('tick', event);
+                    let phaseStartedAt = now();
+                    try {
+                        await this.emit('tick', event);
+                    } finally {
+                        tickHandlersMs = now() - phaseStartedAt;
+                    }
 
                     const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
 
                     // Update all worlds.
-                    await Promise.all(this.worldManager.getWorlds().map((world) => world.update(event.getTick())));
+                    phaseStartedAt = now();
+                    try {
+                        await Promise.all(
+                            this.worldManager.getWorlds().map(async (world) => {
+                                const worldStartedAt = now();
+                                try {
+                                    await world.update(event.getTick());
+                                } finally {
+                                    const elapsedMs = now() - worldStartedAt;
+                                    if (elapsedMs > slowestWorldMs) {
+                                        slowestWorldMs = elapsedMs;
+                                        slowestWorldName = world.getName();
+                                    }
+                                }
+                            })
+                        );
+                    } finally {
+                        worldUpdatesMs = now() - phaseStartedAt;
+                    }
 
                     // Whatever fits in this tick's slice; the rest waits for the next one.
-                    this.chunkScheduler.setBudget(this.config.getChunkSendBudgetMs());
-                    await this.chunkScheduler.tick();
+                    phaseStartedAt = now();
+                    try {
+                        this.chunkScheduler.setBudget(this.config.getChunkSendBudgetMs());
+                        await this.chunkScheduler.tick();
+                    } finally {
+                        chunkSchedulerMs = now() - phaseStartedAt;
+                    }
 
                     if (
                         this.config.getEnableProcessTitle() &&
@@ -447,6 +524,7 @@ export default class Server extends EventEmitter {
                 } finally {
                     this.currentTick++;
                     const endTime = now();
+                    const elapsedMs = endTime - tickStartedAt;
 
                     // TPS over a sliding window of the last second. The window used to be
                     // rebased whenever it crossed a second, which left the next reading
@@ -467,6 +545,20 @@ export default class Server extends EventEmitter {
 
                     // One correction, against one deadline.
                     let sleepTime = epoch + this.getTick() * Server.MINECRAFT_TICK_TIME_MS - endTime;
+                    if (sleepTime <= 0) {
+                        lateTickProfiles.push({
+                            elapsedMs,
+                            tickHandlersMs,
+                            worldUpdatesMs,
+                            chunkSchedulerMs,
+                            timerDelayMs,
+                            slowestWorldName,
+                            slowestWorldMs
+                        });
+                        if (lateTickProfiles.length > maxProfileCount) lateTickProfiles.shift();
+                    } else {
+                        lateTickProfiles.length = 0;
+                    }
 
                     if (-sleepTime > Server.MAX_CATCH_UP_MS) {
                         // Too far behind to make up. Move the origin forward by the debt so
@@ -479,12 +571,15 @@ export default class Server extends EventEmitter {
                             `Can't keep up! Skipping ${(behindBy / Server.MINECRAFT_TICK_TIME_MS).toFixed(0)} ticks (${behindBy.toFixed(0)} ms behind)`,
                             'Server/tick'
                         );
+                        this.logger.verbose(summarizeLateTicks(lateTickProfiles), 'Server/tick');
                     }
 
                     // Not while shutting down: `shutdown` clears the timer, and a tick still
                     // in flight at that moment would otherwise install a fresh one behind it.
                     if (!this.stopping) {
-                        this.tickerTimer = setTimeout(tick, Math.max(0, sleepTime));
+                        const delay = Math.max(0, sleepTime);
+                        nextTickExpectedStartAt = endTime + delay;
+                        this.tickerTimer = setTimeout(tick, delay);
                         this.tickerTimer.unref();
                     }
                 }
