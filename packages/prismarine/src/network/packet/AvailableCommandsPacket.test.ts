@@ -12,6 +12,7 @@ import { stub } from '../../testing/stub.test.helper';
 import type ClientConnection from '../ClientConnection';
 import { NetworkUtil } from '../NetworkUtil';
 import PlayerSession from '../PlayerSession';
+import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
 import CommandData from '../type/CommandData';
 import { CommandEnum } from '../type/CommandEnum';
 import CommandParameter, { CommandParameterType } from '../type/CommandParameter';
@@ -127,6 +128,13 @@ const makeEnum = (name: string, values: string[], soft = false): CommandEnum => 
     result.name = name;
     result.values = values;
     result.soft = soft;
+    return result;
+};
+
+const makeChainedSubcommand = (name: string, values: string[]): CommandChainedSubcommand => {
+    const result = new CommandChainedSubcommand();
+    result.name = name;
+    result.values = values;
     return result;
 };
 
@@ -317,6 +325,74 @@ describe('AvailableCommandsPacket', () => {
             0,
             0
         ]);
+    });
+
+    it('writes the chained subcommand tables a /execute overload chain needs', () => {
+        // Mojang's own `/execute`: every subcommand keyword is a one-value hard enum, the
+        // tail of a chaining overload is the `EXECUTECHAINEDOPTION_0` table, and the tail is
+        // optional exactly on the `if`/`unless` overloads, which run on their own.
+        const chained = makeChainedSubcommand('EXECUTECHAINEDOPTION_0', ['as', 'if', 'unless', 'run']);
+
+        const command = new CommandData();
+        command.commandName = 'execute';
+        command.commandDescription = 'Executes a command.';
+        command.permission = 1;
+        command.chainedSubcommands = [chained];
+        command.overloads = [
+            [
+                new CommandParameter({ paramName: 'as', enum: makeEnum('OPTION_AS', ['as']) }),
+                new CommandParameter({ paramName: 'origin', paramType: CommandParameterType.Target }),
+                new CommandParameter({ paramName: 'chainedCommand', chainedSubcommand: chained })
+            ],
+            [
+                new CommandParameter({ paramName: 'ifUnless', enum: makeEnum('OPTION_IF_UNLESS', ['if', 'unless']) }),
+                new CommandParameter({ paramName: 'entity', enum: makeEnum('OPTION_ENTITY', ['entity']) }),
+                new CommandParameter({ paramName: 'target', paramType: CommandParameterType.Target }),
+                new CommandParameter({ paramName: 'chainedCommand', chainedSubcommand: chained, isOptional: true })
+            ],
+            [
+                new CommandParameter({ paramName: 'run', enum: makeEnum('OPTION_RUN', ['run']) }),
+                new CommandParameter({ paramName: 'command', paramType: CommandParameterType.CodeBuilderArgs })
+            ]
+        ];
+
+        const packet = new AvailableCommandsPacket();
+        packet.commandData = [command];
+
+        const decoded = readBack(encode(packet));
+
+        expect(decoded.chainedSubcommandValues).toEqual(['as', 'if', 'unless', 'run']);
+        // Mojang's schema names the pair `first` and `second` and defines neither. The only
+        // datum the table has per entry is the keyword, so its index goes in both.
+        expect(decoded.chainedSubcommands).toEqual([
+            {
+                name: 'EXECUTECHAINEDOPTION_0',
+                values: [
+                    { index: 0, value: 0 },
+                    { index: 1, value: 1 },
+                    { index: 2, value: 2 },
+                    { index: 3, value: 3 }
+                ]
+            }
+        ]);
+
+        const [written] = decoded.commands;
+        expect(written?.chainedSubcommandOffsets).toEqual([0]);
+        expect(written?.overloads.map(({ chaining }) => chaining)).toEqual([true, true, false]);
+        // A chained parameter indexes `Chained Subcommand Data`, not `Enum Data`, with the
+        // same enum flags. `EnumAsChainedCommand` is the bit that tells the two apart.
+        expect(written?.overloads[0]?.parameters[2]).toEqual({
+            name: 'chainedCommand',
+            type: ENUM | VALID | 0,
+            optional: false,
+            options: 4
+        });
+        expect(written?.overloads[1]?.parameters[3]).toEqual({
+            name: 'chainedCommand',
+            type: ENUM | VALID | 0,
+            optional: true,
+            options: 4
+        });
     });
 
     it("sends the server's default command set in a form a 2193 reader decodes to the end", async () => {
