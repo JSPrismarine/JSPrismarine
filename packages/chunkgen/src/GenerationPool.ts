@@ -25,6 +25,23 @@ import Piscina from 'piscina';
 
 import type { ChunkStatus } from './ChunkStatus';
 
+/**
+ * How badly a caller wants a chunk, highest first.
+ *
+ * The pool holds back everything it is not already running, so this is the order the backlog is
+ * drained in rather than a hint. Three bands rather than a number, because the three are the
+ * three questions a server actually asks:
+ *
+ * - `immediate`: somebody is waiting. A player stood on it, or a command has to answer.
+ * - `soon`: it is wanted inside the next few seconds. The chunks a player is walking towards.
+ * - `idle`: it would be nice to have. The outer rim of a large view distance, a preload running
+ *   behind a world that is already open.
+ */
+export const GENERATION_PRIORITIES = ['immediate', 'soon', 'idle'] as const;
+
+/** One of {@link GENERATION_PRIORITIES}. */
+export type GenerationPriority = (typeof GENERATION_PRIORITIES)[number];
+
 /** What a worker is asked to do: advance one chunk to one status. */
 export interface GenerationTask {
     /** The status the body being run produces. */
@@ -105,6 +122,20 @@ export interface GenerationPoolOptions {
     readonly workers: number;
     /** Handed to every worker's {@link WorkerPipelineFactory}. */
     readonly setup?: unknown;
+    /**
+     * How many tasks may be with the workers at once, which defaults to one more than there are
+     * workers.
+     *
+     * Everything above this waits in the pool's own queue, where {@link GenerationPriority}
+     * still orders it; everything below it has already been handed to piscina, which dispatches
+     * in arrival order and cannot be re-ordered afterwards. So this is the trade: at the worker
+     * count exactly, a worker that finishes waits a microtask for its next task, and at a large
+     * multiple the bands stop meaning anything because the whole backlog is already downstream.
+     *
+     * One spare is what keeps both: every worker has work, one task is staged behind them, and
+     * the worst a newly arrived `immediate` can wait is the one staged chunk.
+     */
+    readonly inFlight?: number;
 }
 
 /** Raised when a pool is asked for work after it has been shut down. */
@@ -113,6 +144,15 @@ export class GenerationPoolClosedError extends Error {
 
     public constructor(chunkX: number, chunkZ: number) {
         super(`The generation pool is closed, so the chunk at ${chunkX}, ${chunkZ} was not built.`);
+    }
+}
+
+/** Raised when a task is dropped from the backlog before a worker ever saw it. */
+export class GenerationCanceledError extends Error {
+    public override name = 'GenerationCanceledError';
+
+    public constructor(chunkX: number, chunkZ: number) {
+        super(`The chunk at ${chunkX}, ${chunkZ} was no longer wanted, so it was dropped from the queue.`);
     }
 }
 
@@ -125,6 +165,13 @@ interface TaskRunner {
 
 /** Builds the task runner. Separated so a test can drive the pool without starting threads. */
 export type TaskRunnerFactory = (options: GenerationPoolOptions) => TaskRunner;
+
+/** One task in the backlog, waiting for a worker to come free. */
+interface Waiting {
+    readonly task: GenerationTask;
+    readonly settle: (result: Promise<GenerationResult>) => void;
+    readonly drop: (error: Error) => void;
+}
 
 /**
  * This package's own worker entry, beside this file.
@@ -176,6 +223,15 @@ export class GenerationPool {
     private readonly runner: TaskRunner;
     private closed = false;
 
+    /** The backlog, one list per band, each in arrival order. */
+    private readonly waiting = new Map<GenerationPriority, Waiting[]>(GENERATION_PRIORITIES.map((band) => [band, []]));
+
+    /** How many tasks the workers are holding, which is what the backlog is released against. */
+    private running = 0;
+
+    /** How many tasks may be with the workers at once. */
+    private readonly capacity: number;
+
     /**
      * Why this process cannot run workers, or undefined when it can.
      *
@@ -218,6 +274,7 @@ export class GenerationPool {
         runner: TaskRunnerFactory = piscinaRunner
     ) {
         this.runner = runner(options);
+        this.capacity = Math.max(1, Math.trunc(options.inFlight ?? options.workers + 1));
     }
 
     /** How many workers are up. Zero once the pool has been shut down. */
@@ -225,19 +282,71 @@ export class GenerationPool {
         return this.runner.threads.length;
     }
 
+    /** How many tasks the workers are holding right now. */
+    public get inFlight(): number {
+        return this.running;
+    }
+
+    /** How many tasks are waiting for a worker, across every band. */
+    public get queued(): number {
+        let total = 0;
+        for (const band of this.waiting.values()) total += band.length;
+
+        return total;
+    }
+
     /**
      * Runs one status body in whichever worker is free.
      *
+     * A task above the in-flight limit waits here rather than downstream, so a request that
+     * arrives while the queue is long is still served in {@link GenerationPriority} order
+     * instead of behind everything that was asked for first.
+     *
      * @param task - The status, the position and whatever else the body reads.
+     * @param priority - Which band the task waits in. Defaults to `immediate`, so a caller that
+     * has not thought about it gets the behavior it would have had with no queue at all.
      * @returns What the body produced, with its buffers now owned by this thread.
-     * @throws GenerationPoolClosedError when the pool has been shut down.
+     * @throws GenerationPoolClosedError when the pool has been shut down, whether that was
+     * before the task was asked for or while it was waiting.
+     * @throws GenerationCanceledError when {@link GenerationPool.cancel} dropped it.
      * @throws Whatever the body threw, so a worker that fails rejects the request rather than
      * leaving it outstanding forever.
      */
-    public async run(task: GenerationTask): Promise<GenerationResult> {
+    public async run(task: GenerationTask, priority: GenerationPriority = 'immediate'): Promise<GenerationResult> {
         if (this.closed) throw new GenerationPoolClosedError(task.chunkX, task.chunkZ);
+        if (this.running < this.capacity) return this.dispatch(task);
 
-        return this.runner.run(task);
+        return new Promise<GenerationResult>((resolve, reject) => {
+            this.waiting.get(priority)!.push({ task, settle: (result) => resolve(result), drop: reject });
+        });
+    }
+
+    /**
+     * Drops every waiting task a predicate picks out, and reports how many went.
+     *
+     * Only the backlog: a task a worker already has cannot be taken back without terminating
+     * the worker, which costs more than letting the chunk finish. That is the right trade for
+     * what this is for - a player turning around leaves an `idle` rim nobody will ever look at,
+     * and the few already running are the cheapest part of it.
+     *
+     * @param wanted - Answers true for a task that should still be built.
+     * @returns How many tasks were dropped.
+     */
+    public cancel(wanted: (task: GenerationTask) => boolean): number {
+        let dropped = 0;
+        for (const [band, tasks] of this.waiting) {
+            const keep: Waiting[] = [];
+            for (const entry of tasks) {
+                if (wanted(entry.task)) keep.push(entry);
+                else {
+                    dropped++;
+                    entry.drop(new GenerationCanceledError(entry.task.chunkX, entry.task.chunkZ));
+                }
+            }
+            this.waiting.set(band, keep);
+        }
+
+        return dropped;
     }
 
     /**
@@ -245,11 +354,47 @@ export class GenerationPool {
      *
      * Worker threads do not receive signals, so terminating them is the only way to stop one
      * mid-chunk. Measured at 2 to 24 ms for a worker in a tight loop.
+     *
+     * Everything still in the backlog is refused first, so a shutdown does not leave a caller
+     * waiting on a turn that is never going to come.
      */
     public async destroy(): Promise<void> {
         if (this.closed) return;
 
         this.closed = true;
+        for (const [band, tasks] of this.waiting) {
+            for (const entry of tasks) entry.drop(new GenerationPoolClosedError(entry.task.chunkX, entry.task.chunkZ));
+            this.waiting.set(band, []);
+        }
         await this.runner.destroy();
+    }
+
+    /** Hands one task to the workers and releases the backlog behind it when it settles. */
+    private dispatch(task: GenerationTask): Promise<GenerationResult> {
+        this.running++;
+        const result = this.runner.run(task);
+        // `finally` on its own would make the caller wait for the release, and a rejection here
+        // is the caller's to see rather than this one's to handle.
+        void result.then(
+            () => this.release(),
+            () => this.release()
+        );
+
+        return result;
+    }
+
+    /** Lets the highest-priority waiting task through, now that a slot has come free. */
+    private release(): void {
+        this.running--;
+        if (this.closed) return;
+
+        for (const band of GENERATION_PRIORITIES) {
+            const tasks = this.waiting.get(band)!;
+            const next = tasks.shift();
+            if (next === undefined) continue;
+
+            next.settle(this.dispatch(next.task));
+            return;
+        }
     }
 }
