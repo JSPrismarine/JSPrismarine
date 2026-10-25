@@ -10,7 +10,9 @@ import type { EntityPosition } from '@jsprismarine/entities';
  * implement doors, sunlight and damage blocks later without the goals
  * breaking.
  *
- * Positions are whole-block coordinates. The path finder floors before it asks.
+ * Positions are whole-block coordinates. The path finder floors before it asks,
+ * and it hands the same position object to every call: a view reads the three
+ * numbers and answers, and must not keep the object or key a cache on it.
  */
 
 /** One door the path finder meets, as `can_pass_doors` and its siblings read it. */

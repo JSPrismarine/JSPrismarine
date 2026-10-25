@@ -232,4 +232,66 @@ describe('findPath', () => {
         expect(path?.reachedGoal).toBe(true);
         expect(steps(path).at(-1)).toBe('2,1,0');
     });
+
+    it('gives up on a goal nothing can stand in without expanding the budget', () => {
+        const { view, reads } = countingGrid(openFloor(48));
+
+        const path = findPath(view, navigationProfileOf({ height: 1 }), {
+            from: { x: 0, y: 1, z: 0 },
+            // Four blocks up, over an open floor, so the search would otherwise walk the
+            // whole floor before admitting the goal is unreachable.
+            to: { x: 40, y: 5, z: 40 }
+        });
+
+        expect(path).toBeUndefined();
+        expect(reads()).toBeLessThan(20);
+    });
+
+    it('still searches when the goal cell is blocked but the radius covers one that is not', () => {
+        const view = voxelGrid([['#####'], ['...##']]);
+
+        const path = findPath(view, navigationProfileOf({ height: 1 }), {
+            from: { x: 0, y: 1, z: 0 },
+            to: { x: 4, y: 1, z: 0 },
+            goalRadius: 2
+        });
+
+        expect(path?.reachedGoal).toBe(true);
+        expect(steps(path).at(-1)).toBe('2,1,0');
+    });
+
+    it('still answers a partial request over a goal nothing can stand in', () => {
+        const view = voxelGrid([['#####'], ['.....']]);
+
+        const path = findPath(view, navigationProfileOf({ height: 1 }), {
+            from: { x: 0, y: 1, z: 0 },
+            to: { x: 4, y: 4, z: 0 },
+            allowPartial: true
+        });
+
+        expect(path?.reachedGoal).toBe(false);
+        expect(steps(path).at(-1)).toBe('4,1,0');
+    });
 });
+
+/** A floor of stone with one layer of air over it, `size` blocks on a side. */
+const openFloor = (size: number): readonly (readonly string[])[] => [
+    Array.from({ length: size }, () => '#'.repeat(size)),
+    Array.from({ length: size }, () => '.'.repeat(size))
+];
+
+/** A {@link voxelGrid} that counts how many blocks the search read. */
+const countingGrid = (layers: readonly (readonly string[])[]) => {
+    const inner = voxelGrid(layers);
+    let count = 0;
+    const view = Object.fromEntries(
+        Object.entries(inner).map(([name, answer]) => [
+            name,
+            (position: EntityPosition) => {
+                count += 1;
+                return (answer as (at: EntityPosition) => unknown)(position);
+            }
+        ])
+    ) as unknown as ReturnType<typeof voxelGrid>;
+    return { view, reads: () => count };
+};
