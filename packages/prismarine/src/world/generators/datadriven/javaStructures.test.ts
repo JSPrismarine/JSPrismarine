@@ -30,6 +30,12 @@ const CHUNK_TIMEOUT = 900_000;
 
 const SEED = 1234;
 
+/**
+ * Java's random spread placement puts this seed's plains village here. The chunk is far from the
+ * origin because the seed's own neighborhood is ocean.
+ */
+const VILLAGE_CHUNK = { x: -166, z: -80 };
+
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', () => {
     let generator: DataDrivenGenerator;
     const chunks = new Map<string, Chunk>();
@@ -90,10 +96,6 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     };
 
     describe('a jigsaw structure', () => {
-        // Java's random spread placement puts this seed's plains village here. The chunk is far
-        // from the origin because the seed's own neighborhood is ocean.
-        const VILLAGE_CHUNK = { x: -166, z: -80 };
-
         it(
             'starts in the chunk the seeded placement chose',
             () => {
@@ -265,6 +267,66 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         },
         CHUNK_TIMEOUT
     );
+
+    describe('what a structure leaves in a chunk besides blocks', () => {
+        /** The block entities a chunk holds, by the id Bedrock files them under. */
+        const blockEntityIds = (chunk: Chunk): string[] => [...chunk.getBlockEntities()].map((entry) => entry.getId());
+
+        /** The `LootTable` tags the chunk's block entities carry, which is what the fill reads. */
+        const lootTables = (chunk: Chunk): string[] =>
+            [...chunk.getBlockEntities()]
+                .map((entry) => entry.toNBT().getString('LootTable', ''))
+                .filter((table) => table !== '');
+
+        it(
+            'gives a generated chest a container carrying its loot table',
+            async () => {
+                const chunk = await chunkAt(-12, 0);
+
+                expect(blockEntityIds(chunk)).toContain('Chest');
+                // Bedrock's own spelling of the table, which is what `fillContainerLoot` reads
+                // back through `javaLootIdOf` the first time a player opens the chest.
+                expect(lootTables(chunk)).toContain('loot_tables/chests/underwater_ruin_big.json');
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'gives a generated spawner the mob it spawns',
+            async () => {
+                const chunk = await chunkAt(16, 128);
+                const spawner = [...chunk.getBlockEntities()].find((entry) => entry.getId() === 'MobSpawner');
+
+                expect(spawner, 'the mineshaft placed no spawner').toBeDefined();
+                expect(spawner!.toNBT().getString('EntityIdentifier', '')).toBe('minecraft:cave_spider');
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'gives a trial chamber its vaults',
+            async () => {
+                const chunk = await chunkAt(3, -14);
+
+                expect(blockEntityIds(chunk)).toContain('Vault');
+                expect(lootTables(chunk)).toContain('loot_tables/chests/trial_chambers/reward_ominous.json');
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'stands a village up with the mobs its templates saved',
+            async () => {
+                const spawns = (await chunkAt(VILLAGE_CHUNK.x, VILLAGE_CHUNK.z)).getEntitySpawns();
+
+                expect(spawns.map((spawn) => spawn.type)).toContain('minecraft:villager_v2');
+                expect(spawns.map((spawn) => spawn.type)).toContain('minecraft:cat');
+                // A template saves a mob between blocks, and that is where it stands.
+                for (const spawn of spawns) expect(Number.isInteger(spawn.x) && Number.isInteger(spawn.z)).toBe(false);
+            },
+            CHUNK_TIMEOUT
+        );
+    });
 
     it(
         'names the structure types that still have no builder',
