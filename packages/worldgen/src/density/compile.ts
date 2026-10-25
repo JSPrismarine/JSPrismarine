@@ -1,12 +1,12 @@
 import { clamp, f32, floor, floorDiv, floorMod, lerp3F, lerpF } from '../math';
-import { createBlendedNoiseSampler, BLENDED_NOISE_SEED } from '../noise/BlendedNoise';
+import { BLENDED_NOISE_SEED, createBlendedNoiseSampler } from '../noise/BlendedNoise';
 import type { Noise } from '../noise/GradientNoise';
 import { SimplexNoise } from '../noise/SimplexNoise';
 import type { RandomSource } from '../random/RandomSource';
 import type { CompiledSpline } from './CubicSpline';
 import { compileMultipointSpline } from './CubicSpline';
 import type { DensityFunctionNode, DistanceMetric, SplineNode } from './DensityFunction';
-import type { InterpolationCorners, InterpolationGrid, SampleContext } from './SampleContext';
+import type { SampleContext } from './SampleContext';
 
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
@@ -62,32 +62,6 @@ const distance = (metric: DistanceMetric, dx: number, dy: number, dz: number): n
         case 'chebyshev':
             return Math.max(Math.max(Math.abs(dx), Math.abs(dy)), Math.abs(dz));
     }
-};
-
-/** Reads one interpolation cell corner, computing and recording it on first visit. */
-const cornerValue = (
-    grid: InterpolationGrid,
-    context: SampleContext,
-    input: DensitySampler,
-    x: number,
-    y: number,
-    z: number
-): number => {
-    let byY = grid.get(x);
-    if (!byY) {
-        byY = new Map();
-        grid.set(x, byY);
-    }
-    let byZ = byY.get(y);
-    if (!byZ) {
-        byZ = new Map();
-        byY.set(y, byZ);
-    }
-    const cached = byZ.get(z);
-    if (cached !== undefined) return cached;
-    const value = input(context, x, y, z);
-    byZ.set(z, value);
-    return value;
 };
 
 const END_ISLAND_THRESHOLD = -0.9;
@@ -334,48 +308,58 @@ export class DensityFunctionCompiler {
                 const input = this.compile(node.input);
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
+                // Positions are integers (Java samples at block positions), so a power-of-two
+                // cell size turns the floored modulus into a mask. Vanilla sizes are 4 to 16.
+                const maskXz = (cellSizeXz & (cellSizeXz - 1)) === 0 ? cellSizeXz - 1 : undefined;
+                const maskY = (cellSizeY & (cellSizeY - 1)) === 0 ? cellSizeY - 1 : undefined;
                 return (context, x, y, z) => {
-                    const xInCell = floorMod(x, cellSizeXz);
-                    const yInCell = floorMod(y, cellSizeY);
-                    const zInCell = floorMod(z, cellSizeXz);
+                    const xInCell = maskXz === undefined ? floorMod(x, cellSizeXz) : x & maskXz;
+                    const yInCell = maskY === undefined ? floorMod(y, cellSizeY) : y & maskY;
+                    const zInCell = maskXz === undefined ? floorMod(z, cellSizeXz) : z & maskXz;
                     const x0 = x - xInCell;
                     const y0 = y - yInCell;
                     const z0 = z - zInCell;
+                    // The corner cache indexes the lattice, so it wants cell indices. They are
+                    // exact: x0 is x floored to a multiple of the cell size.
+                    const cellX = x0 / cellSizeXz;
+                    const cellY = y0 / cellSizeY;
+                    const cellZ = z0 / cellSizeXz;
                     if (xInCell === 0 && yInCell === 0 && zInCell === 0) {
-                        return cornerValue(context.interpolationGrid(id), context, input, x0, y0, z0);
+                        return context.cornerCache(id).getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
                     }
 
-                    const x1 = x0 + cellSizeXz;
-                    const y1 = y0 + cellSizeY;
-                    const z1 = z0 + cellSizeXz;
-                    let corners = context.currentInterpolationCell(id, x0, y0, z0);
+                    let corners = context.interpolationCorners(id, x0, y0, z0);
                     if (corners === undefined) {
-                        const grid = context.interpolationGrid(id);
-                        corners = [
-                            cornerValue(grid, context, input, x0, y0, z0),
-                            cornerValue(grid, context, input, x1, y0, z0),
-                            cornerValue(grid, context, input, x0, y1, z0),
-                            cornerValue(grid, context, input, x1, y1, z0),
-                            cornerValue(grid, context, input, x0, y0, z1),
-                            cornerValue(grid, context, input, x1, y0, z1),
-                            cornerValue(grid, context, input, x0, y1, z1),
-                            cornerValue(grid, context, input, x1, y1, z1)
-                        ] satisfies InterpolationCorners;
-                        context.rememberInterpolationCell(id, x0, y0, z0, corners);
+                        corners = context.beginInterpolationCell(id, x0, y0, z0);
+                        const cache = context.cornerCache(id);
+                        const x1 = x0 + cellSizeXz;
+                        const y1 = y0 + cellSizeY;
+                        const z1 = z0 + cellSizeXz;
+                        const cellX1 = cellX + 1;
+                        const cellY1 = cellY + 1;
+                        const cellZ1 = cellZ + 1;
+                        corners[0] = cache.getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
+                        corners[1] = cache.getOrCompute(context, input, cellX1, cellY, cellZ, x1, y0, z0);
+                        corners[2] = cache.getOrCompute(context, input, cellX, cellY1, cellZ, x0, y1, z0);
+                        corners[3] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ, x1, y1, z0);
+                        corners[4] = cache.getOrCompute(context, input, cellX, cellY, cellZ1, x0, y0, z1);
+                        corners[5] = cache.getOrCompute(context, input, cellX1, cellY, cellZ1, x1, y0, z1);
+                        corners[6] = cache.getOrCompute(context, input, cellX, cellY1, cellZ1, x0, y1, z1);
+                        corners[7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
                     }
 
                     return lerp3F(
                         f32(xInCell / cellSizeXz),
                         f32(yInCell / cellSizeY),
                         f32(zInCell / cellSizeXz),
-                        corners[0]!,
-                        corners[1]!,
-                        corners[2]!,
-                        corners[3]!,
-                        corners[4]!,
-                        corners[5]!,
-                        corners[6]!,
-                        corners[7]!
+                        corners[0] ?? 0,
+                        corners[1] ?? 0,
+                        corners[2] ?? 0,
+                        corners[3] ?? 0,
+                        corners[4] ?? 0,
+                        corners[5] ?? 0,
+                        corners[6] ?? 0,
+                        corners[7] ?? 0
                     );
                 };
             }
@@ -551,28 +535,39 @@ export class DensityFunctionCompiler {
         const factor = f32(f32(f32(node.toValue) - f32(node.fromValue)) / range);
         const fromValue = f32(node.fromValue);
         const fromCoordinate = node.fromCoordinate;
-        const axis = node.axis;
-        const pick = (x: number, y: number, z: number): number => (axis === 'x' ? x : axis === 'y' ? y : z);
 
+        let sample: (coordinate: number) => number;
         switch (node.tiling) {
             case 'clamp_to_edge': {
                 const min = Math.min(node.fromCoordinate, node.toCoordinate);
                 const max = Math.max(node.fromCoordinate, node.toCoordinate);
-                return (_context, x, y, z) =>
-                    f32(fromValue + f32((clamp(pick(x, y, z), min, max) - fromCoordinate) * factor));
+                sample = (coordinate) => f32(fromValue + f32((clamp(coordinate, min, max) - fromCoordinate) * factor));
+                break;
             }
             case 'repeat':
-                return (_context, x, y, z) =>
-                    f32(fromValue + f32(floorMod(pick(x, y, z) - fromCoordinate, range) * factor));
+                sample = (coordinate) => f32(fromValue + f32(floorMod(coordinate - fromCoordinate, range) * factor));
+                break;
             case 'mirrored_repeat':
-                return (_context, x, y, z) => {
-                    const relative = pick(x, y, z) - fromCoordinate;
+                sample = (coordinate) => {
+                    const relative = coordinate - fromCoordinate;
                     const tile = floorDiv(relative, range);
                     const local = relative - tile * range;
                     return (tile & 1) === 0
                         ? f32(fromValue + f32(local * factor))
                         : f32(fromValue + f32((range - local) * factor));
                 };
+                break;
+        }
+
+        // One closure per axis keeps the per-sample path free of axis comparisons; the depth
+        // slot reaches a y gradient on every block of a chunk.
+        switch (node.axis) {
+            case 'x':
+                return (_context, x) => sample(x);
+            case 'y':
+                return (_context, _x, y) => sample(y);
+            case 'z':
+                return (_context, _x, _y, z) => sample(z);
         }
     }
 

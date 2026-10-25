@@ -8,17 +8,29 @@ class CacheCell {
     public value = 0;
 }
 
-/** The number of slots a {@link CornerCache} holds; a chunk's corner lattice is ~1200 points. */
-const CORNER_CACHE_SLOTS = 4096;
+/** How many cells of the corner lattice a {@link CornerCache} indexes across x and across z. */
+const CORNER_CACHE_CELLS_XZ = 16;
+
+/** How many cells of the corner lattice a {@link CornerCache} indexes up the y axis. */
+const CORNER_CACHE_CELLS_Y = 64;
+
+/** The number of slots a {@link CornerCache} holds. */
+const CORNER_CACHE_SLOTS = CORNER_CACHE_CELLS_XZ * CORNER_CACHE_CELLS_XZ * CORNER_CACHE_CELLS_Y;
 
 /**
  * The cell-corner values an `interpolated` function has already computed.
  *
- * This is a direct-mapped cache: a corner hashes to one slot, and a colliding corner evicts
- * the previous occupant. Eviction only costs a recomputation, never correctness, because the
- * stored coordinates are compared exactly before a value is reused and a density function tree
- * is deterministic for one context. Java fills a whole cell grid up front; this covers the
- * same chunk-sized working set without the per-corner map traffic the grid had.
+ * Corners sit on a regular lattice, so the slot is the cell index masked per axis rather than a
+ * hash of the position. A chunk's lattice is 5 by 5 cells across and 48 up, which lands inside
+ * one window of the 16 by 16 by 64 the masks carve out, so no two corners a chunk is working on
+ * can collide. A hashed index collided often enough to compute a chunk's 1225 corners 6139
+ * times, and a corner is the most expensive thing the density stack does.
+ *
+ * The cache is still direct-mapped, so a position outside that window evicts rather than grows,
+ * and the stored cell indices are compared exactly before a value is reused. Eviction costs a
+ * recomputation, never an answer, because a density function tree is deterministic for one
+ * context. Java fills a whole cell grid up front; this covers the same working set without
+ * having to visit the chunk in Java's cell order.
  */
 export class CornerCache {
     private readonly keyX = new Int32Array(CORNER_CACHE_SLOTS);
@@ -27,19 +39,39 @@ export class CornerCache {
     private readonly filled = new Uint8Array(CORNER_CACHE_SLOTS);
     private readonly values = new Float64Array(CORNER_CACHE_SLOTS);
 
-    /** Returns the corner value, computing it through `input` when the slot does not hold it. */
-    public getOrCompute(context: SampleContext, input: DensitySampler, x: number, y: number, z: number): number {
-        // Three 32-bit multiplicative hashes, folded; the constants are odd and well-mixed.
+    /**
+     * Returns the corner value, computing it through `input` when the slot does not hold it.
+     *
+     * @param cellX - The corner's lattice index across x, which is `x / cellSizeXz`. The caller
+     *   already has it, and passing it keeps the division out of this path.
+     */
+    public getOrCompute(
+        context: SampleContext,
+        input: DensitySampler,
+        cellX: number,
+        cellY: number,
+        cellZ: number,
+        x: number,
+        y: number,
+        z: number
+    ): number {
         const slot =
-            (Math.imul(x, -1640531527) ^ Math.imul(y, -2048144789) ^ Math.imul(z, -1028477379)) &
-            (CORNER_CACHE_SLOTS - 1);
-        if (this.filled[slot] === 1 && this.keyX[slot] === x && this.keyY[slot] === y && this.keyZ[slot] === z) {
+            (cellX & (CORNER_CACHE_CELLS_XZ - 1)) |
+            ((cellZ & (CORNER_CACHE_CELLS_XZ - 1)) << 4) |
+            ((cellY & (CORNER_CACHE_CELLS_Y - 1)) << 8);
+        if (
+            this.filled[slot] === 1 &&
+            this.keyX[slot] === cellX &&
+            this.keyY[slot] === cellY &&
+            this.keyZ[slot] === cellZ
+        ) {
             return this.values[slot] ?? 0;
         }
+
         const value = input(context, x, y, z);
-        this.keyX[slot] = x;
-        this.keyY[slot] = y;
-        this.keyZ[slot] = z;
+        this.keyX[slot] = cellX;
+        this.keyY[slot] = cellY;
+        this.keyZ[slot] = cellZ;
         this.values[slot] = value;
         this.filled[slot] = 1;
         return value;
