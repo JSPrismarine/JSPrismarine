@@ -62,6 +62,8 @@
         "vitest": "5.0.5"
     },
     "dependencies": {
+        "@jsprismarine/console-protocol": "workspace:*",
+        "@jsprismarine/logger": "workspace:*",
         "@opentui/core": "0.6.8"
     }
 }
