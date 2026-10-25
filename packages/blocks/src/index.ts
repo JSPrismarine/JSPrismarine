@@ -3,6 +3,7 @@ export * from './definition';
 export * from './errors';
 export * from './families';
 export * from './flatten';
+export * from './geometry';
 export * from './hooks';
 export * from './javaProperties';
 export * from './overlay';
