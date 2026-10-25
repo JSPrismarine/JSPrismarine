@@ -232,7 +232,7 @@ describe('Command Suggestion Test', () => {
             literal('execute')
                 .then(literal('as').then(argument('name', word()).redirect(execute)))
                 .then(literal('store').then(argument('name', word()).redirect(execute)))
-                .then(literal('run').executes(async () => 0))
+                .then(literal('run').executes(() => 0))
         );
 
         const parse = subject.parse('execute as Dinnerbone as', source);
@@ -247,7 +247,7 @@ describe('Command Suggestion Test', () => {
             literal('execute')
                 .then(literal('as').then(literal('bar').redirect(execute)).then(literal('baz').redirect(execute)))
                 .then(literal('store').then(argument('name', word()).redirect(execute)))
-                .then(literal('run').executes(async () => 0))
+                .then(literal('run').executes(() => 0))
         );
 
         const parse = subject.parse('execute as bar as ', source);

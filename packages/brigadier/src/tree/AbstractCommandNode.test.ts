@@ -5,7 +5,7 @@ import type CommandNode from './CommandNode';
 import RootCommandNode from './RootCommandNode';
 
 describe('AbstractCommandNodeTest', () => {
-    const command: Command<Object> = async () => 0;
+    const command: Command<Object> = () => 0;
 
     function getCommandNode(): CommandNode<Object> {
         return new RootCommandNode();

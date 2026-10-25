@@ -26,7 +26,7 @@ const createMockedCommand = (): MockedCommand<Object> => {
     const execCount = new Map<CommandContext<Object>, number>();
     const whenArg = new Map<unknown, number>();
 
-    const run = async (arg: CommandContext<Object>): Promise<number> => {
+    const run = (arg: CommandContext<Object>): number => {
         if (!execCount.has(arg)) execHistory.push(arg);
         execCount.set(arg, (execCount.get(arg) ?? 0) + 1);
 
