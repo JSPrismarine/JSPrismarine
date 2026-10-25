@@ -108,29 +108,50 @@ export const checkBurnOut = (
     updates.updateNeighborsAt(at, FIRE);
 };
 
+/** The two facts about one fire tick that come from outside {@link WorldAccess}. */
+export interface FireTickOptions {
+    /**
+     * Java's `INCREASED_FIRE_BURNOUT` environment attribute, which humid biomes
+     * set. It takes 50 off every burn-out denominator and halves the spread
+     * odds.
+     */
+    readonly increasedBurnout?: boolean;
+    /**
+     * Java's `ServerLevel.canSpreadFireAround`, true by default.
+     *
+     * False stops the tick after it has scheduled the next one, so the fire
+     * keeps its place in the tick list and does not even go out. That is what
+     * makes `minecraft:fire_spread_radius_around_player` reversible: turn it
+     * back on and every fire in the world carries on from where it stopped.
+     */
+    readonly spreads?: boolean;
+}
+
 /**
  * `FireBlock.tick`: age the fire, decide whether it goes out, burn the six
  * blocks it touches, then try to light every position in the 3 by 3 by 6 box
  * around it.
  *
+ * The next tick is scheduled before anything else, as Java does, so the fire
+ * keeps ticking whatever the rest of the tick decides.
+ *
  * The spread odds are Java's: `(igniteOdds + 40 + difficultyId * 7) / (age + 30)`
  * against a denominator of 100, rising by 100 for each block above the first
  * one overhead.
- *
- * @param increasedBurnout - Java's `INCREASED_FIRE_BURNOUT` environment
- *   attribute, which humid biomes set. It takes 50 off every burn-out
- *   denominator and halves the spread odds.
  */
 export const fireTick = (
     updates: NeighborUpdates,
     world: WorldAccess,
     at: BlockPosition,
-    increasedBurnout = false
+    options: FireTickOptions = {}
 ): void => {
+    const { increasedBurnout = false, spreads = true } = options;
+
     const state = world.getBlock(at);
     if (state.name !== FIRE) return;
 
     world.scheduleTick('block', at, FIRE, fireTickDelay(world));
+    if (!spreads) return;
 
     const below = world.getBlock(relative(at, 'down'));
     // `FireBlock.canSurvive`: a solid floor, or something flammable to cling to.
