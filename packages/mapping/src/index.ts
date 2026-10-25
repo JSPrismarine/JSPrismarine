@@ -20,6 +20,7 @@ export {
     type PackIdentifierResolver
 } from './packIdentifierResolver';
 export {
+    BEDROCK_BIOME_LOSSES,
     BLOCK_LOSSES,
     BLOCK_MERGES,
     DROPPED_BLOCK_PROPERTIES,
@@ -29,6 +30,7 @@ export {
     ITEM_MERGES,
     PARTIAL_BLOCK_PROPERTY_COLLAPSES,
     REGISTRY_LOSSES,
+    type BedrockBiomeLoss,
     type BlockLoss,
     type BlockMerge,
     type BlockPropertyRecovery,
@@ -43,7 +45,10 @@ export {
 } from './lossList';
 export {
     MAPPED_REGISTRIES,
+    bedrockBiomeToJava,
     javaIdentifierToBedrock,
+    type BedrockBiome,
+    type BedrockBiomeResult,
     type IdentifierMappingResult,
     type MappedRegistry
 } from './registryMapping';

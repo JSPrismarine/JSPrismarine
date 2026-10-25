@@ -40,11 +40,18 @@ export interface EntitiesTable {
     bedrockIdentifiers: string[];
 }
 
-/** The generated biome and enchantment tables, with the pinned Bedrock name sets beside them. */
+/** The generated biome and enchantment tables, with the pinned Bedrock name set beside them. */
 export interface RegistriesTable {
     biome: Record<string, string>;
     enchantment: Record<string, string>;
-    bedrock: { biome: string[]; enchantment: string[] };
+    /**
+     * The biome inverse: every Bedrock biome by identifier, carrying the numeric id a chunk
+     * stores and the Java biome that maps onto it. `java` is absent for the Bedrock biomes no
+     * Java biome reaches, which are the reviewed
+     * {@link import('./lossList').BEDROCK_BIOME_LOSSES}.
+     */
+    bedrockBiomes: Record<string, { id: number; java?: string }>;
+    bedrock: { enchantment: string[] };
 }
 
 // The generated tables are data the compiler cannot type beyond the JSON

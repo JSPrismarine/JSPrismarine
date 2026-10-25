@@ -57,6 +57,23 @@ omitted properties take the block's Java defaults. `javaIdentifierToBedrock` cov
 mapped registries, currently `biome` and `enchantment` (`MAPPED_REGISTRIES`). The pinned versions
 behind the tables are exported as `MAPPING_VERSIONS`.
 
+Plus one inverse, for the one domain that needs one. A chunk stores a numeric Bedrock biome id
+rather than an identifier, and block behaviors and spawn rules both ask what biome a position is
+in, so `bedrockBiomeToJava` reads that number back:
+
+```ts
+bedrockBiomeToJava(37);
+// { kind: 'mapped', bedrock: { id: 37, identifier: 'minecraft:mesa' }, java: 'minecraft:badlands' }
+```
+
+It takes the numeric id or the Bedrock identifier, and returns `mapped`, a reviewed `loss`, or
+`unknown`. There is no `passthrough`: a custom biome has no vanilla id to be stored as, so an
+identifier the pinned data does not have is `unknown` whichever namespace it is in. The
+correspondence is not one to one in either direction. Five Java biomes share a Bedrock one, and
+the inverse names the Java biome that is not on the loss list, so `minecraft:the_end` comes back
+as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, 27 of
+Bedrock's 89 biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
+
 ## Handling the result variants
 
 Every lookup returns a discriminated union on `kind`, with four variants. Handle each:
@@ -90,10 +107,10 @@ exist in the pinned Java version at all.
 ## Reading the loss list
 
 The reviewed losses are exported alongside the functions: `BLOCK_LOSSES`, `ITEM_LOSSES`,
-`ENTITY_LOSSES`, and `REGISTRY_LOSSES`, plus the merge lists (`BLOCK_MERGES`, `ITEM_MERGES`,
-`ENTITY_MERGES`) and the dropped-property lists (`DROPPED_BLOCK_PROPERTIES`,
-`PARTIAL_BLOCK_PROPERTY_COLLAPSES`). A loss entry names the Java identifier, the Bedrock fallback,
-a reason, and a reference:
+`ENTITY_LOSSES`, `REGISTRY_LOSSES`, and `BEDROCK_BIOME_LOSSES` for the inverse direction, plus the
+merge lists (`BLOCK_MERGES`, `ITEM_MERGES`, `ENTITY_MERGES`) and the dropped-property lists
+(`DROPPED_BLOCK_PROPERTIES`, `PARTIAL_BLOCK_PROPERTY_COLLAPSES`). A loss entry names the Java
+identifier, the Bedrock fallback, a reason, and a reference:
 
 ```ts
 {
@@ -110,17 +127,29 @@ where the information reappears, if anywhere: `second-layer` (Bedrock's second b
 as for `waterlogged`), `block-entity` (NBT, as for shulker box facing), `client-computed` (the
 client recomputes it, as for leaf decay distance), or `none`.
 
+`BEDROCK_BIOME_LOSSES` reads the other way: it names a Bedrock biome rather than a Java one, and
+carries no fallback, because there is nothing to fall back to. All 27 entries are legacy terrain
+Bedrock keeps so a world generated before its 1.18 terrain change still reads back: the `_hills`,
+`_mutated`, `_plateau`, `_shore` and `_edge` variants Java deleted in the same rewrite, plus
+`legacy_frozen_ocean` and `deep_warm_ocean`. A chunk only carries one of them if it was generated
+by an old Bedrock version, and the inverse reports the loss rather than guessing which modern Java
+biome stands in for a biome Java no longer has.
+
 ## The five property tests
 
 `packages/mapping/src/mappingProperties.test.ts` adopts Chunker's five property tests, which run
 against the full generated tables on every test run:
 
 1. Every Java palette entry maps: all 1286 blocks and 35723 states (plus every item, entity type,
-   biome, and enchantment) return `mapped` or a reviewed `loss`, never `unknown`.
+   biome, and enchantment) return `mapped` or a reviewed `loss`, never `unknown`. The biome
+   inverse runs the same way, over all 89 Bedrock biomes, by id and by identifier.
 2. Every output carries exactly the declared Bedrock state set for its target block.
 3. The mapping composed with the reverse index is identity, except for the reviewed loss list.
+   Biomes round-trip through the generated inverse both ways rather than through an index the
+   test builds.
 4. Every output identifier exists in the real Bedrock 1.26.51 data: the block palette, the item
-   table, the actor identifier list, and the pinned name sets.
+   table, the actor identifier list, and the pinned name sets. The inverse names only Java 26.3
+   biomes, and numbers every Bedrock biome exactly once.
 5. Every output state value is inside that state's real domain in the 1.26.51 palette.
 
 The tests fail in both directions: when an unlisted loss appears, and when a listed loss stops
