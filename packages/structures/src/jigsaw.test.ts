@@ -608,4 +608,133 @@ describe('assembleJigsaw', () => {
         expect(Math.max(...heightOf(plain))).toBe(0);
         expect(Math.max(...heightOf(reserved))).toBe(2);
     });
+
+    describe('a jigsaw pointing back into its own piece', () => {
+        /**
+         * A 3 by 3 by 3 room with a jigsaw on its south face for the street to attach to, and
+         * one in the middle of its own floor facing up, which is how a trial chamber hangs a
+         * spawner, a vault and a dispenser inside the room it just placed.
+         */
+        const hall: BedrockStructureTemplate = {
+            size: [3, 3, 3],
+            palette: [
+                bedrockOf('minecraft:stone'),
+                bedrockOf('minecraft:jigsaw', { orientation: 'south_up' }),
+                bedrockOf('minecraft:jigsaw', { orientation: 'up_north' })
+            ],
+            blocks: [
+                {
+                    pos: [1, 0, 2],
+                    state: 1,
+                    extraState: NO_BLOCK,
+                    nbt: jigsawNbt({
+                        name: 'street',
+                        target: 'fitting',
+                        pool: 'test:fittings',
+                        joint: 'aligned',
+                        final_state: 'minecraft:air'
+                    })
+                },
+                {
+                    pos: [1, 0, 1],
+                    state: 2,
+                    extraState: NO_BLOCK,
+                    nbt: jigsawNbt({
+                        name: 'floor',
+                        target: 'fitting',
+                        pool: 'test:fittings',
+                        joint: 'rollable',
+                        final_state: 'minecraft:air'
+                    })
+                }
+            ],
+            entities: []
+        };
+
+        /** A single block with a jigsaw facing down, which is what hangs under the hall's. */
+        const fitting: BedrockStructureTemplate = {
+            size: [1, 1, 1],
+            palette: [bedrockOf('minecraft:jigsaw', { orientation: 'down_north' })],
+            blocks: [
+                {
+                    pos: [0, 0, 0],
+                    state: 0,
+                    extraState: NO_BLOCK,
+                    nbt: jigsawNbt({
+                        name: 'fitting',
+                        target: 'nothing',
+                        pool: 'test:empty',
+                        joint: 'rollable',
+                        final_state: 'minecraft:air'
+                    })
+                }
+            ],
+            entities: []
+        };
+
+        const pools: Record<string, TemplatePool> = {
+            ...POOLS,
+            'test:streets': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:hall',
+                            projection: 'rigid'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            }),
+            'test:fittings': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:fitting',
+                            projection: 'rigid'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            })
+        };
+
+        const innerSources = (seed: number) =>
+            sources(seed, {
+                pool: (identifier: string) => pools[identifier],
+                template: (location: string) =>
+                    location === 'test:hall' ? hall : location === 'test:fitting' ? fitting : TEMPLATES[location]
+            });
+
+        it('places inside the piece rather than rejecting it for collision', () => {
+            const { pieces } = assembleJigsaw({ ...config, maxDepth: 3 }, innerSources(2024));
+            const halls = pieces.filter((piece) => piece.location === 'test:hall');
+            const fittings = pieces.filter((piece) => piece.location === 'test:fitting');
+
+            expect(halls).not.toHaveLength(0);
+            expect(fittings).toHaveLength(halls.length);
+            for (const placed of fittings) {
+                const host = halls.find((candidate) => boxesOverlap(candidate.boundingBox, placed.boundingBox));
+                expect(host, 'a fitting was placed outside every hall').toBeDefined();
+            }
+        });
+
+        it('keeps the inside placements inside the piece that holds them', () => {
+            const { pieces } = assembleJigsaw({ ...config, maxDepth: 3 }, innerSources(2024));
+            const halls = pieces.filter((piece) => piece.location === 'test:hall');
+            const fittings = pieces.filter((piece) => piece.location === 'test:fitting');
+
+            expect(fittings).not.toHaveLength(0);
+            for (const placed of fittings) {
+                const host = halls.find((candidate) => boxesOverlap(candidate.boundingBox, placed.boundingBox))!;
+                expect(placed.boundingBox.minY).toBeGreaterThanOrEqual(host.boundingBox.minY);
+                expect(placed.boundingBox.maxY).toBeLessThanOrEqual(host.boundingBox.maxY);
+                expect(placed.boundingBox.minX).toBeGreaterThanOrEqual(host.boundingBox.minX);
+                expect(placed.boundingBox.maxX).toBeLessThanOrEqual(host.boundingBox.maxX);
+            }
+        });
+    });
 });

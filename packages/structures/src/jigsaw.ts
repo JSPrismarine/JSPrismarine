@@ -490,10 +490,31 @@ const candidateOf = (element: PoolElement, sources: JigsawSources): Candidate | 
     return template === undefined ? undefined : { element, location: element.location, template };
 };
 
+/**
+ * The room a connection may place into, which is Java's `VoxelShape` of free space.
+ *
+ * Java keeps two kinds. The outer one covers the whole structure region and every placed piece
+ * is cut out of it. The inner one is made from a single piece's own box when one of its jigsaws
+ * points back inside itself, and the piece is *not* cut out of it, which is what lets a trial
+ * chamber put a spawner, a vault and a dispenser inside the room it just placed. A piece placed
+ * into an inner space passes that space to its own children, so a spawner's decoration stays in
+ * the chamber rather than spilling into the corridor.
+ *
+ * @see https://minecraft.wiki/w/Template_pool
+ */
+interface FreeSpace {
+    /** The box a candidate has to fit inside, or undefined for the structure's whole region. */
+    readonly bounds?: BoundingBox;
+    /** The boxes already cut out of it, which a candidate may not touch. */
+    readonly taken: BoundingBox[];
+}
+
 interface QueuedPiece {
     readonly piece: PlacedPiece;
     readonly template: BedrockStructureTemplate;
     readonly depth: number;
+    /** The space this piece was placed into, which its outward connections keep placing into. */
+    readonly space: FreeSpace;
 }
 
 /**
@@ -626,7 +647,10 @@ const expandJigsaw = (
     origin: TemplatePosition
 ): JigsawAssembly => {
     const pieces: PlacedPiece[] = [startPiece];
-    const queue: QueuedPiece[] = [{ piece: startPiece, template: startTemplate, depth: 0 }];
+    // The structure's own region, with the start piece already cut out of it, which is what
+    // Java hands the first call to `tryPlacingChildren`.
+    const outer: FreeSpace = { taken: [startPiece.boundingBox] };
+    const queue: QueuedPiece[] = [{ piece: startPiece, template: startTemplate, depth: 0, space: outer }];
     let rejectedForCollision = 0;
     let unresolvedConnections = 0;
 
@@ -641,10 +665,17 @@ const expandJigsaw = (
         );
     };
 
+    /** Whether a candidate box is inside the room a space covers at all. */
+    const insideSpace = (space: FreeSpace, box: BoundingBox): boolean =>
+        space.bounds === undefined ? withinRange(box) : boxWithin(space.bounds, box);
+
     while (queue.length > 0) {
         const current = queue.shift();
         if (current === undefined) break;
 
+        // Made on the first connection that points back into the piece, as Java makes it, so a
+        // piece with no inward jigsaw costs nothing.
+        let inner: FreeSpace | undefined;
         const parentRigid = current.piece.element.projection === 'rigid';
         const parentJigsaws = shuffledJigsaws(
             current.template,
@@ -672,6 +703,12 @@ const expandJigsaw = (
                 parent.pos[1] + step[1],
                 parent.pos[2] + step[2]
             ];
+
+            // A jigsaw pointing back into its own piece places inside it. The piece itself is
+            // not cut out of that space, so the child may overlap its parent and nothing else.
+            const space = insideBox(current.piece.boundingBox, attachAt)
+                ? (inner ??= { bounds: current.piece.boundingBox, taken: [] })
+                : current.space;
 
             // Read at most once per connection, as Java caches it across the candidate loop.
             let groundY: number | undefined;
@@ -704,8 +741,8 @@ const expandJigsaw = (
                             attachAt[2] - child.pos[2]
                         ];
                         const box = reservedBox(boxOf(position, size), reserved);
-                        if (!withinRange(box)) continue;
-                        if (pieces.some((other) => boxesOverlap(other.boundingBox, box))) {
+                        if (!insideSpace(space, box)) continue;
+                        if (space.taken.some((other) => boxesOverlap(other, box))) {
                             rejectedForCollision++;
                             continue;
                         }
@@ -718,8 +755,9 @@ const expandJigsaw = (
                             boundingBox: box,
                             depth: current.depth + 1
                         };
+                        space.taken.push(box);
                         pieces.push(piece);
-                        queue.push({ piece, template: candidate.template, depth: current.depth + 1 });
+                        queue.push({ piece, template: candidate.template, depth: current.depth + 1, space });
                         placed = true;
                         break;
                     }
@@ -777,6 +815,15 @@ const insideBox = (box: BoundingBox, position: TemplatePosition): boolean =>
     position[1] <= box.maxY &&
     position[2] >= box.minZ &&
     position[2] <= box.maxZ;
+
+/** Whether one box holds another whole. */
+const boxWithin = (outer: BoundingBox, inner: BoundingBox): boolean =>
+    inner.minX >= outer.minX &&
+    inner.maxX <= outer.maxX &&
+    inner.minY >= outer.minY &&
+    inner.maxY <= outer.maxY &&
+    inner.minZ >= outer.minZ &&
+    inner.maxZ <= outer.maxZ;
 
 /**
  * Reads the `pool_aliases` list a jigsaw structure may carry, as a map from
