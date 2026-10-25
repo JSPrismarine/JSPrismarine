@@ -219,6 +219,20 @@ export const loadDatapack = (
         const route = routeDatapackPath(filePath);
         if (!route) continue;
 
+        // An mcfunction is the one datapack file that is not JSON. Its text is
+        // the definition, parsed by `@jsprismarine/mcfunction` rather than
+        // here, and there is no structural shape for a validator to check.
+        if (route.registry === 'functions') {
+            registries.functions.set(route.identifier, {
+                identifier: route.identifier,
+                registry: 'functions',
+                pack,
+                path: filePath,
+                data: decoder.decode(bytes)
+            });
+            continue;
+        }
+
         let data: unknown;
         try {
             data = JSON.parse(decoder.decode(bytes));

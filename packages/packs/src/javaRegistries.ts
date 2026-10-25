@@ -15,7 +15,8 @@ export const JAVA_REGISTRY_IDS = [
     'enchantments',
     'damageTypes',
     'predicates',
-    'itemModifiers'
+    'itemModifiers',
+    'functions'
 ] as const;
 
 /** One Java-sourced registry. */
@@ -45,11 +46,18 @@ export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
     enchantments: 'override',
     damageTypes: 'override',
     predicates: 'override',
-    itemModifiers: 'override'
+    itemModifiers: 'override',
+    functions: 'override'
 };
 
-/** The 26.3 directory under `data/<namespace>/` for each registry. */
-const DIRECTORIES: Record<string, Exclude<JavaRegistryId, 'tags'>> = {
+/**
+ * The file extension of an mcfunction, which is the one datapack file that is
+ * not JSON.
+ */
+export const FUNCTION_EXTENSION = '.mcfunction';
+
+/** The 26.3 directory under `data/<namespace>/` for each JSON registry. */
+const DIRECTORIES: Record<string, Exclude<JavaRegistryId, 'tags' | 'functions'>> = {
     loot_table: 'lootTablesJava',
     recipe: 'recipesJava',
     advancement: 'advancements',
@@ -79,12 +87,33 @@ export interface JavaRoute {
 }
 
 /**
+ * Routes `data/<namespace>/function/<path>.mcfunction`, which is the one
+ * datapack file whose contents are text rather than JSON.
+ *
+ * The id is the one `/function` writes: `data/pack/function/setup/stage.mcfunction`
+ * is `pack:setup/stage`.
+ */
+const routeFunctionPath = (path: string): JavaRoute | undefined => {
+    const segments = path.slice('data/'.length, -FUNCTION_EXTENSION.length).split('/');
+    const [namespace, folder, ...rest] = segments;
+    if (!namespace || folder !== 'function' || rest.length === 0) return undefined;
+    if (!NAMESPACE_PATTERN.test(namespace)) return undefined;
+
+    const idPath = rest.join('/');
+    if (!PATH_PATTERN.test(idPath)) return undefined;
+    return { registry: 'functions', identifier: `${namespace}:${idPath}` };
+};
+
+/**
  * Routes a pack-relative path to its registry and identifier. Paths outside
- * `data/`, non-JSON files, registries this loader does not consume, and the
- * built-in packs nested under `data/<namespace>/datapacks/` return undefined.
+ * `data/`, files that are neither JSON nor `.mcfunction`, registries this
+ * loader does not consume, and the built-in packs nested under
+ * `data/<namespace>/datapacks/` return undefined.
  */
 export const routeDatapackPath = (path: string): JavaRoute | undefined => {
-    if (!path.endsWith('.json') || !path.startsWith('data/')) return undefined;
+    if (!path.startsWith('data/')) return undefined;
+    if (path.endsWith(FUNCTION_EXTENSION)) return routeFunctionPath(path);
+    if (!path.endsWith('.json')) return undefined;
 
     const segments = path.slice('data/'.length, -'.json'.length).split('/');
     const [namespace, folder, ...rest] = segments;

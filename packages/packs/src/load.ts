@@ -138,7 +138,8 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
         enchantments: new Map(),
         damageTypes: new Map(),
         predicates: new Map(),
-        itemModifiers: new Map()
+        itemModifiers: new Map(),
+        functions: new Map()
     };
 
     const units = expandStack(stack);
