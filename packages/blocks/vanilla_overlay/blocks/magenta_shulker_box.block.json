@@ -1,0 +1,30 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "minecraft:magenta_shulker_box"
+        },
+        "components": {
+            "minecraft:destructible_by_mining": {
+                "seconds_to_destroy": 2
+            },
+            "minecraft:destructible_by_explosion": {
+                "explosion_resistance": 2
+            },
+            "minecraft:friction": 0.6,
+            "minecraft:light_emission": 0,
+            "minecraft:light_dampening": 1,
+            "minecraft:movable": {
+                "movement_type": "popped"
+            },
+            "jsprismarine:behavior": "jsprismarine:container",
+            "jsprismarine:block_properties": {
+                "friction": 0.6,
+                "random_tick": false,
+                "requires_correct_tool": false,
+                "push_reaction": "popped",
+                "source": "java"
+            }
+        }
+    }
+}

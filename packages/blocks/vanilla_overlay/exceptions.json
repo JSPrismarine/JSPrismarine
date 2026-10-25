@@ -1,0 +1,916 @@
+{
+    "$comment": "Palette blocks no Java block state maps onto. Each takes BEDROCK_ONLY_FALLBACK from @jsprismarine/blocks and is reviewed here rather than defaulted silently.",
+    "count": 182,
+    "blocks": [
+        {
+            "identifier": "minecraft:allow",
+            "behavior": "jsprismarine:inert",
+            "reason": "a Bedrock world-editing block with no Java counterpart"
+        },
+        {
+            "identifier": "minecraft:border_block",
+            "behavior": "jsprismarine:inert",
+            "reason": "a Bedrock world-editing block with no Java counterpart"
+        },
+        {
+            "identifier": "minecraft:camera",
+            "behavior": "jsprismarine:inert",
+            "reason": "a Bedrock world-editing block with no Java counterpart"
+        },
+        {
+            "identifier": "minecraft:chalkboard",
+            "behavior": "jsprismarine:inert",
+            "reason": "a Bedrock world-editing block with no Java counterpart"
+        },
+        {
+            "identifier": "minecraft:chemical_heat",
+            "behavior": "jsprismarine:chemistry",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:client_request_placeholder_block",
+            "behavior": "jsprismarine:inert",
+            "reason": "an engine-internal block the player never places"
+        },
+        {
+            "identifier": "minecraft:colored_torch_blue",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:colored_torch_green",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:colored_torch_purple",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:colored_torch_red",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:compound_creator",
+            "behavior": "jsprismarine:chemistry",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:deny",
+            "behavior": "jsprismarine:inert",
+            "reason": "a Bedrock world-editing block with no Java counterpart"
+        },
+        {
+            "identifier": "minecraft:deprecated_anvil",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:deprecated_purpur_block_1",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:deprecated_purpur_block_2",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:element_0",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_1",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_10",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_100",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_101",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_102",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_103",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_104",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_105",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_106",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_107",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_108",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_109",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_11",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_110",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_111",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_112",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_113",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_114",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_115",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_116",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_117",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_118",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_12",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_13",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_14",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_15",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_16",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_17",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_18",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_19",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_2",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_20",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_21",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_22",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_23",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_24",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_25",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_26",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_27",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_28",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_29",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_3",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_30",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_31",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_32",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_33",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_34",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_35",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_36",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_37",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_38",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_39",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_4",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_40",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_41",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_42",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_43",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_44",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_45",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_46",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_47",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_48",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_49",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_5",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_50",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_51",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_52",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_53",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_54",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_55",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_56",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_57",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_58",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_59",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_6",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_60",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_61",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_62",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_63",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_64",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_65",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_66",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_67",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_68",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_69",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_7",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_70",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_71",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_72",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_73",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_74",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_75",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_76",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_77",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_78",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_79",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_8",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_80",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_81",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_82",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_83",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_84",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_85",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_86",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_87",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_88",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_89",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_9",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_90",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_91",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_92",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_93",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_94",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_95",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_96",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_97",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_98",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_99",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:element_constructor",
+            "behavior": "jsprismarine:chemistry",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:frame",
+            "behavior": "jsprismarine:utility",
+            "reason": "an entity in Java Edition rather than a block"
+        },
+        {
+            "identifier": "minecraft:glow_frame",
+            "behavior": "jsprismarine:utility",
+            "reason": "an entity in Java Edition rather than a block"
+        },
+        {
+            "identifier": "minecraft:glowingobsidian",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:hard_black_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_black_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_blue_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_blue_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_brown_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_brown_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_cyan_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_cyan_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_gray_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_gray_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_green_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_green_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_light_blue_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_light_blue_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_light_gray_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_light_gray_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_lime_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_lime_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_magenta_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_magenta_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_orange_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_orange_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_pink_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_pink_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_purple_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_purple_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_red_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_red_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_white_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_white_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_yellow_stained_glass",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:hard_yellow_stained_glass_pane",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:info_update",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:info_update2",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:invisible_bedrock",
+            "behavior": "jsprismarine:inert",
+            "reason": "an engine-internal block the player never places"
+        },
+        {
+            "identifier": "minecraft:lab_table",
+            "behavior": "jsprismarine:chemistry",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:material_reducer",
+            "behavior": "jsprismarine:chemistry",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:netherreactor",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:reserved6",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:stonecutter",
+            "behavior": "jsprismarine:inert",
+            "reason": "a deprecated palette entry the game keeps for old worlds"
+        },
+        {
+            "identifier": "minecraft:underwater_tnt",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        },
+        {
+            "identifier": "minecraft:underwater_torch",
+            "behavior": "jsprismarine:inert",
+            "reason": "Education Edition chemistry, which Java Edition has no equivalent of"
+        }
+    ]
+}

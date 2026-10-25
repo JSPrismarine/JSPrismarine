@@ -1,0 +1,167 @@
+{
+    "$comment": "Generated beside the pack by `pnpm --filter @jsprismarine/blocks run generate:overlay`. Not read at runtime.",
+    "blockCount": 1477,
+    "exceptionCount": 182,
+    "frictionClamps": [
+        {
+            "identifier": "minecraft:blue_ice",
+            "javaFriction": 0.989,
+            "clampedTo": 0.9
+        },
+        {
+            "identifier": "minecraft:frosted_ice",
+            "javaFriction": 0.98,
+            "clampedTo": 0.9
+        },
+        {
+            "identifier": "minecraft:ice",
+            "javaFriction": 0.98,
+            "clampedTo": 0.9
+        },
+        {
+            "identifier": "minecraft:packed_ice",
+            "javaFriction": 0.98,
+            "clampedTo": 0.9
+        }
+    ],
+    "withoutCollision": [
+        {
+            "identifier": "minecraft:air",
+            "reason": "air occupies nothing"
+        },
+        {
+            "identifier": "minecraft:structure_void",
+            "reason": "the structure editor placeholder has no shape"
+        },
+        {
+            "identifier": "minecraft:portal",
+            "reason": "a nether portal is a volume an entity walks into"
+        },
+        {
+            "identifier": "minecraft:end_portal",
+            "reason": "an end portal is a volume an entity walks into"
+        },
+        {
+            "identifier": "minecraft:moving_block",
+            "reason": "a piston's temporary block carries the moved block's shape"
+        },
+        {
+            "identifier": "minecraft:client_request_placeholder_block",
+            "reason": "an engine-internal marker with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_0",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_1",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_2",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_3",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_4",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_5",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_6",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_7",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_8",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_9",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_10",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_11",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_12",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_13",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_14",
+            "reason": "a light source with no shape"
+        },
+        {
+            "identifier": "minecraft:light_block_15",
+            "reason": "a light source with no shape"
+        }
+    ],
+    "behaviorCounts": {
+        "jsprismarine:plain_block": 218,
+        "jsprismarine:inert": 203,
+        "jsprismarine:slab": 109,
+        "jsprismarine:stairs": 97,
+        "jsprismarine:double_slab": 93,
+        "jsprismarine:copper": 84,
+        "jsprismarine:bamboo": 52,
+        "jsprismarine:log": 48,
+        "jsprismarine:utility": 47,
+        "jsprismarine:flora": 46,
+        "jsprismarine:sign": 39,
+        "jsprismarine:soil": 39,
+        "jsprismarine:glass": 35,
+        "jsprismarine:candle": 34,
+        "jsprismarine:wall": 32,
+        "jsprismarine:redstone": 31,
+        "jsprismarine:container": 22,
+        "jsprismarine:door": 22,
+        "jsprismarine:trapdoor": 22,
+        "jsprismarine:ore": 20,
+        "jsprismarine:pressure_plate": 17,
+        "jsprismarine:button": 15,
+        "jsprismarine:fence": 15,
+        "jsprismarine:crop": 14,
+        "jsprismarine:leaves": 14,
+        "jsprismarine:fence_gate": 13,
+        "jsprismarine:climbing": 11,
+        "jsprismarine:sapling": 11,
+        "jsprismarine:furnace": 9,
+        "jsprismarine:dripstone": 8,
+        "jsprismarine:head": 7,
+        "jsprismarine:chemistry": 5,
+        "jsprismarine:portal": 5,
+        "jsprismarine:ice": 4,
+        "jsprismarine:liquid": 4,
+        "jsprismarine:rail": 4,
+        "jsprismarine:sculk": 4,
+        "jsprismarine:torch": 4,
+        "jsprismarine:dripleaf": 3,
+        "jsprismarine:egg": 3,
+        "jsprismarine:lantern": 3,
+        "jsprismarine:snow": 3,
+        "jsprismarine:banner": 2,
+        "jsprismarine:bed": 2,
+        "jsprismarine:cake": 1,
+        "jsprismarine:cauldron": 1,
+        "jsprismarine:composter": 1,
+        "jsprismarine:flower_pot": 1
+    }
+}

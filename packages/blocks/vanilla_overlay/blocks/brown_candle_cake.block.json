@@ -1,0 +1,30 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "minecraft:brown_candle_cake"
+        },
+        "components": {
+            "minecraft:destructible_by_mining": {
+                "seconds_to_destroy": 0.5
+            },
+            "minecraft:destructible_by_explosion": {
+                "explosion_resistance": 0.5
+            },
+            "minecraft:friction": 0.6,
+            "minecraft:light_emission": 3,
+            "minecraft:light_dampening": 0,
+            "minecraft:movable": {
+                "movement_type": "popped"
+            },
+            "jsprismarine:behavior": "jsprismarine:candle",
+            "jsprismarine:block_properties": {
+                "friction": 0.6,
+                "random_tick": false,
+                "requires_correct_tool": false,
+                "push_reaction": "popped",
+                "source": "java"
+            }
+        }
+    }
+}

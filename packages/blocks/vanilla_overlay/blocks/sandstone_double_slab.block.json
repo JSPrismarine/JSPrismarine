@@ -1,0 +1,30 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "minecraft:sandstone_double_slab"
+        },
+        "components": {
+            "minecraft:destructible_by_mining": {
+                "seconds_to_destroy": 2
+            },
+            "minecraft:destructible_by_explosion": {
+                "explosion_resistance": 6
+            },
+            "minecraft:friction": 0.6,
+            "minecraft:light_emission": 0,
+            "minecraft:light_dampening": 15,
+            "minecraft:movable": {
+                "movement_type": "push_pull"
+            },
+            "jsprismarine:behavior": "jsprismarine:double_slab",
+            "jsprismarine:block_properties": {
+                "friction": 0.6,
+                "random_tick": false,
+                "requires_correct_tool": true,
+                "push_reaction": "push_pull",
+                "source": "java"
+            }
+        }
+    }
+}
