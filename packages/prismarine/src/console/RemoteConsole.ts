@@ -74,6 +74,11 @@ export class RemoteConsole implements Service {
         this.statusIntervalMs = options.statusIntervalMs ?? 1000;
         this.statusKeepAliveMs = options.statusKeepAliveMs ?? 5000;
         this.flushTimeoutMs = options.flushTimeoutMs ?? 500;
+
+        // Subscribed here rather than in `enable`: `childProcessLink` reports a channel that
+        // was already closed one microtask after it is built, and anything `bootstrap`
+        // awaits before `enable` would run past that and miss the close.
+        this.unsubscribe.push(this.link.onClose(() => this.requestShutdown()));
     }
 
     /**
@@ -89,7 +94,6 @@ export class RemoteConsole implements Service {
         this.sendLifecycle('starting');
 
         this.unsubscribe.push(this.link.onMessage((message) => this.handle(message)));
-        this.unsubscribe.push(this.link.onClose(() => this.requestShutdown()));
 
         // The line console logs chat when it exists. Without one this is the only path that
         // puts chat in the log, and with one it would log every line twice.
