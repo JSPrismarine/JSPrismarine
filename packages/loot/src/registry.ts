@@ -50,6 +50,12 @@ export interface LootRegistryOptions {
     readonly items?: ItemStackOps;
     /** Entity sub-predicate and data component predicate types this host adds to the grammar. */
     readonly extensions?: GrammarExtensions;
+    /**
+     * Refuse a table that reported an error instead of rolling what is left of
+     * it. {@link LootRegistry.table} and {@link LootRegistry.validate} throw a
+     * `LootGrammarError` when a table fails to compile cleanly.
+     */
+    readonly strict?: boolean;
 }
 
 /** What one roll through the registry can be told. */
@@ -163,6 +169,8 @@ export class LootRegistry {
     /**
      * Compiles a table, or returns undefined when the stack has no such id.
      * Parse diagnostics land in {@link diagnostics}.
+     *
+     * @throws {import('./table').LootGrammarError} In strict mode, when the table reported an error.
      */
     public table(id: string): LootTable | undefined {
         const cached = this.compiled.get(id);
@@ -176,7 +184,8 @@ export class LootRegistry {
             path: id,
             diagnostics: this.diagnostics,
             resolver: this.resolver,
-            extensions: this.options.extensions
+            extensions: this.options.extensions,
+            strict: this.options.strict
         });
         this.compiled.set(id, value);
         return value;
