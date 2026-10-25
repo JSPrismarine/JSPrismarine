@@ -1,4 +1,4 @@
-import type { FlatTable, FlattenException, } from '@jsprismarine/content';
+import type { FlatTable, FlattenException } from '@jsprismarine/content';
 import { flatten } from '@jsprismarine/content';
 
 import {

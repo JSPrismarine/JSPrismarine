@@ -1,10 +1,10 @@
 import type { ComponentEntry, Diagnostic } from '@jsprismarine/content';
-import type { FormatVersion, } from '@jsprismarine/packs';
+import type { FormatVersion } from '@jsprismarine/packs';
 import { parseVersion, selectSchemaVersion } from '@jsprismarine/packs';
 
 import type { BlockStateValue } from './hooks';
 import type { BlockStateDefinition } from './state';
-import { BlockStateModel, } from './state';
+import { BlockStateModel } from './state';
 
 /**
  * The schema versions this package knows, oldest first. `format_version`

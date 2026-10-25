@@ -4,20 +4,18 @@ import type {
     Definition,
     Diagnostic,
     FlagSpec,
-    Type,
+    Type
 } from '@jsprismarine/content';
-import {
-    resolveTypes
-} from '@jsprismarine/content';
+import { resolveTypes } from '@jsprismarine/content';
 import { Molang } from '@jsprismarine/molang';
 
 import { collisionBox, createBlockComponentRegistry, tick } from './components';
-import type { BlockDefinitionDocument, } from './definition';
+import type { BlockDefinitionDocument } from './definition';
 import { parseBlockDefinition } from './definition';
 import type { BlockHooks, BlockStateValue } from './hooks';
-import type { PermutationMask, } from './permutations';
+import type { PermutationMask } from './permutations';
 import { componentsForPermutation, permutationsFor } from './permutations';
-import type { BlockStateDefinition, } from './state';
+import type { BlockStateDefinition } from './state';
 import { BlockPalette, BlockStateModel, vanillaBlockPalette } from './state';
 import { TRAIT_STATES, traitStateDomains } from './traits';
 

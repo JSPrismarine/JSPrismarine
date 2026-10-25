@@ -1,5 +1,5 @@
 import type { Definition } from '@jsprismarine/content';
-import { BehaviorRegistry, } from '@jsprismarine/content';
+import { BehaviorRegistry } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
 import { destructibleByMining, loot } from './components';

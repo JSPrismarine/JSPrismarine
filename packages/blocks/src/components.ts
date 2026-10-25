@@ -14,13 +14,11 @@
  * `onRandomTick`, `onEntityFallOn` or `onRedstoneUpdate` without running
  * anything.
  */
-import type { ComponentFactory, } from '@jsprismarine/content';
+import type { ComponentFactory } from '@jsprismarine/content';
 import { accepted, ComponentRegistry, rejected } from '@jsprismarine/content';
 
 import type { BlockHooks } from './hooks';
-import type {
-    Schema,
-} from './schema';
+import type { Schema } from './schema';
 import {
     boolean,
     decimal,

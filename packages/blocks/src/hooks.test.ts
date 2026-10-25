@@ -1,7 +1,7 @@
 import { HookTable } from '@jsprismarine/content';
 import { describe, expect, expectTypeOf, it } from 'vitest';
 import type { BlockHookName, BlockHooks, HookBlock } from './hooks';
-import { BLOCK_HOOK_NAMES, } from './hooks';
+import { BLOCK_HOOK_NAMES } from './hooks';
 
 const block: HookBlock = {
     identifier: 'minecraft:oak_stairs',

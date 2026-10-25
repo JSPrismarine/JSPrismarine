@@ -1,6 +1,6 @@
 import { Molang } from '@jsprismarine/molang';
 import { describe, expect, it } from 'vitest';
-import type { BlockDefinitionDocument, } from './definition';
+import type { BlockDefinitionDocument } from './definition';
 import { parseBlockDefinition } from './definition';
 import { componentsForPermutation, conditionMatches, permutationsFor } from './permutations';
 

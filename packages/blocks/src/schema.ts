@@ -8,7 +8,7 @@
  * absent fields take the documented default. They stay in this package
  * because they encode Bedrock's conventions, not generic JSON validation.
  */
-import type { ComponentSchema, } from '@jsprismarine/content';
+import type { ComponentSchema } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 
 /** A parse function for one JSON value, which is what a component schema is. */

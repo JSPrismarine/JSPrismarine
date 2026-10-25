@@ -1,5 +1,5 @@
 import type { Definition } from '@jsprismarine/content';
-import { BehaviorRegistry, FlattenError, } from '@jsprismarine/content';
+import { BehaviorRegistry, FlattenError } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
 import { EXPLOSION_PROOF_RESISTANCE, UNBREAKABLE_HARDNESS, flattenBlockStates } from './flatten';
