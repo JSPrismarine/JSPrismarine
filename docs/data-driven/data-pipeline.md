@@ -157,8 +157,9 @@ Java vanilla datapack as missing.
    pin constants in `utils/java-dump/run.mjs` if the Java version moved.
 2. Run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and review the
    `pack-hashes.json` diff to see which upstream folders changed.
-3. If the Java version moved, run `pnpm --filter @jsprismarine/bedrock-data run dump:java` and
-   update the counts `src/javaGoldens.test.ts` asserts.
+3. If the Java version moved, run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to
+   replace the cached datapack and reports, then `pnpm --filter @jsprismarine/bedrock-data run
+   dump:java` and update the counts `src/javaGoldens.test.ts` asserts.
 4. If the Bedrock version moved, update the resources submodule, refresh the BDS captures with
    `packages/client/tools/capture-server-data.mjs`, and run
    `pnpm --filter @jsprismarine/bedrock-data run generate`.
