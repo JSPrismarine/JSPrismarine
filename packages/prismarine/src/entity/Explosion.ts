@@ -14,15 +14,15 @@
  * @see https://minecraft.wiki/w/Explosion
  */
 import { explode as castBlast } from '@jsprismarine/engine-systems';
-import type { BlockPosition, BlockRef, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
+import type { BlockPosition, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 
-import { rollBlockDrops } from '../block/blockLoot';
-import { Item } from '../item/Item';
+import type { Block } from '../block/Block';
+import { destroyedBlockDrops } from '../world/blockDestroy';
+import type { Item } from '../item/Item';
 import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
-import { lootLevelOf } from '../world/lootLevel';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
@@ -73,14 +73,14 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
 
     const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
     const caught = entitiesNear(world, at);
-    const drops: Array<{ at: BlockPosition; item: Item }> = [];
+    const drops: Array<{ at: BlockPosition; item: Block | Item }> = [];
 
     const blast = castBlast<CaughtEntity>(explosionWorldOf(world), {
         center,
         radius: power,
         entities: caught,
         breaksBlocks: breaksBlocks && griefingAllowed(world),
-        onBlockDestroyed: (position, block) => collectDrops(world, position, block, power, drops)
+        onBlockDestroyed: (position) => collectDrops(world, position, power, drops)
     });
 
     // After the rays, so an entity is measured against the world as it still stands and a wall
@@ -149,29 +149,26 @@ const entitiesNear = (world: World, at: Vector3): readonly CaughtEntity[] =>
         });
 
 /**
- * Rolls one destroyed block's loot through its Java table.
+ * Takes one block out through the content hooks and keeps what it yielded.
  *
- * The same `rollBlockDrops` an ordinary break goes through, with one parameter added:
- * `explosion_radius` is what every vanilla table's `minecraft:explosion_decay` function reads,
- * and it keeps each item of a rolled stack with a chance of `1 / radius`. So a stone wall taken
- * out by TNT yields cobblestone three times in four, which is the loss players see.
+ * The same path a player's break goes through, so the block's family gets `onBreak` before
+ * the blast writes air over it - which is what spills a chest the TNT caught and unpairs a
+ * double chest - and Java's table decides the rest. The blast adds one parameter:
+ * `explosion_radius` is what every vanilla table's `minecraft:explosion_decay` function
+ * reads, and it keeps each item of a rolled stack with a chance of `1 / radius`. So a stone
+ * wall taken out by TNT yields cobblestone three times in four, which is the loss players see.
+ *
+ * The drops are kept rather than put on the ground here, because the ground is `async` and
+ * `castBlast` is not.
  */
 const collectDrops = (
     world: World,
     at: BlockPosition,
-    block: BlockRef,
     radius: number,
-    into: Array<{ at: BlockPosition; item: Item }>
+    into: Array<{ at: BlockPosition; item: Block | Item }>
 ): void => {
-    const content = world.getServer().getContent();
-    if (content === undefined) return;
-
-    for (const drop of rollBlockDrops(
-        content,
-        { identifier: block.name, states: block.states },
-        { position: at, explosionRadius: radius, level: lootLevelOf(world) }
-    )) {
-        into.push({ at, item: new Item({ name: drop.identifier, count: drop.count, content }) });
+    for (const drop of destroyedBlockDrops({ world, position: at, explosionRadius: radius })) {
+        into.push({ at, item: drop });
     }
 };
 

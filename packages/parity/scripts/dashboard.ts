@@ -7,12 +7,46 @@
  */
 import { spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { registerHooks } from 'node:module';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { allowList } from '../src/allowlist.ts';
 import type { VitestJsonReport } from '../src/dashboard/render.ts';
 import { renderDashboard } from '../src/dashboard/render.ts';
+
+/**
+ * Teaches node how the workspace's own packages spell an import.
+ *
+ * The allow list derives its rows from `@jsprismarine/mapping` and `@jsprismarine/entities`,
+ * whose modules import their siblings without a file extension and their vendored tables as
+ * bare JSON. Vite and Vitest resolve both; node's type stripping resolves neither, so without
+ * this the script dies on the first sibling import rather than printing a dashboard. The hook
+ * retries a failed relative specifier with `.ts` and attaches the attribute node wants on a
+ * JSON import, and leaves every other specifier to node.
+ */
+// A bare sibling import fails one of two ways: nothing is at the path, or a directory is,
+// because `./tables` sits beside a `tables/` folder of vendored JSON.
+const NEEDS_EXTENSION = ['ERR_MODULE_NOT_FOUND', 'ERR_UNSUPPORTED_DIR_IMPORT'];
+const needsExtension = (error: unknown): boolean =>
+    error instanceof Error && 'code' in error && typeof error.code === 'string' && NEEDS_EXTENSION.includes(error.code);
+
+registerHooks({
+    resolve(specifier, context, nextResolve) {
+        if (specifier.endsWith('.json')) {
+            return { ...nextResolve(specifier, context), importAttributes: { type: 'json' } };
+        }
+        try {
+            return nextResolve(specifier, context);
+        } catch (error) {
+            if (!specifier.startsWith('.') || !needsExtension(error)) throw error;
+            return nextResolve(`${specifier}.ts`, context);
+        }
+    }
+});
+
+// Loaded after the hook is in place: a static import resolves the whole graph before any of
+// this file runs, which is too early for the hook to be registered.
+const { allowList } = await import('../src/allowlist.ts');
 
 const packageRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
 const reportPath = join(packageRoot, 'dist', 'parity-report.json');

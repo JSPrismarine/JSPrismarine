@@ -203,8 +203,9 @@ export { createTestEngine, type TestEngine } from './testing';
 export {
     createTestWorld,
     type BlockUpdate,
+    type DestroyedBlock,
+    type MovedBlock,
     type PlayedSound,
-    type SpawnedItem,
     type TestWorld,
     type TestWorldOptions
 } from './testWorld';
@@ -229,11 +230,11 @@ export {
     type BlockEntityData,
     type BlockPosition,
     type BlockRef,
+    type BlockRemoval,
     type BlockStateValue,
     type Difficulty,
     type Dimension,
     type Direction,
-    type DroppedItem,
     type TickKind,
     type Weather,
     type WorldAccess

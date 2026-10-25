@@ -156,11 +156,26 @@ export type Dimension = (typeof DIMENSIONS)[number];
 /** Which of the two Java tick lists a scheduled tick belongs to. */
 export type TickKind = 'block' | 'fluid';
 
-/** Where an item stack came to rest, and what it is. */
-export interface DroppedItem {
-    /** The namespaced Bedrock item identifier. */
-    readonly identifier: string;
-    readonly count: number;
+/** What a block being taken out of the world leaves behind. */
+export interface BlockRemoval {
+    /**
+     * Whether the block's own yield happens, Java's `dropBlock` flag on
+     * `Level.destroyBlock`.
+     *
+     * False for fire, which leaves nothing of the plank it burned. True for a
+     * piston popping a torch and for a stream of water washing one away. It
+     * says nothing about what the block was holding: a chest spills either
+     * way, because that is the block entity's and not the block's.
+     */
+    readonly drops: boolean;
+    /** What stands in its place, air unless the caller names something else. */
+    readonly replacement?: BlockRef;
+    /**
+     * Whether the host runs the neighbor updates the write causes, defaulting
+     * to true. False for a system that notifies the whole structure itself
+     * once every block in it has moved, which is what a piston does.
+     */
+    readonly notifyNeighbors?: boolean;
 }
 
 /**
@@ -202,8 +217,37 @@ export interface WorldAccess {
     hasScheduledTick(kind: TickKind, at: BlockPosition, type: string): boolean;
     /** Whether a queued tick is in the batch the current game tick will run. */
     willTickThisTick(kind: TickKind, at: BlockPosition, type: string): boolean;
-    /** Drop an item stack at one position, which a destroyed pushed block does. */
-    spawnItem(at: BlockPosition, item: DroppedItem): void;
+    /**
+     * Take a block out of the world, Java's `Level.destroyBlock`.
+     *
+     * A system calls this instead of {@link WorldAccess.setBlock} whenever the
+     * block that stood there is meant to be gone rather than rewritten. The
+     * host raises the block's break hooks before it writes, which is what
+     * spills a chest a piston popped or a stream of water reached, and decides
+     * what the block yields from its loot table rather than from a guess here.
+     * This package holds no drop rule of its own for that reason.
+     *
+     * @param at - The block to take out.
+     * @param removal - Whether it yields anything, what stands in its place,
+     *   and whether its neighbors are told.
+     */
+    destroyBlock(at: BlockPosition, removal: BlockRemoval): void;
+    /**
+     * Move a block and the block entity behind it to another position.
+     *
+     * A piston push is a move, not a break followed by a place. Writing the
+     * two blocks separately loses whatever the block was holding, because a
+     * block write clears the block entity at the position, so a pushed chest
+     * arrives empty.
+     *
+     * Neither position's neighbors are notified. The caller does that once
+     * every block in the structure has moved, or a block part way through the
+     * move would react to a world the piston has not finished rearranging.
+     *
+     * @param from - The block to move, left as air.
+     * @param to - Where it lands, overwriting whatever is there.
+     */
+    moveBlock(from: BlockPosition, to: BlockPosition): void;
     /** Play a sound at one position, named by its Bedrock sound event. */
     playSound(at: BlockPosition, sound: string): void;
     /** The world difficulty, which fire spread reads. */

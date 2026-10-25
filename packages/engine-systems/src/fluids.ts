@@ -355,10 +355,13 @@ const spreadTo = (world: WorldAccess, at: BlockPosition, direction: Direction, t
         world.playSound(at, 'minecraft:random.fizz');
         return;
     }
+    // Java's `beforeDestroyingBlock`: the block the stream reached is destroyed rather than
+    // overwritten, so it yields what its loot table says and a chest spills what it held.
     if (!isAir(existing) && fluidKindOf(existing) === undefined) {
-        world.spawnItem(at, { identifier: existing.name, count: 1 });
+        world.destroyBlock(at, { drops: true, replacement: fluidBlockOf(target), notifyNeighbors: true });
+    } else {
+        world.setBlock(at, fluidBlockOf(target), true);
     }
-    world.setBlock(at, fluidBlockOf(target), true);
     if (applyLavaReactions(world, at)) {
         world.scheduleTick('fluid', at, FLUID_BLOCKS[target.kind].flowing, ratesFor(world, target.kind).tickDelay);
     }

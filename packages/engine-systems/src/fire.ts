@@ -96,11 +96,14 @@ export const checkBurnOut = (
     const odds = burnOddsOf(world.getBlock(at));
     if (world.randomInt(chance) >= odds) return;
 
+    // A burned block leaves nothing of itself, which is Java's `removeBlock(pos, false)` and
+    // what makes burning a house cost the house. It still spills what it was holding, so a
+    // chest the fire reached pours its contents out rather than losing them with the block.
     if (world.randomInt(age + 10) < 5 && !world.isRainingAt(at)) {
         const newAge = Math.min(age + Math.floor(world.randomInt(5) / 4), FIRE_MAX_AGE);
-        world.setBlock(at, fireWithAge(newAge), true);
+        world.destroyBlock(at, { drops: false, replacement: fireWithAge(newAge) });
     } else {
-        world.setBlock(at, AIR, true);
+        world.destroyBlock(at, { drops: false });
     }
     updates.updateNeighborsAt(at, FIRE);
 };
@@ -131,6 +134,10 @@ export const fireTick = (
 
     const below = world.getBlock(relative(at, 'down'));
     // `FireBlock.canSurvive`: a solid floor, or something flammable to cling to.
+    //
+    // Fire going out is a plain write rather than a {@link WorldAccess.destroyBlock}, here
+    // and in the two places below. Those are for a block that holds or yields something, and
+    // fire holds nothing, yields nothing and has no block entity to lose.
     if (!hasSturdyTopFace(below) && !isValidFireLocation(world, at)) {
         world.setBlock(at, AIR, true);
         return;

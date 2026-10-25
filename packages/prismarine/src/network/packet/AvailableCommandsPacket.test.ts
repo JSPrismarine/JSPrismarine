@@ -405,6 +405,8 @@ describe('AvailableCommandsPacket', () => {
         const server = stub<Server>({
             emit: async () => {},
             getLogger: () => logger,
+            // No pack stack, so the command layer offers the commands a server without one has.
+            getContent: () => undefined,
             getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
             getPermissionManager: () =>
                 stub<PermissionManager>({

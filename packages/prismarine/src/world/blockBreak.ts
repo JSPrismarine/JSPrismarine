@@ -80,6 +80,24 @@ export interface BlockBreak {
     readonly position: ContentPosition;
     /** Who broke it, absent for a break the world itself performed. */
     readonly player?: Breaker;
+    /**
+     * The radius of the blast that broke it, for a block an explosion took out.
+     *
+     * Java's `LootContextParams.EXPLOSION_RADIUS`. Every vanilla block table reads it through
+     * `minecraft:explosion_decay`, which keeps each item of a rolled stack with a chance of
+     * `1 / radius`, so stone blown up by TNT yields cobblestone three times in four. Absent
+     * for a break nothing exploded, which keeps every item.
+     */
+    readonly explosionRadius?: number;
+    /**
+     * Whether the block's own yield is rolled at all, true unless the caller says otherwise.
+     *
+     * False is Java's `Level.removeBlock(pos, false)`, which fire and a replaced block take:
+     * the hook still runs, so a burning chest spills what it held, and the block itself
+     * leaves nothing. The two are separable because the loot table owns the block's yield and
+     * the block entity owns the rest.
+     */
+    readonly dropsBlock?: boolean;
 }
 
 /**
@@ -246,6 +264,10 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         // it rewrote - stand either way.
         if (player?.gamemode === Gametype.CREATIVE) return [];
 
+        // A block that yields nothing of itself still spills what it was holding, which is
+        // the chest a fire burns through or a stream of water washes away.
+        if (breaking.dropsBlock === false) return spilledContents(captured, contents);
+
         // A block the stack has no table for is one the families are the only drop rule for,
         // which is every Bedrock-only block and the whole of a stack with no Java half.
         if (blockLootTableOf(content, standing.name) === undefined) return [...captured];
@@ -253,7 +275,12 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         const rolled = rollBlockDrops(
             content,
             { identifier: standing.name, states: standing.states },
-            { position, tool: held?.asPredicateStack(), level: lootLevelOf(world) }
+            {
+                position,
+                tool: held?.asPredicateStack(),
+                level: lootLevelOf(world),
+                explosionRadius: breaking.explosionRadius
+            }
         );
 
         return [

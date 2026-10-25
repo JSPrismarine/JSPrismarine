@@ -60,6 +60,23 @@ describe('fire tick', () => {
         expect(test.world.nameAt({ x: 0, y: 2, z: 0 })).toBe(FIRE);
     });
 
+    it('asks the host to take a burned block out, and to leave nothing of it', () => {
+        test.world.place(at(0, 0, 0), stone);
+        test.world.place(at(0), fire());
+        test.world.place(at(1), planks);
+
+        fireTick(test.engine.updates, test.world, at(0));
+
+        // `drops: false` is Java's `removeBlock(pos, false)`: a burned plank leaves nothing.
+        // The host still raises the block's hooks, which is what spills a chest the fire
+        // reached rather than losing what it held with the block.
+        expect(test.world.destroyed).toContainEqual({
+            at: at(1),
+            block: planks,
+            removal: { drops: false, replacement: fire(0) }
+        });
+    });
+
     it('leaves stone alone, because its burn odds are zero', () => {
         test.world.place(at(0, 0, 0), stone);
         test.world.place(at(0), fire());
