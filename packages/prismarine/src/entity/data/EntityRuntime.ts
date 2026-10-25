@@ -162,6 +162,7 @@ export class EntityRuntime implements EntityScene {
         return [...this.entities.values()];
     }
 
+    /** One live entity by its runtime id, or undefined when this index holds no such entity. */
     public byId(id: number): DataEntity | undefined {
         return this.entities.get(id);
     }
