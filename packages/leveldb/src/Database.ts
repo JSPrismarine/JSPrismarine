@@ -229,11 +229,10 @@ export class Database {
         const target = lookupKey(key, MAX_SEQUENCE);
 
         for (const { file } of this.versions.candidates(key)) {
-            for (const entry of this.table(file).seekFrom(target)) {
-                if (compareBytewise(extractUserKey(entry.key), key) !== 0) break;
+            const entry = this.table(file).seek(target);
+            if (entry === null || compareBytewise(extractUserKey(entry.key), key) !== 0) continue;
 
-                return parseInternalKey(entry.key).type === ValueType.Deletion ? null : Buffer.from(entry.value);
-            }
+            return parseInternalKey(entry.key).type === ValueType.Deletion ? null : Buffer.from(entry.value);
         }
 
         return null;

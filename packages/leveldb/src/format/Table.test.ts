@@ -233,7 +233,6 @@ describe('leveldb', () => {
                 // entry and then the data block from its start, so a 1000 key table cost a read of
                 // every block it held. Blocks are 512 bytes here, so there are dozens of them.
                 let reads = 0;
-                const counted = openTable(bytes.subarray()) as unknown as never;
                 const source = bufferSource(bytes);
                 const counting = new TableReader(
                     {
@@ -247,8 +246,8 @@ describe('leveldb', () => {
                     },
                     compareBytewise
                 );
-                void counted;
 
+                // The constructor reads the footer; only the lookup itself is being counted.
                 reads = 0;
                 counting.seek(key('key:00000500'));
 
