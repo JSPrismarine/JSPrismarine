@@ -1,16 +1,9 @@
 import colorParser from '@jsprismarine/color-parser';
 
+import type { LogLevel } from './levels';
+import { isAtLeastLevel } from './levels';
 import type { ConsoleLike, LogTransport } from './transport';
 import { PrismarineTransport } from './transport';
-
-/**
- * A log level.
- * @type {LogLevel}
- * @public
- */
-export type LogLevel = 'error' | 'warn' | 'info' | 'verbose' | 'debug' | 'silly';
-
-const LEVEL_WEIGHT: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 };
 
 /** ANSI open sequence per level, mirroring the palette winston used to apply. */
 const LEVEL_COLOR: Record<LogLevel, string> = {
@@ -84,7 +77,7 @@ export class Logger {
     }
 
     private isLevelEnabled(level: LogLevel): boolean {
-        return !this.closed && LEVEL_WEIGHT[level] <= LEVEL_WEIGHT[this.level];
+        return !this.closed && isAtLeastLevel(level, this.level);
     }
 
     private emit(level: LogLevel, message: string, namespace: string): void {

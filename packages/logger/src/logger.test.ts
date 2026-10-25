@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { LogLevel } from './logger';
+import type { LogLevel } from './levels';
 import { Logger } from './logger';
 
 /** A logger whose output is captured instead of printed. */
