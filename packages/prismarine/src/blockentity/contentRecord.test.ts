@@ -24,14 +24,42 @@ const throughDisk = (nbt: NBTTagCompound): NBTTagCompound => {
 };
 
 describe('blockEntityIdFor', () => {
-    it('names a modeled type the way vanilla spells it', () => {
+    it('names a type the way vanilla spells it', () => {
         expect(blockEntityIdFor('minecraft:chest')).toBe('Chest');
         expect(blockEntityIdFor('minecraft:mob_spawner')).toBe('MobSpawner');
-        expect(blockEntityIdFor('minecraft:shulker_box')).toBe('ShulkerBox');
+        expect(blockEntityIdFor('minecraft:undyed_shulker_box')).toBe('ShulkerBox');
+        expect(blockEntityIdFor('minecraft:chiseled_bookshelf')).toBe('ChiseledBookshelf');
     });
 
-    it('namespaces a type the server does not model rather than guessing a vanilla name', () => {
-        expect(blockEntityIdFor('minecraft:chiseled_bookshelf')).toBe('jsprismarine:chiseled_bookshelf');
+    it('names a type the server has no class for, which is most of them', () => {
+        expect(BlockEntityRegistry.isModeled('Lectern')).toBe(false);
+        expect(blockEntityIdFor('minecraft:lectern')).toBe('Lectern');
+    });
+
+    it('files every spelling of a sign under the one id vanilla uses', () => {
+        // The bug this replaced: a sign came out `jsprismarine:standing_sign`, which the client
+        // ignores, so no sign this server placed ever drew its text.
+        expect(blockEntityIdFor('minecraft:standing_sign')).toBe('Sign');
+        expect(blockEntityIdFor('minecraft:wall_sign')).toBe('Sign');
+        expect(blockEntityIdFor('minecraft:spruce_standing_sign')).toBe('Sign');
+        expect(blockEntityIdFor('minecraft:cherry_wall_sign')).toBe('Sign');
+        expect(blockEntityIdFor('minecraft:warped_hanging_sign')).toBe('HangingSign');
+    });
+
+    it('files the other blocks Bedrock splits across one block entity type', () => {
+        expect(blockEntityIdFor('minecraft:standing_banner')).toBe('Banner');
+        expect(blockEntityIdFor('minecraft:wall_banner')).toBe('Banner');
+        expect(blockEntityIdFor('minecraft:player_head')).toBe('Skull');
+        expect(blockEntityIdFor('minecraft:wither_skeleton_skull')).toBe('Skull');
+        expect(blockEntityIdFor('minecraft:lit_furnace')).toBe('Furnace');
+        expect(blockEntityIdFor('minecraft:trapped_chest')).toBe('Chest');
+        expect(blockEntityIdFor('minecraft:suspicious_gravel')).toBe('BrushableBlock');
+        expect(blockEntityIdFor('minecraft:enchanting_table')).toBe('EnchantTable');
+        expect(blockEntityIdFor('minecraft:sticky_piston_arm_collision')).toBe('PistonArm');
+    });
+
+    it('namespaces a block Bedrock keeps no block entity on', () => {
+        expect(blockEntityIdFor('minecraft:stone')).toBe('jsprismarine:stone');
     });
 });
 
