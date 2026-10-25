@@ -7,15 +7,17 @@ import type { Server } from './';
 import type { CommandManager } from './command/CommandManager';
 import { stub } from './testing/stub.test.helper';
 
-/** A server double that records what the console dispatches. */
+/** A server double that records what the console dispatches and subscribes to. */
 const fakeServer = () => {
     const dispatchCommand = vi.fn(async () => {});
+    const on = vi.fn();
+    const setConsole = vi.fn();
     const server = stub<Server>({
-        on: vi.fn(),
+        on,
         getCommandManager: () => stub<CommandManager>({ dispatchCommand }),
-        getLogger: () => stub<Logger>({ setConsole: vi.fn(), info: vi.fn(), error: vi.fn() })
+        getLogger: () => stub<Logger>({ setConsole, info: vi.fn(), error: vi.fn() })
     });
-    return { server, dispatchCommand };
+    return { server, dispatchCommand, on, setConsole };
 };
 
 describe('Console', () => {
@@ -33,6 +35,32 @@ describe('Console', () => {
                 [console, console, 'help'],
                 [console, console, 'stop']
             ]);
+            await console.disable();
+        });
+
+        it('reads again after a disable and enable, without a second chat subscription', async () => {
+            const { server, dispatchCommand, on } = fakeServer();
+            const input = new PassThrough();
+            const console = new Console(server, input);
+
+            await console.enable();
+            await console.disable();
+            await console.enable();
+            input.write('help\n');
+            await setImmediate();
+
+            expect(dispatchCommand.mock.calls).toEqual([[console, console, 'help']]);
+            expect(on).toHaveBeenCalledTimes(1);
+            await console.disable();
+        });
+
+        it('leaves the logger hookup to the server', async () => {
+            const { server, setConsole } = fakeServer();
+            const console = new Console(server, new PassThrough());
+
+            await console.enable();
+
+            expect(setConsole).not.toHaveBeenCalled();
             await console.disable();
         });
 

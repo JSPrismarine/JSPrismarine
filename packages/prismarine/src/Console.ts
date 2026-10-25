@@ -46,26 +46,28 @@ export default class Console implements CommandExecutor, Service {
     /**
      * Subscribes to chat and starts reading command lines from the input.
      *
-     * Output needs nothing to be set up, so chat forwarding and the logger hookup happen
-     * even when there is no usable input. Input is skipped when the stream is destroyed or
-     * no longer readable, which is what a host that closed stdin leaves behind. A pipe that
-     * stays open but never sends anything, as under the test runner, is harmless: readline
-     * only pauses it again on {@link disable}.
+     * Output needs nothing to be set up, so chat forwarding happens even when there is no
+     * usable input; the server attaches this console to the logger itself. Input is skipped
+     * when the stream is destroyed or no longer readable, which is what a host that closed
+     * stdin leaves behind. A pipe that stays open but never sends anything, as under the test
+     * runner, is harmless: readline only pauses it again on {@link disable}.
+     *
+     * Calling this again after {@link disable} starts reading again. Calling it twice without
+     * a disable in between does nothing the second time.
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
         // A reload enables the server again. The chat subscription must not be added twice,
-        // and the flag rather than the readline covers the case where there was no input.
-        if (this.enabled) return;
-        this.enabled = true;
+        // and it outlives disable(), so it has its own flag rather than riding on the readline.
+        if (!this.enabled) {
+            this.enabled = true;
+            this.server.on('chat', async (evt: ChatEvent) => {
+                if (evt.isCanceled()) return;
+                this.sendMessage(consoleTextOf(evt.getChat()));
+            });
+        }
 
-        this.server.on('chat', async (evt: ChatEvent) => {
-            if (evt.isCanceled()) return;
-            this.sendMessage(consoleTextOf(evt.getChat()));
-        });
-        this.server.getLogger().setConsole(this);
-
-        if (!this.hasUsableInput()) return;
+        if (this.cli !== undefined || !this.hasUsableInput()) return;
 
         this.cli = readline.createInterface({
             input: this.input,
