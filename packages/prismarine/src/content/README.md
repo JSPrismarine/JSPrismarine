@@ -19,7 +19,7 @@ datapack, `buildServerContent()` takes about 3.6 seconds and reports no errors:
 | --- | --- |
 | Blocks, and palette states | 1477, 22079 |
 | Items | 1613 |
-| Entity types, of which brain mobs | 136, 20 |
+| Entity types, of which brain mobs | 129, 20 |
 | Recipes | 2042 |
 | Loot tables | 1447 |
 | Enchantments | 43 |
@@ -28,6 +28,11 @@ datapack, `buildServerContent()` takes about 3.6 seconds and reports no errors:
 | Biomes | 89 |
 | Features, feature rules | 210, 241 |
 | Tags, over 20 tagged registries | 883 |
+
+It reports 47 warnings, all of them about the server rather than about the data: 45 name an entity
+component left unregistered on purpose, one names the crafting item catalog BDS ships as binary
+MCB, and one names the two `entities/npc.json` layer patches a later layer supersedes. Mojang's
+own content loads clean, so a warning that is not one of those three is worth reading.
 
 ## Composition order
 
@@ -41,6 +46,14 @@ which is why the code looks the way it does.
    `pack.missing` warning and left out. `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK`
    point at local copies, and an override that points at nothing is an omission rather than a
    fallback to the cache.
+
+   The Bedrock half is a BDS `behavior_packs` folder holding several packs, and the default
+   composes one of them: the vanilla behavior pack, selected by the header UUID a world
+   references it by. Chemistry is Education Edition content, out of scope by
+   [the plan](../../../../docs/plans/data-driven-vanilla.md) section 12 decision 8; the editor
+   pack's five `editor:` entities are a world author's tools; and the four experimental packs are
+   toggles a world turns on. `PackStackRequest.bedrockPacks` names more of them by UUID, or
+   `'all'` composes the whole folder.
 2. **Load it.** `@jsprismarine/packs` composes the stack into one `Definitions` object, with
    Bedrock definitions replaced whole by a later pack and Java tags merged across packs.
 3. **Check the Java identifiers.** `checkIdentifiers` resolves every Java identifier the stack
