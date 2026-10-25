@@ -9,7 +9,8 @@
         "clean": "rimraf dist *.tsbuildinfo .turbo",
         "test": "vitest run",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
-        "dashboard": "node scripts/dashboard.ts"
+        "dashboard": "node scripts/dashboard.ts",
+        "capture:corpus": "node scripts/capture-corpus.ts"
     },
     "repository": {
         "type": "git",
@@ -34,6 +35,7 @@
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/packs": "workspace:*",
+        "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/recipes": "workspace:*",
         "@jsprismarine/worldgen": "workspace:*",
         "@types/node": "24.19.2",
