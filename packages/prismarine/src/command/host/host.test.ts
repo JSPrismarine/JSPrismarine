@@ -663,6 +663,18 @@ describe('the server command host', () => {
             expect(player.getInventory().getEnderChest().getEntry(3)?.getItem().getName()).toBe('minecraft:stone');
         });
 
+        it('reads the indexed armor spelling as the named one', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('replaceitem entity @a slot.armor 1 minecraft:stone 1')).resolves.toBe(1);
+            await expect(fixture.run('replaceitem entity @a slot.armor.legs 0 minecraft:stone 2')).resolves.toBe(2);
+
+            // Index 1 is the chestplate and `slot.armor.legs` is index 2, so
+            // the two spellings addressed different slots of one container.
+            expect(player.getInventory().getArmor().getEntry(1)?.getCount()).toBe(1);
+            expect(player.getInventory().getArmor().getEntry(2)?.getCount()).toBe(2);
+        });
+
         it('refuses a slot group this server has no container for', async () => {
             playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 

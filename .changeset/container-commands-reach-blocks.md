@@ -18,4 +18,5 @@ only had the entity pair here, and `/loot replace block` reaches the same slots 
 enum holds.
 
 `/replaceitem entity @s slot.enderchest <n>` writes the ender chest, which is a container this
-server has always carried for a player and never let a command name.
+server has always carried for a player and never let a command name, and `slot.armor <n>` reads as
+the four named armor slots it is Bedrock's other spelling of.
