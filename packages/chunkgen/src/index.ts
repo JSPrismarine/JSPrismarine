@@ -16,6 +16,10 @@ export { ChunkDependencies, ChunkReadOutOfWindowError, ChunkStep, ChunkStepBuild
 export type { ChunkStepBody } from './ChunkHolder';
 export { ChunkHolder, ChunkNotReadyError, ChunkStepOutOfOrderError } from './ChunkHolder';
 export { ChunkHolderMap } from './ChunkHolderMap';
+export type { GenerationSchedulerOptions } from './GenerationScheduler';
+export { GenerationScheduler, MissingGenerationLayerError } from './GenerationScheduler';
+export type { NeighborReader, StepTask, StepTasks } from './StepTasks';
+export { StepRegion } from './StepTasks';
 export type {
     HeightmapName,
     ProtoBlockEntity,

@@ -106,6 +106,21 @@ describe('the radii around one chunk reaching full', () => {
     it('does not require full of any neighbor, including the chunk itself', () => {
         expect(GENERATION_PYRAMID.radiusOf('full')).toBe(-1);
     });
+
+    it('gives the target status a layer of its own at radius 0', () => {
+        // Java's `ChunkStep.getAccumulatedRadiusOf` answers 0 for the target rather than reading
+        // the dependency table, which never names the status it belongs to. The layer widths a
+        // scheduler walks are therefore 11, 11, 3, 3, 2, 1, 1, 0, 0, 0 and not an empty last one.
+        const toFull = GENERATION_PYRAMID.stepTo('full');
+        expect(toFull.accumulatedRadiusOf('full')).toBe(0);
+        expect(CHUNK_STATUSES.map((status) => toFull.accumulatedRadiusOf(status))).toEqual([
+            11, 11, 3, 3, 2, 1, 1, 0, 0, 0
+        ]);
+
+        const toTerrain = GENERATION_PYRAMID.stepTo('terrain');
+        expect(toTerrain.accumulatedRadiusOf('terrain')).toBe(0);
+        expect(toTerrain.accumulatedRadiusOf('features')).toBe(-1);
+    });
 });
 
 describe('the two constants Java derives from the full row', () => {
