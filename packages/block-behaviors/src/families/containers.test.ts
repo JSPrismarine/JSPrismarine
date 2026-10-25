@@ -100,6 +100,22 @@ describe('furnaceFamily', () => {
         harness.neighborChanged(origin, 'up');
 
         expect(harness.dimension.stateAt(origin, 'extinguished')).toBe(true);
+        expect(harness.dimension.sounds.map((entry) => entry.name)).toEqual(['random.fizz']);
+    });
+
+    it('does not fizz again at a campfire that is already out', () => {
+        // Every neighbor change reaches the block under water, not just the one that put it
+        // out, so an unconditional fizz is a sound every time anything near it moves.
+        const harness = bindFamily(furnaceFamily, 'minecraft:campfire');
+        harness.dimension.set(origin, 'minecraft:campfire', {
+            extinguished: true,
+            'minecraft:cardinal_direction': 'south'
+        });
+        harness.dimension.set({ x: 0, y: 1, z: 0 }, 'minecraft:water');
+
+        for (let change = 0; change < 5; change++) harness.neighborChanged(origin, 'up');
+
+        expect(harness.dimension.sounds).toEqual([]);
     });
 });
 
