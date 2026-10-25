@@ -99,7 +99,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Serve
         dimension
     });
 
-    const entities = worldEntityAccess({ world, content });
+    const entities = worldEntityAccess(world);
     const effects = worldEffectSink(world, dimension);
 
     return {
