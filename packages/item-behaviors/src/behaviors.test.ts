@@ -242,7 +242,7 @@ describe('tools', () => {
         expect(recording.did('consume-durability')).toBe(false);
     });
 
-    it('strips a log with an axe and pays a point for it', () => {
+    it('strips a log with an axe and spends a point of durability', () => {
         const recording = withWorld({
             transforms: {
                 'minecraft:axe|minecraft:oak_log': { identifier: 'minecraft:stripped_oak_log', states: { axis: 'y' } }
@@ -261,7 +261,7 @@ describe('tools', () => {
         expect(useOn(stackOf('minecraft:diamond_hoe'), testBlock('minecraft:stone'))).toBeUndefined();
     });
 
-    it('shears an entity and pays a point', () => {
+    it('shears an entity and spends a point of durability', () => {
         const target = testSource('minecraft:sheep', 7);
         const recording = withWorld({ target });
         const result = use(stackOf('minecraft:shears'));
@@ -524,7 +524,7 @@ describe('buckets', () => {
 });
 
 describe('fire, fertilizing and the other engine interactions', () => {
-    it('lights a block with flint and steel and pays a point', () => {
+    it('lights a block with flint and steel and spends a point of durability', () => {
         const recording = withWorld();
         const result = useOn(stackOf('minecraft:flint_and_steel'), testBlock('minecraft:netherrack'));
         expect(recording.performed('ignite')).toEqual([
@@ -590,7 +590,7 @@ describe('fire, fertilizing and the other engine interactions', () => {
         expect(recording.performed('place-block')[0]?.placement.identifier).toBe('minecraft:waxed_copper_block');
     });
 
-    it('brushes a block and only pays when the stroke finishes', () => {
+    it('brushes a block and spends durability only when the stroke finishes', () => {
         const recording = withWorld();
         const brush = stackOf('minecraft:brush');
         expect(useOn(brush, testBlock('minecraft:suspicious_sand'))).toEqual({});

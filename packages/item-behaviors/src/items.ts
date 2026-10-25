@@ -49,8 +49,8 @@ export interface DeferredItemFactory extends ItemFactory {
  *
  * `registerVanillaItemBehaviors` runs before `loadItemTypes`, and the
  * registry it would need does not exist until after. Nothing calls the
- * factory until a hook fires, which is later still, so the knot unties with
- * one indirection.
+ * factory until a hook fires, which is later still, so one indirection is
+ * enough.
  */
 export const deferredItemFactory = (): DeferredItemFactory => {
     let bound: ItemRegistry | undefined;

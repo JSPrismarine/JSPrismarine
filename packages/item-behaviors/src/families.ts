@@ -105,8 +105,8 @@ const minesByTag: FamilyRule = (item) =>
  *
  * The order is "named before derived": a family the data cannot express names
  * its items, and the component rules below it catch everything the data does
- * express. Swapping two rows changes the partition, so the counts test is the
- * guard on this list.
+ * express. Swapping two rows changes the partition, which is what the counts
+ * test in `families.test.ts` catches.
  */
 export const ITEM_FAMILIES = [
     {
