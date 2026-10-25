@@ -41,8 +41,10 @@ it when it is missing.
 New servers keep their settings in `config.json` in the working directory
 (`jsp/` during development). The server creates it on first start, with every
 setting preceded by a comment explaining it and a `$schema` URL for the
-matching package version. Existing `config.yaml` files remain in use when
-`config.json` is absent; if both files exist, `config.json` takes precedence.
+matching package version. On first start, an existing `config.yml` or
+`config.yaml` is converted to `config.json`; its values and comments are carried
+over, and the YAML file stays in place. If both a YAML file and `config.json`
+exist, `config.json` takes precedence.
 
 The file is yours to edit. The server only ever changes the key it is
 writing: your comments, blank lines and the order of the keys stay as they
