@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+
 import type { LogLevel } from '@jsprismarine/logger';
 import type { WorldData } from '../world/WorldManager';
 import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
@@ -9,7 +11,14 @@ import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 
 const isDev = process.env.NODE_ENV === 'development';
 
-const FILE_NAME = 'config.yaml';
+const FILE_NAME = 'config.json';
+const LEGACY_FILE_NAME = 'config.yaml';
+
+const configFilePath = (): string => {
+    const file = withCwd(FILE_NAME);
+    const legacyFile = withCwd(LEGACY_FILE_NAME);
+    return !fs.existsSync(file) && fs.existsSync(legacyFile) ? legacyFile : file;
+};
 
 /** The difficulty names a config file may use, as the protocol numbers them. */
 const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
@@ -54,7 +63,7 @@ const COMMENTS = {
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
 } as const satisfies Record<keyof ConfigFile, string>;
 
-/** Runtime settings that take precedence over values in config.yaml. */
+/** Runtime settings that take precedence over values in the server config file. */
 export interface ConfigOptions {
     /** Port the server listens on. */
     serverPort?: number;
@@ -146,11 +155,11 @@ export class Config {
     /**
      * Creates the server configuration.
      *
-     * @param options - runtime values that override corresponding config.yaml settings.
+     * @param options - runtime values that override settings in the server config file.
      */
     public constructor({ serverPort }: ConfigOptions = {}) {
         this.serverPortOverride = serverPort;
-        this.configBuilder = new ConfigBuilder(withCwd(FILE_NAME));
+        this.configBuilder = new ConfigBuilder(configFilePath());
         this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info', COMMENTS['log-level']);
     }
 
@@ -163,7 +172,7 @@ export class Config {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        const config = new ConfigBuilder(withCwd(FILE_NAME));
+        const config = new ConfigBuilder(configFilePath());
         this.configBuilder = config;
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
@@ -269,7 +278,7 @@ export class Config {
      * Set the default gamemode.
      *
      * @param gamemode - the gamemode
-     * @param commit - if the value should be written to the `config.yml` file
+     * @param commit - whether to write the value to the server config file
      */
     public setGamemode(gamemode: number, commit = false) {
         this.gamemode = getGametypeName(gamemode);
@@ -289,7 +298,7 @@ export class Config {
      * Set the motd.
      *
      * @param motd - the gamemode
-     * @param commit - if the value should be written to the `config.yml` file
+     * @param commit - whether to write the value to the server config file
      */
     public setMotd(motd: string, commit = false) {
         this.motd = motd;
