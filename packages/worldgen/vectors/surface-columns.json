@@ -1,0 +1,2893 @@
+{
+    "seed": "1234",
+    "chunkX": 3,
+    "chunkZ": -5,
+    "dimensions": [
+        {
+            "settings": "minecraft:overworld",
+            "materialRule": "minecraft:overworld",
+            "biomeSource": "overworld",
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:bedrock",
+                            "-63 66 minecraft:deepslate",
+                            "3 1 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 35 minecraft:stone",
+                            "50 1 minecraft:gravel",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 67 minecraft:deepslate",
+                            "5 1 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 29 minecraft:stone",
+                            "50 1 minecraft:gravel",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 61 minecraft:deepslate",
+                            "1 1 minecraft:stone",
+                            "2 3 minecraft:deepslate",
+                            "5 4 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 7 minecraft:stone",
+                            "48 1 minecraft:gravel",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 1 minecraft:deepslate",
+                            "-61 1 minecraft:bedrock",
+                            "-60 63 minecraft:deepslate",
+                            "3 1 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 31 minecraft:stone",
+                            "45 1 minecraft:gravel",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 63 minecraft:deepslate",
+                            "1 1 minecraft:stone",
+                            "2 1 minecraft:deepslate",
+                            "3 2 minecraft:stone",
+                            "5 1 minecraft:deepslate",
+                            "6 12 minecraft:water",
+                            "18 17 minecraft:stone",
+                            "35 1 minecraft:gravel",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 3 minecraft:bedrock",
+                            "-61 65 minecraft:deepslate",
+                            "4 2 minecraft:stone",
+                            "6 1 minecraft:deepslate",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 9 minecraft:stone",
+                            "32 1 minecraft:gravel",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 5 minecraft:bedrock",
+                            "-59 62 minecraft:deepslate",
+                            "3 1 minecraft:stone",
+                            "4 1 minecraft:deepslate",
+                            "5 45 minecraft:stone",
+                            "50 1 minecraft:gravel",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 64 minecraft:deepslate",
+                            "4 2 minecraft:stone",
+                            "6 1 minecraft:deepslate",
+                            "7 41 minecraft:stone",
+                            "48 1 minecraft:gravel",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 53 minecraft:deepslate",
+                            "-7 6 minecraft:air",
+                            "-1 4 minecraft:deepslate",
+                            "3 1 minecraft:stone",
+                            "4 1 minecraft:deepslate",
+                            "5 43 minecraft:stone",
+                            "48 1 minecraft:gravel",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "settings": "minecraft:nether",
+            "materialRule": "minecraft:nether",
+            "biomeSource": "nether",
+            "columns": {
+                "minY": 0,
+                "height": 128,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 3 minecraft:bedrock",
+                            "3 52 minecraft:netherrack",
+                            "55 3 minecraft:air",
+                            "58 45 minecraft:netherrack",
+                            "103 4 minecraft:air",
+                            "107 16 minecraft:netherrack",
+                            "123 3 minecraft:bedrock",
+                            "126 1 minecraft:netherrack",
+                            "127 1 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 2 minecraft:bedrock",
+                            "2 1 minecraft:netherrack",
+                            "3 2 minecraft:bedrock",
+                            "5 50 minecraft:netherrack",
+                            "55 5 minecraft:air",
+                            "60 40 minecraft:netherrack",
+                            "100 8 minecraft:air",
+                            "108 18 minecraft:netherrack",
+                            "126 2 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 1 minecraft:bedrock",
+                            "1 1 minecraft:netherrack",
+                            "2 1 minecraft:bedrock",
+                            "3 52 minecraft:netherrack",
+                            "55 5 minecraft:air",
+                            "60 29 minecraft:netherrack",
+                            "89 20 minecraft:air",
+                            "109 16 minecraft:netherrack",
+                            "125 1 minecraft:bedrock",
+                            "126 1 minecraft:netherrack",
+                            "127 1 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 3 minecraft:bedrock",
+                            "3 53 minecraft:netherrack",
+                            "56 1 minecraft:air",
+                            "57 46 minecraft:netherrack",
+                            "103 3 minecraft:air",
+                            "106 18 minecraft:netherrack",
+                            "124 2 minecraft:bedrock",
+                            "126 1 minecraft:netherrack",
+                            "127 1 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 1 minecraft:bedrock",
+                            "1 2 minecraft:netherrack",
+                            "3 1 minecraft:bedrock",
+                            "4 52 minecraft:netherrack",
+                            "56 2 minecraft:air",
+                            "58 41 minecraft:netherrack",
+                            "99 8 minecraft:air",
+                            "107 17 minecraft:netherrack",
+                            "124 4 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 3 minecraft:bedrock",
+                            "3 1 minecraft:netherrack",
+                            "4 1 minecraft:bedrock",
+                            "5 89 minecraft:netherrack",
+                            "94 14 minecraft:air",
+                            "108 16 minecraft:netherrack",
+                            "124 4 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 2 minecraft:bedrock",
+                            "2 2 minecraft:netherrack",
+                            "4 1 minecraft:bedrock",
+                            "5 97 minecraft:netherrack",
+                            "102 4 minecraft:air",
+                            "106 18 minecraft:netherrack",
+                            "124 4 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 3 minecraft:bedrock",
+                            "3 97 minecraft:netherrack",
+                            "100 8 minecraft:air",
+                            "108 15 minecraft:netherrack",
+                            "123 1 minecraft:bedrock",
+                            "124 1 minecraft:netherrack",
+                            "125 3 minecraft:bedrock"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:nether_wastes",
+                        "runs": [
+                            "0 4 minecraft:bedrock",
+                            "4 94 minecraft:netherrack",
+                            "98 1 minecraft:soul_sand",
+                            "99 10 minecraft:air",
+                            "109 14 minecraft:netherrack",
+                            "123 2 minecraft:bedrock",
+                            "125 1 minecraft:netherrack",
+                            "126 2 minecraft:bedrock"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "settings": "minecraft:end",
+            "materialRule": "minecraft:end",
+            "biomeSource": "end",
+            "columns": {
+                "minY": 0,
+                "height": 128,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 19 minecraft:air", "19 37 minecraft:end_stone", "56 72 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 20 minecraft:air", "20 34 minecraft:end_stone", "54 74 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 24 minecraft:air", "24 32 minecraft:end_stone", "56 72 minecraft:air"]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 18 minecraft:air", "18 39 minecraft:end_stone", "57 71 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 19 minecraft:air", "19 37 minecraft:end_stone", "56 72 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 20 minecraft:air", "20 35 minecraft:end_stone", "55 73 minecraft:air"]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 17 minecraft:air", "17 41 minecraft:end_stone", "58 70 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 19 minecraft:air", "19 38 minecraft:end_stone", "57 71 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:the_end",
+                        "runs": ["0 20 minecraft:air", "20 36 minecraft:end_stone", "56 72 minecraft:air"]
+                    }
+                ]
+            }
+        }
+    ],
+    "conditions": [
+        {
+            "name": "above_preliminary_surface",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:above_preliminary_surface"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:diamond_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 12 minecraft:stone",
+                            "27 24 minecraft:diamond_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 6 minecraft:stone",
+                            "27 24 minecraft:diamond_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 3 minecraft:stone",
+                            "26 2 minecraft:diamond_block",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:diamond_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 14 minecraft:stone",
+                            "28 18 minecraft:diamond_block",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 9 minecraft:stone",
+                            "27 9 minecraft:diamond_block",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 3 minecraft:stone",
+                            "26 7 minecraft:diamond_block",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 92 minecraft:stone",
+                            "28 23 minecraft:diamond_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 91 minecraft:stone",
+                            "27 22 minecraft:diamond_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 28 minecraft:stone",
+                            "27 22 minecraft:diamond_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "biome",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:biome",
+                    "biome_is": [
+                        "minecraft:plains",
+                        "minecraft:ocean",
+                        "minecraft:snowy_slopes",
+                        "minecraft:nether_wastes",
+                        "minecraft:the_end"
+                    ]
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:gold_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:gold_block",
+                            "-60 1 minecraft:stone",
+                            "-59 2 minecraft:gold_block",
+                            "-57 4 minecraft:stone",
+                            "-53 5 minecraft:gold_block",
+                            "-48 21 minecraft:stone",
+                            "-27 1 minecraft:gold_block",
+                            "-26 7 minecraft:stone",
+                            "-19 9 minecraft:gold_block",
+                            "-10 6 minecraft:stone",
+                            "-4 3 minecraft:gold_block",
+                            "-1 2 minecraft:stone",
+                            "1 2 minecraft:gold_block",
+                            "3 1 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 1 minecraft:gold_block",
+                            "16 7 minecraft:stone",
+                            "23 1 minecraft:gold_block",
+                            "24 10 minecraft:stone",
+                            "34 4 minecraft:gold_block",
+                            "38 1 minecraft:stone",
+                            "39 6 minecraft:gold_block",
+                            "45 4 minecraft:stone",
+                            "49 1 minecraft:gold_block",
+                            "50 1 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:gold_block",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:gold_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:gold_block",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:gold_block",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:gold_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:gold_block",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:gold_block",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:gold_block",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:gold_block",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:gold_block",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:gold_block",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:gold_block",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:gold_block", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:gold_block", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:gold_block",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:gold_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "noise_threshold_2d",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:noise_threshold",
+                    "noise": "minecraft:surface",
+                    "min_threshold": 0.1,
+                    "max_threshold": 1.7976931348623157e308
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:emerald_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:emerald_block",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:emerald_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:emerald_block",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:emerald_block",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:emerald_block", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:emerald_block", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "noise_threshold_3d",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:noise_threshold",
+                    "noise": "minecraft:calcite",
+                    "min_threshold": -0.0125,
+                    "max_threshold": 0.0125,
+                    "is_3d": true
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:calcite"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "vertical_gradient",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:vertical_gradient",
+                    "random_name": "minecraft:bedrock_floor",
+                    "true_at_and_below": {
+                        "above_bottom": 0
+                    },
+                    "false_at_and_above": {
+                        "above_bottom": 5
+                    }
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:bedrock"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:bedrock",
+                            "-63 67 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 68 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 69 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 1 minecraft:stone",
+                            "-61 1 minecraft:bedrock",
+                            "-60 64 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 2 minecraft:bedrock",
+                            "-62 68 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 3 minecraft:bedrock",
+                            "-61 68 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 5 minecraft:bedrock",
+                            "-59 110 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 109 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 4 minecraft:bedrock",
+                            "-60 53 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "y_above",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:y_above",
+                    "anchor": {
+                        "absolute": 62
+                    },
+                    "surface_depth_multiplier": 2,
+                    "add_stone_depth": true
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:iron_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "water",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:water",
+                    "offset": -6,
+                    "surface_depth_multiplier": -1,
+                    "add_stone_depth": true
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:lapis_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:lapis_block",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "temperature",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:temperature"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:snow_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "steep",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:steep"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:stone"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "not",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:not",
+                    "invert": {
+                        "type": "minecraft:water",
+                        "offset": 0,
+                        "surface_depth_multiplier": 0,
+                        "add_stone_depth": false
+                    }
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:dirt"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:dirt",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:dirt",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:dirt",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:dirt",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:dirt",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:dirt",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:dirt",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:dirt",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:dirt",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:dirt",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:dirt",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:dirt",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:dirt",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:dirt",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:dirt", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:dirt", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:dirt",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "hole",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:hole"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:coal_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "stone_depth_floor",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:stone_depth",
+                    "offset": 0,
+                    "add_surface_depth": true,
+                    "secondary_depth_range": 6,
+                    "surface_type": "floor"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:redstone_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 29 minecraft:stone",
+                            "44 7 minecraft:redstone_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 23 minecraft:stone",
+                            "44 7 minecraft:redstone_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 2 minecraft:stone",
+                            "43 6 minecraft:redstone_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 24 minecraft:stone",
+                            "38 8 minecraft:redstone_block",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 11 minecraft:stone",
+                            "29 7 minecraft:redstone_block",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 4 minecraft:stone",
+                            "27 6 minecraft:redstone_block",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 107 minecraft:stone",
+                            "43 8 minecraft:redstone_block",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 106 minecraft:stone",
+                            "42 7 minecraft:redstone_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 49 minecraft:stone",
+                            "-15 8 minecraft:redstone_block",
+                            "-7 6 minecraft:air",
+                            "-1 42 minecraft:stone",
+                            "41 8 minecraft:redstone_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "stone_depth_ceiling",
+            "rule": {
+                "type": "minecraft:condition",
+                "if_true": {
+                    "type": "minecraft:stone_depth",
+                    "offset": 0,
+                    "add_surface_depth": true,
+                    "secondary_depth_range": 30,
+                    "surface_type": "ceiling"
+                },
+                "then_run": {
+                    "type": "minecraft:block",
+                    "result_state": "minecraft:slime_block"
+                }
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 20 minecraft:slime_block",
+                            "-44 48 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 20 minecraft:slime_block",
+                            "35 16 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 19 minecraft:slime_block",
+                            "-45 51 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 19 minecraft:slime_block",
+                            "40 11 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 19 minecraft:slime_block",
+                            "-45 54 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:slime_block",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:slime_block",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 22 minecraft:slime_block",
+                            "-42 46 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 22 minecraft:slime_block",
+                            "36 10 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 21 minecraft:slime_block",
+                            "-43 49 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:slime_block",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 21 minecraft:slime_block",
+                            "-43 50 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:slime_block",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:slime_block",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 22 minecraft:slime_block",
+                            "-42 93 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 23 minecraft:slime_block",
+                            "-41 90 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 24 minecraft:slime_block",
+                            "-40 33 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 24 minecraft:slime_block",
+                            "23 26 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "sequence_and_bandlands",
+            "rule": {
+                "type": "minecraft:sequence",
+                "sequence": [
+                    {
+                        "type": "minecraft:condition",
+                        "if_true": {
+                            "type": "minecraft:y_above",
+                            "anchor": {
+                                "absolute": 100
+                            },
+                            "surface_depth_multiplier": 0,
+                            "add_stone_depth": false
+                        },
+                        "then_run": {
+                            "type": "minecraft:block",
+                            "result_state": "minecraft:glass"
+                        }
+                    },
+                    {
+                        "type": "minecraft:bandlands"
+                    }
+                ]
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:red_terracotta",
+                            "-63 1 minecraft:terracotta",
+                            "-62 1 minecraft:orange_terracotta",
+                            "-61 3 minecraft:brown_terracotta",
+                            "-58 1 minecraft:terracotta",
+                            "-57 1 minecraft:orange_terracotta",
+                            "-56 3 minecraft:yellow_terracotta",
+                            "-53 2 minecraft:terracotta",
+                            "-51 1 minecraft:red_terracotta",
+                            "-50 1 minecraft:terracotta",
+                            "-49 1 minecraft:brown_terracotta",
+                            "-48 3 minecraft:red_terracotta",
+                            "-45 3 minecraft:brown_terracotta",
+                            "-42 1 minecraft:orange_terracotta",
+                            "-41 2 minecraft:terracotta",
+                            "-39 3 minecraft:red_terracotta",
+                            "-36 1 minecraft:orange_terracotta",
+                            "-35 2 minecraft:terracotta",
+                            "-33 2 minecraft:red_terracotta",
+                            "-31 3 minecraft:brown_terracotta",
+                            "-28 1 minecraft:orange_terracotta",
+                            "-27 1 minecraft:terracotta",
+                            "-26 1 minecraft:orange_terracotta",
+                            "-25 2 minecraft:terracotta",
+                            "-23 1 minecraft:orange_terracotta",
+                            "-22 5 minecraft:terracotta",
+                            "-17 3 minecraft:yellow_terracotta",
+                            "-14 1 minecraft:terracotta",
+                            "-13 1 minecraft:orange_terracotta",
+                            "-12 3 minecraft:yellow_terracotta",
+                            "-9 1 minecraft:terracotta",
+                            "-8 1 minecraft:orange_terracotta",
+                            "-7 1 minecraft:terracotta",
+                            "-6 1 minecraft:orange_terracotta",
+                            "-5 1 minecraft:red_terracotta",
+                            "-4 1 minecraft:terracotta",
+                            "-3 1 minecraft:orange_terracotta",
+                            "-2 1 minecraft:terracotta",
+                            "-1 2 minecraft:yellow_terracotta",
+                            "1 1 minecraft:terracotta",
+                            "2 1 minecraft:white_terracotta",
+                            "3 1 minecraft:terracotta",
+                            "4 11 minecraft:water",
+                            "15 2 minecraft:terracotta",
+                            "17 1 minecraft:orange_terracotta",
+                            "18 2 minecraft:red_terracotta",
+                            "20 2 minecraft:brown_terracotta",
+                            "22 3 minecraft:red_terracotta",
+                            "25 1 minecraft:terracotta",
+                            "26 1 minecraft:orange_terracotta",
+                            "27 1 minecraft:terracotta",
+                            "28 1 minecraft:orange_terracotta",
+                            "29 1 minecraft:terracotta",
+                            "30 1 minecraft:white_terracotta",
+                            "31 1 minecraft:light_gray_terracotta",
+                            "32 1 minecraft:yellow_terracotta",
+                            "33 1 minecraft:orange_terracotta",
+                            "34 2 minecraft:terracotta",
+                            "36 1 minecraft:red_terracotta",
+                            "37 1 minecraft:brown_terracotta",
+                            "38 3 minecraft:terracotta",
+                            "41 1 minecraft:orange_terracotta",
+                            "42 1 minecraft:terracotta",
+                            "43 2 minecraft:yellow_terracotta",
+                            "45 2 minecraft:terracotta",
+                            "47 1 minecraft:light_gray_terracotta",
+                            "48 1 minecraft:white_terracotta",
+                            "49 1 minecraft:light_gray_terracotta",
+                            "50 1 minecraft:yellow_terracotta",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:red_terracotta",
+                            "-63 1 minecraft:terracotta",
+                            "-62 1 minecraft:orange_terracotta",
+                            "-61 3 minecraft:brown_terracotta",
+                            "-58 1 minecraft:terracotta",
+                            "-57 1 minecraft:orange_terracotta",
+                            "-56 3 minecraft:yellow_terracotta",
+                            "-53 2 minecraft:terracotta",
+                            "-51 1 minecraft:red_terracotta",
+                            "-50 1 minecraft:terracotta",
+                            "-49 1 minecraft:brown_terracotta",
+                            "-48 3 minecraft:red_terracotta",
+                            "-45 3 minecraft:brown_terracotta",
+                            "-42 1 minecraft:orange_terracotta",
+                            "-41 2 minecraft:terracotta",
+                            "-39 3 minecraft:red_terracotta",
+                            "-36 1 minecraft:orange_terracotta",
+                            "-35 2 minecraft:terracotta",
+                            "-33 2 minecraft:red_terracotta",
+                            "-31 3 minecraft:brown_terracotta",
+                            "-28 1 minecraft:orange_terracotta",
+                            "-27 1 minecraft:terracotta",
+                            "-26 1 minecraft:orange_terracotta",
+                            "-25 2 minecraft:terracotta",
+                            "-23 1 minecraft:orange_terracotta",
+                            "-22 5 minecraft:terracotta",
+                            "-17 3 minecraft:yellow_terracotta",
+                            "-14 1 minecraft:terracotta",
+                            "-13 1 minecraft:orange_terracotta",
+                            "-12 3 minecraft:yellow_terracotta",
+                            "-9 1 minecraft:terracotta",
+                            "-8 1 minecraft:orange_terracotta",
+                            "-7 1 minecraft:terracotta",
+                            "-6 1 minecraft:orange_terracotta",
+                            "-5 1 minecraft:red_terracotta",
+                            "-4 1 minecraft:terracotta",
+                            "-3 1 minecraft:orange_terracotta",
+                            "-2 1 minecraft:terracotta",
+                            "-1 2 minecraft:yellow_terracotta",
+                            "1 1 minecraft:terracotta",
+                            "2 1 minecraft:white_terracotta",
+                            "3 3 minecraft:terracotta",
+                            "6 15 minecraft:water",
+                            "21 1 minecraft:brown_terracotta",
+                            "22 3 minecraft:red_terracotta",
+                            "25 1 minecraft:terracotta",
+                            "26 1 minecraft:orange_terracotta",
+                            "27 1 minecraft:terracotta",
+                            "28 1 minecraft:orange_terracotta",
+                            "29 1 minecraft:terracotta",
+                            "30 1 minecraft:white_terracotta",
+                            "31 1 minecraft:light_gray_terracotta",
+                            "32 1 minecraft:yellow_terracotta",
+                            "33 1 minecraft:orange_terracotta",
+                            "34 2 minecraft:terracotta",
+                            "36 1 minecraft:red_terracotta",
+                            "37 1 minecraft:brown_terracotta",
+                            "38 3 minecraft:terracotta",
+                            "41 1 minecraft:orange_terracotta",
+                            "42 1 minecraft:terracotta",
+                            "43 2 minecraft:yellow_terracotta",
+                            "45 2 minecraft:terracotta",
+                            "47 1 minecraft:light_gray_terracotta",
+                            "48 1 minecraft:white_terracotta",
+                            "49 1 minecraft:light_gray_terracotta",
+                            "50 1 minecraft:yellow_terracotta",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 1 minecraft:terracotta",
+                            "7 1 minecraft:orange_terracotta",
+                            "8 1 minecraft:terracotta",
+                            "9 14 minecraft:water",
+                            "23 1 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 13 minecraft:water",
+                            "41 1 minecraft:terracotta",
+                            "42 2 minecraft:yellow_terracotta",
+                            "44 2 minecraft:terracotta",
+                            "46 1 minecraft:light_gray_terracotta",
+                            "47 1 minecraft:white_terracotta",
+                            "48 1 minecraft:light_gray_terracotta",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 2 minecraft:terracotta",
+                            "4 10 minecraft:water",
+                            "14 2 minecraft:terracotta",
+                            "16 1 minecraft:orange_terracotta",
+                            "17 2 minecraft:red_terracotta",
+                            "19 2 minecraft:brown_terracotta",
+                            "21 3 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 2 minecraft:terracotta",
+                            "35 1 minecraft:red_terracotta",
+                            "36 1 minecraft:brown_terracotta",
+                            "37 3 minecraft:terracotta",
+                            "40 1 minecraft:orange_terracotta",
+                            "41 1 minecraft:terracotta",
+                            "42 2 minecraft:yellow_terracotta",
+                            "44 2 minecraft:terracotta",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 12 minecraft:water",
+                            "18 1 minecraft:red_terracotta",
+                            "19 2 minecraft:brown_terracotta",
+                            "21 3 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 2 minecraft:terracotta",
+                            "35 1 minecraft:red_terracotta",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 1 minecraft:terracotta",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:brown_terracotta",
+                            "21 2 minecraft:water",
+                            "23 1 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 1 minecraft:terracotta",
+                            "7 1 minecraft:orange_terracotta",
+                            "8 1 minecraft:terracotta",
+                            "9 1 minecraft:red_terracotta",
+                            "10 1 minecraft:white_terracotta",
+                            "11 1 minecraft:light_gray_terracotta",
+                            "12 1 minecraft:orange_terracotta",
+                            "13 3 minecraft:terracotta",
+                            "16 1 minecraft:orange_terracotta",
+                            "17 2 minecraft:red_terracotta",
+                            "19 2 minecraft:brown_terracotta",
+                            "21 3 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 2 minecraft:terracotta",
+                            "35 1 minecraft:red_terracotta",
+                            "36 1 minecraft:brown_terracotta",
+                            "37 3 minecraft:terracotta",
+                            "40 1 minecraft:orange_terracotta",
+                            "41 1 minecraft:terracotta",
+                            "42 2 minecraft:yellow_terracotta",
+                            "44 2 minecraft:terracotta",
+                            "46 1 minecraft:light_gray_terracotta",
+                            "47 1 minecraft:white_terracotta",
+                            "48 1 minecraft:light_gray_terracotta",
+                            "49 1 minecraft:yellow_terracotta",
+                            "50 1 minecraft:terracotta",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 1 minecraft:orange_terracotta",
+                            "-6 1 minecraft:red_terracotta",
+                            "-5 1 minecraft:terracotta",
+                            "-4 1 minecraft:orange_terracotta",
+                            "-3 1 minecraft:terracotta",
+                            "-2 2 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 1 minecraft:terracotta",
+                            "7 1 minecraft:orange_terracotta",
+                            "8 1 minecraft:terracotta",
+                            "9 1 minecraft:red_terracotta",
+                            "10 1 minecraft:white_terracotta",
+                            "11 1 minecraft:light_gray_terracotta",
+                            "12 1 minecraft:orange_terracotta",
+                            "13 3 minecraft:terracotta",
+                            "16 1 minecraft:orange_terracotta",
+                            "17 2 minecraft:red_terracotta",
+                            "19 2 minecraft:brown_terracotta",
+                            "21 3 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 2 minecraft:terracotta",
+                            "35 1 minecraft:red_terracotta",
+                            "36 1 minecraft:brown_terracotta",
+                            "37 3 minecraft:terracotta",
+                            "40 1 minecraft:orange_terracotta",
+                            "41 1 minecraft:terracotta",
+                            "42 2 minecraft:yellow_terracotta",
+                            "44 2 minecraft:terracotta",
+                            "46 1 minecraft:light_gray_terracotta",
+                            "47 1 minecraft:white_terracotta",
+                            "48 1 minecraft:light_gray_terracotta",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 1 minecraft:terracotta",
+                            "-63 1 minecraft:orange_terracotta",
+                            "-62 3 minecraft:brown_terracotta",
+                            "-59 1 minecraft:terracotta",
+                            "-58 1 minecraft:orange_terracotta",
+                            "-57 3 minecraft:yellow_terracotta",
+                            "-54 2 minecraft:terracotta",
+                            "-52 1 minecraft:red_terracotta",
+                            "-51 1 minecraft:terracotta",
+                            "-50 1 minecraft:brown_terracotta",
+                            "-49 3 minecraft:red_terracotta",
+                            "-46 3 minecraft:brown_terracotta",
+                            "-43 1 minecraft:orange_terracotta",
+                            "-42 2 minecraft:terracotta",
+                            "-40 3 minecraft:red_terracotta",
+                            "-37 1 minecraft:orange_terracotta",
+                            "-36 2 minecraft:terracotta",
+                            "-34 2 minecraft:red_terracotta",
+                            "-32 3 minecraft:brown_terracotta",
+                            "-29 1 minecraft:orange_terracotta",
+                            "-28 1 minecraft:terracotta",
+                            "-27 1 minecraft:orange_terracotta",
+                            "-26 2 minecraft:terracotta",
+                            "-24 1 minecraft:orange_terracotta",
+                            "-23 5 minecraft:terracotta",
+                            "-18 3 minecraft:yellow_terracotta",
+                            "-15 1 minecraft:terracotta",
+                            "-14 1 minecraft:orange_terracotta",
+                            "-13 3 minecraft:yellow_terracotta",
+                            "-10 1 minecraft:terracotta",
+                            "-9 1 minecraft:orange_terracotta",
+                            "-8 1 minecraft:terracotta",
+                            "-7 6 minecraft:air",
+                            "-1 1 minecraft:yellow_terracotta",
+                            "0 1 minecraft:terracotta",
+                            "1 1 minecraft:white_terracotta",
+                            "2 3 minecraft:terracotta",
+                            "5 1 minecraft:orange_terracotta",
+                            "6 1 minecraft:terracotta",
+                            "7 1 minecraft:orange_terracotta",
+                            "8 1 minecraft:terracotta",
+                            "9 1 minecraft:red_terracotta",
+                            "10 1 minecraft:white_terracotta",
+                            "11 1 minecraft:light_gray_terracotta",
+                            "12 1 minecraft:orange_terracotta",
+                            "13 3 minecraft:terracotta",
+                            "16 1 minecraft:orange_terracotta",
+                            "17 2 minecraft:red_terracotta",
+                            "19 2 minecraft:brown_terracotta",
+                            "21 3 minecraft:red_terracotta",
+                            "24 1 minecraft:terracotta",
+                            "25 1 minecraft:orange_terracotta",
+                            "26 1 minecraft:terracotta",
+                            "27 1 minecraft:orange_terracotta",
+                            "28 1 minecraft:terracotta",
+                            "29 1 minecraft:white_terracotta",
+                            "30 1 minecraft:light_gray_terracotta",
+                            "31 1 minecraft:yellow_terracotta",
+                            "32 1 minecraft:orange_terracotta",
+                            "33 2 minecraft:terracotta",
+                            "35 1 minecraft:red_terracotta",
+                            "36 1 minecraft:brown_terracotta",
+                            "37 3 minecraft:terracotta",
+                            "40 1 minecraft:orange_terracotta",
+                            "41 1 minecraft:terracotta",
+                            "42 2 minecraft:yellow_terracotta",
+                            "44 2 minecraft:terracotta",
+                            "46 1 minecraft:light_gray_terracotta",
+                            "47 1 minecraft:white_terracotta",
+                            "48 1 minecraft:light_gray_terracotta",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "name": "ore_vein_copper",
+            "rule": {
+                "type": "minecraft:ore_vein",
+                "ore_block": "minecraft:copper_ore",
+                "raw_ore_block": "minecraft:raw_copper_block",
+                "filler_block": "minecraft:granite",
+                "raw_ore_chance": 0.02,
+                "density": "minecraft:overworld/ore_vein/copper_density",
+                "richness": "minecraft:overworld/ore_vein/richness",
+                "filler_gap": "minecraft:overworld/ore_vein/gap"
+            },
+            "columns": {
+                "minY": -64,
+                "height": 384,
+                "entries": [
+                    {
+                        "x": 48,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 11 minecraft:water",
+                            "15 36 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 15 minecraft:water",
+                            "21 30 minecraft:stone",
+                            "51 12 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -80,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 73 minecraft:stone",
+                            "9 14 minecraft:water",
+                            "23 5 minecraft:stone",
+                            "28 13 minecraft:water",
+                            "41 8 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 68 minecraft:stone",
+                            "4 10 minecraft:water",
+                            "14 32 minecraft:stone",
+                            "46 17 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 55,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 70 minecraft:stone",
+                            "6 12 minecraft:water",
+                            "18 18 minecraft:stone",
+                            "36 27 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 63,
+                        "z": -73,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 71 minecraft:stone",
+                            "7 13 minecraft:water",
+                            "20 1 minecraft:stone",
+                            "21 2 minecraft:water",
+                            "23 10 minecraft:stone",
+                            "33 30 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    },
+                    {
+                        "x": 48,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 115 minecraft:stone", "51 12 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 55,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": ["-64 113 minecraft:stone", "49 14 minecraft:water", "63 257 minecraft:air"]
+                    },
+                    {
+                        "x": 63,
+                        "z": -65,
+                        "biome": "minecraft:ocean",
+                        "runs": [
+                            "-64 57 minecraft:stone",
+                            "-7 6 minecraft:air",
+                            "-1 50 minecraft:stone",
+                            "49 14 minecraft:water",
+                            "63 257 minecraft:air"
+                        ]
+                    }
+                ]
+            }
+        }
+    ]
+}
