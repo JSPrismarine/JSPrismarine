@@ -10,6 +10,7 @@
  */
 import type { BlockPosition, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
 
+import { AIR } from './identifiers';
 import type {
     BlockEntityData,
     BlockProperties,
@@ -23,9 +24,6 @@ import { DEFAULT_BLOCK_PROPERTIES } from './world';
 
 /** The dimension a {@link VoxelWorld} uses when a test names none. */
 export const OVERWORLD = 'minecraft:overworld';
-
-/** The identifier an unwritten position reads as. */
-export const AIR = 'minecraft:air';
 
 /** One item stack a behavior dropped. */
 export interface RecordedDrop {

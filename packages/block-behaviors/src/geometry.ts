@@ -34,24 +34,40 @@ const OPPOSITES: Readonly<Record<BlockFace, BlockFace>> = {
     east: 'west'
 };
 
-/** The face across the block from this one. */
-export const opposite = (face: BlockFace): BlockFace => OPPOSITES[face];
+const CLOCKWISE: Readonly<Record<BlockFace, BlockFace>> = {
+    down: 'down',
+    up: 'up',
+    north: 'east',
+    east: 'south',
+    south: 'west',
+    west: 'north'
+};
+
+/**
+ * The face across the block from this one.
+ *
+ * The overload keeps a horizontal face horizontal, so a caller that already
+ * knows it has one does not have to narrow the result back.
+ */
+export function opposite(face: HorizontalFace): HorizontalFace;
+export function opposite(face: BlockFace): BlockFace;
+export function opposite(face: BlockFace): BlockFace {
+    return OPPOSITES[face];
+}
 
 /** The face a quarter turn clockwise when seen from above; vertical faces are unchanged. */
-export const rotateClockwise = (face: BlockFace): BlockFace =>
-    face === 'north'
-        ? 'east'
-        : face === 'east'
-          ? 'south'
-          : face === 'south'
-            ? 'west'
-            : face === 'west'
-              ? 'north'
-              : face;
+export function rotateClockwise(face: HorizontalFace): HorizontalFace;
+export function rotateClockwise(face: BlockFace): BlockFace;
+export function rotateClockwise(face: BlockFace): BlockFace {
+    return CLOCKWISE[face];
+}
 
 /** The face a quarter turn counterclockwise when seen from above. */
-export const rotateCounterClockwise = (face: BlockFace): BlockFace =>
-    rotateClockwise(rotateClockwise(rotateClockwise(face)));
+export function rotateCounterClockwise(face: HorizontalFace): HorizontalFace;
+export function rotateCounterClockwise(face: BlockFace): BlockFace;
+export function rotateCounterClockwise(face: BlockFace): BlockFace {
+    return CLOCKWISE[CLOCKWISE[CLOCKWISE[face]]];
+}
 
 /**
  * The position `distance` blocks along a face.
@@ -94,13 +110,10 @@ export const facingDirectionOf = (face: BlockFace): number => FACING_DIRECTIONS.
 export const CARDINAL_DIRECTIONS = ['south', 'west', 'north', 'east'] as const satisfies readonly HorizontalFace[];
 
 /**
- * The `direction` domain a door, a trapdoor, a repeater and a comparator
- * share. It is a separate table from {@link CARDINAL_DIRECTIONS} because the
- * legacy numeric state starts at east rather than south.
+ * The `weirdo_direction` domain stairs are placed with, which the numeric
+ * `direction` of a trapdoor uses too. It is a separate table from
+ * {@link CARDINAL_DIRECTIONS} because the legacy numeric state starts at east.
  */
-export const DOOR_DIRECTIONS = ['east', 'south', 'west', 'north'] as const satisfies readonly HorizontalFace[];
-
-/** The `weirdo_direction` domain stairs are placed with. */
 export const WEIRDO_DIRECTIONS = ['east', 'west', 'south', 'north'] as const satisfies readonly HorizontalFace[];
 
 /** The `torch_facing_direction` domain, which names the face the torch stands on. */
