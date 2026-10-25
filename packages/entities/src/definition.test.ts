@@ -37,6 +37,27 @@ describe('parseEntityDefinition', () => {
         expect(definition?.events.get('minecraft:entity_spawned')?.add).toEqual(['minecraft:zombie_baby']);
     });
 
+    it('reads the null events the vanilla pack writes for an entity with none', () => {
+        const { definition, diagnostics } = parse(minimal({ events: null }));
+
+        expect(diagnostics).toEqual([]);
+        expect(definition?.events.size).toBe(0);
+    });
+
+    it('still reports events that are neither an object nor null', () => {
+        const { diagnostics } = parse(minimal({ events: ['minecraft:entity_spawned'] }));
+
+        expect(diagnostics).toEqual([
+            {
+                severity: 'warning',
+                code: 'entity.invalid',
+                pack: 'vanilla',
+                path: 'entities/test.json',
+                message: 'minecraft:test: events must be an object'
+            }
+        ]);
+    });
+
     it('loads a file with an unknown top-level key and reports it', () => {
         const { definition, diagnostics } = parse(minimal({ hypothetical_future_key: {} }));
 

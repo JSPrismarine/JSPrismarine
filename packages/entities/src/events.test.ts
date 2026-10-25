@@ -19,6 +19,23 @@ describe('parseEventNode', () => {
         expect(node.remove).toEqual(['c']);
     });
 
+    it('reads the empty add and remove the vanilla pack writes for "change nothing"', () => {
+        const { node, reported } = parse({ add: {}, remove: {} });
+
+        expect(node.add).toEqual([]);
+        expect(node.remove).toEqual([]);
+        expect(reported).toEqual([]);
+    });
+
+    it('still reports a component_groups that is there and is not a list', () => {
+        expect(parse({ remove: { component_groups: 'a_group' } }).reported).toEqual([
+            'event.invalid: remove.component_groups must be an array'
+        ]);
+        expect(parse({ add: 'a_group' }).reported).toEqual([
+            'event.invalid: add must be an object with component_groups'
+        ]);
+    });
+
     it('reads a trigger written as a name and as an object', () => {
         const { node } = parse({ trigger: 'minecraft:go' });
         const object = parse({ trigger: { event: 'minecraft:go', target: 'other' } });

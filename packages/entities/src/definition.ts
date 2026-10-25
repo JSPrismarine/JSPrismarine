@@ -302,7 +302,10 @@ const parseEvents = (
     report: Report
 ): ReadonlyMap<string, EventNode> => {
     const events = new Map<string, EventNode>();
-    if (value === undefined) return events;
+    // `"events": null` is how the vanilla pack spells "this entity has no
+    // events", in 23 of its files, so it reads as the empty map it means
+    // rather than as a malformed one. Any other non-object is still wrong.
+    if (value === undefined || value === null) return events;
     if (!isRecord(value)) {
         report('warning', 'entity.invalid', `${identifier}: events must be an object`);
         return events;
