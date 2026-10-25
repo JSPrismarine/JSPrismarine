@@ -22,6 +22,21 @@ const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =
     typeof candidate.fromNBT === 'function';
 
 /**
+ * Id to class, for every block entity this server models.
+ *
+ * A constant rather than a cache. The only source is `./BlockEntities`, which a module
+ * graph fixes at import, so nothing can add to it or change it later and there was never
+ * anything for an invalidation hook to drop. It used to be built lazily behind a mutable
+ * static with a `reset()` beside it, which read as per-process state two servers would
+ * share.
+ */
+const MODELED: ReadonlyMap<string, BlockEntityClass> = new Map(
+    Object.values(BlockEntities)
+        .filter(isBlockEntityClass)
+        .map((candidate) => [candidate.ID, candidate])
+);
+
+/**
  * Turns a block entity's NBT into an object.
  *
  * A type nobody has modeled becomes a {@link GenericBlockEntity} rather than an error, because
@@ -29,41 +44,20 @@ const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =
  * and the generic form still round-trips it untouched.
  */
 export class BlockEntityRegistry {
-    private static index: Map<string, BlockEntityClass> | null = null;
-
-    private static classes(): Map<string, BlockEntityClass> {
-        if (this.index !== null) return this.index;
-
-        this.index = new Map();
-        for (const candidate of Object.values(BlockEntities)) {
-            if (!isBlockEntityClass(candidate)) continue;
-
-            this.index.set(candidate.ID, candidate);
-        }
-
-        return this.index;
-    }
-
     public static fromNBT(nbt: NBTTagCompound): BlockEntity {
-        const id = nbt.getString('id', '');
-        const modeled = this.classes().get(id);
+        const modeled = MODELED.get(nbt.getString('id', ''));
 
         return modeled ? modeled.fromNBT(nbt) : GenericBlockEntity.fromNBT(nbt);
     }
 
     /** Whether a type is modeled, as opposed to merely preserved. Used in tests and logs. */
     public static isModeled(id: string): boolean {
-        return this.classes().has(id);
+        return MODELED.has(id);
     }
 
     /** Every modeled id, for diagnostics. */
     public static ids(): string[] {
-        return [...this.classes().keys()];
-    }
-
-    /** Drops the index, so a test can register something and have it picked up. */
-    public static reset(): void {
-        this.index = null;
+        return [...MODELED.keys()];
     }
 }
 

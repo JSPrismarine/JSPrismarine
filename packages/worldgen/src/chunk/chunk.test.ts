@@ -183,6 +183,13 @@ describe.skipIf(!vanilla)('the overworld chunk sampler', () => {
                 z: expected.z,
                 runs: expected.runs
             });
+
+            const stateOnly = new ChunkSampler(state, { chunkX: chunkVectors.chunkX, chunkZ: chunkVectors.chunkZ });
+            const sampledFromTop = [];
+            for (let y = sampler.volume.maxBlockY; y >= sampler.volume.minBlockY; y--) {
+                sampledFromTop.push(stateOnly.stateAt(expected.x, y, expected.z));
+            }
+            expect(sampledFromTop.reverse()).toEqual(column.map((entry) => entry.state));
         }
     });
 

@@ -110,6 +110,56 @@ const placeBlock = (interaction: BlockInteraction, identifier: string, face: Blo
 };
 
 /**
+ * Opens the screen the clicked block draws, and sends an enchanting table its three rows.
+ *
+ * Fire and forget, because the click is decided synchronously and the packets are not: the
+ * caller has to answer the transaction now, and a window that arrives a tick later is a window
+ * that arrives. A throw on the way reaches the log rather than the caller, for the same reason
+ * a behavior that throws must not cost the player the click.
+ *
+ * @returns Whether the block has a screen at all, which is what makes the click handled.
+ */
+const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean => {
+    const { player, content } = interaction;
+    const container = blockContainerOf(block.identifier);
+    if (container === undefined) return false;
+
+    const at = new Vector3(interaction.position.x, interaction.position.y, interaction.position.z);
+    const session = player.getNetworkSession();
+    const logger = player.getServer().getLogger();
+
+    void (async () => {
+        await session.openBlockContainer(at, block.identifier, storedContents(interaction, container.slots));
+
+        // The table's offers depend on the stack in its input slot, and nothing is in it the
+        // moment it opens - so this clears the rows rather than drawing stale ones, and is
+        // called again from the request handler once the player puts something in.
+        if (container.screen === WindowTypes.ENCHANTMENT) {
+            await showEnchantingTable(player, undefined, interaction.position);
+        }
+    })().catch((error: unknown) => logger.error(error));
+
+    return true;
+
+    /** What the block is holding, read off its block entity record, one entry per slot. */
+    function storedContents(click: BlockInteraction, slots: number): ContainerEntry[] {
+        if (slots === 0) return [];
+
+        const stored = content.world.blockWorld.at(player.getWorld().getDimension().name).getBlockData(click.position);
+        const items = stored?.items ?? [];
+        const manager = player.getServer().getItemManager();
+
+        return Array.from({ length: slots }, (_, slot) => {
+            const held = items[slot];
+            const item = held === undefined ? null : manager.getItem(held.identifier);
+            return item === null
+                ? new ContainerEntry({ item: Item.air() })
+                : new ContainerEntry({ item, count: held!.count });
+        });
+    }
+};
+
+/**
  * Runs the content hooks for one right click on a block.
  *
  * @returns Whether the content consumed the click, or `declined` for the caller to fall back to

@@ -206,6 +206,57 @@ describe('leveldb', () => {
             expect(table.get(key('zzz'))).toBeNull();
         });
 
+        describe('seek', () => {
+            const entries: Array<[Buffer, Buffer]> = sortedKeys(1000).map((k) => [k, Buffer.from(k)]);
+            const bytes = buildTable(entries);
+            const table = openTable(bytes);
+
+            it('finds every key the table holds', () => {
+                for (const [k, value] of entries) expect(table.seek(k)!.value).toEqual(value);
+            });
+
+            it('lands on the successor of a key that falls between two it holds', () => {
+                // One probe per gap, so the gaps that fall on a block boundary - the case a point
+                // lookup has to follow into the next block to answer - are all covered.
+                for (let i = 0; i < entries.length - 1; i++) {
+                    const between = Buffer.concat([entries[i]![0], Buffer.from([0x00])]);
+                    expect(table.seek(between)!.key).toEqual(entries[i + 1]![0]);
+                }
+            });
+
+            it('reports nothing past the last key', () => {
+                expect(table.seek(key('zzz'))).toBeNull();
+            });
+
+            it('reads a handful of blocks, not the whole table', () => {
+                // The regression this guards: a point lookup used to scan the index block entry by
+                // entry and then the data block from its start, so a 1000 key table cost a read of
+                // every block it held. Blocks are 512 bytes here, so there are dozens of them.
+                let reads = 0;
+                const counted = openTable(bytes.subarray()) as unknown as never;
+                const source = bufferSource(bytes);
+                const counting = new TableReader(
+                    {
+                        read: (offset, length) => {
+                            reads++;
+                            return source.read(offset, length);
+                        },
+                        get size() {
+                            return source.size;
+                        }
+                    },
+                    compareBytewise
+                );
+                void counted;
+
+                reads = 0;
+                counting.seek(key('key:00000500'));
+
+                // The index block, the data block it names, and at most one block after it.
+                expect(reads).toBeLessThanOrEqual(3);
+            });
+        });
+
         describe('seekFrom', () => {
             const entries: Array<[Buffer, Buffer]> = sortedKeys(1000).map((k) => [k, Buffer.from(k)]);
             const table = openTable(buildTable(entries));

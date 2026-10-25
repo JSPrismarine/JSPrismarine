@@ -11,6 +11,8 @@
  * [`javaWorldgenData.ts`](javaWorldgenData.ts). A server with neither cannot run this
  * generator, and says so rather than producing a world that is quietly not Java's.
  */
+import { setImmediate as yieldEventLoop } from 'node:timers/promises';
+
 import type { BlockOracle, DecorationStep, PlacedFeature, ScheduledFeature } from '@jsprismarine/features';
 import {
     DECORATION_STEPS,
@@ -44,6 +46,7 @@ import { Dimensions, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
+import type { RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { BeardPiece } from './javaStructureBeard';
@@ -109,13 +112,20 @@ interface SeededPipeline {
     readonly climateOf: (biome: string) => BiomeClimate;
     readonly oracle: BlockOracle;
     readonly translator: JavaStateTranslator;
+    readonly terrainChunks: Map<string, Promise<GenerationRegion>>;
+    readonly featurePatches: Map<string, RegionChunkPatch[]>;
+    readonly generatedChunks: Map<string, Chunk>;
+    generationTail: Promise<void>;
 }
 
 /** The identifier `minecraft:bedrock`, which the carvers must not open. */
 const BEDROCK = 'minecraft:bedrock';
 
 /** What a carver leaves behind. Java's carvers write cave air rather than ordinary air. */
-const CAVE_AIR = { name: 'minecraft:cave_air', properties: {} } as const;
+const CAVE_AIR = 'minecraft:cave_air';
+
+/** Bounds the cached terrain tiles and feature output kept for adjacent chunk generation. */
+const GENERATION_CACHE_SIZE = 128;
 
 /** The source a generator with no templates uses, which places the structures that need none. */
 const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
@@ -139,8 +149,8 @@ const identifiersOf = (value: unknown): readonly string[] => {
 /**
  * The chunk generator that reads Java's data.
  *
- * One instance covers one dimension and caches everything that depends only on the seed, so a
- * world pays the registry parse once and each later chunk pays only for its own sampling.
+ * One instance covers one dimension and caches everything that depends only on the seed, plus
+ * recent terrain tiles shared by neighboring feature regions.
  */
 export class DataDrivenGenerator implements Generator {
     private readonly dimension: DimensionDefinition;
@@ -180,13 +190,33 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** @inheritDoc */
-    public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
+    public generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
-        const region = this.buildTerrain(cx, cz, pipeline);
+        return this.serializeGeneration(pipeline, async () => {
+            const key = this.chunkKey(cx, cz);
+            const generated = pipeline.generatedChunks.get(key);
+            if (generated !== undefined) return generated;
 
-        if (this.options.decorate !== false) this.decorate(cx, cz, region, pipeline);
+            const region = this.createRegion(cx, cz, pipeline);
+            const coordinates =
+                this.options.decorate === false
+                    ? [[cx, cz] as const]
+                    : [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => [cx + dx, cz + dz] as const));
+            const terrain = await Promise.all(
+                coordinates.map(([chunkX, chunkZ]) => this.terrainFor(chunkX, chunkZ, pipeline))
+            );
+            for (const source of terrain) region.copyCenterFrom(source);
 
-        return this.toChunk(cx, cz, region, pipeline);
+            region.beginWriteTracking();
+            if (this.options.decorate !== false) this.decorate(cx, cz, region, pipeline);
+
+            const patches = region.takeTrackedPatches();
+            for (const patch of patches) await this.applyFeaturePatch(patch, cx, cz, pipeline);
+
+            const chunk = this.toChunk(cx, cz, region, pipeline);
+            pipeline.generatedChunks.set(key, chunk);
+            return chunk;
+        });
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
@@ -210,12 +240,48 @@ export class DataDrivenGenerator implements Generator {
         return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
     }
 
-    private buildTerrain(cx: number, cz: number, pipeline: SeededPipeline): GenerationRegion {
+    private createRegion(cx: number, cz: number, pipeline: SeededPipeline): GenerationRegion {
+        return new GenerationRegion({
+            chunkX: cx,
+            chunkZ: cz,
+            minY: this.dimension.minY,
+            height: this.dimension.height,
+            seaLevel: pipeline.settings.seaLevel,
+            seed: pipeline.randomState.seed,
+            blocks: pipeline.oracle,
+            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
+        });
+    }
+
+    private async terrainFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
+        const key = this.chunkKey(cx, cz);
+        const cached = pipeline.terrainChunks.get(key);
+        if (cached !== undefined) {
+            pipeline.terrainChunks.delete(key);
+            pipeline.terrainChunks.set(key, cached);
+            return cached;
+        }
+
+        const terrain = this.buildTerrain(cx, cz, pipeline).then((region) => {
+            for (const patch of pipeline.featurePatches.get(key) ?? []) region.applyPatch(patch);
+            return region;
+        });
+        pipeline.terrainChunks.set(key, terrain);
+        this.trimCache(pipeline.terrainChunks);
+        void terrain.catch(() => {
+            if (pipeline.terrainChunks.get(key) === terrain) pipeline.terrainChunks.delete(key);
+        });
+        return terrain;
+    }
+
+    private async buildTerrain(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
         const region = new GenerationRegion({
             chunkX: cx,
             chunkZ: cz,
             minY: this.dimension.minY,
             height: this.dimension.height,
+            radius: 0,
             seaLevel: pipeline.settings.seaLevel,
             seed: pipeline.randomState.seed,
             blocks: pipeline.oracle,
@@ -234,21 +300,26 @@ export class DataDrivenGenerator implements Generator {
             pipeline.settings.noiseSettings.minY + pipeline.settings.noiseSettings.height - 1
         );
 
+        let columnsSinceYield = 0;
         for (let localX = 0; localX < 16; localX++) {
             for (let localZ = 0; localZ < 16; localZ++) {
                 const x = cx * 16 + localX;
                 const z = cz * 16 + localZ;
-                const column = sampler.column(x, z);
                 for (let y = ceiling; y >= floor; y--) {
-                    const block = column[y - pipeline.settings.noiseSettings.minY];
-                    if (block === undefined || block.state === 'minecraft:air') continue;
+                    const state = sampler.stateAt(x, y, z);
+                    if (state === 'minecraft:air') continue;
 
-                    region.write(x, y, z, { name: block.state, properties: {} });
+                    region.writeName(x, y, z, state);
+                }
+
+                if (++columnsSinceYield === 4) {
+                    columnsSinceYield = 0;
+                    await yieldEventLoop();
                 }
             }
         }
 
-        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline);
+        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler);
 
         region.freezeSurfaceHeights();
         pipeline.surface.buildSurface({
@@ -303,12 +374,16 @@ export class DataDrivenGenerator implements Generator {
     /**
      * Runs the cave and canyon carvers and opens what they marked.
      *
-     * Java replaces a carved block with cave air, or with the aquifer's fluid below the lava
-     * level. The aquifer is not consulted here, so a carved position above the dimension floor
-     * becomes cave air and bedrock is left alone, which is the rule every carver config states
-     * through its own `replaceable` list.
+     * Java replaces a carved block with the aquifer's fluid state, falling back to cave air
+     * when the aquifer leaves the position open.
      */
-    private carve(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): void {
+    private carve(
+        cx: number,
+        cz: number,
+        region: GenerationRegion,
+        pipeline: SeededPipeline,
+        sampler: ChunkSampler
+    ): void {
         const mask = new CarvingMask(this.dimension.minY, this.dimension.minY + this.dimension.height - 1);
 
         carveChunk({
@@ -331,9 +406,75 @@ export class DataDrivenGenerator implements Generator {
                     const existing = region.stateAt(x, y, z);
                     if (existing.name === BEDROCK || pipeline.oracle.fluid(existing) !== 'empty') continue;
 
-                    region.write(x, y, z, CAVE_AIR);
+                    const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
+                    region.writeName(x, y, z, fluid ?? CAVE_AIR);
                 }
             }
+        }
+    }
+
+    /** Runs chunk generations in request order so cross-chunk feature writes remain ordered. */
+    private serializeGeneration<T>(pipeline: SeededPipeline, generate: () => Promise<T>): Promise<T> {
+        const result = pipeline.generationTail.then(generate);
+        pipeline.generationTail = result.then(
+            () => undefined,
+            () => undefined
+        );
+        return result;
+    }
+
+    private chunkKey(chunkX: number, chunkZ: number): string {
+        return `${chunkX},${chunkZ}`;
+    }
+
+    private trimCache<T>(cache: Map<string, T>): void {
+        while (cache.size > GENERATION_CACHE_SIZE) {
+            const oldest = cache.keys().next().value;
+            if (oldest === undefined) return;
+            cache.delete(oldest);
+        }
+    }
+
+    /** Stores feature output for later terrain views and updates chunks already handed out. */
+    private async applyFeaturePatch(
+        patch: RegionChunkPatch,
+        currentChunkX: number,
+        currentChunkZ: number,
+        pipeline: SeededPipeline
+    ): Promise<void> {
+        const key = this.chunkKey(patch.chunkX, patch.chunkZ);
+        const history = pipeline.featurePatches.get(key) ?? [];
+        history.push(patch);
+        pipeline.featurePatches.delete(key);
+        pipeline.featurePatches.set(key, history);
+        this.trimCache(pipeline.featurePatches);
+
+        const terrain = pipeline.terrainChunks.get(key);
+        if (terrain !== undefined) (await terrain).applyPatch(patch);
+
+        if (patch.chunkX === currentChunkX && patch.chunkZ === currentChunkZ) return;
+        const generated = pipeline.generatedChunks.get(key);
+        if (generated !== undefined) this.applyPatchToChunk(patch, generated, pipeline);
+    }
+
+    private applyPatchToChunk(patch: RegionChunkPatch, chunk: Chunk, pipeline: SeededPipeline): void {
+        for (const write of patch.blocks) {
+            const runtimeId =
+                write.block.bedrock === undefined
+                    ? pipeline.translator.runtimeIdOf(write.block.java.name, write.block.java.properties)
+                    : pipeline.translator.bedrockRuntimeIdOf(write.block.bedrock.name, write.block.bedrock.states);
+            if (runtimeId === UNKNOWN_RUNTIME_ID) continue;
+
+            chunk.setBlockRuntimeId(write.x - patch.chunkX * 16, write.y, write.z - patch.chunkZ * 16, runtimeId);
+        }
+
+        for (const placed of patch.blockEntities) {
+            const blockEntity = createBlockEntity(placed, pipeline.randomState.seed);
+            if (blockEntity !== undefined) chunk.setBlockEntity(blockEntity);
+        }
+        for (const requested of patch.entitySpawns) {
+            const spawn = createEntitySpawn(requested);
+            if (spawn !== undefined) chunk.getEntitySpawns().push(spawn);
         }
     }
 
@@ -528,7 +669,11 @@ export class DataDrivenGenerator implements Generator {
             carversOf: this.carverLookup(),
             climateOf,
             oracle,
-            translator: new JavaStateTranslator()
+            translator: new JavaStateTranslator(),
+            terrainChunks: new Map(),
+            featurePatches: new Map(),
+            generatedChunks: new Map(),
+            generationTail: Promise.resolve()
         };
     }
 
