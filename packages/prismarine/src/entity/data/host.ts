@@ -65,6 +65,19 @@ export interface EntityHostFacts {
      *   there, which is what two mobs reaching for the same stack get.
      */
     takeItem?(id: number): ContentItemDrop | undefined;
+    /**
+     * Deals damage to something the entity index does not hold.
+     *
+     * A player is the case that matters: a zombie's `melee_attack` goal names
+     * its target by runtime id, and a player's id belongs to the server's own
+     * entity list rather than to this index. Left out by a server that cannot
+     * route damage, which makes a mob swing and connect with nothing rather
+     * than silently pretending it hit.
+     *
+     * @param id - The runtime id of whatever is being hurt.
+     * @param sourceId - The runtime id of the entity answerable for the blow.
+     */
+    hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */
     mobEventActive(event: string): boolean;
     /**

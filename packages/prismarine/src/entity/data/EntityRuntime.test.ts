@@ -79,6 +79,48 @@ describe('EntityRuntime', () => {
             expect(first?.id).not.toBe(second?.id);
             expect(runtime.all()).toHaveLength(2);
         });
+
+        it('announces each entity once its spawn event has run', () => {
+            const { runtime, spawned } = runtimeOf();
+
+            runtime.spawn('jsprismarine:hatchling', GROUND);
+
+            expect(spawned).toHaveLength(1);
+            expect(spawned[0]?.instance.activeComponentGroups()).toEqual(['hatched']);
+        });
+
+        it('announces each removal with the reason it was given', () => {
+            const { runtime, removed } = runtimeOf();
+
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            runtime.remove(cow!.id, 'despawn');
+
+            expect(removed).toEqual([{ entity: cow, reason: 'despawn' }]);
+        });
+    });
+
+    describe('combat', () => {
+        it('sends a blow at a player out through the host', () => {
+            const player = { id: 99, identifier: 'minecraft:player', position: { x: 1, y: FLOOR_Y + 1, z: 0 } };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = runtimeOf(world);
+
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            runtime.attack(cow!.body, runtime.mobById(99)!);
+
+            expect(world.hits).toEqual([{ id: 99, amount: 2, cause: 'entity_attack', sourceId: cow!.id }]);
+        });
+
+        it('takes health off an entity this index does hold', () => {
+            const { runtime } = runtimeOf();
+
+            const attacker = runtime.spawn('minecraft:cow', GROUND);
+            const victim = runtime.spawn('minecraft:cow', GROUND);
+            runtime.attack(attacker!.body, runtime.mobById(victim!.id)!);
+
+            expect(victim!.instance.attributes.get('health')?.current).toBe(8);
+            expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
+        });
     });
 
     describe('the goal scheduler', () => {

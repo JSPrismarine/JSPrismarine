@@ -29,6 +29,7 @@ import type {
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { entityContentGroups } from '../contentAdapter';
+import type { DataEntity } from './DataEntity';
 import { EntityRuntime } from './EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 
@@ -320,6 +321,9 @@ export class TestEntityWorld {
     /** Everything played in this world, in the order it was played. */
     public readonly sounds: string[] = [];
 
+    /** Every blow the host was asked to deal to something outside the entity index. */
+    public readonly hits: { id: number; amount: number; cause: string; sourceId: number | undefined }[] = [];
+
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
 
@@ -400,6 +404,7 @@ export class TestEntityWorld {
                 this.lying.delete(id);
                 return found?.item;
             },
+            hurt: (id, amount, cause, sourceId) => this.hits.push({ id, amount, cause, sourceId }),
             mobEventActive: () => false
         };
     }
@@ -445,6 +450,10 @@ export interface EntityFixture {
     readonly adapter: ServerWorldAdapter;
     /** Everything the runtime met and could not carry out. */
     readonly reports: readonly string[];
+    /** Every entity the runtime announced, in spawn order. */
+    readonly spawned: readonly DataEntity[];
+    /** Every entity the runtime took out, with the reason it gave. */
+    readonly removed: readonly { entity: DataEntity; reason: string }[];
 }
 
 /**
@@ -464,6 +473,8 @@ export const entityFixture = (
     extra: ExtraEntities = {}
 ): EntityFixture => {
     const reports: string[] = [];
+    const spawned: DataEntity[] = [];
+    const removed: { entity: DataEntity; reason: string }[] = [];
     let content: ServerContent | undefined;
 
     const runtime = new EntityRuntime({
@@ -473,7 +484,9 @@ export const entityFixture = (
         },
         world: world.world,
         host: world.host,
-        report: (message) => reports.push(message)
+        report: (message) => reports.push(message),
+        onSpawn: (entity) => spawned.push(entity),
+        onRemove: (entity, reason) => removed.push({ entity, reason })
     });
 
     const adapter: ServerWorldAdapter = {
@@ -483,5 +496,5 @@ export const entityFixture = (
     };
 
     content = buildServerContent(entityContentOptions({ world: singleDimension(adapter), ...overrides }, extra));
-    return { content, runtime, world, adapter, reports };
+    return { content, runtime, world, adapter, reports, spawned, removed };
 };
