@@ -10,16 +10,41 @@
  *
  * ## What is wired, and what is not
  *
- * A trigger is only listed here when there is somewhere in this server that
- * genuinely knows the event. The rest are implemented in
- * `@jsprismarine/advancements` and unreachable from here, and the reason is
- * always the same shape: the subsystem that would raise them does not exist
- * yet. There is no status effect system, so `effects_changed`, `levitation`
- * and `used_totem` cannot fire. There is no brewing, beacon, fishing,
- * breeding, taming, riding, trading or sleeping, so none of those can. There
- * is no recipe book, so `recipe_unlocked` has nothing to unlock. Wiring a
- * call that can never run would read as coverage and be worth less than
- * saying so.
+ * Twelve of the 58 fire, and a function is here only when something in this
+ * server actually calls it. A helper for a trigger with no call site would
+ * read as coverage while firing never, which is worth less than saying so.
+ *
+ * | Trigger | Raised from |
+ * | --- | --- |
+ * | `inventory_changed` | a dropped stack picked up, and a finished craft |
+ * | `thrown_item_picked_up_by_player` | a dropped stack picked up |
+ * | `recipe_crafted` | `ItemStackRequestHandler`'s crafting action |
+ * | `player_killed_entity`, `entity_killed_player` | `Entity.onDeath` |
+ * | `player_hurt_entity`, `entity_hurt_player` | `Entity.damage` |
+ * | `placed_block` | `World.useItemOn` |
+ * | `enchanted_item` | a row taken at an enchanting table |
+ * | `location`, `tick` | `Player.update`, every second |
+ * | `changed_dimension` | `Player.setWorld` |
+ *
+ * The other 46 have no call site, and the reason is nearly always that the
+ * subsystem which would know the event does not exist. There is no status
+ * effect system, so `effects_changed`, `levitation` and `used_totem` cannot
+ * fire. There is no brewing, beacon, fishing, breeding, taming, riding,
+ * trading, shearing or sleeping, so none of those can. There is no recipe
+ * book, so `recipe_unlocked` has nothing to unlock, and no container loot
+ * generation, so `player_generates_container_loot` has nothing to report.
+ *
+ * Four are nearer than that, and each needs one call from a file this module
+ * does not own:
+ *
+ * - `consume_item` wants the `feed` action in `src/item/actorPort.ts`, which
+ *   is where eating lands. It is the whole of `husbandry/root`.
+ * - `item_used_on_block` and the two `*_block_use` ids want
+ *   `useItemOnBlock` in `src/item/interaction.ts`, the content interaction
+ *   path, which is the only place that knows a click acted on a block without
+ *   placing one.
+ * - `item_durability_changed` wants `spendDurability` in
+ *   `src/item/actorPort.ts`.
  */
 import type { ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
 
@@ -193,48 +218,6 @@ export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): vo
     });
 };
 
-/** A player used an item against a block without placing it. */
-export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'item_used_on_block', {
-        player: advancementSubject(player),
-        origin: event.origin,
-        blockState: { name: event.block },
-        tool: event.tool.asPredicateStack()
-    });
-};
-
-/** A player right-clicked a block with nothing that acted on it. */
-export const advancementBlockUsed = (player: Player, origin: Vec3, block: string, defaulted: boolean): void => {
-    if (!enabled(player)) return;
-
-    const event = { player: advancementSubject(player), origin, blockState: { name: block } };
-    raiseAdvancement(player, 'any_block_use', event);
-    if (defaulted) raiseAdvancement(player, 'default_block_use', event);
-};
-
-/** A player ate or drank something. */
-export const advancementConsumedItem = (player: Player, item: Item): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'consume_item', { player: advancementSubject(player), item: item.asPredicateStack() });
-};
-
-/** A player filled a bucket, which Java reports with the filled stack. */
-export const advancementFilledBucket = (player: Player, filled: Item): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'filled_bucket', { player: advancementSubject(player), item: filled.asPredicateStack() });
-};
-
-/** A player finished using a held item, which is Java's `using_item`. */
-export const advancementUsingItem = (player: Player, item: Item): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'using_item', { player: advancementSubject(player), item: item.asPredicateStack() });
-};
-
 /** An enchanting table gave a player an enchanted item, with what it cost. */
 export const advancementEnchantedItem = (player: Player, item: Item, levels: number): void => {
     if (!enabled(player)) return;
@@ -243,18 +226,6 @@ export const advancementEnchantedItem = (player: Player, item: Item, levels: num
         player: advancementSubject(player),
         item: item.asPredicateStack(),
         levels
-    });
-};
-
-/** A tool gained or lost durability, with what is left and by how much it moved. */
-export const advancementDurabilityChanged = (player: Player, item: Item, durability: number, delta: number): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'item_durability_changed', {
-        player: advancementSubject(player),
-        item: item.asPredicateStack(),
-        durability,
-        delta
     });
 };
 
@@ -291,16 +262,6 @@ export const advancementChangedDimension = (player: Player, from: string, to: st
     if (!enabled(player) || from === to) return;
 
     raiseAdvancement(player, 'changed_dimension', { player: advancementSubject(player), from, to });
-};
-
-/** A player generated a container's loot by opening it for the first time. */
-export const advancementContainerLoot = (player: Player, lootTable: string): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'player_generates_container_loot', {
-        player: advancementSubject(player),
-        lootTable
-    });
 };
 
 /** Whether an entity is a player, without importing the class into a type position that loops. */
