@@ -73,6 +73,14 @@ const SPAWN_SEARCH_RADIUS = 256;
 const SPAWN_SEARCH_STEP = 8;
 
 /**
+ * Bare terrain a player must not be dropped onto, for the generators that can answer from it.
+ *
+ * Short, because the bare terrain holds no decoration: the top of a column is the ground, the
+ * sea, or a lava lake's surface, and never a flower or a leaf.
+ */
+const UNSUITABLE_SPAWN_TERRAIN = new Set(['minecraft:water', 'minecraft:lava', 'minecraft:air']);
+
+/**
  * Surfaces a player must not be dropped onto: water because it is not land, and the
  * decoration blocks because standing on a flower or in a canopy is not a spawn point.
  */
@@ -954,25 +962,24 @@ export class World implements Service {
      *
      * A quarter of this world is ocean, so the origin column is quite likely to be water -
      * and the topmost block of a flooded column *is* water, which is what makes the test
-     * for it as simple as it looks. Leaves and flowers are refused as well: they hold a
-     * player up, but spawning in a treetop is not what anyone means by a spawn point.
+     * for it as simple as it looks.
      *
-     * The search widens in rings and steps several blocks at a time, because each candidate
-     * may generate a chunk and terrain does not change meaningfully between neighbors.
+     * The search widens in rings and steps several blocks at a time, because terrain does not
+     * change meaningfully between neighbors. How much each candidate costs is the whole of this
+     * method's performance: a seed whose origin is open ocean walks thousands of candidates
+     * before it reaches a shore, so asking each one for a finished chunk is what turns a boot
+     * into a wait of many minutes. {@link Generator.surfaceAt} answers the same question from
+     * the bare terrain without generating anything.
      */
     private async findSurfaceSpawn(): Promise<Vector3> {
         for (let radius = 0; radius <= SPAWN_SEARCH_RADIUS; radius += SPAWN_SEARCH_STEP) {
             for (const [x, z] of World.ringAround(radius, SPAWN_SEARCH_STEP)) {
-                const chunk = await this.getChunkAt(x, z);
-                const y = chunk.getHighestBlockAt(x, z);
-                if (y === null) continue;
-
-                const surface = chunk.getBlock(x & 0xf, y, z & 0xf).name;
-                if (UNSUITABLE_SPAWN_SURFACES.has(surface)) continue;
+                const standing = await this.spawnSurfaceAt(x, z);
+                if (standing === undefined) continue;
 
                 // The surface block itself, which is how a Bedrock world stores it: players
                 // are placed one block above the stored height.
-                return new Vector3(x, y, z);
+                return new Vector3(x, standing, z);
             }
         }
 
@@ -980,6 +987,31 @@ export class World implements Service {
         // refuse to start at all.
         this.server.getLogger().warn(`No dry spawn found for ${this.getFormattedName()}, falling back to the origin`);
         return new Vector3(0, 100, 0);
+    }
+
+    /**
+     * The height a player could stand at in one column, or undefined when nothing could.
+     *
+     * Prefers the generator's terrain probe, which costs one column of noise. The fallback
+     * generates the chunk and reads its topmost block, which is the only answer available from a
+     * generator that has no cheaper one; it has to refuse leaves and flowers too, because a
+     * finished chunk has them on top of the ground and a bare one never does.
+     *
+     * @param x - Block x.
+     * @param z - Block z.
+     */
+    private async spawnSurfaceAt(x: number, z: number): Promise<number | undefined> {
+        const probe = this.generator.surfaceAt;
+        if (probe !== undefined) {
+            const terrain = probe.call(this.generator, x, z, this.seed);
+            return terrain === undefined || UNSUITABLE_SPAWN_TERRAIN.has(terrain.name) ? undefined : terrain.y;
+        }
+
+        const chunk = await this.getChunkAt(x, z);
+        const y = chunk.getHighestBlockAt(x, z);
+        if (y === null) return undefined;
+
+        return UNSUITABLE_SPAWN_SURFACES.has(chunk.getBlock(x & 0xf, y, z & 0xf).name) ? undefined : y;
     }
 
     /**

@@ -58,7 +58,7 @@ import { UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
 import Chunk from '../../chunk/Chunk';
 import { Dimensions, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
-import type { Generator } from '../../Generator';
+import type { Generator, SurfaceProbe } from '../../Generator';
 import { GenerationStopped } from '../../Generator';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationRegion } from './GenerationRegion';
@@ -301,6 +301,20 @@ export class DataDrivenGenerator implements Generator {
     /** The structure types this server has no builder for, which therefore generate nothing. */
     public unbuiltStructureTypes(seed = 0): ReadonlySet<string> {
         return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
+    }
+
+    /** @inheritDoc */
+    public surfaceAt(x: number, z: number, seed = 0): SurfaceProbe {
+        const level = this.pipelineFor(BigInt(Math.trunc(seed))).level;
+
+        // `baseHeight` answers the level above the topmost match, the way Java's does, so the
+        // block itself is one below. `MOTION_BLOCKING` stops at solid or fluid, which is the
+        // ocean surface over water and the ground over land - exactly the distinction a spawn
+        // search is making.
+        const y = level.baseHeight(x, z, 'MOTION_BLOCKING') - 1;
+        if (y < level.minY) return undefined;
+
+        return { y, name: level.baseBlock(x, y, z).name };
     }
 
     /**
