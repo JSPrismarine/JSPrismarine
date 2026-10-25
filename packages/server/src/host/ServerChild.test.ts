@@ -10,7 +10,7 @@ const children: ServerChild[] = [];
 
 const spawnFixture = async (
     userArgs: readonly string[] = [],
-    stop: { shutdownGraceMs?: number; killGraceMs?: number } = {}
+    stop: { shutdownGraceMs?: number; killGraceMs?: number; platform?: NodeJS.Platform } = {}
 ) => {
     const child = await spawnServerChild({
         userArgs,
@@ -82,6 +82,32 @@ describe('spawnServerChild', () => {
 
     it('escalates to SIGTERM and then SIGKILL when the child ignores the request', async () => {
         const child = await spawnFixture(['--stubborn'], { shutdownGraceMs: 50, killGraceMs: 200 });
+        await nextMessage(child);
+
+        child.stop();
+
+        await expect(exited(child)).resolves.toEqual({ code: null, signal: 'SIGKILL' });
+    });
+
+    it('sends SIGTERM to a child that ignores the shutdown message', async () => {
+        const child = await spawnFixture(['--ignore-shutdown'], {
+            shutdownGraceMs: 50,
+            killGraceMs: 200,
+            platform: 'darwin'
+        });
+        await nextMessage(child);
+
+        child.stop();
+
+        await expect(exited(child)).resolves.toEqual({ code: null, signal: 'SIGTERM' });
+    });
+
+    it('skips SIGTERM on Windows and gives the shutdown message the kill grace period', async () => {
+        const child = await spawnFixture(['--ignore-shutdown'], {
+            shutdownGraceMs: 50,
+            killGraceMs: 200,
+            platform: 'win32'
+        });
         await nextMessage(child);
 
         child.stop();
