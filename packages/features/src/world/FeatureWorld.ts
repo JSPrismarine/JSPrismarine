@@ -159,6 +159,15 @@ export interface BlockEntityRequest {
     readonly exitPortal?: BlockPos;
     /** Whether an end gateway places its own exit platform. */
     readonly exactTeleport?: boolean;
+    /**
+     * The whole block entity as a structure template saved it, when a template saved one.
+     *
+     * Typed as `unknown` because this package does not model NBT and depends on no library that
+     * does. The server narrows it before reading it.
+     */
+    readonly saved?: unknown;
+    /** The Java block the block entity sits in, which is where Java keeps a banner's color. */
+    readonly javaBlock?: string;
 }
 
 /** What a feature asks a world to stamp out of a structure template. */
