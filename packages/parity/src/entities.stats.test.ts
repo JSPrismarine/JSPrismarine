@@ -14,7 +14,7 @@ import { loadVanillaEntityTypes } from './vanillaEntities.ts';
  * Phase 3's stat cross-check: every stat both editions publish for the same mob, measured on
  * the entity the server spawns rather than on the pack's JSON.
  *
- * Nine stats are published on both sides, and the two editions disagree on 144 of the 423 rows.
+ * Nine stats are published on both sides, and the two editions disagree on 151 of the 438 rows.
  * [ADR 0001](../../../docs/adr/0001-entity-stat-authority.md) settles each one per stat: Java
  * decides `max_health`, `attack_damage`, `follow_range` and `knockback_resistance`, Bedrock
  * decides the five the client predicts or draws with, and fifteen reviewed rows keep Bedrock's
