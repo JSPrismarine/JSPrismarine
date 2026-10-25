@@ -130,6 +130,26 @@ describe('contentRandomTickHandlers', () => {
         });
     });
 
+    it('simulates nothing on an empty server, however much of the world is loaded', () => {
+        // Java's `ServerLevel.tickChunks` visits only the chunks a player ticket holds, which is
+        // why nobody's crops grow while they are logged off - and why an idle server is free.
+        place(chunk, 0, SOIL_Y, 0, 'minecraft:farmland', { moisturized_amount: 7 });
+
+        expect(world.getPlayers()).toEqual([]);
+        expect(world.randomTickChunks()).toEqual([]);
+    });
+
+    it('draws only for the sections that hold anything', () => {
+        place(chunk, 0, SOIL_Y, 0, 'minecraft:farmland', { moisturized_amount: 7 });
+        // One player, standing on the chunk, so the ticket half of the rule is satisfied.
+        Object.assign(world, {
+            players: new Map([[1n, { isOnline: () => true, getPosition: () => new Vector3(8, 0, 8) }]])
+        });
+
+        // The Overworld is twenty-four sections tall and this chunk has one block in it.
+        expect(world.randomTickChunks()).toEqual([{ x: 0, z: 0, sections: [SOIL_Y >> 4] }]);
+    });
+
     it('names every block the content answers a random tick for, and nothing else', () => {
         const handlers = contentRandomTickHandlers({ content, world: () => world, report: () => {} });
 

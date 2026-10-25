@@ -45,7 +45,7 @@ import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
 import { createEngineWorld } from './EngineWorld';
-import type { SystemBlock, WorldSystemsOptions } from './WorldSystems';
+import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import Chunk from './chunk/Chunk';
@@ -78,6 +78,16 @@ const UNSUITABLE_SPAWN_SURFACES = new Set([
 
 /** Chunks generated between yields to the event loop while preloading. */
 const PRELOAD_BATCH_SIZE = 32;
+
+/**
+ * How far from a player the world simulates, in chunks.
+ *
+ * Java Edition's `simulation-distance` default, and a separate thing from how far a client is
+ * sent chunks: a player sees terrain they are not simulating. A chunk outside every player's
+ * radius stays in memory and stays still, which is Java's own rule and the reason an empty
+ * server costs nothing to run.
+ */
+export const SIMULATION_DISTANCE = 10;
 
 /**
  * Which way a block goes when placed against each face, indexed by the face the client sent:
@@ -252,7 +262,8 @@ export class World implements Service {
                 randomTickSpeed: () => {
                     const [value] = this.gameRuleManager.getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
-                }
+                },
+                randomTickChunks: () => this.randomTickChunks()
             },
             world: createEngineWorld(this),
             // The blocks that answer a random tick are the behavior families in
@@ -1195,6 +1206,51 @@ export class World implements Service {
     /** The light engine and the two scheduled tick lists - see {@link WorldSystems}. */
     public getSystems(): WorldSystems {
         return this.systems;
+    }
+
+    /**
+     * Where this tick's random draws land: Java's `ServerLevel.tickChunks`, in two halves.
+     *
+     * Only a chunk a player ticket holds is simulated, so an empty server draws nothing at all
+     * however much of the world is in memory - which is also why nobody's furnaces burn while
+     * they are logged off. And within a chunk, only the sub chunks that hold anything: the
+     * three hundred blocks of air over an Overworld column take no random ticks, and drawing
+     * for them was most of what an idle world spent its tick on.
+     *
+     * Java's own section test is stricter still, asking the section's palette whether anything
+     * in it takes random ticks at all. A sub chunk that exists and is not empty is the cheap
+     * half of that, and the one that removes the twenty-three empty sections.
+     * Public for the same reason {@link World.loadedBlockAt} is: {@link WorldSystems} is handed
+     * the world's reads rather than the world itself.
+     * @returns {RandomTickChunk[]} One entry per simulated chunk, with its occupied sections.
+     */
+    public randomTickChunks(): RandomTickChunk[] {
+        const players = this.getPlayers();
+        if (players.length === 0) return [];
+
+        const visited: RandomTickChunk[] = [];
+        for (const chunk of this.chunks.values()) {
+            const x = chunk.getX();
+            const z = chunk.getZ();
+            if (!players.some((player) => this.withinSimulationDistance(player, x, z))) continue;
+
+            const sections: number[] = [];
+            for (const [index, subChunk] of chunk.getSubChunks()) {
+                if (!subChunk.isEmpty()) sections.push(index);
+            }
+            if (sections.length > 0) visited.push({ x, z, sections });
+        }
+
+        return visited;
+    }
+
+    /** Whether a chunk is close enough to a player for the world to simulate it. */
+    private withinSimulationDistance(player: Player, chunkX: number, chunkZ: number): boolean {
+        const position = player.getPosition();
+        return (
+            Math.abs((Math.floor(position.getX()) >> 4) - chunkX) <= SIMULATION_DISTANCE &&
+            Math.abs((Math.floor(position.getZ()) >> 4) - chunkZ) <= SIMULATION_DISTANCE
+        );
     }
 
     /**
