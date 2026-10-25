@@ -108,8 +108,11 @@ class GatedLevelDB extends LevelDB {
     /** How many chunks have reached disk. */
     public written = 0;
 
-    /** How many passes over the chunk list have started, which is the overlap signal. */
+    /** How many passes over the chunk list have started. */
     public passes = 0;
+
+    /** How many were ever inside one at the same time, which is the overlap signal. */
+    public concurrentPasses = 0;
 
     private open = false;
     private release: () => void = () => {};
@@ -153,9 +156,16 @@ const loadedWorld = async (name: string) => {
     // Counted here rather than in `writeChunk`, because a pass that writes nothing still has
     // to be distinguishable from no pass at all.
     const chunks = world.saveChunks.bind(world);
+    let inside = 0;
     world.saveChunks = async () => {
         provider.passes++;
-        return chunks();
+        inside++;
+        provider.concurrentPasses = Math.max(provider.concurrentPasses, inside);
+        try {
+            return await chunks();
+        } finally {
+            inside--;
+        }
     };
 
     // What `World.enable` does for the provider, without the start region: the provider reads
@@ -188,8 +198,8 @@ describe('the autosave a tick starts', () => {
         world.setTicks(AUTO_SAVE_TICK - 1);
         await world.update(AUTO_SAVE_TICK);
 
-        // The tick is over and the save has not written a single chunk: it is parked on the
-        // first one. Awaited, this call could not have returned.
+        // The tick is over and the save has not written a single chunk, because it is parked
+        // on the first one. Awaited, this call could not have returned.
         await provider.parked;
         expect(provider.written).toBe(0);
 
@@ -212,6 +222,25 @@ describe('the autosave a tick starts', () => {
         expect(provider.passes).toBe(1);
 
         provider.openGate();
+        await world.disable();
+    });
+
+    it('queues an explicit save behind itself rather than writing beside it', async () => {
+        const { world, provider } = await loadedWorld('explicit');
+
+        world.setTicks(AUTO_SAVE_TICK - 1);
+        await world.update(AUTO_SAVE_TICK);
+        await provider.parked;
+
+        // What a plugin or a console command does, with the autosave still parked. It has to
+        // happen - a caller that asks for a save gets one - but not at the same time.
+        const explicit = world.save();
+        provider.openGate();
+        await explicit;
+
+        expect(provider.passes).toBe(2);
+        expect(provider.concurrentPasses).toBe(1);
+
         await world.disable();
     });
 
