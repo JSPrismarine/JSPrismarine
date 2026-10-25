@@ -4,6 +4,7 @@
  * The window tracks the index of the first painted row, whether it follows the newest row, and how
  * many rows arrived while it was paused. Callers feed it list changes through `onAppended` and
  * `onReset`, and hand it the list in `slice` to pick the rows to paint. It never holds the list.
+ * `clear` hides every current row behind a floor the window cannot scroll above.
  */
 export class LogWindow {
     private rows: number;
@@ -11,6 +12,8 @@ export class LogWindow {
     private first = 0;
     private following = true;
     private unreadCount = 0;
+    /** Index of the oldest row the window may show; raised by `clear`, lowered by evictions. */
+    private floor = 0;
 
     public constructor(height: number) {
         this.rows = Math.max(1, height);
@@ -71,11 +74,21 @@ export class LogWindow {
     }
 
     /**
+     * Hides every row currently in the list and follows again, so only rows appended later are
+     * painted. The list itself is untouched; a rebuild (`onReset`) shows everything again.
+     */
+    public clear(): void {
+        this.floor = this.total;
+        this.moveTo(this.maxOffset);
+    }
+
+    /**
      * Records `count` new rows at the end of the list and `evicted` rows removed from its front.
      * A paused window shifts its offset so the same rows stay in view until it reaches the top.
      */
     public onAppended(count: number, evicted = 0): void {
         this.total += count - evicted;
+        this.floor = Math.max(0, this.floor - evicted);
         if (this.following) {
             this.first = this.maxOffset;
         } else {
@@ -91,6 +104,7 @@ export class LogWindow {
     public onReset(total: number): void {
         this.total = Math.max(0, total);
         this.unreadCount = 0;
+        this.floor = 0;
         this.reanchor();
     }
 
@@ -106,11 +120,11 @@ export class LogWindow {
     }
 
     private get maxOffset(): number {
-        return Math.max(0, this.total - this.rows);
+        return Math.max(this.floor, this.total - this.rows);
     }
 
     private clamp(offset: number): number {
-        return Math.min(this.maxOffset, Math.max(0, offset));
+        return Math.min(this.maxOffset, Math.max(this.floor, offset));
     }
 
     private moveTo(offset: number): void {

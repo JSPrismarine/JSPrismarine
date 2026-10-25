@@ -168,19 +168,13 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
         };
 
-    let view: LogView = mountLogView();
-
-    function mountLogView(): LogView {
-        const created = createLogView(components, {
-            store,
-            wrap,
-            showNamespace: layout.showNamespace,
-            levelStyle: layout.levelStyle
-        });
-        created.setSearchHighlight(search);
-        logColumn.add(created.renderable, 0);
-        return created;
-    }
+    const view: LogView = createLogView(components, {
+        store,
+        wrap,
+        showNamespace: layout.showNamespace,
+        levelStyle: layout.levelStyle
+    });
+    logColumn.add(view.renderable);
 
     const input = createInputBar(components, {
         history,
@@ -260,12 +254,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
         titleBar.renderable.visible = next.titleBar;
         sidePane.setMode(next.sidePane, next.sidePaneWidth);
-        if (next.levelStyle !== previous.levelStyle) {
-            view.dispose();
-            view = mountLogView();
-        } else {
-            view.setShowNamespace(next.showNamespace);
-        }
+        if (next.levelStyle !== previous.levelStyle) view.setLevelStyle(next.levelStyle);
+        if (next.showNamespace !== previous.showNamespace) view.setShowNamespace(next.showNamespace);
         refreshStatus();
     }
 
@@ -289,10 +279,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         refreshStatus();
     }
 
-    /** Scrolls so the visible record at `index` is the top row. */
+    /** Scrolls the visible record at `index` into view and remembers it for the next jump. */
     function scrollToIndex(index: number): void {
-        view.toTop();
-        view.scrollBy(index);
+        view.scrollTo(index);
         jumpCursor = index;
     }
 
@@ -429,7 +418,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 toggleWrap();
                 return;
             case 'log.clearView':
-                toasts.push(NOT_AVAILABLE('clearing the view'));
+                view.clearView();
                 return;
             case 'log.filter':
                 cycleLevelFilter();

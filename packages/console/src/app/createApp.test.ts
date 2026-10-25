@@ -354,7 +354,11 @@ describe('createApp', () => {
                 expect(frame).not.toContain('truncating long lines');
             },
             'log.clearView': async (t) => {
-                expect(count(t.captureCharFrame(), 'clearing the view is not yet available')).toBe(1);
+                expect(t.captureCharFrame()).not.toMatch(/line \d/);
+                expect(t.store.visible()).toHaveLength(100);
+                t.app.applyServerMessage(logMessage('after clear'));
+                await t.renderOnce();
+                expect(topLogRow(t)).toContain('after clear');
             },
             'log.filter': async (t) => {
                 expect(t.captureCharFrame()).toContain('all · all · ? help');
@@ -382,6 +386,7 @@ describe('createApp', () => {
                 t.mockInput.pressKey('HOME');
             },
             'log.top': async (t) => fill(t, 100),
+            'log.clearView': async (t) => fill(t, 100),
             'log.bottom': async (t) => {
                 fill(t, 100);
                 await t.renderOnce();
@@ -406,6 +411,40 @@ describe('createApp', () => {
             await effects[id](t);
             const promptRow = t.captureCharFrame().split('\n')[38] ?? '';
             expect(promptRow.trimEnd()).toBe(id === 'log.search' ? '> /' : '> type a command, ? for help');
+        });
+
+        it('jumps to the last search match on /text and steps back with N', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            fill(t, 100);
+            await t.renderOnce();
+
+            await t.mockInput.typeText('/line 5');
+            t.mockInput.pressEnter();
+            await t.renderOnce();
+            await t.renderOnce();
+            expect(topLogRow(t)).toContain('line 59');
+            expect(t.commands).toEqual([]);
+
+            t.mockInput.pressKey('N');
+            await t.renderOnce();
+            await t.renderOnce();
+            expect(topLogRow(t)).toContain('line 58');
+        });
+
+        it('scrolls the latest error into view on Ctrl+E', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+            fill(t, 9);
+            t.app.applyServerMessage(logMessage('boom', 'error'));
+            fill(t, 100);
+            await t.renderOnce();
+            expect(t.captureCharFrame()).not.toContain('boom');
+
+            t.mockInput.pressKey('e', { ctrl: true });
+            await t.renderOnce();
+            await t.renderOnce();
+            expect(topLogRow(t)).toContain('ERROR   Server       boom');
         });
 
         it('types a bound letter once the line has text', async () => {

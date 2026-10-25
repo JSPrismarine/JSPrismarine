@@ -171,4 +171,41 @@ describe('LogWindow', () => {
         expect(resized.follow).toBe(true);
         expect(resized.unread).toBe(0);
     });
+
+    describe('clear', () => {
+        it('hides every current row and shows later rows from the top', () => {
+            const window = windowOf(5, 12);
+            window.clear();
+            expect(window.slice(list(12))).toEqual([]);
+            expect(window.follow).toBe(true);
+
+            window.onAppended(2);
+            expect(window.slice(list(14))).toEqual([12, 13]);
+            expect(window.unread).toBe(0);
+        });
+
+        it('does not scroll back into the cleared rows', () => {
+            const window = windowOf(5, 12);
+            window.clear();
+            window.onAppended(3);
+            window.scrollBy(-10);
+            window.toTop();
+            expect(window.offset).toBe(12);
+            expect(window.follow).toBe(true);
+        });
+
+        it('shifts the cleared boundary when rows are evicted from the front', () => {
+            const window = windowOf(5, 12);
+            window.clear();
+            window.onAppended(1, 4);
+            expect(window.slice(list(9))).toEqual([8]);
+        });
+
+        it('shows everything again after the list is rebuilt', () => {
+            const window = windowOf(5, 12);
+            window.clear();
+            window.onReset(12);
+            expect(window.slice(list(12))).toEqual([7, 8, 9, 10, 11]);
+        });
+    });
 });
