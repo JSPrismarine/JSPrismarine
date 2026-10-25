@@ -52,6 +52,8 @@ export class RemoteConsole implements Service {
     private lastStatusAt = 0;
     private statusTimer: NodeJS.Timeout | undefined;
     private readonly unsubscribe: Array<() => void> = [];
+    /** Ids of `command` messages whose dispatch has not settled yet. */
+    private readonly inFlight = new Set<string>();
 
     /**
      * @param server - The server this console speaks for.
@@ -111,9 +113,15 @@ export class RemoteConsole implements Service {
     }
 
     /**
-     * Sends `lifecycle stopping` if it has not gone out yet, closes the log transport, and
-     * waits up to `flushTimeoutMs` for the link to drain, so a `process.exit` that follows
-     * does not discard the queued messages. Links without `flush` return at once.
+     * Answers every command still running with `ok: true`, sends `lifecycle stopping` if it
+     * has not gone out yet, closes the log transport, and waits up to `flushTimeoutMs` for
+     * the link to drain, so a `process.exit` that follows does not discard the queued
+     * messages. Links without `flush` return at once.
+     *
+     * A command whose dispatch is still pending here is one that stopped the server, such as
+     * `stop`: its `await server.shutdown()` never settles because `shutdown` exits the
+     * process. Answering it now is the only way the host sees a result instead of a closed
+     * link.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
@@ -123,6 +131,9 @@ export class RemoteConsole implements Service {
         if (this.statusTimer) clearInterval(this.statusTimer);
         this.statusTimer = undefined;
         for (const remove of this.unsubscribe.splice(0)) remove();
+
+        for (const id of this.inFlight) this.send({ type: 'command.result', v: PROTOCOL_VERSION, id, ok: true });
+        this.inFlight.clear();
 
         this.markStopping();
         this.transport.close();
@@ -155,10 +166,14 @@ export class RemoteConsole implements Service {
 
     private async runCommand(id: string, line: string): Promise<void> {
         const sender = this.server.getConsoleSender();
+        this.inFlight.add(id);
         try {
             const ok = await this.server.getCommandManager().dispatchCommand(sender, sender, line);
+            // Already answered by `disable` when the id is gone.
+            if (!this.inFlight.delete(id)) return;
             this.send({ type: 'command.result', v: PROTOCOL_VERSION, id, ok });
         } catch (error: unknown) {
+            if (!this.inFlight.delete(id)) return;
             const text = error instanceof Error ? error.message : String(error);
             this.send({ type: 'command.result', v: PROTOCOL_VERSION, id, ok: false, error: text });
         }
