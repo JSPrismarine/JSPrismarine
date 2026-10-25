@@ -43,6 +43,25 @@ describe('LogWindow', () => {
         expect(window.unread).toBe(5);
     });
 
+    it('shifts the anchor when the list evicts rows from the front while paused', () => {
+        const window = windowOf(5, 12);
+        window.scrollBy(-3);
+        window.onAppended(2, 2);
+        expect(window.offset).toBe(2);
+        expect(window.unread).toBe(2);
+        expect(window.slice(list(12))).toEqual([2, 3, 4, 5, 6]);
+
+        window.onAppended(0, 5);
+        expect(window.offset).toBe(0);
+    });
+
+    it('keeps the total in step with evictions while following', () => {
+        const window = windowOf(5, 12);
+        window.onAppended(1, 1);
+        expect(window.offset).toBe(7);
+        expect(window.slice(list(12))).toEqual([7, 8, 9, 10, 11]);
+    });
+
     it('resumes follow and clears unread when scrolling reaches the bottom', () => {
         const window = windowOf(5, 12);
         window.scrollBy(-3);

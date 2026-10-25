@@ -10,11 +10,12 @@ export interface LogStoreOptions {
 }
 
 /**
- * What changed in a {@link LogStore}. `append` reports how many records joined the visible list
- * so a paused window can keep its anchor and count unread lines; `reset` means the visible list
- * was rebuilt and indices into it are stale.
+ * What changed in a {@link LogStore}. `append` reports how many records joined the end of the
+ * visible list and how many the ring buffer evicted from its front, so a paused window can keep
+ * its anchor and count unread lines; `reset` means the visible list was rebuilt and indices into
+ * it are stale.
  */
-export type LogStoreChange = { type: 'append'; count: number } | { type: 'reset' };
+export type LogStoreChange = { type: 'append'; count: number; evicted: number } | { type: 'reset' };
 
 /** Direction for the jump helpers: `1` toward newer records, `-1` toward older ones. */
 export type JumpDirection = 1 | -1;
@@ -187,13 +188,15 @@ export class LogStore {
     }
 
     private push(record: StoredRecord): void {
+        let evicted = 0;
         if (this.count === this.capacity) {
-            const evicted = this.slots[this.start]!;
+            const oldest = this.slots[this.start]!;
             this.start = (this.start + 1) % this.capacity;
             this.count -= 1;
             this.evictedCount += 1;
-            if (this.passes(evicted)) {
+            if (this.passes(oldest)) {
                 this.visibleCache.shift();
+                evicted = 1;
             } else {
                 this.hidden -= 1;
             }
@@ -205,10 +208,10 @@ export class LogStore {
         this.matchCache = undefined;
         if (this.passes(record)) {
             this.visibleCache.push(record);
-            this.notify({ type: 'append', count: 1 });
+            this.notify({ type: 'append', count: 1, evicted });
         } else {
             this.hidden += 1;
-            this.notify({ type: 'append', count: 0 });
+            this.notify({ type: 'append', count: 0, evicted });
         }
     }
 
