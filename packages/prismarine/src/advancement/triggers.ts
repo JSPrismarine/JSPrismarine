@@ -10,7 +10,7 @@
  *
  * ## What is wired, and what is not
  *
- * Twelve of the 58 fire, and a function is here only when something in this
+ * Seventeen of the 58 fire, and a function is here only when something in this
  * server actually calls it. A helper for a trigger with no call site would
  * read as coverage while firing never, which is worth less than saying so.
  *
@@ -25,26 +25,18 @@
  * | `enchanted_item` | a row taken at an enchanting table |
  * | `location`, `tick` | `Player.update`, every second |
  * | `changed_dimension` | `Player.setWorld` |
+ * | `consume_item` | the `feed` action in `src/item/actorPort.ts` |
+ * | `item_durability_changed` | the `consume-durability` action, beside it |
+ * | `default_block_use`, `any_block_use` | `useItemOnBlock` |
+ * | `item_used_on_block` | `useItemOnBlock`, when the item took the click |
  *
- * The other 46 have no call site, and the reason is nearly always that the
+ * The other 41 have no call site, and the reason is nearly always that the
  * subsystem which would know the event does not exist. There is no status
  * effect system, so `effects_changed`, `levitation` and `used_totem` cannot
  * fire. There is no brewing, beacon, fishing, breeding, taming, riding,
  * trading, shearing or sleeping, so none of those can. There is no recipe
  * book, so `recipe_unlocked` has nothing to unlock, and no container loot
  * generation, so `player_generates_container_loot` has nothing to report.
- *
- * Four are nearer than that, and each needs one call from a file this module
- * does not own:
- *
- * - `consume_item` wants the `feed` action in `src/item/actorPort.ts`, which
- *   is where eating lands. It is the whole of `husbandry/root`.
- * - `item_used_on_block` and the two `*_block_use` ids want
- *   `useItemOnBlock` in `src/item/interaction.ts`, the content interaction
- *   path, which is the only place that knows a click acted on a block without
- *   placing one.
- * - `item_durability_changed` wants `spendDurability` in
- *   `src/item/actorPort.ts`.
  */
 import type { ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
 
@@ -211,6 +203,78 @@ export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): vo
     if (!enabled(player)) return;
 
     raiseAdvancement(player, 'placed_block', {
+        player: advancementSubject(player),
+        origin: event.origin,
+        blockState: { name: event.block },
+        tool: event.tool.asPredicateStack()
+    });
+};
+
+/**
+ * A player finished eating or drinking something.
+ *
+ * The whole of `husbandry/root`, whose single criterion is a `consume_item`
+ * with no item condition at all - so the first thing a player eats opens that
+ * branch of the tree.
+ */
+export const advancementConsumedItem = (player: Player, item: Item): void => {
+    if (!enabled(player)) return;
+
+    raiseAdvancement(player, 'consume_item', {
+        player: advancementSubject(player),
+        item: item.asPredicateStack()
+    });
+};
+
+/**
+ * A tool lost or regained durability.
+ *
+ * @param remaining - Durability left after the change, which is what the
+ *   `durability` condition compares.
+ * @param delta - Durability lost, negative for a repair, which is Java's sign
+ *   convention for the field of the same name.
+ */
+export const advancementDurabilityChanged = (player: Player, item: Item, remaining: number, delta: number): void => {
+    if (!enabled(player)) return;
+
+    raiseAdvancement(player, 'item_durability_changed', {
+        player: advancementSubject(player),
+        item: item.asPredicateStack(),
+        durability: remaining,
+        delta
+    });
+};
+
+/**
+ * A player right-clicked a block and the block took the click.
+ *
+ * Two triggers over one event, which is Java's arrangement: `any_block_use`
+ * fires for every interaction with a block and `default_block_use` only when
+ * the block's own use ran, as opposed to the item in hand acting on it. Both
+ * evaluate their conditions in the `block_use` parameter set, which carries
+ * the position and the block state and not the tool.
+ *
+ * @param defaultUse - Whether the block's own behavior consumed the click.
+ */
+export const advancementBlockUsed = (player: Player, event: Omit<BlockUseEvent, 'tool'>, defaultUse: boolean): void => {
+    if (!enabled(player)) return;
+
+    const raised = { player: advancementSubject(player), origin: event.origin, blockState: { name: event.block } };
+    raiseAdvancement(player, 'any_block_use', raised);
+    if (defaultUse) raiseAdvancement(player, 'default_block_use', raised);
+};
+
+/**
+ * A player used the item in hand against a block.
+ *
+ * The same `advancement_location` key set as `placed_block`, so the tool
+ * reaches the conditions - which is the difference between this and
+ * {@link advancementBlockUsed}, and the reason Java keeps them apart.
+ */
+export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent): void => {
+    if (!enabled(player)) return;
+
+    raiseAdvancement(player, 'item_used_on_block', {
         player: advancementSubject(player),
         origin: event.origin,
         blockState: { name: event.block },
