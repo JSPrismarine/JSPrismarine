@@ -218,6 +218,46 @@ export const integerArgument = (bounds: { min?: number; max?: number } = {}): Be
         return value;
     });
 
+/**
+ * How many ticks each unit Java's `minecraft:time` accepts is worth.
+ *
+ * `l` is missing on purpose: Bedrock's fourth postfix spells experience
+ * levels, not a duration.
+ */
+export const TIME_UNIT_TICKS = { t: 1, s: 20, d: 24_000 } as const;
+
+/** A unit suffix a time argument accepts. */
+export type TimeUnit = keyof typeof TIME_UNIT_TICKS;
+
+/** Whether a suffix is one of the three units a time argument scales by. */
+export const isTimeUnit = (unit: string): unit is TimeUnit => Object.hasOwn(TIME_UNIT_TICKS, unit);
+
+/**
+ * A duration in ticks, Java's `minecraft:time`.
+ *
+ * A bare number is ticks, and the suffixes in {@link TIME_UNIT_TICKS} scale
+ * it, so `5s` is 100 and `2d` is 48000. The amount may be fractional, as
+ * Java's `TimeArgument` allows, and the product is rounded to a whole tick.
+ *
+ * Bedrock has no type for "a number with an optional unit": its four
+ * `POSTFIX_*` types each require their own suffix, and the bare form is the
+ * one Bedrock operators type. So the client is told `INT` and the suffixes
+ * are read here.
+ *
+ * @param bounds - Compared against the tick count, after the unit scales it.
+ */
+export const timeArgument = (bounds: { min?: number; max?: number } = {}): BedrockDescribedType<number> =>
+    basic('INT', (reader) => {
+        const amount = reader.readFloat();
+        const unit = reader.readUnquotedString();
+        if (unit.length > 0 && !isTimeUnit(unit)) fail(reader, `'${unit}' is not a time unit; use t, s or d`);
+
+        const ticks = Math.round(amount * (isTimeUnit(unit) ? TIME_UNIT_TICKS[unit] : 1));
+        if (bounds.min !== undefined && ticks < bounds.min) fail(reader, `${ticks} ticks is below ${bounds.min}`);
+        if (bounds.max !== undefined && ticks > bounds.max) fail(reader, `${ticks} ticks is above ${bounds.max}`);
+        return ticks;
+    });
+
 /** An integer or `*`, the `WILDCARDINT` type. */
 export const wildcardIntegerArgument = (): BedrockDescribedType<number | '*'> =>
     basic('WILDCARDINT', (reader) => {
