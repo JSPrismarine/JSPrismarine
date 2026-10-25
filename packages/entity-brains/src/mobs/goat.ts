@@ -153,6 +153,11 @@ function ramTarget(interval: (screamer: boolean) => typeof GOAT.timeBetweenRams)
 /** Java's `LongJumpToRandomPos`, with the goat's 5 by 5 reach and its two jump sounds. */
 function longJump(): BehaviorControl {
     return timedState('LongJumpToRandomPos', 20, {
+        entryCondition: conditions(
+            [MemoryModuleTypes.LOOK_TARGET, 'registered'],
+            [MemoryModuleTypes.LONG_JUMP_COOLDOWN_TICKS, 'value_absent'],
+            [MemoryModuleTypes.LONG_JUMP_MID_JUMP, 'value_absent']
+        ),
         onStart: (context) => {
             context.body.brain.setMemory(MemoryModuleTypes.LONG_JUMP_MID_JUMP, true);
             context.body.jump();

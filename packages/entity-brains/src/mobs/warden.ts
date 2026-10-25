@@ -30,7 +30,7 @@ import { MemoryModuleTypes, UNIT } from '../memory.js';
 import type { BrainMobDefinition } from '../registry.js';
 import { PlayerSensor, WardenEntitySensor } from '../sensing/sensors.js';
 import type { BrainContext, BrainEntity } from '../world.js';
-import { blockPosTracker } from '../world.js';
+import { blockContaining, blockPosTracker } from '../world.js';
 
 /**
  * The named constants of `WardenAi`.
@@ -54,6 +54,24 @@ export const WARDEN = {
     vibrationCooldownTicks: 40,
     /** `Warden.ANGERMANAGEMENT_TICK_DELAY`, how often the anger map is aged. */
     angerManagementTickDelay: 20,
+    /** `Roar.TICKS_BEFORE_PLAYING_ROAR_SOUND` and `Roar.ROAR_ANGER_INCREASE`. */
+    roarSoundDelay: 25,
+    roarAngerIncrease: 20,
+    /** `TryToSniff.SNIFF_COOLDOWN`, `UniformInt.of(100, 200)`. */
+    sniffCooldown: { min: 100, max: 200 },
+    /** `Sniffing.ANGER_FROM_SNIFFING_MAX_DISTANCE_XZ` and `_Y`. */
+    angerFromSniffingDistance: { xz: 6, y: 20 },
+    /** `SonicBoom.DISTANCE_XZ`, `DISTANCE_Y`, `COOLDOWN`, `DURATION` and `TICKS_BEFORE_PLAYING_SOUND`. */
+    sonicBoom: {
+        distanceXz: 15,
+        distanceY: 20,
+        cooldown: 40,
+        duration: Math.ceil(60),
+        ticksBeforePlayingSound: Math.ceil(34),
+        knockbackVertical: 0.5,
+        knockbackHorizontal: 2.5,
+        damage: 10
+    },
     /** `Warden.DEFAULT_ANGER`, the anger a plain disturbance adds. */
     defaultAnger: 35,
     /** `Warden.PROJECTILE_ANGER`, added for the shooter of an arrow that lands nearby. */
@@ -224,26 +242,25 @@ function digCooldownSetter(): BehaviorControl {
         });
 }
 
-/** Java's `SetWardenLookTarget`: look at whatever the warden is angry at, even while digging. */
+/**
+ * Java's `SetWardenLookTarget`: face the roar target, or the disturbance when there is none.
+ *
+ * It requires `ATTACK_TARGET` absent, so a fighting warden looks through
+ * {@link setEntityLookTarget} in its fight activity instead.
+ */
 function setWardenLookTarget(): BehaviorControl {
     return behavior('SetWardenLookTarget')
         .registered(MemoryModuleTypes.LOOK_TARGET)
-        .build((context, lookTarget) => {
-            const target =
-                context.body.brain.getMemory(MemoryModuleTypes.ROAR_TARGET) ??
-                context.body.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET);
+        .registered(MemoryModuleTypes.DISTURBANCE_LOCATION)
+        .registered(MemoryModuleTypes.ROAR_TARGET)
+        .absent(MemoryModuleTypes.ATTACK_TARGET)
+        .build((_context, lookTarget, disturbance, roarTarget) => {
+            const roar = roarTarget.tryGet();
+            const target = roar === undefined ? disturbance.tryGet() : blockContaining(roar.position);
             if (target === undefined) {
                 return false;
             }
-            lookTarget.set({
-                currentPosition: () => target.position,
-                currentBlockPosition: () => ({
-                    x: Math.floor(target.position.x),
-                    y: Math.floor(target.position.y),
-                    z: Math.floor(target.position.z)
-                }),
-                entity: target
-            });
+            lookTarget.set(blockPosTracker(target));
             return true;
         });
 }
@@ -251,29 +268,42 @@ function setWardenLookTarget(): BehaviorControl {
 /** Java's `SetRoarTarget`: promotes the angriest suspect into `ROAR_TARGET`. */
 function setRoarTarget(angryAt: (context: BrainContext) => BrainEntity | undefined): BehaviorControl {
     return behavior('SetRoarTarget')
-        .absent(MemoryModuleTypes.ATTACK_TARGET)
         .absent(MemoryModuleTypes.ROAR_TARGET)
-        .registered(MemoryModuleTypes.NEAREST_ATTACKABLE)
-        .build((context, _attackTarget, roarTarget) => {
+        .absent(MemoryModuleTypes.ATTACK_TARGET)
+        .registered(MemoryModuleTypes.CANT_REACH_WALK_TARGET_SINCE)
+        .build((context, roarTarget, _attackTarget, cantReachSince) => {
             const target = angryAt(context);
             if (target === undefined) {
                 return false;
             }
             roarTarget.set(target);
+            cantReachSince.erase();
             return true;
         });
 }
 
-/** Java's `TryToSniff`: starts the sniff activity when the sniff cooldown is clear. */
+/**
+ * Java's `TryToSniff`: starts the sniff activity.
+ *
+ * It needs something to sniff at (`NEAREST_ATTACKABLE` present) and nothing better to do
+ * (`DISTURBANCE_LOCATION` absent, `SNIFF_COOLDOWN` clear), and it draws the next cooldown from
+ * `UniformInt.of(100, 200)`.
+ */
 function tryToSniff(): BehaviorControl {
     return behavior('TryToSniff')
-        .absent(MemoryModuleTypes.IS_SNIFFING)
-        .absent(MemoryModuleTypes.ATTACK_TARGET)
-        .absent(MemoryModuleTypes.WALK_TARGET)
+        .registered(MemoryModuleTypes.IS_SNIFFING)
+        .registered(MemoryModuleTypes.WALK_TARGET)
         .absent(MemoryModuleTypes.SNIFF_COOLDOWN)
-        .build((context, isSniffing, _attackTarget, _walkTarget, _cooldown) => {
-            isSniffing.setWithExpiry(UNIT, WARDEN.sniffingDuration);
-            context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.SNIFF_COOLDOWN, UNIT, 200);
+        .present(MemoryModuleTypes.NEAREST_ATTACKABLE)
+        .absent(MemoryModuleTypes.DISTURBANCE_LOCATION)
+        .build((context, isSniffing, walkTarget, cooldown) => {
+            isSniffing.set(UNIT);
+            cooldown.setWithExpiry(
+                UNIT,
+                WARDEN.sniffCooldown.min +
+                    context.world.randomInt(WARDEN.sniffCooldown.max - WARDEN.sniffCooldown.min + 1)
+            );
+            walkTarget.erase();
             return true;
         });
 }
@@ -293,11 +323,29 @@ function goToDisturbance(): BehaviorControl {
         });
 }
 
-/** Java's `Roar`: the warden's only way into a fight. */
-function roar(): BehaviorControl {
+/**
+ * Java's `Roar`: the warden's only way into a fight.
+ *
+ * Roaring itself adds `ROAR_ANGER_INCREASE`, which is 20, to the target, so a warden that roars at
+ * something it was merely agitated by ends up angry at it.
+ */
+function roar(anger?: WardenAnger): BehaviorControl {
     return timedState('Roar', WARDEN.roarDuration, {
-        entryCondition: conditions([MemoryModuleTypes.ROAR_TARGET, 'value_present']),
+        entryCondition: conditions(
+            [MemoryModuleTypes.ROAR_TARGET, 'value_present'],
+            [MemoryModuleTypes.ATTACK_TARGET, 'value_absent'],
+            [MemoryModuleTypes.ROAR_SOUND_COOLDOWN, 'registered'],
+            [MemoryModuleTypes.ROAR_SOUND_DELAY, 'registered']
+        ),
         startSound: 'minecraft:entity.warden.roar',
+        onStart: (context) => {
+            context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ROAR_SOUND_DELAY, UNIT, WARDEN.roarSoundDelay);
+            context.body.brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
+            const target = context.body.brain.getMemory(MemoryModuleTypes.ROAR_TARGET);
+            if (target !== undefined) {
+                anger?.increaseAngerAt?.(context, target, WARDEN.roarAngerIncrease);
+            }
+        },
         onStop: (context) => {
             const target = context.body.brain.getMemory(MemoryModuleTypes.ROAR_TARGET);
             context.body.brain.eraseMemory(MemoryModuleTypes.ROAR_TARGET);
@@ -315,18 +363,37 @@ function roar(): BehaviorControl {
  * `SONIC_BOOM_SOUND_COOLDOWN` the tail; the damage itself is the host's.
  */
 function sonicBoom(): BehaviorControl {
-    return timedState('SonicBoom', 34, {
+    return timedState('SonicBoom', WARDEN.sonicBoom.duration, {
         entryCondition: conditions(
             [MemoryModuleTypes.ATTACK_TARGET, 'value_present'],
-            [MemoryModuleTypes.SONIC_BOOM_COOLDOWN, 'value_absent']
+            [MemoryModuleTypes.SONIC_BOOM_COOLDOWN, 'value_absent'],
+            [MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN, 'registered'],
+            [MemoryModuleTypes.SONIC_BOOM_SOUND_DELAY, 'registered']
         ),
         onStart: (context) => {
-            context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.SONIC_BOOM_SOUND_DELAY, UNIT, 34);
+            context.body.brain.setMemoryWithExpiry(
+                MemoryModuleTypes.ATTACK_COOLING_DOWN,
+                true,
+                WARDEN.sonicBoom.duration
+            );
+            context.body.brain.setMemoryWithExpiry(
+                MemoryModuleTypes.SONIC_BOOM_SOUND_DELAY,
+                UNIT,
+                WARDEN.sonicBoom.ticksBeforePlayingSound
+            );
             context.body.playSound('minecraft:entity.warden.sonic_charge');
         },
         onStop: (context) => {
-            context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.SONIC_BOOM_COOLDOWN, UNIT, 40);
-            context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN, UNIT, 60);
+            context.body.brain.setMemoryWithExpiry(
+                MemoryModuleTypes.SONIC_BOOM_COOLDOWN,
+                UNIT,
+                WARDEN.sonicBoom.cooldown
+            );
+            context.body.brain.setMemoryWithExpiry(
+                MemoryModuleTypes.SONIC_BOOM_SOUND_COOLDOWN,
+                UNIT,
+                WARDEN.sonicBoom.duration - WARDEN.sonicBoom.ticksBeforePlayingSound
+            );
             context.body.playSound('minecraft:entity.warden.sonic_boom');
         }
     });
@@ -345,6 +412,11 @@ function emergeActivity(): ActivityData {
         Activities.EMERGE,
         prioritized(5, [
             timedState('Emerging', WARDEN.emergeDuration, {
+                entryCondition: conditions(
+                    [MemoryModuleTypes.IS_EMERGING, 'value_present'],
+                    [MemoryModuleTypes.WALK_TARGET, 'value_absent'],
+                    [MemoryModuleTypes.LOOK_TARGET, 'registered']
+                ),
                 eraseOnStop: [MemoryModuleTypes.IS_EMERGING],
                 startSound: 'minecraft:entity.warden.emerge'
             })
@@ -362,6 +434,10 @@ function diggingActivity(): ActivityData {
             [
                 1,
                 timedState('Digging', WARDEN.diggingDuration, {
+                    entryCondition: conditions(
+                        [MemoryModuleTypes.ATTACK_TARGET, 'value_absent'],
+                        [MemoryModuleTypes.WALK_TARGET, 'value_absent']
+                    ),
                     startSound: 'minecraft:entity.warden.dig',
                     onStop: (context) => setDigCooldown(context)
                 })
@@ -404,14 +480,26 @@ function sniffingActivity(angryAt: (context: BrainContext) => BrainEntity | unde
         Activities.SNIFF,
         prioritized(5, [
             setRoarTarget(angryAt),
-            timedState('Sniffing', WARDEN.sniffingDuration, { startSound: 'minecraft:entity.warden.sniff' })
+            timedState('Sniffing', WARDEN.sniffingDuration, {
+                entryCondition: conditions(
+                    [MemoryModuleTypes.IS_SNIFFING, 'value_present'],
+                    [MemoryModuleTypes.ATTACK_TARGET, 'value_absent'],
+                    [MemoryModuleTypes.WALK_TARGET, 'value_absent'],
+                    [MemoryModuleTypes.LOOK_TARGET, 'registered'],
+                    [MemoryModuleTypes.NEAREST_ATTACKABLE, 'registered'],
+                    [MemoryModuleTypes.DISTURBANCE_LOCATION, 'registered'],
+                    [MemoryModuleTypes.SNIFF_COOLDOWN, 'registered']
+                ),
+                startSound: 'minecraft:entity.warden.sniff',
+                eraseOnStop: [MemoryModuleTypes.IS_SNIFFING]
+            })
         ]),
         { gatedBy: MemoryModuleTypes.IS_SNIFFING }
     );
 }
 
-function roarActivity(): ActivityData {
-    return activityData(Activities.ROAR, prioritized(10, [roar()]), { gatedBy: MemoryModuleTypes.ROAR_TARGET });
+function roarActivity(anger: WardenAnger): ActivityData {
+    return activityData(Activities.ROAR, prioritized(10, [roar(anger)]), { gatedBy: MemoryModuleTypes.ROAR_TARGET });
 }
 
 /**
@@ -458,6 +546,8 @@ export interface WardenAnger {
     canTargetEntity(context: BrainContext, entity: BrainEntity): boolean;
     /** Java's `Warden::clearAnger`. */
     clearAnger(context: BrainContext, entity: BrainEntity): void;
+    /** Java's `Warden::increaseAngerAt`, which `Roar` calls with 20 and no sound. */
+    increaseAngerAt?(context: BrainContext, entity: BrainEntity, amount: number): void;
 }
 
 /**
@@ -471,7 +561,10 @@ export function angerFrom(anger: AngerManagement, canTargetEntity: (entity: Brai
         entityAngryAt: () => (anger.angerLevel === 'angry' ? anger.getActiveEntity() : undefined),
         isAngry: () => anger.angerLevel === 'angry',
         canTargetEntity: (_context, entity) => canTargetEntity(entity),
-        clearAnger: (_context, entity) => anger.clearAnger(entity)
+        clearAnger: (_context, entity) => anger.clearAnger(entity),
+        increaseAngerAt: (_context, entity, amount) => {
+            anger.increaseAnger(entity, amount);
+        }
     };
 }
 
@@ -482,7 +575,7 @@ export function wardenActivities(anger: WardenAnger, followRange: number): reado
         emergeActivity(),
         diggingActivity(),
         idleActivity(angryAt),
-        roarActivity(),
+        roarActivity(anger),
         fightActivity(
             (context) => anger.isAngry(context),
             (context, entity) => anger.canTargetEntity(context, entity),
@@ -497,6 +590,14 @@ export function wardenActivities(anger: WardenAnger, followRange: number): reado
         investigateActivity(angryAt),
         sniffingActivity(angryAt)
     ];
+}
+
+/**
+ * Java's `Warden.finalizeSpawn` branch for a warden summoned by a sculk shrieker: it poses as
+ * emerging and holds `IS_EMERGING` for the emerge animation.
+ */
+export function startEmerging(context: BrainContext): void {
+    context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.IS_EMERGING, UNIT, WARDEN.emergeDuration);
 }
 
 /** Java's `Warden.FOLLOW_RANGE`, the look range the fight activity is built with. */
@@ -528,6 +629,12 @@ export const WARDEN_BRAIN: BrainMobDefinition = {
     sensorTypes: ['nearest_players', 'warden_entity_sensor'],
     alsoRunsGoals: false,
     makeBrain: () => makeWardenBrain(new AngerManagement(() => true), () => true),
+    /**
+     * Java's `Warden.finalizeSpawn`: a fresh warden holds `DIG_COOLDOWN` for 1200 ticks, which is
+     * what stops it from immediately burrowing back out of sight.
+     */
+    initMemories: (context) =>
+        context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.DIG_COOLDOWN, UNIT, WARDEN.diggingCooldown),
     updateActivity: (context) =>
         context.body.brain.setActiveActivityToFirstValid([
             Activities.EMERGE,
