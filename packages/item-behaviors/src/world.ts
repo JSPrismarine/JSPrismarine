@@ -137,11 +137,12 @@ export interface ApplyEffectsAction {
     readonly effects: readonly EffectApplication[];
 }
 
-/** Take status effects off an entity; an empty list means every effect, as milk does. */
+/** Take status effects off an entity. */
 export interface RemoveEffectsAction {
     readonly kind: 'remove-effects';
     readonly target: ItemSource;
-    readonly effects: readonly string[];
+    /** Which effects to remove, or absent for every one of them, which is milk. */
+    readonly effects?: HolderSet;
 }
 
 /** Hurt an entity, which an ender pearl does to its thrower. */
@@ -150,6 +151,16 @@ export interface DamageEntityAction {
     readonly target: ItemSource;
     readonly amount: number;
     readonly damageType: string;
+}
+
+/** Restore hunger and saturation, which is what eating is for. */
+export interface FeedAction {
+    readonly kind: 'feed';
+    readonly target: ItemSource;
+    /** Half-drumsticks restored, from `minecraft:food`. */
+    readonly nutrition: number;
+    /** Saturation restored, already the absolute figure Java stores. */
+    readonly saturation: number;
 }
 
 /** Move an entity to a random nearby position, which is the chorus fruit. */
@@ -312,6 +323,7 @@ export type ItemWorldAction =
     | DisableShieldAction
     | DyeEntityAction
     | EquipAction
+    | FeedAction
     | FertilizeAction
     | FishingAction
     | GiveItemAction
@@ -346,6 +358,15 @@ export type ItemWorldActionOf<K extends ItemWorldActionKind> = Extract<ItemWorld
 export interface WorldActions {
     /** The block at a position, or undefined when the position is unloaded. */
     blockAt(position: BlockPosition): BlockReference | undefined;
+    /**
+     * A block's hardness, which is Java's `destroySpeed`.
+     *
+     * The number comes from the per-state property table rather than from
+     * anything a pack publishes, so the world owns it. -1 means unbreakable,
+     * and 0 means the block breaks instantly, which is why it costs a tool no
+     * durability.
+     */
+    hardnessOf(block: BlockReference): number;
     /** Everything a behavior reads about the entity using the item. */
     stateOf(source: ItemSource): SourceState;
     /** Everything a behavior reads about the world around it. */
@@ -372,6 +393,17 @@ export interface WorldActions {
      *   for the block.
      */
     transform(transformer: string, block: BlockReference): BlockPlacement | undefined;
+    /**
+     * The effects one potion identifier applies.
+     *
+     * Java keeps its potion table in code rather than data, in `Potions`, so
+     * the 47 entries cannot come from this package. The server, which already
+     * builds a potion registry for the client, answers instead.
+     *
+     * @returns The effects, or an empty list for a water bottle and for a
+     *   potion the server does not know.
+     */
+    effectsOf(potion: string): readonly EffectApplication[];
     /** A number in [0, 1), which is every random roll a behavior makes. */
     random(): number;
     /** Do one thing to the world. */
