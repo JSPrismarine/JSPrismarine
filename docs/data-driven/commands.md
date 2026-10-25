@@ -43,8 +43,9 @@ hand-written, and `packages/commands/src/bedrockTable.test.ts` asserts every cou
 | Soft enums                |     4 |
 
 46 command names appear in both editions. 48 Java root names have no Bedrock counterpart at all,
-among them `/advancement`, `/bossbar`, `/team`, `/worldborder`, `/trigger`, `/datapack` and
-`/return`. A few of the 48 are only spelling differences, such as `/tp`, `/msg`, `/w` and `/tm`, or
+among them `/advancement`, `/bossbar`, `/team`, `/worldborder`, `/trigger` and `/datapack`. This
+server registers `/return` anyway, because `execute if function` reads Java's rule and needs a
+function to have a return value to read. A few of the 48 are only spelling differences, such as `/tp`, `/msg`, `/w` and `/tm`, or
 server administration that Bedrock names differently, such as `/whitelist` against `/allowlist`.
 Most of them describe a system Bedrock has no client-side model for.
 
@@ -426,11 +427,6 @@ is a fork. Java's `CommandDispatcher` swallows a fork's exception and answers 0,
 command report failure with no message explaining why. This is Java's own rule rather than this
 server's, and the fix on your side is to check the objective exists before you branch on it.
 
-**`execute if function` does not mean what it means in Java.** Java matches when the function
-returned a non-zero value through `/return`. There is no `/return` in this command set, so the
-runtime answers with the number of command lines that ran. Any function that executes at least one
-line therefore matches.
-
 **`execute on <relation>` always refuses.** All 8 relations parse, but nothing tracks entity
 relationships, so the host rejects the call.
 
@@ -447,9 +443,6 @@ with no timer behind it here, and the command itself is not registered.
 **`/fill` and `/clone` cap at 32768 blocks.** They refuse a larger region, which matches Java's
 `minecraft:max_block_modifications` default.
 
-**`/schedule` takes ticks only.** Java's time argument accepts `5s` and `2d`; this one takes a
-plain integer, so write `100` rather than `5s`.
-
 **`scoreboard players enable` refuses.** It marks an objective as one a player may `/trigger`, and
 there is no `/trigger` in this set, so recording the grant would set a flag nothing reads.
 
@@ -457,8 +450,10 @@ there is no `/trigger` in this set, so recording the grant would set a flag noth
 as long as the process. Everything a running server can observe works, including display slots and
 a score surviving a player relogging.
 
-**`/loot insert` has nowhere to insert into.** There are no container block entities yet, so the
-other three destinations (`give`, `spawn`, `replace`) work and that one refuses.
+**`/loot insert` refuses.** The other three destinations (`give`, `spawn`, `replace`) work. Its
+refusal message still says this server has no container block entities, which is no longer true —
+chests and the other 24 container blocks now hold real slots — so this is a wiring gap rather than
+a missing subsystem.
 
 **`/replaceitem` only writes a player's named slots.** Container blocks and the slots this server's
 inventories do not name are refused rather than silently skipped.
