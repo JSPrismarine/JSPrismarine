@@ -8,6 +8,53 @@ import type { ClimateSampler } from './ClimateSampler';
 export type BiomeResolver = (quartX: number, quartY: number, quartZ: number) => string;
 
 /**
+ * How many biome cells a memoized resolver remembers.
+ *
+ * A chunk spans 1536 cells and the surface pass reaches into its neighbors, so a 3 by 3 region
+ * of chunks works in about 14000. Rounding that up to a power of two keeps the whole working
+ * set resident and the slot index a mask away.
+ */
+const BIOME_CELL_SLOTS = 1 << 15;
+
+/**
+ * Wraps a resolver so each biome cell is resolved once.
+ *
+ * Java never asks a biome source the same cell twice: `createBiomes` fills the chunk's biome
+ * array, and every later stage reads that array. This server's stages call the source directly,
+ * and the surface pass calls it per block, which made a multi-noise lookup, six density
+ * functions and all their noise octaves run 98304 times per chunk for 1536 distinct answers.
+ *
+ * The cache is direct-mapped: a cell hashes to one slot and a colliding cell evicts the
+ * previous occupant. The stored coordinates are compared exactly before a value is reused, so
+ * an eviction costs a recomputation and never an answer.
+ */
+export const memoizeBiomeResolver = (resolver: BiomeResolver): BiomeResolver => {
+    const keyX = new Int32Array(BIOME_CELL_SLOTS);
+    const keyY = new Int32Array(BIOME_CELL_SLOTS);
+    const keyZ = new Int32Array(BIOME_CELL_SLOTS);
+    const filled = new Uint8Array(BIOME_CELL_SLOTS);
+    const values = new Array<string>(BIOME_CELL_SLOTS);
+
+    return (quartX, quartY, quartZ) => {
+        // Three 32-bit multiplicative hashes, folded; the constants are odd and well-mixed.
+        const slot =
+            (Math.imul(quartX, -1640531527) ^ Math.imul(quartY, -2048144789) ^ Math.imul(quartZ, -1028477379)) &
+            (BIOME_CELL_SLOTS - 1);
+        if (filled[slot] === 1 && keyX[slot] === quartX && keyY[slot] === quartY && keyZ[slot] === quartZ) {
+            return values[slot] as string;
+        }
+
+        const biome = resolver(quartX, quartY, quartZ);
+        keyX[slot] = quartX;
+        keyY[slot] = quartY;
+        keyZ[slot] = quartZ;
+        values[slot] = biome;
+        filled[slot] = 1;
+        return biome;
+    };
+};
+
+/**
  * A dimension's biome layout.
  *
  * A source is immutable and seed-independent; binding it to a {@link ClimateSampler} through
