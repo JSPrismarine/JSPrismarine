@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { AIR, createVoxelWorld, OVERWORLD } from './voxelWorld';
+import { AIR } from './identifiers';
+import { createVoxelWorld, OVERWORLD } from './voxelWorld';
 import { DEFAULT_BLOCK_PROPERTIES } from './world';
 
 describe('VoxelWorld', () => {
