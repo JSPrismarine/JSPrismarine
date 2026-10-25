@@ -1,4 +1,5 @@
-import { argument, literal } from '@jsprismarine/brigadier';
+import { argument as sourcelessArgument, literal } from '@jsprismarine/brigadier';
+import type { ArgumentType } from '@jsprismarine/brigadier';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
@@ -15,6 +16,14 @@ import { CommandRegistry } from './tree';
 interface TestSource {
     readonly level: number;
 }
+
+/**
+ * `argument`, bound to this file's source type.
+ *
+ * `argument` cannot infer the source from its own parameters, so bare calls build a node over
+ * `unknown` that will not compose with the literals around it.
+ */
+const argument = <T>(name: string, type: ArgumentType<T>) => sourcelessArgument<TestSource, T>(name, type);
 
 const succeed = () => 1;
 
