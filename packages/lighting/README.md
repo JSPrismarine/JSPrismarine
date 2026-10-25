@@ -62,6 +62,7 @@ interface BlockLightView {
     readonly maxY: number;
     readonly hasSkyLight: boolean;
     blockAt(x: number, y: number, z: number): BlockLightProperties | undefined;
+    topOfColumn?(x: number, z: number): number;
 }
 ```
 
@@ -71,6 +72,13 @@ conversion, so a server implementation of `blockAt` is a block lookup followed b
 
 `undefined` means the chunk is not loaded. The engine never asks about a y outside `minY` to `maxY`,
 so it is the only meaning the value carries.
+
+`topOfColumn` is one past the highest y in a block column that emits or dampens light, and it is
+worth answering. A chunk that loads reads every block of all 256 of its columns, so in an Overworld
+most of what the engine would otherwise read is the open sky above the ground: a view that answers
+96 rather than 320 turns 98304 reads into 41000. A view that leaves it out is scanned from `maxY`.
+An answer that is too high only costs time; one that is too low loses the light of everything above
+it, so a view that is unsure answers `maxY`.
 
 `@jsprismarine/lighting/testing` exports `TestBlockLightView`, an in-memory implementation with
 `place`, `loadChunk` and `unloadChunk`, plus a `lightBlock` helper that fills in the field a test

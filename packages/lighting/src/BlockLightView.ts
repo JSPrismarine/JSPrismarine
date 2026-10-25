@@ -50,4 +50,20 @@ export interface BlockLightView {
      * chunk holding the position is not loaded.
      */
     blockAt(x: number, y: number, z: number): BlockLightProperties | undefined;
+
+    /**
+     * One past the highest y in a block column that does anything to light, so a chunk's first
+     * scan can start below the empty sky instead of at {@link BlockLightView.maxY}.
+     *
+     * Optional, and a view that leaves it out is scanned from `maxY`, which is what every view
+     * was scanned from before. It is worth answering: a fresh chunk reads every block of all 256
+     * of its columns, so an Overworld view that says 96 rather than 320 turns 98304 reads into
+     * 41000. An answer that is too high only costs time; one that is too low loses the light of
+     * every block above it, so a view that is unsure says `maxY`.
+     * @param {number} x - World x.
+     * @param {number} z - World z.
+     * @returns {number} One past the highest y that emits or dampens light. Everything from there
+     * up to `maxY` has to be transparent and unlit.
+     */
+    topOfColumn?(x: number, z: number): number;
 }

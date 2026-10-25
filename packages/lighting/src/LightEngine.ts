@@ -283,11 +283,20 @@ export class LightEngine {
         return layer === SKY_LAYER ? 0 : Math.min(block.lightEmission, MAX_LIGHT_LEVEL);
     }
 
-    /** One downward walk of a block column: records the heightmap entry and seeds every emitter. */
+    /**
+     * One downward walk of a block column: records the heightmap entry and seeds every emitter.
+     *
+     * The walk starts at {@link BlockLightView.topOfColumn} where the view answers it. This is
+     * the engine's hottest loop by a wide margin - it is every block of every column of every
+     * chunk that loads - and in an Overworld most of what it would otherwise read is the two
+     * hundred blocks of open sky above the ground, which neither emit nor dampen and so move
+     * neither the heightmap nor a source.
+     */
     private scanColumn(column: LightColumn, x: number, z: number): void {
         let height = this.view.minY;
+        const top = Math.min(this.view.topOfColumn?.(x, z) ?? this.view.maxY, this.view.maxY);
 
-        for (let y = this.view.maxY - 1; y >= this.view.minY; y--) {
+        for (let y = top - 1; y >= this.view.minY; y--) {
             const block = this.view.blockAt(x, y, z);
             if (block === undefined) continue;
 
