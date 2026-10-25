@@ -262,3 +262,67 @@ describe('centerBlockSlots', () => {
         }
     });
 });
+
+describe('transfer', () => {
+    it('comes back the same region on the other side of a thread boundary', () => {
+        const built = terrainTile(1, -2);
+        built.write(20, 64, -30, STONE);
+        built.write(31, -64, -17, { name: 'minecraft:bedrock', properties: {} });
+        built.write(20, 70, -30, { name: 'minecraft:oak_log', properties: { axis: 'y' } });
+        built.writeBedrock(21, 70, -31, { name: 'minecraft:bone_block', states: { pillar_axis: 'y' } });
+        built.featureWorld().setBlockEntity?.({ x: 20, y: 64, z: -30 }, { id: 'minecraft:chest' });
+        built.spawnEntityAt('minecraft:end_crystal', 20.5, 65, -29.5, 90);
+        built.freezeSurfaceHeights();
+
+        const before = {
+            stone: built.stateAt(20, 64, -30),
+            log: built.stateAt(20, 70, -30),
+            bedrock: built.blockAt(21, 70, -31),
+            surface: built.surfaceChunk().surfaceHeight(4, 2),
+            blockEntities: built.centerBlockEntities(),
+            spawns: built.centerEntitySpawns(),
+            slots: [...built.centerBlockSlots().slots]
+        };
+
+        const { payload, transferList } = built.transfer();
+        expect(transferList).toHaveLength(3);
+
+        const landed = GenerationRegion.adopt(payload, {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        });
+
+        expect(landed.stateAt(20, 64, -30)).toEqual(before.stone);
+        expect(landed.stateAt(20, 70, -30)).toEqual(before.log);
+        expect(landed.blockAt(21, 70, -31)).toEqual(before.bedrock);
+        expect(landed.surfaceChunk().surfaceHeight(4, 2)).toBe(before.surface);
+        expect(landed.centerBlockEntities()).toEqual(before.blockEntities);
+        expect(landed.centerEntitySpawns()).toEqual(before.spawns);
+        expect([...landed.centerBlockSlots().slots]).toEqual(before.slots);
+    });
+
+    it('keeps writing into the same palette slots it arrived with', () => {
+        const built = terrainTile(0, 0);
+        built.write(1, 0, 1, STONE);
+        const { payload } = built.transfer();
+
+        const landed = GenerationRegion.adopt(payload, {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        });
+        const slotsBefore = landed.centerBlockSlots().palette.length;
+
+        // The same state again takes the slot it already has, rather than a second one.
+        landed.write(2, 0, 2, STONE);
+        expect(landed.centerBlockSlots().palette).toHaveLength(slotsBefore);
+        expect(landed.stateAt(2, 0, 2)).toEqual(STONE);
+
+        // And a new one appends.
+        landed.write(3, 0, 3, { name: 'minecraft:dirt', properties: {} });
+        expect(landed.centerBlockSlots().palette).toHaveLength(slotsBefore + 1);
+    });
+});

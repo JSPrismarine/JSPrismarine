@@ -18,6 +18,7 @@ import type { StepRegion } from '@jsprismarine/chunkgen';
 import {
     ChunkHolderMap,
     FEATURE_PATCH_ORDER,
+    GenerationPool,
     GenerationScheduler,
     InboundFeaturePatches
 } from '@jsprismarine/chunkgen';
@@ -64,7 +65,7 @@ import type { Generator, SurfaceProbe } from '../../Generator';
 import { GenerationChunk } from './GenerationChunk';
 import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
-import type { RegionChunkPatch } from './GenerationRegion';
+import type { GenerationRegionPayload, GenerationRegionTransfer, RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { BeardPiece } from './javaStructureBeard';
@@ -78,6 +79,8 @@ import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
+import { shareRegistryBundle } from './registryBundle';
+import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 
 /** How a {@link DataDrivenGenerator} is built. */
@@ -117,6 +120,42 @@ export interface DataDrivenGeneratorOptions {
      * the depth below the number of requests it makes.
      */
     readonly concurrency?: number;
+    /**
+     * Where to run the `terrain` bodies, and how many at a time.
+     *
+     * Absent by default, which runs them on this thread. A pool is worth about 4.7 times one
+     * thread at five or six workers on an Apple M1 Pro, and less past that, because six of its
+     * eight cores are performance cores and a worker is a whole V8 isolate.
+     *
+     * Only `terrain` goes to a worker. It writes radius 0, its own chunk and nothing else, so
+     * two of them can never touch the same block. `features` writes radius 1 and stays here,
+     * which is Java's split and is the safety argument for the whole arrangement.
+     */
+    readonly terrain?: TerrainPoolOptions;
+}
+
+/** Where a generator runs its `terrain` bodies. */
+export interface TerrainPoolOptions {
+    /**
+     * The built module a worker imports to get its terrain pipeline, usually
+     * `terrainPipeline.es.js` from this package's `dist`.
+     *
+     * A path rather than a resolved module, because a worker thread imports it through Node and
+     * a dev checkout resolves `@jsprismarine/*` to TypeScript that Node cannot follow.
+     */
+    readonly pipeline: string;
+    /** How many workers. Five or six on this machine; more is worse. */
+    readonly workers: number;
+    /** The worker entry, which defaults to `@jsprismarine/chunkgen`'s own. */
+    readonly worker?: string;
+}
+
+/** What a `terrain` task carries besides its position. */
+export interface TerrainTaskInput {
+    /** The world seed as a decimal string, because a `bigint` does not survive every clone. */
+    readonly seed: string;
+    /** The structure pieces that push this chunk's terrain around, laid out on the main thread. */
+    readonly beard: readonly BeardPiece[];
 }
 
 /** What the generator built for one seed, which every chunk of that world shares. */
@@ -258,6 +297,14 @@ export class DataDrivenGenerator implements Generator {
     /** Whether {@link DataDrivenGenerator.stopGenerating} has been called. */
     private stopped = false;
 
+    /**
+     * Where the `terrain` bodies run, or undefined when they run on this thread.
+     *
+     * Built in the constructor and kept for the life of the generator, because a worker's value
+     * is the pipeline it has already compiled for one seed.
+     */
+    private readonly pool: GenerationPool | undefined;
+
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
         this.dimension = options.dimension ?? Dimensions.Overworld;
@@ -286,6 +333,23 @@ export class DataDrivenGenerator implements Generator {
         }
 
         this.biomeSource = MultiNoiseBiomeSource.fromJson(parameters);
+        this.pool =
+            options.terrain === undefined
+                ? undefined
+                : new GenerationPool({
+                      pipeline: options.terrain.pipeline,
+                      workers: options.terrain.workers,
+                      ...(options.terrain.worker === undefined ? {} : { worker: options.terrain.worker }),
+                      setup: {
+                          registryBundle: shareRegistryBundle(registries),
+                          dimension: this.dimension,
+                          ...(options.noiseSettings === undefined ? {} : { noiseSettings: options.noiseSettings }),
+                          ...(options.biomeParameters === undefined
+                              ? {}
+                              : { biomeParameters: options.biomeParameters }),
+                          carve: options.carve !== false
+                      } satisfies TerrainPipelineSetup
+                  });
     }
 
     /** @inheritDoc */
@@ -308,10 +372,41 @@ export class DataDrivenGenerator implements Generator {
         });
     }
 
+    /**
+     * One chunk's terrain tile, packed for the thread that asked for it.
+     *
+     * What a worker runs. It is the same `buildTerrain` the main thread runs, called the same
+     * way, which is the point: two implementations of the noise fill would be two worlds, and
+     * nothing short of a digest comparison would say which.
+     *
+     * The structure pieces come in rather than being looked up, because laying structures out
+     * belongs to whichever thread owns the starts and is far too expensive to repeat per worker.
+     *
+     * @param cx - Chunk x.
+     * @param cz - Chunk z.
+     * @param seed - The world seed, which pins this generator's pipeline.
+     * @param beard - The structure pieces that push this chunk's terrain around.
+     * @returns The tile and the buffers to transfer. The tile is spent: its bytes belong to the
+     * receiving thread.
+     */
+    public async buildTerrainTile(
+        cx: number,
+        cz: number,
+        seed: bigint,
+        beard: readonly BeardPiece[]
+    ): Promise<GenerationRegionTransfer> {
+        const pipeline = this.pipelineFor(seed);
+        return (await this.buildTerrain(cx, cz, pipeline, beard)).transfer();
+    }
+
     /** @inheritDoc */
     public stopGenerating(): void {
         this.stopped = true;
         for (const pipeline of this.pipelines.values()) pipeline.queue.stop();
+
+        // Worker threads do not receive signals, so terminating them is the only way to stop a
+        // worker that is halfway through a chunk. 2 to 24 ms, measured.
+        void this.pool?.destroy();
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
@@ -379,8 +474,40 @@ export class DataDrivenGenerator implements Generator {
      */
     private async runTerrain(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
         const chunk = region.center;
-        chunk.recordTerrain(await this.buildTerrain(chunk.chunkX, chunk.chunkZ, pipeline));
+        chunk.recordTerrain(await this.terrainTileFor(chunk.chunkX, chunk.chunkZ, pipeline));
         return chunk;
+    }
+
+    /**
+     * One chunk's terrain tile, built here or in a worker.
+     *
+     * The structure pieces that push the terrain around are laid out on this thread and travel
+     * with the task. Laying them out is the expensive part and it is shared between neighbors
+     * through one cache, so duplicating it in every worker would cost more than the fill the
+     * worker is there to do.
+     */
+    private async terrainTileFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
+        const beard = this.beardPieces(cx, cz, pipeline);
+        const pool = this.pool;
+        if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard);
+
+        const result = await pool.run({
+            status: 'terrain',
+            chunkX: cx,
+            chunkZ: cz,
+            input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
+        });
+
+        // The worker's own payload, arriving across a thread boundary the compiler cannot
+        // follow. Nothing but `terrainPipeline` puts anything on the other end of this.
+        const payload = result.payload as GenerationRegionPayload;
+        return GenerationRegion.adopt(payload, {
+            seaLevel: pipeline.settings.seaLevel,
+            seed: pipeline.randomState.seed,
+            blocks: pipeline.oracle,
+            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
+        });
     }
 
     /**
@@ -467,14 +594,25 @@ export class DataDrivenGenerator implements Generator {
         }
     }
 
-    private async buildTerrain(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
+    /**
+     * The noise fill, the surface materials and the carvers for one chunk.
+     *
+     * @param beard - The structure pieces that push this chunk's terrain around, laid out by
+     * whichever thread owns the structure starts.
+     */
+    private async buildTerrain(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        beard: readonly BeardPiece[]
+    ): Promise<GenerationRegion> {
         const region = this.createRegion(cx, cz, 0, pipeline);
 
         const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz });
         // Java reads the structure starts before it samples the terrain, so a village flattens
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.
-        sampler.context.beardifier = createBeardifier(this.beardPieces(cx, cz, pipeline));
+        sampler.context.beardifier = createBeardifier(beard);
         const floor = Math.max(this.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
             this.dimension.minY + this.dimension.height - 1,
@@ -948,7 +1086,12 @@ export class DataDrivenGenerator implements Generator {
                 coldEnoughToSnow(climateOf(resolver(x >> 2, y >> 2, z >> 2)), x, y, z, settings.seaLevel)
         });
 
-        const decoration = this.buildDecorationPlan();
+        // Skipped outright when nothing will decorate. Building it loads every placed feature
+        // the dimension can run, which a terrain worker would pay for and never read.
+        const decoration =
+            this.options.decorate === false
+                ? { featuresByStep: [], biomeDecoration: new Map<string, BiomeDecoration>() }
+                : this.buildDecorationPlan();
         const holders = new ChunkHolderMap<GenerationChunk>((chunkX, chunkZ) => new GenerationChunk(chunkX, chunkZ));
         const pipeline: SeededPipeline = {
             randomState,
