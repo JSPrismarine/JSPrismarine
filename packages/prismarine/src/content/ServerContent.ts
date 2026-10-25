@@ -1,0 +1,350 @@
+/**
+ * The composition root: every content registry the server runs on, built
+ * once from one pack stack.
+ *
+ * Twenty packages each own one domain and none of them knows the others
+ * exist. This module is the only place that does. It loads the stack,
+ * registers the vanilla behavior families against the world adapter,
+ * resolves each domain's definitions into types, and flattens the hot
+ * per-state columns, in the one order those steps allow.
+ */
+import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
+import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
+import type { BlockHooks } from '@jsprismarine/blocks';
+import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
+import { flattenBlockStates, resolveBlocks, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { BehaviorRegistry, Registry } from '@jsprismarine/content';
+import type { Diagnostic } from '@jsprismarine/content';
+import { EnchantmentRegistry, parseEnchantment } from '@jsprismarine/enchantments';
+import { EntityTypes } from '@jsprismarine/entities';
+import type { EntityType } from '@jsprismarine/entities';
+import { BrainMobRegistry, registerBrainMobs } from '@jsprismarine/entity-brains';
+import { createGoalEntityRegistry } from '@jsprismarine/entity-goals';
+import type { EntityComponentRegistry } from '@jsprismarine/entities';
+import { deferredItemFactory, registerVanillaItemBehaviors } from '@jsprismarine/item-behaviors';
+import type { ItemFacts, ItemHooks, ItemRegistry, ItemType } from '@jsprismarine/items';
+import { flattenItemFacts, loadItemTypes, vanillaItemDefinitions } from '@jsprismarine/items';
+import { LootRegistry } from '@jsprismarine/loot';
+import { load as loadPacks } from '@jsprismarine/packs';
+import type { Definition, Definitions } from '@jsprismarine/packs';
+import { loadRecipes } from '@jsprismarine/recipes';
+import type { RecipeBook } from '@jsprismarine/recipes';
+import { parseSpawnRule } from '@jsprismarine/spawning';
+import type { SpawnRule } from '@jsprismarine/spawning';
+import { parseTradeTable } from '@jsprismarine/trading';
+import type { TradeTable } from '@jsprismarine/trading';
+
+import type { ContentOptions } from './ContentOptions';
+import { resolvePackStack } from './packStack';
+import { buildContentTags } from './tags';
+import type { ContentTags } from './tags';
+import { unwiredWorldSource } from './world/unwired';
+import { contentWorldViews } from './world/views';
+import type { ContentWorldViews } from './world/views';
+
+/** The resolved block domain. */
+export interface ServerContentBlocks {
+    /** The dense runtime id per state, which indexes {@link ServerContentBlocks.table}. */
+    readonly palette: BlockPalette;
+    /** One resolved type per block identifier. */
+    readonly types: ReadonlyMap<string, BlockType>;
+    /** One entry per palette state, in runtime id order. */
+    readonly states: readonly BlockState[];
+    /** The flattened hot columns, each a typed array indexed by runtime id. */
+    readonly table: BlockTable;
+    /** The 49 vanilla behavior families, plus whatever a plugin added before the build. */
+    readonly behaviors: BehaviorRegistry<BlockHooks>;
+}
+
+/** The resolved item domain. */
+export interface ServerContentItems {
+    /** The registry, with a dense id per item identifier. */
+    readonly registry: ItemRegistry;
+    /** One resolved type per item identifier. */
+    readonly types: ReadonlyMap<string, ItemType>;
+    /** The flattened hot columns, each a typed array indexed by the registry id. */
+    readonly facts: ItemFacts;
+    /** The 47 vanilla behavior families. */
+    readonly behaviors: BehaviorRegistry<ItemHooks>;
+}
+
+/** The resolved entity domain. */
+export interface ServerContentEntities {
+    /** The registry, with a dense id per entity identifier. */
+    readonly registry: Registry<EntityType>;
+    /** The loaded types, which also spawn instances. */
+    readonly types: EntityTypes;
+    /** The component registry, with all 170 goals registered ahead of the reference components. */
+    readonly components: EntityComponentRegistry;
+    /** The twenty Java brain mobs, whose behavior has no data form in either edition. */
+    readonly brains: BrainMobRegistry;
+}
+
+/**
+ * Every content registry the server runs on.
+ *
+ * Built once at startup and replaced whole by a reload. Hold a key or a
+ * `Holder`, never a numeric id: ids are positional and a rebuild renumbers
+ * them from zero.
+ */
+export interface ServerContent {
+    /** The composed pack stack, before any domain resolved it. */
+    readonly definitions: Definitions;
+    /** Everything the load and every resolve reported, in build order. */
+    readonly diagnostics: readonly Diagnostic[];
+    /** The nine world interfaces the content packages were built against. */
+    readonly world: ContentWorldViews;
+    readonly blocks: ServerContentBlocks;
+    readonly items: ServerContentItems;
+    readonly entities: ServerContentEntities;
+    /** Java's recipe grammar, with net ids assigned in registry order. */
+    readonly recipes: RecipeBook;
+    /** Java's loot tables, compiled on first roll. */
+    readonly loot: LootRegistry;
+    /** Java's advancements, with their trigger graph built. */
+    readonly advancements: AdvancementEngine;
+    /** Java's enchantments and their effect components. */
+    readonly enchantments: EnchantmentRegistry;
+    /** Bedrock's spawn rules, one per parsed `spawn_rules/` file. */
+    readonly spawnRules: readonly SpawnRule[];
+    /** Bedrock's trade tables, keyed by the pack-relative path a villager names. */
+    readonly tradeTables: ReadonlyMap<string, TradeTable>;
+    /** Bedrock's biome definitions, unparsed, keyed by identifier. */
+    readonly biomes: Registry<Definition>;
+    /** Bedrock's feature definitions, unparsed, keyed by identifier. */
+    readonly features: Registry<Definition>;
+    /** Bedrock's feature rules, unparsed, keyed by identifier. */
+    readonly featureRules: Registry<Definition>;
+    /**
+     * Structure definitions, unparsed.
+     *
+     * Empty for now: the templates are NBT rather than JSON and
+     * `@jsprismarine/packs` routes no structure registry yet, so the world
+     * subsystem reads them itself. The registry is declared so the seam does
+     * not move once it does.
+     */
+    readonly structures: Registry<Definition>;
+    /** Every tag file in the stack, merged by Java Edition's rule and split by tagged registry. */
+    readonly tags: ContentTags;
+}
+
+/** Builds a `Registry<Definition>` straight from one of the loaded registries. */
+const registryOf = (name: string, definitions: ReadonlyMap<string, Definition>): Registry<Definition> => {
+    const registry = new Registry<Definition>(name);
+    registry.rebuild(definitions);
+    return registry;
+};
+
+/**
+ * Builds every content registry from a pack stack.
+ *
+ * The order is forced by what each step needs. The behavior families are
+ * registered before their domain resolves, because resolution attaches them;
+ * the item factory is deferred and bound afterwards, because the families
+ * are registered before the item registry they build stacks from exists; and
+ * the goals are registered before the reference entity components, because
+ * the component registration skips names that are already taken and the
+ * goals are the implementations the server wants.
+ *
+ * @throws {import('@jsprismarine/packs').PackLoadError} In strict mode, when
+ *   the pack stack reports an error.
+ * @throws {import('@jsprismarine/blocks').BlockLoadError} In strict mode,
+ *   when a block definition does not resolve.
+ */
+export const buildServerContent = (options: ContentOptions = {}): ServerContent => {
+    const strict = options.strict ?? false;
+    const diagnostics: Diagnostic[] = [];
+
+    const resolved = options.stack ? { stack: options.stack, diagnostics: [] } : resolvePackStack(options.packs);
+    diagnostics.push(...resolved.diagnostics);
+
+    const loaded = (options.load ?? loadPacks)(resolved.stack, { strict });
+    diagnostics.push(...loaded.diagnostics);
+    const definitions = loaded.definitions;
+
+    // The world views read the built content, and the behavior families read the world, so the
+    // two are tied together before either exists. `built` closes the loop: nothing dereferences
+    // it until a hook runs, which is after this function has returned.
+    let built: ServerContent | undefined;
+    const world = contentWorldViews(options.world ?? unwiredWorldSource({ seed: options.seed }), () => {
+        if (!built) throw new Error('the content world was read before the content finished building');
+        return built;
+    });
+
+    const blockBehaviors = new BehaviorRegistry<BlockHooks>();
+    registerVanillaBlockBehaviors(blockBehaviors, world.blockWorld);
+    const blocks = resolveBlocks(definitions.blocks.values(), {
+        behaviors: blockBehaviors,
+        statePalette: options.blockPalette ?? vanillaBlockPalette(),
+        strict
+    });
+    diagnostics.push(...blocks.diagnostics);
+
+    const itemBehaviors = new BehaviorRegistry<ItemHooks>();
+    const itemFactory = deferredItemFactory();
+    registerVanillaItemBehaviors(itemBehaviors, { world: world.itemActions, items: itemFactory });
+    const items = loadItemTypes({
+        behaviors: itemBehaviors,
+        definitions: options.itemDefinitions ?? [...vanillaItemDefinitions(), ...definitions.items.values()],
+        strict
+    });
+    itemFactory.bind(items.registry);
+    diagnostics.push(...items.diagnostics);
+
+    const entityComponents = createGoalEntityRegistry({ world: (entity) => world.goalWorld(entity) });
+    const entityTypes = new EntityTypes({ components: entityComponents });
+    diagnostics.push(
+        ...entityTypes.load(
+            [...definitions.entities.values()].map((definition) => ({
+                pack: definition.pack,
+                path: definition.path,
+                data: definition.data
+            }))
+        )
+    );
+
+    const brains = new BrainMobRegistry();
+    registerBrainMobs(brains);
+
+    const tags = buildContentTags(definitions.tags);
+    diagnostics.push(...tags.diagnostics);
+
+    // The loader wraps each file in a record carrying its pack and path; the recipe grammar
+    // reads the file itself. Tags go in because without them every `#tag` ingredient parses
+    // as accepting nothing.
+    const recipes = loadRecipes(
+        [...definitions.recipesJava].map(([id, definition]) => [id, definition.data] as const),
+        { tags: (registry, tag) => (tags.has(registry, tag) ? tags.members(registry, tag) : undefined) }
+    );
+    // `@jsprismarine/recipes` reports against the recipe id and a field path rather than
+    // against a pack and a file, so its findings are restated in the shared report shape.
+    for (const entry of recipes.diagnostics) {
+        diagnostics.push({
+            severity: entry.severity,
+            code: 'recipe.invalid',
+            pack: definitions.recipesJava.get(entry.recipeId)?.pack ?? entry.recipeId,
+            path: definitions.recipesJava.get(entry.recipeId)?.path,
+            message: `${entry.recipeId} ${entry.path}: ${entry.message}`
+        });
+    }
+
+    const advancements = new AdvancementEngine();
+    advancements.load(parseAdvancements(definitions.advancements, diagnostics));
+
+    const enchantments = new EnchantmentRegistry({
+        definitions: parseEnchantments(definitions.enchantments, diagnostics),
+        tags: itemTagsFor(tags)
+    });
+
+    const content: ServerContent = {
+        definitions,
+        diagnostics,
+        world,
+        blocks: {
+            palette: blocks.palette,
+            types: blocks.types,
+            states: blocks.states,
+            table: flattenBlockStates(blocks),
+            behaviors: blockBehaviors
+        },
+        items: {
+            registry: items.registry,
+            types: items.types,
+            facts: flattenItemFacts(items.registry),
+            behaviors: itemBehaviors
+        },
+        entities: {
+            registry: entityTypes.registry,
+            types: entityTypes,
+            components: entityComponents,
+            brains
+        },
+        recipes: recipes.book,
+        loot: new LootRegistry(definitions, { worldSeed: options.seed ?? 0n }),
+        advancements,
+        enchantments,
+        spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),
+        tradeTables: parseTradeTables(definitions.tradeTables, diagnostics),
+        biomes: registryOf('biomes', definitions.biomes),
+        features: registryOf('features', definitions.features),
+        featureRules: registryOf('feature_rules', definitions.featureRules),
+        structures: registryOf('structures', new Map()),
+        tags
+    };
+
+    built = content;
+    return content;
+};
+
+/** Parses every advancement file, reporting rather than throwing on a bad one. */
+const parseAdvancements = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]) => {
+    const parsed = [];
+    for (const [id, definition] of definitions) {
+        const result = parseAdvancement(id, definition.data);
+        for (const entry of result.diagnostics) {
+            diagnostics.push({
+                severity: 'error',
+                code: 'advancement.invalid',
+                pack: definition.pack,
+                path: definition.path,
+                message: `${entry.path}: ${entry.message}`
+            });
+        }
+        if (result.value) parsed.push(result.value);
+    }
+    return parsed;
+};
+
+/** Parses every enchantment file, reporting rather than throwing on a bad one. */
+const parseEnchantments = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]) => {
+    const parsed = [];
+    for (const [id, definition] of definitions) {
+        const result = parseEnchantment(id, definition.data);
+        for (const entry of result.diagnostics) {
+            diagnostics.push({
+                severity: 'error',
+                code: 'enchantment.invalid',
+                pack: definition.pack,
+                path: definition.path,
+                message: `${entry.path}: ${entry.message}`
+            });
+        }
+        parsed.push(result.value);
+    }
+    return parsed;
+};
+
+/** The merged `item` tags, in the shape `EnchantmentRegistry` reads them. */
+const itemTagsFor = (tags: ContentTags): ReadonlyMap<string, readonly string[]> =>
+    new Map(tags.tags('item').map((tag) => [tag, tags.members('item', tag)]));
+
+/** Parses every spawn rule file, reporting rather than throwing on a bad one. */
+const parseSpawnRules = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]): SpawnRule[] => {
+    const rules: SpawnRule[] = [];
+    for (const definition of definitions.values()) {
+        const rule = parseSpawnRule(definition.data, {
+            pack: definition.pack,
+            path: definition.path,
+            report: (diagnostic) => diagnostics.push(diagnostic)
+        });
+        if (rule) rules.push(rule);
+    }
+    return rules;
+};
+
+/** Parses every trade table, keyed by the pack-relative path a villager's component names. */
+const parseTradeTables = (
+    definitions: ReadonlyMap<string, Definition>,
+    diagnostics: Diagnostic[]
+): ReadonlyMap<string, TradeTable> => {
+    const tables = new Map<string, TradeTable>();
+    for (const [identifier, definition] of definitions) {
+        const table = parseTradeTable(definition.data, {
+            pack: definition.pack,
+            path: definition.path,
+            report: (diagnostic) => diagnostics.push(diagnostic)
+        });
+        if (table) tables.set(identifier, table);
+    }
+    return tables;
+};
