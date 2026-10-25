@@ -22,6 +22,16 @@ export interface ChunkRecipient {
 export const DEFAULT_BUDGET_MS = 5;
 
 /**
+ * How many chunks a tick asks for before it waits for one.
+ *
+ * Six, which is the depth a worker pool has to be held at to keep every worker busy on this
+ * machine. One, which is what awaiting each delivery in turn amounted to, keeps a pool of any
+ * size at a depth of one and caps a player's terrain at one chunk per await however much of the
+ * budget is left.
+ */
+export const DEFAULT_DEPTH = 6;
+
+/**
  * Told about a chunk that could not be produced or sent. `coord` is absent when the failure
  * was a flush, which covers a whole batch rather than one coordinate.
  */
@@ -52,7 +62,8 @@ export class ChunkScheduler {
 
     public constructor(
         private budgetMs: number = DEFAULT_BUDGET_MS,
-        private readonly onFailure: ChunkFailureHandler = () => {}
+        private readonly onFailure: ChunkFailureHandler = () => {},
+        private depth: number = DEFAULT_DEPTH
     ) {}
 
     public add(recipient: ChunkRecipient): void {
@@ -65,6 +76,11 @@ export class ChunkScheduler {
 
     public setBudget(budgetMs: number): void {
         this.budgetMs = Math.max(0, budgetMs);
+    }
+
+    /** How many chunks a tick asks for before it waits for one. Clamped to at least one. */
+    public setDepth(depth: number): void {
+        this.depth = Math.max(1, Math.trunc(depth));
     }
 
     public get pending(): number {
@@ -97,6 +113,43 @@ export class ChunkScheduler {
         if (active.length === 0) return 0;
         if (this.cursor >= active.length) this.cursor = 0;
 
+        // Several chunks are asked for at once and the tick waits only when it already has
+        // `depth` of them outstanding. Awaiting each one in turn held the generator at a depth
+        // of one, which is what kept a worker pool from ever having more than one worker busy;
+        // it also meant a player received one chunk per await however much budget was left.
+        //
+        // A delivery that is still running when the budget expires is finished rather than
+        // abandoned, so the budget bounds how much a tick starts rather than how long it takes.
+        const outstanding = new Set<Promise<void>>();
+
+        // One chunk that cannot be produced must not take the tick with it.
+        //
+        // This is awaited from `Server.tick`, so a rejection escaping here rejects the tick
+        // itself - and the next timer is only installed after that await, so the server would
+        // stop ticking altogether and never start again. A failed chunk is a hole in one
+        // player's terrain; a failed tick is the whole server. The recipient is left to undo its
+        // own bookkeeping so the coordinate can be queued again, and the failure is reported
+        // rather than swallowed.
+        const begin = (recipient: ChunkRecipient, coord: { x: number; z: number }): void => {
+            const task: Promise<void> = recipient
+                .deliver(coord.x, coord.z)
+                .then(
+                    () => {
+                        sent++;
+                    },
+                    (error: unknown) => {
+                        this.onFailure(error, coord);
+                    }
+                )
+                // Removed inside the handler, so by the time `task` settles it is out of the
+                // set and a race over the set never sees a finished delivery.
+                .then(() => {
+                    outstanding.delete(task);
+                });
+
+            outstanding.add(task);
+        };
+
         // One chunk per player per turn - that is the fairness - until either the budget
         // runs out or a full lap finds nobody with anything left to send.
         let emptyInARow = 0;
@@ -111,22 +164,11 @@ export class ChunkScheduler {
             }
 
             emptyInARow = 0;
-
-            // One chunk that cannot be produced must not take the tick with it.
-            //
-            // This is awaited from `Server.tick`, so a rejection escaping here rejects the
-            // tick itself - and the next timer is only installed after that await, so the
-            // server would stop ticking altogether and never start again. A failed chunk is
-            // a hole in one player's terrain; a failed tick is the whole server. The
-            // recipient is left to undo its own bookkeeping so the coordinate can be queued
-            // again, and the failure is reported rather than swallowed.
-            try {
-                await recipient.deliver(next.x, next.z);
-                sent++;
-            } catch (error: unknown) {
-                this.onFailure(error, next);
-            }
+            begin(recipient, next);
+            if (outstanding.size >= this.depth) await Promise.race(outstanding);
         }
+
+        await Promise.all(outstanding);
 
         // A partial batch would otherwise wait for the next tick. This is bounded - one
         // short batch per player - and deliberately outside the budget check: refusing to

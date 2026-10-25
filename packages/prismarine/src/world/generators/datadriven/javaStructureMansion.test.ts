@@ -394,10 +394,10 @@ describe('buildWoodlandMansion', () => {
  * Gated, because it reads the structure templates the fetch extracts from the server jar:
  *
  * ```sh
- * JSP_WORLDGEN_VANILLA=1 pnpm exec vitest run src/world/generators/datadriven/javaStructureMansion.test.ts
+ * pnpm exec vitest run src/world/generators/datadriven/javaStructureMansion.test.ts
  * ```
  */
-describe.skipIf(process.env.JSP_WORLDGEN_VANILLA !== '1')('the mansion against the real templates', () => {
+describe('the mansion against the real templates', () => {
     it('names only templates this server carries', () => {
         const vanilla = findJavaTemplateSource(cacheRoot(), new Map());
         const named = new Set(SPREAD_SEEDS.flatMap((seed) => mansionAt(seed).names));

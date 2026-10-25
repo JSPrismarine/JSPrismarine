@@ -7,7 +7,7 @@
  * `generators/datadriven/DataDrivenGenerator.test.ts` is:
  *
  * ```sh
- * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/contentAdapter
+ * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/contentAdapter
  * ```
  */
 import type { Logger } from '@jsprismarine/logger';
@@ -19,10 +19,10 @@ import { definitionOf } from '../content/ContentOptions';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
-import GameRuleManager, { GameRules } from './GameRuleManager';
-import { worldContentGroups } from './contentAdapter';
 import type { WorldContentBiomes } from './contentAdapter';
+import { worldContentGroups } from './contentAdapter';
 import { Dimensions } from './Dimension';
+import GameRuleManager, { GameRules } from './GameRuleManager';
 import { DataDrivenGenerator } from './generators/datadriven/DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './generators/datadriven/javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './generators/datadriven/javaWorldgenData';
@@ -103,7 +103,7 @@ describe('the biome a chunk stores', () => {
 });
 
 const sources = findJavaWorldgenSources();
-const enabled = process.env.JSP_WORLDGEN_VANILLA === '1' && sources !== undefined;
+const enabled = sources !== undefined;
 
 /** Terrain alone is about 0.6 seconds a chunk, and the biome source runs before it. */
 const CHUNK_TIMEOUT = 180_000;

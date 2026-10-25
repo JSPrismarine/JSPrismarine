@@ -228,6 +228,68 @@ describe('world', () => {
             expect(produced).toBeLessThanOrEqual(4);
         });
 
+        it('keeps several chunks outstanding rather than awaiting each in turn', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 4);
+            const sender = new ChunkSender();
+            for (let i = 0; i < 20; i++) sender.enqueue(i, 0);
+
+            let inFlight = 0;
+            let peak = 0;
+            const release: Array<() => void> = [];
+            scheduler.add({
+                sender,
+                deliver: async () => {
+                    inFlight++;
+                    peak = Math.max(peak, inFlight);
+                    await new Promise<void>((resolve) => release.push(resolve));
+                    inFlight--;
+                },
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            const tick = scheduler.tick(() => 0);
+            // Let every delivery that is going to start, start.
+            for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+            expect(peak).toBe(4);
+
+            // Finishing one lets the next in, and so on until the queue is drained.
+            for (let served = 0; served < 20; served++) {
+                release.shift()?.();
+                for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+            }
+            while (release.length > 0) release.shift()?.();
+
+            expect(await tick).toBe(20);
+            expect(peak).toBe(4);
+        });
+
+        it('finishes a delivery that was still running when the budget expired', async () => {
+            const clock = { now: 0 };
+            const scheduler = new ChunkScheduler(5, () => {}, 4);
+            const sender = new ChunkSender();
+            for (let i = 0; i < 20; i++) sender.enqueue(i, 0);
+
+            let finished = 0;
+            scheduler.add({
+                sender,
+                deliver: async () => {
+                    clock.now += 3;
+                    await Promise.resolve();
+                    finished++;
+                },
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            const sent = await scheduler.tick(() => clock.now);
+
+            // The budget bounds what the tick starts, and everything it started is counted.
+            expect(sent).toBe(finished);
+            expect(finished).toBeGreaterThan(0);
+            expect(finished).toBeLessThan(20);
+        });
+
         it('flushes a partial batch rather than leaving it for the next tick', async () => {
             const scheduler = new ChunkScheduler(1000);
             const sender = new ChunkSender();

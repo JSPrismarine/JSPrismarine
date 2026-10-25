@@ -61,8 +61,8 @@ import SubChunk from '../../chunk/SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator, SurfaceProbe } from '../../Generator';
-import { GenerationStopped } from '../../Generator';
 import { GenerationChunk } from './GenerationChunk';
+import { GenerationQueue } from './GenerationQueue';
 import { GenerationRegion } from './GenerationRegion';
 import type { RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -109,6 +109,14 @@ export interface DataDrivenGeneratorOptions {
      * datapack the rest of the registries are read from, so a caller that wants them says so.
      */
     readonly templates?: TemplateSource;
+    /**
+     * How many chunks of one world are built at once.
+     *
+     * Defaults to {@link DEFAULT_CONCURRENCY}. A shutdown refuses everything past this depth
+     * straight away, so a caller that wants a shutdown to drop a particular request has to keep
+     * the depth below the number of requests it makes.
+     */
+    readonly concurrency?: number;
 }
 
 /** What the generator built for one seed, which every chunk of that world shares. */
@@ -147,7 +155,8 @@ interface SeededPipeline {
     readonly retained: Map<string, readonly [number, number]>;
     /** Each chunk's biome palette, which its eight neighbors read while they decorate. */
     readonly chunkBiomes: Map<string, ReadonlySet<string>>;
-    generationTail: Promise<void>;
+    /** How many chunks of this world are built at once, and what a shutdown refuses. */
+    readonly queue: GenerationQueue;
 }
 
 /**
@@ -191,6 +200,16 @@ const BLOCKS_PER_SUBCHUNK = 4096;
 
 /** How many 4 by 4 by 4 biome cells one sub chunk holds. */
 const BIOME_CELLS_PER_SUBCHUNK = 64;
+
+/**
+ * How many chunks of one world the generator builds at once by default.
+ *
+ * Six, which is where this machine's worker scaling peaks and is therefore what a pool is sized
+ * at. It is the depth the pool has to be held at to keep every worker busy, and it is also the
+ * depth the chunk status ladder's shared-promise path needs to fire at all: with a depth of one
+ * the start region's batch of thirty-two is strictly sequential, which is what it was before.
+ */
+const DEFAULT_CONCURRENCY = 6;
 
 /**
  * How far around a requested chunk the generator keeps holders, in chunks.
@@ -268,7 +287,7 @@ export class DataDrivenGenerator implements Generator {
     /** @inheritDoc */
     public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
-        return this.serializeGeneration(cx, cz, pipeline, async () => {
+        return pipeline.queue.run(cx, cz, async () => {
             this.retain(pipeline, cx, cz);
 
             // Decoration is the only thing that makes a chunk need its neighborhood. With it off
@@ -288,6 +307,7 @@ export class DataDrivenGenerator implements Generator {
     /** @inheritDoc */
     public stopGenerating(): void {
         this.stopped = true;
+        for (const pipeline of this.pipelines.values()) pipeline.queue.stop();
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
@@ -575,35 +595,6 @@ export class DataDrivenGenerator implements Generator {
                 }
             }
         }
-    }
-
-    /**
-     * Runs chunk generations in request order so cross-chunk feature writes remain ordered.
-     *
-     * The queue is also where a stopped generator answers. A request is refused when it reaches
-     * the front rather than when it was made, which is what lets the chunk being generated right
-     * now finish while everything behind it is dropped. The start region asks for thirty-two
-     * chunks in one turn, so at a shutdown almost all of them are still waiting here.
-     * @param cx - Chunk x, for the rejection to name.
-     * @param cz - Chunk z, for the rejection to name.
-     * @throws {GenerationStopped} When {@link DataDrivenGenerator.stopGenerating} was called
-     * before this request's turn came.
-     */
-    private serializeGeneration<T>(
-        cx: number,
-        cz: number,
-        pipeline: SeededPipeline,
-        generate: () => Promise<T>
-    ): Promise<T> {
-        const result = pipeline.generationTail.then(() => {
-            if (this.stopped) throw new GenerationStopped(cx, cz);
-            return generate();
-        });
-        pipeline.generationTail = result.then(
-            () => undefined,
-            () => undefined
-        );
-        return result;
     }
 
     private chunkKey(chunkX: number, chunkZ: number): string {
@@ -995,9 +986,12 @@ export class DataDrivenGenerator implements Generator {
             }),
             retained: new Map(),
             chunkBiomes: new Map(),
-            generationTail: Promise.resolve()
+            queue: new GenerationQueue(this.options.concurrency ?? DEFAULT_CONCURRENCY)
         };
 
+        // A world asked for after the shutdown began is refused at once rather than generating
+        // the first chunk of a dimension nobody will see saved.
+        if (this.stopped) pipeline.queue.stop();
         return pipeline;
     }
 
