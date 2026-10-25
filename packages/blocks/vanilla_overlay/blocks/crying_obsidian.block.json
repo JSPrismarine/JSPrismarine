@@ -1,0 +1,30 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "minecraft:crying_obsidian"
+        },
+        "components": {
+            "minecraft:destructible_by_mining": {
+                "seconds_to_destroy": 50
+            },
+            "minecraft:destructible_by_explosion": {
+                "explosion_resistance": 1200
+            },
+            "minecraft:friction": 0.6,
+            "minecraft:light_emission": 10,
+            "minecraft:light_dampening": 15,
+            "minecraft:movable": {
+                "movement_type": "immovable"
+            },
+            "jsprismarine:behavior": "jsprismarine:plain_block",
+            "jsprismarine:block_properties": {
+                "friction": 0.6,
+                "random_tick": false,
+                "requires_correct_tool": true,
+                "push_reaction": "immovable",
+                "source": "java"
+            }
+        }
+    }
+}

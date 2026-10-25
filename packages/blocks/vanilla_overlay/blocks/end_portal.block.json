@@ -1,0 +1,29 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:block": {
+        "description": {
+            "identifier": "minecraft:end_portal"
+        },
+        "components": {
+            "minecraft:destructible_by_mining": false,
+            "minecraft:destructible_by_explosion": {
+                "explosion_resistance": 3600000
+            },
+            "minecraft:friction": 0.6,
+            "minecraft:light_emission": 15,
+            "minecraft:light_dampening": 0,
+            "minecraft:movable": {
+                "movement_type": "immovable"
+            },
+            "minecraft:collision_box": false,
+            "jsprismarine:behavior": "jsprismarine:portal",
+            "jsprismarine:block_properties": {
+                "friction": 0.6,
+                "random_tick": false,
+                "requires_correct_tool": false,
+                "push_reaction": "immovable",
+                "source": "java"
+            }
+        }
+    }
+}
