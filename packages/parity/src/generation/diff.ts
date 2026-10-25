@@ -50,10 +50,11 @@ export const firstBlockDifference = (
     minY: number,
     layer: 'blocks' | 'liquids' = 'blocks'
 ): string | undefined => {
+    const named = layer === 'blocks' ? 'the block layer' : 'the liquid layer';
     const expected = decodeRuns(golden[layer]);
     const actual = decodeRuns(found[layer]);
     if (expected.length !== actual.length) {
-        return `layer ${layer} holds ${actual.length} blocks, the golden holds ${expected.length}`;
+        return `${named} holds ${actual.length} blocks, the golden holds ${expected.length}`;
     }
 
     const height = expected.length / 256;
@@ -65,7 +66,7 @@ export const firstBlockDifference = (
         const z = column % 16;
         const y = minY + (at % height);
         return (
-            `layer ${layer} first differs at ${x},${y},${z} within the chunk: ` +
+            `${named} first differs at ${x},${y},${z} within the chunk: ` +
             `found ${found.palette[actual[at]!]}, golden ${golden.palette[value]}`
         );
     }
