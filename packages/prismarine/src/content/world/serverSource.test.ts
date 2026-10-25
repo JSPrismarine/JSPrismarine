@@ -12,7 +12,9 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
+import { blockEntityRecord } from '../../blockentity/contentRecord';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import FallingBlock from '../../entity/other/FallingBlock';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/Dimension';
@@ -45,6 +47,20 @@ const BLOCKS = [
 ] as const;
 
 const DIMENSION = 'minecraft:overworld';
+
+/**
+ * An entity no class covers, which is what a pack's own mob is.
+ *
+ * Declared here rather than taken from the vanilla stack, because the point of it is that the
+ * only thing the server knows about this identifier is that a loaded pack declares it.
+ */
+const ROBOT = definitionOf('entities', 'fixture:robot', {
+    format_version: '1.26.0',
+    'minecraft:entity': {
+        description: { identifier: 'fixture:robot' },
+        components: { 'minecraft:health': { value: 10 } }
+    }
+});
 
 /** One block definition, read from the overlay the server itself loads. */
 const overlayBlock = (identifier: string) => {
@@ -80,6 +96,7 @@ const liveWorld = (): { world: World; chunk: Chunk; broadcasts: Broadcasts } => 
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
+        entityChunkIndices: new Map(),
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
@@ -107,6 +124,31 @@ const liveWorld = (): { world: World; chunk: Chunk; broadcasts: Broadcasts } => 
     return { world, chunk, broadcasts };
 };
 
+/**
+ * Two biome definitions, with the `minecraft:tags` Mojang's own files carry.
+ *
+ * The plains is what a fresh chunk fills with; the mesa is the one whose Bedrock name differs
+ * from its Java one, so a test that gets `minecraft:mesa` back proves the chunk's numeric id went
+ * through the mapping inverse rather than through a name the server already had.
+ */
+const BIOME_TAGS: Readonly<Record<string, readonly string[]>> = {
+    'minecraft:plains': ['animal', 'monster', 'overworld', 'plains', 'bee_habitat'],
+    'minecraft:mesa': ['mesa', 'monster', 'overworld', 'warm', 'dry']
+};
+
+const BIOMES = new Map(
+    Object.entries(BIOME_TAGS).map(([identifier, tags]) => [
+        identifier,
+        definitionOf('biomes', identifier, {
+            format_version: '1.26.0',
+            'minecraft:biome': {
+                description: { identifier },
+                components: { 'minecraft:tags': { tags } }
+            }
+        })
+    ])
+);
+
 /** Writes a block straight into the chunk, which is the ground the behaviors then act on. */
 const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Record<string, unknown> = {}): void => {
     const runtimeId = BlockRuntimeIds.tryGetByState(identifier, states as Record<string, string | number | boolean>);
@@ -133,7 +175,11 @@ describe('serverWorldSource', () => {
         let built: ServerContent | undefined;
         content = buildServerContent({
             load: () => ({
-                definitions: definitionsOf({ blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])) }),
+                definitions: definitionsOf({
+                    blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
+                    entities: new Map([['fixture:robot', ROBOT]]),
+                    biomes: BIOMES
+                }),
                 diagnostics: []
             }),
             blockPalette: fixturePalette(),
@@ -289,6 +335,64 @@ describe('serverWorldSource', () => {
         expect(engine.getDifficulty()).toBe('normal');
     });
 
+    it('spawns a lit TNT into the live world, carrying its fuse', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'minecraft:tnt', {
+            fuse: 80
+        });
+
+        const spawned = world.getEntity(BigInt(id));
+        expect(spawned?.getType()).toBe('minecraft:tnt');
+        expect(spawned?.getPosition().getY()).toBe(64.5);
+        expect(blockEntityRecord(spawned!.persistentNbt!)['fuse']).toBe(80);
+        expect(world.getEntities()).toHaveLength(1);
+    });
+
+    it('spawns a falling block as the block it is made of', () => {
+        const id = content.world.blockWorld
+            .at(DIMENSION)
+            .spawnEntity({ x: 3, y: 70, z: 3 }, 'minecraft:falling_block', { block: 'minecraft:stone' });
+
+        const spawned = world.getEntity(BigInt(id));
+        expect(spawned).toBeInstanceOf(FallingBlock);
+        expect((spawned as FallingBlock).getBlockName()).toBe('minecraft:stone');
+    });
+
+    it('spawns an identifier only a pack declares, with no class behind it', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 5 }, 'fixture:robot');
+
+        expect(world.getEntity(BigInt(id))?.getType()).toBe('fixture:robot');
+    });
+
+    it('spawns nothing for an identifier no pack declares', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 7 }, 'fixture:nowhere');
+
+        expect(id).toBe(0);
+        expect(world.getEntities()).toHaveLength(0);
+    });
+
+    it('names the biome the live chunk stores, and its tags', () => {
+        const adapter = serverWorldSource({
+            worldFor: () => world,
+            content: () => content,
+            seed: 0n,
+            difficulty: () => Difficulty.NORMAL
+        }).at(DIMENSION);
+
+        const at = { x: 5, y: 64, z: 5 };
+        // A fresh column is plains, which is the id 1 a chunk starts filled with.
+        expect(adapter.blocks.biome(at)).toBe('minecraft:plains');
+        expect(adapter.blocks.biomeTags(at)).toEqual(BIOME_TAGS['minecraft:plains']);
+
+        // Java calls it the badlands and Bedrock calls it the mesa; the chunk holds 37.
+        chunk.getBiomes().fillColumn(5, 5, 37);
+        expect(adapter.blocks.biome(at)).toBe('minecraft:mesa');
+        expect(adapter.blocks.biomeTags(at)).toEqual(BIOME_TAGS['minecraft:mesa']);
+
+        // Outside the one loaded chunk there is no biome, so no tags either.
+        expect(adapter.blocks.biome({ x: 64, y: 64, z: 64 })).toBeUndefined();
+        expect(adapter.blocks.biomeTags({ x: 64, y: 64, z: 64 })).toEqual([]);
+    });
+
     it('still refuses the members no subsystem has supplied', () => {
         const adapter = serverWorldSource({
             worldFor: () => world,
@@ -297,8 +401,7 @@ describe('serverWorldSource', () => {
             difficulty: () => Difficulty.NORMAL
         }).at(DIMENSION);
 
-        expect(() => adapter.blocks.biomeTags({ x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
-        expect(() => adapter.entities.spawn('minecraft:cow', { x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
+        expect(() => adapter.effects.emitGameEvent('step', { x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
         expect(adapter.spawning).toBeUndefined();
         expect(adapter.ai).toBeUndefined();
         expect(adapter.generation).toBeUndefined();

@@ -101,9 +101,20 @@ export interface ContentBlockAccess {
      * spawn pass tries. Undefined when the column is not loaded.
      */
     surfaceY(x: number, z: number): number | undefined;
-    /** The biome identifier at a position, or undefined when the chunk is not loaded. */
+    /**
+     * The namespaced Bedrock biome identifier at a position, such as `minecraft:mesa`.
+     *
+     * Undefined when the chunk is not loaded, and when the chunk holds a biome number the
+     * pinned Bedrock data has no name for, which is a biome nothing in this server wrote.
+     */
     biome(at: ContentPosition): string | undefined;
-    /** The biome tags at a position, which is what a spawn rule's `has_biome_tag` compares. */
+    /**
+     * The biome tags at a position, which is what a spawn rule's `has_biome_tag` compares.
+     *
+     * Bedrock's own bare names - `overworld`, `animal`, `bee_habitat` - out of the biome's
+     * definition, not Java's namespaced `#minecraft:is_forest` tags. Empty where
+     * {@link ContentBlockAccess.biome} has no answer.
+     */
     biomeTags(at: ContentPosition): readonly string[];
 }
 

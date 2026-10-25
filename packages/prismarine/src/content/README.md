@@ -136,7 +136,11 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 - `level`: the dimension identifier, its bounds, its sea level, the seed, the clock, the difficulty
   and the weather.
-- `blocks.light`, `blocks.isLoaded`, `blocks.surfaceY`, `blocks.biome`, `blocks.biomeTags`.
+- `blocks.light`, `blocks.isLoaded`, `blocks.surfaceY`, `blocks.biome`, `blocks.biomeTags`. A chunk
+  stores the numeric Bedrock biome id, so `blocks.biome` reads it back through
+  `bedrockBiomeToJava` in `@jsprismarine/mapping` and `blocks.biomeTags` looks the resulting
+  identifier up in [`content/biomeTags.ts`](biomeTags.ts), which indexes the `minecraft:tags`
+  component of the pack stack's biome definitions.
 - `ticks`: the two scheduled tick lists, with Java's dedupe rule and `willTickThisTick`.
 - `random`: the world's own `RandomSource`, so a seeded world is reproducible.
 - The optional `generation` group: `featureWorld(chunkX, chunkZ)`. This one is generation time
@@ -145,12 +149,24 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 ### Entities (`src/entity/`)
 
-- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`.
+- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`. `spawn` puts a
+  body into the live world rather than an `EntityInstance` into the data-driven index, because the
+  live world is what clients are sent and what a save writes. The content entity registry decides
+  which identifiers are spawnable, a written class is used where one adds behavior, and everything
+  else is a `GenericEntity` carrying the identifier, which the client draws from the identifier
+  anyway.
 - The optional `spawning` group: `site`, `poolCount`, `mobEventActive` and the optional
   `villageBorderDistance`.
 - The optional `ai` group: `goalWorld(entity)`, `actuator(entity)` and `brainWorld()`. `GoalWorld`
   has 44 optional members, and a goal whose world cannot answer one refuses to start rather than
   throwing, so this can come up a member at a time.
+
+A player's right click goes through [`item/interaction.ts`](../item/interaction.ts) before it
+reaches `World.useItemOn`. The block the player clicked gets `onPlayerInteract`, unless the player
+is sneaking with something in hand; then the item gets `onUseOn`; and only when both decline does
+the item place the block it names, through the adapter, so `onPlace` runs and a container gets its
+record. The path declines whenever `content-packs` is off, and `World.useItemOn` runs as it always
+has.
 
 ### Network (`src/network/`)
 
@@ -170,11 +186,15 @@ subsystem that owes it, and each for a reason rather than for want of plumbing.
 
 | Member | Why |
 | --- | --- |
-| `blocks.biome`, `blocks.biomeTags` | A chunk stores a numeric Bedrock biome id, and nothing maps one back to an identifier. `@jsprismarine/mapping` goes from Java identifiers to Bedrock ones only, and the biome tags live in pack biome definitions nothing parses yet. |
-| `entities.spawn` | Putting an entity into the world by identifier needs a factory covering every identifier a pack can name; the class registry covers the types with a class. |
 | `effects.emitGameEvent` | Java's game event system. Nothing listens, and Bedrock puts nothing on the wire for one. |
-| `items.stateOf`, `items.targetOf`, `items.perform` for the entity half of `ItemWorldAction` | Twenty-two of the twenty-eight variants need a player session and an entity index. |
 | The `spawning`, `ai` and `generation` groups | Left absent rather than filled with throwing members, which is what makes the projection in `views.ts` report the owner. |
+
+`items.stateOf`, `items.targetOf` and `items.perform` no longer throw.
+[`item/actorPort.ts`](../item/actorPort.ts) answers both queries off the live player and performs
+the eight variants this server has a system for: eating, a blow, a stack into the inventory,
+durability, armor, a name tag, a random teleport and an item cooldown. The other fourteen are
+reported once per kind, naming the system that is missing, and do nothing. `perform` returns
+nothing, so none of them reports a success it did not have.
 
 Block entity records are the chunks' own block entities, so a container filled through a behavior
 is saved with its chunk and sent to every client that loads it.
