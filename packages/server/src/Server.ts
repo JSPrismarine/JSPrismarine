@@ -4,11 +4,13 @@ import type { LogTransport } from '@jsprismarine/logger';
 import { FileTransport, Logger } from '@jsprismarine/logger';
 import { Config, RemoteConsole, RemoteLogTransport, Server } from '@jsprismarine/prismarine';
 
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import pkg from '../package.json' with { type: 'json' };
 import type { ServerArgs } from './cli/Cli';
 import { parseServerArgs } from './cli/Cli';
+import { handleFatalErrors } from './host/fatal';
 import type { ConsoleFrontend } from './host/frontends';
 import { loadTuiFrontend, plainFrontend } from './host/frontends';
 import { spawnServerChild } from './host/ServerChild';
@@ -45,6 +47,9 @@ const logFileName = (): string => {
  * such as /data is used as is, the way the rest of the server resolves it.
  */
 const dataPath = (...segments: string[]): string => path.resolve(process.cwd(), process.env.JSP_DIR || '', ...segments);
+
+/** The monorepo's `packages/` directory, which `--watch` watches and generates bedrock-data in. */
+const packagesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 
 const fileTransport = (config: Config): FileTransport =>
     new FileTransport({
@@ -127,15 +132,19 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
         // Only the watcher ever restarts a crashed child; without it a crash ends the host.
         canRestart: args.watch,
         exit: async (code) => {
-            await ui.close();
-            process.exit(code);
+            try {
+                await ui.close();
+            } finally {
+                process.exit(code);
+            }
         }
     });
     supervisor.handleSignals();
+    // Before the frontend attaches, so this runs ahead of any handler the TUI registers.
+    handleFatalErrors({ supervisor, ui });
     await ui.attach(supervisor);
 
     if (args.watch) {
-        const packagesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
         await new Watcher({
             packagesDir,
             onEvent: (event) => supervisor.emit(event),
@@ -165,6 +174,14 @@ const main = async (): Promise<void> => {
         return;
     }
 
+    // `packages/` for both `src/Server.ts` and `dist/Server.es.js` in the monorepo, but
+    // `node_modules/@jsprismarine/` for an installed package, where there is nothing to watch.
+    if (args.watch && !existsSync(path.join(packagesDir, '..', 'pnpm-workspace.yaml'))) {
+        process.stderr.write('prismarine: --watch needs the JSPrismarine repository\n');
+        process.exitCode = 2;
+        return;
+    }
+
     const decision = args.headless
         ? { mode: 'plain' as const }
         : await decideMode({
@@ -186,7 +203,7 @@ const main = async (): Promise<void> => {
                   historyFile: dataPath('.console_history')
               })
             : undefined;
-    if (tui || (args.watch && !args.headless)) {
+    if (tui || args.watch) {
         await runHost(args, tui);
         return;
     }
