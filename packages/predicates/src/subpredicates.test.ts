@@ -220,6 +220,36 @@ describe('entity predicates', () => {
         expect(matcher(sheep, evaluation())).toBe(false);
     });
 
+    it('matches the hunger check vanilla lunge uses', () => {
+        const { matcher, collector } = parse(entityPredicate, {
+            'minecraft:type_specific/player': { food: { level: { min: 7 } } }
+        });
+        const player = { type: 'minecraft:player', food: { level: 7, saturation: 0 } };
+
+        expect(collector.entries).toEqual([]);
+        expect(matcher(player, evaluation())).toBe(true);
+        expect(matcher({ ...player, food: { level: 6, saturation: 0 } }, evaluation())).toBe(false);
+    });
+
+    it('matches food saturation and reports a view with no hunger state', () => {
+        const { matcher } = parse(entityPredicate, {
+            'minecraft:type_specific/player': { food: { saturation: { max: 2.5 } } }
+        });
+
+        expect(matcher({ type: 'minecraft:player', food: { level: 20, saturation: 2.5 } }, evaluation())).toBe(true);
+        expect(matcher({ type: 'minecraft:player', food: { level: 20, saturation: 5 } }, evaluation())).toBe(false);
+
+        const context = evaluation();
+        expect(matcher({ type: 'minecraft:player' }, context)).toBe(false);
+        expect(context.diagnostics.errors).toEqual([
+            {
+                severity: 'error',
+                path: 'root.minecraft:type_specific/player.food',
+                message: 'the entity view does not report the food level'
+            }
+        ]);
+    });
+
     it('warns and fails for a sub-predicate it does not implement', () => {
         const { matcher, collector } = parse(entityPredicate, { 'minecraft:nbt': '{}' });
 

@@ -446,6 +446,23 @@ const flagTest = (value: unknown, context: ParseContext): EntityMatcher => {
         });
 };
 
+/**
+ * Parses Java's `FoodPredicate`, the `food` member of a player predicate: a
+ * bound on the food level and one on the saturation, both optional.
+ */
+const foodTest: SubPredicateParser<EntityView> = (value, context) => {
+    const level = intRange(member(value, 'level'), context.at('level'));
+    const saturation = floatRange(member(value, 'saturation'), context.at('saturation'));
+    return (entity, evaluation) => {
+        const food = entity.food;
+        if (food === undefined) {
+            evaluation.diagnostics.error(context.path, 'the entity view does not report the food level');
+            return false;
+        }
+        return level(food.level, evaluation) && saturation(food.saturation, evaluation);
+    };
+};
+
 const typeSpecificFlag =
     (field: string): SubPredicateParser<EntityView> =>
     (value, context) => {
@@ -626,7 +643,7 @@ const BUILT_IN_ENTITY_SUB_PREDICATES: Readonly<Record<string, SubPredicateParser
         };
     },
     'minecraft:type_specific/player': (value, context) => {
-        const unsupported = ['advancements', 'recipes', 'stats', 'food', 'input'].filter(
+        const unsupported = ['advancements', 'recipes', 'stats', 'input'].filter(
             (field) => member(value, field) !== undefined
         );
         for (const field of unsupported) {
@@ -641,6 +658,8 @@ const BUILT_IN_ENTITY_SUB_PREDICATES: Readonly<Record<string, SubPredicateParser
             }
             return [name];
         });
+        const food =
+            member(value, 'food') === undefined ? undefined : foodTest(member(value, 'food'), context.at('food'));
         const lookingAt =
             member(value, 'looking_at') === undefined
                 ? undefined
@@ -649,6 +668,7 @@ const BUILT_IN_ENTITY_SUB_PREDICATES: Readonly<Record<string, SubPredicateParser
             if (unsupported.length > 0) return false;
             if (!level(entity.experienceLevel ?? 0, evaluation)) return false;
             if (gameModes.length > 0 && !gameModes.includes(entity.gameMode ?? '')) return false;
+            if (food && !food(entity, evaluation)) return false;
             return lookingAt ? lookingAt(entity.lookingAt, evaluation) : true;
         };
     }
