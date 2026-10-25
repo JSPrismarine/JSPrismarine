@@ -55,8 +55,9 @@ export class GenerationQueue {
      * Refuses everything waiting, now and from here on.
      *
      * What is already running is left alone: it holds a half-built chunk, and the cheapest way
-     * to a consistent world is to let it finish. A worker holding one is a different matter and
-     * is the pool's own business.
+     * to a consistent world is to let it finish on this thread. A chunk being built in a worker
+     * is a different matter, because stopping a worker means terminating it; that failure comes
+     * back through {@link GenerationQueue.run} and is reported as a refusal too.
      */
     public stop(): void {
         this.stopped = true;
@@ -74,7 +75,8 @@ export class GenerationQueue {
      * @param build - What to run once the request is admitted.
      * @returns Whatever `build` produced.
      * @throws {GenerationStopped} When {@link GenerationQueue.stop} was called before this
-     * request's turn came.
+     * request's turn came, or when the build failed after it was called, which is what a
+     * terminated worker looks like.
      */
     public async run<T>(chunkX: number, chunkZ: number, build: () => Promise<T>): Promise<T> {
         if (this.stopped) throw new GenerationStopped(chunkX, chunkZ);
@@ -85,6 +87,13 @@ export class GenerationQueue {
 
         try {
             return await build();
+        } catch (error: unknown) {
+            // A shutdown terminates the worker threads mid-chunk, and a terminated worker
+            // rejects its task with its own error rather than with a refusal. The caller asked
+            // a generator that is stopping, so it is told that, instead of being handed a
+            // thread pool failure that `World.preloadChunk` would rethrow as a real fault.
+            if (this.stopped) throw new GenerationStopped(chunkX, chunkZ);
+            throw error;
         } finally {
             this.running--;
             this.admitNext();

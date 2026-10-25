@@ -80,6 +80,35 @@ describe('GenerationQueue', () => {
         await expect(waiting).rejects.toBeInstanceOf(GenerationStopped);
     });
 
+    it('reports a build that failed during the shutdown as a refusal', async () => {
+        // Stopping terminates the worker threads, and a terminated worker rejects its task with
+        // its own error. `World.preloadChunk` catches a refusal and rethrows anything else, so
+        // a raw pool failure here would fail the whole start region.
+        const queue = new GenerationQueue(1);
+        const gate = deferred();
+        const running = queue.run(6, -3, async () => {
+            await gate.promise;
+            throw new Error('Terminating worker thread');
+        });
+
+        await Promise.resolve();
+        queue.stop();
+        gate.settle();
+
+        await expect(running).rejects.toBeInstanceOf(GenerationStopped);
+        await expect(running).rejects.toThrow(/6,-3/);
+    });
+
+    it('still reports a real failure when nothing is shutting down', async () => {
+        const queue = new GenerationQueue(1);
+
+        await expect(
+            queue.run(0, 0, async () => {
+                throw new RangeError('no terrain here');
+            })
+        ).rejects.toBeInstanceOf(RangeError);
+    });
+
     it('refuses a request made after the stop', async () => {
         const queue = new GenerationQueue(4);
         queue.stop();
