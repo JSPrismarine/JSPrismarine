@@ -94,26 +94,31 @@ export const registerDataCommands = (registry: CommandRegistry<CommandSource>): 
                 .executes(
                     command((context) => {
                         const current = source(context);
-                        const result = current.host.data.runFunction(value(context, 'name'), current);
-                        return report(current, result, `Ran the function`);
+                        const outcome = current.host.data.runFunction(value(context, 'name'), current);
+                        return report(current, outcome.result, `Ran the function`);
                     })
                 )
                 .then(
                     arg('arguments', nbtCompoundArgument()).executes(
                         command((context) => {
                             const current = source(context);
-                            const result = current.host.data.runFunction(
+                            const outcome = current.host.data.runFunction(
                                 value(context, 'name'),
                                 current,
                                 value(context, 'arguments')
                             );
-                            return report(current, result, `Ran the function`);
+                            return report(current, outcome.result, `Ran the function`);
                         })
                     )
                 )
         ),
         { description: 'Runs an mcfunction or a function tag.', ...CHEATS }
     );
+
+    registry.register(buildReturn(registry), {
+        description: 'Ends the running function and sets what it returns.',
+        ...CHEATS
+    });
 
     registry.register(
         lit('schedule')
@@ -202,6 +207,40 @@ export const registerDataCommands = (registry: CommandRegistry<CommandSource>): 
         }
     );
 };
+
+/**
+ * `/return`, Java's three forms.
+ *
+ * `run` is a redirect to the dispatcher root, the same shape
+ * `execute store` uses: the command after it runs as a command of its own,
+ * and a sink on the derived source reads what it produced. The sink fires
+ * once per executed context, so a forked body would call it several times
+ * and only the first is taken, which is Java's rule that a function returns
+ * one value.
+ */
+const buildReturn = (registry: CommandRegistry<CommandSource>) =>
+    lit('return')
+        .then(
+            arg('value', integerArgument()).executes(
+                command((context) => source(context).host.data.returnFromFunction(value(context, 'value')))
+            )
+        )
+        .then(lit('fail').executes(command((context) => source(context).host.data.returnFromFunction(undefined))))
+        .then(
+            lit('run').redirect(registry.getRoot(), {
+                apply: (context) => {
+                    const current = source(context);
+                    let taken = false;
+                    return current.withStore((outcome) => {
+                        if (taken) return;
+                        taken = true;
+                        // A command that failed produced no value, and Java
+                        // ends the function without one rather than with 0.
+                        current.host.data.returnFromFunction(outcome.success ? outcome.value : undefined);
+                    });
+                }
+            })
+        );
 
 const buildData = () => {
     const node = lit('data');

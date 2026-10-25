@@ -528,8 +528,10 @@ const buildConditions = (root: ReturnType<CommandRegistry<CommandSource>['regist
             attach(
                 arg('name', stringArgument()),
                 // The 1.20.3 rule: a function matches when it returned a
-                // non-zero value through `/return`.
-                (context) => source(context).host.data.runFunction(value(context, 'name'), source(context)) !== 0
+                // non-zero value through `/return`, so one that ran forty
+                // lines and never returned does not match. A tag runs every
+                // member and matches when any of them did.
+                (context) => source(context).host.data.runFunction(value(context, 'name'), source(context)).matched
             )
         )
     );
