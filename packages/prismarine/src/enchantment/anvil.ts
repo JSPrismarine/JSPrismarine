@@ -12,7 +12,7 @@
  * `minecraft:repair_cost`, which is what makes the fourth or fifth
  * combination of one item unaffordable.
  */
-import { combineInAnvil, repairCostOf } from '@jsprismarine/enchantments';
+import { combineInAnvil } from '@jsprismarine/enchantments';
 import type { AnvilResult, EnchantmentRegistry } from '@jsprismarine/enchantments';
 import { enchantmentsOf } from '@jsprismarine/enchantments';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
@@ -117,6 +117,3 @@ export const takeFromAnvil = (
 
     return { stack: preview.stack, cost: preview.cost, materialCost: preview.materialCost };
 };
-
-/** The prior work penalty a stack carries, which is what the next use adds to its cost. */
-export const anvilPriorWork = (stack: Item): number => repairCostOf(stack.asPredicateStack());
