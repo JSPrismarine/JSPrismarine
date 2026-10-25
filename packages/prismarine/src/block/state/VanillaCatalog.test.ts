@@ -75,6 +75,16 @@ describe('block', () => {
             expect(schema.getDefaultState().get('pillar_axis')).toBe('y');
         });
 
+        it('hands out one default state rather than building a new one per call', () => {
+            // A read of a position no sub chunk covers answers with air's default state, and an
+            // idle world's random tick pass makes tens of thousands of those a tick. Building a
+            // state for each was most of that tick. The instance is frozen, so sharing it is
+            // the same answer; this is what stops the allocation coming back.
+            const schema = BlockStateSchemas.get('minecraft:air')!;
+            expect(schema.getDefaultState()).toBe(schema.getDefaultState());
+            expect(Object.isFrozen(schema.getDefaultState())).toBe(true);
+        });
+
         it('rejects values a block does not accept', () => {
             const schema = BlockStateSchemas.get('minecraft:oak_log')!;
             expect(() => schema.createState({ pillar_axis: 'w' })).toThrow(/does not accept/);
