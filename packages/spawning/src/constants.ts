@@ -59,6 +59,11 @@ export interface SpawnConstants {
     readonly despawnSource: string;
 }
 
+/**
+ * The numbers this project chose, read from
+ * `src/tables/spawnConstants.json`. A host replaces the whole table through
+ * `SpawnerOptions.constants`.
+ */
 // The table is hand-maintained JSON in this package; its literal types are too
 // narrow to describe a host's replacement, so the shape is asserted once here.
 export const SPAWN_CONSTANTS = table as SpawnConstants;
