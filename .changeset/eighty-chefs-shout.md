@@ -18,7 +18,17 @@ Durations now parse the way Java's `minecraft:time` argument does. `/schedule fu
 100 ticks and `2d` is 48000, where both were parse failures before; the same argument reads
 `/weather`, `/title times`, `/time set` and `/time add`.
 
-Breaking: `DataCommandHost.runFunction` answers a `FunctionOutcome` rather than a number, and the
+A registry argument validates against the content the host loaded rather than against Mojang's
+frozen enum alone. `/summon mypack:dragon` failed at parse for an entity the server can spawn;
+`CommandRegistryOptions.content` now carries the server's own entity, block, item and enchantment
+ids, which are accepted alongside Mojang's list and offered to the client with it.
+
+`/summon villager` reached the pre-1.11 `minecraft:villager` rather than Bedrock's current
+`minecraft:villager_v2`, because Mojang's command enum still lists the old spelling. The
+identifier resolves through `javaEntityTypeToBedrock`, the same seam the brain registry reads.
+
+Breaking: `buildVanillaCommands` takes the loaded registry ids rather than a boolean.
+`DataCommandHost.runFunction` answers a `FunctionOutcome` rather than a number, and the
 interface gains `returnFromFunction`. `ExecutionReport` gains `returnValues`, `CommandOutcome`
 gains an optional `returned`, and `FunctionRuntime.run` answers an outcome rather than a line
 count.
