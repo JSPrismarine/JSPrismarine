@@ -170,16 +170,21 @@ export class World implements Service {
     private spawn: Vector3 | null = null;
 
     /**
-     * How far through its own shutdown the world is.
+     * Set the moment a shutdown begins. It stops the preload and the tick, so that nothing new
+     * is started while the final save runs.
      *
-     * `closing` is set the moment a shutdown begins; it stops the preload and the tick, so
-     * that nothing new is started while the final save runs. `closed` is set once the
-     * provider has gone, after which there is nothing left to read or write at all.
-     *
-     * A world is torn down while its start region is still generating on every dev restart,
-     * so these are the ordinary cases rather than defensive ones.
+     * A world is torn down while its start region is still generating on every dev restart, so
+     * this is the ordinary case rather than a defensive one.
      */
-    private lifecycle: 'running' | 'closing' | 'closed' = 'running';
+    private closing = false;
+
+    /**
+     * Set once the provider has gone, after which there is nothing left to read or write.
+     *
+     * Separate from {@link World.closing} because the shutdown's own save happens between the
+     * two, and that save has to be allowed to write.
+     */
+    private closed = false;
 
     /**
      * The start region work while it is running, so a shutdown can wait for it rather than
@@ -350,7 +355,7 @@ export class World implements Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
-        this.lifecycle = 'closing';
+        this.closing = true;
 
         // A start region that failed has already been reported to whoever awaited `enable`;
         // the save still has to happen, so its failure must not take this path down with it.
@@ -358,7 +363,7 @@ export class World implements Service {
 
         await this.save();
         await this.provider.disable();
-        this.lifecycle = 'closed';
+        this.closed = true;
     }
 
     public getGenerator(): Generator {
@@ -374,7 +379,7 @@ export class World implements Service {
         // A tick already in flight when the shutdown starts would otherwise run on through
         // the save and past the provider's close, and plenty of what a tick does - a block
         // update, a mob looking at the ground ahead of it - loads a chunk.
-        if (this.isClosing()) return;
+        if (this.closing) return;
 
         // TODO: tick chunks
 
@@ -529,7 +534,7 @@ export class World implements Service {
 
         let prepared = 0;
         for (let i = 0; i < coordinates.length; i += PRELOAD_BATCH_SIZE) {
-            if (this.isClosing()) {
+            if (this.closing) {
                 progress.finish(`the world is closing, stopped at ${prepared} of ${coordinates.length}`);
                 return;
             }
@@ -550,14 +555,14 @@ export class World implements Service {
      * Loads a chunk in a given x and z and returns its.
      * @param {number} x - x coordinate.
      * @param {number} z - z coordinate.
-     * @throws {Error} When the world is closing, since the provider is about to be closed and
-     * a chunk generated now would be generated after the save that was meant to persist it.
+     * @throws {Error} When the world has been closed, since its provider is gone and a chunk
+     * generated now would be generated after the save that was meant to persist it.
      */
     public async loadChunk(x: number, z: number, _ignoreWarn?: boolean): Promise<Chunk> {
         // Refused here rather than left to the provider, which answers with "The world
         // provider is not enabled" - the symptom, not the reason. The caller asked a world
-        // that is shutting down for a chunk, and that is what it should be told.
-        if (this.isClosing()) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} is closing`);
+        // that has shut down for a chunk, and that is what it should be told.
+        if (this.closed) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} has been closed`);
 
         const index = Chunk.packXZ(x, z);
         // Try - catch for provider errors
@@ -1608,7 +1613,7 @@ export class World implements Service {
         // world has already saved and closed its provider - so this arrives once more, per
         // player, with nothing left to write to. The shutdown's own `save` wrote them while
         // they were still online, so there is nothing lost in declining.
-        if (this.lifecycle === 'closed') {
+        if (this.closed) {
             this.server
                 .getLogger()
                 .debug(`${player.getName()} left after ${this.getFormattedName()} closed`, 'World/savePlayerData');

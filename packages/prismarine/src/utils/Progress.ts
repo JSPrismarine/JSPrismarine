@@ -75,10 +75,15 @@ export class Progress {
         this.log(`${this.label}: ${this.percent}% (${this.current}/${this.total})`);
     }
 
-    /** Clears the bar and reports the total time. Safe to call more than once. */
-    public finish(): void {
+    /**
+     * Clears the bar and reports the total time. Safe to call more than once.
+     * @param note - Said in place of "done, <total>", for work that stopped early. The line
+     * still has to be cleared and the time still has to be reported, which is why ending a
+     * run short goes through here rather than around it.
+     */
+    public finish(note?: string): void {
         if (this.interactive) this.stream?.write('\x1b[2K\r');
-        this.log(`${this.label}: done, ${this.total} in ${formatDuration(Date.now() - this.startedAt)}`);
+        this.log(`${this.label}: ${note ?? `done, ${this.total}`} in ${formatDuration(Date.now() - this.startedAt)}`);
     }
 
     private draw(): void {
