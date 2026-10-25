@@ -198,7 +198,7 @@ export const fireStarterBehavior: ItemBehaviorSpec = {
  * Brushing a suspicious block.
  *
  * The progress belongs to the block, which already tracks how far it has been
- * brushed; the item reports the stroke and pays for a finished one, which is
+ * brushed. The item reports the stroke and spends a point on a finished one, which is
  * Java's `BrushItem.onUseTick` and the single point it spends on completion.
  */
 export const brushBehavior: ItemBehaviorSpec = {

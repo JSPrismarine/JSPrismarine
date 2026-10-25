@@ -15,7 +15,7 @@
  *
  * Those three run before the general behavior and return undefined, so the
  * dispatch reaches the general one, which produces the result. `registry.ts`
- * fixes that order and its test holds it.
+ * fixes that order and `registry.test.ts` asserts it.
  */
 import type { ItemHooks, ItemStack } from '@jsprismarine/items';
 import {
