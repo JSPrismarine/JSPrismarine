@@ -36,16 +36,50 @@ export interface EventTrigger {
     readonly filters?: Filter;
 }
 
+/** The three vibration names `emit_vibration` accepts. */
+export const VIBRATION_KINDS = ['entity_interact', 'entity_act', 'entity_die'] as const;
+
+/** One of {@link VIBRATION_KINDS}. */
+export type VibrationKind = (typeof VIBRATION_KINDS)[number];
+
 /**
- * An action the engine performs that changes nothing this package models:
- * sounds, particles, vibrations, commands and the five actions vanilla uses
- * that appear in no documentation page. The payload is kept raw so a later
- * agent can implement one without reparsing the file.
+ * One event action, parsed into the shape {@link EntityInstance.perform}
+ * carries out.
+ *
+ * The nine members are every action the composed vanilla pack writes plus
+ * `queue_command`, which the documentation describes and no vanilla entity
+ * uses. Measured over the 129 files of Bedrock Dedicated Server 1.26.51.1:
+ * `play_sound` 23 uses, `set_home_position` 17, `emit_vibration` 9,
+ * `drop_item` 2, `execute_event_on_home_block` 2, and one each of
+ * `emit_particle`, `reset_target` and `stop_movement`.
+ */
+export type EntityAction =
+    | { readonly name: 'play_sound'; readonly sound: string }
+    | { readonly name: 'emit_particle'; readonly particle: string }
+    | { readonly name: 'emit_vibration'; readonly vibration: VibrationKind }
+    /** Vanilla writes one command string; the engine also accepts a list. */
+    | { readonly name: 'queue_command'; readonly commands: readonly string[]; readonly target: EventTarget }
+    | { readonly name: 'set_home_position' }
+    | { readonly name: 'execute_event_on_home_block'; readonly event: string }
+    /** The slot name, such as `slot.weapon.mainhand`. */
+    | { readonly name: 'drop_item'; readonly slot: string }
+    | { readonly name: 'stop_movement'; readonly horizontal: boolean; readonly vertical: boolean }
+    | { readonly name: 'reset_target' };
+
+/**
+ * An action a node asks for, with the key the file writes and the body
+ * unchanged.
+ *
+ * {@link EventAction.parsed} is the understood form. It is undefined for a key
+ * this package does not carry out, which is what makes an unimplemented action
+ * a reported line rather than silence.
  */
 export interface EventAction {
     /** The action key as the file writes it, such as `play_sound`. */
     readonly name: string;
     readonly value: unknown;
+    /** The parsed action, or undefined when this package does not carry the key out. */
+    readonly parsed?: EntityAction;
 }
 
 /** One node of `randomize`, with the weight the engine draws against. */
@@ -153,7 +187,7 @@ export const parseEventNode = (value: unknown, report: EventReport): EventNode =
             case 'weight':
                 break;
             default:
-                actions.push({ name: key, value: body });
+                actions.push({ name: key, value: body, parsed: parseEntityAction(key, body, report) });
                 break;
         }
     }
@@ -169,6 +203,86 @@ export const parseEventNode = (value: unknown, report: EventReport): EventNode =
         firstValid,
         actions
     };
+};
+
+const textAt = (body: unknown, key: string): string | undefined => {
+    if (!isRecord(body)) return undefined;
+    const value = body[key];
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+};
+
+const flagAt = (body: unknown, key: string, fallback: boolean): boolean =>
+    isRecord(body) && typeof body[key] === 'boolean' ? body[key] : fallback;
+
+/**
+ * Parses one event action body into the form the entity carries out.
+ *
+ * An action the package implements whose body is unusable, such as a
+ * `play_sound` with no `sound`, is reported and left unparsed, so it reaches
+ * the same report as an action the package does not implement at all.
+ *
+ * @returns The parsed action, or undefined when the key is not one of the nine
+ *   {@link EntityAction} covers or its body cannot be read.
+ */
+export const parseEntityAction = (key: string, body: unknown, report: EventReport): EntityAction | undefined => {
+    switch (key) {
+        case 'play_sound': {
+            const sound = textAt(body, 'sound');
+            if (sound === undefined) return missing(key, 'sound', report);
+            return { name: 'play_sound', sound };
+        }
+        case 'emit_particle': {
+            const particle = textAt(body, 'particle');
+            if (particle === undefined) return missing(key, 'particle', report);
+            return { name: 'emit_particle', particle };
+        }
+        case 'emit_vibration': {
+            const named = textAt(body, 'vibration');
+            const vibration = VIBRATION_KINDS.find((kind) => kind === named);
+            if (vibration === undefined) {
+                report('event.invalid', `emit_vibration names ${JSON.stringify(named)}, which is not a vibration`);
+                return undefined;
+            }
+            return { name: 'emit_vibration', vibration };
+        }
+        case 'queue_command': {
+            const commands = asArray(isRecord(body) ? body.command : undefined).filter(
+                (command): command is string => typeof command === 'string'
+            );
+            if (commands.length === 0) return missing(key, 'command', report);
+            return { name: 'queue_command', commands, target: parseTarget(bodyTarget(body), report) };
+        }
+        case 'set_home_position':
+            return { name: 'set_home_position' };
+        case 'execute_event_on_home_block': {
+            const event = textAt(body, 'event');
+            if (event === undefined) return missing(key, 'event', report);
+            return { name: 'execute_event_on_home_block', event };
+        }
+        case 'drop_item': {
+            const slot = textAt(body, 'slot');
+            if (slot === undefined) return missing(key, 'slot', report);
+            return { name: 'drop_item', slot };
+        }
+        case 'stop_movement':
+            return {
+                name: 'stop_movement',
+                horizontal: flagAt(body, 'stop_horizontal_movement', true),
+                vertical: flagAt(body, 'stop_vertical_movement', true)
+            };
+        case 'reset_target':
+            return { name: 'reset_target' };
+        default:
+            return undefined;
+    }
+};
+
+/** The `target` of an action body, left undefined so the target parser defaults it to `self`. */
+const bodyTarget = (body: unknown): unknown => (isRecord(body) ? body.target : undefined);
+
+const missing = (key: string, field: string, report: EventReport): undefined => {
+    report('event.invalid', `${key} needs a ${field}`);
+    return undefined;
 };
 
 const parseNodeFilter = (value: unknown, report: EventReport): Filter | undefined => {
