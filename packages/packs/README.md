@@ -18,6 +18,15 @@ wins per file, except tags, whose values merge across packs unless a later file 
 definition carries the file verbatim and `@jsprismarine/mcfunction` compiles it; a validator is
 never asked about one, because the line format is not a JSON shape.
 
+A folder of brarchive layers holds whole packs, not one. BDS keeps chemistry, the editor, the
+server script libraries and four experimental toggles in the same `behavior_packs` folder as the
+vanilla layers, and a world composes only the ones it turns on. `uuids` says which, by the header
+UUID that is a pack's identity: each folder's manifest is read first, the folders of the named
+packs compose in version order, and the rest are never opened. Omitting `uuids` composes every
+pack in the folder, which is what a caller pointing at a folder it assembled itself wants. A UUID
+no folder declares is reported as `source.unknown-pack`, so a renamed identity says so instead of
+composing nothing.
+
 `load` opens only the Bedrock files a registry owns. A pack folder holds much else - the composed
 vanilla pack ships 1311 `.nbt` structures, a 3 MB `level.dat` and its textures beside 2588 readable
 files - and a path no registry routes could never reach the result anyway. `expandSource`, the
@@ -25,10 +34,10 @@ reader underneath, still returns a pack whole by default and takes a `PackFileFi
 that wants less.
 
 ```typescript
-import { load, reportIdentifiers } from '@jsprismarine/packs';
+import { VANILLA_BEHAVIOR_PACK_UUID, load, reportIdentifiers } from '@jsprismarine/packs';
 
 const { definitions, diagnostics } = load([
-    { kind: 'brarchiveLayers', path: 'bds/behavior_packs' },
+    { kind: 'brarchiveLayers', path: 'bds/behavior_packs', uuids: [VANILLA_BEHAVIOR_PACK_UUID] },
     { kind: 'archive', path: 'my-addon.mcaddon' },
     { kind: 'directory', path: 'worlds/world/behavior_packs/overrides' },
     { kind: 'datapack', path: 'worlds/world/datapacks/gameplay-tweaks' }

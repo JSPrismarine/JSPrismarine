@@ -4,7 +4,21 @@ import { join, relative, sep } from 'node:path';
 import { readBrarchive } from './brarchive';
 import type { Diagnostic } from './diagnostics';
 import { compareVersions, parseVersion } from './formatVersion';
+import { parseLenientJson } from './lenientJson';
 import { isZip, readZip } from './zip';
+
+/**
+ * The header UUID of Mojang's vanilla Bedrock behavior pack.
+ *
+ * A Bedrock pack's identity is its header UUID, not its folder name: every
+ * world references the packs it runs by UUID, so Mojang cannot change this
+ * one without orphaning every saved world, and it has been the same value
+ * across every release this project reads. The BDS `behavior_packs` folder
+ * keeps one folder per version of it - `vanilla`, `vanilla_1.14`, ... - and
+ * all of them carry this UUID, which is what makes them layers of one pack
+ * rather than packs of their own.
+ */
+export const VANILLA_BEHAVIOR_PACK_UUID = 'fe9f8597-5454-481a-8730-8d070a8e2e58';
 
 /** A Bedrock pack source: definitions keyed by identifier, later pack wins whole. */
 export type BedrockPackSource =
@@ -16,7 +30,24 @@ export type BedrockPackSource =
      * A folder of layered pack folders the way BDS ships vanilla: `vanilla`,
      * `vanilla_1.14`, ... Each layer is a pack; layers apply in version order.
      */
-    | { kind: 'brarchiveLayers'; path: string };
+    | {
+          kind: 'brarchiveLayers';
+          path: string;
+          /**
+           * Which packs in the folder to compose, by header UUID. Every
+           * folder is a layer of some pack, so this selects whole packs
+           * rather than individual layers.
+           *
+           * Every pack in the folder by default, which is what a caller
+           * pointing at a folder it assembled itself wants. BDS keeps several
+           * unrelated packs in one `behavior_packs` folder - chemistry, the
+           * editor and the experimental toggles beside vanilla - and a world
+           * composes only the ones it turns on, so a caller pointing at that
+           * folder says which. {@link VANILLA_BEHAVIOR_PACK_UUID} is the
+           * vanilla one.
+           */
+          uuids?: readonly string[];
+      };
 
 /**
  * A Java datapack: a folder or zip with `pack.mcmeta` and `data/` at its root.
@@ -87,7 +118,9 @@ export const expandSource = (
             case 'archive':
                 return expandArchive(source.path, diagnostics, wanted);
             case 'brarchiveLayers':
-                return readLayerFolders(source.path).map((layer) => readDirectoryPack(layer, wanted));
+                return readLayerFolders(source.path, source.uuids, diagnostics).map((layer) =>
+                    readDirectoryPack(layer, wanted)
+                );
         }
     } catch (error) {
         diagnostics.push({
@@ -191,16 +224,62 @@ const zipPack = (origin: string, entries: Map<string, Uint8Array>, wanted: PackF
 };
 
 /**
+ * The header UUID a layer folder's `manifest.json` declares, or undefined
+ * when there is no readable manifest to declare one.
+ *
+ * Read leniently and without validating the rest of the manifest, because
+ * this answers which packs to open rather than whether they load: a layer the
+ * caller selects goes through {@link parseManifest} when it loads, and a
+ * layer the caller did not select is not this load's problem.
+ */
+const layerUuid = (path: string): string | undefined => {
+    let parsed: unknown;
+    try {
+        parsed = parseLenientJson(readFileSync(join(path, 'manifest.json'), 'utf8'));
+    } catch {
+        return undefined;
+    }
+    if (typeof parsed !== 'object' || parsed === null || !('header' in parsed)) return undefined;
+
+    const { header } = parsed;
+    if (typeof header !== 'object' || header === null || !('uuid' in header)) return undefined;
+    return typeof header.uuid === 'string' ? header.uuid : undefined;
+};
+
+/**
  * Orders layer folders the way the engine composes the vanilla pack: the
  * suffix-free base layer first, then by the version in the folder name.
+ *
+ * @param uuids - The header UUIDs to keep, or undefined to keep every folder.
+ *   A UUID no folder declares is reported, so a folder layout that moved out
+ *   from under the caller says so instead of composing nothing.
  */
-const readLayerFolders = (path: string): string[] => {
+const readLayerFolders = (path: string, uuids: readonly string[] | undefined, diagnostics: Diagnostic[]): string[] => {
+    const found = new Set<string>();
+    const selected = (name: string): boolean => {
+        if (uuids === undefined) return true;
+        const uuid = layerUuid(join(path, name));
+        if (uuid === undefined || !uuids.includes(uuid)) return false;
+        found.add(uuid);
+        return true;
+    };
+
     const layers = readdirSync(path)
-        .filter((name) => statSync(join(path, name)).isDirectory())
+        .filter((name) => statSync(join(path, name)).isDirectory() && selected(name))
         .map((name) => {
             const suffix = name.match(/_(\d+(?:\.\d+)*)$/)?.[1];
             return { name, version: suffix ? parseVersion(suffix) : undefined };
         });
+
+    for (const uuid of uuids ?? []) {
+        if (found.has(uuid)) continue;
+        diagnostics.push({
+            severity: 'warning',
+            code: 'source.unknown-pack',
+            pack: path,
+            message: `no pack in the folder declares header UUID ${uuid}`
+        });
+    }
 
     layers.sort((a, b) => {
         if (!a.version || !b.version) return a.version ? 1 : b.version ? -1 : a.name.localeCompare(b.name);
