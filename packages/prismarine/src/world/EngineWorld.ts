@@ -17,7 +17,15 @@ import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
 import type { BlockEntityData, BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
 import { AIR, positionKey } from '@jsprismarine/engine-systems';
+import { Gametype } from '@jsprismarine/minecraft';
 
+import {
+    FIRE_SPREAD_RADIUS,
+    UNLIMITED_FIRE_SPREAD_RADIUS,
+    fireSpreadRadius,
+    gameRuleValue
+} from '../content/world/gameRules';
+import type { GameRuleStore } from '../content/world/gameRules';
 import { destroyBlock } from './blockDestroy';
 import { maxY } from './Dimension';
 import { takeBlockEntity } from './blockMove';
@@ -34,6 +42,47 @@ const WEATHER_WITHOUT_A_CYCLE: Weather = 'clear';
 
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 const difficultyName = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
+
+/** The little of a player Java's `ChunkMap.playerIsCloseEnoughTo` reads. */
+export interface FireWatcher {
+    getPosition(): { getX(): number; getY(): number; getZ(): number };
+    /** Their gamemode: a spectator keeps no fire alive. */
+    readonly gamemode: number;
+}
+
+/** The two things {@link canSpreadFireAround} asks a world: its rules and who is in it. */
+export interface FireSpreadWorld {
+    getGameRuleManager(): GameRuleStore | null;
+    getPlayers(): readonly FireWatcher[];
+}
+
+/**
+ * Java's `ServerLevel.canSpreadFireAround`: whether fire at a position does anything on its
+ * tick beyond booking the next one.
+ *
+ * `minecraft:fire_spread_radius_around_player` is an integer since 1.21.11, so the answer is
+ * how far the nearest player is rather than a flag. -1 lifts the limit; anything else is
+ * `ChunkMap.anyPlayerCloseEnoughTo`, which is a euclidean distance from the block's lower
+ * corner, strictly inside the radius, with spectators left out. A radius of 0 therefore stops
+ * every fire in the world, which is what the old `doFireTick` off became.
+ *
+ * The radius is checked per fire tick and costs one pass over the player list. Nothing here
+ * runs for a chunk that holds no fire, because nothing books a fire tick for one.
+ */
+export const canSpreadFireAround = (world: FireSpreadWorld, at: BlockPosition): boolean => {
+    const radius = fireSpreadRadius(gameRuleValue(world.getGameRuleManager(), FIRE_SPREAD_RADIUS));
+    if (radius === UNLIMITED_FIRE_SPREAD_RADIUS) return true;
+
+    return world.getPlayers().some((player) => {
+        if (player.gamemode === Gametype.SPECTATOR) return false;
+
+        const position = player.getPosition();
+        const dx = position.getX() - at.x;
+        const dy = position.getY() - at.y;
+        const dz = position.getZ() - at.z;
+        return Math.sqrt(dx * dx + dy * dy + dz * dz) < radius;
+    });
+};
 
 /**
  * Builds the engine's world over one {@link World}.

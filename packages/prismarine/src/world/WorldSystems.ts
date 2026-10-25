@@ -95,7 +95,7 @@ export interface WorldSystemsView {
 export type WorldSystemsAccess = Omit<WorldAccess, 'scheduleTick' | 'hasScheduledTick' | 'willTickThisTick'>;
 
 /** What a world gives {@link WorldSystems} to run on. */
-export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers'> {
+export interface WorldSystemsOptions extends Pick<EngineOptions, 'randomTickHandlers' | 'canSpreadFireAround'> {
     /** The reads the light pass and the random tick draw need, which a chunk answers. */
     readonly view: WorldSystemsView;
     /** Everything redstone, fluids and fire do to the world. */
@@ -152,7 +152,7 @@ export class WorldSystems {
                 hasScheduledTick: (kind, at, type) => this.ticks.list(kind).hasScheduledTick(at, type),
                 willTickThisTick: (kind, at, type) => this.ticks.list(kind).willTickThisTick(at, type)
             },
-            { randomTickHandlers: options.randomTickHandlers }
+            { randomTickHandlers: options.randomTickHandlers, canSpreadFireAround: options.canSpreadFireAround }
         );
     }
 
