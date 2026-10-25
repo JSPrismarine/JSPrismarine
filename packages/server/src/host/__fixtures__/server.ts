@@ -1,0 +1,27 @@
+// Spawned by `ServerChild.test.ts` through the real spawn path, so it stands in for the
+// server child: it says hello over IPC, writes a line to each stdio pipe, and exits on the
+// `shutdown` message. With `--stubborn` it ignores both the message and SIGTERM so the test can
+// watch the host escalate to SIGKILL. Node runs it with type stripping; `tsconfig.json`
+// excludes this directory for that reason.
+const stubborn = process.argv.includes('--stubborn');
+
+process.stdout.write(`argv ${JSON.stringify(process.argv.slice(2))}\nsecond line\n`);
+process.stderr.write('warning line\n');
+
+if (stubborn) {
+    process.on('SIGTERM', () => {});
+}
+
+process.on('message', (message) => {
+    if (typeof message !== 'object' || message === null || !('type' in message)) return;
+    if (message.type === 'shutdown' && !stubborn) {
+        process.send?.({ type: 'lifecycle', v: 1, state: 'stopping' }, () => process.exit(0));
+    }
+    if (message.type === 'command' && 'id' in message) {
+        process.send?.({ type: 'command.result', v: 1, id: message.id, ok: true });
+    }
+});
+
+process.send?.({ type: 'hello', v: 1, serverVersion: 'fixture', pid: process.pid });
+process.send?.({ garbage: true });
+setInterval(() => {}, 1 << 30);
