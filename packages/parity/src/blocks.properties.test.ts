@@ -30,7 +30,7 @@ import { REFERENCES } from './references.ts';
  * water layer carries the water's light and movement. Picking the wet source instead would
  * fail 61 coral and conduit states for a difference the second layer already carries.
  */
-const SECOND_LAYER_PROPERTIES = new Set(
+const SECOND_LAYER_PROPERTIES = new Set<string>(
     DROPPED_BLOCK_PROPERTIES.filter((dropped) => dropped.recovery === 'second-layer').map((dropped) => dropped.property)
 );
 

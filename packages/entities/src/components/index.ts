@@ -8,6 +8,9 @@ import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { TRIGGER_COMPONENTS } from '../triggers';
 import { dataComponent } from './schemas';
 import {
+    ageable,
+    ambientSoundInterval,
+    angry,
     attack,
     attributeComponents,
     breathable,
@@ -70,9 +73,6 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  */
 export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:addrider',
-    'minecraft:ageable',
-    'minecraft:ambient_sound_interval',
-    'minecraft:angry',
     'minecraft:annotation.break_door',
     'minecraft:annotation.open_door',
     'minecraft:apply_knockback_rules',
@@ -186,6 +186,9 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     for (const name of TRIGGER_COMPONENTS) register(triggerComponent(name));
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
 
+    register(ageable);
+    register(ambientSoundInterval);
+    register(angry);
     register(attack);
     register(breathable);
     register(collisionBox);

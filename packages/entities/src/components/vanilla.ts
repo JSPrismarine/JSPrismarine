@@ -4,6 +4,7 @@ import type { Filter } from '@jsprismarine/packs';
 
 import type { EntityInstance } from '../entityInstance';
 import { splitSpawnReference } from '../eventEngine';
+import type { EventTarget } from '../events';
 import { parseEventTarget } from '../events';
 import { damagerSubjects } from '../filterContext';
 import { evaluateFilter } from '../filters';
