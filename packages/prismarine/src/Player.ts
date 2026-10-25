@@ -51,13 +51,13 @@ import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
  */
 const EXHAUSTION_PER_FOOD_POINT = 4;
 
+/** How often the two per-player triggers are checked, which is Java's one second. */
+const ADVANCEMENT_CHECK_TICKS = 20;
+
 /**
  * What the things a player does cost in exhaustion, from the vanilla hunger table.
  * @see https://minecraft.wiki/w/Hunger#Exhaustion_level_increase
  */
-/** How often the two per-player triggers are checked, which is Java's one second. */
-const ADVANCEMENT_CHECK_TICKS = 20;
-
 export const EXHAUSTION = {
     /** Per meter walked. */
     walking: 0.01,
