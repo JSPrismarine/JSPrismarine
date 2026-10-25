@@ -32,12 +32,27 @@ const referenced = reportIdentifiers(definitions);
 ```
 
 The Java side targets data pack format 121.0 (Java 26.3) exactly. `pack.mcmeta` parses in both the
-current `min_format`/`max_format` form and the legacy single `pack_format`, and overlays apply when
-their format range covers 121.0. A pack whose range misses 121.0 is reported and still loaded, so a
-strict load rejects it while a normal load keeps going. Datapack definitions reference Java
-identifiers (items in loot entries, blocks in predicates, tag members); `reportIdentifiers` walks
-the loaded definitions and resolves each reference through an injectable `IdentifierResolver`, whose
-default marks everything `unknown` until a mapping implementation takes the seam.
+current `min_format`/`max_format` form and the legacy single `pack_format`. A pack whose range
+misses 121.0 is reported and still loaded, so a strict load rejects it while a normal load keeps
+going.
+
+A declared overlay directory is never content on its own: it leaves the base view whether or not
+its range applies. The overlays whose range covers 121.0 then apply in declaration order, each
+overriding whole files, so a later entry wins over an earlier one and every entry wins over the
+base. Within one pack an overlay replaces the base file outright, tags included, because merging is
+what happens between packs. A declared overlay holding no files is reported as a warning, since a
+misspelled directory name otherwise does nothing in silence.
+
+Between packs, each registry composes by its own merge mode, Java's three: `override` takes the
+last pack that has the file, `tags` concatenates `values` and clears what came before whenever a
+pack sets `replace`, and `assign` merges key by key. `MERGE_MODES` holds the mode per registry and
+`mergeJavaDefinition` applies it. Every 26.3 data registry but tags overrides; `assign` is the mode
+Java gives its language files, which live in a resource pack.
+
+Datapack definitions reference Java identifiers (items in loot entries, blocks in predicates, tag
+members); `reportIdentifiers` walks the loaded definitions and resolves each reference through an
+injectable `IdentifierResolver`, whose default marks everything `unknown` until a mapping
+implementation takes the seam.
 
 Behind the interface: manifest validation against the documented schema, a lenient JSON parser
 (comments and trailing commas, which vanilla trade tables use), `format_version` dispatch, a

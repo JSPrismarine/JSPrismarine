@@ -8,15 +8,26 @@ export { DataDrivenGenerator, type DataDrivenGeneratorOptions } from './DataDriv
 export {
     GenerationRegion,
     type GenerationRegionOptions,
+    type RegionBlock,
     type RegionBlockEntity,
     type RegionEntitySpawn
 } from './GenerationRegion';
 export { BEDROCK_BIOME_IDS } from './bedrockBiomeIds';
 export { createJavaBlockOracle } from './javaBlockOracle';
 export { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
+export {
+    JAVA_TEMPLATE_ENV,
+    createTemplateSource,
+    findJavaTemplateSource,
+    findJavaTemplates,
+    readTemplateDirectory,
+    readTemplateJar
+} from './javaStructureTemplates';
+export { placeJavaTemplate, type TemplateSource, type TemplateTarget } from './javaTemplatePlacement';
 export { JavaStateTranslator, bedrockBiomeIdOf, type JavaState } from './javaTranslation';
 export {
     JAVA_WORLDGEN_ENV,
+    cacheRoot,
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries,
     type JavaRegistry,
