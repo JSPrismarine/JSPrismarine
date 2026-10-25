@@ -96,7 +96,7 @@ class Reader {
 
 /**
  * Reads a bare word as the value it spells: a boolean, a number with or
- * without its type suffix, or - failing both - the word itself as a string,
+ * without its type suffix, or, failing both, the word itself as a string,
  * which is how SNBT spells an unquoted string.
  */
 const valueOfBareWord = (word: string): unknown => {

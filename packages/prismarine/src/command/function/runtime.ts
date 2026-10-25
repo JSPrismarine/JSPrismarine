@@ -30,8 +30,8 @@ import { readMacroArguments } from './snbt';
  * itself, so it stays on the executor's heap-allocated frame stack and is
  * bounded by `maxCommandSequenceLength`. `execute ... run function` is not:
  * it is a command, so it re-enters this runtime through a command body and
- * each level costs real JavaScript stack. Java has no such split - its
- * `ExecutionContext` carries both - so this cap exists only to keep a
+ * each level costs real JavaScript stack. Java has no such split, because
+ * its `ExecutionContext` carries both, so this cap exists only to keep a
  * mutually recursive pack from overflowing the host stack before the
  * operation limit can stop it.
  */

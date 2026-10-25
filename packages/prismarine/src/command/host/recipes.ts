@@ -8,9 +8,9 @@
  *
  * The set lives for as long as the session does. Java saves it in the player
  * file and this server's player data has no field for it, so a player who
- * reconnects starts from whatever the server grants them - which is what the
- * row in {@link import('../vanillaCommands').UNWIRED_COMMANDS} used to say
- * was missing altogether.
+ * reconnects starts from whatever the server grants them. The row in
+ * {@link import('../vanillaCommands').UNWIRED_COMMANDS} used to say the whole
+ * thing was missing.
  */
 import type { EntityRef } from '@jsprismarine/commands';
 import type { RecipeBook } from '@jsprismarine/recipes';

@@ -5,7 +5,7 @@
  * and all, because that is what `/schedule clear` is given and what Java
  * matches on: scheduling `#my:tag` and then clearing `my:tag` clears nothing.
  *
- * `replace`, the default, means at most one pending entry per name - a
+ * `replace`, the default, means at most one pending entry per name, so a
  * function that reschedules itself every tick stays one entry rather than
  * growing a queue. `append` lets the same name wait several times over.
  */
@@ -75,9 +75,9 @@ export class FunctionSchedule {
     /**
      * Advances the clock one tick and takes everything that has come due.
      *
-     * Taken rather than run here: the queue decides *when*, and running a
-     * function is the runtime's job. Entries come out in the order they were
-     * due, and a call one of them schedules lands after the ones already out.
+     * Taken rather than run here. The queue decides when a call comes due and
+     * the runtime runs it. Entries come out in the order they were due, and a
+     * call one of them schedules lands after the ones already out.
      *
      * @returns The references to run, in order.
      */
