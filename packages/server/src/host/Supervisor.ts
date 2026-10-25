@@ -13,6 +13,12 @@ export interface SupervisorOptions {
     spawnChild: () => Promise<ServerChild>;
     /** Ends the host process once the server is gone for good; defaults to `process.exit`. */
     exit?: (code: number) => void | Promise<void>;
+    /**
+     * Whether something, such as the watcher, will call {@link Supervisor.restart} after a
+     * crash. When false a crash ends the host with the child's exit code instead of waiting
+     * for a restart that never comes. Defaults to false.
+     */
+    canRestart?: boolean;
 }
 
 /** The host-side link to the current server generation. */
@@ -35,15 +41,17 @@ export interface SignalSource {
  * One child runs at a time. A restart asks the running child to stop and spawns the next
  * generation only after it has exited, so two servers never fight over the port or the
  * terminal. A child that exits with a non-zero code on its own is treated as a crash, usually a
- * half-finished edit under `--watch`: the supervisor reports `crashed`, then `waiting`, and
- * stays up for the watcher or the console to call {@link restart}. A clean exit, or any exit
- * after {@link stop}, ends the host with the child's exit code, so wrappers that watch the exit
- * code keep working.
+ * half-finished edit under `--watch`: with `canRestart` set the supervisor reports `crashed`,
+ * then `waiting`, and stays up for the watcher or the console to call {@link restart}. A clean
+ * exit, any exit after {@link stop}, or a crash with nothing to restart it ends the host with
+ * the child's exit code, so wrappers that watch the exit code keep working. A spawn that is
+ * rejected, or a child killed by a signal, counts as exit code 1.
  */
 export class Supervisor {
     private readonly eventListeners = new Set<(event: SupervisorEvent) => void>();
     private readonly linkListeners = new Set<(link: ServerLink) => void>();
     private readonly exit: (code: number) => void | Promise<void>;
+    private readonly canRestart: boolean;
     private child: ServerChild | undefined;
     private spawning = false;
     private restartQueued = false;
@@ -54,6 +62,7 @@ export class Supervisor {
 
     public constructor(private readonly options: SupervisorOptions) {
         this.exit = options.exit ?? ((code) => process.exit(code));
+        this.canRestart = options.canRestart ?? false;
     }
 
     /** The last state reported through {@link onEvent}. */
@@ -98,7 +107,22 @@ export class Supervisor {
         this.currentGeneration += 1;
         this.setState('starting');
 
-        const child = await this.options.spawnChild();
+        let child: ServerChild;
+        try {
+            child = await this.options.spawnChild();
+        } catch (error) {
+            // Working out how to launch the child failed, for instance `import('node:sea')`
+            // in a build that lacks it. Treat it like a child that crashed at once so the
+            // host either exits or, under the watcher, waits for a fix.
+            this.spawning = false;
+            this.emit({
+                type: 'supervisor.output',
+                stream: 'stderr',
+                text: error instanceof Error ? error.message : String(error)
+            });
+            this.onChildExit(1, null);
+            return;
+        }
         this.spawning = false;
         this.child = child;
         for (const listener of this.linkListeners) listener(child.link);
@@ -189,9 +213,9 @@ export class Supervisor {
             return;
         }
 
-        if (this.shuttingDown || code === 0 || code === null) {
+        if (this.shuttingDown || code === 0 || code === null || !this.canRestart) {
             this.setState('stopped', code, signal);
-            void this.exit(this.forced ? 1 : (code ?? 0));
+            void this.exit(this.forced ? 1 : (code ?? 1));
             return;
         }
 

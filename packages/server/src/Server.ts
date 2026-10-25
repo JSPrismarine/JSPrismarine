@@ -124,6 +124,8 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
 
     const supervisor = new Supervisor({
         spawnChild: () => spawnServerChild({ userArgs: process.argv.slice(2) }),
+        // Only the watcher ever restarts a crashed child; without it a crash ends the host.
+        canRestart: args.watch,
         exit: async (code) => {
             await ui.close();
             process.exit(code);
