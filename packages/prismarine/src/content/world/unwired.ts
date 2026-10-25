@@ -43,7 +43,8 @@ export const unwiredWorld = (options: UnwiredWorldOptions = {}): ServerWorldAdap
         difficulty: notWired('level.difficulty', CONTENT_AREAS.world),
         weather: notWired('level.weather', CONTENT_AREAS.world),
         isRainingAt: notWired('level.isRainingAt', CONTENT_AREAS.world),
-        spawnPosition: notWired('level.spawnPosition', CONTENT_AREAS.world)
+        spawnPosition: notWired('level.spawnPosition', CONTENT_AREAS.world),
+        gameRule: notWired('level.gameRule', CONTENT_AREAS.world)
     };
 
     return {

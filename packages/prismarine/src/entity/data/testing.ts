@@ -26,6 +26,7 @@ import type {
     RandomSource,
     ServerWorldAdapter
 } from '../../content/world/adapter';
+import { gameRuleSpellings } from '../../content/world/gameRules';
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { entityContentGroups } from '../contentAdapter';
@@ -311,6 +312,15 @@ export interface TestWorldOptions {
     readonly players?: readonly ContentEntity[];
     readonly dayTime?: number;
     readonly gameTime?: number;
+    /**
+     * The game rules this world carries, keyed by any spelling the
+     * `@jsprismarine/commands` registry knows.
+     *
+     * A rule left out is one the world never registered, which every reader
+     * treats as the rule's default. `src/content/world/gameRules.ts` names the
+     * ones the content path reads.
+     */
+    readonly gameRules?: Readonly<Record<string, boolean | number>>;
 }
 
 /** A flat stone world with air above it, and a recording host. */
@@ -357,7 +367,8 @@ export class TestEntityWorld {
                 difficulty: () => 'normal',
                 weather: () => 'clear',
                 isRainingAt: () => false,
-                spawnPosition: () => ({ x: 0, y: FLOOR_Y + 1, z: 0 })
+                spawnPosition: () => ({ x: 0, y: FLOOR_Y + 1, z: 0 }),
+                gameRule: (name) => this.gameRuleOf(name)
             },
             blocks: {
                 get: (at) => this.blockAt(at),
@@ -429,6 +440,23 @@ export class TestEntityWorld {
     /** Replaces one block, so a test can wall a path finder in. */
     public setBlock(at: ContentPosition, identifier: string): void {
         this.placed.set(keyOf(at), { identifier, states: {} });
+    }
+
+    /**
+     * One game rule, found under any spelling of its name.
+     *
+     * The same resolution the live adapter does, so a test may write
+     * `mobGriefing` where the runtime asks for `minecraft:mob_griefing`.
+     */
+    private gameRuleOf(name: string): boolean | number | undefined {
+        const rules = this.options.gameRules;
+        if (rules === undefined) return undefined;
+
+        for (const spelling of gameRuleSpellings(name)) {
+            const value = rules[spelling];
+            if (value !== undefined) return value;
+        }
+        return undefined;
     }
 
     /** The block at a position: whatever a test placed, else floor below and air above. */

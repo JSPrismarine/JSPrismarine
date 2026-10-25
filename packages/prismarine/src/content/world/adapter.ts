@@ -190,6 +190,19 @@ export interface ContentLevelFacts {
     isRainingAt(at: ContentPosition): boolean;
     /** The world spawn point, which a compass points at. */
     spawnPosition(): ContentPosition;
+    /**
+     * One game rule's value.
+     *
+     * Named by any spelling `@jsprismarine/commands`' gamerule registry knows: the 1.21.11 id
+     * `minecraft:mob_griefing`, the pre-1.21.11 `mobGriefing`, or Bedrock's `mobgriefing`.
+     * {@link import('./gameRules')} names the rules the content path reads, and resolves each
+     * through that registry rather than spelling it a second time.
+     *
+     * @returns The value, or undefined when this world carries no rule of that name. A world
+     *   that never registered a rule and a world that turned it off are different answers, so
+     *   each caller says what it does without one.
+     */
+    gameRule(name: string): boolean | number | undefined;
 }
 
 /**

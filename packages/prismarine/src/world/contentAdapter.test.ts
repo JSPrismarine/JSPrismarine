@@ -10,12 +10,16 @@
  * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/contentAdapter
  * ```
  */
+import type { Logger } from '@jsprismarine/logger';
 import { bedrockBiomeToJava, javaIdentifierToBedrock } from '@jsprismarine/mapping';
 import { constantRandom } from '@jsprismarine/predicates';
 import { beforeAll, describe, expect, it } from 'vitest';
 
 import { definitionOf } from '../content/ContentOptions';
+import type Server from '../Server';
+import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
+import GameRuleManager, { GameRules } from './GameRuleManager';
 import { worldContentGroups } from './contentAdapter';
 import type { WorldContentBiomes } from './contentAdapter';
 import { Dimensions } from './Dimension';
@@ -149,4 +153,49 @@ describe.skipIf(!enabled)('the biomes of a generated overworld', () => {
         },
         CHUNK_TIMEOUT
     );
+});
+
+describe('the game rules a world carries', () => {
+    /** The level group over a world whose rules a test sets, with no chunks behind it. */
+    const levelWithRules = (set: ReadonlyArray<readonly [string, boolean | number]>) => {
+        const server = stub<Server>({ getLogger: () => stub<Logger>({ error: () => {} }) });
+        const rules = new GameRuleManager(server);
+        for (const [name, value] of set) rules.setGameRule(name, value, true);
+
+        const world: World = Object.assign(Object.create(World.prototype), {
+            chunks: new Map(),
+            dimension: Dimensions.Overworld,
+            gameRuleManager: rules
+        });
+
+        return worldContentGroups({
+            dimension: DIMENSION,
+            world: () => world,
+            seed: 0n,
+            difficulty: () => 2,
+            random: constantRandom(0),
+            content: () => contentWith({})
+        }).level;
+    };
+
+    it('answers the 1.21.11 id out of a world that stores the camelCase name', () => {
+        const level = levelWithRules([[GameRules.MobGriefing, false]]);
+
+        expect(level.gameRule('minecraft:mob_griefing')).toBe(false);
+        expect(level.gameRule('mobGriefing')).toBe(false);
+        expect(level.gameRule('mobgriefing')).toBe(false);
+    });
+
+    it('reports the rules it was never given as absent, rather than as off', () => {
+        const level = levelWithRules([]);
+
+        expect(level.gameRule('minecraft:locator_bar')).toBeUndefined();
+        expect(level.gameRule('nonsense')).toBeUndefined();
+    });
+
+    it('hands an integer rule back as a number', () => {
+        const level = levelWithRules([[GameRules.RandomTickSpeed, 7]]);
+
+        expect(level.gameRule('minecraft:random_tick_speed')).toBe(7);
+    });
 });
