@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { GameRuleType } from './index';
+import { GameRuleType } from './StartGamePacket';
 
 import type {
     BlockProperty,
