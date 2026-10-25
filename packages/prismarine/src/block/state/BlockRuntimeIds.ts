@@ -1,31 +1,12 @@
-import BinaryStream from '@jsprismarine/binaryutils';
-import { ByteOrder, NBTWriter } from '@jsprismarine/nbt';
+import { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32, writeBlockStateNbt } from '@jsprismarine/protocol';
 
 import type { BlockState, BlockStateValue } from './BlockState';
 import { BlockStateSchemas } from './BlockStateSchema';
 
-const FNV1_32_INIT = 0x811c9dc5;
-const FNV1_PRIME_32 = 0x01000193;
-
-/** The id vanilla reserves for a state it cannot resolve. */
-export const UNKNOWN_RUNTIME_ID = -2;
-export const UNKNOWN_BLOCK_NAME = 'minecraft:unknown';
-
-/**
- * FNV-1a, 32 bit. Kept separate from the NBT work so it can be checked against the
- * published test vectors for the algorithm.
- * @see http://www.isthe.com/chongo/tech/comp/fnv/
- */
-export const fnv1a32 = (data: Buffer): number => {
-    let hash = FNV1_32_INIT;
-    for (const byte of data) {
-        hash ^= byte;
-        // Multiplication in 32 bit arithmetic; Math.imul avoids the precision loss of `*`.
-        hash = Math.imul(hash, FNV1_PRIME_32);
-    }
-
-    return hash | 0;
-};
+// The hash, the bytes it is taken over and the reserved id belong to the protocol, not to this
+// server: the client computes the same number from the same bytes, and `@jsprismarine/wire`
+// builds payloads against them too. Re-exported because this file is where callers already look.
+export { UNKNOWN_BLOCK_NAME, UNKNOWN_RUNTIME_ID, fnv1a32 } from '@jsprismarine/protocol';
 
 /**
  * Turns a block state into the number that travels in chunk palettes.
@@ -55,6 +36,9 @@ export class BlockRuntimeIds {
     /**
      * The little endian NBT bytes a state hashes to. Exposed because it is also exactly
      * what `StartGamePacket` sends for a plugin's custom blocks.
+     *
+     * The compound is built from the schema rather than from the property values, which is
+     * what keeps each property on its vanilla tag type; the protocol only writes it.
      */
     public static serialize(state: BlockState): Buffer {
         const schema = BlockStateSchemas.get(state.name);
@@ -62,14 +46,7 @@ export class BlockRuntimeIds {
             throw new Error(`No block state schema registered for ${state.name}`);
         }
 
-        const stream = new BinaryStream();
-        const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-        // Fixed width, not varints: the network encoding used elsewhere would produce
-        // different bytes and therefore a different hash.
-        writer.setUseVarint(false);
-        writer.writeCompound(state.toNBT(schema.getPropertyTypes()));
-
-        return stream.getBuffer();
+        return writeBlockStateNbt(state.toNBT(schema.getPropertyTypes()));
     }
 
     /**
