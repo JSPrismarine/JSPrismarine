@@ -1,4 +1,5 @@
 import BaseGenerator from '../BaseGenerator';
+import type { SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import { DataDrivenGenerator } from './datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from './datadriven/javaStructureTemplates';
@@ -33,6 +34,11 @@ export default class Overworld extends BaseGenerator {
      */
     public async generateChunk(cx: number, cz: number, seed?: number): Promise<Chunk> {
         return this.require().generateChunk(cx, cz, seed);
+    }
+
+    /** @inheritDoc */
+    public surfaceAt(x: number, z: number, seed?: number): SurfaceProbe {
+        return this.require().surfaceAt(x, z, seed);
     }
 
     /** @inheritDoc */

@@ -19,11 +19,33 @@ export class GenerationStopped extends Error {
     }
 }
 
+/**
+ * The topmost block of a column, as {@link Generator.surfaceAt} reports it.
+ *
+ * Undefined when the column holds nothing at all, which is what an empty dimension answers
+ * everywhere and a generated one answers nowhere.
+ */
+export type SurfaceProbe = { readonly y: number; readonly name: string } | undefined;
+
 export interface Generator {
     /**
      * This function should return the generated chunk by given parameters.
      */
     generateChunk(cx: number, cz: number, seed?: number, config?: WorldConfig): Promise<Chunk>;
+
+    /**
+     * The topmost block of one column, without generating the chunk it is in.
+     *
+     * The answer comes from the bare terrain: no surface rule has run and nothing has decorated,
+     * so a flooded column reads as water and a wooded one reads as the ground under the trees
+     * rather than as a canopy. That is Java's `ChunkGenerator.getBaseHeight`, and it is what a
+     * spawn search wants - whether a player can stand here is a question about the land, and
+     * answering it by generating a finished chunk costs four orders of magnitude more.
+     *
+     * Optional, because a generator with no cheaper answer than its own chunks has nothing to
+     * add here and a caller falls back to generating one.
+     */
+    surfaceAt?(x: number, z: number, seed?: number): SurfaceProbe;
 
     /**
      * Gives up every chunk request that has not started yet, for a server that is shutting down.
