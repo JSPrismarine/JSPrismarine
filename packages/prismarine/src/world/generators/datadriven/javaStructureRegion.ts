@@ -45,7 +45,11 @@ export const createRegionStructureWriter = (
             if (boxContains(clip, x, y, z)) world.setBlockEntity?.({ x, y, z }, request);
         },
         spawnEntity: (type, x, y, z, yaw) => {
-            if (boxContains(clip, x, y, z)) world.spawnEntity?.(type, { x, y, z }, yaw);
+            // Java clips an entity by the block it stands over, which is what decides the chunk
+            // the spawn belongs to as well.
+            if (boxContains(clip, Math.floor(x), Math.floor(y), Math.floor(z))) {
+                region.spawnEntityAt(type, x, y, z, yaw);
+            }
         },
         heightAt: (heightmap, x, z) =>
             // The region holds terrain for the chunk being generated and nothing for its

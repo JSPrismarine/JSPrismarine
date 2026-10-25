@@ -274,7 +274,14 @@ abstract class MonumentPiece implements StructurePiece {
 
     /** Java's `spawnElder`, which is the only entity a monument builds around. */
     protected elderGuardian(writer: StructureWriter, x: number, y: number, z: number): void {
-        writer.spawnEntity('minecraft:elder_guardian', this.worldX(x, z), this.worldY(y), this.worldZ(x, z), 0);
+        // The middle of the block, which is where Java's `spawnElder` puts it.
+        writer.spawnEntity(
+            'minecraft:elder_guardian',
+            this.worldX(x, z) + 0.5,
+            this.worldY(y),
+            this.worldZ(x, z) + 0.5,
+            0
+        );
     }
 }
 

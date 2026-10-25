@@ -704,8 +704,10 @@ class SwampHutPiece extends ScatteredPiece {
         }
 
         // Java creates the witch and the cat at the same spot and lets them scatter on their own.
-        writer.spawnEntity('minecraft:witch', this.worldX(2, 5), this.worldY(2), this.worldZ(2, 5), 0);
-        writer.spawnEntity('minecraft:cat', this.worldX(2, 5), this.worldY(2), this.worldZ(2, 5), 0);
+        const standX = this.worldX(2, 5) + 0.5;
+        const standZ = this.worldZ(2, 5) + 0.5;
+        writer.spawnEntity('minecraft:witch', standX, this.worldY(2), standZ, 0);
+        writer.spawnEntity('minecraft:cat', standX, this.worldY(2), standZ, 0);
     }
 
     /** The spruce stair roof, with an outer corner at each of the four ends. */

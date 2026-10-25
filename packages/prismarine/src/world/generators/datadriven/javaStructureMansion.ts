@@ -1200,7 +1200,10 @@ const fillMarker = (marker: DataMarker, writer: StructureWriter, random: RandomS
     if (count === 0) return;
 
     const type = mob ?? 'minecraft:allay';
-    for (let index = 0; index < count; index++) writer.spawnEntity(type, marker.x, marker.y, marker.z, 0);
+    // The middle of the marker's block, which is where Java stands the mob it replaces it with.
+    for (let index = 0; index < count; index++) {
+        writer.spawnEntity(type, marker.x + 0.5, marker.y, marker.z + 0.5, 0);
+    }
     writer.setBlock(marker.x, marker.y, marker.z, AIR);
 };
 

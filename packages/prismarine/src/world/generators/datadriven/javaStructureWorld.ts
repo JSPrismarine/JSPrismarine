@@ -52,7 +52,13 @@ export interface StructureWriter {
     setBedrockBlock(x: number, y: number, z: number, state: BedrockBlockState): boolean;
     /** Attaches block entity data to the block at a position. */
     setBlockEntity(x: number, y: number, z: number, request: BlockEntityRequest): void;
-    /** Records an entity a piece builds around, such as the end city's shulkers. */
+    /**
+     * Records an entity a piece builds around, such as an igloo's villager.
+     *
+     * The position is the entity's own, not the block's: a mob stands in the middle of its
+     * block and a structure template saves fractional coordinates, so a caller naming a block
+     * passes its center.
+     */
     spawnEntity(type: string, x: number, y: number, z: number, yaw: number): void;
     /** The current surface of a column, which is the chunk's heightmap inside it. */
     heightAt(heightmap: HeightmapType, x: number, z: number): number;
