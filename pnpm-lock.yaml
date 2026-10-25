@@ -760,9 +760,6 @@ importers:
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser
-      '@jsprismarine/console':
-        specifier: workspace:*
-        version: link:../console
       '@jsprismarine/console-protocol':
         specifier: workspace:*
         version: link:../console-protocol
@@ -809,6 +806,10 @@ importers:
       vitest:
         specifier: 5.0.5
         version: 5.0.5(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(vite@8.3.5(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.15)(yaml@2.9.1))
+    optionalDependencies:
+      '@jsprismarine/console':
+        specifier: workspace:*
+        version: link:../console
 
   tools/docs:
     devDependencies:
