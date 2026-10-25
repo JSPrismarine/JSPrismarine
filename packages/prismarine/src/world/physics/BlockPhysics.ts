@@ -1,6 +1,6 @@
-import { Vector3 } from '@jsprismarine/math';
 import FallingBlock from '../../entity/other/FallingBlock';
 import { Position } from '../Position';
+import { destroyBlock } from '../blockDestroy';
 import type { World } from '../World';
 import { falls, isWashedAway, liquidOf, needsSupport } from './BlockRules';
 
@@ -38,7 +38,7 @@ export class BlockPhysics {
         if (name === null) return;
 
         if (needsSupport(name) && !this.isSupported(x, y, z)) {
-            await this.breakUnsupported(name, x, y, z, now);
+            await this.breakUnsupported(x, y, z, now);
             return;
         }
 
@@ -84,18 +84,14 @@ export class BlockPhysics {
      * Takes an unsupported block out of the world, leaving it on the ground.
      *
      * Dropped rather than deleted, which is what makes mining under a field of wheat give you the
-     * wheat. A block this server has no class for cannot be turned into an item, so it is simply
-     * removed - losing the drop rather than the physics.
+     * wheat. Through the same destruction every other path takes, so the hook runs before the
+     * write - a chest that lost its support spills - and Java's table decides what falls; see
+     * {@link import('../blockDestroy')}. A block the server has no catalog entry for leaves
+     * nothing, which loses the drop rather than the physics.
      */
-    private async breakUnsupported(name: string, x: number, y: number, z: number, now: number): Promise<void> {
+    private async breakUnsupported(x: number, y: number, z: number, now: number): Promise<void> {
+        destroyBlock({ world: this.world, position: { x, y, z } });
         await this.world.setBlockByName(x, y, z, 'minecraft:air', now);
-
-        try {
-            const block = this.world.getServer().getBlockManager().getBlock(name);
-            await this.world.dropContents(new Vector3(x + 0.5, y + 0.5, z + 0.5), [block]);
-        } catch {
-            // Not a block this server models; it is gone either way.
-        }
     }
 
     /**
