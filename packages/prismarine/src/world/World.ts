@@ -876,6 +876,19 @@ export class World implements Service {
     }
 
     /**
+     * Tells everyone watching that an entity is holding or wearing something new.
+     *
+     * Called from the one place equipment is written, `entity/data/liveBodies.ts`, which has
+     * already dropped the writes that changed nothing.
+     * @param {Entity} entity - Whose equipment changed.
+     */
+    public entityEquipmentChanged(entity: Entity): void {
+        void this.changes
+            .entityEquipmentChanged(entity)
+            .catch((error: unknown) => this.server.getLogger().error(error));
+    }
+
+    /**
      * One swing against a block: the sound of the hit and the chips that come off it.
      *
      * Struck, not broken. `START_BLOCK_CRACKING` was the only thing sent while mining, and

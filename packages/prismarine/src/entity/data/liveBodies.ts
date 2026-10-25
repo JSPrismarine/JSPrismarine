@@ -26,7 +26,10 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { itemOfDrop } from '../../inventory/persistence';
 import { Attribute, AttributeIds } from '../Attribute';
+import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
+import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
@@ -87,6 +90,15 @@ export class LiveBodies {
     private readonly bodies = new Map<number, Entity>();
     /** The health last written onto each body, which is how a legacy blow is noticed. */
     private readonly written = new Map<number, number>();
+    /**
+     * The value of `MobBody.equipmentRevision` last mirrored onto each body.
+     *
+     * The cheap half of the guard. Comparing a counter is what keeps a tick in which nothing
+     * was equipped from building five items per mob only to find they match; the byte-level
+     * comparison in {@link LiveBodies.writeEquipment} is what then keeps a write that set the
+     * same thing back from reaching the wire.
+     */
+    private readonly equipped = new Map<number, number>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -137,6 +149,12 @@ export class LiveBodies {
             this.written.set(entity.id, health.current);
         }
 
+        // Before the world hears about it, so the `AddActorPacket` a client is sent is followed
+        // by the equipment rather than by nothing. `sendAddActor` reads the body's equipment
+        // straight after the spawn, and a bow written a tick later would be a visible flicker of
+        // an empty-handed skeleton.
+        this.writeEquipment(entity, body);
+
         this.bodies.set(entity.id, body);
         void world.addEntity(body).catch((error: unknown) => this.failed('add', error));
     }
@@ -176,6 +194,7 @@ export class LiveBodies {
             if (!this.bodies.has(entity.id)) continue;
 
             this.showHealth(entity, body);
+            this.writeEquipment(entity, body);
             const move = this.showPosition(entity, body);
             if (move !== undefined) moves.push(move);
         }
@@ -238,6 +257,50 @@ export class LiveBodies {
 
         body.attributes.setValue(AttributeIds.Health, health.current);
         this.written.set(entity.id, health.current);
+    }
+
+    /**
+     * The one way a data entity's equipment is written onto the body a client sees.
+     *
+     * The same shape as `blockentity/blockEntityWrite.ts`, and for the same reason: every write
+     * site funnels through here, and a write whose bytes match what is already on the body is
+     * dropped before anything is told about it. Three sites reach it - the spawn roll, a goal
+     * putting something in a mob's hand, and a restore replaying a saved one - and the third is
+     * the one the guard pays for, because a save holds exactly what the roll already produced.
+     *
+     * Two guards, cheapest first. The revision counter answers "has anything been written at
+     * all", which on a steady tick is false for every entity in the world, so nothing is built.
+     * When it has moved, the items are built and compared as the bytes they would be sent as,
+     * which is the form that decides whether a client would see any difference.
+     *
+     * Reported rather than sent: `World.entityEquipmentChanged` decides who is holding this
+     * entity and puts it on their connections. Nothing is reported for a body that is not in
+     * the world yet, because `sendAddActor` carries the equipment itself.
+     */
+    private writeEquipment(entity: DataEntity, body: Entity): void {
+        if (this.equipped.get(entity.id) === entity.body.equipmentRevision) return;
+        this.equipped.set(entity.id, entity.body.equipmentRevision);
+
+        const world = this.options.world();
+        const content = world?.getServer().getContent();
+        if (world === undefined || content === undefined) return;
+
+        const worn: ViewableEquipment = {};
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            const drop = entity.equipment[slot];
+            if (drop === undefined) continue;
+
+            const item = itemOfDrop(drop, content);
+            if (item !== null) worn[slot] = item;
+        }
+
+        if (sameEquipmentItems(body.getEquipment(), worn)) return;
+
+        body.setEquipment(worn);
+        // Only for a body already in the world. The spawn path writes before `addEntity`, so
+        // `this.bodies` not holding it yet is exactly "the clients have not been told it
+        // exists", and `sendAddActor` is what tells them, equipment included.
+        if (this.bodies.has(entity.id)) world.entityEquipmentChanged(body);
     }
 
     /** Moves the body to where the runtime put the entity, when that is anywhere new. */

@@ -36,6 +36,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         entityMoved: () => calls.push('entityMoved'),
         entityAttributesChanged: record('entityAttributesChanged'),
         entityMetadataChanged: record('entityMetadataChanged'),
+        entityEquipmentChanged: record('entityEquipmentChanged'),
         actorEffect: record('actorEffect'),
         entityAdded: record('entityAdded'),
         entityRemoved: record('entityRemoved'),

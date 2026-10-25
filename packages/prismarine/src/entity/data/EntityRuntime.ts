@@ -37,10 +37,12 @@ import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../.
 import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
+import { itemOfDrop } from '../../inventory/persistence';
 import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
+import { rollMobEquipment } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
@@ -216,6 +218,12 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined) return undefined;
 
         entity.instance.spawn(options.cause ?? 'spawned', options.event);
+        // Between the spawn event and the body, for the same reason the body comes last. The
+        // event is what activates the component group a mob's `minecraft:equipment` usually
+        // sits in - a piglin's weapon depends on whether `melee_unit` or `ranged_unit` was
+        // added - so a roll before it would find no component, and a roll after the body
+        // would leave the client a frame of an empty-handed skeleton.
+        this.equip(entity);
         // After the spawn event, so the body a client is sent already carries whatever the
         // event added: a baby is born a baby rather than growing into one on the next tick.
         this.onSpawn(entity);
@@ -848,6 +856,31 @@ export class EntityRuntime implements EntityScene {
         const table = entity.facts.lootTable;
         if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropLoot(table, entity.position);
         this.remove(entity.id, 'death');
+    }
+
+    /**
+     * Gives one entity what its `minecraft:equipment` table rolls.
+     *
+     * Only on a spawn. {@link EntityRuntime.restore} deliberately does not call this, for the
+     * reason it does not re-run the spawn event either: the save already holds what the first
+     * roll produced, and rolling again would re-arm a mob a player had disarmed.
+     *
+     * A component with no `table` is not a mistake - the villager carries one purely to declare
+     * that its main hand never drops - so a missing table equips nothing and reports nothing.
+     */
+    private equip(entity: DataEntity): void {
+        const table = entity.instance.equipment()?.table;
+        if (table === undefined) return;
+
+        const content = this.content();
+        entity.body.setEquipment(
+            rollMobEquipment({
+                content,
+                table,
+                itemOf: (drop) => itemOfDrop(drop, content),
+                report: (message) => this.report(`${entity.identifier}: ${message}`)
+            })
+        );
     }
 
     /**

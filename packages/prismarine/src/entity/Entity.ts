@@ -153,13 +153,18 @@ export class Entity {
     public persistentNbt: NBTTagCompound | null = null;
 
     /**
-     * What this entity is holding, if anything.
+     * What this entity is holding and wearing, by slot, with empty slots absent.
      *
      * Purely what the client draws: nothing reads it to decide how hard a blow lands, which
-     * comes from the attack attribute. But a skeleton with no bow in its hand fires arrows from
-     * an empty fist, and that reads as a bug rather than as an attack.
+     * comes from the attack attribute, and nothing reads the worn slots for armor points. But a
+     * skeleton with no bow in its hand fires arrows from an empty fist, and that reads as a bug
+     * rather than as an attack.
+     *
+     * A record rather than a field per slot because the two packets that carry it are
+     * positional - `MobArmorEquipmentPacket` writes all five worn slots or none of them - so
+     * every send reads the whole set anyway.
      */
-    private heldItem: Item | null = null;
+    private equipment: ViewableEquipment = {};
 
     /** Ticks left of the grace period after the last hit. Counted down in {@link Entity.update}. */
     protected invulnerableTicks = 0;
@@ -250,7 +255,7 @@ export class Entity {
      * @returns {Item | null} The item, or null for empty hands.
      */
     public getHeldItem(): Item | null {
-        return this.heldItem;
+        return this.equipment.mainhand ?? null;
     }
 
     /**
@@ -263,7 +268,20 @@ export class Entity {
      * @returns {this} The entity, so a caller can chain.
      */
     public setHeldItem(item: Item | null): this {
-        this.heldItem = item;
+        return this.setEquipment({ ...this.equipment, mainhand: item ?? undefined });
+    }
+
+    /**
+     * Replaces everything this entity is holding and wearing.
+     *
+     * Stored rather than broadcast, for the reason {@link Entity.setHeldItem} is. The two
+     * places that put it on the wire are `PlayerSession.sendAddActor`, for a client being shown
+     * the entity, and `WorldChangeSink.entityEquipmentChanged`, for one already holding it.
+     * @param {ViewableEquipment} equipment - The new set, replacing the old one whole.
+     * @returns {this} The entity, so a caller can chain.
+     */
+    public setEquipment(equipment: ViewableEquipment): this {
+        this.equipment = equipment;
         return this;
     }
 
@@ -645,11 +663,13 @@ export class Entity {
     /**
      * What this entity is wearing and holding, by equipment slot.
      *
-     * Empty here, because a plain entity wears nothing. A `Human` overrides it
-     * from the armor container, the hand and the off hand.
+     * Whatever {@link Entity.setEquipment} last put there, which for a data-driven mob is what
+     * its `minecraft:equipment` table rolled. This was a literal `{}`, so a mob's own armor
+     * counted for nothing against a blow even once it had some. A `Human` overrides it from the
+     * armor container, the hand and the off hand.
      */
     public getEquipment(): ViewableEquipment {
-        return {};
+        return this.equipment;
     }
 
     /**

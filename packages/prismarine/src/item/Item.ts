@@ -1,6 +1,6 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import type BinaryStream from '@jsprismarine/binaryutils';
-import { attributeModifiers, enchantable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
+import { attributeModifiers, enchantable, equippable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -257,6 +257,19 @@ export class Item {
     /** Whether the item's components give it an armor value. */
     public isArmorPiece(): boolean {
         return this.getArmorDefensePoints() > 0;
+    }
+
+    /**
+     * Where `minecraft:equippable` says this item is worn.
+     *
+     * The game's own answer to which slot an item occupies, which is what dressing a mob from a
+     * loot table needs: the table names `minecraft:iron_helmet` and nothing else says it is a
+     * helmet. One of `@jsprismarine/items`' `EQUIPMENT_SLOTS`.
+     * @returns {string | undefined} The slot name, or undefined for an item that is not worn,
+     *   which a sword and a bow are.
+     */
+    public getEquipmentSlot(): string | undefined {
+        return this.type()?.params(equippable)?.slot;
     }
 
     /** How long the item burns in a furnace, in ticks. */

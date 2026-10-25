@@ -17,6 +17,8 @@ import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 
 import { DamageLog } from './damageLog';
+import type { MobEquipmentSet } from '../equipment';
+import { NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { blocksPerTick, liveFactsOf } from './facts';
 
@@ -66,8 +68,67 @@ export class MobBody {
     /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
     public home: EntityPosition | undefined;
 
-    /** What the entity holds in its main hand. */
-    public carried: string | undefined;
+    /**
+     * What the entity is holding and wearing, rolled from `minecraft:equipment` at spawn.
+     *
+     * The main hand of this is what {@link MobBody.carried} reads and writes, so the goals'
+     * one-identifier view of a held item and the body's full set are the same state rather
+     * than two that can disagree. See `entity/equipment.ts`.
+     */
+    public equipment: MobEquipmentSet = NO_EQUIPMENT;
+
+    /**
+     * How many times {@link MobBody.equipment} has been written.
+     *
+     * Read by `liveBodies`, which mirrors equipment onto the client-visible body: comparing a
+     * counter is what keeps a tick that changed nothing from encoding five items per mob just
+     * to find that out. Equipment changes a handful of times in a mob's life, so the steady
+     * state is this number not moving.
+     */
+    public equipmentRevision = 0;
+
+    /**
+     * What the entity holds in its main hand, as an item identifier.
+     *
+     * The goals' view of {@link MobBody.equipment}: a villager's trade offer, an enderman's
+     * carried block and whatever `pickup_items` picked up are all written through here. An
+     * accessor rather than a field so that a goal setting a held item and a spawn roll putting
+     * a bow in the same hand are one piece of state, which is what makes the single write
+     * funnel possible.
+     */
+    public get carried(): string | undefined {
+        return this.equipment.mainhand?.identifier;
+    }
+
+    public set carried(identifier: string | undefined) {
+        if (identifier === this.carried) return;
+
+        this.equipment =
+            identifier === undefined
+                ? { ...this.equipment, mainhand: undefined }
+                : { ...this.equipment, mainhand: { identifier, count: 1 } };
+        this.equipmentRevision += 1;
+    }
+
+    /**
+     * Replaces everything the entity is holding and wearing.
+     *
+     * Drops a write that changes nothing, which is the same guard
+     * `blockentity/blockEntityWrite.ts` applies to a block entity and for the same reason: a
+     * write nobody could see is a packet nobody needs. A restored entity is the case that hits
+     * it, because a save holds what the spawn roll already produced.
+     *
+     * @param equipment - The new set, replacing the old one whole.
+     * @returns Whether anything changed.
+     */
+    public setEquipment(equipment: MobEquipmentSet): boolean {
+        if (sameEquipment(this.equipment, equipment)) return false;
+
+        this.equipment = equipment;
+        this.equipmentRevision += 1;
+
+        return true;
+    }
 
     /** What the entity carries that is not in its hand, as item identifiers. */
     public readonly inventory: string[] = [];
@@ -331,6 +392,11 @@ export class DataEntity {
 
     public set carried(identifier: string | undefined) {
         this.body.carried = identifier;
+    }
+
+    /** Everything the entity is holding and wearing. */
+    public get equipment(): MobEquipmentSet {
+        return this.body.equipment;
     }
 
     /** Where the entity is now. */
