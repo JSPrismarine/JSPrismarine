@@ -187,14 +187,11 @@ export class RemoteConsole implements Service {
     }
 
     private sendStatus(): void {
-        const tps = this.server.getTPS();
         const status: ServerMessage = {
             type: 'status',
             v: PROTOCOL_VERSION,
-            tps,
-            // The server keeps no per-tick duration; this is the period the current rate
-            // implies, so it reads 50 at a healthy 20 TPS.
-            tickMs: tps > 0 ? 1000 / tps : 0,
+            tps: this.server.getTPS(),
+            tickMs: this.server.getTickMs(),
             players: this.server.getSessionManager().getAllPlayers().length,
             maxPlayers: this.server.getConfig().getMaxPlayers(),
             rssBytes: process.memoryUsage().rss,

@@ -153,6 +153,13 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private tps = 20;
+    /**
+     * Exponential moving average of how long a tick's work took, in milliseconds. Zero until
+     * the first tick completes.
+     */
+    private tickMs = 0;
+    /** Weight of the newest tick in {@link tickMs}: the last ten or so ticks carry most of it. */
+    private static readonly TICK_MS_SMOOTHING = 0.2;
 
     /**
      * The current tick.
@@ -551,6 +558,12 @@ export default class Server extends EventEmitter {
                     // runs faster than that, and hiding it behind the target rate meant the
                     // one metric that should expose the fault reported perfect health.
                     if (window > 0) this.tps = ((recentTicks.length - 1) * 1000) / window;
+                    // Work per tick, smoothed. TPS alone hides load: the loop holds 20 TPS
+                    // until a tick overruns its 50 ms, so this is what shows a tick at 40.
+                    this.tickMs =
+                        this.tickMs === 0
+                            ? elapsedMs
+                            : this.tickMs + (elapsedMs - this.tickMs) * Server.TICK_MS_SMOOTHING;
 
                     // One correction, against one deadline.
                     let sleepTime = epoch + this.getTick() * Server.MINECRAFT_TICK_TIME_MS - endTime;
@@ -930,5 +943,14 @@ export default class Server extends EventEmitter {
      */
     public getTPS(): number {
         return Number.parseFloat(this.tps.toFixed(2));
+    }
+
+    /**
+     * Returns how long a tick's work has been taking, in milliseconds, as a moving average
+     * over the most recent ticks. It leaves out the sleep between ticks, so a healthy server
+     * reads well under the 50 ms period. Zero until the first tick completes.
+     */
+    public getTickMs(): number {
+        return Number.parseFloat(this.tickMs.toFixed(2));
     }
 }
