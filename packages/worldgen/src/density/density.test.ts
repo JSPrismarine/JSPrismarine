@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { f32 } from '../math';
+import { f32, lerp3F } from '../math';
 import type { Noise } from '../noise/GradientNoise';
 import { LegacyRandomSource } from '../random/LegacyRandomSource';
 import type { CompileEnvironment } from './compile';
@@ -337,6 +337,35 @@ describe('cell operators', () => {
         expect(at(interpolated, 0, 0, 0)).toBe(0);
         expect(at(interpolated, 0, 4, 0)).toBe(0.5);
         expect(at(interpolated, 0, 8, 0)).toBe(1);
+    });
+
+    it('interpolates exactly as lerp3F does', () => {
+        // The compiled node spells `lerp3F` out rather than calling it, because V8 does not
+        // inline it on this path. These are the bits that spelling has to keep producing.
+        const input = { type: 'minecraft:noise', noise: 'minecraft:test' };
+        const run = harness({ type: 'minecraft:interpolated', input, cell_size_xz: 4, cell_size_y: 8 });
+        const corner = harness(input);
+
+        for (let x = 4; x < 8; x++) {
+            for (let y = 8; y < 16; y++) {
+                for (let z = -8; z < -4; z++) {
+                    const expected = lerp3F(
+                        f32((x - 4) / 4),
+                        f32((y - 8) / 8),
+                        f32((z + 8) / 4),
+                        corner.sample(4, 8, -8),
+                        corner.sample(8, 8, -8),
+                        corner.sample(4, 16, -8),
+                        corner.sample(8, 16, -8),
+                        corner.sample(4, 8, -4),
+                        corner.sample(8, 8, -4),
+                        corner.sample(4, 16, -4),
+                        corner.sample(8, 16, -4)
+                    );
+                    expect(run.sample(x, y, z)).toBe(expected);
+                }
+            }
+        }
     });
 
     it('evaluates each cell corner once and reuses it', () => {
