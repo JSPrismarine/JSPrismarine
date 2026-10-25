@@ -36,6 +36,9 @@ const SEED = 1234;
  */
 const VILLAGE_CHUNK = { x: -166, z: -80 };
 
+/** Where this seed's trail ruins starts, which is also the chunk most of its gravel lands in. */
+const TRAIL_RUINS_CHUNK = { x: -113, z: 50 };
+
 describe.skipIf(!enabled)('the structures the data-driven overworld generates', () => {
     let generator: DataDrivenGenerator;
     const chunks = new Map<string, Chunk>();
@@ -320,6 +323,26 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
                     configs.map((config) => config?.getCompound('key_item', false)?.getString('Name', ''))
                 ).toContain('minecraft:ominous_trial_key');
                 expect(lootTables(chunk)).not.toContain('loot_tables/chests/trial_chambers/reward_ominous.json');
+            },
+            CHUNK_TIMEOUT
+        );
+
+        it(
+            'fills a trail ruins suspicious gravel with something to brush out of it',
+            async () => {
+                const chunk = await chunkAt(TRAIL_RUINS_CHUNK.x, TRAIL_RUINS_CHUNK.z);
+                const brushable = [...chunk.getBlockEntities()].filter((entry) => entry.getId() === 'BrushableBlock');
+
+                // The archaeology rule gives the gravel a loot table and no block entity type,
+                // the way Java's own data does, because the suspicious gravel block already has
+                // a block entity. A chunk with the gravel and none of these brushes up empty.
+                expect(brushable.length).toBeGreaterThan(0);
+                expect(new Set(lootTables(chunk))).toEqual(
+                    new Set([
+                        'loot_tables/archaeology/trail_ruins_common.json',
+                        'loot_tables/archaeology/trail_ruins_rare.json'
+                    ])
+                );
             },
             CHUNK_TIMEOUT
         );
