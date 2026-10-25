@@ -59,6 +59,7 @@ export function createToastStack(
     const timers: ToastTimers = props.timers ?? defaultTimers;
     const queue = new ToastQueue({ maxVisible: props.maxVisible ?? 3, defaultTtlMs: props.defaultTtlMs ?? 4000 });
     let timer: unknown;
+    let disposed = false;
 
     const renderable = new BoxRenderable(renderer, {
         id: 'toast-stack',
@@ -100,6 +101,8 @@ export function createToastStack(
         timer = timers.setTimeout(
             () => {
                 timer = undefined;
+                // A timer that outlives the stack or the renderer has nothing left to draw on.
+                if (disposed || renderer.isDestroyed) return;
                 queue.expire(timers.now());
                 render();
                 arm();
@@ -127,8 +130,12 @@ export function createToastStack(
             arm();
         },
         dispose() {
+            disposed = true;
+            if (timer !== undefined) {
+                timers.clearTimeout(timer);
+                timer = undefined;
+            }
             queue.clear();
-            arm();
             renderable.destroyRecursively();
         }
     };

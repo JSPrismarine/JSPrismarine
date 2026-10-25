@@ -37,7 +37,12 @@ async function setup(size: { width: number; height: number }, overrides: Partial
     );
     app.focus();
     await test.renderOnce();
-    return { ...test, app, store, history, commands, actions };
+    /** Disposes the app before the renderer so no toast timer outlives the native scene. */
+    const dispose = async (): Promise<void> => {
+        app.dispose();
+        await test.dispose();
+    };
+    return { ...test, dispose, app, store, history, commands, actions };
 }
 
 describe('createApp', () => {
