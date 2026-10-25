@@ -677,7 +677,7 @@ export default class Player extends Human {
      * @returns `true` if this player is an operator otherwise `false`.
      */
     public isOp(): boolean {
-        return this.server.getPermissionManager().isOp(this.getName());
+        return this.server.getPermissionManager().isOp(this.getUUID().toString());
     }
 
     /**

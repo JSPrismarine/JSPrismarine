@@ -8,24 +8,30 @@ import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from 
 import { withCwd } from '../utils/cwd';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
 
-/** One line of `ops.json`. The `level` is written for the reader's sake; only the name is read. */
+/** One line of `ops.json`. The `level` is written for the reader's sake; the UUID identifies the player. */
 interface OpEntry {
     name: string;
+    uuid: string;
     level?: number;
 }
 
 /** One `players` line of `permissions.json`. */
 interface PlayerPermissions {
     name: string;
+    uuid: string;
     permissions: string[];
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isStringList = (value: unknown): value is string[] =>
     Array.isArray(value) && value.every((item) => typeof item === 'string');
-const isOpEntry = (value: unknown): value is OpEntry => isRecord(value) && typeof value.name === 'string';
+const isOpEntry = (value: unknown): value is OpEntry =>
+    isRecord(value) && typeof value.name === 'string' && typeof value.uuid === 'string';
 const isPlayerPermissions = (value: unknown): value is PlayerPermissions =>
-    isRecord(value) && typeof value.name === 'string' && isStringList(value.permissions);
+    isRecord(value) &&
+    typeof value.name === 'string' &&
+    typeof value.uuid === 'string' &&
+    isStringList(value.permissions);
 
 /**
  * The parts of the server the permission manager uses. A test can hand in these alone.
@@ -88,7 +94,9 @@ export function canExecute(executer?: PermissionSubject) {
  */
 export class PermissionManager implements Service {
     private readonly server: PermissionManagerServer;
+    /** UUIDs of players currently recognized as operators. */
     private readonly ops: Set<string> = new Set();
+    /** Additional permission grants keyed by player UUID. */
     private readonly permissions: Map<string, string[]> = new Map();
     private defaultPermissions: string[] = [];
     private defaultOperatorPermissions: string[] = [];
@@ -138,7 +146,7 @@ export class PermissionManager implements Service {
     public async getPermissions(player: Player): Promise<string[]> {
         return [
             ...this.defaultPermissions,
-            ...(this.permissions.get(player.getName()) ?? []),
+            ...(this.permissions.get(player.getUUID().toString()) ?? []),
             ...(player.isOp() ? this.defaultOperatorPermissions : [])
         ];
     }
@@ -153,7 +161,7 @@ export class PermissionManager implements Service {
      * @param {string[]} [permissions=[]] - The permissions to set.
      */
     public setPermissions(player: Player, permissions: string[] = []) {
-        this.permissions.set(player.getName(), permissions);
+        this.permissions.set(player.getUUID().toString(), permissions);
     }
 
     private async parsePermissions(): Promise<void> {
@@ -176,7 +184,7 @@ export class PermissionManager implements Service {
                 : ['*'];
             if (Array.isArray(permissions.players)) {
                 for (const player of permissions.players) {
-                    if (isPlayerPermissions(player)) this.permissions.set(player.name, player.permissions);
+                    if (isPlayerPermissions(player)) this.permissions.set(player.uuid, player.permissions);
                 }
             }
         } catch (error: unknown) {
@@ -209,8 +217,8 @@ export class PermissionManager implements Service {
         );
         document.set(
             ['players'],
-            [{ name: 'filfat', permissions: ['*'] }],
-            'Permissions granted to one player, by name, on top of the defaults.'
+            [{ name: 'filfat', uuid: 'fbf8646c-652c-38c4-96ff-a29d86cb5943', permissions: ['*'] }],
+            'Permissions granted to one player by UUID, on top of the defaults.'
         );
         return document;
     }
@@ -226,7 +234,7 @@ export class PermissionManager implements Service {
             const ops = (await readJsonFile(file, '[]')).get([]);
             if (!Array.isArray(ops)) throw new Error(`${OPS_FILE_NAME} must hold a list of operators`);
             for (const op of ops) {
-                if (isOpEntry(op)) this.ops.add(op.name);
+                if (isOpEntry(op)) this.ops.add(op.uuid);
             }
         } catch (error: unknown) {
             this.server.getLogger().error(error);
@@ -238,13 +246,13 @@ export class PermissionManager implements Service {
      * Adds or removes one player's line in `ops.json`, leaving the other lines and any comments
      * as they are.
      */
-    private async writeOp(username: string, op: boolean): Promise<void> {
+    private async writeOp(uuid: string, username: string, op: boolean): Promise<void> {
         const file = withCwd(OPS_FILE_NAME);
         const document = await readJsonFile(file, '[]');
-        const sameName = (entry: unknown) => isOpEntry(entry) && entry.name === username;
+        const samePlayer = (entry: unknown) => isOpEntry(entry) && entry.uuid === uuid;
 
-        if (op) upsertListEntry(document, sameName, { name: username, level: 4 });
-        else removeListEntries(document, sameName);
+        if (op) upsertListEntry(document, samePlayer, { name: username, uuid, level: 4 });
+        else removeListEntries(document, samePlayer);
 
         await writeJsonFile(file, document);
     }
@@ -265,11 +273,12 @@ export class PermissionManager implements Service {
 
         await target.getNetworkSession().sendAvailableCommands();
 
-        if (op) this.ops.add(username);
-        else this.ops.delete(username);
+        const uuid = target.getUUID().toString();
+        if (op) this.ops.add(uuid);
+        else this.ops.delete(uuid);
 
         try {
-            await this.writeOp(username, op);
+            await this.writeOp(uuid, username, op);
 
             await target.sendSettings();
             return true;
@@ -281,11 +290,11 @@ export class PermissionManager implements Service {
     /**
      * Check if a player is an operator.
      *
-     * @param {string} username - The player to check.
+     * @param {string} uuid - The player's UUID.
      * @returns {boolean} Whether the player is an operator.
      */
-    public isOp(username: string): boolean {
-        return this.ops.has(username);
+    public isOp(uuid: string): boolean {
+        return this.ops.has(uuid);
     }
 
     /**
