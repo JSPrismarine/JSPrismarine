@@ -12,6 +12,7 @@ export * from './filters';
 export * from './goals';
 export * from './goals/reference';
 export * from './hooks';
+export * from './javaStats';
 export * from './properties';
 export * from './riding';
 export * from './triggers';
