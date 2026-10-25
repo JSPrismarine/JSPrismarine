@@ -37,11 +37,7 @@ describe.skipIf(!enabled)("Mojang's own data-driven blocks", () => {
     it('loads all 98 files with no error', () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
 
-        // The whole pack loads, so filter to the blocks; the entity files in
-        // this release report four errors of their own against
-        // `@jsprismarine/packs`, which is that package's business.
-        const blockDiagnostics = diagnostics.filter((diagnostic) => diagnostic.path?.startsWith('blocks/'));
-        expect(blockDiagnostics).toEqual([]);
+        expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
         expect(definitions.blocks.size).toBe(98);
     });
 
