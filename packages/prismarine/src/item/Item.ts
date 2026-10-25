@@ -128,17 +128,33 @@ export class Item {
         return (this.content?.items.types ?? vanillaItemTypes()).get(this.name);
     }
 
-    /** Reads one `add_value` attribute modifier off `minecraft:attribute_modifiers`. */
-    private baseModifier(attribute: string, id: string): number {
+    /**
+     * What the item adds to one attribute, off `minecraft:attribute_modifiers`.
+     *
+     * Only `add_value` modifiers count, because the other operations scale a
+     * total this has no view of. An item's default components carry at most one
+     * `add_value` modifier per attribute, so the sum is that one number.
+     *
+     * The modifier's id is deliberately not matched. Java names these ids per
+     * equipment slot for armor (`minecraft:armor.chestplate`,
+     * `minecraft:armor.boots`, and three more), and matching on a guessed
+     * `minecraft:base_armor` found nothing for all 41 armor items, which is
+     * what left armor granting no protection at all.
+     *
+     * @param attribute - The attribute identifier, such as `minecraft:armor`.
+     * @returns The amount added, or zero when the item modifies nothing.
+     */
+    private addedAttribute(attribute: string): number {
         const modifiers = this.type()?.params(attributeModifiers);
         if (modifiers === undefined) return 0;
 
+        let total = 0;
         for (const modifier of modifiers) {
-            if (modifier.type !== attribute || modifier.id !== id) continue;
+            if (modifier.type !== attribute) continue;
             if (modifier.operation !== 'add_value') continue;
-            return modifier.amount;
+            total += modifier.amount;
         }
-        return 0;
+        return total;
     }
 
     /** Whether the item's components make it a tool. */
@@ -165,17 +181,17 @@ export class Item {
      * both worth one, which is vanilla's rule rather than a placeholder.
      */
     public getAttackDamage(): number {
-        return PLAYER_BASE_ATTACK_DAMAGE + this.baseModifier('minecraft:attack_damage', 'minecraft:base_attack_damage');
+        return PLAYER_BASE_ATTACK_DAMAGE + this.addedAttribute('minecraft:attack_damage');
     }
 
     /** The armor points the item is worth while worn. */
     public getArmorDefensePoints(): number {
-        return this.baseModifier('minecraft:armor', 'minecraft:base_armor');
+        return this.addedAttribute('minecraft:armor');
     }
 
     /** The armor toughness the item is worth while worn. */
     public getArmorToughness(): number {
-        return this.baseModifier('minecraft:armor_toughness', 'minecraft:base_armor_toughness');
+        return this.addedAttribute('minecraft:armor_toughness');
     }
 
     public hasEnchantment(_enchantment: ItemEnchantmentType): boolean {
