@@ -44,11 +44,15 @@ import type { AttributeValue, EnvironmentAttributeFields } from './EnvironmentAt
 import Experiments from './Experiments';
 import FullContainerName from './FullContainerName';
 import ItemData, { ItemVersion } from './ItemData';
+import ItemStack from './ItemStack';
+import type { ItemStackData } from './ItemStack';
 import ItemInstanceUserData from './ItemInstanceUserData';
 import type { ItemInstanceUserDataConfig } from './ItemInstanceUserData';
 import LevelSettings from './LevelSettings';
 import LocatorBarWaypointPayload, { ServerWaypointGroupAction } from './LocatorBarWaypointPayload';
 import NetworkItemStackDescriptor from './NetworkItemStackDescriptor';
+import RecipeIngredient, { ANY_META } from './RecipeIngredient';
+import type { IngredientDescriptor, RecipeIngredientData } from './RecipeIngredient';
 import type { NetworkItemStackDescriptorConfig } from './NetworkItemStackDescriptor';
 import NoiseAlignment, { NoiseAlignmentType } from './NoiseAlignment';
 import PlayerPartyInfo from './PlayerPartyInfo';
@@ -103,8 +107,10 @@ export {
     Experiments,
     FloatAttributeOperation,
     FullContainerName,
+    ANY_META,
     ItemData,
     ItemInstanceUserData,
+    ItemStack,
     ItemVersion,
     LevelSettings,
     LocatorBarWaypointPayload,
@@ -117,6 +123,7 @@ export {
     PrimitiveShapeExtraDataType,
     PrimitiveShapeType,
     PropertySyncData,
+    RecipeIngredient,
     SerializableVoxelShape,
     SerializedAbilitiesData,
     SerializedAbilityLayer,
@@ -158,10 +165,13 @@ export type {
     EduSharedUriResourceData,
     EnvironmentAttributeFields,
     HeightMap,
+    IngredientDescriptor,
     ItemInstanceUserDataConfig,
+    ItemStackData,
     NetworkItemStackDescriptorConfig,
     PrimitiveShapeDataFields,
     PrimitiveShapeExtraData,
+    RecipeIngredientData,
     SerializableCells,
     SplineDefinitionProgressKeyFrame,
     SplineDefinitionRotationKeyFrame,

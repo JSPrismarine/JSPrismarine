@@ -1,45 +1,14 @@
+import { ItemInstanceUserData, NetworkBinaryStream, writeCreativeContent } from '@jsprismarine/protocol';
+
 import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
 
-/**
- * The docs' `CreativeItemCategory`: which tab of the creative menu a group belongs to.
- *
- * The game data names a group's tab in words, which {@link creativeCategoryOf} turns into one
- * of these.
- */
-export enum CreativeItemCategory {
-    ALL,
-    CONSTRUCTION,
-    NATURE,
-    EQUIPMENT,
-    ITEMS,
-    ITEM_COMMAND_ONLY,
-    UNDEFINED
-}
+import type { CreativeContent, CreativeItemCategory, ItemStackData } from '@jsprismarine/protocol';
 
-/**
- * The tabs by the name the game data uses for them, derived from the enum rather than listed
- * again beside it.
- */
-const categoriesByName = new Map(
-    Object.entries(CreativeItemCategory)
-        .filter((member): member is [string, CreativeItemCategory] => typeof member[1] === 'number')
-        .map(([name, value]) => [name.toLowerCase(), value])
-);
-
-/**
- * The tab a group sits in, from the name the game data gives it.
- *
- * `construction`, `nature`, `equipment` and `items` are the four vanilla uses. A name this
- * does not know falls back to the catch-all tab, because a menu drawn under the wrong heading
- * is still a menu and a group index pointing at nothing is not.
- * @param {string} name - the tab name as the creative data writes it.
- * @returns {CreativeItemCategory} the matching tab, or `ITEMS`.
- */
-export const creativeCategoryOf = (name: string): CreativeItemCategory =>
-    categoriesByName.get(name.toLowerCase()) ?? CreativeItemCategory.ITEMS;
+// The tabs and their names are the wire's, so they come from the packet that writes them.
+export { CreativeItemCategory, creativeCategoryOf } from '@jsprismarine/protocol';
 
 /** A heading in the creative menu, with the item shown beside it. */
 export interface CreativeGroup {
@@ -57,16 +26,34 @@ export interface CreativeEntry {
 }
 
 /**
- * The contents of the creative menu.
+ * This server's `Item` as the plain stack a protocol payload carries.
  *
- * Two lists, in the order the client renders them. Groups come first: each
- * `CreativeGroupInfoPayload` is a Creative Category byte, a Name string and a Group Icon Item
- * written as a `NetworkItemInstanceDescriptor`. Entries follow: each `CreativeItemEntryPayload`
- * is a one-based Creative Net Id varuint32, the Item Instance as a
- * `NetworkItemInstanceDescriptor`, and a Group Index varuint32 into the groups list.
+ * Air is the empty slot, and the empty slot is a bare zero rather than whatever number the item
+ * table has for the name: `minecraft:air` is -158 there, and writing that leaves the client
+ * holding a real item in every slot the player is not using.
  *
- * Every entry has to point at a group that exists. A group with an empty Name is anonymous:
- * the client draws its members loose, without a heading.
+ * No stack here carries NBT, a can-place-on list or a can-destroy list yet, so the user data
+ * blob is the empty structure plus the blocking tick a shield ends with.
+ */
+export const itemAsStack = (item: Item): ItemStackData => {
+    const blob = new NetworkBinaryStream();
+    new ItemInstanceUserData(null, item.getName() === 'minecraft:shield' ? { blockingTick: 0n } : {}).serialize(blob);
+
+    return {
+        runtimeId: item.getName() === 'minecraft:air' ? 0 : item.getNetworkId(),
+        count: item.getAmount(),
+        meta: item.meta,
+        blockRuntimeId: item.getBlockRuntimeId(),
+        userData: blob.getBuffer()
+    };
+};
+
+/**
+ * The contents of the creative menu, as the server's own `Item` instances.
+ *
+ * The wire format and its field order belong to `@jsprismarine/protocol`'s packet of the same
+ * name, which takes plain numbers. This is the server's end of it: the two lists in terms of
+ * `Item`, turned into that payload on the way out and read back into `Item` on the way in.
  *
  * **Bound To:** Client
  */
@@ -80,19 +67,14 @@ export default class CreativeContentPacket extends DataPacket {
     public entries: CreativeEntry[] = [];
 
     public encodePayload(): void {
-        this.writeUnsignedVarInt(this.groups.length);
-        for (const group of this.groups) {
-            this.writeByte(group.category);
-            NetworkUtil.writeString(this, group.name);
-            group.icon.networkSerializeWithoutStackId(this);
-        }
+        const payload: CreativeContent = {
+            groups: this.groups.map(({ category, name, icon }) => ({ category, name, icon: itemAsStack(icon) })),
+            entries: this.entries.map(({ item, group }) => ({ item: itemAsStack(item), group }))
+        };
 
-        this.writeUnsignedVarInt(this.entries.length);
-        for (const [i, entry] of this.entries.entries()) {
-            this.writeUnsignedVarInt(i + 1); // Creative Net Id, one-based.
-            entry.item.networkSerializeWithoutStackId(this);
-            this.writeUnsignedVarInt(entry.group);
-        }
+        const stream = new NetworkBinaryStream();
+        writeCreativeContent(stream, payload);
+        this.write(stream.getBuffer());
     }
 
     public decodePayload(): void {
