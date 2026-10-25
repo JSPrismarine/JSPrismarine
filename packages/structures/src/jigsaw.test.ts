@@ -335,6 +335,58 @@ describe('parsePoolAliases', () => {
             new Map([['test:a', 'test:b']])
         );
     });
+
+    it('draws one target of a random binding', () => {
+        const binding = [
+            {
+                type: 'minecraft:random',
+                alias: 'test:a',
+                targets: [
+                    { data: 'test:b', weight: 1 },
+                    { data: 'test:c', weight: 1 }
+                ]
+            }
+        ];
+        const drawn = [1, 7919, 104_729, 1_299_709].map((seed) =>
+            parsePoolAliases(binding, createLegacyRandom(seed)).get('test:a')
+        );
+
+        for (const target of drawn) expect(['test:b', 'test:c']).toContain(target);
+        expect(new Set(drawn).size).toBeGreaterThan(1);
+    });
+
+    it('draws a whole group of bindings together', () => {
+        const binding = [
+            {
+                type: 'minecraft:random_group',
+                groups: [
+                    {
+                        weight: 1,
+                        data: [
+                            { type: 'minecraft:direct', alias: 'test:a', target: 'test:b' },
+                            { type: 'minecraft:direct', alias: 'test:c', target: 'test:d' }
+                        ]
+                    }
+                ]
+            }
+        ];
+
+        expect(parsePoolAliases(binding, createLegacyRandom(1))).toEqual(
+            new Map([
+                ['test:a', 'test:b'],
+                ['test:c', 'test:d']
+            ])
+        );
+    });
+
+    it('reads only the direct bindings when there is no random source', () => {
+        const binding = [
+            { type: 'minecraft:direct', alias: 'test:a', target: 'test:b' },
+            { type: 'minecraft:random', alias: 'test:c', targets: [{ data: 'test:d', weight: 1 }] }
+        ];
+
+        expect(parsePoolAliases(binding)).toEqual(new Map([['test:a', 'test:b']]));
+    });
 });
 
 describe('assembleJigsaw', () => {

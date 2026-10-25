@@ -706,15 +706,62 @@ const insideBox = (box: BoundingBox, position: TemplatePosition): boolean =>
 /**
  * Reads the `pool_aliases` list a jigsaw structure may carry, as a map from
  * the alias pool to the pool it stands for in this run.
+ *
+ * Java registers three binding types and the trial chambers, the only vanilla
+ * structure with aliases at all, use all three: six `direct` bindings that
+ * always stand for the same pool, two `random` ones that draw a pool, and one
+ * `random_group` that draws a whole set of bindings. The two that draw need a
+ * random source, and without one they contribute nothing, which leaves their
+ * connections to close through the pool's fallback.
+ *
+ * @param random - The stream the draws come from. Java forks a positional one
+ *   from the world seed and the structure's position; a caller that wants the
+ *   same aliases every time for a structure passes a source seeded the same way.
  */
-export const parsePoolAliases = (definition: unknown): Map<string, string> => {
+export const parsePoolAliases = (definition: unknown, random?: RandomSource): Map<string, string> => {
     const aliases = new Map<string, string>();
     if (!Array.isArray(definition)) return aliases;
-    for (const entry of definition) {
-        if (!isRecord(entry)) continue;
+
+    const bind = (entry: unknown): void => {
+        if (!isRecord(entry)) return;
+
         const alias = entry.alias;
-        const target = entry.target;
-        if (typeof alias === 'string' && typeof target === 'string') aliases.set(alias, target);
-    }
+        if (typeof alias === 'string' && typeof entry.target === 'string') {
+            aliases.set(alias, entry.target);
+            return;
+        }
+
+        if (random === undefined) return;
+
+        if (typeof alias === 'string' && Array.isArray(entry.targets)) {
+            const target = weightedEntry(entry.targets, random);
+            if (typeof target === 'string') aliases.set(alias, target);
+            return;
+        }
+
+        if (Array.isArray(entry.groups)) {
+            const group = weightedEntry(entry.groups, random);
+            if (Array.isArray(group)) for (const nested of group) bind(nested);
+        }
+    };
+
+    for (const entry of definition) bind(entry);
     return aliases;
+};
+
+/**
+ * One entry of Java's `SimpleWeightedRandomList`, drawn by a single
+ * `nextInt(total)` over the weights.
+ */
+const weightedEntry = (entries: readonly unknown[], random: RandomSource): unknown => {
+    const weights = entries.map((entry) => (isRecord(entry) && typeof entry.weight === 'number' ? entry.weight : 1));
+    const total = weights.reduce((sum, weight) => sum + weight, 0);
+    if (total <= 0) return undefined;
+
+    let remaining = random.nextInt(total);
+    for (const [index, entry] of entries.entries()) {
+        remaining -= weights[index] ?? 0;
+        if (remaining < 0) return isRecord(entry) ? entry.data : undefined;
+    }
+    return undefined;
 };
