@@ -33,6 +33,7 @@ interface SourcesManifest {
     bedrockSamples: PinnedArchive & { tag: string; commit: string };
     javaServer: PinnedArchive & { version: string; sha1: string };
     geyserMappings: PinnedArchive & { commit: string };
+    vanillaMcdoc: PinnedArchive & { commit: string };
     cloudburstData: { repo: string; commit: string; path: string };
 }
 
@@ -73,6 +74,15 @@ export const loadSourceDescriptors = async (manifestPath: string): Promise<Sourc
             unpack: false,
             fileName: 'server.jar',
             envOverride: 'JSP_JAVA_JAR_PATH'
+        },
+        {
+            name: 'vanilla-mcdoc',
+            version: manifest.vanillaMcdoc.commit,
+            url: manifest.vanillaMcdoc.url,
+            hash: { algorithm: 'sha256', value: manifest.vanillaMcdoc.sha256 },
+            unpack: true,
+            fileName: `vanilla-mcdoc-${manifest.vanillaMcdoc.commit}.zip`,
+            envOverride: 'JSP_VANILLA_MCDOC_PATH'
         },
         {
             name: 'geyser-mappings',

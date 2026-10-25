@@ -8,8 +8,9 @@
         "`utils/fetch/fetch-sources.ts` (the `fetch:sources` script) downloads each source into",
         "`node_modules/.cache/jsprismarine/<source>/<version>/`, verifies the hash before",
         "unpacking, and skips sources whose verified content is already present. For offline",
-        "work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and",
-        "`JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the download.",
+        "work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,",
+        "`JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local copies and",
+        "bypass the download.",
         "",
         "Hashes for `bds` and `javaServer` are cross-checked against the research notes in",
         "`docs/research/bedrock-data-extraction.md` and `docs/research/java-datapacks.md`. The",
@@ -55,6 +56,19 @@
         "sha1": "33680f5f2ac32864d6d7cf5e56a705fdb3e05f4c",
         "sha256": "d052f14d7a173734fba553711e5b570162e2f2a313267ee31a21b975a679be64",
         "sizeInBytes": 62294556
+    },
+    "vanillaMcdoc": {
+        "$comment": [
+            "SpyglassMC/vanilla-mcdoc, the MIT mcdoc schema set `@spyglassmc/mcdoc` checks Java",
+            "datapack JSON against. Field-level gating with `#[since=]` and `#[until=]` carries",
+            "values up to 26.4, so the pinned 26.3 release is covered. Pinned to the main head",
+            "resolved on 2026-10-25."
+        ],
+        "repo": "SpyglassMC/vanilla-mcdoc",
+        "branch": "main",
+        "commit": "425ed21ad8cf5fceef19904e4973118c55b4d2bf",
+        "url": "https://codeload.github.com/SpyglassMC/vanilla-mcdoc/zip/425ed21ad8cf5fceef19904e4973118c55b4d2bf",
+        "sha256": "f5cba7db05a84c893178f9abeb5d2ef13e584c97d3a47bd514411f3f4eb6fffc"
     },
     "geyserMappings": {
         "$comment": [

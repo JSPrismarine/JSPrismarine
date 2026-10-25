@@ -5,8 +5,9 @@
  * manifest so a version bump shows which top-level folders changed.
  *
  * Run as `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`.
- * `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and
- * `JSP_GEYSER_MAPPINGS_PATH` point at local copies for offline work.
+ * `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,
+ * `JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH` point at local
+ * copies for offline work.
  */
 import { writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';

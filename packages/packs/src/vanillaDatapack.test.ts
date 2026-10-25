@@ -141,7 +141,7 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', () => {
             {
                 severity: 'warning',
                 code: 'definition.schema',
-                message: expect.stringMatching(/^\/type Expected .*\u201Cblock\u201D/u)
+                message: expect.stringMatching(/^\/type Expected .*block/u)
             },
             {
                 severity: 'warning',

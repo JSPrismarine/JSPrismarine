@@ -89,6 +89,35 @@ two of its three arms. Read literally, the published schemas reject 347 files of
 behavior pack, all of them valid. Read as `anyOf`, the pack validates clean and the arms stay
 checked.
 
+The Java half checks against `SpyglassMC/vanilla-mcdoc` through `@spyglassmc/mcdoc`, from
+`@jsprismarine/packs/mcdocValidator`:
+
+```typescript
+import { composeValidators, structuralValidator } from '@jsprismarine/packs';
+import { createMcdocValidator } from '@jsprismarine/packs/mcdocValidator';
+
+const validator = composeValidators(structuralValidator, await createMcdocValidator({ root: mcdocCheckout }));
+```
+
+Construction is asynchronous because binding the schema modules is; the validator it returns is
+synchronous, so `load` stays synchronous. vanilla-mcdoc gates fields by release with `#[since=]`
+and `#[until=]`, so the release decides what the checker accepts: the 26.3 vanilla datapack reports
+one finding at 26.3 and thousands at 26.1. Checking needs no network and no registry contents.
+Structure, keys, types, enums, unions, dispatch on `type` and the release gating all work from a
+local checkout; what a local run cannot answer is whether an `#[id=(registry=...)]` reference names
+something that exists, which is `reportIdentifiers`' question rather than this one's.
+
+A vanilla-mcdoc finding is a warning by default, where a bedrock-samples finding is an error. The
+asymmetry is the provenance: Mojang's schemas describe Mojang's data, while vanilla-mcdoc is a
+community reconstruction that trails Mojang's releases. At 26.3 it rejects
+`recipe/map_extending.json`, which vanilla ships with `"result": {}` where the schema wants an
+`id`, and dropping a shipped vanilla recipe over that is worse than reporting it. Pass
+`severity: 'error'` for the stricter reading.
+
+The four `@spyglassmc` packages are optional peer dependencies and `mcdocValidator` is not
+re-exported from the package index, because they pull 91 transitive packages that the eleven
+workspace packages importing the loader have no use for. Install them to use the validator.
+
 Unknown keys load anyway and are reported once per pack; `strict: true` turns an error into a
 `PackLoadError`, and a warning never fails a load.
 

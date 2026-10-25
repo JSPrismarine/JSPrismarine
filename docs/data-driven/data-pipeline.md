@@ -7,8 +7,8 @@ category: Guides
 # The data pipeline
 
 The data-driven system runs on tables generated from upstream publications: Mojang's Bedrock
-Dedicated Server zip, Mojang/bedrock-samples, the Java Edition server jar, and GeyserMC's mapping
-tables. The pipeline that turns those publications into committed goldens and generated data has
+Dedicated Server zip, Mojang/bedrock-samples, the Java Edition server jar, SpyglassMC/vanilla-mcdoc
+and GeyserMC's mapping tables. The pipeline that turns those publications into committed goldens and generated data has
 five stages, owned by `@jsprismarine/bedrock-data` (in `packages/bedrock-data/`) with the mapping
 generators in `packages/mapping/`. This page documents the stages as they exist in code today;
 [the plan](../plans/data-driven-vanilla.md) (section 6) describes where later phases extend them.
@@ -24,6 +24,8 @@ so a build is reproducible and an edition bump is an edit to this one file. The 
   vanilla packs, read for data the BDS zip stores as undocumented binary.
 - `javaServer`: the Java Edition 26.3 server jar, with Mojang's own sha1 from piston-meta plus a
   measured sha256. Its data generator emits the vanilla datapack and the reports.
+- `vanillaMcdoc`: the SpyglassMC/vanilla-mcdoc commit the Java half of the pack loader validates
+  datapack JSON against, through `@spyglassmc/mcdoc`.
 - `geyserMappings`: the GeyserMC/mappings commit the mapping tables are generated from.
 - `cloudburstData`: a cross-reference recording the CloudburstMC/Data commit the `src/resources`
   submodule pins; the submodule pointer is the authority.
@@ -42,9 +44,9 @@ the hash before unpacking, and skips sources whose verified content is already c
 writes `packages/bedrock-data/pack-hashes.json`, a sha256 per top-level folder of each source, so a
 version bump shows in review which folders actually changed.
 
-For offline work, four environment variables point the pipeline at local copies and bypass the
-download: `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and
-`JSP_GEYSER_MAPPINGS_PATH`.
+For offline work, five environment variables point the pipeline at local copies and bypass the
+download: `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH`,
+`JSP_VANILLA_MCDOC_PATH` and `JSP_GEYSER_MAPPINGS_PATH`.
 
 ## Compose
 

@@ -6,8 +6,8 @@
  * everything the terrain stack needs:
  *
  * - the Java vanilla datapack, for `density_function`, `noise`, `noise_settings`,
- *   `material_rule`, `material_condition`, `carver`, `biome`, `feature`, `placed_feature` and
- *   the block tags;
+ *   `material_rule`, `material_condition`, `carver`, `biome`, `feature`, `placed_feature`,
+ *   `processor_list`, `structure`, `structure_set`, `template_pool` and the block and biome tags;
  * - Mojang's data generator reports, for `biome_parameters`, the 7594 climate boxes the
  *   overworld's multi-noise biome source is built from. They are Java code rather than data,
  *   so the datapack's `multi_noise_biome_source_parameter_list` document names a preset and

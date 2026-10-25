@@ -6,6 +6,14 @@
  * does. Everything here is synchronous and reads only chunks in memory, because a scheduled
  * tick runs inside the world tick and must not wait for a chunk, nor pull terrain into
  * existence by flowing water at the edge of the loaded world.
+ *
+ * Two state names are the engine's own rather than the palette's, `facing_direction` and
+ * `attachment_face`, and both hold a direction word where Bedrock stores a number. A system
+ * that rewrites a block it read keeps the palette's own states and is unaffected, which
+ * covers the diodes, the torches and the observer. A system that builds a block out of those
+ * two names is not: a piston arm comes out as a state this palette does not hold and the
+ * write is declined. Giving the engine the palette's spelling belongs in
+ * `@jsprismarine/mapping`, not here.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';

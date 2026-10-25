@@ -33,7 +33,10 @@ export default mergeConfig(
                 name: pkg.name
             },
             rollupOptions: {
-                external: [...Object.keys(pkg.dependencies ?? {})]
+                // The peers are the optional `@spyglassmc` packages the
+                // mcdoc validator imports; a consumer that does not install
+                // them never loads that entry point.
+                external: [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.peerDependencies ?? {})]
             }
         },
         plugins: [
