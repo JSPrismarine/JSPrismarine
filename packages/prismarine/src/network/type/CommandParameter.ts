@@ -21,23 +21,64 @@ export enum CommandParameterTypeFlag {
  * The numbers are the `CommandArgType*` constants in gophertunnel's `protocol/command.go`.
  * They shift between releases, so a parameter is only ever written through
  * {@link CommandParameterType}, which ORs them with `CommandParameterTypeFlag.Valid`.
+ *
+ * The ids are a second copy of `BedrockParameterTypeId` in
+ * `packages/commands/src/parameterTypes.ts`, which is the verified table: it is keyed by the
+ * name Mojang's own command metadata spells, and the generator joins the two halves on that
+ * key. This package does not depend on `@jsprismarine/commands`, so the numbers are repeated
+ * here and `CommandParameter.test.ts` reads that file to prove the copies agree. The names
+ * below are the common library spelling, which is what the rest of this package reads.
  */
 export enum CommandArgumentType {
+    /** `INT`. */
     Int = 1,
+    /** `VAL`. */
     Float = 3,
+    /** `RVAL`, a value that may be relative. */
     Value = 4,
+    /** `WILDCARDINT`. */
     WildcardInt = 5,
+    /** `OPERATOR`. */
     Operator = 6,
+    /** `COMPAREOPERATOR`. */
     CompareOperator = 7,
+    /** `SELECTION`, a target selector. */
     Target = 8,
+    /** `WILDCARDSELECTION`, a target selector that accepts `*`. */
+    WildcardSelection = 10,
+    /** `PATHCOMMAND`, the file path `/function` takes. */
+    PathCommand = 17,
+    /** `FULLINTEGERRANGE`, the range `execute if score ... matches` takes. */
+    FullIntegerRange = 23,
+    /** `EQUIPMENTSLOTENUM`. */
+    EquipmentSlot = 47,
+    /** `ID`, a plain string. */
     String = 56,
+    /** `POSITION`, a block position. */
     BlockPosition = 64,
+    /** `POSITION_FLOAT`. */
     Position = 65,
+    /**
+     * An inner grammar rule, not a type Mojang's own command set uses. `MessageRoot` is the
+     * one that appears in the 1.26.50.4 metadata.
+     */
     Message = 67,
+    /** `MESSAGE_ROOT`. */
     MessageRoot = 68,
+    /** `RAWTEXT`. */
     RawText = 70,
+    /** `JSON_OBJECT`. */
     Json = 74,
-    PoiTag = 87
+    /** `BLOCK_STATE_ARRAY`, Bedrock's `stone_stairs["facing"="north"]`. */
+    BlockStateArray = 84,
+    /** `CLOCK_TIMEMARKER_NAME`. */
+    ClockTimeMarker = 86,
+    /** `POI_TAG`, new in 1.26.50. */
+    PoiTag = 87,
+    /** `POI_TYPE`, new in 1.26.50. */
+    PoiType = 88,
+    /** `CODEBUILDERARGS`, the command `/execute run` takes. */
+    CodeBuilderArgs = 92
 }
 
 /**
@@ -55,6 +96,10 @@ export const CommandParameterType = {
     Operator: CommandParameterTypeFlag.Valid | CommandArgumentType.Operator,
     CompareOperator: CommandParameterTypeFlag.Valid | CommandArgumentType.CompareOperator,
     Target: CommandParameterTypeFlag.Valid | CommandArgumentType.Target,
+    WildcardSelection: CommandParameterTypeFlag.Valid | CommandArgumentType.WildcardSelection,
+    PathCommand: CommandParameterTypeFlag.Valid | CommandArgumentType.PathCommand,
+    FullIntegerRange: CommandParameterTypeFlag.Valid | CommandArgumentType.FullIntegerRange,
+    EquipmentSlot: CommandParameterTypeFlag.Valid | CommandArgumentType.EquipmentSlot,
     String: CommandParameterTypeFlag.Valid | CommandArgumentType.String,
     BlockPosition: CommandParameterTypeFlag.Valid | CommandArgumentType.BlockPosition,
     Position: CommandParameterTypeFlag.Valid | CommandArgumentType.Position,
@@ -62,7 +107,11 @@ export const CommandParameterType = {
     MessageRoot: CommandParameterTypeFlag.Valid | CommandArgumentType.MessageRoot,
     RawText: CommandParameterTypeFlag.Valid | CommandArgumentType.RawText,
     Json: CommandParameterTypeFlag.Valid | CommandArgumentType.Json,
+    BlockStateArray: CommandParameterTypeFlag.Valid | CommandArgumentType.BlockStateArray,
+    ClockTimeMarker: CommandParameterTypeFlag.Valid | CommandArgumentType.ClockTimeMarker,
     PoiTag: CommandParameterTypeFlag.Valid | CommandArgumentType.PoiTag,
+    PoiType: CommandParameterTypeFlag.Valid | CommandArgumentType.PoiType,
+    CodeBuilderArgs: CommandParameterTypeFlag.Valid | CommandArgumentType.CodeBuilderArgs,
     Enum: CommandParameterTypeFlag.Enum
 } as const;
 
