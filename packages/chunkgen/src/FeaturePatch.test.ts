@@ -39,8 +39,13 @@ describe('the merge order', () => {
         ]);
     });
 
-    it('leaves out the chunk itself, whose writes apply as they happen', () => {
-        expect(FEATURE_PATCH_ORDER.some(([dx, dz]) => dx === 0 && dz === 0)).toBe(false);
+    it('is exactly the ring at Chebyshev distance 1, so the chunk itself is not in it', () => {
+        // Read through a widened view: the literal tuple types are narrow enough that the
+        // compiler answers this by itself, and a test the compiler answers does not run.
+        const offsets: readonly (readonly number[])[] = FEATURE_PATCH_ORDER;
+
+        expect(offsets).toHaveLength(8);
+        expect(offsets.map(([dx, dz]) => Math.max(Math.abs(dx!), Math.abs(dz!)))).toEqual(Array(8).fill(1));
     });
 });
 
