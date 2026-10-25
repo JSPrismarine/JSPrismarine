@@ -28,7 +28,13 @@ import { blockPositionOf, carryOut, refuse, resolvePlayer, unsupported, worldOf 
 /** How many of the main container's slots are the hotbar. */
 const HOTBAR_SIZE = 9;
 
-/** The armor pieces, in the order the armor container holds them. */
+/**
+ * The armor pieces, in the order the armor container holds them.
+ *
+ * The index into this list is also what `slot.armor <n>` means, which is
+ * Bedrock's other spelling of the same four: the enum carries both the named
+ * form and the indexed one, and the client sends whichever the operator typed.
+ */
 const ARMOR_SLOTS: readonly string[] = ['slot.armor.head', 'slot.armor.chest', 'slot.armor.legs', 'slot.armor.feet'];
 
 /**
@@ -137,9 +143,13 @@ export const setItemSlot = (
                     ? index < inventory.getEnderChest().getSlotCount()
                         ? { inventory: inventory.getEnderChest(), slot: index }
                         : undefined
-                    : armor >= 0
-                      ? { inventory: inventory.getArmor(), slot: armor }
-                      : undefined;
+                    : slot.name === 'slot.armor'
+                      ? index < ARMOR_SLOTS.length
+                          ? { inventory: inventory.getArmor(), slot: index }
+                          : undefined
+                      : armor >= 0
+                        ? { inventory: inventory.getArmor(), slot: armor }
+                        : undefined;
 
     if (resolved === undefined) unsupported(`a '${slot.name}' slot, which this server`);
     if (mode === 'keep' && !resolved.inventory.isEmpty(resolved.slot)) return 0;
