@@ -62,14 +62,24 @@ export default class CraftingDataPacket extends DataPacket {
      */
     public netIdOf: (recipe: Recipe) => number = (recipe) => this.recipes.indexOf(recipe) + 1;
 
+    /**
+     * The lists as plain values, which replace {@link recipes} and
+     * {@link potionMixes} when set.
+     *
+     * The content build compiles Java's recipe grammar straight into these,
+     * so there is no `Recipe` object to go through and no second place for
+     * the sorting rules to live.
+     */
+    public payload: CraftingData | null = null;
+
     /** Sorts the recipes into the payload's lists and hands them to the protocol writer. */
     public encodePayload(): void {
         const stream = new NetworkBinaryStream();
-        writeCraftingData(stream, this.payload());
+        writeCraftingData(stream, this.payload ?? this.fromRecipes());
         this.write(stream.getBuffer());
     }
 
-    private payload(): CraftingData {
+    private fromRecipes(): CraftingData {
         const shaped: CraftingData['shaped'][number][] = [];
         const shapeless: CraftingData['shapeless'][number][] = [];
         const smithingTransform: CraftingData['smithingTransform'][number][] = [];

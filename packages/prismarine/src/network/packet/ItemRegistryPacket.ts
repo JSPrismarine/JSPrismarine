@@ -1,9 +1,12 @@
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
+import { ItemData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+
+import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 /**
  * An empty network NBT compound: TAG_Compound, an empty name, TAG_End.
@@ -42,9 +45,39 @@ export default class ItemRegistryPacket extends DataPacket {
     /** Built once and kept. The table is identical for every player and every join. */
     private static cached: Buffer | null = null;
 
-    /** Writes `Item Data`, which is the same bytes for every player; see {@link getTable}. */
+    /**
+     * The entries to send, or null to send the captured table.
+     *
+     * Set from the item registry when the content build is on, which is what
+     * makes a pack's own item reachable: the captured table names the 1998
+     * items a Bedrock Dedicated Server knew and nothing else, so an item this
+     * server resolved has to travel from the registry or not at all.
+     */
+    public entries: readonly ItemRegistryEntry[] | null = null;
+
+    /** Writes `Item Data`, from {@link entries} or from the captured table. */
     public encodePayload(): void {
-        this.write(ItemRegistryPacket.getTable());
+        this.write(
+            this.entries === null ? ItemRegistryPacket.getTable() : ItemRegistryPacket.writeEntries(this.entries)
+        );
+    }
+
+    /** Writes one `ItemData` per entry, which is the layout the captured table is written in too. */
+    private static writeEntries(entries: readonly ItemRegistryEntry[]): Buffer {
+        const stream = new NetworkBinaryStream();
+
+        stream.writeUnsignedVarInt(entries.length);
+        for (const entry of entries) {
+            new ItemData(
+                entry.name,
+                entry.runtimeId,
+                entry.componentBased,
+                entry.version,
+                entry.componentData
+            ).serialize(stream);
+        }
+
+        return stream.getBuffer();
     }
 
     private static getTable(): Buffer {

@@ -28,7 +28,7 @@ const SEED_OFFSET = HEADER.length + 3 + 5 * 4;
  * The fields a server fills in. Everything else the packet writes is a fixed value, so the
  * bytes below spell those out by hand where the test pins them.
  */
-const build = (seed = 258): StartGamePacket => {
+const build = (seed = 258, prepare?: (packet: StartGamePacket) => void): StartGamePacket => {
     const packet = new StartGamePacket();
     packet.entityId = -2n;
     packet.runtimeEntityId = 7n;
@@ -50,6 +50,7 @@ const build = (seed = 258): StartGamePacket => {
     packet.scenarioIdentifier = 'scenario';
     packet.worldIdentifier = 'world-id';
     packet.gameRules = new GameRuleManager(stub<Server>());
+    prepare?.(packet);
     packet.encode();
     return packet;
 };
@@ -209,6 +210,15 @@ describe('StartGamePacket', () => {
         expect(data.blockProperties).toEqual(
             block_definitions.map((block) => ({ name: block.name, definition: block.definition }))
         );
+    });
+
+    it('declares the properties it was given instead, when the content build supplies them', () => {
+        const properties = [{ name: 'mypack:lamp', definition: Buffer.from([0x0a, 0x00, 0x00]) }];
+        const { data } = decode(build(258, (packet) => void (packet.blockProperties = properties)));
+
+        // The captured vanilla definitions are the manager path's; a content
+        // build decides the whole list, this one included.
+        expect(data.blockProperties).toEqual(properties);
     });
 
     it('fills the level settings a dedicated server fills the same way for every world', () => {

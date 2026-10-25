@@ -1,4 +1,5 @@
 import BinaryStream from '@jsprismarine/binaryutils';
+import { NetworkBinaryStream, readCreativeContent } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../../item/Item';
@@ -139,5 +140,32 @@ describe('CreativeContentPacket', () => {
             { id: 9, count: 3, meta: 7, group: 1 }
         ]);
         expect(packet.feof()).toBe(true);
+    });
+
+    it('writes the payload it was given instead, when the content build supplies one', () => {
+        // Registry entries, not `Item` objects: the content build resolves an
+        // item to a number and this is how that number reaches the client
+        // without going back through a class the build does not use.
+        const stack = { runtimeId: 5, count: 64, meta: 0, blockRuntimeId: 0, userData: Buffer.alloc(0) };
+        const packet = new CreativeContentPacket();
+        packet.groups = [{ category: CreativeItemCategory.NATURE, name: 'ignored', icon: new Item({ id: 1 }) }];
+        packet.payload = {
+            groups: [{ category: CreativeItemCategory.CONSTRUCTION, name: 'itemGroup.name.planks', icon: stack }],
+            entries: [{ item: stack, group: 0 }]
+        };
+
+        // Read with the protocol package's own reader rather than through
+        // `Item`, because the payload never passed through one on the way out.
+        const stream = new NetworkBinaryStream(encode(packet));
+        stream.readUnsignedVarInt(); // Header.
+        const read = readCreativeContent(stream);
+
+        expect(read.groups.map(({ category, name }) => ({ category, name }))).toEqual([
+            { category: CreativeItemCategory.CONSTRUCTION, name: 'itemGroup.name.planks' }
+        ]);
+        expect(read.entries.map(({ item, group }) => ({ id: item.runtimeId, count: item.count, group }))).toEqual([
+            { id: 5, count: 64, group: 0 }
+        ]);
+        expect(stream.feof()).toBe(true);
     });
 });

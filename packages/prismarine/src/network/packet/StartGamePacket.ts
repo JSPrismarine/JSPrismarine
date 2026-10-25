@@ -10,6 +10,8 @@ import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
+import type { BlockProperty } from '@jsprismarine/protocol';
+
 /**
  * Tells a joining client who it is, where it is, and what world it is in.
  *
@@ -102,6 +104,17 @@ export default class StartGamePacket extends DataPacket {
     public worldSpawnPos!: Vector3;
 
     public gameRules!: GameRuleManager;
+
+    /**
+     * `Block Properties`, or null to send the captured vanilla definitions
+     * plus whatever schemas plugins registered.
+     *
+     * Set from the content registries when the content build is on, which is
+     * the only way a block that build invented reaches the client: with
+     * hashed runtime ids a block the client was never told about has a
+     * number it cannot resolve.
+     */
+    public blockProperties: readonly BlockProperty[] | null = null;
 
     public encodePayload(): void {
         this.writeVarLong(this.entityId); // Entity ID
@@ -224,22 +237,13 @@ export default class StartGamePacket extends DataPacket {
         // and slabs, the concrete slabs), which go out as a Bedrock Dedicated Server sends
         // them. Other vanilla blocks are left out on purpose: the client has them, and with
         // hashed runtime ids nothing depends on the order or size of this list.
-        const customBlocks = BlockStateSchemas.getCustomSchemas();
-        this.writeUnsignedVarInt(block_definitions.length + customBlocks.length);
-        for (const block of block_definitions) {
-            NetworkUtil.writeString(this, block.name); // Block Name
-            this.write(block.definition); // Block Definition
-        }
-        for (const schema of customBlocks) {
-            NetworkUtil.writeString(this, schema.name);
-
-            // Network NBT, with varint lengths. This is not the encoding the runtime id is
-            // hashed from; the other one puts bytes on the wire the client cannot parse.
-            const stream = new BinaryStream();
-            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
-            writer.setUseVarint(true);
-            writer.writeCompound(schema.getDefaultState().toNBT(schema.getPropertyTypes()));
-            this.write(stream.getBuffer());
+        if (this.blockProperties === null) this.writeManagerBlockProperties();
+        else {
+            this.writeUnsignedVarInt(this.blockProperties.length);
+            for (const block of this.blockProperties) {
+                NetworkUtil.writeString(this, block.name); // Block Name
+                this.write(block.definition); // Block Definition
+            }
         }
 
         // The item table is not part of this packet since 1.21.60; `ItemRegistryPacket`
@@ -288,5 +292,32 @@ export default class StartGamePacket extends DataPacket {
         NetworkUtil.writeString(this, this.scenarioIdentifier); // Scenario Id
         NetworkUtil.writeString(this, this.worldIdentifier); // World Id
         NetworkUtil.writeString(this, ''); // Owner Id
+    }
+
+    /**
+     * `Block Properties` from the managers, which is what a server with the
+     * content build off sends: the captured vanilla data-driven definitions,
+     * then every schema a plugin registered through `BlockStateSchemas`.
+     */
+    private writeManagerBlockProperties(): void {
+        const customBlocks = BlockStateSchemas.getCustomSchemas();
+
+        this.writeUnsignedVarInt(block_definitions.length + customBlocks.length);
+        for (const block of block_definitions) {
+            NetworkUtil.writeString(this, block.name); // Block Name
+            this.write(block.definition); // Block Definition
+        }
+
+        for (const schema of customBlocks) {
+            NetworkUtil.writeString(this, schema.name);
+
+            // Network NBT, with varint lengths. This is not the encoding the runtime id is
+            // hashed from; the other one puts bytes on the wire the client cannot parse.
+            const stream = new BinaryStream();
+            const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+            writer.setUseVarint(true);
+            writer.writeCompound(schema.getDefaultState().toNBT(schema.getPropertyTypes()));
+            this.write(stream.getBuffer());
+        }
     }
 }
