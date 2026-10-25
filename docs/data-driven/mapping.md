@@ -74,6 +74,26 @@ the inverse names the Java biome that is not on the loss list, so `minecraft:the
 as `minecraft:the_end` rather than as `minecraft:end_barrens`. Going the other way, 27 of
 Bedrock's 89 biomes have no Java source at all; see `BEDROCK_BIOME_LOSSES` below.
 
+## Block states
+
+A block's states need translating too, and the correspondence is per block rather than per state
+name. `bedrockBlockStates(name, states)` and `javaBlockStates(name, states)` do a whole record each
+way:
+
+```ts
+bedrockBlockStates('minecraft:piston', { facing_direction: 'north', extended_bit: true });
+// { facing_direction: 3 }
+bedrockBlockStates('minecraft:dropper', { facing_direction: 'north' });
+// { facing_direction: 2 }
+```
+
+A dropper's `facing_direction` calls north 2 and a piston's calls it 3, because Bedrock's piston
+points the other way; a redstone torch spells north `south`, and a door spells it `east`. The write
+direction also drops the states a Bedrock block does not carry, which is where Java's piston
+`extended` goes. The 27 `(block, state)` pairs that have no word vocabulary at all, because Bedrock
+folds two Java properties into one state or packs several booleans into one number, are
+`BLOCK_STATE_LOSSES` and travel as the Bedrock value untouched.
+
 ## Handling the result variants
 
 Every lookup returns a discriminated union on `kind`, with four variants. Handle each:
@@ -107,7 +127,8 @@ exist in the pinned Java version at all.
 ## Reading the loss list
 
 The reviewed losses are exported alongside the functions: `BLOCK_LOSSES`, `ITEM_LOSSES`,
-`ENTITY_LOSSES`, `REGISTRY_LOSSES`, and `BEDROCK_BIOME_LOSSES` for the inverse direction, plus the
+`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES` for the inverse direction, and
+`BLOCK_STATE_LOSSES` for the state vocabularies, plus the
 merge lists (`BLOCK_MERGES`, `ITEM_MERGES`, `ENTITY_MERGES`) and the dropped-property lists
 (`DROPPED_BLOCK_PROPERTIES`, `PARTIAL_BLOCK_PROPERTY_COLLAPSES`). A loss entry names the Java
 identifier, the Bedrock fallback, a reason, and a reference:
@@ -172,10 +193,11 @@ generator refuses to emit when any Java identifier has neither a mapping nor a l
 any produced Bedrock state is missing from the pinned palette, so a version bump that introduces a
 new loss forces you to review and list it.
 
-The per-state block property table (`bedrockBlockPropertiesOf`) regenerates separately, from
-committed inputs only:
+The state vocabularies and the per-state block property table regenerate separately, from committed
+inputs only:
 
 ```sh
+pnpm --filter @jsprismarine/mapping run generate:block-states
 pnpm --filter @jsprismarine/mapping run generate:block-properties
 ```
 
