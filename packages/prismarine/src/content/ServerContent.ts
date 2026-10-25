@@ -40,6 +40,7 @@ import type { ContentOptions } from './ContentOptions';
 import { resolvePackStack } from './packStack';
 import { buildContentTags } from './tags';
 import type { ContentTags } from './tags';
+import { checkIdentifiers } from './unmappedIdentifiers';
 import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
@@ -151,6 +152,9 @@ const registryOf = (name: string, definitions: ReadonlyMap<string, Definition>):
  *
  * @throws {import('@jsprismarine/packs').PackLoadError} In strict mode, when
  *   the pack stack reports an error.
+ * @throws {import('./unmappedIdentifiers').UnmappedIdentifierError} In strict
+ *   mode, when a Java identifier the stack references has no Bedrock mapping
+ *   and no reviewed loss entry.
  * @throws {import('@jsprismarine/blocks').BlockLoadError} In strict mode,
  *   when a block definition does not resolve.
  */
@@ -164,6 +168,11 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     const loaded = (options.load ?? loadPacks)(resolved.stack, { strict });
     diagnostics.push(...loaded.diagnostics);
     const definitions = loaded.definitions;
+
+    // Plan section 5's rule: a Java identifier with no Bedrock mapping and no
+    // reviewed loss stops a strict build here, before any domain resolves
+    // around the hole it would leave.
+    diagnostics.push(...checkIdentifiers(definitions, { strict, resolver: options.identifiers }));
 
     // The world views read the built content, and the behavior families read the world, so the
     // two are tied together before either exists. `built` closes the loop: nothing dereferences
