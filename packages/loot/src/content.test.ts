@@ -25,7 +25,7 @@ const rollModified = (
     name: string,
     modifier: unknown,
     content: LootContentOptions = {},
-    parameters: Parameters<typeof createLootContext>[0]['parameters'] = { origin: { x: 0, y: 64, z: 0 } }
+    parameters: NonNullable<Parameters<typeof createLootContext>[0]>['parameters'] = { origin: { x: 0, y: 64, z: 0 } }
 ): { readonly stacks: readonly ItemStack[]; readonly diagnostics: readonly unknown[] } => {
     const parsed = parseLootTable({
         type: 'minecraft:chest',
