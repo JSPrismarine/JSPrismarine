@@ -182,7 +182,12 @@ export default class NBTWriter {
                 }
             }
         } else {
-            this.writeByteValue(NBTDefinitions.TAG_BYTE);
+            // A list with no elements has no element type, and a Bedrock Dedicated Server says
+            // so with TAG_END. Writing TAG_BYTE instead is what kept `minecraft:red_shrub` -
+            // the one captured block definition with an empty list in it - from matching the
+            // capture byte for byte. The reader takes either form, so worlds written with the
+            // old byte still load.
+            this.writeByteValue(NBTDefinitions.TAG_END);
             this.writeIntegerValue(0);
         }
     }

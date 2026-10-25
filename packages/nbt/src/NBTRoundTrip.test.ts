@@ -239,6 +239,46 @@ describe('nbt', () => {
             );
         });
 
+        it('types an empty list TAG_End, the way a Bedrock server does', () => {
+            // The element type of a list with no elements. A Bedrock Dedicated Server writes
+            // TAG_End; this writer used to write TAG_Byte, which is the only byte of
+            // disagreement across the 98 block definitions captured from a real 1.26.51.1
+            // server - `minecraft:red_shrub` turns its collision box off with no boxes in it.
+            const root = new NBTTagCompound('');
+            root.addValue('n', new Set());
+
+            expect(write(root, ByteOrder.LITTLE_ENDIAN, false)).toEqual(
+                Buffer.from([
+                    0x0a,
+                    0x00,
+                    0x00, // TAG_Compound, name length 0
+                    0x09,
+                    0x01,
+                    0x00,
+                    0x6e, // TAG_List, name length 1, 'n'
+                    0x00, // element type TAG_End
+                    0x00,
+                    0x00,
+                    0x00,
+                    0x00, // length 0
+                    0x00 // TAG_End
+                ])
+            );
+        });
+
+        it('reads back an empty list that was typed TAG_Byte', () => {
+            // Worlds this server has already written carry empty lists typed TAG_Byte, so the
+            // reader has to keep taking that form as well as the TAG_End one.
+            const typedByte = Buffer.from([
+                0x0a, 0x00, 0x00, 0x09, 0x01, 0x00, 0x6e, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00
+            ]);
+
+            const { root: parsed, unread } = read(typedByte, ByteOrder.LITTLE_ENDIAN, false);
+
+            expect(unread).toBe(0);
+            expect(parsed.getList('n', false)?.size).toBe(0);
+        });
+
         it('rejects a truncated payload rather than reading past the end', () => {
             const complete = write(
                 (() => {
