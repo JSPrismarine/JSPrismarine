@@ -19,6 +19,8 @@ import type {
 import { damagerSubjects, defaultRandom, isPlayerView } from './filterContext';
 import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
+import type { JavaStatSource } from './javaStats';
+import { javaAttributeBases } from './javaStats';
 import type { EntityAction, EventTarget } from './events';
 import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
@@ -96,6 +98,13 @@ export interface EntityEnvironment {
     transform?(entity: EntityInstance, request: TransformRequest): void;
     /** Receives everything the runtime met and did not carry out. */
     report?(message: string, entity: EntityInstance): void;
+    /**
+     * Java Edition's entity stats, which decide the four attributes a Bedrock
+     * client never simulates. Leaving it out runs the pack's own numbers.
+     *
+     * @see {@link SHARED_STATS} for which stat each edition decides.
+     */
+    javaStats?: JavaStatSource;
 }
 
 /** Options for one {@link EntityInstance}. */
@@ -135,7 +144,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         const type = holder.value();
         const environment = options.environment ?? {};
         super(holder, {
-            attributes: new Attributes(),
+            attributes: new Attributes(javaAttributeBases(type.identifier, environment.javaStats)),
             properties: new PropertyValues(type.entity.description.properties, (definition, source) =>
                 environment.propertyDefault?.(source, definition)
             ),
