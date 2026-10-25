@@ -95,7 +95,10 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name })
             }),
             getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} })
+            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
+            // No content, which is `content-packs` off: no block family gets `onBreak` and the
+            // block itself says what it drops, which is the path these tests are about.
+            getContent: () => undefined
         }
     });
 

@@ -89,7 +89,10 @@ const fakeWorld = (initial: BlockState) => {
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name })
             }),
             getConfig: () => ({ getProximityBroadcast: () => true }),
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} })
+            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
+            // No content, which is `content-packs` off: the break takes the path this server
+            // has always had, and the block itself says what it drops.
+            getContent: () => undefined
         }
     });
 
