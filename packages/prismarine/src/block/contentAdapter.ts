@@ -99,6 +99,12 @@ const hooksOf = (content: ContentLookup, identifier: string, states: Readonly<Re
  * documented to run with the new state already readable, and notifies the
  * neighbors afterwards so a behavior that writes its own state during
  * `onPlace` has done so before anything reads it back.
+ *
+ * A write that leaves the same block standing raises `onBlockStateChange`
+ * instead of `onPlace`, once per state value that moved. That is what the two
+ * hooks are documented to mean, and it is also what makes the write
+ * terminate: a door opens by rewriting its own `open_bit`, so `onPlace` would
+ * call the family that is calling it.
  */
 export const createContentBlockGroup = (options: ContentBlockGroupOptions): ContentBlockGroup => {
     const { storage, blockEntities, content } = options;
@@ -145,17 +151,32 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
             const previous = hookBlockAt(storage, dimension, at);
             storage.write(at, block);
 
-            hooksOf(content, block.identifier, block.states)?.dispatch('onPlace', {
-                block: { identifier: block.identifier, position: at, dimension, states: block.states },
-                previous,
-                // A write through the adapter is a placement the world itself
-                // performed; the three fields a player's placement carries have
-                // no value here and the hook declares all three optional.
-                placedBy: undefined,
-                itemStack: undefined,
-                face: undefined,
-                faceLocation: undefined
-            });
+            const placed: HookBlock = { identifier: block.identifier, position: at, dimension, states: block.states };
+            const hooks = hooksOf(content, block.identifier, block.states);
+
+            if (previous?.identifier === block.identifier) {
+                // The same block in a different state, which is a door opening or a crop
+                // growing rather than a block arriving. `onPlace` would be the wrong hook
+                // and it would not terminate: every family that writes its own state writes
+                // it from inside `onPlace`.
+                for (const [state, newValue] of Object.entries(block.states)) {
+                    const previousValue = previous.states[state];
+                    if (previousValue === newValue || previousValue === undefined) continue;
+                    hooks?.dispatch('onBlockStateChange', { block: placed, state, previousValue, newValue });
+                }
+            } else {
+                hooks?.dispatch('onPlace', {
+                    block: placed,
+                    previous,
+                    // A write through the adapter is a placement the world itself
+                    // performed; the three fields a player's placement carries have
+                    // no value here and the hook declares all three optional.
+                    placedBy: undefined,
+                    itemStack: undefined,
+                    face: undefined,
+                    faceLocation: undefined
+                });
+            }
 
             if (withNeighbors) notifyNeighbors(at);
         },
