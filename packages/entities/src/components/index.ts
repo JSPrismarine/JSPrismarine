@@ -5,6 +5,7 @@ import type { EntityComponentRegistry } from '../entityType';
 import type { EntityHooks } from '../hooks';
 import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
+import { TRIGGER_COMPONENTS } from '../triggers';
 import { dataComponent } from './schemas';
 import {
     attack,
@@ -34,25 +35,6 @@ import {
 
 export * from './schemas';
 export * from './vanilla';
-
-/**
- * The ten `minecraft:on_*` trigger components. The engine fires them at fixed
- * points; this package parses them so the later agent that adds targeting,
- * combat and flight has them ready.
- */
-export const TRIGGER_COMPONENTS: readonly string[] = [
-    'minecraft:on_death',
-    'minecraft:on_equipment_changed',
-    'minecraft:on_friendly_anger',
-    'minecraft:on_hurt',
-    'minecraft:on_hurt_by_player',
-    'minecraft:on_ignite',
-    'minecraft:on_start_landing',
-    'minecraft:on_start_takeoff',
-    'minecraft:on_target_acquired',
-    'minecraft:on_target_escape',
-    'minecraft:on_wake_with_owner'
-];
 
 /** The navigation flavors vanilla uses. */
 const NAVIGATION_KINDS = ['walk', 'generic', 'float', 'hover', 'climb', 'fly', 'swim'] as const;

@@ -236,3 +236,9 @@ export interface FilterContext {
     readonly world?: FilterWorldView;
     readonly random?: RandomSource;
 }
+
+/**
+ * The subjects of a context other than `self`, which an entity always answers
+ * for itself. A fixed point such as a damage event supplies the ones it knows.
+ */
+export type FilterSubjects = Omit<FilterContext, 'self' | 'random'>;

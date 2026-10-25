@@ -1,4 +1,6 @@
 import type { EntityInstance } from './entityInstance';
+import type { EventTarget, VibrationKind } from './events';
+import type { FilterEntityView } from './filterContext';
 
 /**
  * The hook map `@jsprismarine/content` dispatches for this domain, and the
@@ -39,12 +41,43 @@ export interface EntityActuator {
     nearestPlayer(maxDistance: number): EntityPosition | undefined;
 }
 
+/**
+ * What an event action asks of the world outside this package.
+ *
+ * Three of the nine actions need nothing here: `set_home_position` and
+ * `stop_movement` go through {@link EntityActuator}, and `reset_target` moves
+ * state the entity owns. The six below leave the package, and an action whose
+ * member a caller leaves out is reported rather than silently dropped.
+ */
+export interface EntityEffects {
+    /** Plays a sound at the entity; the name is the pack's own, such as `saddle`. */
+    playSound?(entity: EntityInstance, sound: string): void;
+    emitParticle?(entity: EntityInstance, particle: string): void;
+    /** Emits a game-event vibration sculk sensors and wardens listen for. */
+    emitVibration?(entity: EntityInstance, vibration: VibrationKind): void;
+    /**
+     * Runs one command with the named subject as its executor.
+     *
+     * @param target - Whom the command runs as, `self` when the body names none.
+     */
+    queueCommand?(entity: EntityInstance, command: string, target: EventTarget): void;
+    /** Drops what the entity carries in one slot, such as `slot.weapon.mainhand`. */
+    dropItem?(entity: EntityInstance, slot: string): void;
+    /** Fires a block event on the block at the entity's home position. */
+    executeEventOnBlock?(entity: EntityInstance, position: EntityPosition, event: string): void;
+}
+
 /** One incoming damage event, as `minecraft:damage_sensor` and the hurt triggers read it. */
 export interface DamageEvent {
     /** The damage cause, such as `fall` or `entity_attack`. */
     readonly cause: string;
     /** The damage before any component changes it. */
     readonly amount: number;
+    /**
+     * Who dealt the damage, which the `damager` and `other` filter subjects
+     * read and `minecraft:on_hurt_by_player` tests for the player family.
+     */
+    readonly damager?: FilterEntityView;
 }
 
 /** What a damage hook decides about one damage event. */

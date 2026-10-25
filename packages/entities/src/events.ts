@@ -250,7 +250,7 @@ export const parseEntityAction = (key: string, body: unknown, report: EventRepor
                 (command): command is string => typeof command === 'string'
             );
             if (commands.length === 0) return missing(key, 'command', report);
-            return { name: 'queue_command', commands, target: parseTarget(bodyTarget(body), report) };
+            return { name: 'queue_command', commands, target: parseEventTarget(bodyTarget(body), report) };
         }
         case 'set_home_position':
             return { name: 'set_home_position' };
@@ -340,14 +340,19 @@ const parseTriggers = (value: unknown, report: EventReport): readonly EventTrigg
         }
         entries.push({
             event: entry.event,
-            target: parseTarget(entry.target, report),
+            target: parseEventTarget(entry.target, report),
             filters: parseNodeFilter(entry.filters, report)
         });
     }
     return entries;
 };
 
-const parseTarget = (value: unknown, report: EventReport): EventTarget => {
+/**
+ * Reads a `target` key, which every shape that names one spells the same way.
+ *
+ * @returns The named target, or `self` when the key is absent or unknown.
+ */
+export const parseEventTarget = (value: unknown, report: EventReport): EventTarget => {
     if (value === undefined) return 'self';
     const target = EVENT_TARGETS.find((name) => name === value);
     if (target !== undefined) return target;
@@ -385,15 +390,18 @@ export const isEmptyEventNode = (node: EventNode): boolean =>
     node.firstValid.length === 0 &&
     node.actions.length === 0;
 
-/** Every action key a node tree asks for, which is what the coverage report counts. */
-export const eventActionNames = (node: EventNode): readonly string[] => {
-    const names: string[] = [];
+/** Every action a node tree asks for, however deeply nested, in tree order. */
+export const eventActions = (node: EventNode): readonly EventAction[] => {
+    const found: EventAction[] = [];
     const walk = (current: EventNode): void => {
-        for (const action of current.actions) names.push(action.name);
+        found.push(...current.actions);
         for (const child of current.sequence) walk(child);
         for (const child of current.randomize) walk(child.node);
         for (const child of current.firstValid) walk(child);
     };
     walk(node);
-    return names;
+    return found;
 };
+
+/** Every action key a node tree asks for, which is what the version gate checks. */
+export const eventActionNames = (node: EventNode): readonly string[] => eventActions(node).map((action) => action.name);
