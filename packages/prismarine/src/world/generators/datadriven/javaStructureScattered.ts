@@ -165,6 +165,38 @@ const chunkCenter = (chunkX: number, chunkZ: number): { x: number; z: number } =
     z: chunkZ * 16 + 8
 });
 
+/**
+ * The shape every scattered structure shares: a generation point on top of the chunk's middle,
+ * and one piece turned a drawn quarter turn and settled onto the terrain under it.
+ *
+ * Java's `SinglePieceStructure.findGenerationPoint` reads the one column the generation point
+ * sits on and hands the piece itself to `onTopOfChunkCenter` as a consumer, so the facing draw
+ * and the settling happen behind the biome check. Settling is the expensive half: it averages
+ * the terrain over the piece's whole footprint, which for a desert pyramid is 441 columns
+ * against the generation point's one.
+ */
+const scatteredLayout = (
+    context: StructureBuildContext,
+    heightmap: 'WORLD_SURFACE_WG' | 'OCEAN_FLOOR_WG',
+    assemble: () => readonly StructurePiece[]
+): StructureLayout => {
+    const center = chunkCenter(context.chunkX, context.chunkZ);
+    return {
+        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, heightmap), z: center.z },
+        pieces: assemble
+    };
+};
+
+/** One scattered piece, turned a drawn quarter turn and settled onto the terrain under it. */
+const settledScatteredPiece = <T>(
+    context: StructureBuildContext,
+    extent: { readonly width: number; readonly height: number; readonly depth: number },
+    construct: (box: BoundingBox, facing: PieceFacing) => T
+): readonly T[] => {
+    const facing = randomHorizontal(context.random);
+    return [construct(settledScatteredBox(context, facing, extent.width, extent.height, extent.depth), facing)];
+};
+
 /** A block state, spelled the way Java's `defaultBlockState` with explicit values would be. */
 const block = (name: string, properties: Readonly<Record<string, string>> = {}): BlockState => ({ name, properties });
 
@@ -447,16 +479,10 @@ class DesertPyramidPiece extends ScatteredPiece {
 }
 
 /** Lays out a desert pyramid: one piece, turned, settled onto the sand. */
-export const buildDesertPyramid: StructureBuilder = (context): StructureLayout | undefined => {
-    const facing = randomHorizontal(context.random);
-    const box = settledScatteredBox(context, facing, DESERT_PYRAMID.width, DESERT_PYRAMID.height, DESERT_PYRAMID.depth);
-    const center = chunkCenter(context.chunkX, context.chunkZ);
-
-    return {
-        pieces: [new DesertPyramidPiece(box, facing)],
-        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, 'WORLD_SURFACE_WG'), z: center.z }
-    };
-};
+export const buildDesertPyramid: StructureBuilder = (context): StructureLayout | undefined =>
+    scatteredLayout(context, 'WORLD_SURFACE_WG', () =>
+        settledScatteredPiece(context, DESERT_PYRAMID, (box, facing) => new DesertPyramidPiece(box, facing))
+    );
 
 // ---------------------------------------------------------------------------
 // Jungle temple
@@ -621,16 +647,10 @@ class JungleTemplePiece extends ScatteredPiece {
 }
 
 /** Lays out a jungle temple: one piece, turned, settled onto the jungle floor. */
-export const buildJungleTemple: StructureBuilder = (context): StructureLayout | undefined => {
-    const facing = randomHorizontal(context.random);
-    const box = settledScatteredBox(context, facing, JUNGLE_TEMPLE.width, JUNGLE_TEMPLE.height, JUNGLE_TEMPLE.depth);
-    const center = chunkCenter(context.chunkX, context.chunkZ);
-
-    return {
-        pieces: [new JungleTemplePiece(box, facing)],
-        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, 'WORLD_SURFACE_WG'), z: center.z }
-    };
-};
+export const buildJungleTemple: StructureBuilder = (context): StructureLayout | undefined =>
+    scatteredLayout(context, 'WORLD_SURFACE_WG', () =>
+        settledScatteredPiece(context, JUNGLE_TEMPLE, (box, facing) => new JungleTemplePiece(box, facing))
+    );
 
 // ---------------------------------------------------------------------------
 // Swamp hut
@@ -708,16 +728,10 @@ class SwampHutPiece extends ScatteredPiece {
 }
 
 /** Lays out a swamp hut: one piece on stilts, turned, settled onto the swamp. */
-export const buildSwampHut: StructureBuilder = (context): StructureLayout | undefined => {
-    const facing = randomHorizontal(context.random);
-    const box = settledScatteredBox(context, facing, SWAMP_HUT.width, SWAMP_HUT.height, SWAMP_HUT.depth);
-    const center = chunkCenter(context.chunkX, context.chunkZ);
-
-    return {
-        pieces: [new SwampHutPiece(box, facing)],
-        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, 'WORLD_SURFACE_WG'), z: center.z }
-    };
-};
+export const buildSwampHut: StructureBuilder = (context): StructureLayout | undefined =>
+    scatteredLayout(context, 'WORLD_SURFACE_WG', () =>
+        settledScatteredPiece(context, SWAMP_HUT, (box, facing) => new SwampHutPiece(box, facing))
+    );
 
 // ---------------------------------------------------------------------------
 // Buried treasure
@@ -801,15 +815,13 @@ class BuriedTreasurePiece implements StructurePiece {
  * comment gives. The piece's box is therefore the chest's own block rather than Java's marker
  * at y 90.
  */
-export const buildBuriedTreasure: StructureBuilder = (context): StructureLayout | undefined => {
-    const x = context.chunkX * 16 + BURIED_TREASURE_OFFSET;
-    const z = context.chunkZ * 16 + BURIED_TREASURE_OFFSET;
-    const y = buriedTreasureDepth(context.level, x, z);
-    if (y === undefined) return undefined;
+export const buildBuriedTreasure: StructureBuilder = (context): StructureLayout | undefined =>
+    scatteredLayout(context, 'OCEAN_FLOOR_WG', () => {
+        const x = context.chunkX * 16 + BURIED_TREASURE_OFFSET;
+        const z = context.chunkZ * 16 + BURIED_TREASURE_OFFSET;
+        const y = buriedTreasureDepth(context.level, x, z);
 
-    const center = chunkCenter(context.chunkX, context.chunkZ);
-    return {
-        pieces: [new BuriedTreasurePiece(x, y, z)],
-        origin: { x: center.x, y: context.level.baseHeight(center.x, center.z, 'OCEAN_FLOOR_WG'), z: center.z }
-    };
-};
+        // A column with no sea floor to bury the chest under holds no treasure, which the empty
+        // piece list reports the same way Java's `StructureStart.isValid` does.
+        return y === undefined ? [] : [new BuriedTreasurePiece(x, y, z)];
+    });

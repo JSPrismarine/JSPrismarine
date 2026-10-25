@@ -1266,9 +1266,12 @@ export const buildWoodlandMansion: StructureBuilder = (context): StructureLayout
     const y = lowestCornerHeight(context.level, x, z, rotation);
     if (y < LOWEST_SURFACE) return undefined;
 
-    const plan = new MansionGrid(context.random);
-    const named = new MansionPlacer(context.random).createMansion({ x, y, z }, rotation, plan);
-    const pieces = named.flatMap((part) => templatePieceOf(part, context));
-
-    return pieces.length === 0 ? undefined : { pieces, origin: { x, y, z } };
+    return {
+        origin: { x, y, z },
+        pieces: () => {
+            const plan = new MansionGrid(context.random);
+            const named = new MansionPlacer(context.random).createMansion({ x, y, z }, rotation, plan);
+            return named.flatMap((part) => templatePieceOf(part, context));
+        }
+    };
 };

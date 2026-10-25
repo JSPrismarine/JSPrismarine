@@ -190,8 +190,23 @@ const contextOf = (store: StructureTemplateStore, seed: number, level = levelOf(
     pool: () => undefined
 });
 
+/** One mansion laid out, with its deferred pieces assembled once. */
+interface Mansion {
+    readonly origin: StructureLayout['origin'];
+    readonly pieces: readonly StructurePiece[];
+}
+
+/**
+ * A layout with its deferred pieces assembled.
+ *
+ * Assembling draws from the context's stream, so every case here assembles once and reads the
+ * result, the way `StructureStartSource` does after the biome check.
+ */
+const laidOut = (layout: StructureLayout | undefined): Mansion | undefined =>
+    layout === undefined ? undefined : { origin: layout.origin, pieces: layout.pieces() };
+
 /** Lays a mansion out and reports the template each of its pieces names, in piece order. */
-const namesOf = (layout: StructureLayout, recorder: Recorder): string[] => {
+const namesOf = (layout: Mansion, recorder: Recorder): string[] => {
     const written = writerOf(levelOf());
     return layout.pieces.map((piece) => {
         recorder.prepared.length = 0;
@@ -202,12 +217,13 @@ const namesOf = (layout: StructureLayout, recorder: Recorder): string[] => {
 };
 
 /** Lays a mansion out with the fake templates, failing the test when the site is refused. */
-const mansionAt = (seed: number, marker?: string): { layout: StructureLayout; names: string[] } => {
+const mansionAt = (seed: number, marker?: string): { layout: Mansion; names: string[] } => {
     const recorder = recorderOf(sourceOf(marker));
-    const layout = buildWoodlandMansion(contextOf(recorder.store, seed));
+    const built = buildWoodlandMansion(contextOf(recorder.store, seed));
 
-    expect(layout, `seed ${seed} laid out no mansion`).toBeDefined();
-    return { layout: layout!, names: namesOf(layout!, recorder) };
+    expect(built, `seed ${seed} laid out no mansion`).toBeDefined();
+    const layout: Mansion = { origin: built!.origin, pieces: built!.pieces() };
+    return { layout, names: namesOf(layout, recorder) };
 };
 
 const overlap = (left: BoundingBox, right: BoundingBox): boolean =>
@@ -219,7 +235,7 @@ const overlap = (left: BoundingBox, right: BoundingBox): boolean =>
     left.maxZ >= right.minZ;
 
 /** The room pieces of a layout, grouped by the floor they stand on. */
-const roomsByFloor = (layout: StructureLayout, names: readonly string[]): Map<number, StructurePiece[]> => {
+const roomsByFloor = (layout: Mansion, names: readonly string[]): Map<number, StructurePiece[]> => {
     const floors = new Map<number, StructurePiece[]>();
     for (const [index, piece] of layout.pieces.entries()) {
         if (!/\/(?:1x1|1x2|2x2)_/.test(names[index] ?? '')) continue;
@@ -259,7 +275,7 @@ describe('buildWoodlandMansion', () => {
 
         for (const seed of SPREAD_SEEDS) {
             const recorder = recorderOf(sourceOf());
-            const layout = buildWoodlandMansion(contextOf(recorder.store, seed))!;
+            const layout = laidOut(buildWoodlandMansion(contextOf(recorder.store, seed)))!;
             const written = writerOf(levelOf());
             recorder.prepared.length = 0;
             layout.pieces[0]!.place(written.writer, createLegacyRandom(7));
@@ -330,7 +346,7 @@ describe('buildWoodlandMansion', () => {
 
     it('gives every chest the mansion loot table and the facing its marker names', () => {
         const recorder = recorderOf(sourceOf('ChestEast'));
-        const layout = buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED))!;
+        const layout = laidOut(buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED)))!;
         const written = writerOf(levelOf());
         for (const piece of layout.pieces) piece.place(written.writer, createLegacyRandom(7));
 
@@ -350,7 +366,7 @@ describe('buildWoodlandMansion', () => {
 
     it('stands an illager on the spot its marker names', () => {
         const recorder = recorderOf(sourceOf('Warrior'));
-        const layout = buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED))!;
+        const layout = laidOut(buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED)))!;
         const written = writerOf(levelOf());
         for (const piece of layout.pieces) piece.place(written.writer, createLegacyRandom(7));
 
@@ -360,7 +376,7 @@ describe('buildWoodlandMansion', () => {
 
     it('spawns one to three allays for a flock marker', () => {
         const recorder = recorderOf(sourceOf('Group of Allays'));
-        const layout = buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED))!;
+        const layout = laidOut(buildWoodlandMansion(contextOf(recorder.store, THREE_FLOOR_SEED)))!;
         const written = writerOf(levelOf());
         for (const piece of layout.pieces) piece.place(written.writer, createLegacyRandom(7));
 
@@ -392,7 +408,7 @@ describe.skipIf(process.env.JSP_WORLDGEN_VANILLA !== '1')('the mansion against t
 
     it('composes the real templates into one building of the size a mansion has', () => {
         const store = createStructureTemplateStore(findJavaTemplateSource(cacheRoot(), new Map()));
-        const layout = buildWoodlandMansion(contextOf(store, THREE_FLOOR_SEED))!;
+        const layout = laidOut(buildWoodlandMansion(contextOf(store, THREE_FLOOR_SEED)))!;
         const box = unionOf(layout.pieces);
 
         expect(layout.pieces.length).toBeGreaterThan(100);

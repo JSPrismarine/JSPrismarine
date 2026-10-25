@@ -96,44 +96,50 @@ const SHIPWRECK_CHESTS: Readonly<Record<string, string>> = {
 export const buildShipwreck: StructureBuilder = (context): StructureLayout | undefined => {
     const beached = context.definition.is_beached === true;
     const heightmap = beached ? 'WORLD_SURFACE_WG' : 'OCEAN_FLOOR_WG';
-    const rotation = rotationOf(context.random.nextInt(4));
-    const template = `minecraft:shipwreck/${randomOf(beached ? BEACHED_SHIPWRECKS : OCEAN_SHIPWRECKS, context.random)}`;
-
-    const placement: Placement = { rotation };
-    const size = context.templates.size(template, placement);
-    if (size === undefined) return undefined;
-
-    const corner = pivotedCorner(
-        [context.chunkX * 16, 0, context.chunkZ * 16],
-        context.templates.template(template)!.size,
-        placement,
-        SHIPWRECK_PIVOT
-    );
-
-    // Java averages the floor over the hull's whole footprint, and for a beached hull takes the
-    // lowest column and sinks the ship into it.
-    const floors = footprintHeights(context, corner, size, heightmap);
-    const y = beached
-        ? floors.lowest - Math.trunc(size[1] / 2) - context.random.nextInt(3)
-        : Math.trunc(floors.total / floors.count);
-
-    const pieces = pieceOf({
-        store: context.templates,
-        template,
-        position: [corner[0], y, corner[2]],
-        placement,
-        onDataMarker: (marker, writer) => {
-            const table = SHIPWRECK_CHESTS[marker.value];
-            if (table !== undefined) {
-                writer.setBlockEntity(marker.x, marker.y - 1, marker.z, { id: 'minecraft:chest', lootTable: table });
-            }
-        }
-    });
-
     const middle = chunkMiddle(context.chunkX, context.chunkZ);
-    return pieces.length === 0
-        ? undefined
-        : { pieces, origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, heightmap), z: middle.z } };
+
+    return {
+        origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, heightmap), z: middle.z },
+        pieces: () => {
+            const rotation = rotationOf(context.random.nextInt(4));
+            const names = beached ? BEACHED_SHIPWRECKS : OCEAN_SHIPWRECKS;
+            const template = `minecraft:shipwreck/${randomOf(names, context.random)}`;
+
+            const placement: Placement = { rotation };
+            const size = context.templates.size(template, placement);
+            if (size === undefined) return [];
+
+            const corner = pivotedCorner(
+                [context.chunkX * 16, 0, context.chunkZ * 16],
+                context.templates.template(template)!.size,
+                placement,
+                SHIPWRECK_PIVOT
+            );
+
+            // Java averages the floor over the hull's whole footprint, and for a beached hull
+            // takes the lowest column and sinks the ship into it.
+            const floors = footprintHeights(context, corner, size, heightmap);
+            const y = beached
+                ? floors.lowest - Math.trunc(size[1] / 2) - context.random.nextInt(3)
+                : Math.trunc(floors.total / floors.count);
+
+            return pieceOf({
+                store: context.templates,
+                template,
+                position: [corner[0], y, corner[2]],
+                placement,
+                onDataMarker: (marker, writer) => {
+                    const table = SHIPWRECK_CHESTS[marker.value];
+                    if (table !== undefined) {
+                        writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
+                            id: 'minecraft:chest',
+                            lootTable: table
+                        });
+                    }
+                }
+            });
+        }
+    };
 };
 
 /** The terrain heights under a piece's footprint, which is how a hull finds the sea floor. */
@@ -186,24 +192,28 @@ const IGLOO_OFFSETS: Readonly<Record<string, TemplatePosition>> = {
 export const buildIgloo: StructureBuilder = (context): StructureLayout | undefined => {
     const middle = chunkMiddle(context.chunkX, context.chunkZ);
     const surface = context.level.baseHeight(middle.x, middle.z, 'WORLD_SURFACE_WG');
-    const rotation = rotationOf(context.random.nextInt(4));
-    const corner: TemplatePosition = [context.chunkX * 16, IGLOO_LAYOUT_Y, context.chunkZ * 16];
 
-    const shaft: { name: string; down: number }[] = [];
-    if (context.random.nextDouble() < 0.5) {
-        const depth = context.random.nextInt(8) + 4;
-        shaft.push({ name: 'bottom', down: depth * 3 });
-        for (let rung = 0; rung < depth - 1; rung++) shaft.push({ name: 'middle', down: rung * 3 });
-    }
+    return {
+        origin: { x: middle.x, y: surface, z: middle.z },
+        pieces: () => {
+            const rotation = rotationOf(context.random.nextInt(4));
+            const corner: TemplatePosition = [context.chunkX * 16, IGLOO_LAYOUT_Y, context.chunkZ * 16];
 
-    // Java settles each piece in its own `postProcess` call; settling once here keeps the dome
-    // and the shaft under it at the same height whichever chunk writes them.
-    const lift = surface - IGLOO_LAYOUT_Y - 1;
-    const pieces = [...shaft, { name: 'top', down: 0 }].flatMap(({ name, down }) =>
-        iglooPiece(context, name, corner, rotation, down, lift)
-    );
+            const shaft: { name: string; down: number }[] = [];
+            if (context.random.nextDouble() < 0.5) {
+                const depth = context.random.nextInt(8) + 4;
+                shaft.push({ name: 'bottom', down: depth * 3 });
+                for (let rung = 0; rung < depth - 1; rung++) shaft.push({ name: 'middle', down: rung * 3 });
+            }
 
-    return pieces.length === 0 ? undefined : { pieces, origin: { x: middle.x, y: surface, z: middle.z } };
+            // Java settles each piece in its own `postProcess` call; settling once here keeps the
+            // dome and the shaft under it at the same height whichever chunk writes them.
+            const lift = surface - IGLOO_LAYOUT_Y - 1;
+            return [...shaft, { name: 'top', down: 0 }].flatMap(({ name, down }) =>
+                iglooPiece(context, name, corner, rotation, down, lift)
+            );
+        }
+    };
 };
 
 const iglooPiece = (
@@ -315,43 +325,44 @@ function numbered(prefix: string, from: number, to: number): string[] {
  * large ruin is the single building rather than the cluster.
  */
 export const buildOceanRuin: StructureBuilder = (context): StructureLayout | undefined => {
-    const warm = context.definition.biome_temp === 'warm';
-    const largeProbability = numberAt(context.definition, 'large_probability', 0);
-    const large = context.random.nextFloat() <= largeProbability;
-    const names = large ? (warm ? BIG_WARM_RUINS : BIG_COLD_RUINS) : warm ? SMALL_WARM_RUINS : SMALL_COLD_RUINS;
-    const template = `minecraft:underwater_ruin/${randomOf(names, context.random)}`;
+    const middle = chunkMiddle(context.chunkX, context.chunkZ);
 
-    const base = context.templates.template(template);
-    if (base === undefined) return undefined;
+    return {
+        origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, 'OCEAN_FLOOR_WG'), z: middle.z },
+        pieces: () => {
+            const warm = context.definition.biome_temp === 'warm';
+            const largeProbability = numberAt(context.definition, 'large_probability', 0);
+            const large = context.random.nextFloat() <= largeProbability;
+            const names = large ? (warm ? BIG_WARM_RUINS : BIG_COLD_RUINS) : warm ? SMALL_WARM_RUINS : SMALL_COLD_RUINS;
+            const template = `minecraft:underwater_ruin/${randomOf(names, context.random)}`;
 
-    const rotation = rotationOf(context.random.nextInt(4));
-    const placement: Placement = { rotation };
-    const size = context.templates.size(template, placement)!;
-    const corner: TemplatePosition = [context.chunkX * 16, 0, context.chunkZ * 16];
-    const floors = footprintHeights(context, corner, size, 'OCEAN_FLOOR_WG');
+            const base = context.templates.template(template);
+            if (base === undefined) return [];
 
-    const pieces = pieceOf({
-        store: context.templates,
-        template,
-        position: [corner[0], floors.lowest - 1, corner[2]],
-        placement,
-        onDataMarker: (marker, writer) => {
-            if (marker.value !== 'chest') return;
+            const rotation = rotationOf(context.random.nextInt(4));
+            const placement: Placement = { rotation };
+            const size = context.templates.size(template, placement)!;
+            const corner: TemplatePosition = [context.chunkX * 16, 0, context.chunkZ * 16];
+            const floors = footprintHeights(context, corner, size, 'OCEAN_FLOOR_WG');
 
-            writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
-                id: 'minecraft:chest',
-                lootTable: large ? 'minecraft:chests/underwater_ruin_big' : 'minecraft:chests/underwater_ruin_small'
+            return pieceOf({
+                store: context.templates,
+                template,
+                position: [corner[0], floors.lowest - 1, corner[2]],
+                placement,
+                onDataMarker: (marker, writer) => {
+                    if (marker.value !== 'chest') return;
+
+                    writer.setBlockEntity(marker.x, marker.y - 1, marker.z, {
+                        id: 'minecraft:chest',
+                        lootTable: large
+                            ? 'minecraft:chests/underwater_ruin_big'
+                            : 'minecraft:chests/underwater_ruin_small'
+                    });
+                }
             });
         }
-    });
-
-    const middle = chunkMiddle(context.chunkX, context.chunkZ);
-    return pieces.length === 0
-        ? undefined
-        : {
-              pieces,
-              origin: { x: middle.x, y: context.level.baseHeight(middle.x, middle.z, 'OCEAN_FLOOR_WG'), z: middle.z }
-          };
+    };
 };
 
 // ---------------------------------------------------------------------------
@@ -364,21 +375,25 @@ const NETHER_FOSSILS = numbered('fossil', 1, 14).map((name) => `minecraft:nether
 /** Lays out a nether fossil: one bone spine at a drawn height in the soul sand valley. */
 export const buildNetherFossil: StructureBuilder = (context): StructureLayout | undefined => {
     const middle = chunkMiddle(context.chunkX, context.chunkZ);
+    // The drawn height is the generation point's own y, so it is settled before the biome check
+    // rather than behind it.
     const y = sampleStructureHeight(context.definition.height, context.random, context.level, context.level.minY);
-    const rotation = rotationOf(context.random.nextInt(4));
-    const template = randomOf(NETHER_FOSSILS, context.random);
 
-    const pieces = pieceOf({
-        store: context.templates,
-        template,
-        position: [context.chunkX * 16, y, context.chunkZ * 16],
-        placement: { rotation },
-        // Java places a fossil through `BlockIgnoreProcessor.STRUCTURE_AND_AIR`, so the bone
-        // blocks go in and the air between them leaves the netherrack alone.
-        overwrite: false
-    });
-
-    return pieces.length === 0 ? undefined : { pieces, origin: { x: middle.x, y, z: middle.z } };
+    return {
+        origin: { x: middle.x, y, z: middle.z },
+        pieces: () => {
+            const rotation = rotationOf(context.random.nextInt(4));
+            return pieceOf({
+                store: context.templates,
+                template: randomOf(NETHER_FOSSILS, context.random),
+                position: [context.chunkX * 16, y, context.chunkZ * 16],
+                placement: { rotation },
+                // Java places a fossil through `BlockIgnoreProcessor.STRUCTURE_AND_AIR`, so the
+                // bone blocks go in and the air between them leaves the netherrack alone.
+                overwrite: false
+            });
+        }
+    };
 };
 
 const numberAt = (definition: Record<string, unknown>, key: string, fallback: number): number =>

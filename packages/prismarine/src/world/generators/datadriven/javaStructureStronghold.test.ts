@@ -9,7 +9,7 @@ import type { BoundingBox } from '@jsprismarine/structures';
 import { createLegacyRandom, largeFeatureSeed } from '@jsprismarine/structures';
 import { describe, expect, it } from 'vitest';
 
-import type { StructureBuildContext, StructureLayout } from './javaStructureStarts';
+import type { StructureBuildContext } from './javaStructureStarts';
 import { buildStronghold } from './javaStructureStronghold';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
@@ -54,10 +54,11 @@ const contextAt = (seed: number, chunkX = 0, chunkZ = 0): StructureBuildContext 
     pool: () => undefined
 });
 
-const layoutAt = (seed: number): StructureLayout => {
+/** One stronghold laid out, with its deferred pieces assembled once. */
+const layoutAt = (seed: number) => {
     const layout = buildStronghold(contextAt(seed));
     expect(layout, `seed ${seed} produced no stronghold`).toBeDefined();
-    return layout!;
+    return { origin: layout!.origin, pieces: layout!.pieces() };
 };
 
 /** What writing a stronghold produced, counted rather than stored position by position. */
@@ -119,7 +120,7 @@ const boxesIntersect = (a: BoundingBox, b: BoundingBox): boolean =>
     a.maxZ >= b.minZ &&
     a.minZ <= b.maxZ;
 
-const signatureOf = (layout: StructureLayout): string =>
+const signatureOf = (layout: ReturnType<typeof layoutAt>): string =>
     layout.pieces
         .map(({ boundingBox: box }) => `${box.minX},${box.minY},${box.minZ},${box.maxX},${box.maxY},${box.maxZ}`)
         .join('|');
