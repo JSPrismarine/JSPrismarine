@@ -110,8 +110,13 @@ Six groups are required and five are optional. A projection that needs an absent
 guessed: a spawn rule reading light level 0 everywhere looks like a dark world rather than like
 missing code, and that is the failure this rule exists to prevent.
 
-`unwiredWorld()` is an adapter whose every member throws. It is the default, so content builds with
-no world at all and the first hook that touches the world says what is missing.
+`unwiredWorld()` is an adapter whose every member throws. It is what `buildServerContent` falls
+back on when `ContentOptions.world` is absent, so a test builds content with no world at all and
+the first hook that touches the world says what is missing.
+
+A running server passes `serverWorldSource` from `src/content/world/serverSource.ts` instead. It
+spreads the subsystems' groups into one adapter per dimension over the loaded `World`, and resolves
+that world per call, because the content is built before the first world loads.
 
 ## What each of the four subsystems implements
 
@@ -157,6 +162,23 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 - `@jsprismarine/wire` needs no adapter. It reads `ServerContent.blocks.palette`,
   `ServerContent.items.registry` and `ServerContent.recipes` to write `StartGamePacket`'s block
   properties, `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket`.
+
+## What a running server still refuses
+
+`serverWorldSource` wires most of the adapter. These members stay throwing, each naming the
+subsystem that owes it, and each for a reason rather than for want of plumbing.
+
+| Member | Why |
+| --- | --- |
+| `blocks.biome`, `blocks.biomeTags` | A chunk stores a numeric Bedrock biome id, and nothing maps one back to an identifier. `@jsprismarine/mapping` goes from Java identifiers to Bedrock ones only, and the biome tags live in pack biome definitions nothing parses yet. |
+| `entities.spawn` | Putting an entity into the world by identifier needs a factory covering every identifier a pack can name; the class registry covers the types with a class. |
+| `effects.emitGameEvent` | Java's game event system. Nothing listens, and Bedrock puts nothing on the wire for one. |
+| `items.stateOf`, `items.targetOf`, `items.perform` for the entity half of `ItemWorldAction` | Twenty-two of the twenty-eight variants need a player session and an entity index. |
+| The `spawning`, `ai` and `generation` groups | Left absent rather than filled with throwing members, which is what makes the projection in `views.ts` report the owner. |
+
+Block entity records are kept in memory and nowhere else. The chunks hold Bedrock's own block
+entities as NBT compounds, and translating one into the open record the behaviors share is a step
+nothing performs yet, so a container filled through a behavior forgets its contents on restart.
 
 ## Known gaps
 
