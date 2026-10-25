@@ -258,14 +258,31 @@ test in `src/vanillaEntities.test.ts`:
 | Event action keys vanilla uses | 8, all carried out; 56 uses |
 | Stats both editions publish for the same entity | 423, of which 279 agree |
 
-The 144 stats the two editions disagree on are findings, not defects: `movement_speed` 41,
-`height` 33, `width` 22, `follow_range` 19, `attack_damage` 15, `max_health` 10, `flying_speed` 2
-and `knockback_resistance` 2, against the 93 entity types of
-`@jsprismarine/bedrock-data`'s `java_entity_attributes`. The wither has 600 health on Bedrock and
-300 on Java. The witch follows from 64 blocks against Java's 16. Most hitbox rows are Bedrock
-rounding a Java height such as 1.95 to 1.9. The `attack_damage` rows are partly a modeling
-difference, because Bedrock writes a `{range_min, range_max}` pair where Java writes one number and
-the comparison reads the low end.
+The 144 stats the two editions disagree on, measured against the 93 entity types of
+`@jsprismarine/bedrock-data`'s `java_entity_attributes`, are `movement_speed` 41, `height` 33,
+`width` 22, `follow_range` 19, `attack_damage` 15, `max_health` 10, `flying_speed` 2 and
+`knockback_resistance` 2.
+
+Which edition wins is decided per stat in [`src/javaStats.ts`](src/javaStats.ts) and recorded in
+[ADR 0001](../../docs/adr/0001-entity-stat-authority.md). Java decides the four a Bedrock client
+never computes for itself, so the wither spawns with Java's 300 health rather than Bedrock's 600
+and the witch follows from Java's 16 blocks rather than 64. Bedrock decides the five the client
+predicts an actor with, which `ClientMovementPredictionSyncPacket` enumerates: the bounding box
+width and height, the movement and flying speeds, and the jump strength. 31 disagreements resolve
+to Java, 98 keep Bedrock's value because Bedrock decides the stat, and 15 are reviewed exceptions
+where Java publishes a number it overwrites at spawn, such as the horse's 53 health or a slime's.
+
+Pass the table in to turn the decision on:
+
+```typescript
+import { java_entity_attributes } from '@jsprismarine/bedrock-data';
+
+const wither = types.spawn('minecraft:wither', { environment: { javaStats: java_entity_attributes } });
+wither.attributes.get('health')?.base; // 300, where the pack writes 600
+```
+
+`statRuling(identifier, stat)` answers why one entity's stat resolved the way it did, so a parity
+row quotes the decision instead of keeping a second copy of it.
 
 The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 157
 keys cover 102. The 27 entities that are not component-covered need keys only they use, such as the

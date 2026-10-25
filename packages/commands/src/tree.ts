@@ -37,6 +37,21 @@ export interface CommandMetadata {
 /** What {@link CommandRegistry.register} needs; everything but the name has a default. */
 export type CommandMetadataInput = Partial<CommandMetadata>;
 
+/** How a registry decides what it will hold. */
+export interface CommandRegistryOptions {
+    /**
+     * Which command names this registry accepts. A name this answers `false`
+     * for is built and handed back, but never reaches the dispatcher or the
+     * metadata table, so nothing can parse it and the flattener never sees it.
+     *
+     * The point is a host that cannot answer every verb a command set calls.
+     * A command whose body would run against a subsystem the server has not
+     * built is worse than an absent one: the client offers it, the player
+     * types it, and nothing happens. Omit the option to hold everything.
+     */
+    readonly include?: (name: string) => boolean;
+}
+
 /**
  * A command tree plus the metadata the Bedrock packet needs.
  *
@@ -47,6 +62,12 @@ export class CommandRegistry<S> {
     private readonly dispatcher = new CommandDispatcher<S>();
     private readonly metadata = new Map<string, CommandMetadata>();
     private readonly aliasOwners = new Map<string, string>();
+    private readonly excluded = new Set<string>();
+    private readonly include: (name: string) => boolean;
+
+    public constructor(options: CommandRegistryOptions = {}) {
+        this.include = options.include ?? (() => true);
+    }
 
     /**
      * Registers one command and every alias it answers to.
@@ -56,13 +77,21 @@ export class CommandRegistry<S> {
      * the same code.
      *
      * @param builder - The command's root literal, already built up.
-     * @returns The registered root node.
+     * @returns The registered root node, or the built but unregistered node
+     *   when {@link CommandRegistryOptions.include} excluded the name. A
+     *   caller that chains onto the result, as `/execute` does, then builds a
+     *   branch nothing can reach, which is the point.
      * @throws {Error} When the name or one of its aliases is already taken.
      */
     public register(builder: LiteralArgumentBuilder<S>, metadata: CommandMetadataInput = {}): LiteralCommandNode<S> {
         const name = builder.getLiteral();
-        if (this.metadata.has(name) || this.aliasOwners.has(name)) {
+        if (this.metadata.has(name) || this.aliasOwners.has(name) || this.excluded.has(name)) {
             throw new Error(`The command '${name}' is already registered`);
+        }
+
+        if (!this.include(name)) {
+            this.excluded.add(name);
+            return builder.build();
         }
 
         const resolved: CommandMetadata = {
@@ -114,6 +143,16 @@ export class CommandRegistry<S> {
     /** Every registered command name, aliases excluded, in registration order. */
     public getNames(): string[] {
         return [...this.metadata.keys()];
+    }
+
+    /**
+     * The names {@link CommandRegistryOptions.include} turned away.
+     *
+     * Worth reporting rather than hiding: it is the difference between the
+     * command set a package implements and the one a particular host can run.
+     */
+    public getExcludedNames(): string[] {
+        return [...this.excluded];
     }
 
     /**
