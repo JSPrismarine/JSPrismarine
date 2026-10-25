@@ -11,6 +11,8 @@ import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protoco
 import { describe, expect, it } from 'vitest';
 
 import { Item } from './Item';
+import { itemOfDrop } from '../inventory/persistence';
+import { dropOfRolledStack } from './lootStack';
 
 /** The tag type bytes the expected buffer below spells out, as `NBTDefinitions` numbers them. */
 const TAG_END = 0x00;
@@ -166,6 +168,28 @@ describe('an item stack on the wire', () => {
         const item = new Item({ name: 'minecraft:shield', count: 1, customName: 'Wall' });
 
         expect(userDataOf(item, { shield: true }).blockingTick).toBe(0n);
+    });
+
+    it('draws what a loot roll enchanted, all the way from the rolled stack', () => {
+        // The three steps a dungeon chest's sword takes: the rolled stack's Java components
+        // become a drop, the drop becomes a stack, and the stack goes out. Each step kept
+        // less than the one before it until this file and `lootStack.ts` existed.
+        const rolled = {
+            id: 'minecraft:diamond_sword',
+            count: 1,
+            components: new Map<string, unknown>([
+                ['minecraft:enchantments', { levels: { 'minecraft:sharpness': 4 } }],
+                ['minecraft:custom_name', 'Dungeon Blade'],
+                ['minecraft:damage', 11]
+            ])
+        };
+
+        const item = itemOfDrop(dropOfRolledStack(rolled));
+        const tag = userDataOf(item!).userDataTag;
+
+        expect(enchantmentsIn(tag)).toEqual([{ id: 9, level: 4 }]);
+        expect(tag?.getCompound('display', false)?.getString('Name', '')).toBe('Dungeon Blade');
+        expect(tag?.getNumber('Damage', 0)).toBe(11);
     });
 
     it('writes a bare zero length for an empty slot', () => {
