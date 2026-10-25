@@ -296,11 +296,14 @@ not brain mobs, so the `minecraft:behavior.*` components in a frog's vanilla fil
 Java brain drives it instead. The camel and the happy ghast are the exceptions, because Java gives
 both a `registerGoals` and a `brainProvider`, and the runtime ticks both systems for them.
 
-The villager is a special case today. The brain registry names the villager `minecraft:villager`,
-which is Java's identifier and also the identifier of Bedrock's legacy villager file. Bedrock's
-current villager is `minecraft:villager_v2`, and the registry does not name it, so a
-`minecraft:villager_v2` runs its 27 Bedrock goals rather than the Java brain. The brain, its
-schedule and its professions are implemented and reachable; they attach to the wrong identifier.
+The villager needs a translation step. The brain registry is written against Java, so it names the
+villager `minecraft:villager`, and that is also the identifier of Bedrock's legacy villager file;
+Bedrock's current villager spawns as `minecraft:villager_v2`. Looking a brain up by the spawned
+identifier alone therefore missed it, and a villager ran its 27 Bedrock goals with its schedule,
+professions, memories and sensors unused. The lookup goes through `@jsprismarine/mapping`'s Java
+to Bedrock entity table instead, which is the same source `javaEntityStats` reads for the same
+renames, so all twenty brain mobs attach. The villager is the only one of the twenty the two
+editions spell differently.
 
 ## Stats: which edition decides a number
 
@@ -380,37 +383,41 @@ JSON versions from bedrock-samples into a world pack fills the gap.
 
 ## Running it
 
-The data path is off by default. `config.yaml`'s `content-packs` starts at `false`, and with it off
-the server runs what it always has: 111 written entity classes, 11 hand-written goals, and
-`MobSpawner`, which puts 12 species near players and removes them once every player has walked
-away. Nothing on this page is running on that path.
+Every server runs this, and there is no setting that turns it on or off. Nothing stands behind it
+either: the 111 written entity classes, the 11 hand-written goals and the `MobSpawner` that used
+to place a dozen species near players are deleted, so a pack stack that will not load stops the
+server at startup rather than falling back to them. Behavior pack directories listed under
+`content-world-packs` in `config.yaml` load after the vanilla ones, and later packs replace
+earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
-Turn it on with `content-packs: true` in `config.yaml`, or set `JSP_CONTENT=1` for one run without
-editing the file. Behavior pack directories listed under `content-world-packs` load after the
-vanilla ones, and later packs replace earlier definitions whole; see
-[using-packs.md](using-packs.md) for the precedence rules.
+Seven written classes survive, and none of them is a mob: a dropped stack, a lit TNT, a falling
+block, an arrow, an egg, a snowball and `Human`, which is what a player is. Each does something no
+behavior pack describes, such as counting a fuse down or flying a ballistic arc. Everything else
+is a component set in the runtime with a `GenericEntity` for a body, so a mob's hitbox, its stats
+and the table it rolls on death all come from the stack rather than from a table in this
+repository. `Entity.getBox()` reads the type's `minecraft:collision_box` out of the content
+registry, and the only two boxes still written down here are `minecraft:item` and
+`minecraft:falling_block`, the two types Mojang ships no entity file for.
 
-With the flag on, the server opens one `EntityRuntime` per dimension as that dimension's content
-adapter is assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued
-events apply, the active components run, the goal scheduler runs, a brain mob updates its activity
-and ticks its brain, and the body takes one step along whatever walk the AI asked for. Then the
-spawn cycle and the despawn pass run. Every entity carries a `GenericEntity` body so clients see
-it, and the two stay in step in both directions, so a player's blow through the legacy damage
-pipeline reaches the components that decide what it cost.
+The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
+assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events
+apply, the active components run, the goal scheduler runs, a brain mob updates its activity and
+ticks its brain, and the body takes one step along whatever walk the AI asked for. Then the spawn
+cycle and the despawn pass run. The body and the entity behind it stay in step in both directions,
+so a player's blow reaches the components that decide what it cost and the shove that came with it
+moves the mob.
 
-A default build registers 136 entity types rather than 129, because the BDS `behavior_packs` folder
-also holds the editor and education packs, which bring the agent, the balloon, the ice bomb and
-five `editor:` entities along. It also reports 102 diagnostics and no errors, so warnings on
-startup are expected rather than a sign of a broken stack. 47 of them name an unregistered
-component, 26 are vanilla files that write `"events": null`, and 26 are vanilla writing
-`"remove": {}` or `"add": {}` to mean "change nothing", which the parser reports and then handles
-correctly.
+A default build registers all 129 of those definitions and nothing else. BDS keeps chemistry, the
+editor and four experimental packs in the same `behavior_packs` folder, and the default asks for
+none of them; `PackStackRequest.bedrockPacks` names more of them by UUID if you want them. The
+build reports 47 warnings and no errors, so warnings on startup are expected rather than a sign of
+a broken stack, and 45 of the 47 name one of the components left unregistered on purpose.
 
 ### Adding your own mob
 
 1. Write a behavior pack with `manifest.json` and your entity file under `entities/`, exactly as
    you would for BDS.
-2. Point `content-world-packs` at its directory and start the server with `content-packs` on.
+2. Point `content-world-packs` at its directory and restart the server.
 3. Read the startup log. Every unknown component, unreadable event and unmapped identifier is
    reported there with the pack and file that wrote it.
 4. If the mob should spawn naturally, add a `spawn_rules/` file naming one of the population pools
@@ -433,19 +440,18 @@ microseconds per entity per tick together and now cost 20. No tick budget has be
 gates ticking by simulation distance, so treat the data path as something to test with rather than
 to run a populated server on.
 
-**Mobs do not survive a restart as data entities.** The runtime creates entities; nothing restores
-them. A saved mob's body loads from chunk storage as a written class or as a bare `GenericEntity`
-with no components, no goals and no brain behind it, and the spawn loop does not count it against a
-population cap.
+**A mob's target and its owner are lost over a save.** The rest of it survives. A save writes each
+entity's component groups, property values, attributes, body state and population pool into its
+actor compound as JSON, and the runtime builds the entity back from that without rerunning the
+spawn event, so a wounded mob stays wounded and a sheared sheep stays sheared. The target and the
+owner stay out because both are runtime ids, drawn fresh each session, and would come back
+pointing at whatever entity happened to take the number. A held item also comes back as an
+identifier rather than as a stack, which is as much as the goal seam models.
 
 **Taming and feeding have no interaction path.** `EntityRuntime.setOwner` and
 `EntityRuntime.setInLove` exist and the goals that read them work, but nothing calls either one:
 `minecraft:tameable` and the feeding half of `minecraft:breedable` parse as data and no
 right-click reaches them. Breeding works when something else puts two animals in love.
-
-**`/summon` uses the legacy classes.** The command resolves an identifier against the 108 written
-classes a position alone can build, not against the content registry, so it cannot summon a mob
-your pack defines even with the data path on.
 
 **Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
 world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the

@@ -102,32 +102,33 @@ readable throughout the migration.
 | Pack stack loading, both formats | `packages/packs/` |
 | Java to Bedrock mapping tables and the block property table | `packages/mapping/` |
 | Molang parsing, compilation and evaluation | `packages/molang/` |
+| The registry and holder types every domain is built on | `packages/content/` |
+| Blocks and items, with the behavior families bound to them | `packages/blocks/`, `packages/items/`, `packages/block-behaviors/`, `packages/item-behaviors/` |
+| Entities, their goals, the Java brains, spawn rules and trading | `packages/entities/`, `packages/entity-goals/`, `packages/entity-brains/`, `packages/spawning/`, `packages/trading/` |
+| Java's gameplay data: loot, recipes, advancements, enchantments, predicates | `packages/loot/`, `packages/recipes/`, `packages/advancements/`, `packages/enchantments/`, `packages/predicates/` |
+| Commands and the `.mcfunction` runtime | `packages/commands/`, `packages/mcfunction/` |
+| The systems neither edition publishes as data, and light | `packages/engine-systems/`, `packages/lighting/` |
+| Terrain, decoration and structures | `packages/worldgen/`, `packages/features/`, `packages/structures/` |
+| The registries turned into client packets | `packages/wire/` |
 | Parity test suite and dashboard | `packages/parity/` |
-| The server consuming the tables (blocks, explosions) | `packages/prismarine/` |
+| The composition root that joins all of it to a running server | `packages/prismarine/src/content/` |
 
 ## What exists today
 
-Phase 0 of the plan is implemented, plus one slice of phase 1:
+The pack stack is no longer optional. Every server composes one, resolves each content domain
+against it and runs on the result, and a stack that will not load stops the server at startup
+because nothing is left behind it to fall back to. The composition root in
+`packages/prismarine/src/content/` is the only place that knows all the domains exist; its
+[README](../../packages/prismarine/src/content/README.md) gives the order they have to be built in
+and what one build produces.
 
-- The source manifest (`packages/bedrock-data/sources.json`), the hash-verified fetch, and
-  `pack-hashes.json`.
-- The Java property and attribute dumper with its committed goldens under
-  `packages/bedrock-data/src/jsp/java/`.
-- `@jsprismarine/mapping` with the generated tables, the reviewed loss lists, Chunker's five
-  property tests, and the per-state block property table.
-- `@jsprismarine/packs` loading Bedrock packs and Java datapacks with structural validation and
-  diagnostics.
-- `@jsprismarine/molang` with the parser, compiler and the vanilla queries.
-- `@jsprismarine/parity` with the registry comparison families, the conformance test and the
-  dashboard.
-- In `packages/prismarine/`, block hardness, break time, blast resistance, light emission, light
-  filter and flammability read from the mapping package's property table, keyed by Bedrock state
-  name, so every palette block answers with the Java 26.3 value rather than only the roughly 260
-  registered block classes. Explosions decide survival from real blast resistance instead of a
-  hardcoded name set.
+Blocks, items, entities, recipes, loot, advancements, enchantments, spawn rules, trade tables,
+biomes and features all come out of the stack, and the client-facing packets are written from the
+resulting registries. The entity class hierarchy that used to run mobs is gone, leaving seven
+written classes for the entities no behavior pack describes.
 
-Everything else in the plan is planned, not present. The component runtimes, the loot and recipe
-evaluators, the entity system, spawn rules, world generation, the shared `Registry<T>` type and the
-packets written from registries belong to phases 1 through 5 of
-[the plan](../plans/data-driven-vanilla.md). Blocks, items and entities in the running server are
-still class-based today; the property table reroute is the first behavior the data pipeline feeds.
+The numbers and the gaps live on the page for each subsystem rather than here, because that is
+where they are kept current: [gameplay-data.md](gameplay-data.md) for the Java data,
+[entities.md](entities.md) for mobs, [block-properties.md](block-properties.md) for the per-state
+table, [structures.md](structures.md) and [engine-systems.md](engine-systems.md) for the world, and
+[commands.md](commands.md) for the command set. Each of them says what it will not do yet.

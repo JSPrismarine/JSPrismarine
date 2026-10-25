@@ -6,11 +6,12 @@ category: Guides
 
 # Data-driven content
 
-JSPrismarine is moving from hardcoded block, item and entity classes to a server whose content is
+JSPrismarine has moved from hardcoded block, item and entity classes to a server whose content is
 built at runtime from data. Blocks, items, entities, recipes, loot, trading, spawning, biomes and
 world generation come from packs and generated tables, assembled through a small set of composable
-parts. The design is laid out in [the data-driven vanilla plan](../plans/data-driven-vanilla.md);
-these pages explain the system for people who have not read the plan or the research behind it.
+parts on every server that starts. The design is laid out in
+[the data-driven vanilla plan](../plans/data-driven-vanilla.md); these pages explain the system for
+people who have not read the plan or the research behind it.
 
 ## The format decision in one paragraph
 
