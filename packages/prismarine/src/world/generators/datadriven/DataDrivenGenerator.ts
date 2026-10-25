@@ -13,6 +13,7 @@
  */
 import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
 
 import type { StepRegion } from '@jsprismarine/chunkgen';
 import {
@@ -137,18 +138,42 @@ export interface DataDrivenGeneratorOptions {
 /** Where a generator runs its `terrain` bodies. */
 export interface TerrainPoolOptions {
     /**
-     * The built module a worker imports to get its terrain pipeline, usually
-     * `terrainPipeline.es.js` from this package's `dist`.
+     * The module a worker imports to get its terrain pipeline, which
+     * {@link defaultTerrainPipeline} answers for this package's own.
      *
-     * A path rather than a resolved module, because a worker thread imports it through Node and
-     * a dev checkout resolves `@jsprismarine/*` to TypeScript that Node cannot follow.
+     * A path rather than a resolved module, because the worker imports it itself.
      */
     readonly pipeline: string;
     /** How many workers. Five or six on this machine; more is worse. */
     readonly workers: number;
     /** The worker entry, which defaults to `@jsprismarine/chunkgen`'s own. */
     readonly worker?: string;
+    /**
+     * Told once, with the reason, when the `terrain` bodies end up on this thread after all.
+     *
+     * A generator that cannot run workers still generates. Whoever asked for a pool is the only
+     * one who can say so where a person will read it, so the reason comes back out here rather
+     * than being swallowed or thrown.
+     */
+    readonly onUnavailable?: (reason: string) => void;
 }
+
+/**
+ * This package's own terrain pipeline module, beside this file.
+ *
+ * `.ts` in a dev checkout and `.es.js` in a built package, resolved rather than configured so a
+ * caller does not have to know which of the two it is running. A worker can import either: it
+ * inherits `process.execArgv`, so a host started with `--import tsx` hands its workers the same
+ * loader, and that loader is what follows the extensionless `@jsprismarine/*` imports the
+ * TypeScript is full of.
+ *
+ * @returns The path to the module. It may not exist, which is a single executable's answer and
+ * is what {@link TerrainPoolOptions.onUnavailable} reports.
+ */
+export const defaultTerrainPipeline = (): string => {
+    const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.es.js';
+    return fileURLToPath(new URL(beside, import.meta.url));
+};
 
 /** What a `terrain` task carries besides its position. */
 export interface TerrainTaskInput {
@@ -301,9 +326,13 @@ export class DataDrivenGenerator implements Generator {
      * Where the `terrain` bodies run, or undefined when they run on this thread.
      *
      * Built in the constructor and kept for the life of the generator, because a worker's value
-     * is the pipeline it has already compiled for one seed.
+     * is the pipeline it has already compiled for one seed. Cleared, once, if the first task
+     * shows that the workers cannot import the pipeline after all.
      */
-    private readonly pool: GenerationPool | undefined;
+    private pool: GenerationPool | undefined;
+
+    /** Whether a worker has ever answered, which is what tells a startup failure from a bug. */
+    private poolAnswered = false;
 
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
@@ -333,23 +362,72 @@ export class DataDrivenGenerator implements Generator {
         }
 
         this.biomeSource = MultiNoiseBiomeSource.fromJson(parameters);
-        this.pool =
-            options.terrain === undefined
-                ? undefined
-                : new GenerationPool({
-                      pipeline: options.terrain.pipeline,
-                      workers: options.terrain.workers,
-                      ...(options.terrain.worker === undefined ? {} : { worker: options.terrain.worker }),
-                      setup: {
-                          registryBundle: shareRegistryBundle(registries),
-                          dimension: this.dimension,
-                          ...(options.noiseSettings === undefined ? {} : { noiseSettings: options.noiseSettings }),
-                          ...(options.biomeParameters === undefined
-                              ? {}
-                              : { biomeParameters: options.biomeParameters }),
-                          carve: options.carve !== false
-                      } satisfies TerrainPipelineSetup
-                  });
+        this.pool = this.openPool(registries);
+    }
+
+    /**
+     * Starts the terrain pool, or reports why there is not going to be one.
+     *
+     * Asked before anything is built, because the expensive part of a pool is the registry
+     * bundle it copies into shared memory and there is no point paying for it in a process that
+     * cannot run a worker at all.
+     */
+    private openPool(registries: JavaWorldgenRegistries): GenerationPool | undefined {
+        const terrain = this.options.terrain;
+        if (terrain === undefined) return undefined;
+
+        const where = {
+            pipeline: terrain.pipeline,
+            workers: terrain.workers,
+            ...(terrain.worker === undefined ? {} : { worker: terrain.worker })
+        };
+        const reason = GenerationPool.unavailable(where);
+        if (reason !== undefined) {
+            terrain.onUnavailable?.(reason);
+            return undefined;
+        }
+
+        return new GenerationPool({
+            ...where,
+            setup: {
+                registryBundle: shareRegistryBundle(registries),
+                dimension: this.dimension,
+                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
+                ...(this.options.biomeParameters === undefined
+                    ? {}
+                    : { biomeParameters: this.options.biomeParameters }),
+                carve: this.options.carve !== false
+            } satisfies TerrainPipelineSetup
+        });
+    }
+
+    /**
+     * Gives up on the pool when its first task fails, so a chunk is slow rather than missing.
+     *
+     * A worker imports the pipeline on its first task, and whether that import resolves depends
+     * on the loader the host was started with, which nothing can check ahead of time. The rule
+     * is therefore about which task failed rather than about what the error says: a pool that
+     * has never answered cannot run the pipeline, and a pool that has answered and then threw
+     * hit a bug in a status body, which belongs to the caller.
+     *
+     * @param error - What the task rejected with.
+     * @returns Whether to build this chunk on this thread instead.
+     */
+    private abandonPool(error: unknown): boolean {
+        // A shutdown terminates the workers mid-chunk, so every outstanding task rejects. That
+        // is a refusal and generating the chunk here instead is exactly what it refused.
+        if (this.stopped || this.poolAnswered) return false;
+
+        const pool = this.pool;
+        this.pool = undefined;
+        if (pool !== undefined) {
+            void pool.destroy();
+            this.options.terrain?.onUnavailable?.(
+                `a terrain worker could not run: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+
+        return true;
     }
 
     /** @inheritDoc */
@@ -491,12 +569,20 @@ export class DataDrivenGenerator implements Generator {
         const pool = this.pool;
         if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard);
 
-        const result = await pool.run({
-            status: 'terrain',
-            chunkX: cx,
-            chunkZ: cz,
-            input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
-        });
+        let result;
+        try {
+            result = await pool.run({
+                status: 'terrain',
+                chunkX: cx,
+                chunkZ: cz,
+                input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
+            });
+            this.poolAnswered = true;
+        } catch (error) {
+            if (!this.abandonPool(error)) throw error;
+
+            return this.buildTerrain(cx, cz, pipeline, beard);
+        }
 
         // The worker's own payload, arriving across a thread boundary the compiler cannot
         // follow. Nothing but `terrainPipeline` puts anything on the other end of this.
