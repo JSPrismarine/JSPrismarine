@@ -18,6 +18,15 @@ const input = Object.fromEntries(
     })
 );
 
+/**
+ * The packages the build leaves as imports rather than bundling: each name
+ * on its own, and a pattern for its subpaths, because the mcdoc validator
+ * imports `@spyglassmc/java-edition` modules the package root does not
+ * re-export.
+ */
+const bare = [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.peerDependencies ?? {})];
+const external = [...bare, ...bare.map((name) => new RegExp(`^${name.replaceAll(/[.*+?^$\\{}()|[\]]/g, '\\$&')}/`))];
+
 export default mergeConfig(
     base,
     defineConfig({
@@ -36,7 +45,7 @@ export default mergeConfig(
                 // The peers are the optional `@spyglassmc` packages the
                 // mcdoc validator imports; a consumer that does not install
                 // them never loads that entry point.
-                external: [...Object.keys(pkg.dependencies ?? {}), ...Object.keys(pkg.peerDependencies ?? {})]
+                external
             }
         },
         plugins: [
