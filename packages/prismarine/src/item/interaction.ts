@@ -17,9 +17,9 @@
  * to; `jsprismarine:utility` says in as many words that the screens its workstations open belong
  * to the server. Before this, no block opened a container anywhere in this server.
  *
- * It reports whether it handled the click. A false sends the caller back to `World.useItemOn`,
- * which is also what happens with `content-packs` off, so the path a server without content runs
- * is unchanged.
+ * It reports whether it handled the click. A false sends the caller back to `World.useItemOn`.
+ * That is what a click no behavior family consumed gets, and what a block or an item the
+ * content build has no type for gets, so both still run the path this server has always had.
  */
 import { BLOCK_FACES } from '@jsprismarine/blocks';
 import type { BlockFace, FaceLocation, HookBlock } from '@jsprismarine/blocks';

@@ -2,9 +2,10 @@
  * Items by name, over whichever registry the server has.
  *
  * The counterpart to `BlockManager`, and thin for the same reason: the names
- * come from `ServerContent`'s item registry when the server built its content
- * from packs, and from Java's committed item table otherwise. Both carry the
- * 122 data components, so there is nothing for a class to add.
+ * come from `ServerContent`'s item registry, and from Java's committed item
+ * table for a server that hands over no content build at all, which is a test
+ * double. Both carry the 122 data components, so there is nothing for a class
+ * to add.
  */
 import type Server from '../Server';
 import type { ServerContent } from '../content/ServerContent';
@@ -44,7 +45,12 @@ export default class ItemManager {
         this.registered.clear();
     }
 
-    /** The content build, or undefined while `content-packs` is off. */
+    /**
+     * The content build, which a running server always has.
+     *
+     * Undefined only for a server double that leaves `getContent` out, and that is what the
+     * fallback to Java's committed item table below is for.
+     */
     private content(): ServerContent | undefined {
         return this.server.getContent?.();
     }

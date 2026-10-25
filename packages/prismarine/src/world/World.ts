@@ -333,9 +333,9 @@ export class World implements Service {
             canSpreadFireAround: (at) => canSpreadFireAround(this, at),
             // The blocks that answer a random tick are the behavior families in
             // `@jsprismarine/block-behaviors`, reached through the content world adapter, so
-            // `WorldManager` builds these from the content registries and leaves them out when
-            // `content-packs` is off. The positions are drawn either way, so the draw sequence -
-            // which decides where crops grow - does not shift with them.
+            // `WorldManager` builds these from the content registries. They are optional
+            // because a world built by hand in a test has none. The positions are drawn either
+            // way, so the draw sequence - which decides where crops grow - does not shift.
             randomTickHandlers
         });
 
@@ -1206,8 +1206,8 @@ export class World implements Service {
 
         // The content path's share of the break, before the block goes: the block's behavior
         // family gets `onBreak`, which is what spills a chest, and Java's loot table for the
-        // block decides what falls. Undefined with `content-packs` off and for a block no
-        // content covers, and the drop this server has always made is the one below.
+        // block decides what falls. Undefined for a block no content covers, and the drop
+        // this server has always made is the one below.
         const contentDrops = breakBlockWithContent({ world: this, position: { x, y, z }, player });
 
         // TODO: run a function from block.getBreakConsequences() because the broken block may

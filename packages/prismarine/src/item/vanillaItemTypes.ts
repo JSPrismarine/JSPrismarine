@@ -2,11 +2,12 @@
  * Java's committed item table, resolved once, for a server with no content
  * build.
  *
- * `content-packs` defaults to off, so most servers never load a pack stack -
- * but `@jsprismarine/items` ships Java 26.3's item definitions in the
- * package, which means the 122 data components an item carries are readable
- * with nothing fetched and nothing on disk. That is what every number an item
- * answers comes from when `Server.getContent()` is undefined.
+ * `@jsprismarine/items` ships Java 26.3's item definitions in the package, so
+ * the 122 data components an item carries are readable with nothing fetched
+ * and nothing on disk. That is what every number an item answers comes from
+ * when it was built without a content build behind it, which is an `Item`
+ * constructed with no `content` and the test doubles that hand `ItemManager`
+ * no `getContent` at all.
  *
  * The one thing it cannot supply is the merged tag set, so a `#tag` holder
  * set matches nothing here; see {@link import('./holderSets').holderSetIncludes}.

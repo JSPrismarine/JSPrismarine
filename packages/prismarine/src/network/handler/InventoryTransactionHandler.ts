@@ -356,8 +356,8 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
 
                 if (data.actionType === ItemUseActionType.PLACE) {
                     // The content path first, where the block's and the item's behavior families
-                    // get the click. It declines when `content-packs` is off and when nothing in
-                    // the content wanted the click, and the path this server has always had runs.
+                    // get the click. It declines when nothing in the content wanted the click and
+                    // when a behavior threw, and the path this server has always had runs.
                     if (contentUse(server, player, data) === 'handled') return;
 
                     await world.useItemOn(
