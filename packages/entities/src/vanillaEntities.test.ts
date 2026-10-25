@@ -8,6 +8,8 @@ import { createEntityComponentRegistry } from './components';
 import type { EntityFile } from './entityTypes';
 import { EntityTypes } from './entityTypes';
 import { eventActions } from './events';
+import type { SharedStat } from './javaStats';
+import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from './javaStats';
 import { TRIGGER_COMPONENTS } from './triggers';
 import { hasFilterTest } from './filters';
 
@@ -279,81 +281,124 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect([...unparsed]).toEqual([]);
     });
 
-    it('measures the Bedrock stats against Java Edition and names every disagreement', () => {
-        const disagreements: string[] = [];
-        let compared = 0;
-        let agreed = 0;
+    it('resolves every stat the two editions disagree on to the edition that decides it', () => {
+        /** One entity and stat, with the pack's value and the one the server runs with. */
+        interface Measured {
+            readonly identifier: string;
+            readonly stat: SharedStat;
+            readonly pack: number;
+            readonly resolved: number;
+            readonly java: number;
+        }
+
+        const agrees = (left: number, right: number): boolean =>
+            Math.abs(left - right) <= Math.max(1e-5, Math.abs(right) * 1e-5);
+
+        const measured: Measured[] = [];
 
         for (const [identifier, java] of Object.entries(java_entity_attributes)) {
             if (!types.registry.has(identifier)) continue;
-            const entity = types.spawn(identifier, { environment: { random: { next: () => 0 } } });
+            const environment = { random: { next: () => 0 } };
+            const packEntity = types.spawn(identifier, { environment });
+            const entity = types.spawn(identifier, { environment: { ...environment, javaStats: java_entity_attributes } });
             const box = entity.componentParams('minecraft:collision_box');
             const size = isCollisionBox(box) ? box : undefined;
 
-            const measured: readonly (readonly [string, number | undefined, number | undefined])[] = [
-                ['max_health', entity.attributes.get('health')?.base, java.attributes['minecraft:max_health']],
-                [
-                    'movement_speed',
-                    entity.attributes.get('movement')?.base,
-                    java.attributes['minecraft:movement_speed']
-                ],
-                [
-                    'attack_damage',
-                    entity.attributes.get('attack_damage')?.base,
-                    java.attributes['minecraft:attack_damage']
-                ],
-                [
-                    'follow_range',
-                    entity.attributes.get('follow_range')?.base,
-                    java.attributes['minecraft:follow_range']
-                ],
-                [
-                    'knockback_resistance',
-                    entity.attributes.get('knockback_resistance')?.base,
-                    java.attributes['minecraft:knockback_resistance']
-                ],
-                [
-                    'flying_speed',
-                    entity.attributes.get('flying_speed')?.base,
-                    java.attributes['minecraft:flying_speed']
-                ],
-                [
-                    'jump_strength',
-                    entity.attributes.get('jump_strength')?.base,
-                    java.attributes['minecraft:jump_strength']
-                ],
-                ['width', size?.width, java.width],
-                ['height', size?.height, java.height]
-            ];
+            const attribute = (stat: SharedStat): readonly [number | undefined, number | undefined] => {
+                const authority = SHARED_STATS[stat];
+                if (authority.attribute === undefined || authority.javaAttribute === undefined) {
+                    return [undefined, undefined];
+                }
+                return [packEntity.attributes.get(authority.attribute)?.base, entity.attributes.get(authority.attribute)?.base];
+            };
 
-            for (const [stat, bedrock, value] of measured) {
-                if (bedrock === undefined || value === undefined) continue;
-                compared += 1;
-                if (Math.abs(bedrock - value) <= Math.max(1e-5, Math.abs(value) * 1e-5)) agreed += 1;
-                else disagreements.push(`${identifier} ${stat}: bedrock ${bedrock}, java ${value}`);
+            const rows: readonly (readonly [SharedStat, number | undefined, number | undefined, number | undefined])[] =
+                [
+                    ...(
+                        [
+                            'max_health',
+                            'movement_speed',
+                            'attack_damage',
+                            'follow_range',
+                            'knockback_resistance',
+                            'flying_speed',
+                            'jump_strength'
+                        ] as const
+                    ).map((stat) => {
+                        const [pack, resolved] = attribute(stat);
+                        const authority = SHARED_STATS[stat];
+                        const value =
+                            authority.javaAttribute === undefined
+                                ? undefined
+                                : java.attributes[authority.javaAttribute];
+                        return [stat, pack, resolved, value] as const;
+                    }),
+                    ['width', size?.width, size?.width, java.width] as const,
+                    ['height', size?.height, size?.height, java.height] as const
+                ];
+
+            for (const [stat, pack, resolved, value] of rows) {
+                if (pack === undefined || resolved === undefined || value === undefined) continue;
+                measured.push({ identifier, stat, pack, resolved, java: value });
             }
         }
 
-        const byStat = new Map<string, number>();
-        for (const line of disagreements) {
-            const stat = line.split(' ')[1]?.replace(':', '') ?? '';
-            byStat.set(stat, (byStat.get(stat) ?? 0) + 1);
-        }
+        const packDisagreements = measured.filter((row) => !agrees(row.pack, row.java));
+        const unresolved = measured.filter((row) => !agrees(row.resolved, row.java));
+        const takenFromJava = packDisagreements.filter((row) => agrees(row.resolved, row.java));
+
+        // A disagreement the server still runs on Bedrock's number has to be a
+        // stat Bedrock decides or a reviewed exception. Anything else is a
+        // defect, not a finding.
+        const unreviewed = unresolved.filter((row) => statRuling(row.identifier, row.stat).kind === 'java');
+
+        const byStat = (rows: readonly Measured[]): string =>
+            [...rows.reduce((counts, row) => counts.set(row.stat, (counts.get(row.stat) ?? 0) + 1), new Map<string, number>())]
+                .map(([stat, count]) => `${stat} ${count}`)
+                .join(', ');
 
         process.stdout.write(
             [
-                `stats compared against Java: ${compared}, agreeing: ${agreed}`,
-                `disagreements by stat: ${[...byStat].map(([stat, count]) => `${stat} ${count}`).join(', ')}`,
-                ...disagreements.map((line) => `  ${line}`),
+                `stats compared against Java: ${measured.length}, agreeing: ${measured.length - packDisagreements.length}`,
+                `pack disagreements by stat: ${byStat(packDisagreements)}`,
+                `resolved to Java's value: ${takenFromJava.length} (${byStat(takenFromJava)})`,
+                `keeping Bedrock's value: ${unresolved.length} (${byStat(unresolved)})`,
+                ...unresolved.map(
+                    (row) =>
+                        `  ${row.identifier} ${row.stat}: bedrock ${row.resolved}, java ${row.java} [${statRuling(row.identifier, row.stat).kind}]`
+                ),
                 ''
             ].join('\n')
         );
 
+        expect(measured).toHaveLength(JAVA_STATS_COMPARED);
+
         // The two editions genuinely differ on these stats, so the count is a
-        // recorded finding rather than a target. A change here means either
-        // the components stopped reading the pack or Mojang changed a value.
-        expect(compared).toBe(JAVA_STATS_COMPARED);
-        expect(disagreements).toHaveLength(JAVA_STAT_DISAGREEMENTS);
+        // recorded finding. A change means either the components stopped
+        // reading the pack or Mojang changed a value.
+        expect(packDisagreements).toHaveLength(JAVA_STAT_DISAGREEMENTS);
+
+        expect(unreviewed.map((row) => `${row.identifier} ${row.stat}`)).toEqual([]);
+        expect(takenFromJava).toHaveLength(RESOLVED_TO_JAVA);
+        expect(unresolved).toHaveLength(JAVA_STAT_DISAGREEMENTS - RESOLVED_TO_JAVA);
+    });
+
+    it('keeps every reviewed exception on a stat the two editions still disagree on', () => {
+        for (const row of JAVA_STAT_EXCEPTIONS) {
+            const java = java_entity_attributes[row.identifier];
+            const authority = SHARED_STATS[row.stat];
+            expect(java, `${row.identifier} has no Java stats`).toBeDefined();
+            expect(authority.decidedBy, `${row.stat} is not a stat Java decides`).toBe('java');
+
+            const entity = types.spawn(row.identifier, {
+                environment: { random: { next: () => 0 }, javaStats: java_entity_attributes }
+            });
+            const resolved = authority.attribute === undefined ? undefined : entity.attributes.get(authority.attribute)?.base;
+            const value = authority.javaAttribute === undefined ? undefined : java?.attributes[authority.javaAttribute];
+
+            expect(resolved, `${row.identifier} declares no ${row.stat}`).toBeDefined();
+            expect(resolved).not.toBe(value);
+        }
     });
 
     it('spawns every entity that declares a spawn event without throwing', () => {
