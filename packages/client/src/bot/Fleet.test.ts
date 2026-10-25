@@ -120,11 +120,11 @@ describe('a fleet against a real server', () => {
         const fleet = newFleet({ namePrefix: 'Breaker', behaviors: ['break'] });
         await fleet.connect();
 
-        // Slept through rather than `run`, which stops the fleet when it returns - the point
-        // here is that the connections are still up *while* the breaking happens.
-        await new Promise((resolve) => setTimeout(resolve, 2_500));
-
-        expect(fleet.report().actions.break).toBeGreaterThan(0);
+        // The first break attempt is after 40 ticks. Wait for the actual send because CI
+        // load can delay those ticks beyond a fixed sleep.
+        await expect
+            .poll(() => fleet.report().actions.break ?? 0, { interval: 100, timeout: 15_000 })
+            .toBeGreaterThan(0);
         expect(fleet.getConnectedBots()).toHaveLength(4);
     }, 60_000);
 
