@@ -680,10 +680,10 @@ export class World implements Service {
             // Before the restore, not after: `level.json` holds a copy of every entity and
             // `enable` rebuilds those as written classes, so the actor record has to displace
             // that copy whichever path ends up holding the mob.
-            if (this.restoreDataEntity(entity)) continue;
-
             const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
             if (legacyEntity) await this.removeEntity(legacyEntity);
+
+            if (this.restoreDataEntity(entity)) continue;
 
             if (entity instanceof Mob) entity.setPersistent();
             await this.addEntity(entity);
