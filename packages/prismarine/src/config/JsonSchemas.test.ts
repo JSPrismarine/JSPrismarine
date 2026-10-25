@@ -21,9 +21,13 @@ const readSchema = (file: string) =>
 describe('JSON schemas', () => {
     const ajv = new Ajv({ strict: false });
 
+    // Generating the schemas walks the type graph behind `JsonConfigTypes`, which reaches
+    // most of this package: about half a minute here, against vitest's ten second default.
+    // The budget is generous rather than measured, because what it guards against is a
+    // generator that hangs, not one that is slower on a busier machine than on this one.
     beforeAll(() => {
         execFileSync(process.execPath, [fileURLToPath(new URL('../../utils/generate-schemas.cjs', import.meta.url))]);
-    });
+    }, 180_000);
 
     it.each(schemaFiles)('compiles the Draft 7 schema %s', (file) => {
         const schema = readSchema(file);
