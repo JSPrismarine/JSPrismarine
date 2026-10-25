@@ -295,7 +295,10 @@ const liveWorld = (): {
 } => {
     const broadcasts: Broadcasts = { moved: [] };
     let content: ServerContent | undefined;
-    const chunks = new Map<bigint, Chunk>();
+    // Keyed the way `World` keys its own map. A bigint here is not a type error, because
+    // `pnpm typecheck` skips test files, and `getLoadedChunk` would answer null for every
+    // chunk in the fixture rather than throw.
+    const chunks = new Map<number, Chunk>();
     for (let x = -LOADED_RADIUS; x <= LOADED_RADIUS; x += 1)
         for (let z = -LOADED_RADIUS; z <= LOADED_RADIUS; z += 1) chunks.set(Chunk.packXZ(x, z), flatChunk(x, z));
 
