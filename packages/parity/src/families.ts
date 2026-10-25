@@ -30,6 +30,8 @@ export const FAMILIES = {
     mappingRegistries: 'mapping.registries',
     /** The registries that reach a client with no published Java-to-Bedrock pairing to map them by. */
     mappingUntranslated: 'mapping.untranslated',
+    /** What a Java block entity's contents lose on the way into the Bedrock block entity. */
+    mappingBlockEntities: 'mapping.blockentities',
 
     /** The per-state block property table against the Java 26.3 jar dump (phase 1 exit). */
     blocksProperties: 'blocks.properties',
