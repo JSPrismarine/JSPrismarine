@@ -1371,9 +1371,18 @@ export interface UseKineticWeaponParams {
 }
 
 /**
- * `minecraft:behavior.use_kinetic_weapon`, which the five copper golem and
- * mounted-lance entities carry. The weapon only hurts while the entity is
- * moving, so the goal rides in, strikes and backs off to build speed again.
+ * `minecraft:behavior.use_kinetic_weapon`, which the five mounted-lance
+ * entities carry. The weapon only hurts while its wielder is moving, so the
+ * goal rides in, strikes and backs off to build speed again.
+ *
+ * Only while the wielder is riding something, which is what the lance is for
+ * and what `hijack_mount_navigation` is about. The zombie, husk, piglin,
+ * zombie pigman and zombie villager all carry it on foot as well as mounted,
+ * through `minecraft:not_on_zombie_horse`, and it claims the `move` and
+ * `look` flags at a priority above `minecraft:behavior.melee_box_attack`'s.
+ * A version that started on nothing more than having a target therefore took
+ * those flags off the attack and left every zombie that had chosen a player
+ * standing still in front of them.
  */
 export const useKineticWeapon = goal<UseKineticWeaponParams>({
     name: 'minecraft:behavior.use_kinetic_weapon',
@@ -1396,10 +1405,12 @@ export const useKineticWeapon = goal<UseKineticWeaponParams>({
 
         return {
             canStart: () => {
+                if (support.world.vehicle?.() === undefined) return false;
+
                 target = support.target();
                 return target !== undefined;
             },
-            canContinue: () => support.target() !== undefined,
+            canContinue: () => support.world.vehicle?.() !== undefined && support.target() !== undefined,
             start: () => {
                 backingOff = false;
             },

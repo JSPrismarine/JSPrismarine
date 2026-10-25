@@ -22,6 +22,8 @@ const baseWorld = {
     age: () => 0,
     mobEventActive: () => false,
     villageBorderDistance: () => undefined,
+    // Hollow: nothing here is about where a draw landed.
+    solid: () => false,
     surfaceY: () => 64,
     minY: () => -64
 } satisfies SpawnWorld;
@@ -263,5 +265,53 @@ describe('the delay filter cooldown', () => {
         expect(spawner.cycle('pillager', 0).length).toBe(1);
         expect(spawner.cycle('pillager', 10)).toEqual([]);
         expect(spawner.cycle('pillager', 1300).length).toBe(1);
+    });
+});
+
+describe('where the underground pass puts a mob', () => {
+    const ZOMBIE = ruleOf('minecraft:zombie', 'monster', [
+        {
+            'minecraft:spawns_underground': {},
+            'minecraft:brightness_filter': { min: 0, max: 7 },
+            'minecraft:weight': { default: 100 }
+        }
+    ]);
+    const dark = { ...baseWorld, light: () => 0 };
+
+    it('refuses a draw that landed inside rock', () => {
+        // The draw is uniform over the column, so in a world with few caves most of it is
+        // solid. A zombie put inside a stone block paths nowhere, never despawns, and fills
+        // the monster pool so that nothing else can spawn either.
+        const spawner = new Spawner({
+            rules: [ZOMBIE],
+            world: { ...dark, solid: () => true },
+            random: seededRandom(7)
+        });
+
+        expect(spawner.cycle('monster', 0)).toEqual([]);
+    });
+
+    it('leaves the mob room for its head', () => {
+        // Everything from y 0 up is rock, so the only legal draw is one whose own block and
+        // the one over it are both below that, which rules out y -1 as well as y 0.
+        const spawner = new Spawner({
+            rules: [ZOMBIE],
+            world: { ...dark, solid: (at: SpawnPosition) => at.y >= 0 },
+            random: seededRandom(7)
+        });
+
+        const spawned = spawner.cycle('monster', 0);
+        expect(spawned.length).toBeGreaterThan(0);
+        for (const request of spawned) expect(request.position.y).toBeLessThanOrEqual(-2);
+    });
+
+    it('takes a draw that landed in a cave', () => {
+        const spawner = new Spawner({
+            rules: [ZOMBIE],
+            world: { ...dark, solid: () => false },
+            random: seededRandom(7)
+        });
+
+        expect(spawner.cycle('monster', 0).length).toBeGreaterThan(0);
     });
 });

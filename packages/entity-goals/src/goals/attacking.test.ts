@@ -210,3 +210,37 @@ describe('minecraft:behavior.sonic_boom', () => {
         expect(world.hits).toEqual(['victim']);
     });
 });
+
+describe('minecraft:behavior.use_kinetic_weapon', () => {
+    it('leaves the melee attack its flags while the mob is on foot', () => {
+        // The adult zombie carries both, this one at priority 3 and the melee attack at 4,
+        // and both claim `move` and `look`. Starting on foot took those flags off the attack
+        // and left every zombie that had chosen a player standing still in front of them.
+        const victim = testMob('victim', { x: 6, y: 0, z: 0 });
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.use_kinetic_weapon': { priority: 3, approach_distance: 10 },
+                'minecraft:behavior.melee_box_attack': { priority: 4, speed_multiplier: 1.25 }
+            },
+            world: combatWorld(victim)
+        });
+
+        harness.tick();
+
+        expect(harness.running()).not.toContain('minecraft:behavior.use_kinetic_weapon');
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.melee_box_attack');
+    });
+
+    it('rides the target down once the mob is mounted', () => {
+        const victim = testMob('victim', { x: 6, y: 0, z: 0 });
+        const horse = testMob('horse', { x: 0, y: 0, z: 0 });
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.use_kinetic_weapon': { priority: 3, approach_distance: 10 } },
+            world: { ...combatWorld(victim), vehicle: () => horse }
+        });
+
+        harness.tick();
+
+        expect(harness.holderOf('move')).toBe('minecraft:behavior.use_kinetic_weapon');
+    });
+});

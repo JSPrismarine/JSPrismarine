@@ -118,6 +118,8 @@ const permissiveWorld = {
     light: () => 7,
     biomeTags: () => ['plains', 'overworld', 'ocean', 'monster', 'animal', 'nether', 'mesa'],
     biome: () => 'minecraft:plains',
+    // Hollow: nothing here is about where a draw landed.
+    solid: () => false,
     surfaceY: () => 64,
     minY: () => -64,
     players: () => [{ position: { x: 0, y: 64, z: 0 } }],

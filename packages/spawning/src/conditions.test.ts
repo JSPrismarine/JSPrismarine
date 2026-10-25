@@ -12,6 +12,8 @@ import type { SpawnPosition, SpawnSiteFlag, SpawnWorld } from './world';
 const baseWorld = {
     site: (flag: SpawnSiteFlag) => flag === 'surface',
     block: () => 'minecraft:stone',
+    // Hollow: the tests here are about conditions rather than about where a draw landed.
+    solid: () => false,
     surfaceY: () => 64,
     minY: () => -64,
     light: () => 15,

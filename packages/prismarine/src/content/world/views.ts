@@ -89,7 +89,7 @@ export const contentWorldViews = (
         itemActions: itemActionsOf(main(), content),
         lightView: lightViewOf(main(), content),
         engineWorld: engineWorldOf(main()),
-        spawnWorld: spawnWorldOf(main()),
+        spawnWorld: spawnWorldOf(main(), content),
         goalWorld: (entity) => aiOf(main()).goalWorld(entity),
         actuator: (entity) => aiOf(main()).actuator(entity),
         brainWorld: () => aiOf(main()).brainWorld(),
@@ -261,12 +261,23 @@ const engineWorldOf = (adapter: ServerWorldAdapter): WorldAccess => ({
  * answer omits it; a spawn rule's `is_biome` then refuses rather than
  * matching a biome the server guessed.
  */
-const spawnWorldOf = (adapter: ServerWorldAdapter): SpawnWorld => {
+const spawnWorldOf = (adapter: ServerWorldAdapter, content: ContentLookup): SpawnWorld => {
     const spawning = () => adapter.spawning ?? notWired('spawning', CONTENT_AREAS.entities)();
 
     return {
         site: (flag, at) => spawning().site(flag, at),
         block: (at) => adapter.blocks.get(at)?.identifier,
+        // Off the flattened solidity column rather than off a name list, so a pack's own
+        // block answers for itself. An unloaded position counts as solid: nothing may be
+        // spawned into a chunk the server cannot see.
+        solid: (at) => {
+            const block = adapter.blocks.get(at);
+            if (!block) return true;
+
+            const built = content();
+            const id = runtimeIdOf(built, block);
+            return id === undefined ? true : built.blocks.table.solid[id] === 1;
+        },
         light: (at) => adapter.blocks.light(at),
         biomeTags: (at) => adapter.blocks.biomeTags(at),
         surfaceY: (x, z) => adapter.blocks.surfaceY(x, z),
