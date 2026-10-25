@@ -187,6 +187,15 @@ export const fixtureDefinitions = (): Definitions =>
                 definitionOf('tags', 'item/minecraft:enchantable/mining_loot', {
                     values: ['minecraft:diamond_pickaxe']
                 })
+            ],
+            // The `enchantment` registry is tagged as well as the `item` one,
+            // and the two are not interchangeable: `in_enchanting_table` names
+            // enchantments and `enchantable/mining_loot` names items.
+            [
+                'enchantment/minecraft:in_enchanting_table',
+                definitionOf('tags', 'enchantment/minecraft:in_enchanting_table', {
+                    values: ['minecraft:fortune']
+                })
             ]
         ])
     });
