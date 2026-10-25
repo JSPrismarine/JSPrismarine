@@ -351,8 +351,6 @@ export class DataDrivenGenerator implements Generator {
             }
         }
 
-        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler);
-
         region.freezeSurfaceHeights();
         pipeline.surface.buildSurface({
             chunk: region.surfaceChunk(),
@@ -362,6 +360,10 @@ export class DataDrivenGenerator implements Generator {
             sampleContext: sampler.context,
             possibleBiomes: pipeline.possibleBiomes
         });
+
+        // Java's `terrain` status runs the fill, the surface materials and the carvers in that
+        // order, so a cave mouth cuts through finished grass rather than being paved over by it.
+        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler);
 
         return region;
     }
@@ -407,7 +409,10 @@ export class DataDrivenGenerator implements Generator {
      * Runs the cave and canyon carvers and opens what they marked.
      *
      * Java replaces a carved block with the aquifer's fluid state, falling back to cave air
-     * when the aquifer leaves the position open.
+     * when the aquifer leaves the position open. `carver/cave.json` reaches `y: 180`, so a
+     * tunnel can be marked where the terrain never put a block; Java's write is a no-op there
+     * and this skips it, because a cave-air block standing in the sky would raise the region's
+     * column ceiling and the surface pass reads that ceiling.
      */
     private carve(
         cx: number,
@@ -436,6 +441,7 @@ export class DataDrivenGenerator implements Generator {
                     const x = cx * 16 + localX;
                     const z = cz * 16 + localZ;
                     const existing = region.stateAt(x, y, z);
+                    if (pipeline.oracle.isAir(existing)) continue;
                     if (existing.name === BEDROCK || pipeline.oracle.fluid(existing) !== 'empty') continue;
 
                     const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
