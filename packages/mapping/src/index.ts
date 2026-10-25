@@ -9,6 +9,15 @@ export {
     type JavaBlockState,
     type JavaMappingResult
 } from './blockMapping';
+export {
+    bedrockBannerType,
+    bedrockDyeIndexOf,
+    bedrockSignTextColorOf,
+    isOminousBannerPattern,
+    javaBannerPatternToBedrock,
+    javaBannerPatternsWithBedrockCodes,
+    type BannerLayer
+} from './blockEntityContent';
 export { bedrockBlockStates, javaBlockStates, type BlockStateValue } from './blockStates';
 export {
     BEDROCK_ONLY_BLOCKS,
@@ -27,6 +36,7 @@ export {
 export { SERVER_SIDE_REGISTRIES, type ServerSideRegistry, type ServerSideRegistryId } from './packRegistries';
 export {
     BEDROCK_BIOME_LOSSES,
+    BLOCK_ENTITY_CONTENT_LOSSES,
     BLOCK_LOSSES,
     BLOCK_MERGES,
     BLOCK_STATE_LOSSES,
@@ -39,6 +49,8 @@ export {
     REGISTRY_LOSSES,
     UNTRANSLATED_REGISTRIES,
     type BedrockBiomeLoss,
+    type BlockEntityContentLoss,
+    type BlockEntityContentLossKind,
     type BlockLoss,
     type BlockMerge,
     type BlockPropertyRecovery,

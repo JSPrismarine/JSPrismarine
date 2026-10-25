@@ -1039,3 +1039,74 @@ export const UNTRANSLATED_REGISTRIES = [
         reference: `${NOTE} section 5`
     }
 ] as const satisfies readonly UntranslatedRegistry[];
+
+/** What a Java block entity's field runs into on the Bedrock side. */
+export type BlockEntityContentLossKind =
+    /** Bedrock has no tag for it, and nothing else on the block entity carries it. */
+    | 'unrepresentable'
+    /** Bedrock keeps a coarser form of the same fact, named in the reason. */
+    | 'coarsened'
+    /** Bedrock has the tag but only in a shape this server cannot resolve the Java value into. */
+    | 'unresolvable';
+
+/** A field of a Java block entity that does not reach the Bedrock block entity. */
+export interface BlockEntityContentLoss {
+    /** The Java block entity type, for example `minecraft:sign`. */
+    readonly javaType: string;
+    /** The Java NBT field that is dropped, as the saved compound spells it. */
+    readonly field: string;
+    readonly kind: BlockEntityContentLossKind;
+    readonly reason: string;
+    readonly reference: string;
+}
+
+/**
+ * The fields a Java block entity's contents lose on the way to a Bedrock one.
+ *
+ * `blockentity/javaBlockEntityContent.ts` in `@jsprismarine/prismarine` translates the rest:
+ * a banner's color and patterns, a sign's two faces, a decorated pot's four sherds, a vault's
+ * key, a spawner's mob and every container's stacks. These five are what it knowingly drops,
+ * and each is dropped because Bedrock has nowhere to put it rather than because nobody wrote
+ * the code.
+ *
+ * The counts in the reasons were measured over the 1511 Java 26.3 structure templates, which
+ * declare 1124 block entities once the jigsaws and structure blocks that are consumed during
+ * placement are set aside.
+ */
+export const BLOCK_ENTITY_CONTENT_LOSSES = [
+    {
+        javaType: 'minecraft:sign',
+        field: 'allow_op_features',
+        kind: 'unrepresentable',
+        reason: 'A Java sign may be allowed to run the click events an operator wrote into its text. Bedrock signs run nothing, so there is no flag to carry. All five signs in the structure templates set it.',
+        reference: `${NOTE} section 7`
+    },
+    {
+        javaType: 'minecraft:sign',
+        field: 'filtered_messages',
+        kind: 'unrepresentable',
+        reason: "Java keeps a second, profanity-filtered copy of a sign's four lines for Realms. A Bedrock sign face holds one string, so only the unfiltered copy travels. One template sign carries the second copy.",
+        reference: `${NOTE} section 7`
+    },
+    {
+        javaType: 'minecraft:furnace',
+        field: 'RecipesUsed',
+        kind: 'coarsened',
+        reason: 'Java tallies how many of each recipe a furnace smelted, to hand back the right experience. Bedrock keeps one number, `StoredXPInt`, and no recipe names. The 48 furnaces, blast furnaces and smokers in the templates carry the tally; one of them has anything in it.',
+        reference: `${NOTE} section 7`
+    },
+    {
+        javaType: 'minecraft:trial_spawner',
+        field: 'normal_config',
+        kind: 'unresolvable',
+        reason: "Java may write a trial spawner's two configurations as a reference into its `trial_spawner` registry, and all 14 in the templates do. Bedrock has no reference form and takes the configuration inline, so resolving one means reading the Java registry, which this server does not load. A configuration written inline translates.",
+        reference: `${NOTE} section 7`
+    },
+    {
+        javaType: 'minecraft:banner',
+        field: 'patterns',
+        kind: 'unrepresentable',
+        reason: 'Bedrock draws banner patterns from its own client assets and names them by a short code, so a pattern a datapack shipped has no code to be named by and the layer is dropped. Every pattern Java 26.3 publishes has one; no template uses a pattern that does not.',
+        reference: `${NOTE} section 5`
+    }
+] as const satisfies readonly BlockEntityContentLoss[];
