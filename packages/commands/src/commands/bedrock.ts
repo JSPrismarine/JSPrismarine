@@ -71,8 +71,20 @@ export const ENTITY_EQUIPMENT_SLOTS = [
     'slot.equippable'
 ] as const;
 
+/**
+ * The slots `/replaceitem block` addresses, as Mojang's `BlockEquipmentSlot`
+ * enum lists them.
+ *
+ * One value, and that is the whole enum. Whatever a block stores - a chest's
+ * 27, a furnace's three, a hopper's five - the client names the group
+ * `slot.container` and tells the slots apart by index.
+ */
+export const BLOCK_EQUIPMENT_SLOTS = ['slot.container'] as const;
+
 /** Registers the nine Bedrock-only commands. */
 export const registerBedrockCommands = (registry: CommandRegistry<CommandSource>): void => {
+    const content = registry.getContent();
+
     registry.register(
         lit('testfor').then(
             arg('victim', entityArgument()).executes(
@@ -89,7 +101,7 @@ export const registerBedrockCommands = (registry: CommandRegistry<CommandSource>
     registry.register(
         lit('testforblock').then(
             arg('position', blockPositionArgument()).then(
-                arg('tileName', resourceArgument('minecraft:block'))
+                arg('tileName', resourceArgument('minecraft:block', content.blocks))
                     .executes(command((context) => testForBlock(context, undefined)))
                     .then(
                         arg('blockStates', blockStatesArgument()).executes(
@@ -133,48 +145,65 @@ export const registerBedrockCommands = (registry: CommandRegistry<CommandSource>
 
     registerTitleRaw(registry);
 
-    registry.register(
-        lit('replaceitem').then(
-            lit('entity').then(
-                arg('target', entityArgument()).then(
-                    arg('slotType', enumArgument('EntityEquipmentSlot', ENTITY_EQUIPMENT_SLOTS)).then(
-                        arg('slotId', integerArgument({ min: 0 }))
-                            .then(
-                                arg('itemName', resourceArgument('minecraft:item'))
-                                    .executes(command((context) => replaceItem(context, 'replace', 1)))
-                                    .then(
-                                        arg('amount', integerArgument({ min: 1 })).executes(
-                                            command((context) =>
-                                                replaceItem(context, 'replace', value<number>(context, 'amount'))
-                                            )
-                                        )
+    /**
+     * The `<slotId> [oldItemHandling] <itemName> [amount]` tail both
+     * `/replaceitem` forms end in.
+     *
+     * One builder for the two, because Mojang's four overloads are these two
+     * tails over the two targets. Spelling them twice is how a form ends up
+     * existing on the entity and not on the block.
+     */
+    const replaceItemTail = (
+        deliver: (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number) => number
+    ) =>
+        arg('slotId', integerArgument({ min: 0 }))
+            .then(
+                arg('itemName', resourceArgument('minecraft:item', content.items))
+                    .executes(command((context) => deliver(context, 'replace', 1)))
+                    .then(
+                        arg('amount', integerArgument({ min: 1 })).executes(
+                            command((context) => deliver(context, 'replace', value<number>(context, 'amount')))
+                        )
+                    )
+            )
+            .then(
+                arg('oldItemHandling', enumArgument('ReplaceMode', ['destroy', 'keep'] as const)).then(
+                    arg('itemName', resourceArgument('minecraft:item', content.items))
+                        .executes(command((context) => deliver(context, value(context, 'oldItemHandling'), 1)))
+                        .then(
+                            arg('amount', integerArgument({ min: 1 })).executes(
+                                command((context) =>
+                                    deliver(
+                                        context,
+                                        value(context, 'oldItemHandling'),
+                                        value<number>(context, 'amount')
                                     )
-                            )
-                            .then(
-                                arg('oldItemHandling', enumArgument('ReplaceMode', ['destroy', 'keep'] as const)).then(
-                                    arg('itemName', resourceArgument('minecraft:item'))
-                                        .executes(
-                                            command((context) =>
-                                                replaceItem(context, value(context, 'oldItemHandling'), 1)
-                                            )
-                                        )
-                                        .then(
-                                            arg('amount', integerArgument({ min: 1 })).executes(
-                                                command((context) =>
-                                                    replaceItem(
-                                                        context,
-                                                        value(context, 'oldItemHandling'),
-                                                        value<number>(context, 'amount')
-                                                    )
-                                                )
-                                            )
-                                        )
                                 )
                             )
+                        )
+                )
+            );
+
+    registry.register(
+        lit('replaceitem')
+            .then(
+                lit('block').then(
+                    arg('position', blockPositionArgument()).then(
+                        arg('slotType', enumArgument('BlockEquipmentSlot', BLOCK_EQUIPMENT_SLOTS)).then(
+                            replaceItemTail(replaceItemInBlock)
+                        )
                     )
                 )
             )
-        ),
+            .then(
+                lit('entity').then(
+                    arg('target', entityArgument()).then(
+                        arg('slotType', enumArgument('EntityEquipmentSlot', ENTITY_EQUIPMENT_SLOTS)).then(
+                            replaceItemTail(replaceItemOnEntity)
+                        )
+                    )
+                )
+            ),
         { description: 'Replaces items in inventories.', ...CHEATS }
     );
 
@@ -351,17 +380,37 @@ const daylock = (context: Context, lock: boolean): number => {
     return report(current, set ? 1 : 0, `${lock ? 'Locked' : 'Unlocked'} the day-night cycle`);
 };
 
-const replaceItem = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number => {
+/** The slot and the stack both `/replaceitem` forms name, read off one context. */
+const replacement = (context: Context, amount: number) => ({
+    slot: {
+        name: value<string>(context, 'slotType'),
+        index: value<number>(context, 'slotId'),
+        count: amount
+    },
+    item: value<string>(context, 'itemName')
+});
+
+const replaceItemOnEntity = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number => {
     const current = source(context);
-    const slot = { name: value<string>(context, 'slotType'), index: value<number>(context, 'slotId') };
-    const item = value<string>(context, 'itemName');
+    const { slot, item } = replacement(context, amount);
 
     const replaced = select(current, value(context, 'target')).reduce(
-        (total, entity) =>
-            total +
-            current.host.data.setSlot({ kind: 'entity', entity }, { ...slot, count: amount }, item, amount, mode),
+        (total, entity) => total + current.host.data.setSlot({ kind: 'entity', entity }, slot, item, amount, mode),
         0
     );
+    return report(current, replaced, `Replaced ${replaced} items`);
+};
+
+const replaceItemInBlock = (context: Context, mode: 'destroy' | 'keep' | 'replace', amount: number): number => {
+    const current = source(context);
+    const { slot, item } = replacement(context, amount);
+    const target = {
+        kind: 'block',
+        dimension: current.dimension,
+        position: resolvePosition(value(context, 'position'), current)
+    } as const;
+
+    const replaced = current.host.data.setSlot(target, slot, item, amount, mode);
     return report(current, replaced, `Replaced ${replaced} items`);
 };
 

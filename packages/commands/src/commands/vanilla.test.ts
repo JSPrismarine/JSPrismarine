@@ -7,7 +7,8 @@ import { buildAvailableCommands } from '../packet';
 import { parseSelector } from '../selector';
 import type { TestCommandHostOverrides } from '../testing';
 import { testCommandHost, testEntity } from '../testing';
-import type { CommandRegistry } from '../tree';
+import type { ContentRegistryIds } from '../tree';
+import { CommandRegistry } from '../tree';
 import { EXECUTE_CONDITIONS, EXECUTE_ON_RELATIONS, EXECUTE_STORE_TARGETS, EXECUTE_SUBCOMMANDS } from './execute';
 import {
     BEDROCK_ONLY_COMMAND_NAMES,
@@ -20,10 +21,12 @@ import {
 const run = (
     line: string,
     overrides: TestCommandHostOverrides = {},
-    extra: { entity?: EntityRef; feedback?: string[] } = {}
+    extra: { entity?: EntityRef; feedback?: string[]; content?: ContentRegistryIds } = {}
 ): { results: unknown[]; host: CommandHost; registry: CommandRegistry<CommandSource> } => {
     const host = testCommandHost(overrides);
-    const registry = registerVanillaCommands();
+    const registry = registerVanillaCommands(
+        extra.content === undefined ? undefined : new CommandRegistry<CommandSource>({ content: extra.content })
+    );
     const source = createCommandSource({
         host,
         ...(extra.entity === undefined ? {} : { entity: extra.entity }),
@@ -94,6 +97,79 @@ describe('the entity commands', () => {
 
         expect(summoned).toEqual([{ type: 'minecraft:pig', position: { x: 5, y: 0, z: -2 } }]);
         expect(results).toEqual([1]);
+    });
+
+    describe('a registry argument against the content the host loaded', () => {
+        const content = {
+            entityTypes: ['minecraft:pig', 'minecraft:villager_v2', 'mypack:dragon'],
+            blocks: ['minecraft:stone', 'mypack:brass_block'],
+            items: ['minecraft:stick', 'mypack:wrench'],
+            enchantments: ['minecraft:sharpness', 'mypack:keen']
+        } satisfies ContentRegistryIds;
+
+        /** Summons through a host that reports what it was handed. */
+        const summon = (line: string) => {
+            const types: string[] = [];
+            run(
+                line,
+                {
+                    entities: {
+                        summon: (type) => {
+                            types.push(type);
+                            return pig;
+                        }
+                    }
+                },
+                { content }
+            );
+            return types;
+        };
+
+        it('accepts a pack entity Mojang never published, with its namespace kept', () => {
+            // The bug: `mypack:dragon` failed at parse against the frozen
+            // 229-entry `EntityType` enum, for an entity the host can spawn.
+            expect(summon('summon mypack:dragon 0 0 0')).toEqual(['mypack:dragon']);
+        });
+
+        it('still accepts a vanilla name the content build does not list', () => {
+            // Mojang's list is added to, not replaced, so a build that omits
+            // a vanilla entity does not make it unspellable.
+            expect(summon('summon minecraft:creeper 0 0 0')).toEqual(['minecraft:creeper']);
+            expect(summon('summon creeper 0 0 0')).toEqual(['minecraft:creeper']);
+        });
+
+        it('accepts a loaded id written without its namespace', () => {
+            expect(summon('summon villager_v2 0 0 0')).toEqual(['minecraft:villager_v2']);
+        });
+
+        it('still refuses a name neither list holds', () => {
+            expect(() => summon('summon mypack:absent 0 0 0')).toThrow('is not in the minecraft:entity_type registry');
+        });
+
+        it("offers the pack ids to the client on top of Mojang's enum", () => {
+            const registry = registerVanillaCommands(new CommandRegistry<CommandSource>({ content }));
+            const summonCommand = flattenCommandTree(registry).commands.find((entry) => entry.name === 'summon');
+            const parameter = summonCommand?.overloads[0]?.parameters[0];
+
+            expect(parameter?.shape.kind).toBe('enum');
+            const values = parameter?.shape.kind === 'enum' ? parameter.shape.values : [];
+            expect(values).toContain('mypack:dragon');
+            expect(values).toContain('pig');
+            // Added once: a loaded id Mojang already publishes is not doubled.
+            expect(values.filter((value) => value === 'minecraft:pig')).toHaveLength(1);
+        });
+
+        it('reaches the block, item and enchantment arguments too', () => {
+            const withPlayer = { entities: { select: () => [testEntity()] } } satisfies TestCommandHostOverrides;
+
+            // Each line is refused without the content and parses with it,
+            // which is the whole of what threading the ids changes.
+            for (const line of ['setblock 0 0 0 mypack:brass_block', 'give @a mypack:wrench', 'enchant @a mypack:keen'])
+                expect(() => run(line, withPlayer), line).toThrow('registry');
+
+            for (const line of ['setblock 0 0 0 mypack:brass_block', 'give @a mypack:wrench', 'enchant @a mypack:keen'])
+                expect(() => run(line, withPlayer, { content }), line).not.toThrow();
+        });
     });
 
     it('/give passes the count and the data value through', () => {

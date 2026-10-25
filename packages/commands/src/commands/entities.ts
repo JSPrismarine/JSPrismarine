@@ -46,9 +46,11 @@ const CHEATS = {
 
 /** Registers the 13 entity commands. */
 export const registerEntityCommands = (registry: CommandRegistry<CommandSource>): void => {
+    const content = registry.getContent();
+
     registry.register(
         lit('summon').then(
-            arg('entity', resourceArgument('minecraft:entity_type'))
+            arg('entity', resourceArgument('minecraft:entity_type', content.entityTypes))
                 .executes(
                     command((context) => {
                         const current = source(context);
@@ -246,7 +248,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
     registry.register(
         lit('enchant').then(
             arg('targets', entityArgument()).then(
-                arg('enchantment', resourceArgument('minecraft:enchantment'))
+                arg('enchantment', resourceArgument('minecraft:enchantment', content.enchantments))
                     .executes(command((context) => enchant(context, 1)))
                     .then(
                         arg('level', integerArgument({ min: 1 })).executes(
@@ -288,7 +290,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
     registry.register(
         lit('give').then(
             arg('targets', entityArgument()).then(
-                arg('item', resourceArgument('minecraft:item'))
+                arg('item', resourceArgument('minecraft:item', content.items))
                     .executes(command((context) => give(context, 1, 0)))
                     .then(
                         arg('amount', integerArgument({ min: 1 }))
@@ -313,7 +315,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                 arg('targets', entityArgument())
                     .executes(command((context) => clear(context, undefined, Number.POSITIVE_INFINITY)))
                     .then(
-                        arg('item', resourceArgument('minecraft:item'))
+                        arg('item', resourceArgument('minecraft:item', content.items))
                             .executes(
                                 command((context) =>
                                     clear(context, value<string>(context, 'item'), Number.POSITIVE_INFINITY)

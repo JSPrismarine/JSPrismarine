@@ -37,7 +37,7 @@ import {
     stringArgument
 } from '../argumentTypes';
 import type { CommandSource, DataTarget, EntityRelation, Vector3 } from '../host';
-import type { CommandRegistry } from '../tree';
+import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
     anchorArgument,
@@ -114,6 +114,7 @@ const positionAt = (context: Context, name: string): Vector3 => resolvePosition(
  * @returns The root node, so a caller can hang more subcommands off it.
  */
 export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
+    const content = registry.getContent();
     const root = registry.register(lit('execute'), {
         description: 'Runs a command with a changed source, position, rotation or dimension.',
         permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
@@ -317,7 +318,7 @@ export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
     root.addChild(
         lit('summon')
             .then(
-                arg('entity', resourceArgument('minecraft:entity_type')).redirect(root, {
+                arg('entity', resourceArgument('minecraft:entity_type', content.entityTypes)).redirect(root, {
                     apply: (context) => {
                         const current = source(context);
                         const summoned = current.host.entities.summon(
@@ -344,8 +345,8 @@ export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
             .build()
     );
 
-    root.addChild(buildConditions(root, 'if'));
-    root.addChild(buildConditions(root, 'unless'));
+    root.addChild(buildConditions(root, 'if', content));
+    root.addChild(buildConditions(root, 'unless', content));
     root.addChild(buildStore(root));
 
     return root;
@@ -365,7 +366,11 @@ const dataTargetOf = (context: Context, kind: 'block' | 'entity' | 'storage'): D
     return { kind, id: value(context, 'source') };
 };
 
-const buildConditions = (root: ReturnType<CommandRegistry<CommandSource>['register']>, keyword: 'if' | 'unless') => {
+const buildConditions = (
+    root: ReturnType<CommandRegistry<CommandSource>['register']>,
+    keyword: 'if' | 'unless',
+    content: ContentRegistryIds
+) => {
     const positive = keyword === 'if';
     const node = lit(keyword);
 
@@ -396,7 +401,7 @@ const buildConditions = (root: ReturnType<CommandRegistry<CommandSource>['regist
     node.then(
         lit('block').then(
             arg('pos', blockPositionArgument()).then(
-                attach(arg('block', resourceArgument('minecraft:block')), (context) => {
+                attach(arg('block', resourceArgument('minecraft:block', content.blocks)), (context) => {
                     const current = source(context);
                     const found = current.host.world.getBlock(current.dimension, positionAt(context, 'pos'));
                     return found?.identifier === value<string>(context, 'block');

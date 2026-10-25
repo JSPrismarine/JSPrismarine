@@ -48,8 +48,21 @@ sends Mojang's own `Item` enum, all 3411 values of it, rather than an unvalidate
 same holds for `minecraft:block`, `minecraft:entity_type`, `minecraft:mob_effect`,
 `minecraft:enchantment`, `minecraft:damage_type` and `minecraft:biome`. Mojang's lists are
 unnamespaced where Java's commands take a full id, so both spellings parse and a command body is
-always handed the id. A registry Bedrock publishes no enum for still degrades to a string, and a
-caller that can enumerate its own contents - a server running content packs - passes them instead.
+always handed the id. A registry Bedrock publishes no enum for still degrades to a string.
+
+Mojang's list is frozen at the version the table was generated from, which makes it the wrong
+thing to validate against on its own once content packs are loaded: `/summon mypack:dragon` would
+be refused at parse for an entity the host can spawn. A caller that can enumerate its own
+registries passes them as `CommandRegistryOptions.content`, and the two lists are accepted
+together. Added rather than substituted, for two reasons: a host whose build omits a vanilla id
+should not make that id unspellable, and Mojang's list is what a Bedrock client completes from.
+The client is offered the union, so a pack's own ids autocomplete too.
+
+`ContentRegistryIds` names the four registries this applies to: entity types, blocks, items and
+enchantments. They are the registries a host verb resolves an id against and a pack can extend.
+`minecraft:damage_type` and `minecraft:mob_effect` stay pinned to Mojang's enum because no host
+here keeps a registry for either, and `minecraft:attribute`, `minecraft:particle_type` and
+`minecraft:worldgen/biome` are unvalidated already, Bedrock publishing no enum for any of them.
 
 ## The command tree, and what flattening it costs
 
