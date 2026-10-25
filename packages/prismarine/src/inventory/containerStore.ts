@@ -18,17 +18,18 @@
  * array away rather than undoing steps - and it is also what keeps two players at one chest from
  * corrupting each other: each request starts from what is in the block now.
  *
- * What a block entity carries per slot is an identifier and a count, which is all
- * `@jsprismarine/block-behaviors` models and all `blockentity/contentRecord.ts` writes. A stack
- * put into a chest therefore keeps its name and how many there are, and loses its enchantments,
- * its damage and any name an anvil gave it. That is a gap in the record shape rather than in this
- * module.
+ * A slot carries the whole stack and not just its name: `ItemDrop` in
+ * `@jsprismarine/block-behaviors` holds the enchantments, the durability spent, an anvil name,
+ * lore and a container item's own contents, and `blockentity/contentRecord.ts` writes all of it
+ * into Bedrock's item compound. So an enchanted pickaxe put in a chest is an enchanted pickaxe
+ * when it comes back out, which it was not while a slot was an identifier and a count.
  */
 import { slotsOf, pairedPosition } from '@jsprismarine/block-behaviors';
 import type { WorldActions } from '@jsprismarine/block-behaviors';
 
 import ContainerEntry from './ContainerEntry';
 import type Inventory from './Inventory';
+import { itemDropOf, restoredItem, storedItem, storedItemDrop } from './persistence';
 import { Item } from '../item/Item';
 import type Player from '../Player';
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
@@ -69,14 +70,15 @@ const itemOf = (held: RecordItem | undefined, content: ServerContent): Item | nu
     if (held === undefined) return null;
     if (!content.items.registry.has(held.identifier)) return null;
 
-    return new Item({ name: held.identifier, count: held.count, content });
+    return restoredItem(storedItemDrop(held), content);
 };
 
 /** One stack as the record carries one, or undefined for an empty slot. */
 const recordItemOf = (item: Item | null): RecordItem | undefined => {
-    if (item === null || item.getName() === 'minecraft:air' || item.getAmount() <= 0) return undefined;
+    if (item === null) return undefined;
 
-    return { identifier: item.getName(), count: item.getAmount() };
+    const stored = storedItem(item);
+    return stored === null ? undefined : itemDropOf(stored);
 };
 
 /** An inventory slot's stack, with the empty one reported as empty rather than as air. */
@@ -189,6 +191,36 @@ export const openContainerSlots = (
             dirty = false;
         }
     };
+};
+
+/**
+ * Puts what a container item was holding into the block it just placed.
+ *
+ * A shulker box carries its slots with it, so breaking one and putting it back down has to
+ * give the block the same items back. The block's own family cannot do it: `onPlace` reads
+ * the item's declared components, and what the stack is carrying is on the stack rather than
+ * on its type. So the family gives the block an empty record and this writes over it.
+ *
+ * Does nothing for a stack holding nothing, which is every item but a filled container.
+ *
+ * @param at - Where the block went down.
+ * @param identifier - The block standing there, which decides how many slots it has.
+ * @param placed - The stack that placed it.
+ */
+export const restorePlacedContents = (
+    world: WorldActions,
+    at: ContentPosition,
+    identifier: string,
+    placed: Item
+): void => {
+    const contents = placed.getContents();
+    if (contents.length === 0) return;
+
+    const per = slotsOf(identifier);
+    if (per === 0) return;
+
+    const items = Array.from({ length: per }, (_unused, slot) => recordItemOf(contents[slot] ?? null));
+    world.setBlockData(at, { ...world.getBlockData(at), items, capacity: per });
 };
 
 /**

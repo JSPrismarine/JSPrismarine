@@ -7,23 +7,25 @@
  * has seen. Neither shape can be derived from the other, so this module states the mapping.
  *
  * A container's `items` becomes Bedrock's own `Items` list, so a chest filled by a behavior is
- * the same compound a vanilla tool reads and the client is sent. Every other field of the record
- * is JSON under one string tag, {@link CONTENT_DATA_TAG}, because Bedrock has no schema for them
- * and inventing an NBT width per field would lose the difference between 1 and 1.0 on the way
- * back. Anything the compound already carried is left where it is, which is the rule
- * {@link BlockEntity} is built around: a world is full of tags this server does not model.
+ * the same compound a vanilla tool reads and the client is sent. `inventory/itemNbt.ts` states
+ * what one stack in that list looks like, and a player data record writes its stacks through
+ * the same module: a chest and a player's own inventory keep enchantments, durability, an
+ * anvil name and lore the same way. Every other field of the record is JSON under one string
+ * tag, {@link CONTENT_DATA_TAG}, because Bedrock has no schema for them and inventing an NBT
+ * width per field would lose the difference between 1 and 1.0 on the way back. Anything the
+ * compound already carried is left where it is, which is the rule {@link BlockEntity} is built
+ * around: a world is full of tags this server does not model.
  */
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import type { BlockEntityData, ContentPosition } from '../content/world/adapter';
+import { ITEMS_TAG, itemSlotsFromNbt, itemSlotsToNbt } from '../inventory/itemNbt';
+import { itemDropOf, storedItemDrop } from '../inventory/persistence';
 import type { BlockEntity } from './BlockEntity';
 import { BlockEntityRegistry } from './BlockEntityRegistry';
 
 /** The tag holding every field of a record that `Items` does not cover, as JSON. */
 export const CONTENT_DATA_TAG = 'jsprismarine:data';
-
-/** Bedrock's own container list, which `items` maps onto. */
-const ITEMS_TAG = 'Items';
 
 /**
  * The record field the container family records a chest's other half under, and Bedrock's own
@@ -45,21 +47,9 @@ type RecordFields = Record<string, unknown>;
 
 /** The slots of a container, read back out of Bedrock's `Items` list. */
 const itemsFromNbt = (nbt: NBTTagCompound, capacity: number): readonly (RecordItem | undefined)[] | undefined => {
-    const list = nbt.getList(ITEMS_TAG, false);
-    if (list === null) return undefined;
+    if (nbt.getList(ITEMS_TAG, false) === null) return undefined;
 
-    const placed: { slot: number; item: RecordItem }[] = [];
-    for (const entry of list) {
-        if (!(entry instanceof NBTTagCompound)) continue;
-
-        const identifier = entry.getString('Name', '');
-        if (identifier === '') continue;
-
-        placed.push({
-            slot: entry.getByte('Slot', placed.length),
-            item: { identifier, count: entry.getByte('Count', 1) }
-        });
-    }
+    const placed = itemSlotsFromNbt(nbt, ITEMS_TAG);
 
     // Vanilla writes only the filled slots, so the list length is not the slot count. The record
     // is sparse by slot index, and its length is the capacity when the record states one.
@@ -67,28 +57,14 @@ const itemsFromNbt = (nbt: NBTTagCompound, capacity: number): readonly (RecordIt
     for (const { slot } of placed) size = Math.max(size, slot + 1);
 
     const items = new Array<RecordItem | undefined>(size).fill(undefined);
-    for (const { slot, item } of placed) items[slot] = item;
+    for (const { slot, stack } of placed) items[slot] = itemDropOf(stack);
 
     return items;
 };
 
 /** Bedrock's `Items` list for the slots a record holds, with the empty ones left out. */
-const itemsToNbt = (items: readonly (RecordItem | undefined)[]): Set<NBTTagCompound> => {
-    const list = new Set<NBTTagCompound>();
-
-    items.forEach((item, slot) => {
-        if (item === undefined) return;
-
-        const entry = new NBTTagCompound('');
-        entry.addValue('Name', new Types.StringVal(item.identifier));
-        entry.addValue('Count', new Types.ByteVal(item.count));
-        entry.addValue('Damage', new Types.ShortVal(0));
-        entry.addValue('Slot', new Types.ByteVal(slot));
-        list.add(entry);
-    });
-
-    return list;
-};
+const itemsToNbt = (items: readonly (RecordItem | undefined)[]): Set<NBTTagCompound> =>
+    itemSlotsToNbt(items.map((item) => (item === undefined ? null : storedItemDrop(item))));
 
 /** The fields under {@link CONTENT_DATA_TAG}, or nothing when the tag is absent or malformed. */
 const fieldsFromNbt = (nbt: NBTTagCompound): RecordFields => {

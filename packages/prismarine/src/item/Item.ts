@@ -45,6 +45,13 @@ export interface ItemProps {
     customName?: string;
     /** The lines an item modifier wrote under the name. */
     lore?: readonly string[];
+    /**
+     * What a container item holds, one entry per slot and null for an empty one.
+     *
+     * Java's `minecraft:container`. A shulker box carries its whole inventory here between
+     * being broken and being placed again.
+     */
+    contents?: readonly (Item | null)[];
 }
 
 /** A player's own base attack damage, which an item modifies rather than replaces. */
@@ -138,7 +145,27 @@ export class Item {
     private readonly customName: string | undefined;
     private readonly loreLines: readonly string[];
 
-    public constructor({ id, name, meta, count, blockRuntimeId, content, enchantments, customName, lore }: ItemProps) {
+    /**
+     * The stack's `minecraft:container`, which is empty for all but a shulker box.
+     *
+     * A list of stacks rather than a record shape, because a shulker box in a player's hand
+     * is holding the same things an open chest is: whatever the slots were left with, with
+     * their own enchantments and names on them.
+     */
+    private readonly heldContents: readonly (Item | null)[];
+
+    public constructor({
+        id,
+        name,
+        meta,
+        count,
+        blockRuntimeId,
+        content,
+        enchantments,
+        customName,
+        lore,
+        contents
+    }: ItemProps) {
         this.name = name;
         this.legacyId = id ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
@@ -146,6 +173,7 @@ export class Item {
         this.enchantmentLevels = enchantmentMap(enchantments);
         this.customName = customName === '' ? undefined : customName;
         this.loreLines = lore === undefined ? [] : [...lore];
+        this.heldContents = contents === undefined ? [] : [...contents];
         if (meta) this.meta = meta;
         // Declared by `ItemProps` but silently dropped until 2168, so a stack read off the
         // wire came back as one item however many the client said it held.
@@ -288,6 +316,24 @@ export class Item {
     }
 
     /**
+     * What this stack holds inside it, one entry per slot and null for an empty one.
+     *
+     * Empty for everything but a container item, which today is the shulker box.
+     */
+    public getContents(): readonly (Item | null)[] {
+        return this.heldContents;
+    }
+
+    /**
+     * A copy of this stack holding different contents.
+     *
+     * @param contents - One entry per slot, null for an empty one.
+     */
+    public withContents(contents: readonly (Item | null)[]): Item {
+        return this.copyWith({ contents });
+    }
+
+    /**
      * A copy of this stack carrying a different enchantment set.
      *
      * A copy rather than a mutation: the anvil and the enchanting table both
@@ -319,6 +365,7 @@ export class Item {
             enchantments: this.enchantmentLevels,
             customName: this.customName,
             lore: this.loreLines,
+            contents: this.heldContents,
             ...changes
         });
         copy.durability = this.durability;
