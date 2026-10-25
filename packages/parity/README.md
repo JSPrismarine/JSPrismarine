@@ -21,7 +21,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `items.*` | components | Java's 1658 items and 122 component types against the Bedrock item capture |
 | `recipes.*` | registry | Java's 2042 recipe files, parsed and compiled through the mapping |
 | `loot.*` | tables | Java's 1447 loot tables, parsed with their references resolved |
-| `entities.*` | stats, addactor | Mob health against Java's attribute dump; a packet row per advertised actor |
+| `entities.*` | stats, addactor | All nine shared mob stats against Java's attribute dump; a packet row per advertised actor |
 | `worldgen.*` | biomes, terrain, features | Java's biome lookups and dumped columns; feature counts are not measured |
 | `commands.*` | tree | The published command tree against Mojang's Bedrock command metadata |
 | `conformance.*` | claim, classification, exclusions | The claim, the table it counts, and the eight exclusions |
@@ -52,6 +52,13 @@ in their own column, and a family carrying one reads `defects` rather than `gree
 
 The reviewed losses of `@jsprismarine/mapping` become allow-list rows automatically, derived
 from that package's own loss list, which is what plan section 5 asks for.
+
+The entity stat rows work the same way. Which edition decides a stat is settled in
+[ADR 0001](../../docs/adr/0001-entity-stat-authority.md) and held in
+`@jsprismarine/entities`; `statRuling` turns a measured disagreement into a verdict and a
+reason, and `allowlist.ts` builds the row from that. A `bedrock` or `exception` ruling is an
+accepted gap, a `java` ruling is a defect, and the allow-list test fails if a row's kind or
+reason drifts from what the decision says.
 
 ## The dashboard
 

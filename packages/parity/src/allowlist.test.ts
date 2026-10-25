@@ -1,3 +1,5 @@
+import type { SharedStat } from '@jsprismarine/entities';
+import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from '@jsprismarine/entities';
 import { BLOCK_LOSSES, BLOCK_MERGES } from '@jsprismarine/mapping';
 import { describe, expect, it } from 'vitest';
 
@@ -36,6 +38,33 @@ describe('allow list', () => {
 
     it('gives every entry a kind, so a defect never reads as an accepted gap', () => {
         for (const entry of allowList) expect(['accepted', 'defect']).toContain(entry.kind);
+    });
+
+    it('takes every entity stat verdict from the decision rather than restating it', () => {
+        // The id is `<stat>:<identifier>`, and the stat has to be one the decision knows, or
+        // `statRuling` would read an authority that is not there.
+        const isSharedStat = (value: string): value is SharedStat => value in SHARED_STATS;
+        const stats = allowList.filter((entry) => entry.family === FAMILIES.entitiesStats);
+
+        expect(stats.length).toBeGreaterThan(0);
+        for (const entry of stats) {
+            const divider = entry.id.indexOf(':');
+            const stat = entry.id.slice(0, divider);
+            expect(isSharedStat(stat), entry.id).toBe(true);
+            if (!isSharedStat(stat)) continue;
+
+            const ruling = statRuling(entry.id.slice(divider + 1), stat);
+            expect(entry.kind, entry.id).toBe(ruling.kind === 'java' ? 'defect' : 'accepted');
+            if (ruling.kind !== 'java') expect(entry.reason, entry.id).toBe(ruling.reason);
+        }
+    });
+
+    it('carries every reviewed stat exception as its own row', () => {
+        const ids = new Set(
+            allowList.filter((entry) => entry.family === FAMILIES.entitiesStats).map((entry) => entry.id)
+        );
+
+        for (const row of JAVA_STAT_EXCEPTIONS) expect(ids).toContain(`${row.stat}:${row.identifier}`);
     });
 
     it('reports an entry whose gap closed as stale', () => {

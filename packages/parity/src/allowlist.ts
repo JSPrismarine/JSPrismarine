@@ -1,6 +1,9 @@
-// The loss list is imported through its own module rather than the package index, because
-// `scripts/dashboard.ts` runs under plain node, and the index re-exports its siblings without
-// file extensions. `lossList.ts` imports nothing, so node and NodeNext both resolve it.
+// Both decision modules are imported through their own leaf module rather than the package
+// index, because `scripts/dashboard.ts` runs under plain node, and an index re-exports its
+// siblings without file extensions. Neither leaf imports a value, so node and NodeNext both
+// resolve them.
+import type { SharedStat } from '@jsprismarine/entities/javaStats';
+import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
 import {
     BLOCK_LOSSES,
     BLOCK_MERGES,
@@ -109,38 +112,104 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
     }))
 ];
 
-/**
- * The mobs whose health neither edition reads off the attribute base.
- *
- * Java's supplier gives a horse 53 and then draws its real health between 15 and 30 at spawn;
- * Bedrock writes the same draw as a range in the entity file. Comparing the two bases compares
- * two numbers no horse ever has.
- */
-const randomizedHealthEntries = (): readonly AllowListEntry[] =>
-    ['minecraft:donkey', 'minecraft:horse', 'minecraft:llama', 'minecraft:mule', 'minecraft:trader_llama'].map(
-        (bedrockId) => ({
-            family: 'entities.stats' as const,
-            id: `health:${bedrockId}`,
-            kind: 'accepted' as const,
-            reason: 'Both editions draw the health of a horse-like mob at spawn, so neither base is its health.',
-            reference: 'bedrock-samples 1.26.50.4 entities/horse.json, which writes the draw as a range'
-        })
-    );
+/** Where the entity stat decision is written down, cited by every row derived from it. */
+const STAT_DECISION = 'docs/adr/0001-entity-stat-authority.md, and decision 11 of docs/plans/data-driven-vanilla.md';
 
 /**
- * The mobs whose health follows their size, written as one component group per size.
+ * The entity and stat pairs the two editions still disagree on after the server has applied
+ * the stat decision: one stat, then the `minecraft:` names it differs on, separated by spaces.
  *
- * Spawning the type picks one group, so the comparison sees that group's health against Java's
- * single supplier base. Java computes the same health from the size at spawn instead.
+ * This is measured output, not a ruling. Which mobs differ is what the comparison found;
+ * `statRuling` supplies the verdict and the reason for each one. Every pair here falls under a
+ * stat the decision gives to Bedrock, so the whole group is one categorical accept - the client
+ * predicts the movement speeds and draws the hitbox, so Bedrock's number is the one that cannot
+ * desync. `jump_strength` is the one Bedrock-decided stat with no row, because the two editions
+ * already agree on every mount.
+ *
+ * The list is exact in both directions: `checkAllowList` fails on a pair that is not here and
+ * on one here that has stopped differing, so a Mojang retune lands as a reviewed edit rather
+ * than being absorbed.
  */
-const sizedHealthEntries = (): readonly AllowListEntry[] =>
-    ['minecraft:magma_cube', 'minecraft:slime', 'minecraft:sulfur_cube'].map((bedrockId) => ({
-        family: 'entities.stats' as const,
-        id: `health:${bedrockId}`,
-        kind: 'accepted' as const,
-        reason: 'Health follows the size in both editions; Bedrock writes one component group per size.',
-        reference: 'bedrock-samples 1.26.50.4 entities/slime.json, which declares 16, 4 and 1'
-    }));
+const BEDROCK_DECIDED_DISAGREEMENTS = [
+    [
+        'movement_speed',
+        'axolotl bat breeze cod cow creeper dolphin ender_dragon frog ghast glow_squid goat guardian ' +
+            'happy_ghast horse llama magma_cube mooshroom nautilus parrot phantom piglin pufferfish ravager ' +
+            'salmon sheep shulker slime sniffer squid strider sulfur_cube tadpole trader_llama tropicalfish ' +
+            'turtle vex wandering_trader wither zoglin zombie_horse zombie_nautilus'
+    ],
+    ['flying_speed', 'bee happy_ghast'],
+    [
+        'width',
+        'blaze chicken cod copper_golem donkey elder_guardian ender_dragon ghast hoglin horse mule piglin ' +
+            'pufferfish rabbit salmon skeleton_horse snow_golem tadpole tropicalfish villager_v2 wither ' +
+            'wither_skeleton zoglin zombie_horse'
+    ],
+    [
+        'height',
+        'bogged chicken cow creeper donkey drowned elder_guardian ender_dragon evocation_illager frog ' +
+            'husk iron_golem mooshroom parched parrot piglin piglin_brute pillager pufferfish rabbit salmon ' +
+            'skeleton snow_golem stray tadpole villager_v2 vindicator wandering_trader witch wither ' +
+            'wither_skeleton wolf zombie zombie_pigman zombie_villager_v2'
+    ]
+] as const satisfies readonly (readonly [SharedStat, string])[];
+
+/**
+ * The stats the server still runs on Bedrock's number inside a stat Java decides, and the
+ * decision does not excuse.
+ *
+ * Both are a Bedrock entity whose identifier is the legacy one. `javaAttributeBases` looks the
+ * entity up in the Java dump by the identifier it spawned under, and the dump is keyed by
+ * Java's name, so `minecraft:evocation_illager` finds no row where `minecraft:evoker` would and
+ * keeps the pack's follow range. The four legacy-named types are the ones
+ * `javaEntityTypeToBedrock` renames, which is why this row sees the defect and the entity
+ * package's own corpus test, which looks the pack up directly, does not.
+ */
+const LEGACY_ID_STAT_DEFECTS = [
+    ['minecraft:evocation_illager', 'follow_range'],
+    ['minecraft:villager_v2', 'follow_range']
+] as const satisfies readonly (readonly [string, SharedStat])[];
+
+/**
+ * One entity stat gap, with the kind and the reason taken from the decision rather than
+ * restated here.
+ *
+ * A `bedrock` or `exception` ruling is an accepted divergence and carries the decision's own
+ * reason. A `java` ruling means the server should be running Java's number and is not, so the
+ * row is a defect and `note` says what went wrong.
+ */
+const statEntry = (identifier: string, stat: SharedStat, note?: string): AllowListEntry => {
+    const ruling = statRuling(identifier, stat);
+    return {
+        family: 'entities.stats',
+        id: `${stat}:${identifier}`,
+        kind: ruling.kind === 'java' ? 'defect' : 'accepted',
+        reason: ruling.kind === 'java' ? (note ?? ruling.reason) : ruling.reason,
+        reference: STAT_DECISION
+    };
+};
+
+/**
+ * Every entity stat row on the dashboard: the stats Bedrock decides, the reviewed exceptions
+ * that keep Bedrock's value inside a Java-decided stat, and the defects that keep it without a
+ * reason.
+ *
+ * The exceptions come straight from `JAVA_STAT_EXCEPTIONS`, so a row added to the decision
+ * appears on the dashboard in the same change.
+ */
+const entityStatEntries = (): readonly AllowListEntry[] => [
+    ...BEDROCK_DECIDED_DISAGREEMENTS.flatMap(([stat, names]) =>
+        names.split(' ').map((name) => statEntry(`minecraft:${name}`, stat))
+    ),
+    ...JAVA_STAT_EXCEPTIONS.map((row) => statEntry(row.identifier, row.stat)),
+    ...LEGACY_ID_STAT_DEFECTS.map(([identifier, stat]) =>
+        statEntry(
+            identifier,
+            stat,
+            `The Java stat table is keyed by Java's identifier, and this entity spawns under Bedrock's legacy one, so the override never finds its row and the pack's ${stat.replace('_', ' ')} stands.`
+        )
+    )
+];
 
 /**
  * Advertised actor types Mojang's behavior pack defines no entity file for.
@@ -266,30 +335,7 @@ export const allowList: readonly AllowListEntry[] = [
 
     ...engineActorEntries(),
     ...bodilessActorEntries(),
-    ...randomizedHealthEntries(),
-    ...sizedHealthEntries(),
-    {
-        family: 'entities.stats',
-        id: 'no-health:minecraft:player',
-        kind: 'accepted',
-        reason: "Mojang's player.json declares no health component; the server owns a player's health.",
-        reference: 'bedrock-samples 1.26.50.4 entities/player.json'
-    },
-    {
-        family: 'entities.stats',
-        id: 'health:minecraft:armor_stand',
-        kind: 'defect',
-        reason: "Bedrock's armor stand has 6 health where Java's has 20. The amount of damage an armor stand takes is server-decided and invisible, so the claim covers it and the row should take Java's value.",
-        reference: 'docs/research/edition-behavior-differences.md section 13'
-    },
-    {
-        family: 'entities.stats',
-        id: 'health:minecraft:wither',
-        kind: 'defect',
-        reason: "Bedrock's wither has 600 health where Java's has 300. Boss health is server-decided, so the claim covers it and the row should take Java's value.",
-        reference: 'docs/research/edition-behavior-differences.md section 13'
-    },
-
+    ...entityStatEntries(),
     ...mappingLossEntries()
 ];
 
