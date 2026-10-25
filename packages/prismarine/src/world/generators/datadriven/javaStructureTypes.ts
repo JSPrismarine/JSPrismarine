@@ -8,6 +8,7 @@
 import { buildJigsawStructure } from './javaStructureJigsaw';
 import { buildIgloo, buildNetherFossil, buildOceanRuin, buildShipwreck } from './javaStructureLegacyTemplates';
 import { buildRuinedPortal } from './javaStructureRuinedPortal';
+import { buildBuriedTreasure, buildDesertPyramid, buildJungleTemple, buildSwampHut } from './javaStructureScattered';
 import type { StructureBuilder } from './javaStructureStarts';
 
 /** The sixteen `worldgen/structure` types Java 26.3 registers, and how many structures use each. */
@@ -33,9 +34,13 @@ export const STRUCTURE_TYPE_COUNTS: Readonly<Record<string, number>> = {
 /** The builder for each structure type this server generates. */
 export const STRUCTURE_BUILDERS: ReadonlyMap<string, StructureBuilder> = new Map<string, StructureBuilder>([
     ['minecraft:jigsaw', buildJigsawStructure],
+    ['minecraft:buried_treasure', buildBuriedTreasure],
+    ['minecraft:desert_pyramid', buildDesertPyramid],
     ['minecraft:igloo', buildIgloo],
+    ['minecraft:jungle_temple', buildJungleTemple],
     ['minecraft:nether_fossil', buildNetherFossil],
     ['minecraft:ocean_ruin', buildOceanRuin],
     ['minecraft:ruined_portal', buildRuinedPortal],
-    ['minecraft:shipwreck', buildShipwreck]
+    ['minecraft:shipwreck', buildShipwreck],
+    ['minecraft:swamp_hut', buildSwampHut]
 ]);

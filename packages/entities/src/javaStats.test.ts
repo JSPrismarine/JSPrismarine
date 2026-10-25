@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { AttributeName } from './attributes';
 import { Attributes } from './attributes';
 import type { JavaStatSource } from './javaStats';
-import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaAttributeBases, statRuling } from './javaStats';
+import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, javaAttributeBases, javaEntityStats, statRuling } from './javaStats';
 
 /** Two entities out of the real table, with only the attributes these tests read. */
 const source: JavaStatSource = {
@@ -22,6 +22,15 @@ const source: JavaStatSource = {
         height: 1.5,
         attributes: { 'minecraft:max_health': 53, 'minecraft:movement_speed': 0.225 }
     }
+};
+
+/** The five types Bedrock spawns under a name Java does not use, with Java's follow range. */
+const renamed: JavaStatSource = {
+    'minecraft:evoker': { width: 0.6, height: 1.95, attributes: { 'minecraft:follow_range': 12 } },
+    'minecraft:villager': { width: 0.6, height: 1.95, attributes: { 'minecraft:follow_range': 16 } },
+    'minecraft:zombie_villager': { width: 0.6, height: 1.95, attributes: { 'minecraft:follow_range': 35 } },
+    'minecraft:tropical_fish': { width: 0.5, height: 0.4, attributes: { 'minecraft:follow_range': 16 } },
+    'minecraft:zombified_piglin': { width: 0.6, height: 1.95, attributes: { 'minecraft:follow_range': 35 } }
 };
 
 describe('javaAttributeBases', () => {
