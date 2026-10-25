@@ -51,6 +51,16 @@ export interface ItemFamilyDefinition {
     readonly rule: FamilyRule;
     /** The behaviors `registerVanillaItemBehaviors` attaches for it, by name. */
     readonly behaviors: readonly string[];
+    /**
+     * The functions the server calls directly for this family, by name.
+     *
+     * Not every behavior is an item interaction. A mining speed is a number
+     * the engine asks for while a block breaks, a totem fires on the damage
+     * path, and a gliding elytra wears out on a tick. None of the seven hooks
+     * covers those, so they are exported functions and listed here rather
+     * than registered as a behavior with no handlers.
+     */
+    readonly entryPoints?: readonly string[];
 }
 
 /** The name the classifier gives an item no family claims. */
@@ -103,13 +113,15 @@ export const ITEM_FAMILIES = [
         name: 'bow',
         summary: 'Draw to charge, release to shoot an arrow with power scaled by the draw.',
         rule: named('minecraft:bow'),
-        behaviors: ['vanilla:bow']
+        behaviors: ['vanilla:bow'],
+        entryPoints: ['bowPowerForTime']
     },
     {
         name: 'crossbow',
         summary: 'Charge on draw into `minecraft:charged_projectiles`, then fire what it holds.',
         rule: named('minecraft:crossbow'),
-        behaviors: ['vanilla:crossbow']
+        behaviors: ['vanilla:crossbow'],
+        entryPoints: ['crossbowChargeTicks']
     },
     {
         name: 'ammunition',
@@ -127,7 +139,8 @@ export const ITEM_FAMILIES = [
         name: 'mace',
         summary: 'A melee hit whose damage grows with the fall it lands from.',
         rule: named('minecraft:mace'),
-        behaviors: ['vanilla:mace', 'vanilla:melee_weapon']
+        behaviors: ['vanilla:mace', 'vanilla:melee_weapon'],
+        entryPoints: ['maceDamageBonus']
     },
     {
         name: 'fishing rod',
@@ -169,13 +182,15 @@ export const ITEM_FAMILIES = [
         name: 'compass',
         summary: 'Point at the world spawn, a bound lodestone, or the last death position.',
         rule: named('minecraft:compass', 'minecraft:recovery_compass'),
-        behaviors: ['vanilla:compass']
+        behaviors: ['vanilla:compass'],
+        entryPoints: ['compassTargetOf']
     },
     {
         name: 'clock',
         summary: 'Read the time of day, which the client draws from the item state.',
         rule: named('minecraft:clock'),
-        behaviors: ['vanilla:clock']
+        behaviors: [],
+        entryPoints: ['clockReading']
     },
     {
         name: 'map',
@@ -283,25 +298,29 @@ export const ITEM_FAMILIES = [
         name: 'shield',
         summary: 'Raise to block, taking damage into durability until an axe disables it.',
         rule: withComponent('minecraft:blocks_attacks'),
-        behaviors: ['vanilla:shield']
+        behaviors: ['vanilla:shield'],
+        entryPoints: ['shieldDurabilityCost']
     },
     {
         name: 'elytra',
         summary: 'Worn in the chest slot and lets the wearer glide.',
         rule: withComponent('minecraft:glider'),
-        behaviors: ['vanilla:elytra', 'vanilla:equippable']
+        behaviors: ['vanilla:equippable'],
+        entryPoints: ['elytraDurabilityTick']
     },
     {
         name: 'totem',
         summary: 'Cancels a fatal hit from the hand or the offhand, and is consumed.',
         rule: withComponent('minecraft:death_protection'),
-        behaviors: ['vanilla:totem']
+        behaviors: [],
+        entryPoints: ['applyDeathProtection', 'deathProtectionOf']
     },
     {
         name: 'spear',
         summary: 'A mounted charge whose damage comes from relative velocity, piercing everything in reach.',
         rule: withComponent('minecraft:kinetic_weapon'),
-        behaviors: ['vanilla:spear', 'vanilla:melee_weapon']
+        behaviors: ['vanilla:spear', 'vanilla:melee_weapon'],
+        entryPoints: ['kineticDamageOf']
     },
     {
         name: 'firework rocket',
@@ -379,13 +398,15 @@ export const ITEM_FAMILIES = [
         name: 'mining tool',
         summary: 'Mines its `#minecraft:mineable/*` tag at the speed and tier its rules state.',
         rule: minesByTag,
-        behaviors: ['vanilla:mining_tool', 'vanilla:melee_weapon']
+        behaviors: ['vanilla:mining_tool', 'vanilla:melee_weapon'],
+        entryPoints: ['miningSpeed', 'destroyProgress', 'breakTicks']
     },
     {
         name: 'melee weapon',
         summary: 'Attacks for its `minecraft:attack_damage` modifier and spends durability per hit.',
         rule: withComponent('minecraft:weapon'),
-        behaviors: ['vanilla:melee_weapon', 'vanilla:mining_tool']
+        behaviors: ['vanilla:melee_weapon', 'vanilla:mining_tool'],
+        entryPoints: ['attackDamage', 'attackStrengthScale']
     },
     {
         name: 'equippable',

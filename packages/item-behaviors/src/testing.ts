@@ -12,6 +12,7 @@ import type { ItemSource } from '@jsprismarine/items';
 
 import type {
     BlockPlacement,
+    EffectApplication,
     BlockPosition,
     BlockReference,
     EnvironmentState,
@@ -30,6 +31,8 @@ const key = (position: BlockPosition): string => `${position.x},${position.y},${
 export interface TestWorldOptions {
     /** The blocks that exist, keyed by position. */
     readonly blocks?: readonly BlockReference[];
+    /** Block hardness, keyed by block identifier; anything absent is 1.5. */
+    readonly hardness?: Readonly<Record<string, number>>;
     /** Fields to override on the default source state. */
     readonly state?: Partial<SourceState>;
     /** Fields to override on the default environment. */
@@ -42,6 +45,8 @@ export interface TestWorldOptions {
     readonly transforms?: Readonly<Record<string, BlockPlacement>>;
     /** The numbers `random` hands out in order, repeating the last one. */
     readonly randoms?: readonly number[];
+    /** What `effectsOf` answers, keyed by potion identifier. */
+    readonly potions?: Readonly<Record<string, readonly EffectApplication[]>>;
 }
 
 /** The double, which is a {@link WorldActions} plus the log and a few setters. */
@@ -93,6 +98,7 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         Object.entries(options.tags ?? {}).map(([name, members]) => [name, new Set(members)])
     );
     const transforms = new Map<string, BlockPlacement>(Object.entries(options.transforms ?? {}));
+    const potions = new Map<string, readonly EffectApplication[]>(Object.entries(options.potions ?? {}));
     const randoms = options.randoms ?? [0.5];
 
     const environment: EnvironmentState = { ...DEFAULT_ENVIRONMENT, ...options.environment };
@@ -103,12 +109,14 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
     return {
         actions,
         blockAt: (position) => blocks.get(key(position)),
+        hardnessOf: (block) => options.hardness?.[block.identifier] ?? 1.5,
         stateOf: () => state,
         environment: () => environment,
         targetOf: () => target,
         includes: (set: HolderSet, member: string) =>
             set.kind === 'tag' ? (tags.get(set.tag)?.has(member) ?? false) : set.entries.includes(member),
         transform: (transformer, block) => transforms.get(`${transformer}|${block.identifier}`),
+        effectsOf: (potion) => potions.get(potion) ?? [],
         random: () => randoms[Math.min(draws++, randoms.length - 1)]!,
         perform: (action) => {
             actions.push(action);
