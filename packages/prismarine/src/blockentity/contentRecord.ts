@@ -22,7 +22,7 @@ import type { BlockEntityData, ContentPosition } from '../content/world/adapter'
 import { ITEMS_TAG, itemSlotsFromNbt, itemSlotsToNbt } from '../inventory/itemNbt';
 import { itemDropOf, storedItemDrop } from '../inventory/persistence';
 import type { BlockEntity } from './BlockEntity';
-import { BlockEntityRegistry } from './BlockEntityRegistry';
+import { bedrockBlockEntityIdOf } from './bedrockBlockEntityIds';
 
 /** The tag holding every field of a record that `Items` does not cover, as JSON. */
 export const CONTENT_DATA_TAG = 'jsprismarine:data';
@@ -175,30 +175,21 @@ const positionOf = (value: unknown): { x: number; y: number; z: number } | undef
     return { x, y, z };
 };
 
-/** `minecraft:trapped_chest` as vanilla's block entity id would spell it: `TrappedChest`. */
-const pascalCase = (identifier: string): string =>
-    identifier
-        .replace(/^[^:]*:/, '')
-        .split('_')
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join('');
-
 /**
  * The `id` a new block entity is filed under.
  *
- * Vanilla's ids are the block's name in Pascal case for most of the modeled types, so the
- * candidate is checked against {@link BlockEntityRegistry}, which is this server's own list of
- * them, rather than against a second copy of that list kept here. A block whose candidate is not
- * a type the server models gets a namespaced id instead of a guessed vanilla one: the compound
- * still round-trips through {@link import('./GenericBlockEntity').GenericBlockEntity}, and a
- * client that does not recognize the id skips it rather than drawing the wrong thing.
+ * Vanilla's own spelling where Bedrock has one, from {@link bedrockBlockEntityIdOf}. It used to
+ * be the block's name in Pascal case, checked against the types this server models, which is a
+ * different question: a sign's id came out `jsprismarine:standing_sign`, because Bedrock calls
+ * the type `Sign` and this server has no `StandingSign` class to recognize the guess. A client
+ * ignores an id it does not know, so every sign ever placed was a compound the client dropped.
+ *
+ * A block Bedrock keeps no block entity on still gets a namespaced id. The compound round-trips
+ * through {@link import('./GenericBlockEntity').GenericBlockEntity}, and a record this server
+ * invented is better named after this server than after a vanilla type it is not.
  */
-export const blockEntityIdFor = (blockIdentifier: string): string => {
-    const candidate = pascalCase(blockIdentifier);
-    return BlockEntityRegistry.isModeled(candidate)
-        ? candidate
-        : `jsprismarine:${blockIdentifier.replace(/^[^:]*:/, '')}`;
-};
+export const blockEntityIdFor = (blockIdentifier: string): string =>
+    bedrockBlockEntityIdOf(blockIdentifier) ?? `jsprismarine:${blockIdentifier.replace(/^[^:]*:/, '')}`;
 
 /**
  * The compound a position starts from: the one already there, or a new one for the block standing
