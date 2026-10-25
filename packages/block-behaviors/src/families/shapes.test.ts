@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { WEIRDO_DIRECTIONS } from '../geometry';
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem } from '../harness';
 import {
     doubleSlabFamily,
     doubleSlabName,
@@ -49,7 +49,60 @@ describe('slabFamily', () => {
     });
 });
 
+describe('slabFamily halves', () => {
+    const placedHalfFor = (face: 'up' | 'down' | 'north', faceLocation?: { x: number; y: number; z: number }) => {
+        const harness = bindFamily(slabFamily, 'minecraft:oak_slab');
+        harness.dimension.set(position, 'minecraft:oak_slab', { 'minecraft:vertical_half': 'bottom' });
+        harness.place(position, { face, faceLocation });
+        return harness.dimension.stateAt(position, 'minecraft:vertical_half');
+    };
+
+    it('takes the top half from the underside of a block and the bottom from its top', () => {
+        expect(placedHalfFor('down')).toBe('top');
+        expect(placedHalfFor('up')).toBe('bottom');
+    });
+
+    it('takes the half the click landed in on a side face', () => {
+        expect(placedHalfFor('north', { x: 0.5, y: 0.9, z: 0 })).toBe('top');
+        expect(placedHalfFor('north', { x: 0.5, y: 0.1, z: 0 })).toBe('bottom');
+    });
+
+    it('merges into the double slab when the click picks the free half', () => {
+        const harness = bindFamily(slabFamily, 'minecraft:oak_slab');
+        harness.dimension.set(position, 'minecraft:oak_slab', { 'minecraft:vertical_half': 'bottom' });
+
+        harness.place(position, {
+            face: 'north',
+            faceLocation: { x: 0.5, y: 0.9, z: 0 },
+            previous: { identifier: 'minecraft:oak_slab', states: { 'minecraft:vertical_half': 'bottom' } }
+        });
+
+        expect(harness.dimension.identifierAt(position)).toBe('minecraft:oak_double_slab');
+    });
+
+    it('waxes a copper slab with honeycomb', () => {
+        const harness = bindFamily(slabFamily, 'minecraft:weathered_cut_copper_slab');
+        harness.dimension.set(position, 'minecraft:weathered_cut_copper_slab', {
+            'minecraft:vertical_half': 'bottom'
+        });
+
+        expect(harness.interact(position, { itemStack: heldItem('minecraft:honeycomb') })).toBe(true);
+        expect(harness.dimension.identifierAt(position)).toBe('minecraft:waxed_weathered_cut_copper_slab');
+    });
+});
+
 describe('doubleSlabFamily', () => {
+    it('scrapes a waxed copper double slab back with an axe', () => {
+        const harness = bindFamily(doubleSlabFamily, 'minecraft:waxed_oxidized_cut_copper_double_slab');
+        harness.dimension.set(position, 'minecraft:waxed_oxidized_cut_copper_double_slab');
+
+        expect(harness.interact(position, { itemStack: heldItem('minecraft:iron_axe') })).toBe(true);
+        expect(harness.dimension.identifierAt(position)).toBe('minecraft:oxidized_cut_copper_double_slab');
+
+        expect(harness.interact(position, { itemStack: heldItem('minecraft:iron_axe') })).toBe(true);
+        expect(harness.dimension.identifierAt(position)).toBe('minecraft:weathered_cut_copper_double_slab');
+    });
+
     it('drops two of the slab it is made of', () => {
         const harness = bindFamily(doubleSlabFamily, 'minecraft:oak_double_slab');
         harness.dimension.set(position, 'minecraft:oak_double_slab');
@@ -77,6 +130,29 @@ describe('stairsFamily', () => {
         harness.neighborChanged(position, 'east');
 
         expect(harness.dimension.stateAt(position, 'minecraft:corner')).toBe('outer_left');
+    });
+
+    it('turns to the placer and flips for a click in the upper half', () => {
+        const harness = bindFamily(stairsFamily, 'minecraft:oak_stairs');
+        harness.dimension.set(position, 'minecraft:oak_stairs', stairStates('east'));
+
+        harness.place(position, {
+            placedBy: { identifier: 'minecraft:player', position: { x: 0, y: 0, z: -5 } },
+            face: 'north',
+            faceLocation: { x: 0.5, y: 0.8, z: 0 }
+        });
+
+        expect(harness.dimension.stateAt(position, 'weirdo_direction')).toBe(WEIRDO_DIRECTIONS.indexOf('south'));
+        expect(harness.dimension.stateAt(position, 'upside_down_bit')).toBe(true);
+    });
+
+    it('stays upright for a click on the top face', () => {
+        const harness = bindFamily(stairsFamily, 'minecraft:oak_stairs');
+        harness.dimension.set(position, 'minecraft:oak_stairs', { ...stairStates('east'), upside_down_bit: true });
+
+        harness.place(position, { face: 'up', faceLocation: { x: 0.5, y: 1, z: 0.5 } });
+
+        expect(harness.dimension.stateAt(position, 'upside_down_bit')).toBe(false);
     });
 
     it('sets the corner on placement too', () => {

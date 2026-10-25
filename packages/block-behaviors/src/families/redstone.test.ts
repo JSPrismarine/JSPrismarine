@@ -1,13 +1,36 @@
 import { describe, expect, it } from 'vitest';
 
 import { facingDirectionOf } from '../geometry';
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem } from '../harness';
 import { AIR } from '../identifiers';
 import { MAX_STACK_SIZE } from '../rules/container';
 import { BUTTON_PRESS_TICKS, OBSERVER_PULSE_TICKS } from '../rules/redstone';
-import { buttonFamily, comparatorInput, pressurePlateFamily, railFamily, redstoneFamily } from './redstone';
+import {
+    buttonFamily,
+    comparatorInput,
+    pressurePlateFamily,
+    railFamily,
+    redstoneFamily,
+    TNT_FUSE_TICKS
+} from './redstone';
 
 const origin = { x: 0, y: 0, z: 0 };
+
+describe('redstoneFamily: tnt', () => {
+    it('primes to flint and steel and ignores a bare hand', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:tnt');
+        harness.dimension.set(origin, 'minecraft:tnt', { explode_bit: false });
+
+        expect(harness.interact(origin)).toBeUndefined();
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:tnt');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:flint_and_steel') })).toBe(true);
+
+        expect(harness.dimension.identifierAt(origin)).toBe(AIR);
+        expect(harness.dimension.entities.map((entity) => entity.identifier)).toEqual(['minecraft:tnt']);
+        expect(harness.dimension.entities.at(-1)?.data?.['fuse']).toBe(TNT_FUSE_TICKS);
+    });
+});
 
 describe('redstoneFamily: pistons', () => {
     it('pushes the run in front and puts its head down', () => {

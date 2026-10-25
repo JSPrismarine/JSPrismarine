@@ -1,7 +1,9 @@
+import type { BlockStateValue } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
 import { familyHooks } from '../family';
-import { bindFamily } from '../harness';
+import type { PlaceOptions } from '../harness';
+import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { chemistryFamily, glassFamily, inertFamily, logFamily, oreFamily, plainBlockFamily } from './simple';
 
 const position = { x: 0, y: 0, z: 0 };
@@ -46,29 +48,59 @@ describe('inertFamily and chemistryFamily', () => {
 });
 
 describe('glassFamily', () => {
-    it('drops nothing, because the silk touch case needs the tool', () => {
+    it('shatters into nothing for a bare hand or a plain tool', () => {
         const harness = bindFamily(glassFamily, 'minecraft:glass');
         harness.dimension.set(position, 'minecraft:glass');
 
         harness.breakBlock(position);
+        harness.dimension.set(position, 'minecraft:glass');
+        harness.breakBlock(position, { itemStack: heldItem('minecraft:diamond_pickaxe') });
 
         expect(harness.dimension.drops).toEqual([]);
+    });
+
+    it('drops itself to a silk touch tool', () => {
+        const harness = bindFamily(glassFamily, 'minecraft:glass');
+        harness.dimension.set(position, 'minecraft:glass');
+
+        harness.breakBlock(position, { itemStack: silkTouchTool() });
+
+        expect(harness.dimension.drops.map((entry) => entry.drop)).toEqual([
+            { identifier: 'minecraft:glass', count: 1 }
+        ]);
     });
 });
 
 describe('logFamily', () => {
-    it('takes its axis from the placer and keeps the default when the world placed it', () => {
+    /** Places an oak log with one set of place options and reads back its axis. */
+    const placeLog = (options: PlaceOptions): BlockStateValue | undefined => {
         const harness = bindFamily(logFamily, 'minecraft:oak_log');
         harness.dimension.set(position, 'minecraft:oak_log', { pillar_axis: 'y' });
+        harness.place(position, options);
+        return harness.dimension.stateAt(position, 'pillar_axis');
+    };
 
-        harness.place(position, { placedBy: { identifier: 'minecraft:player', position: { x: -5, y: 0, z: 0 } } });
+    it('takes its axis from the clicked face, vertical placements included', () => {
+        expect(placeLog({ face: 'up' })).toBe('y');
+        expect(placeLog({ face: 'down' })).toBe('y');
+        expect(placeLog({ face: 'east' })).toBe('x');
+        expect(placeLog({ face: 'west' })).toBe('x');
+        expect(placeLog({ face: 'north' })).toBe('z');
+        expect(placeLog({ face: 'south' })).toBe('z');
+    });
 
-        expect(harness.dimension.stateAt(position, 'pillar_axis')).toBe('x');
+    it('falls back to the placer when the placement has no face', () => {
+        expect(placeLog({ placedBy: { identifier: 'minecraft:player', position: { x: -5, y: 0, z: 0 } } })).toBe('x');
+        expect(placeLog({ placedBy: undefined })).toBe('y');
+    });
 
-        harness.dimension.set(position, 'minecraft:oak_log', { pillar_axis: 'y' });
-        harness.place(position, { placedBy: undefined });
+    it('lets the face win over the placer, which is what a vertical placement needs', () => {
+        const axis = placeLog({
+            face: 'up',
+            placedBy: { identifier: 'minecraft:player', position: { x: -5, y: 0, z: 0 } }
+        });
 
-        expect(harness.dimension.stateAt(position, 'pillar_axis')).toBe('y');
+        expect(axis).toBe('y');
     });
 });
 

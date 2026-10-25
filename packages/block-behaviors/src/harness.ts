@@ -13,8 +13,10 @@ import type {
     BlockHooks,
     BlockPosition,
     BlockStateValue,
+    FaceLocation,
     HookActor,
-    HookBlock
+    HookBlock,
+    HookItem
 } from '@jsprismarine/blocks';
 import type { Definition } from '@jsprismarine/content';
 
@@ -38,13 +40,58 @@ export interface HarnessOptions {
 /** The player a harness uses when a test names none. */
 export const TEST_PLAYER: HookActor = { identifier: 'minecraft:player', position: { x: 0, y: 0, z: 0 } };
 
+/**
+ * A held item built from an identifier and a component map, which is all a
+ * block behavior reads off one.
+ *
+ * It ships with the harness because a test for waxing, scraping, shearing or
+ * silk touch needs a `HookItem` and nothing smaller exists. A server passes
+ * its own `ItemStack` instead; both satisfy the same interface.
+ */
+export class TestItem implements HookItem {
+    /**
+     * @param identifier - The namespaced item identifier.
+     * @param components - The item's components, keyed by name, as the
+     *   schemas parse them.
+     */
+    public constructor(
+        public readonly identifier: string,
+        private readonly components: Readonly<Record<string, unknown>> = {}
+    ) {}
+
+    /** One component's value, or undefined when the item does not carry it. */
+    public get(name: string): unknown {
+        return this.components[name];
+    }
+}
+
+/** A held item for a test, from an identifier and its components. */
+export const heldItem = (identifier: string, components: Readonly<Record<string, unknown>> = {}): TestItem =>
+    new TestItem(identifier, components);
+
+/** A tool enchanted with silk touch, which is what makes glass, ice and leaves drop themselves. */
+export const silkTouchTool = (identifier = 'minecraft:diamond_pickaxe'): TestItem =>
+    heldItem(identifier, { 'minecraft:enchantments': { 'minecraft:silk_touch': 1 } });
+
 /** What a test says about a placement beyond the block that is now there. */
 export interface PlaceOptions {
     /** Who placed it. Absent means {@link TEST_PLAYER}; undefined means the world did. */
     readonly placedBy?: HookActor | undefined;
     /** What the placement overwrote, which the merging families read. */
     readonly previous?: { readonly identifier: string; readonly states?: BlockStates };
+    /** The item the placement came out of. */
+    readonly itemStack?: HookItem;
+    /** The face of the block the new one went against, which picks a pillar's axis. */
+    readonly face?: BlockFace;
+    /**
+     * Where on that face the click landed, each component in [0, 1]. Absent
+     * with a face given means the middle of the face.
+     */
+    readonly faceLocation?: FaceLocation;
 }
+
+/** The middle of a block face, which is where a test clicks when it says nothing else. */
+const FACE_CENTER: FaceLocation = { x: 0.5, y: 0.5, z: 0.5 };
 
 /** Builds the definition a block type would resolve from, for one identifier. */
 export const testDefinition = (identifier: string, components: Readonly<Record<string, unknown>> = {}): Definition => ({
@@ -96,6 +143,8 @@ export class FamilyHarness {
      * @param options - `previous` is what the placement overwrote, which a
      *   slab merge and a candle stack read. Leaving `placedBy` out uses
      *   {@link TEST_PLAYER}; passing it as undefined is a world placement.
+     *   `face` and `faceLocation` are the click a pillar, a slab and a pair
+     *   of stairs read; naming a face with no location clicks its middle.
      */
     public place(position: BlockPosition, options: PlaceOptions = {}): void {
         const placedBy = 'placedBy' in options ? options.placedBy : TEST_PLAYER;
@@ -110,15 +159,31 @@ export class FamilyHarness {
                           dimension: this.dimension.name,
                           states: options.previous.states ?? {}
                       },
-            placedBy
+            placedBy,
+            itemStack: options.itemStack,
+            face: options.face,
+            faceLocation: options.face === undefined ? undefined : (options.faceLocation ?? FACE_CENTER)
         });
     }
 
-    /** Dispatches `onBreak`, with the block as it was before the break. */
-    public breakBlock(position: BlockPosition, brokenBy: HookActor | undefined = TEST_PLAYER): void {
+    /**
+     * Dispatches `onBreak`, with the block as it was before the break.
+     *
+     * @param options - What the breaker held, which decides silk touch and
+     *   shears, and who broke it. Absent `brokenBy` is {@link TEST_PLAYER}.
+     */
+    public breakBlock(
+        position: BlockPosition,
+        options: { readonly brokenBy?: HookActor | undefined; readonly itemStack?: HookItem } = {}
+    ): void {
         const broken = this.block(position);
         this.dimension.set(position, 'minecraft:air');
-        this.handlers.onBreak?.({ block: broken, brokenBlock: broken, brokenBy });
+        this.handlers.onBreak?.({
+            block: broken,
+            brokenBlock: broken,
+            brokenBy: 'brokenBy' in options ? options.brokenBy : TEST_PLAYER,
+            itemStack: options.itemStack
+        });
     }
 
     /** Dispatches `onNeighborChanged` for the neighbor on a face. */
@@ -145,16 +210,27 @@ export class FamilyHarness {
         this.handlers.onTick?.({ block: this.block(position), tick });
     }
 
-    /** Dispatches `onPlayerInteract` and returns whether the family consumed it. */
+    /**
+     * Dispatches `onPlayerInteract` and returns whether the family consumed it.
+     *
+     * @param options - `itemStack` is what the player held, which decides
+     *   waxing, scraping, filling and lighting; absent is a bare hand.
+     */
     public interact(
         position: BlockPosition,
-        options: { readonly player?: HookActor; readonly face?: BlockFace } = {}
+        options: {
+            readonly player?: HookActor;
+            readonly face?: BlockFace;
+            readonly faceLocation?: FaceLocation;
+            readonly itemStack?: HookItem;
+        } = {}
     ): boolean | undefined {
         return this.handlers.onPlayerInteract?.({
             block: this.block(position),
             player: options.player ?? TEST_PLAYER,
             face: options.face,
-            faceLocation: undefined
+            faceLocation: options.faceLocation,
+            itemStack: options.itemStack
         });
     }
 

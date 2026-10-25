@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem, silkTouchTool } from '../harness';
 import { AIR } from '../identifiers';
 import { MAX_CROP_GROWTH } from '../rules/growth';
 import {
@@ -155,6 +155,28 @@ describe('leavesFamily', () => {
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:birch_sapling']);
     });
 
+    it('comes away whole to shears or silk touch and shreds otherwise', () => {
+        const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');
+        harness.dimension.set(plant, 'minecraft:oak_leaves', { persistent_bit: true, update_bit: false });
+
+        harness.breakBlock(plant, { itemStack: heldItem('minecraft:shears') });
+
+        expect(harness.dimension.drops.map((entry) => entry.drop)).toEqual([
+            { identifier: 'minecraft:oak_leaves', count: 1 }
+        ]);
+
+        harness.dimension.set(plant, 'minecraft:oak_leaves', { persistent_bit: true, update_bit: false });
+        harness.breakBlock(plant, { itemStack: silkTouchTool('minecraft:iron_hoe') });
+
+        expect(harness.dimension.drops).toHaveLength(2);
+
+        harness.dimension.set(plant, 'minecraft:oak_leaves', { persistent_bit: true, update_bit: false });
+        harness.breakBlock(plant);
+
+        expect(harness.dimension.drops).toHaveLength(2);
+        expect(harness.dimension.particles.at(-1)?.name).toBe('minecraft:leaf_particle');
+    });
+
     it('schedules the distance check once when a neighbor changes', () => {
         const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');
         harness.dimension.set(plant, 'minecraft:oak_leaves', { persistent_bit: false, update_bit: false });
@@ -234,6 +256,31 @@ describe('climbingFamily', () => {
         harness.neighborChanged({ x: 1, y: 1, z: 0 }, 'west');
 
         expect(harness.dimension.stateAt({ x: 1, y: 1, z: 0 }, 'stability')).toBe(1);
+    });
+
+    it('holds a vine back from a bare hand and gives it up to shears', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:vine');
+        harness.dimension.set(plant, 'minecraft:vine', { vine_direction_bits: 1 });
+
+        harness.breakBlock(plant);
+
+        expect(harness.dimension.drops).toEqual([]);
+
+        harness.dimension.set(plant, 'minecraft:vine', { vine_direction_bits: 1 });
+        harness.breakBlock(plant, { itemStack: heldItem('minecraft:shears') });
+
+        expect(harness.dimension.drops.map((entry) => entry.drop)).toEqual([
+            { identifier: 'minecraft:vine', count: 1 }
+        ]);
+    });
+
+    it('drops a ladder to a bare hand, because only the vines need cutting', () => {
+        const harness = bindFamily(climbingFamily, 'minecraft:ladder');
+        harness.dimension.set(plant, 'minecraft:ladder', { facing_direction: 3 });
+
+        harness.breakBlock(plant);
+
+        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:ladder']);
     });
 
     it('pops a ladder whose wall goes', () => {

@@ -3,8 +3,9 @@
  * engine blocks that do nothing, glass, pillars, ores and the Education
  * chemistry set.
  */
-import { axisOfFace, facingFrom } from '../geometry';
 import { defineFamily } from '../family';
+import { hasSilkTouch } from '../rules/heldItem';
+import { placementAxis } from '../rules/placement';
 import { bareName, hasState, setStates } from '../state';
 import type { ItemDrop } from '../world';
 import { dropAll, dropSelf } from './shared';
@@ -70,14 +71,14 @@ export const inertFamily = defineFamily(
     {}
 );
 
-/** Transparent cubes, which break into nothing without silk touch. */
+/** Transparent cubes, which drop themselves only to silk touch. */
 export const glassFamily = defineFamily(
     'jsprismarine:glass',
-    'Breaks into nothing, because the silk touch case needs the tool the hook does not carry.',
+    'Drops itself to a silk touch tool and shatters into nothing otherwise.',
     {
-        onBreak: () => {
-            // Glass drops only to silk touch, and the event carries no tool,
-            // so the family drops nothing and the tool check decides the rest.
+        onBreak: (event, world, context) => {
+            if (!hasSilkTouch(event.itemStack)) return;
+            dropSelf(world, context, event.brokenBlock);
         }
     }
 );
@@ -85,14 +86,13 @@ export const glassFamily = defineFamily(
 /** Logs, stems and the other blocks placed along an axis. */
 export const logFamily = defineFamily(
     'jsprismarine:log',
-    'Takes pillar_axis from the placer and drops itself. The clicked face is not in the place event, so a vertical placement keeps the default axis.',
+    'Takes pillar_axis from the face the placement was made against, falling back to the placer, and drops itself.',
     {
         onPlace: (event, world) => {
             if (!hasState(event.block, 'pillar_axis')) return;
-            if (event.placedBy === undefined) return;
-            setStates(world, event.block, {
-                pillar_axis: axisOfFace(facingFrom(event.placedBy.position, event.block.position))
-            });
+            const axis = placementAxis(event);
+            if (axis === undefined) return;
+            setStates(world, event.block, { pillar_axis: axis });
         },
         onBreak: (event, world, context) => {
             dropSelf(world, context, event.brokenBlock);

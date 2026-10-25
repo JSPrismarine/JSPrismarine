@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { bindFamily } from '../harness';
+import { bindFamily, heldItem } from '../harness';
 import {
     beaconLevels,
+    CAULDRON_BOTTLE_LEVELS,
+    CAULDRON_FULL,
     cauldronFamily,
     COMPOSTER_FULL,
     composterFamily,
@@ -101,18 +103,100 @@ describe('furnaceFamily', () => {
     });
 });
 
-describe('cauldronFamily', () => {
-    it('fills two levels at a time and stops when it is full', () => {
-        const harness = bindFamily(cauldronFamily, 'minecraft:cauldron');
-        harness.dimension.set(origin, 'minecraft:cauldron', { fill_level: 0, cauldron_liquid: 'water' });
-
-        harness.interact(origin);
-
-        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(2);
-
-        harness.dimension.set(origin, 'minecraft:cauldron', { fill_level: 6, cauldron_liquid: 'water' });
+describe('furnaceFamily relighting', () => {
+    it('relights an extinguished campfire with flint and steel and leaves a lit one alone', () => {
+        const harness = bindFamily(furnaceFamily, 'minecraft:campfire');
+        harness.dimension.set(origin, 'minecraft:campfire', { extinguished: true });
 
         expect(harness.interact(origin)).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'extinguished')).toBe(true);
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:flint_and_steel') })).toBe(true);
+        expect(harness.dimension.stateAt(origin, 'extinguished')).toBe(false);
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:flint_and_steel') })).toBeUndefined();
+    });
+
+    it('leaves a furnace, which has no flame state, to the next handler', () => {
+        const harness = bindFamily(furnaceFamily, 'minecraft:furnace');
+        harness.dimension.set(origin, 'minecraft:furnace');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:flint_and_steel') })).toBeUndefined();
+    });
+});
+
+describe('cauldronFamily', () => {
+    const emptyCauldron = (liquid = 'water') => {
+        const harness = bindFamily(cauldronFamily, 'minecraft:cauldron');
+        harness.dimension.set(origin, 'minecraft:cauldron', { fill_level: 0, cauldron_liquid: liquid });
+        return harness;
+    };
+
+    it('takes a whole bucket and gives the empty one back', () => {
+        const harness = emptyCauldron();
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:water_bucket') })).toBe(true);
+
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_FULL);
+        expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('water');
+        expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:bucket']);
+    });
+
+    it('fills a lava cauldron from a lava bucket and empties it back into one', () => {
+        const harness = emptyCauldron();
+
+        harness.interact(origin, { itemStack: heldItem('minecraft:lava_bucket') });
+
+        expect(harness.dimension.stateAt(origin, 'cauldron_liquid')).toBe('lava');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBe(true);
+
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
+        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:lava_bucket');
+    });
+
+    it('refuses an empty bucket against a cauldron that is not full', () => {
+        const harness = emptyCauldron();
+        harness.dimension.set(origin, 'minecraft:cauldron', { fill_level: 4, cauldron_liquid: 'water' });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:bucket') })).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(4);
+    });
+
+    it('moves two levels per bottle in each direction', () => {
+        const harness = emptyCauldron();
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:potion') })).toBe(true);
+
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_BOTTLE_LEVELS);
+        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:glass_bottle');
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBe(true);
+
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
+        expect(harness.dimension.drops.at(-1)?.drop.identifier).toBe('minecraft:potion');
+    });
+
+    it('refuses a brewed potion, which is not water', () => {
+        const harness = emptyCauldron();
+        const healing = heldItem('minecraft:potion', {
+            'minecraft:potion_contents': { potion: 'minecraft:healing' }
+        });
+
+        expect(harness.interact(origin, { itemStack: healing })).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(0);
+    });
+
+    it('refuses a bottle against lava', () => {
+        const harness = emptyCauldron('lava');
+        harness.dimension.set(origin, 'minecraft:cauldron', { fill_level: CAULDRON_FULL, cauldron_liquid: 'lava' });
+
+        expect(harness.interact(origin, { itemStack: heldItem('minecraft:glass_bottle') })).toBeUndefined();
+        expect(harness.dimension.stateAt(origin, 'fill_level')).toBe(CAULDRON_FULL);
+    });
+
+    it('leaves a bare hand to the next handler', () => {
+        expect(emptyCauldron().interact(origin)).toBeUndefined();
     });
 });
 

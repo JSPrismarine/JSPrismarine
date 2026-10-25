@@ -9,6 +9,7 @@ import { defineFamily } from '../family';
 import { offset, opposite } from '../geometry';
 import { AIR, isWater, WATER } from '../identifiers';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
+import { hasSilkTouch } from '../rules/heldItem';
 import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateNumber, stateString } from '../state';
 import type { WorldActions } from '../world';
@@ -104,7 +105,7 @@ export const soilFamily = defineFamily(
 /** Ice, packed ice and frosted ice, which melt in the light. */
 export const iceFamily = defineFamily(
     'jsprismarine:ice',
-    'Melts to water on a random tick above light 12; frosted ice ages through its four stages first.',
+    'Melts to water on a random tick above light 12, frosted ice ages through its four stages first, and a silk touch tool takes the block itself instead of leaving water.',
     {
         onRandomTick: (event, world) => {
             const name = bareName(event.block.identifier);
@@ -125,8 +126,11 @@ export const iceFamily = defineFamily(
             world.setBlock(event.block.position, WATER, { liquid_depth: 0 });
             world.notifyNeighbors(event.block.position);
         },
-        onBreak: (event, world) => {
-            // Ice leaves water behind without silk touch, and drops nothing.
+        onBreak: (event, world, context) => {
+            if (hasSilkTouch(event.itemStack)) {
+                dropSelf(world, context, event.brokenBlock);
+                return;
+            }
             world.setBlock(event.brokenBlock.position, WATER, { liquid_depth: 0 });
         }
     }

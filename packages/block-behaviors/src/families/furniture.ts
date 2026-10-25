@@ -10,9 +10,10 @@ import type { BlockFace } from '@jsprismarine/blocks';
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, facingFrom, offset, opposite } from '../geometry';
 import { isWater } from '../identifiers';
+import { isHoneycomb, isIgniter } from '../rules/heldItem';
 import { breakBlock, popWithoutSupport } from '../rules/support';
 import { hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
-import { dropSelf, weatherOnRandomTick } from './shared';
+import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 
 /** How many bites a cake takes before it is gone. */
 export const CAKE_BITES = 6;
@@ -38,10 +39,10 @@ export const torchSupport = (facing: string): BlockFace => TORCH_SUPPORT[facing]
 /** How many candles fit in one block. */
 export const MAX_CANDLES = 4;
 
-/** Signs: a block entity of text, editable until it is waxed. */
+/** Signs: a block entity of text, editable until honeycomb waxes it. */
 export const signFamily = defineFamily(
     'jsprismarine:sign',
-    'Keeps the sign text in a block entity, refuses an edit once it is sealed, and pops a wall sign whose backing block goes.',
+    'Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a wall sign whose backing block goes.',
     {
         onPlace: (event, world) => {
             world.setBlockData(event.block.position, { text: ['', '', '', ''], sealed: false });
@@ -49,6 +50,11 @@ export const signFamily = defineFamily(
         onPlayerInteract: (event, world) => {
             const data = world.getBlockData(event.block.position);
             if (data?.sealed === true) return undefined;
+            if (isHoneycomb(event.itemStack)) {
+                world.setBlockData(event.block.position, { ...data, sealed: true });
+                world.playSound(event.block.position, 'copper.wax.on');
+                return true;
+            }
             world.playSound(event.block.position, 'random.wood_click');
             return true;
         },
@@ -177,10 +183,10 @@ export const cakeFamily = defineFamily(
     }
 );
 
-/** Candles, up to four per block, lit or not. */
+/** Candles, up to four per block, lit by flint and steel and snuffed by hand. */
 export const candleFamily = defineFamily(
     'jsprismarine:candle',
-    'Stacks up to four candles in one block, lights and snuffs on use, and goes out when water reaches it.',
+    'Stacks up to four candles in one block, lights to flint and steel, snuffs to a bare hand, and goes out when water reaches it.',
     {
         onPlace: (event, world) => {
             const previous = event.previous;
@@ -191,9 +197,16 @@ export const candleFamily = defineFamily(
         },
         onPlayerInteract: (event, world) => {
             if (!hasState(event.block, 'lit')) return undefined;
-            const lit = stateBoolean(event.block, 'lit');
-            setStates(world, event.block, { lit: !lit });
-            world.playSound(event.block.position, lit ? 'extinguish.candle' : 'ignite');
+            if (stateBoolean(event.block, 'lit')) {
+                setStates(world, event.block, { lit: false });
+                world.playSound(event.block.position, 'extinguish.candle');
+                return true;
+            }
+            // An unlit candle needs a flame. A hand holding anything else is
+            // the item's own interaction, such as adding another candle.
+            if (!isIgniter(event.itemStack)) return undefined;
+            setStates(world, event.block, { lit: true });
+            world.playSound(event.block.position, 'ignite');
             return true;
         },
         onNeighborChanged: (event, world) => {
@@ -233,11 +246,12 @@ export const torchFamily = defineFamily(
 /** Lanterns and chains, which sit on a block or hang from one. */
 export const lanternFamily = defineFamily(
     'jsprismarine:lantern',
-    'Checks the block above when it hangs and the one below when it stands, and oxidizes when it is copper.',
+    'Checks the block above when it hangs and the one below when it stands, and waxes, scrapes and oxidizes when it is copper.',
     {
         onNeighborChanged: (event, world) => {
             popWithoutSupport(world, event.block, stateBoolean(event.block, 'hanging') ? 'up' : 'down');
         },
+        onPlayerInteract: waxOrScrapeHandler,
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },

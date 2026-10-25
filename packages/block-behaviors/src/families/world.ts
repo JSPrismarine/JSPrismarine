@@ -6,15 +6,40 @@ import { defineFamily } from '../family';
 import { offset } from '../geometry';
 import { AIR, isLava, isLiquidSource } from '../identifiers';
 import { applyLavaWaterReaction, spreadLiquid, spreadTicks } from '../rules/fluid';
+import { bucketOf, isEmptyBucket, isGlassBottle } from '../rules/heldItem';
 import { breakBlock } from '../rules/support';
 import { bareName, hasState, setStates, stateNumber } from '../state';
-import { dropSelf, weatherOnRandomTick } from './shared';
+import { dropSelf, waxOrScrapeHandler, weatherOnRandomTick } from './shared';
 
 /** Water and lava, source and flowing. */
 export const liquidFamily = defineFamily(
     'jsprismarine:liquid',
-    'Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, and burns what stands in lava.',
+    'Spreads on a scheduled tick at the rate its dimension sets, turns to rock where water meets lava, burns what stands in lava, and gives a source block up to a bucket or a bottle.',
     {
+        onPlayerInteract: (event, world) => {
+            // Only a source fills a bucket. A flowing block has no liquid of
+            // its own to give, which is why an infinite water source is two
+            // sources and not two flows.
+            if (!isLiquidSource(event.block.identifier)) return undefined;
+            const liquid = isLava(event.block.identifier) ? 'lava' : 'water';
+
+            if (isEmptyBucket(event.itemStack)) {
+                world.setBlock(event.block.position, AIR);
+                world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
+                world.playSound(event.block.position, `bucket.fill_${liquid}`);
+                world.notifyNeighbors(event.block.position);
+                return true;
+            }
+
+            if (liquid === 'water' && isGlassBottle(event.itemStack)) {
+                // A bottle scoops water without taking the source with it.
+                world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
+                world.playSound(event.block.position, 'bucket.fill_water');
+                return true;
+            }
+
+            return undefined;
+        },
         onPlace: (event, world) => {
             world.scheduleTick(event.block.position, spreadTicks(event.block.identifier, event.block.dimension));
         },
@@ -149,8 +174,9 @@ export const sculkFamily = defineFamily(
 /** The copper blocks that are not a slab, a stair, a door, a trapdoor or bars. */
 export const copperFamily = defineFamily(
     'jsprismarine:copper',
-    'Oxidizes a stage per random tick at the isolated-block rate. Waxing and scraping need the held item, which no block hook carries, so they are exported as transitions for the item runtime.',
+    'Waxes with honeycomb, scrapes with an axe, and oxidizes a stage per random tick at the isolated-block rate.',
     {
+        onPlayerInteract: waxOrScrapeHandler,
         onRandomTick: (event, world) => {
             weatherOnRandomTick(world, event.block);
         },

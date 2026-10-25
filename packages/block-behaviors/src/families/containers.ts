@@ -10,7 +10,8 @@ import { facingFrom, HORIZONTAL_FACES, offset } from '../geometry';
 import { isWater } from '../identifiers';
 import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
-import { bareName, hasState, setStates, stateNumber } from '../state';
+import { bucketContents, bucketOf, isEmptyBucket, isGlassBottle, isIgniter, isWaterBottle } from '../rules/heldItem';
+import { bareName, hasState, setStates, stateBoolean, stateNumber, stateString } from '../state';
 import type { BlockEntityData, WorldActions } from '../world';
 import { dropSelf } from './shared';
 
@@ -34,8 +35,22 @@ const KEEPS_CONTENTS = (identifier: string): boolean => bareName(identifier).end
 /** How many layers a composter takes before it makes bone meal. */
 export const COMPOSTER_FULL = 7;
 
-/** The levels a cauldron fills to. */
+/** The levels a cauldron fills to, which is the top of the `fill_level` domain. */
 export const CAULDRON_FULL = 6;
+
+/** How many `fill_level` steps one bottle moves, so three bottles fill a cauldron. */
+export const CAULDRON_BOTTLE_LEVELS = 2;
+
+/** The sound each liquid makes going into or out of a cauldron. */
+const LIQUID_SOUNDS: Readonly<Record<string, { readonly fill: string; readonly empty: string }>> = {
+    water: { fill: 'bucket.fill_water', empty: 'bucket.empty_water' },
+    lava: { fill: 'bucket.fill_lava', empty: 'bucket.empty_lava' },
+    powder_snow: { fill: 'bucket.fill_powder_snow', empty: 'bucket.empty_powder_snow' }
+};
+
+/** The fill and empty sounds for a cauldron liquid, falling back to water's. */
+const liquidSounds = (liquid: string): { readonly fill: string; readonly empty: string } =>
+    LIQUID_SOUNDS[liquid] ?? { fill: 'bucket.fill_water', empty: 'bucket.empty_water' };
 
 /**
  * Chests, barrels, shulker boxes and decorated pots.
@@ -98,8 +113,16 @@ export const containerFamily = defineFamily(
 /** Furnaces, smokers, blast furnaces, campfires and the brewing stand. */
 export const furnaceFamily = defineFamily(
     'jsprismarine:furnace',
-    'Gives the block its slots, faces the placer, drops its contents on break, and extinguishes a campfire that water reaches.',
+    'Gives the block its slots, faces the placer, drops its contents on break, extinguishes a campfire that water reaches, and relights one with flint and steel.',
     {
+        onPlayerInteract: (event, world) => {
+            if (!hasState(event.block, 'extinguished')) return undefined;
+            if (!stateBoolean(event.block, 'extinguished')) return undefined;
+            if (!isIgniter(event.itemStack)) return undefined;
+            setStates(world, event.block, { extinguished: false });
+            world.playSound(event.block.position, 'ignite');
+            return true;
+        },
         onPlace: (event, world) => {
             world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
             if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
@@ -127,17 +150,63 @@ export const furnaceFamily = defineFamily(
     }
 );
 
-/** The cauldron, which holds one of three liquids. */
+/**
+ * The cauldron, which holds one of three liquids.
+ *
+ * A bucket moves the whole six levels and a bottle moves two, so three
+ * bottles fill what one bucket does. What the exchange gives back goes on the
+ * ground, because `WorldActions` has no inventory to put it in; the server
+ * picks it up from the drop or replaces the stack itself.
+ */
 export const cauldronFamily = defineFamily(
     'jsprismarine:cauldron',
-    'Fills a level at a time and empties at zero; which bucket or bottle did it is the item runtime decision.',
+    'Takes a whole bucket or two levels from a bottle, gives back the emptied or filled container, and refuses a bottle against lava or powder snow.',
     {
         onPlayerInteract: (event, world) => {
             const level = stateNumber(event.block, 'fill_level');
-            if (level >= CAULDRON_FULL) return undefined;
-            setStates(world, event.block, { fill_level: level + 2, cauldron_liquid: 'water' });
-            world.playSound(event.block.position, 'bucket.empty_water');
-            return true;
+            const liquid = stateString(event.block, 'cauldron_liquid', 'water');
+            const poured = bucketContents(event.itemStack);
+
+            if (poured !== undefined) {
+                if (level >= CAULDRON_FULL) return undefined;
+                setStates(world, event.block, { fill_level: CAULDRON_FULL, cauldron_liquid: poured });
+                world.dropItem(event.block.position, { identifier: 'minecraft:bucket', count: 1 });
+                world.playSound(event.block.position, liquidSounds(poured).empty);
+                return true;
+            }
+
+            if (isEmptyBucket(event.itemStack)) {
+                if (level < CAULDRON_FULL) return undefined;
+                setStates(world, event.block, { fill_level: 0 });
+                world.dropItem(event.block.position, { identifier: bucketOf(liquid), count: 1 });
+                world.playSound(event.block.position, liquidSounds(liquid).fill);
+                return true;
+            }
+
+            // A bottle only ever carries water, so lava and powder snow are
+            // left for the item's own use rather than drained two at a time.
+            if (liquid !== 'water') return undefined;
+
+            if (isGlassBottle(event.itemStack)) {
+                if (level < CAULDRON_BOTTLE_LEVELS) return undefined;
+                setStates(world, event.block, { fill_level: level - CAULDRON_BOTTLE_LEVELS });
+                world.dropItem(event.block.position, { identifier: 'minecraft:potion', count: 1 });
+                world.playSound(event.block.position, 'bucket.fill_water');
+                return true;
+            }
+
+            if (isWaterBottle(event.itemStack)) {
+                if (level > CAULDRON_FULL - CAULDRON_BOTTLE_LEVELS) return undefined;
+                setStates(world, event.block, {
+                    fill_level: level + CAULDRON_BOTTLE_LEVELS,
+                    cauldron_liquid: 'water'
+                });
+                world.dropItem(event.block.position, { identifier: 'minecraft:glass_bottle', count: 1 });
+                world.playSound(event.block.position, 'bucket.empty_water');
+                return true;
+            }
+
+            return undefined;
         },
         onBreak: (event, world, context) => {
             dropSelf(world, context, event.brokenBlock);
