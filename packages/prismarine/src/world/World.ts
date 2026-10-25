@@ -1515,7 +1515,51 @@ export class World implements Service {
     }
 
     /**
+     * The most dropped stacks one world keeps on the ground at once.
+     *
+     * Neither edition publishes a number like this, and neither needs one. Java bounds its
+     * item entities with a 6000-tick despawn, and both editions merge stacks that land
+     * together, which this server does too in `entity/other/Item.ts`. What neither bounds is
+     * a burst. {@link BlockUpdateScheduler} lets one tick process 4096 positions, every one
+     * of which can destroy a block and roll its loot table, and a world that has just
+     * generated hundreds of chunks has that much work waiting in it. The reported crash was
+     * over 10,000 stacks on the ground, each one falling, comparing itself against its
+     * neighbors to merge, and going out to every player in range, every tick.
+     *
+     * The number is this server's own judgement rather than anything Mojang publishes: well
+     * past what play produces, well short of what the per-tick merge pass can carry.
+     */
+    public static readonly ITEM_ENTITY_LIMIT = 2048;
+
+    /** Ticks between two reports that {@link World.ITEM_ENTITY_LIMIT} turned a drop away. */
+    private static readonly ITEM_ENTITY_LIMIT_REPORT_INTERVAL = 20;
+
+    /** The running answer {@link World.itemEntityCount} gives, absent until something asks. */
+    private itemEntities: number | undefined;
+
+    /** The tick the limit was last reported on, so one cascade is one line a second. */
+    private itemEntityLimitReportedAt: number | undefined;
+
+    /**
+     * How many of {@link World.entities} are dropped stacks.
+     *
+     * Counted from the map once and kept in step by {@link World.addEntity} and
+     * {@link World.removeEntity} after that. A cascade of block updates reaches the drop path
+     * thousands of times in a tick, and walking the map that often is the cost this limit
+     * exists to avoid.
+     * @returns {number} The number of `minecraft:item` entities in the world.
+     */
+    private itemEntityCount(): number {
+        this.itemEntities ??= [...this.entities.values()].filter((entity) => entity instanceof ItemEntity).length;
+        return this.itemEntities;
+    }
+
+    /**
      * Puts items on the ground at a position, one entity each.
+     *
+     * Past {@link World.ITEM_ENTITY_LIMIT} stacks in the world the remaining drops are lost
+     * rather than spawned. Losing a drop is worse than vanilla and better than the server
+     * going down, and it is reported so an operator can tell which happened.
      * @param {Vector3} position - where they land.
      * @param {Array} contents - what to drop; nulls are skipped, so a block that drops
      * nothing for the tool used can say so plainly.
@@ -1540,7 +1584,31 @@ export class World implements Service {
                 );
         }
 
-        await Promise.all(contents.filter((drop) => drop !== null).map(async (drop) => this.dropItem(position, drop)));
+        const wanted = contents.filter((drop) => drop !== null);
+        const room = Math.max(0, World.ITEM_ENTITY_LIMIT - this.itemEntityCount());
+        if (wanted.length > room) this.reportItemEntityLimit(wanted.length - room);
+
+        await Promise.all(wanted.slice(0, room).map(async (drop) => this.dropItem(position, drop)));
+    }
+
+    /**
+     * Says that the world is full of dropped stacks, at most once a second.
+     *
+     * The condition is a flood by definition, so a line per lost drop would be the same
+     * thousands-of-things problem one level up.
+     * @param {number} lost - Drops turned away by this call, not by the flood as a whole.
+     */
+    private reportItemEntityLimit(lost: number): void {
+        const last = this.itemEntityLimitReportedAt;
+        if (last !== undefined && this.currentTick - last < World.ITEM_ENTITY_LIMIT_REPORT_INTERVAL) return;
+        this.itemEntityLimitReportedAt = this.currentTick;
+
+        this.server
+            .getLogger()
+            .warn(
+                `${this.name} is at its limit of ${World.ITEM_ENTITY_LIMIT} dropped stacks; this break lost ${lost}`,
+                'World/dropContents'
+            );
     }
 
     /**
@@ -1596,6 +1664,12 @@ export class World implements Service {
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        // Kept in step only once something has asked for it; before that the first count
+        // reads the map, which already holds this arrival. Re-adding one the world already
+        // has is a replacement rather than an arrival.
+        if (this.itemEntities !== undefined && entity instanceof ItemEntity && !this.entities.has(entity.getRuntimeId()))
+            this.itemEntities += 1;
+
         this.entities.set(entity.getRuntimeId(), entity);
         if (entity instanceof Player) this.players.set(entity.getRuntimeId(), entity);
         this.markEntityChunkChanged(entity);
@@ -1614,6 +1688,9 @@ export class World implements Service {
         const chunkIndex = this.entityChunkIndices.get(runtimeId);
         if (chunkIndex !== undefined) this.chunks.get(chunkIndex)?.markChanged();
         this.entityChunkIndices.delete(runtimeId);
+
+        if (this.itemEntities !== undefined && entity instanceof ItemEntity && this.entities.has(runtimeId))
+            this.itemEntities -= 1;
 
         this.entities.delete(entity.getRuntimeId());
         this.players.delete(entity.getRuntimeId());
