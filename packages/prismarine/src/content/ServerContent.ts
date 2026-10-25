@@ -289,7 +289,18 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             brains
         },
         recipes: recipes.book,
-        loot: new LootRegistry(definitions, { worldSeed: options.seed ?? 0n }),
+        // The three seams a loot table reaches that no pack states. Without
+        // the enchantment view `enchant_randomly` and `enchant_with_levels`
+        // report and leave the stack bare across 25 vanilla tables, and
+        // without the item limits a rolled count clamps to 64 whatever the
+        // item is. `structures` stays out: an `exploration_map` needs a
+        // structure search, and this server has none to offer yet, so the
+        // modifier reports rather than pointing a map at a made-up place.
+        loot: new LootRegistry(definitions, {
+            worldSeed: options.seed ?? 0n,
+            enchantments: (random) => createEnchantmentView(enchantments, { random }),
+            items: itemStackOpsFor(items.types)
+        }),
         advancements,
         enchantments,
         spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),
