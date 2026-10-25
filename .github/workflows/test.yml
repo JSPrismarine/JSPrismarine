@@ -56,3 +56,63 @@ jobs:
                   token: ${{ secrets.CODECOV_TOKEN }}
                   slug: JSPrismarine/JSPrismarine
 
+    # A dozen suites read Mojang's published data and skip when it is absent, which is every
+    # run of the matrix above: nothing there fetches a source. This job is where they run. It
+    # is Linux only because the sources are 1.1 GB unpacked and one download is enough.
+    real-data:
+        name: 🗃️ Real data suites
+        runs-on: ubuntu-latest
+        timeout-minutes: 90
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  submodules: 'recursive'
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # The Java data generator and the property dumper need a JDK of the jar's class file
+            # version. `sources.json` pins Java 26.3, whose `version.json` asks for 25.
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            - name: ⬇️ Fetch the pinned sources
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            - name: 🏭 Run the Java data generator
+              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
+
+            # Unpacks the bundler's inner jar, which the worldgen vectors read their registries
+            # out of, and rewrites the two Java goldens from the jar.
+            - name: 🏭 Run the Java property dumper
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:java
+
+            - name: 🔎 Check the Java goldens still match the jar
+              run: git diff --exit-code -- packages/bedrock-data/src/jsp/java
+
+            # Fails when a path is missing rather than letting a suite skip itself silently,
+            # which is how these suites went unrun for as long as they did.
+            - name: 🔑 Resolve the real-data environment
+              run: node scripts/real-data-env.mts --github-env
+
+            - name: 🔨 Build
+              run: pnpm run build
+
+            - name: 🧪 Test
+              run: pnpm run test
+
+            - name: 📊 Publish the parity dashboard
+              if: ${{ !cancelled() }}
+              run: pnpm --filter @jsprismarine/parity run dashboard
+
