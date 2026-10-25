@@ -4,6 +4,7 @@ import { Dimensions } from './Dimension';
 import EntityGrid from './EntityGrid';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /**
  * The order a tick reports what happened in it.
@@ -65,13 +66,13 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         getPlayers: () => [],
         runBlockUpdates: async () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
-        mobSpawner: { tick: async () => void calls.push('mobSpawner') },
         save: async () => {},
         server: {
             getConfig: () => ({ getEntityTrackingInterval: () => trackingInterval }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
-            // No content, so no data-driven entities and the legacy spawner above still runs.
-            getEntityRuntime: () => undefined
+            // Inert: this file is about the order of the phases, not about what a mob does
+            // inside one, and the data runtime's own tick is covered by `live.test.ts`.
+            getEntityRuntime: () => inertEntityRuntime()
         }
     });
 
@@ -102,7 +103,6 @@ describe('world', () => {
             expect(calls).toStrictEqual([
                 'blockUpdates',
                 'systems',
-                'mobSpawner',
                 'reconcile',
                 'flushBlockChanges',
                 'flushMovement',

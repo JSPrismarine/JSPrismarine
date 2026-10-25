@@ -42,7 +42,7 @@ import type { GameRuleEntry } from '../../world/GameRuleManager';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
-import { testContent } from '../../testing/entityServer';
+import { inertEntityRuntime, testContent } from '../../testing/entityServer';
 import { collectAsyncCommands } from '../Command';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -140,9 +140,8 @@ const buildFixture = (): Fixture => {
         },
         getLoadedChunk: () => null,
         getSeed: () => 1,
-        // No data-driven runtime, which is the shape of a world running with
-        // `content-packs` off and what keeps `/summon` on the written classes.
-        dataEntities: () => undefined,
+        // Inert, which is what keeps `/summon` on the written classes here.
+        dataEntities: () => inertEntityRuntime(),
         // Late-bound: an entity class reads the server off the world it is
         // built in, and the server double is built from this one.
         getServer: () => server
