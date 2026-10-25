@@ -15,11 +15,40 @@ import { blockProperties } from '@jsprismarine/blocks';
 /** The state values a behavior writes when it places or rewrites a block. */
 export type BlockStates = Readonly<Record<string, BlockStateValue>>;
 
-/** An item stack leaving a block, as a drop, an ejection or a container's contents. */
+/**
+ * An item stack leaving a block, as a drop, an ejection or a container's contents.
+ *
+ * Everything past the identifier and the count is per-stack state rather than a fact about the
+ * item type, and every field is optional because most stacks carry none of it. They are here
+ * because this is also the shape a container's slots are in: an identifier and a count alone
+ * meant a player who put an enchanted pickaxe in a chest got a plain one back.
+ */
 export interface ItemDrop {
     /** The namespaced item identifier, such as `minecraft:wheat_seeds`. */
     readonly identifier: string;
     readonly count: number;
+    /** The aux value, which is Bedrock's top-level `Damage` and a potion's variant. */
+    readonly meta?: number;
+    /**
+     * Durability spent, which is Java's `minecraft:damage` and Bedrock's `tag.Damage`.
+     *
+     * Spent rather than remaining, so a stack of an item whose maximum durability changed
+     * between versions comes back damaged by the same amount rather than by a different
+     * fraction of a different total.
+     */
+    readonly damage?: number;
+    /** The name an anvil gave the stack, which replaces the item's own. */
+    readonly customName?: string;
+    readonly lore?: readonly string[];
+    /** Namespaced Java enchantment id to level, which is `minecraft:enchantments`. */
+    readonly enchantments?: Readonly<Record<string, number>>;
+    /**
+     * What a container item holds, one entry per slot and `undefined` for an empty one.
+     *
+     * Java's `minecraft:container`, which is what a shulker box carries its inventory in
+     * between being broken and being placed again.
+     */
+    readonly contents?: readonly (ItemDrop | undefined)[];
 }
 
 /**
