@@ -1,6 +1,7 @@
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
 import { GeneratorManager } from './GeneratorManager';
+import { contentRandomTickHandlers } from './randomTicks';
 import { World } from './World';
 import type BaseProvider from './providers/BaseProvider';
 
@@ -147,6 +148,14 @@ export default class WorldManager implements Service {
             );
         }
 
+        // The behavior families answer the random ticks, and they are reachable only through the
+        // content registries - so a world started with `content-packs` off gets no handlers and
+        // the engine draws its positions and discards them, exactly as it did before.
+        const content = this.server.getContent();
+
+        // Closed over rather than passed, because a world's handlers are built while the world
+        // is being constructed and every one of them runs from its tick long afterwards.
+        let built: World | undefined;
         const world = new World({
             name: folderName,
             path: levelPath,
@@ -155,8 +164,21 @@ export default class WorldManager implements Service {
 
             seed: worldData.seed,
             generator,
-            config: { ...worldData }
+            config: { ...worldData },
+            randomTickHandlers: content
+                ? contentRandomTickHandlers({
+                      content,
+                      world: () => built,
+                      report: (identifier, error) => {
+                          this.server.getLogger().error(error);
+                          this.server
+                              .getLogger()
+                              .error(`§c${identifier}§r threw on a random tick; it will not be reported again`);
+                      }
+                  })
+                : undefined
         });
+        built = world;
         this.worlds.set(world.getUUID(), world);
 
         // Given somewhere to report its changes before it starts running. Attached from here

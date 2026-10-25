@@ -23,6 +23,7 @@ import ContainerEntry from '../inventory/ContainerEntry';
 import { Item } from '../item/Item';
 import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
+import { breakBlockWithContent, collectBreakDrops } from './blockBreak';
 import CoordinateUtils from './CoordinateUtils';
 import EntityGrid from './EntityGrid';
 import type { WorldChangeSink } from './WorldChangeSink';
@@ -250,11 +251,11 @@ export class World implements Service {
                 }
             },
             world: createEngineWorld(this),
-            // Nothing passes these yet. The blocks that answer a random tick are the behavior
-            // families in `@jsprismarine/block-behaviors`, and reaching them needs the content
-            // world adapter no subsystem supplies to a live world so far. The positions are
-            // drawn either way, so the draw sequence - which decides where crops grow - does
-            // not shift when they arrive.
+            // The blocks that answer a random tick are the behavior families in
+            // `@jsprismarine/block-behaviors`, reached through the content world adapter, so
+            // `WorldManager` builds these from the content registries and leaves them out when
+            // `content-packs` is off. The positions are drawn either way, so the draw sequence -
+            // which decides where crops grow - does not shift with them.
             randomTickHandlers
         });
 
@@ -989,6 +990,12 @@ export class World implements Service {
         // registered a behavior for costs the drops rather than the whole break.
         const broken = await this.getBlock(x, y, z);
 
+        // The content path's share of the break, before the block goes: the block's behavior
+        // family gets `onBreak`, which is what spills a chest, and Java's loot table for the
+        // block decides what falls. Undefined with `content-packs` off and for a block no
+        // content covers, and the drop this server has always made is the one below.
+        const contentDrops = breakBlockWithContent({ world: this, position: { x, y, z }, player });
+
         // TODO: run a function from block.getBreakConsequences() because the broken block may
         // place more blocks or run block related code, for example ice should replace itself
         // with a water source block in survival.
@@ -1020,7 +1027,10 @@ export class World implements Service {
             // `None` - so a block that needs one drops nothing however good the pickaxe is.
             // The item is passed all the same, so that fixing the item side fixes this too.
             const itemInHand = player?.getInventory().getItemInHand() ?? null;
-            await this.dropContents(new Vector3(x + 0.5, y + 0.5, z + 0.5), broken.getDrops(itemInHand, this.server));
+            await this.dropContents(
+                new Vector3(x + 0.5, y + 0.5, z + 0.5),
+                contentDrops ?? broken.getDrops(itemInHand, this.server)
+            );
         }
 
         return true;
@@ -1209,6 +1219,11 @@ export class World implements Service {
      * nothing for the tool used can say so plainly.
      */
     public async dropContents(position: Vector3, contents: Array<Block | Item | null>): Promise<void> {
+        // A break running its block's `onBreak` takes what the family drops, so a container's
+        // contents can be told from the family's stand-in for the loot table rather than
+        // landing beside the roll; see {@link import('./blockBreak')}.
+        if (collectBreakDrops(this, contents)) return;
+
         // A block that promises a drop the server cannot make yields `null` here - most often
         // because it names an item nothing has registered. Silently filtered, that is a break
         // that leaves nothing behind and no way to tell why, which is indistinguishable from
