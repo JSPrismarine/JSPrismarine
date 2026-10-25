@@ -79,14 +79,71 @@ describe('parseFilter', () => {
         expect(parseFilter([{ test: 'is_baby' }])).toMatchObject({ kind: 'group', combinator: 'all_of' });
     });
 
+    it('ands the clauses of a group map that writes several combinators', () => {
+        // The tnt_minecart's interact filter: a player holding either igniter.
+        expect(
+            parseFilter({
+                all_of: [{ test: 'is_family', subject: 'other', value: 'player' }],
+                any_of: [
+                    { test: 'has_equipment', subject: 'other', domain: 'hand', value: 'fireball:0' },
+                    { test: 'has_equipment', subject: 'other', domain: 'hand', value: 'flint_and_steel' }
+                ]
+            })
+        ).toMatchObject({
+            kind: 'group',
+            combinator: 'all_of',
+            filters: [
+                { kind: 'group', combinator: 'all_of', filters: [{ test: 'is_family' }] },
+                {
+                    kind: 'group',
+                    combinator: 'any_of',
+                    filters: [{ value: 'fireball:0' }, { value: 'flint_and_steel' }]
+                }
+            ]
+        });
+    });
+
+    it('lets a combinator hold one test instead of an array', () => {
+        // The witch's drink_potion filters write `none_of` over a single test.
+        expect(parseFilter({ none_of: { test: 'has_mob_effect', value: 'water_breathing' } })).toMatchObject({
+            kind: 'group',
+            combinator: 'none_of',
+            filters: [{ kind: 'test', test: 'has_mob_effect', value: 'water_breathing' }]
+        });
+    });
+
+    it('keeps the integer domain the 1.26 serializer writes', () => {
+        // The piglin's gold-armor filters write the equipment slot as an int.
+        expect(
+            parseFilter({ test: 'has_equipment', subject: 1, operator: 1, domain: 4, value: 'minecraft:golden_helmet' })
+        ).toMatchObject({ domain: 4, subject: 'other', operator: '!=' });
+    });
+
+    it('expands the legacy shorthand where the key names the test', () => {
+        // The skeleton's `minecraft:lightning_immune` damage sensor.
+        expect(parseFilter({ other_with_families: 'lightning' })).toEqual({
+            kind: 'test',
+            test: 'is_family',
+            subject: 'other',
+            operator: '==',
+            value: 'lightning'
+        });
+        expect(parseFilter({ other_with_families: ['lightning', 'mob'] })).toMatchObject({
+            kind: 'group',
+            combinator: 'any_of',
+            filters: [{ value: 'lightning' }, { value: 'mob' }]
+        });
+    });
+
     it('rejects unknown subjects, operators and malformed groups', () => {
         expect(() => parseFilter({ test: 'is_baby', subject: 99 })).toThrow(FilterParseError);
         expect(() => parseFilter({ test: 'is_baby', subject: 'enemy' })).toThrow(FilterParseError);
         expect(() => parseFilter({ test: 'is_baby', operator: 7 })).toThrow(FilterParseError);
         expect(() => parseFilter({ test: 'is_baby', operator: '~' })).toThrow(FilterParseError);
-        expect(() => parseFilter({ all_of: [], any_of: [] })).toThrow(FilterParseError);
+        expect(() => parseFilter({ all_of: [], extra: 1 })).toThrow(/extra/);
         expect(() => parseFilter({ all_of: {} })).toThrow(FilterParseError);
         expect(() => parseFilter({ value: 1 })).toThrow(FilterParseError);
+        expect(() => parseFilter({ unknown_shorthand: 'x', also: 'y' })).toThrow(FilterParseError);
         expect(() => parseFilter('is_baby')).toThrow(FilterParseError);
     });
 });

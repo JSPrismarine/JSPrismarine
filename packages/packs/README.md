@@ -41,8 +41,12 @@ default marks everything `unknown` until a mapping implementation takes the seam
 
 Behind the interface: manifest validation against the documented schema, a lenient JSON parser
 (comments and trailing commas, which vanilla trade tables use), `format_version` dispatch, a
-brarchive reader, a zip reader for `.mcpack`/`.mcaddon`, and the Bedrock filter grammar in both its
-string form and the integer `subject`/`operator` encoding the 1.26 serializer writes.
+brarchive reader, a zip reader for `.mcpack`/`.mcaddon`, and the Bedrock filter grammar as the
+vanilla files write it. That means the string form, the integer `subject`, `operator` and `domain`
+encoding the 1.26 serializer writes, a group map carrying more than one combinator (read as an
+`all_of` over its clauses), a combinator holding one test instead of an array, and the legacy
+shorthand that names the test in the key, as the skeleton's `{"other_with_families": "lightning"}`
+does.
 
 Validation in this version is structural (required keys and container types per registry) on both
 sides. Pass `validator` in the load options to replace it, for example with schema-based validation:

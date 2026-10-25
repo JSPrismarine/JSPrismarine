@@ -5,6 +5,14 @@
  * documented aliases `all`, `AND`, `any`, `OR` and `NOT`. The 1.26 serializer
  * writes `subject` and `operator` as integers in 27 vanilla entity files, so
  * both encodings parse.
+ *
+ * Mojang's own `Filter Group Map.json` declares each combinator as an
+ * optional property holding a whole filter group, so a map may carry several
+ * combinators and a combinator may hold one test rather than an array. The
+ * vanilla files use both: the tnt_minecart writes `all_of` beside `any_of`,
+ * and the witch writes `none_of` over a single test. Each clause of a map has
+ * to pass for the map to pass, which makes several clauses an implicit
+ * `all_of` over them.
  */
 
 /** Whom a filter test reads, in the engine's int16 enum order. */
@@ -62,8 +70,13 @@ export interface FilterTest {
     subject: FilterSubject;
     /** Defaults to `==` when the file writes none. */
     operator: FilterOperator;
-    /** Extra context for a few tests, such as the equipment slot for `has_equipment`. */
-    domain?: string;
+    /**
+     * Extra context for a few tests, such as the equipment slot for
+     * `has_equipment`. The schema types it like `value`, and the 1.26
+     * serializer writes the slot as an integer in the piglin's files, so it
+     * stays as written rather than being forced to a name.
+     */
+    domain?: string | number | boolean;
     value?: string | number | boolean;
 }
 
@@ -86,6 +99,16 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /**
+ * The legacy shorthand where the key names the test and carries its subject,
+ * and the value is what the test compares against. The skeleton's
+ * `minecraft:lightning_immune` damage sensor is the one vanilla filter that
+ * still writes it, as `{"other_with_families": "lightning"}`.
+ */
+const SHORTHANDS: Record<string, { readonly test: string; readonly subject: FilterSubject }> = {
+    other_with_families: { test: 'is_family', subject: 'other' }
+};
+
+/**
  * Parses a filter from its JSON form into the normalized shape: aliases
  * resolve to their canonical combinator, integer subjects and operators
  * resolve to their names, and the `self` and `==` defaults are filled in.
@@ -97,19 +120,34 @@ export const parseFilter = (value: unknown): Filter => {
     if (!isRecord(value))
         throw new FilterParseError(`a filter must be an object or array, got ${JSON.stringify(value)}`);
 
-    const groupKeys = Object.keys(value).filter((key) => key in GROUP_ALIASES);
+    const keys = Object.keys(value);
+    const groupKeys = keys.filter((key) => key in GROUP_ALIASES);
     if (groupKeys.length > 0) {
-        if (groupKeys.length > 1 || Object.keys(value).length > 1)
-            throw new FilterParseError(
-                `a filter group must have exactly one combinator key, got ${Object.keys(value).join(', ')}`
-            );
-        const key = groupKeys[0]!;
-        const members = value[key];
-        if (!Array.isArray(members)) throw new FilterParseError(`${key} must hold an array of filters`);
-        return { kind: 'group', combinator: GROUP_ALIASES[key]!, filters: members.map(parseFilter) };
+        const rest = keys.filter((key) => !(key in GROUP_ALIASES));
+        if (rest.length > 0)
+            throw new FilterParseError(`a filter group map holds only combinator keys, got ${rest.join(', ')}`);
+        const clauses = groupKeys.map((key) => parseGroup(key, value[key]));
+        return clauses.length === 1 ? clauses[0]! : { kind: 'group', combinator: 'all_of', filters: clauses };
     }
 
+    const shorthand = keys.length === 1 ? SHORTHANDS[keys[0]!] : undefined;
+    if (shorthand) return parseShorthand(shorthand, value[keys[0]!]);
+
     return parseTest(value);
+};
+
+/** Parses one clause of a group map; its value is a whole filter group. */
+const parseGroup = (key: string, members: unknown): FilterGroup => ({
+    kind: 'group',
+    combinator: GROUP_ALIASES[key]!,
+    filters: Array.isArray(members) ? members.map(parseFilter) : [parseFilter(members)]
+});
+
+/** Expands one legacy shorthand; a list of values reads as any of them. */
+const parseShorthand = (spec: { readonly test: string; readonly subject: FilterSubject }, value: unknown): Filter => {
+    if (Array.isArray(value))
+        return { kind: 'group', combinator: 'any_of', filters: value.map((member) => parseShorthand(spec, member)) };
+    return parseTest({ test: spec.test, subject: spec.subject, value });
 };
 
 const parseTest = (value: Record<string, unknown>): FilterTest => {
@@ -122,7 +160,8 @@ const parseTest = (value: Record<string, unknown>): FilterTest => {
         operator: parseOperator(value.operator)
     };
     if (value.domain !== undefined) {
-        if (typeof value.domain !== 'string') throw new FilterParseError('domain must be a string');
+        if (typeof value.domain !== 'string' && typeof value.domain !== 'number' && typeof value.domain !== 'boolean')
+            throw new FilterParseError('domain must be a string, number or boolean');
         test.domain = value.domain;
     }
     if (value.value !== undefined) {
