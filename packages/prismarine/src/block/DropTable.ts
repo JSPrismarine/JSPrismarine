@@ -26,17 +26,13 @@ export interface DropChance {
 }
 
 /**
- * What a block yields when it breaks.
+ * A hand-written drop table.
  *
- * Declarative because the alternative is a `Math.random()` in each of two hundred and sixty
- * block files, which is how gravel's flint was written: correct, untestable, and impossible
- * to state without reading the code. A table can be read, compared against the game, and
- * rolled with a chance source of the caller's choosing.
- *
- * Bedrock keeps these in the engine rather than in data - a Bedrock Dedicated Server ships
- * loot tables for chests, entities, equipment and gameplay, and none for blocks - so unlike
- * the recipes and the enums, this is authored rather than generated. That is a fact about
- * Mojang's distribution, not a shortcut taken here.
+ * @deprecated Blocks no longer use this: they roll Java's loot tables
+ *   through {@link import('./blockLoot').rollBlockDrops}. It survives only
+ *   for `src/entity/LootTables.ts`, whose fifty mob tables have not moved to
+ *   `ServerContent.loot` yet, and goes with them - phase 3 of the
+ *   data-driven plan deletes `LootTables` outright.
  */
 export class DropTable {
     public constructor(private readonly entries: readonly DropChance[]) {}
@@ -67,7 +63,7 @@ export class DropTable {
                 // creative menu makes if its list is handed straight to a player.
                 //
                 // No numeric id, because the name is what resolves - see `Item.getNetworkId`.
-                drops.push(new Item({ id: 0, name: entry.name, count: 1 }));
+                drops.push(new Item({ name: entry.name, count: 1 }));
             }
         }
 

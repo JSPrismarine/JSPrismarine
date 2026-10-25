@@ -28,7 +28,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(written);
             const item = Item.networkDeserialize(stream);
 
-            expect(item.getId()).toBe(5);
+            expect(item.getNetworkId()).toBe(5);
             expect(item.meta).toBe(3);
             // Nothing left over is the whole point: a reader one byte out still returns an
             // item, it just leaves the stream in the wrong place for whatever reads next.
@@ -41,7 +41,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(written);
             const item = Item.networkDeserialize(stream);
 
-            expect(item.getId()).toBe(7);
+            expect(item.getNetworkId()).toBe(7);
             expect(stream.feof()).toBe(true);
         });
 
@@ -59,7 +59,7 @@ describe('item', () => {
             const read = new NetworkBinaryStream(stream.getBuffer());
             const item = Item.networkDeserialize(read);
 
-            expect(item.getId()).toBe(0);
+            expect(item.getName()).toBe('minecraft:air');
             expect(read.readVarInt()).toBe(1234);
         });
     });
@@ -106,7 +106,9 @@ describe('item', () => {
             const without = serialized(item);
 
             expect(withNetId).not.toEqual(without);
-            expect(Item.networkDeserialize(new NetworkBinaryStream(withNetId)).getId()).toBe(item.getNetworkId());
+            expect(Item.networkDeserialize(new NetworkBinaryStream(withNetId)).getNetworkId()).toBe(
+                item.getNetworkId()
+            );
         });
 
         it('gives an item that places no block a runtime id of zero, instead of throwing', () => {
@@ -133,7 +135,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(serialized(output));
             const read = Item.networkDeserialize(stream);
 
-            expect(read.getId()).toBe(output.getNetworkId());
+            expect(read.getNetworkId()).toBe(output.getNetworkId());
             expect(stream.feof()).toBe(true);
         });
 
@@ -154,7 +156,7 @@ describe('item', () => {
             stream.writeVarInt(1234); // Whatever the packet writes next.
 
             const read = new NetworkBinaryStream(stream.getBuffer());
-            expect(Item.networkDeserialize(read).getId()).toBe(0);
+            expect(Item.networkDeserialize(read).getName()).toBe('minecraft:air');
             expect(read.readVarInt()).toBe(1234);
         });
 
@@ -171,7 +173,7 @@ describe('item', () => {
             const stream = new NetworkBinaryStream(serialized(item));
             const read = Item.networkDeserialize(stream);
 
-            expect(read.getId()).toBe(item.getNetworkId());
+            expect(read.getNetworkId()).toBe(item.getNetworkId());
             expect(read.meta).toBe(3);
             expect(read.getAmount()).toBe(1);
             expect(stream.feof()).toBe(true);

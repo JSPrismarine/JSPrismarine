@@ -22,12 +22,13 @@ import type {
     BlockPlacement,
     EffectApplication,
     EnvironmentState,
-    HolderSet,
     ItemSource,
     ItemWorldAction,
     ItemWorldActionOf,
     SourceState
 } from '@jsprismarine/item-behaviors';
+
+import { holderSetIncludes } from './holderSets';
 
 import type {
     ContentBlock,
@@ -44,17 +45,6 @@ const AIR: ContentBlock = { identifier: 'minecraft:air', states: {} };
 
 /** What `minecraft:flint_and_steel` and a fire charge put down. */
 const FIRE = 'minecraft:fire';
-
-/**
- * The registries a holder set's tag may name, in the order they are tried.
- *
- * A `HolderSet` carries a tag id and nothing that says which registry it
- * tags, because in Java the registry is implied by the component the set sits
- * in. The three an item behavior compares against are blocks, items and
- * entity types, and a tag id is unique enough across them that trying all
- * three in turn is right wherever the stack defines the tag at all.
- */
-const HOLDER_SET_REGISTRIES = ['item', 'block', 'entity_type'] as const;
 
 /** The `kind`s whose subject is a place in the world rather than an entity. */
 export const WORLD_ITEM_ACTION_KINDS = [
@@ -212,17 +202,9 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
             timeOfDay: level.dayTime(),
             spawnPosition: level.spawnPosition()
         }),
-        includes: (set, member) => includes(content, set, member),
+        includes: (set, member) => holderSetIncludes(content().tags, set, member),
         transform: (transformer, block) => transformers(transformer, block),
         effectsOf: (potion) => potions(potion),
         perform
     };
-};
-
-/** Whether an identifier is in a holder set, resolving a `#tag` through the merged tags. */
-const includes = (content: ContentLookup, set: HolderSet, member: string): boolean => {
-    if (set.kind === 'entries') return set.entries.includes(member);
-
-    const tags = content().tags;
-    return HOLDER_SET_REGISTRIES.some((registry) => tags.includes(registry, set.tag, member));
 };

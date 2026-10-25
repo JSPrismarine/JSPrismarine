@@ -1,24 +1,15 @@
-import { BlockToolType } from '../../block/BlockToolType';
-import { ItemIdsType } from '../ItemIdsType';
-import { ItemTieredToolType } from '../ItemTieredToolType';
-import { TieredTool } from '../TieredTool';
+import { Item } from '../Item';
 
-export default class IronSword extends TieredTool {
+/**
+ * `minecraft:iron_sword`.
+ *
+ * @deprecated There are no item classes any more; every number this answers
+ *   comes from Java's data components through {@link Item}. Kept only so the
+ *   entity tests that still construct one keep compiling - build
+ *   `new Item({ name: 'minecraft:iron_sword' })` instead.
+ */
+export default class IronSword extends Item {
     public constructor() {
-        super(
-            {
-                name: 'minecraft:iron_sword',
-                id: ItemIdsType.IronSword
-            },
-            ItemTieredToolType.Iron
-        );
-    }
-
-    public getMaxDurability() {
-        return 251;
-    }
-
-    public getToolType() {
-        return BlockToolType.Sword;
+        super({ name: 'minecraft:iron_sword' });
     }
 }

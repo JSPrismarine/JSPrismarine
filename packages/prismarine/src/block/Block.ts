@@ -1,76 +1,124 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
-import type { BedrockBlockProperties } from '@jsprismarine/mapping';
+import { isFullCube } from '@jsprismarine/engine-systems';
+import type { BlockStateValue } from '@jsprismarine/blocks';
 import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
-import type Server from '../Server';
-import type { Item } from '../item/Item';
-import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
-import { ItemTieredToolType } from '../item/ItemTieredToolType';
-import { BlockToolType } from './BlockToolType';
-import type { DropTable } from './DropTable';
-import { randomOf } from './DropTable';
 
-export class Block {
-    /**
-     * The block's numeric block ID.
-     */
-    public id: number;
+import type { ServerContent } from '../content/ServerContent';
+import { Item } from '../item/Item';
+import { rollBlockDrops } from './blockLoot';
 
-    /**
-     * The block's namespaced block ID.
-     */
-    public name: string;
+/**
+ * Everything the server reads off one block state.
+ *
+ * Resolved once, by whoever built the block, rather than looked up per call.
+ * {@link BlockManager} fills it from `ServerContent`'s flattened per-state
+ * table when the server built its content from packs; a block built without
+ * one falls back to `@jsprismarine/mapping`'s Java-sourced table, which is
+ * the same data the overlay pack is generated from.
+ */
+export interface BlockFacts {
+    /** Java destroy time in seconds; `-1` marks the unbreakable. */
+    readonly hardness: number;
+    /** Java explosion resistance; obsidian is 1200 where its hardness alone would say 250. */
+    readonly blastResistance: number;
+    /** Emitted light, 0 to 15. */
+    readonly lightEmission: number;
+    /** How much light the block swallows, 0 to 15. */
+    readonly lightFilter: number;
+    /** Ground friction: 0.6 for almost everything, 0.989 for blue ice. */
+    readonly friction: number;
+    /** Fire's odds of consuming the block once lit, Java's burn odds. */
+    readonly burnOdds: number;
+    /** Whether breaking without the right tool yields nothing. */
+    readonly requiresCorrectTool: boolean;
+    /** Whether anything can stand on the block. */
+    readonly solid: boolean;
+}
 
-    /**
-     * The block's java-edition namespaced block ID.
-     */
-    public javaName: string;
-
+/** What a {@link Block} is built from. */
+export interface BlockProps {
+    /** The namespaced Bedrock block identifier, such as `minecraft:oak_stairs`. */
+    name: string;
+    /** The state values the block carries, empty for its default state. */
+    states?: Readonly<Record<string, BlockStateValue>>;
     /**
      * The vanilla block state this block is placed as, when that differs from {@link name}.
      *
-     * Bedrock does not always have one block per thing JSPrismarine models: all sixteen
-     * colored beds are `minecraft:bed` on the wire, with the color living in the block
-     * entity. Keeping the two apart lets the server register sixteen distinct blocks while
-     * still giving them a runtime id the client can resolve.
+     * Bedrock does not always have one block per thing the server models: all
+     * sixteen colored beds are `minecraft:bed` on the wire, with the color in
+     * the block entity.
      */
-    public stateName?: string;
-    public hardness: number;
-    public meta = 0;
-    private networkId: number | undefined;
+    stateName?: string;
+    /** The resolved facts, when the caller read them out of a content build. */
+    facts?: BlockFacts;
+    /** The content the block's drops are rolled against, when the server built one. */
+    content?: ServerContent;
+}
 
-    // TODO
-    public nbt = null;
-    public count = 1;
+/** The facts of a block the Java property table does not know, which is a Bedrock-only block. */
+const UNKNOWN_FACTS = {
+    hardness: 0,
+    blastResistance: 0,
+    lightEmission: 0,
+    lightFilter: 15,
+    friction: 0.6,
+    burnOdds: 0,
+    requiresCorrectTool: false
+} as const;
 
-    public constructor({
-        id,
-        name,
-        javaName,
-        parentName,
-        stateName,
-        hardness
-    }: {
-        id: number;
-        name: string;
-        javaName?: string;
-        parentName?: string;
-        stateName?: string;
-        hardness?: number;
-    }) {
-        // There used to be an `Object.setPrototypeOf(this, Block.prototype)` here, and it
-        // undid every subclass in the package. A subclass constructor calls `super` first, so
-        // this ran on a half-built `Stone` and left it a plain `Block`: `new Stone()` was not
-        // `instanceof Stone`, and every override went with it. Stone stopped dropping
-        // cobblestone and dropped itself, no block was solid any more - so items fell through
-        // the ground - and nothing needed the right tool, because `getToolType` was the base
-        // one too. Three separate symptoms, one line.
-        this.id = id;
+/**
+ * The Java-sourced facts of one block state.
+ *
+ * Solidity is not in that table, because no Mojang report publishes a
+ * per-block collision column, so it comes from
+ * `@jsprismarine/engine-systems`'s own rule - the same one the fluid, piston
+ * and spawn code already uses.
+ */
+export const javaBlockFactsOf = (name: string, states: Readonly<Record<string, BlockStateValue>> = {}): BlockFacts => {
+    const row = bedrockBlockPropertiesOf(name, states);
+    const solid = isFullCube({ name, states });
+    if (row === undefined) return { ...UNKNOWN_FACTS, solid };
+
+    return {
+        hardness: row.hardness,
+        blastResistance: row.blastResistance,
+        lightEmission: row.lightEmission,
+        lightFilter: row.lightDampening,
+        friction: row.friction,
+        burnOdds: row.burnOdds,
+        requiresCorrectTool: row.requiresCorrectTool,
+        solid
+    };
+};
+
+/**
+ * One block state, as the rest of the server holds one.
+ *
+ * A data record rather than a base class: there are no subclasses any more,
+ * because the 1477 blocks and their 22079 states come out of the pack stack
+ * and their behavior out of `@jsprismarine/block-behaviors`'s 49 families.
+ * What a block yields comes out of Java's loot tables rather than out of a
+ * method an author overrode, which is why the 260 classes this replaced were
+ * able to go.
+ */
+export class Block {
+    /** The namespaced Bedrock block identifier. */
+    public readonly name: string;
+    /** The state values the block carries. */
+    public readonly states: Readonly<Record<string, BlockStateValue>>;
+
+    private readonly placedStateName: string | undefined;
+    private readonly facts: BlockFacts;
+    private readonly content: ServerContent | undefined;
+    private readonly networkId: number | undefined;
+
+    public constructor({ name, states = {}, stateName, facts, content }: BlockProps) {
         this.name = name;
-        this.javaName = javaName ?? name;
-        this.stateName = stateName;
-        this.hardness = hardness ?? 0;
-
-        this.networkId = BlockIdMap[parentName ?? name];
+        this.states = states;
+        this.placedStateName = stateName;
+        this.content = content;
+        this.facts = facts ?? javaBlockFactsOf(stateName ?? name, states);
+        this.networkId = BlockIdMap[name];
     }
 
     public get [Symbol.toStringTag]() {
@@ -80,236 +128,163 @@ export class Block {
         return this.name;
     }
 
-    /**
-     * Get the Block's namespaced id.
-     */
-    public getName() {
+    /** The block's namespaced identifier. */
+    public getName(): string {
         return this.name;
     }
 
     /** The vanilla block state to place, which is {@link name} unless overridden. */
     public getStateName(): string {
-        return this.stateName ?? this.name;
+        return this.placedStateName ?? this.name;
     }
 
     /**
-     * Get the Block's meta value.
-     */
-    public getMeta() {
-        return this.meta;
-    }
-
-    /**
-     * Get the Block's numeric id.
+     * The block's numeric id.
      *
-     * @returns The block's numeric ID.
+     * @deprecated Blocks have no numeric id any more. Zero is what every
+     *   block answers; use {@link Block.getName}. The one caller left is
+     *   `World.dropItem`, which passes it into an `Item` that resolves its
+     *   own network id by name.
      */
-    public getId() {
-        return this.id;
+    public getId(): number {
+        return 0;
     }
 
     /**
-     * Get the Block's network numeric id.
-     */
-    public getNetworkId() {
-        return this.networkId || this.getId();
-    }
-
-    /**
-     * The Java-sourced property row for this block's state, when the mapping table has one.
+     * The block's meta value.
      *
-     * Keyed by {@link getStateName}, the Bedrock block state the server places, which is the
-     * identity the table is flattened onto. A block the table does not know - a Bedrock-only
-     * identifier, or a legacy name the current palette dropped - returns `undefined`, and each
-     * getter falls back to the value the class carries, so nothing is silently defaulted.
+     * @deprecated Block state lives in {@link Block.states} now. Zero is what
+     *   every block answers.
      */
-    protected getBlockProperties(): BedrockBlockProperties | undefined {
-        return bedrockBlockPropertiesOf(this.getStateName());
+    public getMeta(): number {
+        return 0;
     }
 
-    /**
-     * Get the Block's hardness value.
-     *
-     * From the Java 26.3 property dump via the mapping table, which covers every block state the
-     * palette has rather than the handful the class registry declares. `-1` marks the unbreakable
-     * blocks. The constructor's value is only the fallback for names outside the table.
-     */
+    /** The id the client resolves the block's item form by. */
+    public getNetworkId(): number {
+        return this.networkId ?? 0;
+    }
+
+    /** Java's destroy time in seconds; `-1` marks the unbreakable blocks. */
     public getHardness(): number {
-        return this.getBlockProperties()?.hardness ?? this.hardness;
+        return this.facts.hardness;
     }
 
     /**
      * How long, in seconds, the block takes to break.
      *
-     * Hardness on its own is not that time. Vanilla scales it by whether the tool in hand
-     * can actually harvest the block: 1.5x when it can, 5x when it cannot - which is why
-     * dirt takes 0.75s by hand and stone 7.5s, rather than the 0.5s and 1.5s their hardness
-     * alone would suggest. Returning the hardness unscaled is what made the cracking
-     * animation, whose speed the server derives from this, run out well before the block
-     * gave way.
+     * Hardness on its own is not that time. Vanilla scales it by whether the
+     * tool in hand can actually harvest the block: 1.5x when it can, 5x when
+     * it cannot, which is why dirt takes 0.75s by hand and stone 7.5s.
+     *
+     * @param item - What is in hand, or null for a bare fist.
      */
-    public getBreakTime(item: Item | null, _server: Server): number {
-        // TODO: divide by the tool's mining efficiency, so that a diamond pickaxe is
-        // quicker than a wooden one. Items do not carry one yet.
+    public getBreakTime(item: Item | null, _server?: unknown): number {
         const hardness = this.getHardness();
-        // Negative hardness is Java's marker for the unbreakable blocks - bedrock, barriers,
-        // portals - which never give way however long the player holds the button.
+        // Negative hardness is Java's marker for the unbreakable blocks:
+        // bedrock, barriers, portals. They never give way.
         if (hardness < 0) return Number.POSITIVE_INFINITY;
         return hardness * (this.isCompatibleWithTool(item) ? 1.5 : 5);
     }
 
-    /**
-     * Get the Block's blast resistance.
-     *
-     * Java's explosion resistance from the mapping table - obsidian is 1200 where its hardness
-     * alone would say 250 - with the old hardness-times-five guess as the fallback for names
-     * outside the table.
-     */
+    /** Java's explosion resistance. */
     public getBlastResistance(): number {
-        return this.getBlockProperties()?.blastResistance ?? this.getHardness() * 5;
+        return this.facts.blastResistance;
     }
 
-    /**
-     * Get the Block's light level emission.
-     */
+    /** The light the block emits, 0 to 15. */
     public getLightLevel(): number {
-        return this.getBlockProperties()?.lightEmission ?? 0;
+        return this.facts.lightEmission;
     }
 
-    /**
-     * Get the Block's flammability: fire's odds of consuming it once lit, Java's burn odds.
-     */
-    public getFlammability(): number {
-        return this.getBlockProperties()?.burnOdds ?? 0;
-    }
-
-    /**
-     * Get the Block's required tool type.
-     */
-    public getToolType(): BlockToolType[] {
-        return [BlockToolType.None];
-    }
-
-    /**
-     * Get the Block's required item tool tier.
-     */
-    public getToolHarvestLevel(): ItemTieredToolType {
-        return ItemTieredToolType.None;
-    }
-
-    /**
-     * What this block yields, as chances rather than as code.
-     *
-     * The hook a block overrides when what it drops is not simply itself and not certain -
-     * seeds from grass, flint from gravel, a sapling from leaves. A table can be read against
-     * the game and rolled with a chance source of the caller's choosing; a `Math.random()` in
-     * the block, which is how gravel's flint was written, can be neither.
-     * @param {Item | null} _item - what it was broken with, for a table that depends on it.
-     * @returns {DropTable | null} `null` for a block that yields itself, which is most of them.
-     */
-    public getDropTable(_item: Item | null): DropTable | null {
-        return null;
-    }
-
-    /**
-     * Get the Block's drop(s) if the tool is compatible.
-     */
-    public getDropsForCompatibleTool(item: Item | null, server: Server): Array<Block | Item | null> {
-        const table = this.getDropTable(item);
-
-        return table ? table.roll(randomOf(server)) : [this];
-    }
-
-    /**
-     * Get the Block's drop(s) from the current item.
-     */
-    public getDrops(item: Item | null, server: Server): Array<Block | Item | null> {
-        if (this.isCompatibleWithTool(item)) {
-            if (this.isAffectedBySilkTouch() && item?.hasEnchantment(ItemEnchantmentType.SilkTouch))
-                return this.getSilkTouchDrops(item, server);
-
-            return this.getDropsForCompatibleTool(item, server);
-        }
-
-        return [];
-    }
-
-    /**
-     * Get the Block's drop(s) if silk touch is used.
-     */
-    public getSilkTouchDrops(_item: Item, _server: Server) {
-        return [this];
-    }
-
-    /**
-     * How much light the block swallows, 0 to 15: Java's light dampening from the mapping table,
-     * falling back to {@link defaultLightFilter} for names outside it.
-     */
+    /** How much light the block swallows, 0 to 15. */
     public getLightFilter(): number {
-        return this.getBlockProperties()?.lightDampening ?? this.defaultLightFilter();
+        return this.facts.lightFilter;
     }
 
-    /** The light filter for a block the table does not know. `Transparent` lowers it to 0. */
-    protected defaultLightFilter(): number {
-        return 15;
+    /** Fire's odds of consuming the block once lit. */
+    public getFlammability(): number {
+        return this.facts.burnOdds;
     }
 
-    public canPassThrough() {
-        return false;
+    /** Ground friction, which decides how far a player slides across the block. */
+    public getFriction(): number {
+        return this.facts.friction;
     }
 
-    /**
-     * Sets if the block can be replaced when place action occurs on it.
-     */
-    public canBeReplaced() {
-        return false;
+    /** Whether anything can stand on the block. */
+    public isSolid(): boolean {
+        return this.facts.solid;
     }
 
-    public canBePlaced() {
-        return true;
+    /** Whether the block gives way to a placement rather than blocking it. */
+    public canBeReplaced(): boolean {
+        return this.name === 'minecraft:air';
     }
 
-    public canBeFlowedInto() {
-        return false;
+    /** Whether the block can be placed at all. */
+    public canBePlaced(): boolean {
+        return this.name !== 'minecraft:air';
     }
 
-    public isTransparent() {
-        return false;
-    }
-
-    /**
-     * Check if the block is breakable.
-     *
-     * @returns `true` if the block is breakable otherwise `false`.
-     */
+    /** Whether mining ever removes the block. */
     public isBreakable(): boolean {
-        return true;
+        return this.facts.hardness >= 0;
     }
 
     /**
-     * Check if the block is solid.
+     * Whether what is in hand harvests the block rather than destroying it
+     * for nothing.
      *
-     * @returns `true` if the block is solid otherwise `false`.
+     * Java's rule in one line: a block without `requires_correct_tool` yields
+     * to anything, including a bare fist, and one with it yields only to a
+     * tool whose `minecraft:tool` rules say the block is correct for drops.
+     *
+     * A server with no content build answers yes either way. Those rules name
+     * their blocks by tag - `#minecraft:mineable/pickaxe`,
+     * `#minecraft:incorrect_for_stone_tool` - and the merged tag set only
+     * exists once a pack stack is loaded, so without one no tool could ever
+     * read as the right one and nothing needing a tool would drop at all.
+     *
+     * @param item - What is in hand, or null for a bare fist.
      */
-    public isSolid() {
-        return false;
+    public isCompatibleWithTool(item: Item | null): boolean {
+        if (!this.facts.requiresCorrectTool) return true;
+        if (!this.content) return true;
+        return item?.harvests(this.getStateName()) ?? false;
     }
 
-    public isCompatibleWithTool(item: Item | null) {
-        const toolType = this.getToolType();
-        const harvestLevel = this.getToolHarvestLevel();
+    /**
+     * What the block yields when it breaks, from Java's loot table for it.
+     *
+     * Silk touch, fortune, the shears branches and gravel's one-in-ten flint
+     * are all in the table rather than here, so this is a roll rather than a
+     * decision tree. A server with no content build has no tables to roll and
+     * yields the block itself, which is what it did before the tables landed.
+     *
+     * @param item - What broke it, which the table's predicates read.
+     * @param server - The server, for its content and its source of chance.
+     */
+    public getDrops(item: Item | null, server?: BlockDropServer): Array<Block | Item | null> {
+        const content = this.content ?? server?.getContent?.();
+        if (!content) return this.isCompatibleWithTool(item) ? [this] : [];
 
-        if (toolType.includes(BlockToolType.None) || harvestLevel <= 0) return true;
-        if (!item) return false;
-        if (toolType.includes(item.getToolType()) && item.getToolHarvestLevel() >= harvestLevel) return true;
-        return false;
+        const rolled = rollBlockDrops(
+            content,
+            { identifier: this.getStateName(), states: this.states },
+            { tool: item?.asPredicateStack() }
+        );
+
+        return rolled.map((drop) => new Item({ name: drop.identifier, count: drop.count, content }));
     }
 
-    public isAffectedBySilkTouch() {
-        return true;
+    /** Whether the creative menu shows the block. */
+    public isPartOfCreativeInventory(): boolean {
+        return this.canBePlaced();
     }
+}
 
-    public isPartOfCreativeInventory() {
-        return true;
-    }
+/** What {@link Block.getDrops} reads off the server: its content, when it built one. */
+export interface BlockDropServer {
+    getContent?(): ServerContent | undefined;
 }
