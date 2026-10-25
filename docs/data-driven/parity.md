@@ -66,7 +66,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
 | `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
 | `entities` | stats, addactor | The nine shared mob stats against Java's attribute dump; a packet row per actor type |
-| `worldgen` | biomes, terrain, features | Java's biome lookups and dumped columns; feature counts |
+| `worldgen` | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns, and the generation corpus: this server's own chunk output recorded at a named commit |
 | `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
 | `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
 
@@ -90,8 +90,22 @@ One source is in the third state today: the reference world `dump:bedrock` gener
 carries both the region to count over and `blockCounts`, the block histogram an ore and feature
 count compares against. Mojang publishes Bedrock Dedicated Server as a Linux x86-64 binary and
 the capture job runs it, so the golden comes out of CI rather than off a developer's machine.
-Until it lands, `worldgen.features` reports `not measured`, and the terrain row's reference
-region is the nine Java columns the worldgen oracle dumped rather than a whole world.
+Until it lands, the terrain row's Java reference is the nine columns the worldgen oracle dumped
+rather than a whole world, and no row compares this server's feature placement with Mojang's.
+
+### The generation corpus
+
+Four `worldgen` rows stand on a different kind of reference: a recording this server made of its
+own chunk output, committed at
+[`packages/parity/goldens/worldgen-corpus.json`](../../packages/parity/goldens/worldgen-corpus.json)
+with the commit, the date and the pinned Java data version it was captured at. It exists because
+the project is replacing the chunk generator, and the only way to know a rewrite changed nothing
+is to have recorded what the old one produced.
+
+Those rows measure change, not parity. A green `worldgen.corpus` says the generator produces what
+it produced at the named commit; it says nothing about Java Edition. `worldgen.terrain` remains
+the row that compares against Java. `packages/parity/README.md` under "The generation corpus"
+says what each of the four covers, what the corpus cost, and what `worldgen.determinism` found.
 
 ### The allow list
 

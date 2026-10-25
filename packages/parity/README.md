@@ -22,9 +22,75 @@ Each test file covers one behavior family, named by its top-level `describe`
 | `recipes.*`     | registry                            | Java's 2042 recipe files, parsed and compiled through the mapping                                                     |
 | `loot.*`        | tables, distribution                | Java's 1447 loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
 | `entities.*`    | stats, addactor                     | All nine shared mob stats against Java's attribute dump; a packet row per advertised actor                            |
-| `worldgen.*`    | biomes, terrain, features           | Java's biome lookups and dumped columns; feature counts wait on the reference world                                   |
+| `worldgen.*`    | biomes, terrain, corpus, features, structures, determinism | Java's biome lookups and dumped columns; and the generation corpus, this server's own output recorded at a named commit |
 | `commands.*`    | tree                                | The published command tree against Mojang's Bedrock command metadata                                                  |
 | `conformance.*` | claim, classification, exclusions   | The claim, the table it counts, and the eight exclusions                                                              |
+
+## The generation corpus
+
+`worldgen.corpus`, `worldgen.features` and `worldgen.structures` stand on
+[`goldens/worldgen-corpus.json`](goldens/worldgen-corpus.json), the one reference here this
+server wrote itself. It is a recording of what the chunk generator produced at the commit the
+file names, against the Java data version it names, under the capture protocol it names. A
+rewritten generator that reproduces it changed no block.
+
+It is not a parity comparison. A green row says the generator still does what it did, not that
+what it does is Java's. `worldgen.terrain` is the row that compares against Java, over the nine
+columns Java's oracle dumped, and a comparison against Mojang's own feature distribution still
+waits on `REFERENCES.referenceWorld`.
+
+### What it covers, and what it cost
+
+Twenty-two chunks at three seeds, in two tiers. A `terrain` chunk skips decoration, so the
+generator samples one chunk of noise instead of nine and the chunk costs about a quarter of a
+decorated one; it still covers the density functions, the aquifers, the surface rules, the
+carvers, the biome source and the structure beards. A `full` chunk runs everything. Fifteen
+chunks go to the cheap tier for breadth, seven to the expensive tier for the passes only a
+decorated chunk reaches. [`src/generation/plan.ts`](src/generation/plan.ts) carries one line per
+chunk saying what it is there for: ocean, a shoreline, hills, a surface at y 126, a chunk 1024
+chunks from the origin, the chunk an ocean monument starts in and the one it is written across,
+an ocean ruin, an underground jigsaw structure, and inland decoration with no structure at all.
+
+Four chunks are kept block by block rather than as a digest, so a failure can be read instead of
+reproduced. Every chunk carries seven digests, one of them per sixteen block section, and a
+census of how many blocks of each state it holds.
+
+The structure placement scan is separate and dense. `startsFor` only answers for the chunk it is
+asked about, so a sparse scan skips structures, while a contiguous 48 by 48 square reuses the
+same laid-out starts across its queries. Three seeds give twenty starts across nine structure
+types for about the price of two decorated chunks each.
+
+A full run regenerates all of it in one to two minutes of CPU on a quiet machine, most of it in
+the seven decorated chunks and the structure scan.
+
+### Capturing it
+
+```sh
+pnpm --filter @jsprismarine/parity run capture:corpus
+```
+
+Run it when a generation change is deliberate, and commit the golden in the same change so the
+diff shows which chunks moved. The script records the commit, the date, the pinned Java version
+and any uncommitted file under the packages that decide what a chunk holds, because a golden
+whose vintage is unknown cannot answer the first question anyone asks of it.
+`loadGenerationCorpus` refuses a golden captured against a different Java version rather than
+comparing against a stale recording.
+
+### What the determinism row found
+
+`worldgen.determinism` asks three things of chunk 0,0 at seed 1234. The same chunk generated
+twice from scratch is the same chunk, and that holds. The other two do not:
+
+- A chunk generated after its four neighbors holds different blocks from the same chunk
+  generated first.
+- A chunk already handed back changes when a neighbor is generated afterwards.
+
+The generator keeps neighbor terrain and cross-border feature output in a per-seed cache and
+replays it into terrain it builds later and into chunks it has already returned. Both are
+allow-listed as defects, because the chunk status ladder the rewrite is built around cannot
+preserve them across worker threads, and because a corpus captured under any other protocol
+would record the dependency rather than the generator's output. That is why each corpus chunk is
+generated by a generator that has produced nothing else.
 
 ## Reference data
 
@@ -80,9 +146,17 @@ plain weighted choice between named items, 54 of which draw between two or more;
 
 `worldgen.terrain` compares all 3456 heights of the nine whole overworld columns Java's oracle
 dumped at seed 1234, plus each column's heightmap and terrain class. Phase 4's exit criterion
-names a reference region, which is wider than nine columns; the region golden is the
-`worldgen.features` row's missing source, and until it lands the terrain row is green over the
-columns and silent about the rest of a chunk.
+names a reference region, which is wider than nine columns, so the terrain row is green over the
+columns and silent about the rest of a chunk. The generation corpus covers the rest of the
+chunk, against this server's own earlier output rather than against Java.
+
+`worldgen.features` counts the blocks the decoration pass placed across the corpus's seven
+decorated chunks and compares them with the counts the golden recorded. It catches a feature
+that stopped running, one that started running in the wrong biome, and an ore whose vein size
+moved. It is not the comparison phase 4's exit criterion asks for: that one needs `blockCounts`
+from a world a Bedrock Dedicated Server generated, which `REFERENCES.referenceWorld` still waits
+on, and this row would pass unchanged if every feature in the corpus had been wrong in the same
+way on the day it was captured.
 
 ## The dashboard
 
