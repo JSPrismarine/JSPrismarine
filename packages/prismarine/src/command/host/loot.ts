@@ -5,8 +5,8 @@
  * names one; `kill` rolls the table of the entity it points at, `mine` rolls
  * the table of the block at a position, and `fish` rolls a named table with
  * the position and tool its conditions read. So each one is resolved here
- * against the same index a mob dying and a block breaking already go through
- * - which is what makes `/loot spawn ~ ~ ~ mine ~ ~-1 ~` yield exactly what
+ * against the same index a mob dying and a block breaking already go through,
+ * which is what makes `/loot spawn ~ ~ ~ mine ~ ~-1 ~` yield exactly what
  * breaking that block by hand would.
  *
  * Without a content build there are no tables at all, and the command says so
@@ -32,9 +32,9 @@ import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, worldO
  * Java's slot names as the Bedrock group and index `setItemSlot` writes.
  *
  * `/loot replace` is a Java command and writes `container.0`; `/replaceitem`
- * is Bedrock's and writes `slot.hotbar 0`. One of the two spellings had to be
- * the one the inventory speaks, and it is Bedrock's, because that is what the
- * client sends.
+ * is Bedrock's and writes `slot.hotbar 0`. The inventories address slots in
+ * Bedrock's spelling, because that is the spelling the client sends, so a
+ * Java slot name is translated here.
  */
 const JAVA_SLOT_GROUPS: Readonly<Record<string, string>> = {
     container: 'slot.inventory',

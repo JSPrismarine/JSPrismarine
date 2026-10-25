@@ -16,10 +16,11 @@ as off.
 
 `src/content/world/gameRules.ts` names the rules the content path reads and resolves each
 through the registry, so a rule renamed again fails at startup instead of reading nothing. The
-data-driven entity runtime now reads three of them: `mobGriefing` decides whether a blast carves
+data-driven entity runtime now reads four of them: `mobGriefing` decides whether a blast carves
 a hole and whether a mob may break a block at all, `doTileDrops` whether either leaves items
-behind, and `doMobLoot` whether a dead mob rolls its table. Damage and knockback are unaffected
-by `mobGriefing`, as in Java.
+behind, `doMobLoot` whether a dead mob rolls its table, and `doMobSpawning` whether the natural
+spawn cycle runs. Damage and knockback are unaffected by `mobGriefing`, and the despawn pass
+still runs with `doMobSpawning` off, both as in Java.
 
 `GameRuleManager.findGameRule` is the same lookup as `getGameRule` without the log line a miss
 writes, for a caller trying several spellings of one rule.

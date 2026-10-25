@@ -33,6 +33,9 @@ export const BLOCK_DROPS = idOf('doTileDrops');
 /** `minecraft:mob_drops`: whether a dead mob leaves its loot behind. */
 export const MOB_DROPS = idOf('doMobLoot');
 
+/** `minecraft:spawn_mobs`: whether the natural spawn cycle runs. */
+export const SPAWN_MOBS = idOf('doMobSpawning');
+
 /**
  * Every spelling one game rule might be stored under, the 1.21.11 id first.
  *
