@@ -25,11 +25,14 @@ import { createEngine, createTestWorld } from '@jsprismarine/engine-systems';
 
 const world = createTestWorld();
 const engine = createEngine(world);
-world.onBlockUpdated((at, to) => {
-    engine.updates.updateNeighborsAt(at, to.name);
-    engine.updates.shapeUpdatesAround(at);
-});
+world.onBlockUpdated((at, to) => engine.setBlockAndUpdate(at, to));
 ```
+
+`setBlockAndUpdate` is the whole of Java's `Level.setBlockAndUpdate`: the write, the six neighbor
+updates, the new block's own `onPlace`, and the shape updates around it. A host that raises only
+the neighbor updates gets a world where dust placed beside a live lever stays dark, a piston placed
+into a powered position never extends, and fire never burns anything, because all three of those
+are `onPlace` and none of them is a neighbor update.
 
 `WorldAccess` covers block state, block entity data, tick scheduling and its two queries, item
 drops, sounds, difficulty, weather, rain, dimension, game time, the world random and the height
@@ -180,6 +183,17 @@ bedrock in the end.
 
 Fire runs on scheduled ticks 30 to 40 game ticks apart, as Java does, and is not affected by the
 random tick speed. Bedrock drives fire from random ticks instead; that is a deliberate divergence.
+The first of those ticks comes from `FireBlock.onPlace`, which `Engine.setBlockAndUpdate` runs, and
+every tick books the next one before it does anything else.
+
+Whether a fire tick does anything past that booking is `ServerLevel.canSpreadFireAround`, which
+reads the 1.21.11 game rule `minecraft:fire_spread_radius_around_player`. The rule is an integer, a
+default of 128 and a minimum of -1, and `GameRuleRegistryFix` folds the two booleans it replaced
+onto three of its values: `doFireTick` off is 0, on is 128, and on with
+`allowFireTicksAwayFromPlayer` is -1, which lifts the limit. Anything else means fire ticks only
+within that many blocks of a non-spectating player. The radius needs the player list, which this
+package does not have, so `EngineOptions.canSpreadFireAround` is where the host answers it. Say
+nothing and fire spreads everywhere.
 
 The random tick driver is `ServerLevel.tickChunk`. It draws `random_tick_speed` positions from each
 randomly ticking section with `Level.getBlockRandomPos`, whose linear congruential step,

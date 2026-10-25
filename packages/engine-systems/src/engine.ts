@@ -30,7 +30,7 @@ import {
     repeaterTick,
     updateDiodeNeighborsInFront
 } from './diodes';
-import { FIRE, fireTick } from './fire';
+import { FIRE, fireTick, fireTickDelay } from './fire';
 import type { FluidSourceRules } from './fluids';
 import { DEFAULT_SOURCE_RULES, fluidKindOf, fluidNeighborChanged, fluidTick } from './fluids';
 import type { NeighborUpdates } from './neighborUpdates';
@@ -74,6 +74,17 @@ export interface EngineOptions {
      * spread odds.
      */
     increasedFireBurnout?: (at: BlockPosition) => boolean;
+    /**
+     * Java's `ServerLevel.canSpreadFireAround`: whether a fire tick does
+     * anything beyond scheduling the next one.
+     *
+     * 1.21.11 folded the booleans `doFireTick` and `allowFireTicksAwayFromPlayer`
+     * into the integer `minecraft:fire_spread_radius_around_player`, so the
+     * answer is how far the nearest player is rather than a flag, and the host
+     * is the side that knows where the players are. Left out, fire spreads
+     * everywhere, which is the rule set to -1.
+     */
+    canSpreadFireAround?: (at: BlockPosition) => boolean;
 }
 
 /** What a host calls to run the engine. */
@@ -116,6 +127,7 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
     const sourceRules = options.sourceRules ?? DEFAULT_SOURCE_RULES;
     const randomTickHandlers = options.randomTickHandlers ?? {};
     const increasedFireBurnout = options.increasedFireBurnout ?? (() => false);
+    const canSpreadFireAround = options.canSpreadFireAround ?? (() => true);
     let torchToggles: TorchToggle[] = [];
 
     const torchToggledTooOften = (at: BlockPosition, record: boolean): boolean => {
@@ -192,9 +204,18 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
     };
 
     /**
-     * The `onPlace` updates the signal sources raise beyond the generic six.
+     * Each block's own `onPlace`, beyond the generic six neighbor updates.
      *
-     * A torch tells the neighbors of all six of its own neighbors, which is
+     * The generic six tell the neighbors about the new block. What they do not
+     * do is tell the new block about its neighbors, so everything that reads
+     * the world it landed in has to be run here: dust works out its own power,
+     * a piston that landed already powered extends, and fire and a fluid book
+     * the first tick that drives them. A system whose tick handler is right and
+     * whose first tick is never booked looks exactly like one that does not
+     * work at all.
+     *
+     * The rest are the signal sources reaching further than six. A torch tells
+     * the neighbors of all six of its own neighbors, which is
      * `RedstoneTorchBlock.notifyNeighbors`. A lever, a button and a pressure
      * plate tell the neighbors of the block holding them up, which is how the
      * block they power finds out. A diode tells the block in front of it.
@@ -202,6 +223,14 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
     const runPlacementUpdates = (at: BlockPosition, to: BlockRef): void => {
         if (isRedstoneTorch(to.name)) {
             for (const direction of DIRECTIONS) updates.updateNeighborsAt(relative(at, direction), to.name);
+            return;
+        }
+        if (to.name === REDSTONE_WIRE) {
+            // `RedstoneWireBlock.onPlace` runs the evaluator over the new dust. Java then
+            // tells the two vertical neighbors as well; `updateWirePower` tells all six
+            // whenever the power moved, which is every case where they have anything to
+            // hear about.
+            updateWirePower(updates, world, at);
             return;
         }
         if (to.name === LEVER || isButton(to.name)) {
@@ -214,6 +243,19 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
         }
         if (isRepeater(to.name) || isComparator(to.name)) {
             updateDiodeNeighborsInFront(updates, at, to);
+            return;
+        }
+        if (isPiston(to.name)) {
+            // `PistonBaseBlock.onPlace` runs `checkIfExtend`, so a piston placed into a
+            // position something already powers extends there and then.
+            pistonNeighborChanged(updates, world, at);
+            return;
+        }
+        if (to.name === FIRE) {
+            // `FireBlock.onPlace` books the new fire's first tick, 30 to 40 game ticks out.
+            // Nothing else ever books one, so without this a fire sits where it was lit:
+            // it never ages, never spreads and never burns out.
+            world.scheduleTick('block', at, FIRE, fireTickDelay(world));
             return;
         }
         // `LiquidBlock.onPlace` schedules the new fluid's own first tick.
@@ -252,7 +294,10 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
             return;
         }
         if (name === FIRE) {
-            fireTick(updates, world, at, increasedFireBurnout(at));
+            fireTick(updates, world, at, {
+                increasedBurnout: increasedFireBurnout(at),
+                spreads: canSpreadFireAround(at)
+            });
             return;
         }
         void type;

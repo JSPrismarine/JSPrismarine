@@ -3,9 +3,11 @@
  * every host needs.
  *
  * The wiring is the one thing a host has to get right: a notifying `setBlock`
- * must raise the neighbor updates and the shape updates, because that is what
- * turns a block change into a redstone update and what lets an observer see
- * the block it watches change.
+ * must go back through {@link Engine.setBlockAndUpdate}, because that is what
+ * turns a block change into a redstone update, what lets an observer see the
+ * block it watches change, and what runs each block's own `onPlace`. The write
+ * has already happened by then and the engine makes it again, which costs a
+ * read and changes nothing.
  */
 
 import type { EngineOptions, Engine } from './engine';
@@ -42,10 +44,7 @@ export const createTestEngine = (options: TestWorldOptions & { engine?: EngineOp
     const world = createTestWorld(worldOptions);
     const engine = createEngine(world, engineOptions);
 
-    world.onBlockUpdated((at, to) => {
-        engine.updates.updateNeighborsAt(at, to.name);
-        engine.updates.shapeUpdatesAround(at);
-    });
+    world.onBlockUpdated((at, to) => engine.setBlockAndUpdate(at, to));
 
     return {
         world,

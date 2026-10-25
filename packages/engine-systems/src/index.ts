@@ -109,7 +109,8 @@ export {
     fireTickDelay,
     igniteOddsAround,
     isNearRain,
-    isValidFireLocation
+    isValidFireLocation,
+    type FireTickOptions
 } from './fire';
 export {
     DEFAULT_SOURCE_RULES,
