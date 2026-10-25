@@ -528,25 +528,10 @@ describe('the server command host', () => {
             expect(() => serverCommandHost(fixture.server).world.setWeather('rain')).toThrow('weather');
         });
 
-        it('refuses a score read', () => {
-            expect(() => serverCommandHost(fixture.server).scoreboard.getScore('Steve', 'kills')).toThrow('scoreboard');
-        });
-
         it('refuses an NBT read', () => {
             expect(() => serverCommandHost(fixture.server).data.getData({ kind: 'storage', id: 'test' })).toThrow(
                 'NBT'
             );
-        });
-
-        it('fails the condition rather than running the body of `execute if score`', async () => {
-            // The refusal does not reach the player here, and that is Java's
-            // own rule rather than this server's: `execute if` is a fork, and
-            // `CommandDispatcher.execute` swallows a fork's exception and
-            // answers 0. What matters is that the body does not run.
-            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
-
-            await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(0);
-            expect(player.sendMessage).not.toHaveBeenCalled();
         });
     });
 
@@ -728,6 +713,47 @@ describe('the server command host', () => {
             await expect(fixture.run('scoreboard players set @a nothing 1')).rejects.toThrow(
                 /no scoreboard objective called nothing/
             );
+        });
+
+        describe('reading a score of an objective nobody created', () => {
+            it('names the objective instead of answering', () => {
+                // Each call builds its own board, so this one is as empty as
+                // a server where nobody ran `/scoreboard objectives add`.
+                expect(() => serverCommandHost(fixture.server).scoreboard.getScore('Steve', 'kills')).toThrow(
+                    'There is no scoreboard objective called kills'
+                );
+            });
+
+            it('answers the same read once the objective exists', async () => {
+                // The verb is implemented; the refusal above is about the
+                // objective, not about a missing subsystem.
+                await fixture.run('scoreboard objectives add kills dummy');
+                await fixture.run('scoreboard players set Steve kills 3');
+                await fixture.run('scoreboard players get Steve kills');
+
+                expect(fixture.feedback.at(-1)).toContain('Steve has 3');
+            });
+
+            it('fails an `execute if score` condition without telling the player why', async () => {
+                // Java's own rule rather than this server's: `execute if` is
+                // a fork, and `CommandDispatcher.execute` swallows a fork's
+                // exception and answers 0. What matters is that the body does
+                // not run and nothing reaches the player.
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+                await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(0);
+                expect(player.sendMessage).not.toHaveBeenCalled();
+                expect(fixture.errors).toEqual([]);
+            });
+
+            it('runs the same condition once the objective exists', async () => {
+                const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+                await fixture.run('scoreboard objectives add kills dummy');
+                await fixture.run('scoreboard players set Steve kills 3');
+
+                await expect(fixture.run('execute if score @a kills matches 1.. run say hi')).resolves.toBe(1);
+                expect(player.sendMessage).toHaveBeenCalled();
+            });
         });
 
         it('applies every operation Java defines', async () => {
