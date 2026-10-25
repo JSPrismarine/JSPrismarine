@@ -58,6 +58,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/entities",
     "dependencies": {
         "@jsprismarine/content": "workspace:*",
+        "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/molang": "workspace:*",
         "@jsprismarine/packs": "workspace:*"
     },

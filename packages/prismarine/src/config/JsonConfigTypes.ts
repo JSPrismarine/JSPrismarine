@@ -171,4 +171,13 @@ export interface WorldPlayerData {
      * record, the file provider a JSON file - carries the progress with it.
      */
     advancements?: PlayerProgressJson;
+    /**
+     * The player's enchantment seed.
+     *
+     * Java drives all three rows of an enchanting table from one generator
+     * seeded with this, which is what keeps the rows still while a player puts
+     * an item in and takes it out again. Kept across a login for the same
+     * reason: a table that redrew on every join would be a different table.
+     */
+    enchantmentSeed?: number;
 }

@@ -628,6 +628,9 @@ importers:
       '@jsprismarine/content':
         specifier: workspace:*
         version: link:../content
+      '@jsprismarine/mapping':
+        specifier: workspace:*
+        version: link:../mapping
       '@jsprismarine/molang':
         specifier: workspace:*
         version: link:../molang
