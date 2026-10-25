@@ -113,7 +113,9 @@ describe('the command layer on a booted server', () => {
     }, 120_000);
 
     afterAll(async () => {
-        await world.getProvider()?.close?.();
+        // Guarded: a boot that threw leaves no world, and failing to tidy up
+        // would report a second failure on top of the real one.
+        await world?.getProvider()?.close?.();
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;
@@ -183,6 +185,20 @@ describe('the command layer on a booted server', () => {
             true
         );
         expect(world.loadedBlockAt(8, 69, 8)?.name).toBe('minecraft:gold_block');
+    });
+
+    it('tests a real block through /testforblock', async () => {
+        await run('/setblock 3 70 3 minecraft:stone');
+
+        await expect(run('/testforblock 3 70 3 minecraft:stone')).resolves.toBe(true);
+        await expect(run('/testforblock 3 70 3 minecraft:dirt')).resolves.toBe(false);
+    });
+
+    it('counts real entities through /testfor', async () => {
+        await run('/summon minecraft:sheep 9 70 9');
+
+        await expect(run('/testfor @e[type=sheep]')).resolves.toBe(true);
+        await expect(run('/testfor @e[type=wolf]')).resolves.toBe(false);
     });
 
     it('refuses a command whose subsystem is missing', async () => {

@@ -1,8 +1,8 @@
 /**
  * The vanilla command set this server runs, and the part of it that it does not.
  *
- * `@jsprismarine/commands` implements 50 commands against its `CommandHost`
- * seam. This server can answer the verbs of 33 of them. The other 17 call into
+ * `@jsprismarine/commands` implements 59 commands against its `CommandHost`
+ * seam. This server can answer the verbs of 42 of them. The other 17 call into
  * a subsystem that does not exist - there is no scoreboard, no status effect
  * system, no loot runtime, no experience model - and a command whose body
  * cannot do anything is worse than one the client was never offered: the

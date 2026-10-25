@@ -11,6 +11,7 @@ import type { CommandHost, DataCommandHost, ScoreboardCommandHost } from '@jspri
 
 import type Server from '../../Server';
 import { entityCommandHost } from './entities';
+import { setItemSlot } from './inventory';
 import { serverSideCommandHost } from './server';
 import { unsupported } from './support';
 import { worldCommandHost } from './world';
@@ -42,14 +43,17 @@ const scoreboardCommandHost = (): ScoreboardCommandHost => {
 };
 
 /**
- * The NBT, loot, predicate and function group, which this server has none of.
+ * The NBT, loot, predicate and function group, of which this server has one
+ * verb.
  *
- * Entities and block entities do carry NBT, but nothing reads or writes it by
+ * `setSlot` writes a named inventory slot, which is all `/replaceitem` needs
+ * and which this server's inventories can do. Everything else refuses:
+ * entities and block entities carry NBT but nothing reads or writes it by
  * path, and there is no loot runtime, no predicate evaluator and no function
  * runtime. `@jsprismarine/mcfunction` is the piece that will fill
  * `runFunction` and `schedule`; it is wired to nothing yet.
  */
-const dataCommandHost = (): DataCommandHost => {
+const dataCommandHost = (server: Server): DataCommandHost => {
     const refuse = () => unsupported('NBT, loot and function runtime');
     return {
         getData: refuse,
@@ -58,7 +62,7 @@ const dataCommandHost = (): DataCommandHost => {
         modifyData: refuse,
         removeData: refuse,
         applyItemModifier: refuse,
-        setSlot: refuse,
+        setSlot: (target, slot, item, count, mode) => setItemSlot(server, target, slot, item, count, mode),
         copySlots: refuse,
         runLootTable: refuse,
         testPredicate: refuse,
@@ -80,6 +84,6 @@ export const serverCommandHost = (server: Server): CommandHost => ({
     entities: entityCommandHost(server),
     world: worldCommandHost(server),
     scoreboard: scoreboardCommandHost(),
-    data: dataCommandHost(),
+    data: dataCommandHost(server),
     server: serverSideCommandHost(server)
 });

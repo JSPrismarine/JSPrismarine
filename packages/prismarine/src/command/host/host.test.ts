@@ -7,7 +7,7 @@
  */
 import { createCommandSource } from '@jsprismarine/commands';
 import type { CommandSource } from '@jsprismarine/commands';
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, TitleType } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -17,7 +17,11 @@ import type { Config } from '../../config/Config';
 import { Entity } from '../../entity/Entity';
 import type { ItemManager } from '../../item/ItemManager';
 import type { Item } from '../../item/Item';
-import Inventory from '../../inventory/Inventory';
+import HumanInventory from '../../inventory/HumanInventory';
+import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
+import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
+import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
+import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { Dimensions } from '../../world/Dimension';
@@ -62,10 +66,14 @@ const buildFixture = (): Fixture => {
     const feedback: string[] = [];
     const errors: string[] = [];
 
+    // Case-insensitive, as the real manager is: the command layer writes
+    // Java's `doDaylightCycle` and the client's own spelling is
+    // `doDayLightCycle`, and both have to find the one rule.
+    const keyFor = (name: string) => [...rules.keys()].find((key) => key.toLowerCase() === name.toLowerCase()) ?? name;
     const gameRules = stub<GameRuleManager>({
-        getGameRule: (name: string) => rules.get(name) ?? null,
+        getGameRule: (name: string) => rules.get(keyFor(name)) ?? null,
         setGameRule: (name: string, value: boolean | number, editable: boolean) => {
-            rules.set(name, [value, editable]);
+            rules.set(keyFor(name), [value, editable]);
         }
     });
 
@@ -127,6 +135,18 @@ const buildFixture = (): Fixture => {
                         : null
             }),
         getRandom: () => () => 0.5,
+        getWorldReplicators: () =>
+            stub({
+                for: () =>
+                    stub({
+                        send: (packet: unknown) => {
+                            sent.push(packet);
+                        },
+                        sendAround: (_at: unknown, packet: unknown) => {
+                            sent.push(packet);
+                        }
+                    })
+            }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival' }),
         broadcastPacket: async (packet: unknown) => {
             sent.push(packet);
@@ -206,7 +226,7 @@ const mobAt = (fixture: Fixture, id: bigint, type: string, position: Vector3): E
 };
 
 const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3): Player => {
-    const inventory = new Inventory(36);
+    const inventory = new HumanInventory();
     const player = stubOf(Player, {
         getRuntimeId: () => id,
         getType: () => 'minecraft:player',
@@ -220,7 +240,13 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         kick: vi.fn().mockResolvedValue(undefined),
         sendMessage: vi.fn().mockResolvedValue(undefined),
         getInventory: () => inventory,
-        getNetworkSession: () => stub({ send: async () => {}, sendInventory: async () => {} }),
+        getNetworkSession: () =>
+            stub({
+                send: async (packet: unknown) => {
+                    fixture.sent.push(packet);
+                },
+                sendInventory: async () => {}
+            }),
         yaw: 0,
         pitch: 0,
         headYaw: 0
@@ -503,6 +529,135 @@ describe('the server command host', () => {
 
             await expect(fixture.run('execute if block 0 0 0 minecraft:stone run time set 1')).resolves.toBe(1);
             await expect(fixture.run('execute if block 0 0 0 minecraft:dirt run time set 2')).resolves.toBe(0);
+        });
+    });
+
+    describe('the Bedrock-only commands', () => {
+        it('counts entities through /testfor', async () => {
+            mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
+            mobAt(fixture, 2n, 'minecraft:pig', new Vector3(1, 0, 0));
+            mobAt(fixture, 3n, 'minecraft:cow', new Vector3(2, 0, 0));
+
+            await expect(fixture.run('testfor @e[type=pig]')).resolves.toBe(2);
+        });
+
+        it('matches a block through /testforblock', async () => {
+            await fixture.run('setblock 3 3 3 minecraft:stone');
+
+            await expect(fixture.run('testforblock 3 3 3 minecraft:stone')).resolves.toBe(1);
+            await expect(fixture.run('testforblock 3 3 3 minecraft:dirt')).resolves.toBe(0);
+        });
+
+        it('compares two regions through /testforblocks', async () => {
+            await fixture.run('fill 0 0 0 1 0 1 minecraft:stone');
+            await fixture.run('fill 10 0 10 11 0 11 minecraft:stone');
+
+            await expect(fixture.run('testforblocks 0 0 0 1 0 1 10 0 10')).resolves.toBe(4);
+        });
+
+        it('locks the day through /daylock by turning the cycle off', async () => {
+            fixture.rules.set('doDayLightCycle', [true, true]);
+
+            await expect(fixture.run('daylock')).resolves.toBe(1);
+            expect(fixture.rules.get('doDayLightCycle')?.[0]).toBe(false);
+
+            await fixture.run('daylock false');
+            expect(fixture.rules.get('doDayLightCycle')?.[0]).toBe(true);
+        });
+
+        it('sends a rawtext title through /titleraw', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('titleraw @a title {"rawtext":[{"text":"hi"}]}')).resolves.toBe(1);
+
+            const [packet] = fixture.sent;
+            expect(packet).toBeInstanceOf(SetTitlePacket);
+            if (!(packet instanceof SetTitlePacket)) return;
+            expect(packet.titleType).toBe(TitleType.TITLE_TEXT_OBJECT);
+            expect(packet.titleText).toBe('{"rawtext":[{"text":"hi"}]}');
+        });
+
+        it('sends a plain title through /title and the timings through its times form', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('title @a title hello');
+            await fixture.run('title @a times 5 100 5');
+
+            const titles = fixture.sent.filter((packet) => packet instanceof SetTitlePacket);
+            expect(titles[0]?.titleType).toBe(TitleType.TITLE);
+            expect(titles[1]?.titleType).toBe(TitleType.TIMES);
+            expect(titles[1]?.stayTime).toBe(100);
+        });
+
+        it('writes a hotbar slot through /replaceitem', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('replaceitem entity @a slot.hotbar 2 minecraft:stone 4')).resolves.toBe(4);
+            expect(player.getInventory().getEntry(2)?.getItem().getName()).toBe('minecraft:stone');
+            expect(player.getInventory().getEntry(2)?.getCount()).toBe(4);
+        });
+
+        it('leaves an occupied slot alone in keep mode', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            await fixture.run('replaceitem entity @a slot.hotbar 0 minecraft:stone 1');
+
+            await expect(fixture.run('replaceitem entity @a slot.hotbar 0 keep minecraft:stone 9')).resolves.toBe(0);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
+        });
+
+        it('refuses a slot group this server has no container for', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('replaceitem entity @a slot.enderchest 0 minecraft:stone')).rejects.toThrow(
+                'slot.enderchest'
+            );
+        });
+
+        it('shakes a camera through /camerashake', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('camerashake add @a 0.5 3 rotational')).resolves.toBe(1);
+
+            const [packet] = fixture.sent;
+            expect(packet).toBeInstanceOf(CameraShakePacket);
+            if (!(packet instanceof CameraShakePacket)) return;
+            expect(packet.intensity).toBe(0.5);
+            expect(packet.seconds).toBe(3);
+            expect(packet.shakeType).toBe(CameraShakeType.Rotational);
+            expect(packet.shakeAction).toBe(CameraShakeAction.Add);
+        });
+
+        it('keeps the fog stack the client cannot be asked for', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('fog @a push minecraft:fog_ocean first');
+            await fixture.run('fog @a push minecraft:fog_hell second');
+            const pushed = fixture.sent.filter((packet) => packet instanceof PlayerFogPacket);
+            expect(pushed.at(-1)?.fogStack).toEqual(['minecraft:fog_ocean', 'minecraft:fog_hell']);
+
+            await expect(fixture.run('fog @a pop first')).resolves.toBe(1);
+            const popped = fixture.sent.filter((packet) => packet instanceof PlayerFogPacket);
+            expect(popped.at(-1)?.fogStack).toEqual(['minecraft:fog_hell']);
+        });
+
+        it('changes nothing when /fog pops a layer nobody pushed', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('fog @a pop nothing')).resolves.toBe(0);
+            expect(fixture.sent.filter((packet) => packet instanceof PlayerFogPacket)).toHaveLength(0);
+        });
+
+        it('names every animated actor in one packet through /playanimation', async () => {
+            mobAt(fixture, 1n, 'minecraft:pig', new Vector3(0, 0, 0));
+            mobAt(fixture, 2n, 'minecraft:pig', new Vector3(1, 0, 0));
+
+            await expect(fixture.run('playanimation @e animation.pig.baby_transform')).resolves.toBe(2);
+
+            const [packet] = fixture.sent;
+            expect(packet).toBeInstanceOf(AnimateEntityPacket);
+            if (!(packet instanceof AnimateEntityPacket)) return;
+            expect(packet.animation).toBe('animation.pig.baby_transform');
+            expect(packet.runtimeIds).toEqual([1n, 2n]);
         });
     });
 });

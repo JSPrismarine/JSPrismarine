@@ -1,10 +1,15 @@
-import { JAVA_ONLY_COMMAND_NAMES, SHARED_COMMAND_NAMES, registerVanillaCommands } from '@jsprismarine/commands';
+import {
+    BEDROCK_ONLY_COMMAND_NAMES,
+    JAVA_ONLY_COMMAND_NAMES,
+    SHARED_COMMAND_NAMES,
+    registerVanillaCommands
+} from '@jsprismarine/commands';
 import { describe, expect, it } from 'vitest';
 
 import { UNWIRED_COMMANDS, buildVanillaCommands } from './vanillaCommands';
 
 /** Every command `@jsprismarine/commands` implements, wired here or not. */
-const implemented = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES];
+const implemented = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES];
 
 describe('the vanilla command set this server runs', () => {
     const registry = buildVanillaCommands();
