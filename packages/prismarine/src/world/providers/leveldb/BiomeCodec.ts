@@ -1,5 +1,6 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 
+import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 
@@ -23,8 +24,6 @@ export const HEIGHTMAP_BYTES = COLUMNS * 2;
 const INHERIT_HEADER = 0xff;
 
 const VALID_BITS_PER_BLOCK = [0, 1, 2, 3, 4, 5, 6, 8, 16];
-
-export const PLAINS_BIOME = 1;
 
 export interface Biomes {
     /** Column heights above the dimension floor, indexed `x * 16 + z`. */

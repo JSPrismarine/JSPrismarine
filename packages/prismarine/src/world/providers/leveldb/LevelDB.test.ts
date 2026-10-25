@@ -34,6 +34,11 @@ afterEach(() => {
 
 const id = (name: string) => BlockRuntimeIds.getByName(name);
 
+/** `minecraft:desert`, `minecraft:jungle` and `minecraft:deep_dark` as the client numbers them. */
+const DESERT = 2;
+const JUNGLE = 21;
+const DEEP_DARK = 190;
+
 /**
  * The pieces of `Server` and `World` a provider touches. Hand-rolled rather than mocked, so what
  * the provider actually depends on stays visible.
@@ -261,6 +266,46 @@ describe('world', () => {
                 // The unmodeled one kept its own fields.
                 expect(beacon?.toNBT().getNumber('primary', 0)).toBe(5);
                 await reopened.provider.disable();
+            });
+
+            it('round-trips the biomes a generator chose', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+
+                const chunk = buildChunk();
+                const biomes = chunk.getBiomes();
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++) biomes.fillColumn(x, z, x < 8 ? DESERT : JUNGLE);
+                }
+                biomes.set(3, 70, 4, DEEP_DARK);
+
+                await provider.writeChunk(chunk);
+                await provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
+
+                expect(restored.getBiome(0, 64, 0)).toBe(DESERT);
+                expect(restored.getBiome(15, -64, 15)).toBe(JUNGLE);
+                expect(restored.getBiome(3, 70, 4)).toBe(DEEP_DARK);
+                await reopened.provider.disable();
+            }, 15_000);
+
+            it('writes the heightmap the Data3D record carries', async () => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath);
+                await provider.enable();
+                await provider.writeChunk(buildChunk());
+
+                const biomes = provider.readBiomes(0, 0);
+                // One past the highest block, measured from the floor: the dirt at y=310 of the
+                // column at x=1, z=1 makes 310 + 1 + 64.
+                expect(biomes?.heightmap[1 * 16 + 1]).toBe(375);
+                // A column holding only the stone floor, whose top is y=-60.
+                expect(biomes?.heightmap[0]).toBe(5);
+                await provider.disable();
             });
         });
 

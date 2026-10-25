@@ -11,6 +11,7 @@ import type { BlockEntity } from '../../blockentity/BlockEntity';
 import { Dimensions, maxSubChunk, maxY, minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionDefinition } from '../Dimension';
 import type { EntitySpawn } from '../EntitySpawn';
+import { ChunkBiomes } from './ChunkBiomes';
 import SubChunk from './SubChunk';
 
 /**
@@ -38,6 +39,15 @@ export default class Chunk {
      * its contents travel together, and a chunk that was never loaded cannot lose them.
      */
     private readonly blockEntities: Map<number, BlockEntity> = new Map();
+
+    /**
+     * Which biome each block is in.
+     *
+     * Part of the chunk rather than of the generator's output, because it has to survive a save
+     * and a reload: the client colors grass, tints the sky and picks ambient sound from it, and
+     * the spawn rules read it through `has_biome_tag`.
+     */
+    private biomes: ChunkBiomes;
 
     /** Entity NBT read from disk, waiting for the world to restore it. */
     private readonly storedEntities: NBTTagCompound[] = [];
@@ -74,10 +84,49 @@ export default class Chunk {
         this.z = chunkZ;
         this.hasChanged = false;
         this.dimension = dimension;
+        this.biomes = new ChunkBiomes(dimension);
 
         // The argument used to be ignored, so every chunk read back from disk came out empty and
         // the provider silently regenerated terrain on each load.
         for (const [index, subChunk] of subChunks) this.subChunks.set(index, subChunk);
+    }
+
+    /** The biome of every block in this chunk, live, for a generator or a provider to write. */
+    public getBiomes(): ChunkBiomes {
+        return this.biomes;
+    }
+
+    /**
+     * Replaces the whole biome column, which is what reading one back from disk does.
+     *
+     * The payload cache is dropped with it: biomes travel in the chunk payload, and the mutation
+     * count that guards the cache only counts block writes.
+     */
+    public setBiomes(biomes: ChunkBiomes): void {
+        this.biomes = biomes;
+        this.serialized = null;
+    }
+
+    /** The biome at a position, with x and z in world coordinates. */
+    public getBiome(x: number, y: number, z: number): number {
+        return this.biomes.get(x & 0xf, y, z & 0xf);
+    }
+
+    /**
+     * The `Data3D` heightmap: one past the highest non-air block of each column, measured from
+     * the dimension floor so it stays unsigned, indexed `x * 16 + z`.
+     */
+    public heightmap(): Uint16Array {
+        const heights = new Uint16Array(256);
+
+        for (let x = 0; x < 16; x++) {
+            for (let z = 0; z < 16; z++) {
+                const highest = this.getHighestBlockAt(x, z);
+                heights[x * 16 + z] = highest === null ? 0 : highest + 1 - this.dimension.minY;
+            }
+        }
+
+        return heights;
     }
 
     public getX(): number {
@@ -433,22 +482,7 @@ export default class Chunk {
         // One biome section per sub chunk of the client's column, which is the client's full
         // height for this dimension id rather than the sub chunk count written above - 24 for the
         // Overworld, 8 for the Nether, 16 for the End, the same range the padding loop pads to.
-        // Each is a paletted store in the same format a block storage uses: a header of
-        // `(bitsPerBlock << 1) | networkFlag`, then the word data, then the palette.
-        //
-        // The network flag says the palette holds runtime ids; cleared, it names the persistent
-        // on-disk form whose entries are NBT compounds, and the client reads the next varint as
-        // the start of a tag. With `bitsPerBlock` zero the header is 1, there is no word data and
-        // no palette count, and the single value follows as a ZigZag varint. Written unsigned,
-        // plains (1) goes out as `01`, which ZigZag decodes to -1 and names no biome at all.
-        //
-        // Known gap: the biome is plains in every section. Real 3D biomes need the generator to
-        // decide a biome per column, which it does not do. A Bedrock Dedicated Server 1.26.51
-        // puts 12, 30 and 182 to 190 on the wire here.
-        for (let i = 0; i < subChunkCount(client); i++) {
-            stream.writeByte(1);
-            stream.writeVarInt(1);
-        }
+        this.biomes.networkSerialize(stream, subChunkCount(client));
 
         // Border Blocks: a byte count, then one packed position per border block. Only Education
         // Edition sets any, so the count is always zero.
