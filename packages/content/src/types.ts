@@ -116,8 +116,9 @@ export class ContentLoadError extends ContentError {
  * attached to its identifier bind in attachment order, so the server's own
  * code has the last word over what a pack declared and a behavior marked
  * `override` can replace a component's handler. An unknown component name
- * loads the type anyway and is reported once per pack, which turns "component
- * not implemented" into a log line instead of a missing class.
+ * loads the type anyway and is reported once per pack, naming the first file
+ * that declared it, which turns "component not implemented" into a log line
+ * instead of a missing class.
  *
  * @throws {ContentLoadError} In strict mode, when any diagnostic is reported.
  */
@@ -147,6 +148,7 @@ export const resolveTypes = <H extends HookSignatures<H>, F extends object = Rec
                     severity: 'warning',
                     code: 'component.unknown',
                     pack: definition.pack,
+                    path: definition.path,
                     message: `no component is registered as ${entry.name}`
                 });
                 continue;

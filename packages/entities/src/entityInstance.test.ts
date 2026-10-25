@@ -117,6 +117,7 @@ describe('EntityTypes', () => {
                 severity: 'warning',
                 code: 'component.unknown',
                 pack: 'vanilla',
+                path: 'entities/0.json',
                 message: 'no component is registered as minecraft:invented_component'
             }
         ]);

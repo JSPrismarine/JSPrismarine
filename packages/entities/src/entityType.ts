@@ -164,6 +164,7 @@ const buildEntityType = (
                     severity: 'warning',
                     code: 'component.unknown',
                     pack: input.pack,
+                    path: input.path,
                     message: `no component is registered as ${component}`
                 });
                 continue;
