@@ -222,7 +222,7 @@ export class World implements Service {
      * The start region work while it is running, so a shutdown can wait for it rather than
      * race it. Null the rest of the time.
      */
-    private starting: Promise<void> | null = null;
+    private startingRegion: Promise<void> | null = null;
 
     /**
      * Puts wildlife into the world near players and takes it away behind them.
@@ -276,7 +276,7 @@ export class World implements Service {
                 blockAt: (x, y, z) => this.loadedBlockAt(x, y, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 randomTickSpeed: () => {
-                    const [value] = this.gameRuleManager.getGameRule(GameRules.RandomTickSpeed) ?? [];
+                    const [value] = this.gameRuleManager?.getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
                 },
                 randomTickChunks: () => this.randomTickChunks()
@@ -334,7 +334,7 @@ export class World implements Service {
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
         if (level.gameRules) {
             level.gameRules.forEach(([name, [value, editable]]) =>
-                this.gameRuleManager.setGameRule(name, value, editable)
+                this.gameRuleManager?.setGameRule(name, value, editable)
             );
         }
         if (level.entities) {
@@ -361,11 +361,11 @@ export class World implements Service {
         this.provider.setWorld(this);
         await this.provider.enable();
 
-        this.starting = this.prepareStartRegion();
+        this.startingRegion = this.prepareStartRegion();
         try {
-            await this.starting;
+            await this.startingRegion;
         } finally {
-            this.starting = null;
+            this.startingRegion = null;
         }
     }
 
@@ -400,7 +400,7 @@ export class World implements Service {
 
         // A start region that failed has already been reported to whoever awaited `enable`;
         // the save still has to happen, so its failure must not take this path down with it.
-        await this.starting?.catch(() => {});
+        await this.startingRegion?.catch(() => {});
 
         await this.save();
         await this.provider.disable();
@@ -1611,7 +1611,7 @@ export class World implements Service {
         await this.saveLevelData();
     }
 
-    public getGameRuleManager(): GameRuleManager {
+    public getGameRuleManager() {
         return this.gameRuleManager;
     }
 
@@ -1691,7 +1691,7 @@ export class World implements Service {
 
         const data = {
             ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-            gameRules: Array.from(this.getGameRuleManager().getGameRules()),
+            gameRules: Array.from(this.getGameRuleManager()?.getGameRules() || []),
             entities: this.getEntities()
                 .filter((entity) => !(entity instanceof Player))
                 .map((entity) => ({
