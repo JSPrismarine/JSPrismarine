@@ -29,12 +29,22 @@ const configFilePath = (): string => {
 };
 
 /** The difficulty names a config file may use, as the protocol numbers them. */
-const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
+export const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
     peaceful: Difficulty.PEACEFUL,
     easy: Difficulty.EASY,
     normal: Difficulty.NORMAL,
     hard: Difficulty.HARD
 } satisfies Record<ConfigDifficulty, Difficulty>;
+
+/**
+ * The name a difficulty is spelled by, read back out of {@link DIFFICULTIES}
+ * so the two directions cannot disagree.
+ *
+ * @param difficulty - The protocol number.
+ * @returns The name, or `normal` for a number no name maps onto.
+ */
+export const difficultyName = (difficulty: Difficulty): string =>
+    Object.entries(DIFFICULTIES).find(([, value]) => value === difficulty)?.[0] ?? 'normal';
 
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
@@ -291,6 +301,20 @@ export class Config {
     public setGamemode(gamemode: number, commit = false) {
         this.gamemode = getGametypeName(gamemode);
         if (commit) this.configBuilder.set('gamemode', this.gamemode);
+    }
+
+    /**
+     * Set how dangerous the monsters are.
+     *
+     * Stored by name, as the file spells it, so `getDifficulty` reads back
+     * what was set rather than a second copy of the number.
+     * @param difficulty - the difficulty
+     * @param commit - if the value should be written to the `config.yml` file
+     */
+    public setDifficulty(difficulty: Difficulty, commit = false) {
+        this.difficulty = difficultyName(difficulty);
+
+        if (commit) this.configBuilder.set('difficulty', this.difficulty);
     }
 
     /**
