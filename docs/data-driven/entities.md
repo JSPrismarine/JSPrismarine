@@ -1,0 +1,465 @@
+---
+title: Entities
+group: Documents
+category: Guides
+---
+
+# Data-driven entities
+
+What a mob does on this server is decided by a Bedrock behavior-pack file rather than by a
+TypeScript class. A definition names the mob's components, the component groups its events switch
+on and off, and the goals it runs. The server reads that file, resolves it once, and builds every
+instance of the mob from the result, so adding a mob means shipping a pack rather than writing
+code.
+
+This page explains how a definition becomes a running mob, which parts of a definition the server
+acts on today, and where it stops. It assumes you know Minecraft and a behavior pack's shape, and
+nothing about the plan or the research notes behind the implementation.
+
+## Where the code lives
+
+Six pieces share the work.
+
+| Package | What it owns |
+| --- | --- |
+| [`@jsprismarine/entities`](../../packages/entities/README.md) | Definition parsing, components and component groups, the event engine, entity properties, the filter evaluator, the goal scheduler |
+| [`@jsprismarine/entity-goals`](../../packages/entity-goals/README.md) | All 170 vanilla `minecraft:behavior.*` goals and the A\* path finder they walk with |
+| [`@jsprismarine/entity-brains`](../../packages/entity-brains/README.md) | Java Edition's brain AI, for the twenty mobs Bedrock's format cannot describe |
+| [`@jsprismarine/spawning`](../../packages/spawning/README.md) | The `spawn_rules/*.json` grammar and the natural spawn loop |
+| [`@jsprismarine/trading`](../../packages/trading/README.md) | Trade tables, offer generation and the villager economy |
+| `packages/prismarine/src/entity/data/` | The host: one runtime per dimension that wires the five packages to a live world |
+
+None of the five packages knows there is a server. Each declares an interface for what it needs
+from the world, and the host implements it. That is why they have their own test suites and why a
+plugin can drive one of them without a world at all.
+
+## From a file to a mob
+
+The runtime keeps three stages of the same content apart.
+
+A definition is the parsed JSON of one entity file, exactly as the winning pack wrote it. A type is
+that definition resolved once at load time, with every component bound to an implementation and
+every group pre-resolved. An instance is one live mob, with its own component state, its own
+attributes and its own goal scheduler.
+
+Resolution is deliberately lenient. `parseEntityDefinition` validates the shape of the five keys
+Mojang's own schema types (`description`, `components`, `component_groups`, `events`, `upgrades`)
+and reports anything it did not read instead of refusing the file. A pack written against a newer
+game still loads, and the diagnostics report names what the runtime ignored. Four features are
+gated on `format_version`, and using one below its version loads anyway with a report: root-level
+event `filters` need 1.19.20, `queue_command` needs 1.20.60, `emit_particle` and `play_sound` need
+1.21.50, and `entity_version` with `upgrades` needs 1.26.20.
+
+The composed vanilla behavior pack of Bedrock Dedicated Server 1.26.51.1 holds 129 entity
+definitions, and all 129 parse without an error.
+
+## A chicken, traced
+
+The vanilla chicken is small enough to follow end to end and uses most of the machinery. Here is
+the part of `entities/chicken.json` that matters, trimmed:
+
+```json
+{
+  "format_version": "1.26.50",
+  "minecraft:entity": {
+    "description": {
+      "identifier": "minecraft:chicken",
+      "spawn_category": "creature",
+      "properties": {
+        "minecraft:climate_variant": {
+          "type": "enum",
+          "values": ["temperate", "warm", "cold"],
+          "default": "temperate"
+        }
+      }
+    },
+    "components": {
+      "minecraft:health": { "value": 4, "max": 4 },
+      "minecraft:movement": { "value": 0.25 },
+      "minecraft:collision_box": { "width": 0.6, "height": 0.8 },
+      "minecraft:navigation.walk": { "can_path_over_water": true, "avoid_damage_blocks": true },
+      "minecraft:behavior.float": { "priority": 0 },
+      "minecraft:behavior.panic": { "priority": 1, "speed_multiplier": 1.5 },
+      "minecraft:behavior.tempt": { "priority": 4, "items": ["wheat_seeds", "..."] },
+      "minecraft:behavior.random_stroll": { "priority": 6, "speed_multiplier": 1 },
+      "minecraft:behavior.look_at_player": { "priority": 7, "look_distance": 6, "probability": 0.02 }
+    },
+    "component_groups": {
+      "minecraft:chicken_baby": { "minecraft:is_baby": {}, "minecraft:ageable": { "duration": 1200 } },
+      "minecraft:chicken_adult": {
+        "minecraft:loot": { "table": "loot_tables/entities/chicken.json" },
+        "minecraft:breedable": { "breeds_with": { "minecraft:chicken": {} } },
+        "minecraft:behavior.breed": { "priority": 3, "speed_multiplier": 1 },
+        "minecraft:spawn_entity": { "entities": [{ "spawn_item": "egg", "min_wait_time": 300 }] }
+      }
+    },
+    "events": {
+      "minecraft:entity_spawned": {
+        "sequence": [
+          {
+            "randomize": [
+              { "weight": 95, "trigger": "minecraft:spawn_adult" },
+              { "weight": 5, "add": { "component_groups": ["minecraft:chicken_baby"] } }
+            ]
+          },
+          {
+            "first_valid": [
+              {
+                "filters": { "test": "has_biome_tag", "value": "spawns_warm_variant_farm_animals" },
+                "set_property": { "minecraft:climate_variant": "warm" }
+              }
+            ]
+          }
+        ]
+      },
+      "minecraft:spawn_adult": { "add": { "component_groups": ["minecraft:chicken_adult"] } }
+    }
+  }
+}
+```
+
+A chicken arrives in the world like this.
+
+1. `spawn_rules/chicken.json` offers the position. It puts the chicken in the `animal` population
+   pool, wants the surface pass, a `minecraft:grass_block` underfoot, light 7 to 15, a biome tagged
+   `animal`, and a herd of 2 to 4. Its weight of 10 competes with every other rule that passed at
+   the same position.
+2. The runtime creates the instance and fires exactly one spawn event,
+   `minecraft:entity_spawned`. The `randomize` node draws 95 against 5, so about nineteen chickens
+   in twenty trigger `minecraft:spawn_adult` and the twentieth gets the baby group instead. The
+   weights are relative, not percentages; 95 and 5 would behave the same as 19 and 1.
+3. The `first_valid` node in the same sequence reads the biome's tags and writes the
+   `minecraft:climate_variant` enum property, which the client reads to pick the chicken's skin.
+   It cannot test for the baby group the `randomize` node may just have added, because an event's
+   effects are decided immediately and applied only when the entity next ticks.
+4. On the next tick, the adult group's components initialize: `minecraft:loot` names the table
+   death rolls, `minecraft:breedable` tells the breeding code which mate and which baby to make,
+   and `minecraft:behavior.breed` joins the scheduler at priority 3.
+5. Every tick after that, the scheduler walks the goals from priority 0 upward and starts each one
+   whose control flags are free. `float` holds `jump`, `panic` and `random_stroll` want `move`,
+   `look_at_player` and `random_look_around` want `look`, and `tempt` wants both `move` and `look`.
+   Hold wheat seeds nearby and `tempt` at priority 4 takes both flags away from `random_stroll` at
+   6 and `look_at_player` at 7, in the same tick.
+6. The stats the client is sent come from the components, except where [ADR
+   0001](../adr/0001-entity-stat-authority.md) hands a stat to Java. The chicken keeps Bedrock's
+   0.6 by 0.8 hitbox, where Java publishes 0.4 by 0.7.
+
+One thing in that file does nothing. `minecraft:spawn_entity` parses, and its parameters are
+readable, but no code lays the egg, so chickens on this server do not produce eggs. The next
+section explains how to tell which components are in that state.
+
+## Components: what runs, and what only parses
+
+Vanilla's 129 definitions use 202 distinct non-goal component keys. 157 of them are registered, and
+37 of those carry real runtime behavior. The remaining 120 registered keys parse their parameters,
+normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
+`minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
+component means.
+
+The 37 that act are the ones that measure something over time or decide an outcome: the nine
+attribute components plus `minecraft:attack`, which write their stat when the group they live in
+initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
+`minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
+`minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`); the
+population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
+`minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`; and the
+eleven `minecraft:on_*` trigger components. The entities package README lists each one and what it
+does.
+
+"Parses as data" is not the same as "ignored". The host reads several data components itself:
+`minecraft:breedable` drives breeding, `minecraft:collision_box` and the `minecraft:navigation.*`
+flavors build the path finder's profile, `minecraft:explode` detonates a creeper,
+`minecraft:rideable` seats riders, and the two trade-table components build a merchant. What makes
+`minecraft:spawn_entity` inert is that nothing reads it, not that it parses as data.
+
+45 keys are left unregistered on purpose. Each is used by exactly one vanilla entity, such as the
+enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
+`minecraft:anger_level`, and leaving them out means the load report names them instead of the
+server quietly doing nothing.
+
+If your pack uses a component the server does not implement, you find out two ways. The pack load
+writes one `component.unknown` warning per unregistered name, which reaches the server log and
+`ServerContent.diagnostics`. And `EntityType.unimplementedComponents` lists them per type, so a
+plugin can check a mob before trusting it. Neither one stops the entity from loading: the rest of
+the definition still works, and the unimplemented component does nothing at all.
+
+## Events and the component-group state machine
+
+An entity's state is which component groups are active, and events are the only thing that changes
+it. The rule the engine follows is the one Mojang documents: the effects of an event are determined
+immediately and applied when the entity next ticks. A filter in a later `sequence` entry therefore
+cannot see what an earlier entry changed.
+
+Inside one node the engine runs `add`, `remove`, `set_property`, the raw actions and `trigger`,
+then walks `sequence` in order, then draws one branch of `randomize`, then takes the first passing
+branch of `first_valid`. A node's own `filters` gate the whole node, and nodes nest without limit.
+When the effects are applied, groups are removed first and added second, so a group an event both
+removes and adds ends up active and re-initialized, which restarts the timers inside it.
+
+Nine action keys parse into something the engine carries out: `play_sound`, `set_home_position`,
+`emit_vibration`, `drop_item`, `execute_event_on_home_block`, `emit_particle`, `reset_target`,
+`stop_movement` and `queue_command`. Eight of those are everything the vanilla pack writes, across
+its 850 events; `queue_command` is documented and unused by vanilla. Six of the nine leave the
+entities package through an effects seam the host fills, and `set_home_position`, `stop_movement`
+and `reset_target` are carried out inside the package.
+
+`damage`, `die` and `teleport` are worth naming because they appear in some third-party
+documentation as event actions. They are not. Mojang's `EventActions.md` does not list them, no
+vanilla entity writes one, and this server treats an unrecognized action key the way it treats any
+other: the event still runs its other effects, and the unreadable key reaches the report. To make
+an event take a mob out of the world, add a component group carrying `minecraft:instant_despawn`,
+which removes it without rolling its loot table. To kill it properly, deal the damage from the
+code that fired the event.
+
+## Filters
+
+Filters are the shared condition language, and the same evaluator answers them for entity
+definitions, spawn rules and trade tables. All 107 filter tests Mojang's generated documentation
+lists are implemented, and vanilla uses 86 of them.
+
+Both encodings parse. 27 vanilla entity files are written by the 1.26 serializer, which writes
+`subject` and `operator` as integers rather than strings, and the `AND`, `OR`, `NOT`, `all` and
+`any` aliases read as their canonical combinators. Two shapes vanilla writes that the published
+grammar does not describe also parse: five files put `all_of` and `any_of` in one object, and the
+skeleton writes the legacy shorthand `{"other_with_families": "lightning"}`.
+
+A filter test whose fact nothing can answer evaluates to false and is reported, rather than
+defaulting to true. That matters when you are debugging: a mob that never does a thing may be
+looking at a world fact this server does not track yet, and the report names the test.
+
+## Goals
+
+A goal is a component carrying a `priority` and optional `control_flags`, and all 170
+`minecraft:behavior.*` names vanilla uses have an implementation.
+`packages/entity-goals/src/totality.test.ts` fails if a name in the generated goal inventory has no
+registered factory, so the number cannot drift without the build noticing.
+
+The scheduler is the documented one. Priority 0 is the highest. Each tick it stops every running
+goal that can no longer continue, then walks the registered goals upward from 0 and starts each one
+whose control flags (`move`, `look`, `jump`) are either free or held by a strictly worse priority,
+stopping the holder in the same tick. A goal with no control flags runs alongside everything else,
+which is how the nine targeting goals work.
+
+Where Java and Bedrock describe the same goal, the constants come from Java. Thirty of Java's goal
+class names match a Bedrock name after snake-casing, so for those the numbers are read out of the
+unobfuscated 26.3 server jar and the JSDoc names the class: the 0.02 chance per tick in
+`look_at_player`, the 20-tick swing cadence in the melee goals, the 300-tick revenge memory in
+`hurt_by_target`. Where the two editions disagree, the Bedrock parameter wins, because these are
+Bedrock definitions.
+
+Movement goes through an A\* path finder over whole blocks. The profile comes from the entity's
+active `minecraft:navigation.*` component plus its collision height and step height, and the flags
+on that component decide which cells the search may enter: doors, water, lava, damaging blocks,
+portals, sunlight and the three media (ground, swim, fly). A search expands at most 512 nodes
+unless the caller raises the budget.
+
+The goals reach the world through `GoalWorld`, a 43-member interface covering sight, combat, items,
+blocks, relationships and reporting. Every member is optional, and a goal whose world cannot answer
+what it needs refuses to start rather than throwing. The server answers all 43 today, which takes
+the inventory from 118 goals able to run to all 170; before the seam was finished, `hurt_by_target`
+(42 of the 129 vanilla entities carry it), `panic` (37), `breed` (26) and `mount_pathing` (26) could
+never start.
+
+## Brain mobs, and why they are different
+
+Java Edition runs two unrelated mob AI systems, and Bedrock's data format only describes one of
+them.
+
+The goal system is the one Bedrock's `minecraft:behavior.*` components express, and 30 of Java's 67
+goal class names match a Bedrock name directly. The brain system is something else: a memory map, a
+list of sensors that write into it, and a table of behaviors keyed by priority and activity.
+Bedrock publishes no memory registry, no sensor registry and no activity registry at all, so a
+Bedrock-shaped entity file has no way to say what a brain mob is doing. There is no component for
+"the piglin has been admiring this gold ingot for 119 ticks" because the format never names that
+idea.
+
+Exactly twenty mob classes in Java build a brain, and the list is a fact rather than a judgment
+call: scanning every class under `net/minecraft/world/entity/` for `brainProvider` or `makeBrain`
+finds 21, and the twenty-first is `LivingEntity`, which holds the base. The twenty are the allay,
+armadillo, axolotl, breeze, camel, copper golem, creaking, frog, goat, happy ghast, hoglin,
+nautilus, piglin, piglin brute, sniffer, tadpole, villager, warden, zoglin and zombie nautilus.
+Everything else in the game, including every zombie, skeleton, farm animal and the ender dragon, is
+goals only.
+
+`@jsprismarine/entity-brains` implements that second system against Java 26.3: all 115 memory
+modules, all 24 sensors, all 26 activities, the combinators, and each of the twenty mobs with its
+real activity table, priorities, memory conditions and constants. The behavior library is 37 shared
+behaviors plus the mob-specific ones. A behavior whose effect the world seam can express is
+implemented in full; the rest keep their real name, memory conditions and constants, do the memory
+bookkeeping Java does, and leave the world effect to the host. The piglin's barter loot, the
+sniffer's dig, the warden's sonic boom damage and the raid state machine are in that group.
+
+Two consequences are worth knowing before you build around a brain mob.
+
+A brain mob does not run its Bedrock goals. The host hands a `GoalWorld` only to entities that are
+not brain mobs, so the `minecraft:behavior.*` components in a frog's vanilla file never start; its
+Java brain drives it instead. The camel and the happy ghast are the exceptions, because Java gives
+both a `registerGoals` and a `brainProvider`, and the runtime ticks both systems for them.
+
+The villager is a special case today. The brain registry names the villager `minecraft:villager`,
+which is Java's identifier and also the identifier of Bedrock's legacy villager file. Bedrock's
+current villager is `minecraft:villager_v2`, and the registry does not name it, so a
+`minecraft:villager_v2` runs its 27 Bedrock goals rather than the Java brain. The brain, its
+schedule and its professions are implemented and reachable; they attach to the wrong identifier.
+
+## Stats: which edition decides a number
+
+Bedrock's entity definitions and Java's attribute suppliers publish 438 of the same stats for the
+same entity, and they disagree on 151 of them. Picking one edition everywhere is wrong in both
+directions, so the choice is made per stat and recorded in [ADR
+0001](../adr/0001-entity-stat-authority.md).
+
+Java decides `max_health`, `attack_damage`, `follow_range` and `knockback_resistance`, because the
+Bedrock client never computes any of them: it draws hearts from the attribute the server sends,
+reports that a swing happened without a damage number, and runs no mob AI. That is why a wither
+here spawns with Java's 300 health instead of Bedrock's difficulty-scaled 600.
+
+Bedrock decides `movement_speed`, `flying_speed`, `jump_strength`, `width` and `height`, because
+those are the stats the client simulates an actor with. `ClientMovementPredictionSyncPacket` is the
+client telling the server what it predicted an actor with, and its payload enumerates the bounding
+box, the speeds and the jump strength. The hitbox is the clearest case: the client draws the mob
+from its own resource pack and collides with the box the server sends, so a box that disagrees with
+the drawn model means a player aims at a mob and misses.
+
+33 of the 151 disagreements resolve to Java's value, and 118 keep Bedrock's, of which 15 are
+reviewed exceptions where Java publishes a number Java itself overwrites at spawn, such as the
+horse's 53 health or a slime's. The corpus test fails if a new disagreement appears on a
+Java-decided stat without a review, so a Mojang retune cannot be absorbed silently. The ADR has the
+reasoning and the full exception list.
+
+## Spawning
+
+Natural spawning runs Bedrock's model, from Bedrock's 60 vanilla `spawn_rules/*.json` files. All 60
+parse with no diagnostic, all 21 condition components vanilla writes are evaluated, and the six
+population pools are `animal` (27 rules), `monster` (24), `water_animal` (5), `pillager` (2), `cat`
+(1) and `ambient` (1).
+
+Choosing Bedrock's model over Java's was deliberate, and the reason is farms. Java's spawning rules
+are implementable and the Bedrock client would never see the difference, but a Bedrock player's mob
+farm is built against Bedrock's caps, rates and spawn-position rules, and swapping in Java's model
+would break every one of them. Section 12 decision 3 of
+[the plan](../plans/data-driven-vanilla.md) records that.
+
+The awkward part is that Mojang publishes none of the numbers the algorithm needs. There is no
+published spawn rate, cap, radius, herd placement rule or density radius; the one source of figures
+is a documentation table where every entry is hedged with a tilde. So every constant is this
+project's reading, and they live in `packages/spawning/src/tables/spawnConstants.json` with a
+`source` string each rather than in code, where you can read the reasoning and replace the whole
+table.
+
+| Pool | Cap | Scope | Cycle |
+| --- | --- | --- | --- |
+| `animal` | 10 | Per player | Every 400 ticks |
+| `water_animal` | 5 | Per player | Every 400 ticks |
+| `water_ambient` | 20 | Per player | Every 400 ticks |
+| `ambient` | 15 | Per player | Every 400 ticks |
+| `monster` | 70 | Per region | Every 20 ticks |
+| `cat` | 5 | Per region | Every 1200 ticks |
+| `pillager` | None | Per region | Every 20 ticks |
+
+One cycle reads the pool's cap, samples 8 chunks within 4 chunks of each player, tries 3 positions
+per chunk for the surface pass and 3 for the underground pass, collects every rule condition that
+passes at a position, draws one by weight, applies its `rarity` roll, places a herd, and gives each
+member its type and spawn event. It stops the moment the pool reaches its cap, even mid-herd.
+
+## Trading
+
+`@jsprismarine/trading` reads both trade table grammars, the economy one and the legacy one, and
+runs the villager economy on top. Against bedrock-samples it parses all 27 vanilla tables, 110
+tiers and 384 trades, and implements the six trade item functions vanilla uses.
+
+Mojang names the economy's fields and publishes none of its formulas, so the demand, restock,
+level-up and discount arithmetic is Java's, which is the only published model, with three choices
+written down in the package README. A trader's level is how many tiers its experience has unlocked.
+Demand moves at restock rather than inside a stock cycle. The discount fields are flat deltas on
+the first want rather than percentages.
+
+On a default build only 18 of the 27 tables load, because BDS ships eleven of them as an
+undocumented binary format the pack loader cannot read and reports as `definition.mcb`. Copying the
+JSON versions from bedrock-samples into a world pack fills the gap.
+
+## Running it
+
+The data path is off by default. `config.yaml`'s `content-packs` starts at `false`, and with it off
+the server runs what it always has: 111 written entity classes, 11 hand-written goals, and
+`MobSpawner`, which puts 12 species near players and removes them once every player has walked
+away. Nothing on this page is running on that path.
+
+Turn it on with `content-packs: true` in `config.yaml`, or set `JSP_CONTENT=1` for one run without
+editing the file. Behavior pack directories listed under `content-world-packs` load after the
+vanilla ones, and later packs replace earlier definitions whole; see
+[using-packs.md](using-packs.md) for the precedence rules.
+
+With the flag on, the server opens one `EntityRuntime` per dimension as that dimension's content
+adapter is assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued
+events apply, the active components run, the goal scheduler runs, a brain mob updates its activity
+and ticks its brain, and the body takes one step along whatever walk the AI asked for. Then the
+spawn cycle and the despawn pass run. Every entity carries a `GenericEntity` body so clients see
+it, and the two stay in step in both directions, so a player's blow through the legacy damage
+pipeline reaches the components that decide what it cost.
+
+A default build registers 136 entity types rather than 129, because the BDS `behavior_packs` folder
+also holds the editor and education packs, which bring the agent, the balloon, the ice bomb and
+five `editor:` entities along. It also reports 102 diagnostics and no errors, so warnings on
+startup are expected rather than a sign of a broken stack. 47 of them name an unregistered
+component, 26 are vanilla files that write `"events": null`, and 26 are vanilla writing
+`"remove": {}` or `"add": {}` to mean "change nothing", which the parser reports and then handles
+correctly.
+
+### Adding your own mob
+
+1. Write a behavior pack with `manifest.json` and your entity file under `entities/`, exactly as
+   you would for BDS.
+2. Point `content-world-packs` at its directory and start the server with `content-packs` on.
+3. Read the startup log. Every unknown component, unreadable event and unmapped identifier is
+   reported there with the pack and file that wrote it.
+4. If the mob should spawn naturally, add a `spawn_rules/` file naming one of the population pools
+   above. Without one it exists only when something else creates it.
+5. Ship a resource pack with the geometry and textures, or set `runtime_identifier` to a vanilla
+   mob so the client draws that one instead. The server never sends a model, so a mob with
+   neither arrives invisible.
+
+## Known limits
+
+Each of these changes what you can expect to work.
+
+**Performance is the open question.** Every entity in a loaded dimension ticks every tick, with no
+gate on distance from a player, and path finding dominates the cost. A mob standing alone is cheap,
+tens of microseconds a tick. Once mobs can see each other the targeting and attacking goals start
+running searches, and the cost per mob per tick rises into milliseconds, which leaves room for a
+few dozen mobs in a 50 millisecond tick rather than the hundreds a Bedrock world holds. One
+improvement is already in: the navigator and the path finder's view of the blocks cost 623
+microseconds per entity per tick together and now cost 20. No tick budget has been set and nothing
+gates ticking by simulation distance, so treat the data path as something to test with rather than
+to run a populated server on.
+
+**Mobs do not survive a restart as data entities.** The runtime creates entities; nothing restores
+them. A saved mob's body loads from chunk storage as a written class or as a bare `GenericEntity`
+with no components, no goals and no brain behind it, and the spawn loop does not count it against a
+population cap.
+
+**Taming and feeding have no interaction path.** `EntityRuntime.setOwner` and
+`EntityRuntime.setInLove` exist and the goals that read them work, but nothing calls either one:
+`minecraft:tameable` and the feeding half of `minecraft:breedable` parse as data and no
+right-click reaches them. Breeding works when something else puts two animals in love.
+
+**`/summon` uses the legacy classes.** The command resolves an identifier against the 108 written
+classes a position alone can build, not against the content registry, so it cannot summon a mob
+your pack defines even with the data path on.
+
+**Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
+world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the
+warden's `suspicious_location` and the dolphin's `buried_treasure` are recorded by
+`EntityRuntime.recordPointOfInterest` and nothing calls it. The vibration listener and the
+generator would be the callers. The goals that search for them run and find nothing.
+
+**No mob event is ever active.** Nothing on this server runs pillager patrols or village raids, so
+the host answers `minecraft:mob_event_filter` with a flat no rather than a guess, and every rule
+that gates on one refuses.
+
+**Four spawn rules have no conditions.** The blaze, cat, pillager and wither skeleton rules register
+a pool and leave placement to engine code (fortress spawns, village cats, patrol placement). This
+server spawns them wherever the pool cycle happens to look, which is wrong for all four.
+
+**Structure and spawner spawning is absent.** Spawner blocks, trial spawners and structure-bound mob
+lists are not spawn rules and are not implemented.
