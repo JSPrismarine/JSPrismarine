@@ -25,7 +25,7 @@ import { structureRandomSeed } from './javaStructurePlacement';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
 import type { StructureLevel, StructurePiece } from './javaStructureWorld';
 import { boxTouchesChunk, unionOf } from './javaStructureWorld';
-import type { JavaRegistry, JavaWorldgenRegistries } from './javaWorldgenData';
+import type { JavaWorldgenRegistries } from './javaWorldgenData';
 
 /** How far Java looks for a start that reaches into the chunk being generated. */
 const REFERENCE_RADIUS = 8;
@@ -97,23 +97,6 @@ const stepOf = (value: unknown): DecorationStep =>
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
-
-/**
- * How many structures each decoration step holds.
- *
- * Java counts structures and features of a step through one index, structures first, so this is
- * also the index the step's first feature is seeded with. A world that generates no village
- * still counts the five village structures, because the index runs over the registry rather
- * than over what the dimension has.
- */
-export const structureStepCounts = (structures: JavaRegistry): ReadonlyMap<DecorationStep, number> => {
-    const counts = new Map<DecorationStep, number>();
-    for (const document of structures.values()) {
-        const step = stepOf(isRecord(document) ? document.step : undefined);
-        counts.set(step, (counts.get(step) ?? 0) + 1);
-    }
-    return counts;
-};
 
 /**
  * The structure starts a world has, for one seed.

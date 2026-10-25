@@ -14,14 +14,13 @@
 import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 
-import type { BlockOracle, DecorationStep, PlacedFeature, ScheduledFeature } from '@jsprismarine/features';
+import type { BlockOracle, BlockPos, FeatureWorld, PlacedFeature } from '@jsprismarine/features';
 import {
     DECORATION_STEPS,
     FeatureLoader,
     WorldgenRandom,
-    decorationStepIndex,
-    orderDecoration,
-    placeFeature
+    placeFeature,
+    sortFeaturesPerStep
 } from '@jsprismarine/features';
 import { boxesOverlap } from '@jsprismarine/structures';
 import type {
@@ -63,7 +62,7 @@ import { createNoiseStructureLevel } from './javaStructureLevel';
 import { asStructureRandom } from './javaStructureRandom';
 import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
 import type { StructureBuilder, StructureStart } from './javaStructureStarts';
-import { StructureStartSource, structureStepCounts } from './javaStructureStarts';
+import { StructureStartSource } from './javaStructureStarts';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
 import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
@@ -111,9 +110,10 @@ interface SeededPipeline {
     /** The per-cell biome lookup every stage shares, so a cell is resolved once per world. */
     readonly biomeCells: BiomeResolver;
     readonly possibleBiomes: ReadonlySet<string>;
-    readonly plan: readonly ScheduledFeature[];
-    /** The plan split by step, so the decoration loop can interleave the structures. */
-    readonly planByStep: ReadonlyMap<DecorationStep, readonly ScheduledFeature[]>;
+    /** Every placed feature the dimension can run, indexed by decoration step then by index. */
+    readonly featuresByStep: readonly StepFeatures[];
+    /** What each biome contributes to a chunk it touches. */
+    readonly biomeDecoration: ReadonlyMap<string, BiomeDecoration>;
     /** The structure starts this world has, or undefined when structures are turned off. */
     readonly structures?: StructureStartSource;
     /** The bare terrain the structures were laid out against. */
@@ -125,7 +125,36 @@ interface SeededPipeline {
     readonly terrainChunks: Map<string, Promise<GenerationRegion>>;
     readonly featurePatches: Map<string, RegionChunkPatch[]>;
     readonly generatedChunks: Map<string, Chunk>;
+    /** Each chunk's biome palette, which its eight neighbors read while they decorate. */
+    readonly chunkBiomes: Map<string, ReadonlySet<string>>;
     generationTail: Promise<void>;
+}
+
+/**
+ * One decoration step's features, in the order that seeds them.
+ *
+ * This is Java's `FeatureSorter.StepFeatureData`: one list per step covering every biome of the
+ * dimension, so a feature keeps its index wherever it is placed.
+ */
+interface StepFeatures {
+    /** The placed feature identifier at each index. */
+    readonly references: readonly string[];
+    /** The feature at each index, absent when this server cannot build it. */
+    readonly features: readonly (PlacedFeature | undefined)[];
+}
+
+/** What one biome contributes to the decoration of a chunk it reaches. */
+interface BiomeDecoration {
+    /**
+     * Every placed feature the biome lists, across all of its steps.
+     *
+     * Java's `minecraft:biome` placement modifier asks exactly this question of the biome at
+     * the candidate position, which is what keeps a snowy tree off a plains hill and a plains
+     * tree off an ice spike.
+     */
+    readonly lists: ReadonlySet<string>;
+    /** The indices into {@link StepFeatures} the biome contributes, per decoration step. */
+    readonly indicesByStep: readonly (readonly number[])[];
 }
 
 /** The identifier `minecraft:bedrock`, which the carvers must not open. */
@@ -142,17 +171,6 @@ const TERRAIN_YIELD_BUDGET_MS = 4;
 
 /** The source a generator with no templates uses, which places the structures that need none. */
 const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
-
-/** The decoration plan split by step, which is how the decoration loop walks it. */
-const byStep = (plan: readonly ScheduledFeature[]): ReadonlyMap<DecorationStep, readonly ScheduledFeature[]> => {
-    const buckets = new Map<DecorationStep, ScheduledFeature[]>();
-    for (const entry of orderDecoration(plan)) {
-        const bucket = buckets.get(entry.step);
-        if (bucket === undefined) buckets.set(entry.step, [entry]);
-        else bucket.push(entry);
-    }
-    return buckets;
-};
 
 const identifiersOf = (value: unknown): readonly string[] => {
     if (typeof value === 'string') return [value];
@@ -500,23 +518,25 @@ export class DataDrivenGenerator implements Generator {
      * Runs Java's `applyBiomeDecoration`: for each of the eleven steps, the structures of that
      * step and then its features.
      *
-     * The two share one index counter, which is what seeds each of them. Java counts the
-     * structures of a step first, so a step's features are seeded from the count onward;
-     * {@link buildFeaturePlan} applies that offset, which means turning structures off does not
-     * move a feature.
+     * Both are seeded from an index that restarts at zero inside every step, so a structure and
+     * a feature of the same step can share a seed. That is what Java does, and the two counters
+     * are independent: turning structures off does not move a feature.
+     *
+     * A step's features are the union of what the biomes of the surrounding 3 by 3 chunks list,
+     * run once each in index order. The surrounding chunks are included so a tree rooted in a
+     * neighbor can still grow across the border, and `minecraft:biome` is what then keeps each
+     * feature on the biome that asked for it.
      */
     private decorate(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): void {
         const random = new WorldgenRandom();
         const origin = { x: cx * 16, y: this.dimension.minY, z: cz * 16 };
         const populationSeed = random.setDecorationSeed(pipeline.randomState.seed, origin.x, origin.z);
-        const context = { world: region.featureWorld() };
+        const world = region.featureWorld();
+        const palette = this.biomePaletteAround(cx, cz, pipeline);
         const starts = pipeline.structures?.startsFor(cx, cz) ?? [];
         const clip = chunkWriteBox(cx, cz, this.dimension.minY, this.dimension.minY + this.dimension.height - 1);
         const writer = starts.length === 0 ? undefined : createRegionStructureWriter(region, pipeline.level, clip);
-
-        for (const step of DECORATION_STEPS) {
-            const stepIndex = decorationStepIndex(step);
-
+        DECORATION_STEPS.forEach((step, stepIndex) => {
             if (writer !== undefined && pipeline.structures !== undefined) {
                 pipeline.structures.structuresInStep(step).forEach((structure, index) => {
                     const placing = starts.filter((start) => start.structure === structure);
@@ -535,11 +555,89 @@ export class DataDrivenGenerator implements Generator {
                 });
             }
 
-            for (const entry of pipeline.planByStep.get(step) ?? []) {
-                random.setFeatureSeed(populationSeed, entry.index, stepIndex);
-                placeFeature(entry.feature, context, random, origin);
+            const stepFeatures = pipeline.featuresByStep[stepIndex];
+            if (stepFeatures === undefined) return;
+
+            const candidates = new Set<number>();
+            for (const biome of palette) {
+                for (const index of pipeline.biomeDecoration.get(biome)?.indicesByStep[stepIndex] ?? []) {
+                    candidates.add(index);
+                }
+            }
+
+            for (const index of [...candidates].sort((left, right) => left - right)) {
+                const feature = stepFeatures.features[index];
+                const reference = stepFeatures.references[index];
+                if (feature === undefined || reference === undefined) continue;
+
+                random.setFeatureSeed(populationSeed, index, stepIndex);
+                placeFeature(
+                    feature,
+                    { world, featureBelongsToBiome: this.biomeCheck(pipeline, world, reference) },
+                    random,
+                    origin
+                );
+            }
+        });
+    }
+
+    /**
+     * Java's `BiomeFilter`: whether the biome at a position lists the feature being placed.
+     *
+     * The chain decides which position is tested, and it is rarely the chunk origin. In
+     * `trees_plains` the check is last, after the heightmap and the survival test, so it asks
+     * about the block the tree would stand on.
+     */
+    private biomeCheck(
+        pipeline: SeededPipeline,
+        world: FeatureWorld,
+        reference: string
+    ): (position: BlockPos) => boolean {
+        return (position) => pipeline.biomeDecoration.get(world.getBiome(position))?.lists.has(reference) ?? false;
+    }
+
+    /**
+     * The biomes of the nine chunks a decoration pass may write into.
+     *
+     * Java collects these from the biome palettes of the 3 by 3 chunks around the one being
+     * decorated, which it can do because all nine have finished their `biomes` status. Reading
+     * the biome source per cell gives the same answer, because the palette is what that source
+     * filled.
+     */
+    private biomePaletteAround(cx: number, cz: number, pipeline: SeededPipeline): ReadonlySet<string> {
+        const palette = new Set<string>();
+        for (let dx = -1; dx <= 1; dx++) {
+            for (let dz = -1; dz <= 1; dz++) {
+                for (const biome of this.chunkBiomes(cx + dx, cz + dz, pipeline)) palette.add(biome);
             }
         }
+        return palette;
+    }
+
+    /** One chunk's biome palette, kept because each chunk's is read by nine decoration passes. */
+    private chunkBiomes(cx: number, cz: number, pipeline: SeededPipeline): ReadonlySet<string> {
+        const key = this.chunkKey(cx, cz);
+        const cached = pipeline.chunkBiomes.get(key);
+        if (cached !== undefined) {
+            pipeline.chunkBiomes.delete(key);
+            pipeline.chunkBiomes.set(key, cached);
+            return cached;
+        }
+
+        const biomes = new Set<string>();
+        const bottom = this.dimension.minY >> 2;
+        const top = (this.dimension.minY + this.dimension.height - 1) >> 2;
+        for (let quartX = cx * 4; quartX < cx * 4 + 4; quartX++) {
+            for (let quartZ = cz * 4; quartZ < cz * 4 + 4; quartZ++) {
+                for (let quartY = bottom; quartY <= top; quartY++) {
+                    biomes.add(pipeline.biomeCells(quartX, quartY, quartZ));
+                }
+            }
+        }
+
+        pipeline.chunkBiomes.set(key, biomes);
+        this.trimCache(pipeline.chunkBiomes);
+        return biomes;
     }
 
     /** Translates the region's Java states into the Bedrock chunk, and records the biomes. */
@@ -661,7 +759,7 @@ export class DataDrivenGenerator implements Generator {
                 coldEnoughToSnow(climateOf(resolver(x >> 2, y >> 2, z >> 2)), x, y, z, settings.seaLevel)
         });
 
-        const plan = this.buildFeaturePlan();
+        const decoration = this.buildDecorationPlan();
         return {
             randomState,
             settings,
@@ -670,8 +768,8 @@ export class DataDrivenGenerator implements Generator {
             biomes,
             biomeCells: resolver,
             possibleBiomes,
-            plan,
-            planByStep: byStep(plan),
+            featuresByStep: decoration.featuresByStep,
+            biomeDecoration: decoration.biomeDecoration,
             level,
             ...(this.options.structures === false
                 ? {}
@@ -692,6 +790,7 @@ export class DataDrivenGenerator implements Generator {
             terrainChunks: new Map(),
             featurePatches: new Map(),
             generatedChunks: new Map(),
+            chunkBiomes: new Map(),
             generationTail: Promise.resolve()
         };
     }
@@ -736,15 +835,29 @@ export class DataDrivenGenerator implements Generator {
         };
     }
 
+    /** The placed feature identifiers one biome lists, as eleven lists in Java's step order. */
+    private biomeFeatureReferences(biome: string): readonly (readonly string[])[] {
+        const document = this.options.registries.biomes.get(biome);
+        const steps =
+            typeof document === 'object' && document !== null
+                ? (document as { features?: unknown }).features
+                : undefined;
+
+        return Array.isArray(steps) ? steps.map((entries) => identifiersOf(entries)) : [];
+    }
+
     /**
-     * The chunk's decoration plan: every placed feature any biome lists, in Java's step order.
+     * The dimension's feature order and each biome's place in it.
      *
-     * Java sorts the per-step lists topologically across the biomes of the level so that two
-     * biomes which disagree on the order of two features never interleave them. This takes the
-     * order each step's features are first seen in instead, which is the same answer whenever
-     * the biomes do agree, and vanilla's do for all but a handful.
+     * Java builds this once per chunk generator and reuses it for every chunk, because a
+     * feature's index has to be the same wherever it is placed: the index is half of the
+     * feature's seed. {@link sortFeaturesPerStep} is what merges the biomes' disagreeing orders
+     * into the one list per step the index counts along.
      */
-    private buildFeaturePlan(): readonly ScheduledFeature[] {
+    private buildDecorationPlan(): {
+        readonly featuresByStep: readonly StepFeatures[];
+        readonly biomeDecoration: ReadonlyMap<string, BiomeDecoration>;
+    } {
         const registries = this.options.registries;
         const loader = new FeatureLoader({
             feature: (id) => registries.features.get(id),
@@ -752,47 +865,42 @@ export class DataDrivenGenerator implements Generator {
             blockStateProvider: (id) => registries.blockStateProviders.get(id)
         });
 
-        const perStep = DECORATION_STEPS.map(() => [] as string[]);
+        const byBiome = new Map<string, readonly (readonly string[])[]>();
         for (const biome of this.biomeSource.possibleBiomes()) {
-            const document = registries.biomes.get(biome);
-            const steps =
-                typeof document === 'object' && document !== null
-                    ? (document as { features?: unknown }).features
-                    : undefined;
-            if (!Array.isArray(steps)) continue;
-
-            steps.forEach((entries, step) => {
-                const list = perStep[step];
-                if (list === undefined) return;
-
-                for (const reference of identifiersOf(entries)) {
-                    if (!list.includes(reference)) list.push(reference);
-                }
-            });
+            byBiome.set(biome, this.biomeFeatureReferences(biome));
         }
 
-        // Java counts a step's structures and its features through one index, structures first,
-        // so a step that holds 44 structures seeds its first feature as index 44.
-        const structureCounts = structureStepCounts(registries.structures);
-
-        const plan: ScheduledFeature[] = [];
-        perStep.forEach((references, step) => {
-            const offset = structureCounts.get(DECORATION_STEPS[step] ?? 'raw_generation') ?? 0;
-            references.forEach((reference, position) => {
-                const index = offset + position;
-                let feature: PlacedFeature;
+        const featuresByStep = sortFeaturesPerStep(byBiome.values()).map((references) => ({
+            references,
+            features: references.map((reference) => {
                 try {
-                    feature = loader.placedFeatureById(reference);
+                    return loader.placedFeatureById(reference);
                 } catch {
-                    // A placed feature the stack does not carry is left out of the plan rather
-                    // than failing the world; the index of the rest is unchanged either way.
-                    return;
+                    // A placed feature this server cannot build keeps its slot rather than
+                    // failing the world, because every later feature is seeded by its index.
+                    return undefined;
                 }
+            })
+        }));
 
-                plan.push({ feature, step: DECORATION_STEPS[step]!, index });
+        const indexOfStep = featuresByStep.map(({ references }) => new Map(references.map((name, at) => [name, at])));
+
+        const biomeDecoration = new Map<string, BiomeDecoration>();
+        for (const [biome, steps] of byBiome) {
+            const lists = new Set<string>();
+            const indicesByStep = featuresByStep.map((_entry, step) => {
+                const indices: number[] = [];
+                for (const reference of steps[step] ?? []) {
+                    lists.add(reference);
+                    const index = indexOfStep[step]?.get(reference);
+                    if (index !== undefined) indices.push(index);
+                }
+                return indices;
             });
-        });
 
-        return plan;
+            biomeDecoration.set(biome, { lists, indicesByStep });
+        }
+
+        return { featuresByStep, biomeDecoration };
     }
 }
