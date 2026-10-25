@@ -22,11 +22,12 @@ import {
     encodePlayerServerKey
 } from './LevelDBKeys';
 import { LEVEL_DAT_STORAGE_VERSION, readLevelDat, readLevelName, writeLevelDat, writeLevelName } from './LevelDat';
-import { decodeData3D, encodeData3D, uniformData3D } from './BiomeCodec';
+import { decodeData3D, encodeData3D } from './BiomeCodec';
 import { decodeSubChunk, encodeSubChunk } from './SubChunkCodec';
 import { maxSubChunk, minSubChunk } from '../../Dimension';
 import BaseProvider from '../BaseProvider';
 import Chunk from '../../chunk/Chunk';
+import { ChunkBiomes } from '../../chunk/ChunkBiomes';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import type { Entity } from '../../../entity/Entity';
 import type { DimensionDefinition } from '../../Dimension';
@@ -200,6 +201,11 @@ export default class LevelDB extends BaseProvider {
 
         const chunk = new Chunk(cx, cz, subChunks, dimension);
 
+        const biomes = database.get(key(ChunkTag.Data3D));
+        if (biomes !== null) {
+            chunk.setBiomes(ChunkBiomes.fromSectionIds(decodeData3D(biomes, dimension).palettes, dimension));
+        }
+
         for (const blockEntity of this.readBlockEntities(database.get(key(ChunkTag.BlockEntity)))) {
             chunk.setBlockEntity(blockEntity);
         }
@@ -236,9 +242,10 @@ export default class LevelDB extends BaseProvider {
             batch.put(key(ChunkTag.SubChunkPrefix, index), encodeSubChunk(subChunk, index, subChunk.sourceVersion));
         }
 
-        // TODO: carry the biomes the generator chose, once it chooses any.
-        const existingBiomes = database.get(key(ChunkTag.Data3D));
-        batch.put(key(ChunkTag.Data3D), existingBiomes ?? encodeData3D(uniformData3D(1, dimension), dimension));
+        batch.put(
+            key(ChunkTag.Data3D),
+            encodeData3D({ heightmap: chunk.heightmap(), palettes: chunk.getBiomes().toSectionIds() }, dimension)
+        );
 
         batch.put(key(ChunkTag.Version), Buffer.from([CHUNK_VERSION]));
 
