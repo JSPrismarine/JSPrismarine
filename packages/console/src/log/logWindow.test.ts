@@ -125,9 +125,9 @@ describe('LogWindow', () => {
 
     it('clamps the offset on resize while paused', () => {
         const window = windowOf(5, 12);
-        window.scrollBy(-1);
-        window.onResize(10);
-        expect(window.offset).toBe(2);
+        window.scrollBy(-3);
+        window.onResize(6);
+        expect(window.offset).toBe(4);
         expect(window.follow).toBe(false);
         window.onResize(20);
         expect(window.offset).toBe(0);
@@ -137,8 +137,8 @@ describe('LogWindow', () => {
         const window = windowOf(5, 30);
         window.scrollBy(-10);
         window.onAppended(3);
-        window.onReset(8);
-        expect(window.offset).toBe(3);
+        window.onReset(22);
+        expect(window.offset).toBe(15);
         expect(window.follow).toBe(false);
         expect(window.unread).toBe(0);
     });
@@ -152,5 +152,23 @@ describe('LogWindow', () => {
         expect(window.follow).toBe(true);
         window.scrollTo(0);
         expect(window.offset).toBe(0);
+    });
+
+    it('resumes follow when a rebuild or resize leaves the window at the end', () => {
+        const rebuilt = windowOf(5, 30);
+        rebuilt.scrollBy(-10);
+        rebuilt.onAppended(2);
+        rebuilt.onReset(4);
+        expect(rebuilt.follow).toBe(true);
+        expect(rebuilt.unread).toBe(0);
+        rebuilt.onAppended(3);
+        expect(rebuilt.slice(list(7))).toEqual([2, 3, 4, 5, 6]);
+
+        const resized = windowOf(5, 12);
+        resized.scrollBy(-1);
+        resized.onAppended(1);
+        resized.onResize(20);
+        expect(resized.follow).toBe(true);
+        expect(resized.unread).toBe(0);
     });
 });

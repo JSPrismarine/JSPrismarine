@@ -116,4 +116,20 @@ describe('createStatusBar', () => {
             await setup.dispose();
         }
     });
+
+    it('removes the bar and ignores resizes after dispose', async () => {
+        const setup = await createTestRenderer({ width: 120, height: 1 });
+        try {
+            const bar = createStatusBar(ctx(setup.renderer), { left, right });
+            setup.renderer.root.add(bar.renderable);
+            await setup.renderOnce();
+
+            bar.dispose();
+            expect(() => setup.resize(60, 1)).not.toThrow();
+            await setup.renderOnce();
+            expect(firstLine(setup.captureCharFrame()).trim()).toBe('');
+        } finally {
+            await setup.dispose();
+        }
+    });
 });

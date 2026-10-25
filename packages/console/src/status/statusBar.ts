@@ -2,6 +2,7 @@ import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '
 import type { TextChunk } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
+import { columns } from '../text';
 import { layoutSegments } from './segments';
 import type { Segment } from './segments';
 
@@ -36,8 +37,6 @@ export const HELP_SEGMENT: Segment = { id: 'help', text: '? help', tone: 'muted'
 const SEPARATOR = ' · ';
 const PADDING = 1;
 const GAP = 1;
-
-const columns = (text: string) => [...text].length;
 
 /**
  * Creates the status bar. The bar measures itself against the renderer's terminal width and

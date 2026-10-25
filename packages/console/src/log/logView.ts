@@ -2,6 +2,7 @@ import type { MouseEvent } from '@opentui/core';
 import { BoxRenderable, TextRenderable } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { formatLogLine } from './logLine';
+import type { LevelStyle } from './logLine';
 import type { LogStore } from './logStore';
 import { LogWindow } from './logWindow';
 
@@ -14,7 +15,7 @@ export interface LogViewProps {
     /** Show the namespace column. Defaults to true. */
     showNamespace?: boolean;
     /** Level column style. Defaults to `full`. */
-    levelWidth?: 'full' | 'short';
+    levelStyle?: LevelStyle;
 }
 
 /**
@@ -48,7 +49,7 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
     const { store } = props;
     let wrap = props.wrap ?? false;
     let showNamespace = props.showNamespace ?? true;
-    const levelWidth = props.levelWidth ?? 'full';
+    const levelStyle = props.levelStyle ?? 'full';
     let highlight: string | undefined;
 
     const window = new LogWindow(1);
@@ -119,7 +120,7 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
 
     function paint(): void {
         if (rows.length === 0) return;
-        const options = { width: paneWidth(), wrap, showNamespace, levelWidth, theme, highlight };
+        const options = { width: paneWidth(), wrap, showNamespace, levelStyle, theme, highlight };
         const lines = window.slice(store.visible()).flatMap((record) => formatLogLine(record, options));
         const painted = window.follow
             ? lines.slice(Math.max(0, lines.length - rows.length))

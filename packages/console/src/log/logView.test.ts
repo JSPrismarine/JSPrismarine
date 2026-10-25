@@ -144,4 +144,20 @@ describe('createLogView', () => {
             await t.dispose();
         }
     });
+
+    it('stops painting and stays silent on appends after dispose', async () => {
+        const t = await setup();
+        try {
+            t.store.append(entry('before'));
+            await t.frame();
+            t.view.dispose();
+            expect(() => {
+                for (let i = 1; i <= 30; i += 1) t.store.append(entry(`after ${i}`));
+            }).not.toThrow();
+            const rows = await t.frame();
+            expect(rows.join('\n')).not.toContain('after');
+        } finally {
+            await t.dispose();
+        }
+    });
 });

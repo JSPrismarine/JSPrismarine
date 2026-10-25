@@ -175,7 +175,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             store,
             wrap,
             showNamespace: layout.showNamespace,
-            levelWidth: layout.levelWidth
+            levelStyle: layout.levelStyle
         });
         created.setSearchHighlight(search);
         logColumn.add(created.renderable, 0);
@@ -260,7 +260,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
         titleBar.renderable.visible = next.titleBar;
         sidePane.setMode(next.sidePane, next.sidePaneWidth);
-        if (next.levelWidth !== previous.levelWidth) {
+        if (next.levelStyle !== previous.levelStyle) {
             view.dispose();
             view = mountLogView();
         } else {
@@ -531,7 +531,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         if (event.type === 'supervisor.state') {
             if (event.state === 'starting' && event.generation > 1) {
-                store.startGeneration(`server restarted (generation ${event.generation})`, now());
+                store.startGeneration('server restarted', now());
             }
             state = event.state;
         }

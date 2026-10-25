@@ -1,9 +1,16 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import type { TextChunk } from '@opentui/core';
-import { StyledText, TextAttributes } from '@opentui/core';
-import type { Theme } from '../theme';
-import { LEVEL_TOKEN_WIDTH, levelToken, plainChunk, styleMinecraftText } from '../theme';
+import { parseColor, StyledText, TextAttributes } from '@opentui/core';
+import { columns, sliceColumns } from '../text';
+import { LEVEL_TOKEN_WIDTH, levelToken, plainChunk, styleMinecraftText } from '../theme/styled';
+import type { Theme } from '../theme/theme';
 import type { StoredRecord } from './types';
+
+/**
+ * How the level column is drawn: `full` pads level names to the longest one, `short` uses the
+ * one-letter tokens the UX design specifies below 100 columns.
+ */
+export type LevelStyle = 'full' | 'short';
 
 /** Layout and styling inputs for {@link formatLogLine}. */
 export interface LogLineOptions {
@@ -13,8 +20,7 @@ export interface LogLineOptions {
     wrap: boolean;
     /** Show the fixed-width namespace column. */
     showNamespace: boolean;
-    /** `full` pads level names to the longest one; `short` uses three-letter tokens. */
-    levelWidth: 'full' | 'short';
+    levelStyle: LevelStyle;
     /** Resolved theme for colors and `§` codes. */
     theme: Theme;
     /** Search query to mark inside the message, matched without regard to case. */
@@ -26,15 +32,6 @@ export const NAMESPACE_WIDTH = 12;
 
 const ELLIPSIS = '…';
 const RULE = '─';
-
-const SHORT_LEVELS: Readonly<Record<LogLevel, string>> = {
-    error: 'ERR',
-    warn: 'WRN',
-    info: 'INF',
-    verbose: 'VRB',
-    debug: 'DBG',
-    silly: 'SLY'
-};
 
 /** Formats a timestamp in milliseconds as `HH:mm:ss` local time. */
 export function formatTime(at: number): string {
@@ -48,9 +45,10 @@ export function formatTime(at: number): string {
  *
  * Log records get a time column, a level token in the level's color, an optional namespace
  * column, and the message with `§` codes mapped through the theme. Separators render as a rule
- * across the width; raw child output is muted and prefixed by its stream; dropped notices use the
- * warning color. With `wrap` off a long message ends in an ellipsis and the result is one row;
- * with it on, continuation rows are indented to the message column.
+ * across the width with the generation appended to the reason; raw child output is muted and
+ * prefixed by its stream; dropped notices show the store's message in the warning color. With
+ * `wrap` off a long message ends in an ellipsis and the result is one row; with it on,
+ * continuation rows are indented to the message column. Widths are measured in code points.
  */
 export function formatLogLine(record: StoredRecord, options: LogLineOptions): StyledText[] {
     const width = Math.max(1, options.width);
@@ -70,7 +68,7 @@ export function formatLogLine(record: StoredRecord, options: LogLineOptions): St
         case 'dropped':
             return layout(
                 [plainChunk(`${formatTime(record.at)} `, options.theme, 'textMuted')],
-                [plainChunk(`${record.count} log lines were dropped`, options.theme, 'warning', TextAttributes.BOLD)],
+                [plainChunk(record.message, options.theme, 'warning', TextAttributes.BOLD)],
                 width,
                 options
             );
@@ -91,28 +89,30 @@ export function formatLogLine(record: StoredRecord, options: LogLineOptions): St
 }
 
 function levelWidth(options: LogLineOptions): number {
-    return options.levelWidth === 'full' ? LEVEL_TOKEN_WIDTH : 3;
+    return options.levelStyle === 'full' ? LEVEL_TOKEN_WIDTH : 1;
 }
 
 function levelText(level: LogLevel, options: LogLineOptions): string {
-    return options.levelWidth === 'full' ? level.toUpperCase().padEnd(LEVEL_TOKEN_WIDTH) : SHORT_LEVELS[level];
+    const upper = level.toUpperCase();
+    return options.levelStyle === 'full' ? upper.padEnd(LEVEL_TOKEN_WIDTH) : upper.charAt(0);
 }
 
-function fit(text: string, columns: number): string {
-    if (text.length <= columns) return text.padEnd(columns);
-    return `${text.slice(0, Math.max(0, columns - 1))}${ELLIPSIS}`;
+function fit(text: string, width: number): string {
+    const used = columns(text);
+    if (used <= width) return text + ' '.repeat(width - used);
+    return `${sliceColumns(text, 0, Math.max(0, width - 1))}${ELLIPSIS}`;
 }
 
 function separatorRow(record: StoredRecord, width: number, theme: Theme): StyledText {
     const label = ` ${formatTime(record.at)} ${record.message} (generation ${record.generation}) `;
     const lead = RULE.repeat(3);
-    const tail = RULE.repeat(Math.max(3, width - lead.length - label.length));
+    const tail = RULE.repeat(Math.max(3, width - columns(lead) - columns(label)));
     const row = fit(`${lead}${label}${tail}`, width);
     return new StyledText([plainChunk(row, theme, 'textMuted')]);
 }
 
 function layout(prefix: TextChunk[], message: TextChunk[], width: number, options: LogLineOptions): StyledText[] {
-    const prefixWidth = textLength(prefix);
+    const prefixWidth = chunkColumns(prefix);
     const available = width - prefixWidth;
     if (available < 1) {
         return [new StyledText(sliceChunks(prefix, 0, width))];
@@ -120,24 +120,25 @@ function layout(prefix: TextChunk[], message: TextChunk[], width: number, option
     const plain = message.map((chunk) => chunk.text).join('');
     if (!options.wrap) {
         const body =
-            plain.length <= available
+            columns(plain) <= available
                 ? message
                 : [...sliceChunks(message, 0, available - 1), plainChunk(ELLIPSIS, options.theme, 'textMuted')];
         return [new StyledText([...prefix, ...body])];
     }
     const indent = plainChunk(' '.repeat(prefixWidth), options.theme);
-    return wrapRanges(plain, available).map(
+    return wrapRanges([...plain], available).map(
         ([start, end], index) =>
             new StyledText([index === 0 ? prefix : [indent], sliceChunks(message, start, end)].flat())
     );
 }
 
-function wrapRanges(text: string, columns: number): [number, number][] {
+/** Splits code points into `[start, end)` ranges of at most `width` columns, breaking at spaces. */
+function wrapRanges(points: readonly string[], width: number): [number, number][] {
     const ranges: [number, number][] = [];
     let start = 0;
-    while (text.length - start > columns) {
-        const limit = start + columns;
-        const space = text.lastIndexOf(' ', limit);
+    while (points.length - start > width) {
+        const limit = start + width;
+        const space = points.lastIndexOf(' ', limit);
         if (space > start) {
             ranges.push([start, space]);
             start = space + 1;
@@ -146,23 +147,24 @@ function wrapRanges(text: string, columns: number): [number, number][] {
             start = limit;
         }
     }
-    ranges.push([start, text.length]);
+    ranges.push([start, points.length]);
     return ranges;
 }
 
-function textLength(chunks: readonly TextChunk[]): number {
-    return chunks.reduce((sum, chunk) => sum + chunk.text.length, 0);
+function chunkColumns(chunks: readonly TextChunk[]): number {
+    return chunks.reduce((sum, chunk) => sum + columns(chunk.text), 0);
 }
 
+/** The chunks covering columns `[start, end)` of the joined text, cut at the edges. */
 function sliceChunks(chunks: readonly TextChunk[], start: number, end: number): TextChunk[] {
     const result: TextChunk[] = [];
     let position = 0;
     for (const chunk of chunks) {
         const chunkStart = position;
-        const chunkEnd = position + chunk.text.length;
+        const chunkEnd = position + columns(chunk.text);
         position = chunkEnd;
         if (chunkEnd <= start || chunkStart >= end) continue;
-        const text = chunk.text.slice(Math.max(0, start - chunkStart), Math.min(chunk.text.length, end - chunkStart));
+        const text = sliceColumns(chunk.text, Math.max(0, start - chunkStart), Math.min(chunkEnd, end) - chunkStart);
         if (text.length > 0) result.push({ ...chunk, text });
     }
     return result;
@@ -170,6 +172,7 @@ function sliceChunks(chunks: readonly TextChunk[], start: number, end: number): 
 
 function highlightChunks(chunks: readonly TextChunk[], query: string, theme: Theme): TextChunk[] {
     const needle = query.toLowerCase();
+    const selection = parseColor(theme.selection);
     const result: TextChunk[] = [];
     for (const chunk of chunks) {
         const lower = chunk.text.toLowerCase();
@@ -177,11 +180,7 @@ function highlightChunks(chunks: readonly TextChunk[], query: string, theme: The
         let hit = lower.indexOf(needle);
         while (hit !== -1) {
             if (hit > cursor) result.push({ ...chunk, text: chunk.text.slice(cursor, hit) });
-            result.push({
-                ...plainChunk(chunk.text.slice(hit, hit + needle.length), theme, 'text', chunk.attributes),
-                fg: chunk.fg,
-                bg: plainChunk('', theme, 'selection').fg
-            });
+            result.push({ ...chunk, text: chunk.text.slice(hit, hit + needle.length), bg: selection });
             cursor = hit + needle.length;
             hit = lower.indexOf(needle, cursor);
         }

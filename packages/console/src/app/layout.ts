@@ -38,7 +38,7 @@ export interface Layout {
     logWidth: number;
     /** Rows the log pane gets, at least one. */
     logHeight: number;
-    levelWidth: 'full' | 'short';
+    levelStyle: 'full' | 'short';
     showNamespace: boolean;
     /** Whether the status bar should keep only its highest priority segments. */
     compactStatus: boolean;
@@ -67,7 +67,7 @@ export function computeLayout(width: number, height: number, options: LayoutOpti
         sidePaneWidth: SIDE_PANE_WIDTH,
         logWidth: sidePane === 'inline' ? width - SIDE_PANE_WIDTH : width,
         logHeight: Math.max(1, height - FIXED_ROWS - (titleBar ? 1 : 0)),
-        levelWidth: wide ? 'full' : 'short',
+        levelStyle: wide ? 'full' : 'short',
         showNamespace: wide,
         compactStatus: width < COMPACT_STATUS_COLUMNS
     };

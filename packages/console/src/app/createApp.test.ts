@@ -81,7 +81,7 @@ describe('createApp', () => {
         expect(frame).toContain('12:00:01 INFO    Server       Listening on 0.0.0.0:19132');
     });
 
-    it('uses short level tokens and no namespace column at 80 columns', async () => {
+    it('uses one-letter level tokens and no namespace column at 80 columns', async () => {
         const t = await setup({ width: 80, height: 24 });
         dispose = t.dispose;
 
@@ -89,7 +89,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         const frame = t.captureCharFrame();
-        expect(frame).toContain('12:00:01 INF Listening on 0.0.0.0:19132');
+        expect(frame).toContain('12:00:01 I Listening on 0.0.0.0:19132');
         expect(frame).not.toContain('Server ');
     });
 
@@ -154,7 +154,9 @@ describe('createApp', () => {
         t.app.applySupervisorEvent({ type: 'supervisor.state', state: 'starting', generation: 2 });
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('server restarted (generation 2)');
+        const frame = t.captureCharFrame();
+        expect(frame).toContain('server restarted (generation 2)');
+        expect(frame).not.toContain('(generation 2) (generation 2)');
         expect(t.store.generation).toBe(2);
     });
 

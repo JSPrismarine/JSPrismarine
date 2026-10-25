@@ -84,17 +84,20 @@ export class LogWindow {
         }
     }
 
-    /** Replaces the list length after a rebuild, keeping the anchor where possible. */
+    /**
+     * Replaces the list length after a rebuild, keeping the anchor where possible. A paused
+     * window that the shorter list leaves at the end follows again.
+     */
     public onReset(total: number): void {
         this.total = Math.max(0, total);
         this.unreadCount = 0;
-        this.first = this.following ? this.maxOffset : this.clamp(this.first);
+        this.reanchor();
     }
 
-    /** Changes the number of painted rows. */
+    /** Changes the number of painted rows. A paused window that now shows the end follows again. */
     public onResize(height: number): void {
         this.rows = Math.max(1, height);
-        this.first = this.following ? this.maxOffset : this.clamp(this.first);
+        this.reanchor();
     }
 
     /** Picks the rows to paint from the full list. */
@@ -114,5 +117,10 @@ export class LogWindow {
         this.first = this.clamp(offset);
         this.following = this.first === this.maxOffset;
         if (this.following) this.unreadCount = 0;
+    }
+
+    /** Re-applies the follow rule after the list or the height changed under the window. */
+    private reanchor(): void {
+        this.moveTo(this.following ? this.maxOffset : this.first);
     }
 }
