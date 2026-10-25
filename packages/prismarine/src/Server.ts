@@ -951,6 +951,9 @@ export default class Server extends EventEmitter {
      */
     public setContent(content: ServerContent | undefined): void {
         this.content = content;
+        // The compiled functions came from the stack this build replaces, so
+        // they go with it rather than outliving the pack that declared them.
+        this.commandManager.setFunctionContent();
     }
 
     /**

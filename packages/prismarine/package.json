@@ -100,6 +100,7 @@
         "@jsprismarine/loot": "workspace:*",
         "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/math": "workspace:*",
+        "@jsprismarine/mcfunction": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/nbt": "workspace:*",
         "@jsprismarine/packs": "workspace:*",

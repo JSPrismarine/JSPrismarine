@@ -132,8 +132,10 @@ interface CommandRunner<TSource> {
 
 The context carries the source you passed to the run, plus the function id and line number the
 command came from, which is what diagnostics and logs need. The server's Brigadier dispatcher is
-the real adapter at this seam; `RecordingCommandRunner` is the other one, and it records what a
-function would run so a test or a pack author can inspect it without a world.
+the real adapter at this seam - `packages/prismarine/src/command/function/` holds it, and routes
+every line into the `@jsprismarine/commands` tree with the source made silent, as Java does.
+`RecordingCommandRunner` is the other one, and it records what a function would run so a test or
+a pack author can inspect it without a world.
 
 A runner may throw. The executor reports the failure and continues with the next line, because one
 failing command does not abort a Java function.
