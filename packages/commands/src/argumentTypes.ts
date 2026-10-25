@@ -475,38 +475,59 @@ const BEDROCK_RESOURCE_ENUMS: Readonly<Record<string, string>> = {
     'minecraft:mob_effect': 'Effect'
 };
 
+/** Drops the `minecraft:` namespace, which is how Mojang's own enums spell a vanilla id. */
+const bareId = (id: string): string => (id.startsWith('minecraft:') ? id.slice('minecraft:'.length) : id);
+
 /**
  * A registry id, `minecraft:resource` and its tag-accepting variants.
  *
  * Geyser's rule is the one to copy: the registries Bedrock publishes an enum
  * for become enums of their contents and everything else degrades to a string.
- * Pass `values` to override Mojang's list with the server's own, which is what
- * a server running content packs wants.
+ *
+ * Mojang's published list is frozen at the version the table was generated
+ * from, so it is the wrong thing to validate against on its own once content
+ * packs are loaded: `/summon mypack:dragon` would be refused at parse for an
+ * entity the server can spawn. Pass `values` and the two are accepted
+ * together. Added rather than substituted, because a server whose build omits
+ * a vanilla id should not make that id unspellable, and because Mojang's list
+ * is what a Bedrock client completes from.
  *
  * @param registry - The registry id, used in the report and in the enum name
- *   when `values` is given.
- * @param values - The registry contents, when the caller can list them.
+ *   when Bedrock publishes no enum for it.
+ * @param values - The ids the server's own registry holds, namespaced.
  */
 export const resourceArgument = (registry: string, values?: readonly string[]): BedrockDescribedType<string> => {
-    if (values !== undefined) return enumArgument(registry.replace(/[^\w]/g, '_'), values);
-
     const published = BEDROCK_RESOURCE_ENUMS[registry];
     const table = published === undefined ? undefined : bedrockCommandEnum(published);
-    if (table === undefined) {
+    const loaded = values ?? [];
+
+    if (table === undefined && loaded.length === 0) {
         return unrepresentable(`Bedrock has no parameter type for the ${registry} registry`, readToken);
     }
 
-    // Mojang's lists are unnamespaced, `speed` rather than `minecraft:speed`,
-    // and Java's commands take the full id. Both spellings parse, and the
-    // value handed to a command body is always the id, so a host never has to
-    // guess which edition wrote the line.
+    // Mojang's lists carry both spellings of a vanilla id, `speed` and
+    // `minecraft:speed`, and Java's commands take the full one. Both parse,
+    // and the value handed to a command body is always an id, so a host never
+    // has to guess which edition wrote the line.
+    const vanilla = new Set((table?.values ?? []).map(bareId));
+    const custom = new Set(loaded);
+
     return {
         parse: (reader) => {
             const token = readToken(reader);
-            const bare = token.startsWith('minecraft:') ? token.slice('minecraft:'.length) : token;
-            if (!table.values.includes(bare)) fail(reader, `'${token}' is not in the ${registry} registry`);
-            return `minecraft:${bare}`;
+            // A pack id first, verbatim: it carries its own namespace and
+            // nothing may rewrite it to `minecraft:`.
+            if (custom.has(token)) return token;
+
+            const bare = bareId(token);
+            if (vanilla.has(bare) || custom.has(`minecraft:${bare}`)) return `minecraft:${bare}`;
+
+            fail(reader, `'${token}' is not in the ${registry} registry`);
         },
-        describeBedrock: () => ({ kind: 'enum', name: table.name, values: table.values })
+        describeBedrock: () => ({
+            kind: 'enum',
+            name: table?.name ?? registry.replace(/[^\w]/g, '_'),
+            values: [...(table?.values ?? []), ...loaded.filter((id) => !vanilla.has(bareId(id)))]
+        })
     };
 };

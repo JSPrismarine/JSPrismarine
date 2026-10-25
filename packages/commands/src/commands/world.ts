@@ -49,10 +49,12 @@ const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRe
 
 /** Registers the 15 world commands. */
 export const registerWorldCommands = (registry: CommandRegistry<CommandSource>): void => {
+    const content = registry.getContent();
+
     registry.register(
         lit('setblock').then(
             arg('position', blockPositionArgument()).then(
-                arg('block', resourceArgument('minecraft:block'))
+                arg('block', resourceArgument('minecraft:block', content.blocks))
                     .executes(command((context) => setBlock(context, undefined, 'replace')))
                     .then(
                         arg('blockStates', blockStatesArgument())
@@ -80,7 +82,7 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
         lit('fill').then(
             arg('from', blockPositionArgument()).then(
                 arg('to', blockPositionArgument()).then(
-                    arg('block', resourceArgument('minecraft:block'))
+                    arg('block', resourceArgument('minecraft:block', content.blocks))
                         .executes(command((context) => fill(context, 'replace')))
                         .then(
                             arg(

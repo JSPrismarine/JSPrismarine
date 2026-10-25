@@ -37,8 +37,41 @@ export interface CommandMetadata {
 /** What {@link CommandRegistry.register} needs; everything but the name has a default. */
 export type CommandMetadataInput = Partial<CommandMetadata>;
 
+/**
+ * The ids the host's own registries hold, for the arguments that validate
+ * against live content instead of against Mojang's frozen list.
+ *
+ * Only the four registries a host resolves an id against and a content pack
+ * can extend are here. `minecraft:damage_type` and `minecraft:mob_effect`
+ * stay pinned to Mojang's published enum: no host here keeps a registry for
+ * either, so the published list is the only list there is.
+ * `minecraft:attribute`, `minecraft:particle_type` and
+ * `minecraft:worldgen/biome` are absent for a different reason, which is that
+ * Bedrock publishes no enum for them and they already degrade to an
+ * unvalidated string.
+ *
+ * A list left out keeps Mojang's published enum on its own, which is what a
+ * caller with no content build wants.
+ */
+export interface ContentRegistryIds {
+    /** Every entity identifier the host can spawn, `/summon`'s argument. */
+    readonly entityTypes?: readonly string[];
+    /** Every block identifier the host can place, for `/setblock` and `/fill`. */
+    readonly blocks?: readonly string[];
+    /** Every item identifier the host can give. */
+    readonly items?: readonly string[];
+    /** Every enchantment id the host can apply. */
+    readonly enchantments?: readonly string[];
+}
+
 /** How a registry decides what it will hold. */
 export interface CommandRegistryOptions {
+    /**
+     * What the host's own registries hold. Omit it and every registry
+     * argument validates against Mojang's published enum alone, which is
+     * right for a host with no content build behind it.
+     */
+    readonly content?: ContentRegistryIds;
     /**
      * Which command names this registry accepts. A name this answers `false`
      * for is built and handed back, but never reaches the dispatcher or the
@@ -65,8 +98,24 @@ export class CommandRegistry<S> {
     private readonly excluded = new Set<string>();
     private readonly include: (name: string) => boolean;
 
+    private readonly content: ContentRegistryIds;
+
     public constructor(options: CommandRegistryOptions = {}) {
         this.include = options.include ?? (() => true);
+        this.content = options.content ?? {};
+    }
+
+    /**
+     * What the host's own registries hold, for the registry arguments that
+     * validate against live content.
+     *
+     * Read by the command builders rather than passed to each of them: the
+     * registry is the one object every builder already has.
+     *
+     * @returns The lists the caller gave, or an empty set of them.
+     */
+    public getContent(): ContentRegistryIds {
+        return this.content;
     }
 
     /**

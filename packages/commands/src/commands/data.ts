@@ -32,7 +32,7 @@ import {
     timeArgument
 } from '../argumentTypes';
 import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot, LootSource } from '../host';
-import type { CommandRegistry } from '../tree';
+import type { CommandRegistry, ContentRegistryIds } from '../tree';
 import type { Context } from './support';
 import {
     arg,
@@ -84,8 +84,10 @@ const withTargets = (
 
 /** Registers the seven data-driven commands. */
 export const registerDataCommands = (registry: CommandRegistry<CommandSource>): void => {
+    const content = registry.getContent();
+
     registry.register(buildData(), { description: 'Reads and writes NBT.', ...CHEATS });
-    registry.register(buildItem(), { description: 'Changes items in a slot.', ...CHEATS });
+    registry.register(buildItem(content), { description: 'Changes items in a slot.', ...CHEATS });
     registry.register(buildLoot(), { description: 'Runs a loot table.', ...CHEATS });
 
     registry.register(
@@ -359,7 +361,7 @@ const modifyData = (
 
 const slotOf = (context: Context): ItemSlot => ({ name: value<string>(context, 'slots') });
 
-const buildItem = () => {
+const buildItem = (content: ContentRegistryIds) => {
     const node = lit('item');
 
     for (const action of ['replace', 'fill', 'modify', 'override'] as const) {
@@ -385,7 +387,7 @@ const buildItem = () => {
             } else {
                 slots.then(
                     lit('with').then(
-                        arg('item', resourceArgument('minecraft:item'))
+                        arg('item', resourceArgument('minecraft:item', content.items))
                             .executes(command((context) => setSlot(context, kind, 1)))
                             .then(
                                 arg('count', integerArgument({ min: 1, max: 99 })).executes(
