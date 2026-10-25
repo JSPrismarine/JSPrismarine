@@ -68,6 +68,7 @@ const nameOfWireId = (id: number): string | undefined => {
  */
 export class Item {
     private readonly name: string;
+    private readonly legacyId: number;
     private readonly networkId: number | undefined;
     private readonly placedBlockRuntimeId: number | undefined;
     private readonly content: ServerContent | undefined;
@@ -78,8 +79,9 @@ export class Item {
     public nbt = null;
     public count = 1;
 
-    public constructor({ name, meta, count, blockRuntimeId, content }: ItemProps) {
+    public constructor({ id, name, meta, count, blockRuntimeId, content }: ItemProps) {
         this.name = name;
+        this.legacyId = id ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
         this.content = content;
         if (meta) this.meta = meta;
@@ -96,18 +98,20 @@ export class Item {
     }
 
     /**
-     * The item's numeric id.
+     * Whatever numeric id the caller built this stack with, or zero.
      *
-     * @deprecated Items have no numeric id any more. Zero is what every item
-     *   answers; use {@link Item.getName} or {@link Item.getNetworkId}.
+     * @deprecated Items have no numeric id of their own any more; the name
+     *   is the identity. Still carried because it is the fallback
+     *   {@link Item.getNetworkId} uses for a name the item table does not
+     *   have, which is how a plugin's item reaches the wire.
      */
     public getId(): number {
-        return 0;
+        return this.legacyId;
     }
 
     /** The id the client resolves this stack by. */
     public getNetworkId(): number {
-        return this.networkId ?? 0;
+        return this.networkId || this.getId();
     }
 
     public getMeta(): number {
@@ -391,6 +395,9 @@ export class Item {
         // read as the next field.
         if (id === 0) return new Item({ name: 'minecraft:air' });
 
-        return new Item({ name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
+        // The id is carried as well as resolved, so a stack whose id the item
+        // table does not name still goes back out under the number it came in
+        // under.
+        return new Item({ id, name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
     }
 }
