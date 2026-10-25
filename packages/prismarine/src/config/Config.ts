@@ -3,6 +3,8 @@ import fs from 'node:fs';
 import type { LogLevel } from '@jsprismarine/logger';
 import type { WorldData } from '../world/WorldManager';
 import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
+import { convertYamlToJsonConfigDocument } from './ConfigDocument';
+import { toJsonFileContents } from './JsonFile';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import { ConfigBuilder } from './ConfigBuilder';
@@ -12,12 +14,18 @@ import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 const isDev = process.env.NODE_ENV === 'development';
 
 const FILE_NAME = 'config.json';
-const LEGACY_FILE_NAME = 'config.yaml';
+const LEGACY_FILE_NAMES = ['config.yml', 'config.yaml'];
 
 const configFilePath = (): string => {
     const file = withCwd(FILE_NAME);
-    const legacyFile = withCwd(LEGACY_FILE_NAME);
-    return !fs.existsSync(file) && fs.existsSync(legacyFile) ? legacyFile : file;
+    if (fs.existsSync(file)) return file;
+
+    const legacyFile = LEGACY_FILE_NAMES.map((name) => withCwd(name)).find((candidate) => fs.existsSync(candidate));
+    if (legacyFile === undefined) return file;
+
+    const document = convertYamlToJsonConfigDocument(fs.readFileSync(legacyFile, 'utf8'));
+    fs.writeFileSync(file, toJsonFileContents(file, document), { encoding: 'utf8', flag: 'wx' });
+    return file;
 };
 
 /** The difficulty names a config file may use, as the protocol numbers them. */

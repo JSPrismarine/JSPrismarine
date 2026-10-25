@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ConfigSyntaxError, parseConfigDocument } from './ConfigDocument';
+import { ConfigSyntaxError, convertYamlToJsonConfigDocument, parseConfigDocument } from './ConfigDocument';
 
 const YAML_SOURCE = [
     '# Server settings.',
@@ -200,6 +200,34 @@ describe('config', () => {
             const text = document.toString();
             expect(text).toContain('worlds:\n    world:\n        generator: Flat\n');
             expect(text).toContain(`motd: ${motd}\n`);
+        });
+
+        it('converts YAML lists and their comments to JSONC', () => {
+            const document = convertYamlToJsonConfigDocument(
+                [
+                    '# Excluded packet names.',
+                    'packets:',
+                    '    - MovePlayerPacket # noisy',
+                    '    # Time sync.',
+                    '    - SetTimePacket',
+                    ''
+                ].join('\n')
+            );
+
+            expect(document.get(['packets'])).toStrictEqual(['MovePlayerPacket', 'SetTimePacket']);
+            expect(document.toString()).toContain('// Excluded packet names.');
+            expect(document.toString()).toContain('"MovePlayerPacket", // noisy');
+            expect(document.toString()).toContain('// Time sync.');
+            expect(parseConfigDocument('json', document.toString()).get(['packets'])).toStrictEqual([
+                'MovePlayerPacket',
+                'SetTimePacket'
+            ]);
+        });
+
+        it('keeps comments in a comment-only YAML file during conversion', () => {
+            const document = convertYamlToJsonConfigDocument('# Nothing configured yet.\n');
+
+            expect(document.toString()).toBe('// Nothing configured yet.\n{}\n');
         });
     });
 

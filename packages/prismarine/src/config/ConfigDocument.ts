@@ -8,7 +8,7 @@ import {
     printParseErrorCode
 } from 'jsonc-parser';
 import type { Node as JsonNode, ParseError } from 'jsonc-parser';
-import { isCollection, isMap, isNode, isPair, isScalar, parseDocument } from 'yaml';
+import { isCollection, isMap, isNode, isPair, isScalar, isSeq, parseDocument } from 'yaml';
 import type { Document as YamlDocumentNode } from 'yaml';
 
 /** The file formats a config document can be kept in. */
@@ -79,6 +79,134 @@ export class ConfigSyntaxError extends Error {
 }
 
 const endsWithNewline = (text: string): string => (text === '' || text.endsWith('\n') ? text : `${text}\n`);
+
+const indentationAt = (depth: number): string => ' '.repeat(INDENT * depth);
+
+const yamlCommentLines = (comment: string | null | undefined, depth: number): string[] =>
+    comment === undefined || comment === null
+        ? []
+        : comment.split('\n').map((line) => {
+              const content = line.startsWith(' ') ? line.slice(1) : line;
+              return `${indentationAt(depth)}//${content === '' ? '' : ` ${content}`}`;
+          });
+
+const appendYamlCommaAndComment = (
+    lines: string[],
+    comma: boolean,
+    comments: (string | null | undefined)[],
+    depth: number
+): string[] => {
+    const result = [...lines];
+    const last = result.length - 1;
+    result[last] += comma ? ',' : '';
+
+    const comment = comments.filter((entry) => entry !== undefined && entry !== null).join('\n');
+    if (comment === '') return result;
+
+    const parts = comment.split('\n');
+    const first = parts.shift() ?? '';
+    const firstContent = first.startsWith(' ') ? first.slice(1) : first;
+    result[last] += ` //${firstContent === '' ? '' : ` ${firstContent}`}`;
+    if (parts.length > 0) result.push(...yamlCommentLines(parts.join('\n'), depth));
+    return result;
+};
+
+const jsonValue = (value: unknown): string => JSON.stringify(value) ?? 'null';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const yamlKey = (value: unknown): string | undefined => (isScalar(value) ? String(value.value) : undefined);
+
+const renderYamlValue = (node: unknown, value: unknown, depth: number): string[] => {
+    if (isMap(node) && isRecord(value)) return renderYamlMap(node, value, depth);
+    if (isSeq(node) && Array.isArray(value)) return renderYamlSequence(node, value, depth);
+    if (Array.isArray(value)) return renderPlainSequence(value, depth);
+    if (isRecord(value)) return renderPlainMap(value, depth);
+    return [jsonValue(value)];
+};
+
+const renderYamlMap = (node: unknown, value: Record<string, unknown>, depth: number): string[] => {
+    if (!isMap(node)) return renderPlainMap(value, depth);
+    const entries = Object.entries(value);
+    if (entries.length === 0) return ['{}'];
+
+    const lines = ['{'];
+    entries.forEach(([key, child], index) => {
+        const pair = node.items.find((candidate) => yamlKey(candidate.key) === key);
+        const keyNode = pair?.key;
+        const valueNode = pair?.value;
+        const spaceBefore = (isNode(keyNode) && keyNode.spaceBefore) || (isNode(valueNode) && valueNode.spaceBefore);
+        if (spaceBefore && lines.length > 1) lines.push('');
+        if (isNode(keyNode)) lines.push(...yamlCommentLines(keyNode.commentBefore, depth + 1));
+        if (isNode(valueNode)) lines.push(...yamlCommentLines(valueNode.commentBefore, depth + 1));
+
+        const childLines = renderYamlValue(valueNode, child, depth + 1);
+        const withComma = appendYamlCommaAndComment(
+            [`${indentationAt(depth + 1)}${JSON.stringify(key)}: ${childLines[0]}`, ...childLines.slice(1)],
+            index < entries.length - 1,
+            [isNode(keyNode) ? keyNode.comment : undefined, isNode(valueNode) ? valueNode.comment : undefined],
+            depth + 1
+        );
+        lines.push(...withComma);
+    });
+
+    lines.push(`${indentationAt(depth)}}`);
+    return lines;
+};
+
+const renderYamlSequence = (node: unknown, value: unknown[], depth: number): string[] => {
+    if (!isSeq(node)) return renderPlainSequence(value, depth);
+    if (value.length === 0) return ['[]'];
+
+    const lines = ['['];
+    value.forEach((item, index) => {
+        const itemNode = node.items[index];
+        if (isNode(itemNode) && itemNode.spaceBefore && lines.length > 1) lines.push('');
+        if (isNode(itemNode)) lines.push(...yamlCommentLines(itemNode.commentBefore, depth + 1));
+
+        const itemLines = renderYamlValue(itemNode, item, depth + 1);
+        const withComma = appendYamlCommaAndComment(
+            [`${indentationAt(depth + 1)}${itemLines[0]}`, ...itemLines.slice(1)],
+            index < value.length - 1,
+            [isNode(itemNode) ? itemNode.comment : undefined],
+            depth + 1
+        );
+        lines.push(...withComma);
+    });
+
+    lines.push(`${indentationAt(depth)}]`);
+    return lines;
+};
+
+const renderPlainMap = (value: Record<string, unknown>, depth: number): string[] => {
+    const entries = Object.entries(value);
+    if (entries.length === 0) return ['{}'];
+
+    const lines = ['{'];
+    entries.forEach(([key, child], index) => {
+        const childLines = renderYamlValue(undefined, child, depth + 1);
+        lines.push(`${indentationAt(depth + 1)}${JSON.stringify(key)}: ${childLines[0]}`);
+        lines.push(...childLines.slice(1));
+        if (index < entries.length - 1) lines[lines.length - 1] += ',';
+    });
+    lines.push(`${indentationAt(depth)}}`);
+    return lines;
+};
+
+const renderPlainSequence = (value: unknown[], depth: number): string[] => {
+    if (value.length === 0) return ['[]'];
+
+    const lines = ['['];
+    value.forEach((item, index) => {
+        const itemLines = renderYamlValue(undefined, item, depth + 1);
+        lines.push(`${indentationAt(depth + 1)}${itemLines[0]}`);
+        lines.push(...itemLines.slice(1));
+        if (index < value.length - 1) lines[lines.length - 1] += ',';
+    });
+    lines.push(`${indentationAt(depth)}]`);
+    return lines;
+};
 
 /** `# text` lines the way the yaml library wants them: one leading space per line, no `#`. */
 const yamlComment = (comment: string): string =>
@@ -193,6 +321,31 @@ class YamlConfigDocument implements ConfigDocument {
     public toString(): string {
         // Zero disables line folding: a long motd stays on one line, as it was written.
         return this.document.toString({ indent: INDENT, lineWidth: 0 });
+    }
+
+    /** Serialize YAML values as JSONC while carrying their comments to the corresponding values. */
+    public toJsonc(): string {
+        if (this.blank) {
+            const comments = yamlCommentLines(this.document.commentBefore, 0);
+            comments.push(...yamlCommentLines(this.document.comment ?? undefined, 0));
+            comments.push('{}');
+            return endsWithNewline(comments.join('\n'));
+        }
+        if (!isMap(this.document.contents)) throw new ConfigSyntaxError('yaml', 'the document root is not a map');
+
+        try {
+            const value: unknown = this.document.toJS();
+            if (!isRecord(value)) throw new ConfigSyntaxError('yaml', 'the document root is not a map');
+
+            const lines = yamlCommentLines(this.document.contents.commentBefore, 0);
+            lines.push(...renderYamlMap(this.document.contents, value, 0));
+            lines.push(...yamlCommentLines(this.document.comment ?? undefined, 0));
+            return endsWithNewline(lines.join('\n'));
+        } catch (error: unknown) {
+            if (error instanceof ConfigSyntaxError) throw error;
+            const detail = error instanceof Error ? error.message : String(error);
+            throw new ConfigSyntaxError('yaml', `cannot convert to JSON: ${detail}`);
+        }
     }
 }
 
@@ -377,4 +530,17 @@ export const parseConfigDocument = (format: ConfigFormat, text: string): ConfigD
         case 'yaml':
             return new YamlConfigDocument(text);
     }
+};
+
+/**
+ * Converts a YAML config into an editable JSONC document, carrying comments to the matching
+ * keys and values.
+ *
+ * @param text - The YAML source text.
+ * @returns A JSONC document with the same values and preserved comments.
+ * @throws ConfigSyntaxError when the YAML is invalid or its root is not a map.
+ */
+export const convertYamlToJsonConfigDocument = (text: string): ConfigDocument => {
+    const yaml = new YamlConfigDocument(text);
+    return new JsonConfigDocument(yaml.toJsonc());
 };
