@@ -53,6 +53,33 @@ sha256 per top-level folder of each source, so a version bump shows which folder
 offline work, `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and
 `JSP_GEYSER_MAPPINGS_PATH` point at local copies and bypass the download.
 
+## Running the Java data generator
+
+`pnpm run datagen:java` runs Mojang's own data generator against the fetched server jar, after
+re-checking the jar's sha1 against `sources.json`. One run produces both halves of the Java data
+the rest of the repository reads, under the same gitignored cache:
+
+- `vanilla-datapack/<version>/`, the vanilla datapack. `@jsprismarine/packs` loads it as the Java
+  member of the pack stack, the overworld generator reads its `worldgen/*` registries and block
+  tags, and the loot, advancement, predicate, enchantment and feature corpus suites read it.
+- `java-reports/<version>/generated/reports/`, the data reports. The mapping and item table
+  generators read them, and the overworld generator reads `biome_parameters` from them.
+
+The generator writes no `pack.mcmeta`, so this step writes one from the `pack_version` the jar
+declares in its `version.json`; that file is what marks the directory as a loadable datapack. The
+same `version.json` names the JDK the jar needs, found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on
+macOS, `/usr/libexec/java_home`.
+
+A second run is a no-op once both directories hold the files the step checks for. Pass `--force`
+to regenerate:
+
+```sh
+pnpm run datagen:java -- --force
+```
+
+The output is about 53 MB of Mojang's content and is never committed. `JSP_VANILLA_DATAPACK` and
+`JSP_JAVA_REPORTS` point consumers at a copy produced elsewhere.
+
 ## Installation
 
 To install `@jsprismarine/bedrock-data`, use the following command:
