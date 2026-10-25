@@ -7,6 +7,7 @@ import { Logger } from '@jsprismarine/logger';
 
 import Server from '../Server';
 import { Config } from '../config/Config';
+import { PACK_STACK_ENV } from './packStack';
 import { CONTENT_ENABLED_ENV } from './settings';
 import { buildServerContent } from './ServerContent';
 import { fixtureContentOptions } from './testing';
@@ -93,12 +94,25 @@ describe('the server with the content flag', () => {
         await expect(() => server.shutdown()).not.toThrow();
     });
 
-    it('boots with the flag on, and the build is reachable through the server', async () => {
-        // The default stack is Mojang's two fetched halves, which CI does not have, so the
-        // flag is turned on and a fixture build is handed over. `enableContent` reports a
-        // missing stack member rather than refusing to start, which is what makes this work.
+    it('boots with the flag on and builds the content it found', async () => {
+        // Mojang's two halves are pointed at nothing, so the stack is the committed
+        // `jsprismarine_vanilla` overlay alone: 1477 real block files, no fetched data.
+        // That `enableContent` reports the two missing members rather than refusing to
+        // start is the half of this that a server without the fetch depends on.
         vi.stubEnv(CONTENT_ENABLED_ENV, '1');
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, '/nowhere/bedrock');
+        vi.stubEnv(PACK_STACK_ENV.vanillaDatapack, '/nowhere/java');
+
         const server = await bootstrap('content-on');
+
+        expect(server.getContent()?.blocks.types.size).toBe(1477);
+        expect(server.getContent()?.diagnostics.filter((entry) => entry.code === 'pack.missing')).toHaveLength(2);
+        await expect(() => server.shutdown()).not.toThrow();
+    }, 60_000);
+
+    it('runs on content a test or a plugin composed itself', async () => {
+        vi.stubEnv(CONTENT_ENABLED_ENV, '0');
+        const server = await bootstrap('content-supplied');
         server.setContent(buildServerContent(fixtureContentOptions()));
 
         expect(server.getContent()?.blocks.types.size).toBe(2);
