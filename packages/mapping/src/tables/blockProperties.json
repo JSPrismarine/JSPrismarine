@@ -2488,7 +2488,7 @@
             "base": {"hardness":0.8,"blastResistance":0.8,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"push_pull","igniteOdds":30,"burnOdds":60}
         },
         "minecraft:piston": {
-            "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
+            "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":15,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
         },
         "minecraft:piston_arm_collision": {
             "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
@@ -3232,7 +3232,7 @@
             "base": {"hardness":1,"blastResistance":1,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"push_pull","igniteOdds":0,"burnOdds":0}
         },
         "minecraft:sticky_piston": {
-            "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
+            "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":15,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
         },
         "minecraft:sticky_piston_arm_collision": {
             "base": {"hardness":1.5,"blastResistance":1.5,"friction":0.6,"lightEmission":0,"lightDampening":0,"requiresCorrectTool":false,"randomTick":false,"pushReaction":"immoveable","igniteOdds":0,"burnOdds":0}
@@ -4166,17 +4166,17 @@
             "bedrock": "minecraft:acacia_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:acacia_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:acacia_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:acacia_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:acacia_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:azalea_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:azalea_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:azalea_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:azalea_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:azalea_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:bamboo[age_bit=0,bamboo_leaf_size=no_leaves,bamboo_stalk_thickness=thin]",
@@ -4230,9 +4230,9 @@
             "bedrock": "minecraft:birch_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:birch_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:birch_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:birch_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:birch_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:cave_vines[growing_plant_age=0]",
@@ -4246,33 +4246,41 @@
             "bedrock": "minecraft:cherry_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:cherry_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:cherry_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:cherry_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:cherry_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:dark_oak_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:dark_oak_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:dark_oak_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:dark_oak_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:dark_oak_leaves[distance=1,persistent=false,waterlogged=false]"
+        },
+        {
+            "bedrock": "minecraft:flower_pot[update_bit=0]",
+            "field": "randomTick",
+            "kept": true,
+            "keptSource": "minecraft:potted_closed_eyeblossom[]",
+            "other": false,
+            "otherSource": "minecraft:flower_pot[]"
         },
         {
             "bedrock": "minecraft:azalea_leaves_flowered[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:flowering_azalea_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:flowering_azalea_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:flowering_azalea_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:flowering_azalea_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:jungle_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:jungle_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:jungle_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:jungle_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:jungle_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:kelp[kelp_age=0]",
@@ -4286,161 +4294,145 @@
             "bedrock": "minecraft:mangrove_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:mangrove_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:mangrove_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:mangrove_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:mangrove_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:oak_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:oak_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:oak_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:oak_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:oak_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:orange_poplar_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:orange_poplar_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:orange_poplar_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:orange_poplar_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:orange_poplar_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:pale_oak_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:pale_oak_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:pale_oak_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:pale_oak_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:pale_oak_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=3]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=north]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=north]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=north]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=north]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=4]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=east]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=east]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=east]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=east]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=2]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=south]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=south]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=south]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=south]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=5]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=west]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=west]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=west]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=west]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=1]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=up]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=up]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=up]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=up]"
         },
         {
             "bedrock": "minecraft:piston[facing_direction=0]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:piston[extended=true,facing=down]",
-            "other": 15,
-            "otherSource": "minecraft:piston[extended=false,facing=down]"
-        },
-        {
-            "bedrock": "minecraft:flower_pot[update_bit=0]",
-            "field": "randomTick",
-            "kept": true,
-            "keptSource": "minecraft:flower_pot[]",
-            "other": false,
-            "otherSource": "minecraft:potted_closed_eyeblossom[]"
-        },
-        {
-            "bedrock": "minecraft:flower_pot[update_bit=0]",
-            "field": "randomTick",
-            "kept": true,
-            "keptSource": "minecraft:flower_pot[]",
-            "other": false,
-            "otherSource": "minecraft:potted_cornflower[]"
+            "kept": 15,
+            "keptSource": "minecraft:piston[extended=false,facing=down]",
+            "other": 0,
+            "otherSource": "minecraft:piston[extended=true,facing=down]"
         },
         {
             "bedrock": "minecraft:red_poplar_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:red_poplar_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:red_poplar_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:red_poplar_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:red_poplar_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:spruce_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:spruce_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:spruce_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:spruce_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:spruce_leaves[distance=1,persistent=false,waterlogged=false]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=3]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=north]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=north]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=north]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=north]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=4]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=east]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=east]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=east]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=east]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=2]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=south]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=south]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=south]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=south]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=5]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=west]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=west]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=west]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=west]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=1]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=up]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=up]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=up]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=up]"
         },
         {
             "bedrock": "minecraft:sticky_piston[facing_direction=0]",
             "field": "lightDampening",
-            "kept": 0,
-            "keptSource": "minecraft:sticky_piston[extended=true,facing=down]",
-            "other": 15,
-            "otherSource": "minecraft:sticky_piston[extended=false,facing=down]"
+            "kept": 15,
+            "keptSource": "minecraft:sticky_piston[extended=false,facing=down]",
+            "other": 0,
+            "otherSource": "minecraft:sticky_piston[extended=true,facing=down]"
         },
         {
             "bedrock": "minecraft:unknown",
@@ -4470,9 +4462,9 @@
             "bedrock": "minecraft:yellow_poplar_leaves[persistent_bit=0,update_bit=0]",
             "field": "randomTick",
             "kept": true,
-            "keptSource": "minecraft:yellow_poplar_leaves[distance=1,persistent=false,waterlogged=false]",
+            "keptSource": "minecraft:yellow_poplar_leaves[distance=7,persistent=false,waterlogged=false]",
             "other": false,
-            "otherSource": "minecraft:yellow_poplar_leaves[distance=7,persistent=false,waterlogged=false]"
+            "otherSource": "minecraft:yellow_poplar_leaves[distance=1,persistent=false,waterlogged=false]"
         }
     ]
 }

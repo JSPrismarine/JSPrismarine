@@ -132,15 +132,27 @@ interface Conflict {
     otherSource: string;
 }
 
-/** One accumulated Bedrock state: its row and which Java state supplied it first. */
-interface Accumulated {
+/** One Java state's claim on a Bedrock state: its row, where it came from, and how far off default it is. */
+interface Candidate {
     name: string;
     stateKey: string;
     row: PropertyRow;
     source: string;
+    /**
+     * How many of the Java state's properties hold something other than the block's default
+     * value.
+     *
+     * The Java states that collapse onto one Bedrock state differ only in properties Bedrock
+     * does not carry, so this ranks them by how many of those dropped properties are off their
+     * defaults, and the lowest rank wins the collapse. First-seen order decided before, and
+     * Java lists a boolean property's `true` ahead of its `false`, so every piston kept the
+     * extended state's `lightDampening` of 0 where a Bedrock piston, retracted unless it is
+     * firing, dampens the full 15.
+     */
+    rank: number;
 }
 
-const accumulated = new Map<string, Accumulated>();
+const candidates = new Map<string, Candidate[]>();
 const conflicts: Conflict[] = [];
 const seenConflicts = new Set<string>();
 
@@ -152,7 +164,19 @@ const seenConflicts = new Set<string>();
  * semantic rather than layered - the sea pickle only glows underwater, and its wet states map to
  * Bedrock states no dry state reaches - so a wet row is kept when its target is otherwise vacant.
  */
-const deferredWet: { canonical: string; value: Accumulated }[] = [];
+const deferredWet: { canonical: string; value: Candidate }[] = [];
+
+/** The Java property values at one in-block state index, the cross product's axis order. */
+const propertiesAt = (axes: [string, string[]][], index: number): Record<string, string> => {
+    const properties: Record<string, string> = {};
+    let remainder = index;
+    for (let axis = axes.length - 1; axis >= 0; axis--) {
+        const [property, values] = axes[axis]!;
+        properties[property] = values[remainder % values.length]!;
+        remainder = Math.floor(remainder / values.length);
+    }
+    return properties;
+};
 
 for (const [javaId, block] of Object.entries(blocksTable.blocks)) {
     const entry = golden[javaId];
@@ -171,14 +195,10 @@ for (const [javaId, block] of Object.entries(blocksTable.blocks)) {
     }
     if (targets.length !== total) throw new Error(`${javaId}: ${targets.length} targets over ${total} states`);
 
+    const defaults = propertiesAt(axes, block.default);
+
     for (let index = 0; index < total; index++) {
-        let remainder = index;
-        const properties: Record<string, string> = {};
-        for (let axis = axes.length - 1; axis >= 0; axis--) {
-            const [property, values] = axes[axis]!;
-            properties[property] = values[remainder % values.length]!;
-            remainder = Math.floor(remainder / values.length);
-        }
+        const properties = propertiesAt(axes, index);
 
         const target = targetPalette[targets[index]!];
         if (target === undefined) throw new Error(`${javaId} state ${index} has no Bedrock target`);
@@ -187,42 +207,68 @@ for (const [javaId, block] of Object.entries(blocksTable.blocks)) {
         const stateKey = stateKeyOf(target.states);
         const canonical = stateKey === '' ? target.name : `${target.name}[${stateKey}]`;
         const source = `${javaId}[${stateKeyOf(properties)}]`;
+        const rank = Object.keys(properties).filter((property) => properties[property] !== defaults[property]).length;
+        const candidate: Candidate = { name: target.name, stateKey, row, source, rank };
 
         if (properties['waterlogged'] === 'true') {
-            deferredWet.push({ canonical, value: { name: target.name, stateKey, row, source } });
+            deferredWet.push({ canonical, value: candidate });
             continue;
         }
 
-        const existing = accumulated.get(canonical);
-        if (existing === undefined) {
-            accumulated.set(canonical, { name: target.name, stateKey, row, source });
-            continue;
-        }
-        for (const field of FIELDS) {
-            if (existing.row[field] === row[field]) continue;
-            const dedupeKey = `${canonical} ${field} ${existing.row[field]} ${row[field]}`;
-            if (!seenConflicts.has(dedupeKey)) {
-                seenConflicts.add(dedupeKey);
-                conflicts.push({
-                    bedrock: canonical,
-                    field,
-                    kept: field === 'randomTick' ? true : existing.row[field],
-                    keptSource: existing.source,
-                    other: field === 'randomTick' ? false : row[field],
-                    otherSource: source
-                });
-            }
-            // A Bedrock state must random-tick when any of its Java sources does: the collapsed
-            // property (leaf distance, bamboo stage) is one the server recomputes, so the state
-            // has to reach the ticker for the recomputation to run at all. Everything else keeps
-            // the first source's value and stays in `conflicts` for review.
-            if (field === 'randomTick') existing.row.randomTick = true;
-        }
+        const claimed = candidates.get(canonical);
+        if (claimed === undefined) candidates.set(canonical, [candidate]);
+        else claimed.push(candidate);
     }
 }
 
 for (const { canonical, value } of deferredWet) {
-    if (!accumulated.has(canonical)) accumulated.set(canonical, value);
+    if (!candidates.has(canonical)) candidates.set(canonical, [value]);
+}
+
+/** One resolved Bedrock state: the winning row and which Java state supplied it. */
+interface Accumulated {
+    name: string;
+    stateKey: string;
+    row: PropertyRow;
+}
+
+const accumulated = new Map<string, Accumulated>();
+for (const [canonical, claimed] of candidates) {
+    let winner = claimed[0]!;
+    for (const candidate of claimed) {
+        if (candidate.rank < winner.rank) winner = candidate;
+    }
+
+    const row: PropertyRow = { ...winner.row };
+    for (const candidate of claimed) {
+        if (candidate === winner) continue;
+        for (const field of FIELDS) {
+            if (candidate.row[field] === winner.row[field]) continue;
+
+            // A Bedrock state must random-tick when any of its Java sources does: the collapsed
+            // property (leaf distance, bamboo stage) is one the server recomputes, so the state
+            // has to reach the ticker for the recomputation to run at all. Every other field
+            // keeps the winning source's value and stays in `conflicts` for review.
+            const ticking = field === 'randomTick';
+            if (ticking) row.randomTick = true;
+            const keeper = ticking && !winner.row.randomTick ? candidate : winner;
+            const other = keeper === winner ? candidate : winner;
+
+            const dedupeKey = `${canonical} ${field} ${keeper.row[field]} ${other.row[field]}`;
+            if (seenConflicts.has(dedupeKey)) continue;
+            seenConflicts.add(dedupeKey);
+            conflicts.push({
+                bedrock: canonical,
+                field,
+                kept: keeper.row[field],
+                keptSource: keeper.source,
+                other: other.row[field],
+                otherSource: other.source
+            });
+        }
+    }
+
+    accumulated.set(canonical, { name: winner.name, stateKey: winner.stateKey, row });
 }
 
 // ---------------------------------------------------------------------------
