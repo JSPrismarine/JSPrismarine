@@ -180,3 +180,75 @@ describe('a template piece', () => {
         ]);
     });
 });
+
+/** One gravel block, which is what a trail ruins rule turns into a suspicious one. */
+const gravelTemplate = () =>
+    encode(
+        compound({
+            DataVersion: int(5023),
+            size: triple(1, 1, 1),
+            palette: new Set([compound({ id: str('minecraft:gravel') })]),
+            blocks: new Set([compound({ pos: triple(0, 0, 0), state: int(0) })]),
+            entities: new Set([])
+        })
+    );
+
+const GRAVEL = 'test:gravel';
+
+/** Java's trail ruins archaeology rule, which is the only shape `append_loot` is written in. */
+const APPEND_LOOT = {
+    processors: [
+        {
+            processor_type: 'minecraft:rule',
+            rules: [
+                {
+                    input_predicate: { predicate_type: 'minecraft:block_match', block: 'minecraft:gravel' },
+                    location_predicate: { predicate_type: 'minecraft:always_true' },
+                    output_state: 'minecraft:suspicious_gravel',
+                    block_entity_modifier: {
+                        type: 'minecraft:append_loot',
+                        loot_table: 'minecraft:archaeology/trail_ruins_common'
+                    }
+                }
+            ]
+        }
+    ]
+};
+
+describe('a block entity a processor made rather than the template', () => {
+    const placeGravel = (): Recorded => {
+        const recorded: Recorded = { blockEntities: [], spawns: [] };
+        const writer: StructureWriter = {
+            level,
+            blockAt: () => ({ name: 'minecraft:air', properties: {} }),
+            setBlock: () => true,
+            setBedrockBlock: () => true,
+            setBlockEntity: (x, y, z, request) => recorded.blockEntities.push({ x, y, z, request }),
+            spawnEntity: (type, x, y, z, yaw) => recorded.spawns.push({ type, x, y, z, yaw }),
+            heightAt: () => 64,
+            hasTag: () => false
+        };
+
+        new TemplatePiece({
+            store: createStructureTemplateStore(
+                createTemplateSource(() => new Map([[GRAVEL, gravelTemplate()]]), new Map())
+            ),
+            template: GRAVEL,
+            position: [10, 64, 20],
+            placement: {},
+            processors: APPEND_LOOT
+        }).place(writer, createLegacyRandom(1n));
+        return recorded;
+    };
+
+    it('takes the type from the block, because the compound names none', () => {
+        // `append_loot` writes a compound holding a loot table and nothing else, because Java
+        // adds it to a block entity the suspicious gravel block already has. Without the block
+        // to read the type off, the whole compound is dropped and the gravel holds nothing.
+        const [brushable] = placeGravel().blockEntities;
+
+        expect(brushable?.request.id).toBe('minecraft:brushable_block');
+        expect(brushable?.request.lootTable).toBe('minecraft:archaeology/trail_ruins_common');
+        expect(brushable).toMatchObject({ x: 10, y: 64, z: 20 });
+    });
+});

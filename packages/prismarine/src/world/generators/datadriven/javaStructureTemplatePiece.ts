@@ -35,6 +35,7 @@ import {
     translateJavaTemplate
 } from '@jsprismarine/structures';
 
+import { javaBlockEntityTypeForBedrockBlock } from '../../../blockentity/bedrockBlockEntityIds';
 import type { StructurePiece, StructureWriter } from './javaStructureWorld';
 import { boxFromSize } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
@@ -333,7 +334,11 @@ export class TemplatePiece implements StructurePiece {
             const request =
                 block.nbt === undefined
                     ? undefined
-                    : blockEntityOf(block.nbt, this.options.store.javaBlockOf(this.options.template, block.nbt));
+                    : blockEntityOf(
+                          block.nbt,
+                          state.name,
+                          this.options.store.javaBlockOf(this.options.template, block.nbt)
+                      );
             if (request !== undefined) writer.setBlockEntity(x, y, z, request);
         }
 
@@ -443,9 +448,22 @@ const dataMarkerOf = (nbt: NBTTagCompound): string | undefined => {
  * build a legacy structure from code set the same three fields. The saved compound rides along
  * whole, and `javaGeneratedContent` translates the rest of it when the chunk stores the block
  * entity.
+ *
+ * The type is the compound's own where the template saved one, and otherwise the block's. A rule
+ * processor's `append_loot` writes a compound holding a loot table and nothing else, because Java
+ * adds that table to a block entity the block itself already has. Trail ruins are where that
+ * reaches a chunk. Without the fallback their suspicious gravel carries no loot table, so
+ * brushing it yields nothing.
+ *
+ * @param bedrockBlock - The Bedrock identifier of the block the compound sits in.
+ * @param javaBlock - The Java block it sat in, where the template saved the compound at all.
  */
-const blockEntityOf = (nbt: NBTTagCompound, javaBlock: string | undefined): BlockEntityRequest | undefined => {
-    const id = stringField(nbt, 'id');
+const blockEntityOf = (
+    nbt: NBTTagCompound,
+    bedrockBlock: string,
+    javaBlock: string | undefined
+): BlockEntityRequest | undefined => {
+    const id = stringField(nbt, 'id') ?? javaBlockEntityTypeForBedrockBlock(bedrockBlock);
     if (id === undefined) return undefined;
 
     const lootTable = lootTableOf(nbt);
