@@ -59,6 +59,43 @@ describe('javaAttributeBases', () => {
         expect(javaAttributeBases('minecraft:allay', source).size).toBe(0);
         expect(javaAttributeBases('minecraft:wither', undefined).size).toBe(0);
     });
+
+    it('reaches an entity whose Bedrock identifier is the legacy one', () => {
+        // Java's dump is keyed by Java's name, and these five spawn under
+        // Bedrock's older one, so a direct read finds nothing for them.
+        expect(javaAttributeBases('minecraft:evocation_illager', renamed).get('follow_range')).toBe(12);
+        expect(javaAttributeBases('minecraft:villager_v2', renamed).get('follow_range')).toBe(16);
+        expect(javaAttributeBases('minecraft:zombie_villager_v2', renamed).get('follow_range')).toBe(35);
+        expect(javaAttributeBases('minecraft:tropicalfish', renamed).get('follow_range')).toBe(16);
+        expect(javaAttributeBases('minecraft:zombie_pigman', renamed).get('follow_range')).toBe(35);
+    });
+});
+
+describe('javaEntityStats', () => {
+    it('reads a type both editions spell the same way straight out of the source', () => {
+        expect(javaEntityStats('minecraft:wither', source)).toBe(source['minecraft:wither']);
+    });
+
+    it('renames through the Java to Bedrock entity mapping', () => {
+        expect(javaEntityStats('minecraft:evocation_illager', renamed)).toBe(renamed['minecraft:evoker']);
+    });
+
+    it('answers nothing for a name the source has not got, or for no source at all', () => {
+        expect(javaEntityStats('minecraft:allay', renamed)).toBeUndefined();
+        expect(javaEntityStats('minecraft:wither', undefined)).toBeUndefined();
+    });
+
+    it('leaves a Bedrock identifier several Java types share unresolved', () => {
+        // Every Java boat variant maps onto one Bedrock boat, so there is no
+        // single Java row to compare it against and guessing one would be worse
+        // than keeping the pack's number.
+        const boats: JavaStatSource = {
+            'minecraft:oak_boat': { width: 1.375, height: 0.5625, attributes: {} },
+            'minecraft:birch_boat': { width: 1.375, height: 0.5625, attributes: {} }
+        };
+
+        expect(javaEntityStats('minecraft:boat', boats)).toBeUndefined();
+    });
 });
 
 describe('Attributes with Java bases', () => {

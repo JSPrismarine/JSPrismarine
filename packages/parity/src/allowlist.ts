@@ -155,44 +155,28 @@ const BEDROCK_DECIDED_DISAGREEMENTS = [
 ] as const satisfies readonly (readonly [SharedStat, string])[];
 
 /**
- * The stats the server still runs on Bedrock's number inside a stat Java decides, and the
- * decision does not excuse.
- *
- * Both are a Bedrock entity whose identifier is the legacy one. `javaAttributeBases` looks the
- * entity up in the Java dump by the identifier it spawned under, and the dump is keyed by
- * Java's name, so `minecraft:evocation_illager` finds no row where `minecraft:evoker` would and
- * keeps the pack's follow range. The four legacy-named types are the ones
- * `javaEntityTypeToBedrock` renames, which is why this row sees the defect and the entity
- * package's own corpus test, which looks the pack up directly, does not.
- */
-const LEGACY_ID_STAT_DEFECTS = [
-    ['minecraft:evocation_illager', 'follow_range'],
-    ['minecraft:villager_v2', 'follow_range']
-] as const satisfies readonly (readonly [string, SharedStat])[];
-
-/**
  * One entity stat gap, with the kind and the reason taken from the decision rather than
  * restated here.
  *
  * A `bedrock` or `exception` ruling is an accepted divergence and carries the decision's own
  * reason. A `java` ruling means the server should be running Java's number and is not, so the
- * row is a defect and `note` says what went wrong.
+ * row would be a defect; no row here rules that way today, and one that started to would turn
+ * its own entry red without this file changing.
  */
-const statEntry = (identifier: string, stat: SharedStat, note?: string): AllowListEntry => {
+const statEntry = (identifier: string, stat: SharedStat): AllowListEntry => {
     const ruling = statRuling(identifier, stat);
     return {
         family: 'entities.stats',
         id: `${stat}:${identifier}`,
         kind: ruling.kind === 'java' ? 'defect' : 'accepted',
-        reason: ruling.kind === 'java' ? (note ?? ruling.reason) : ruling.reason,
+        reason: ruling.reason,
         reference: STAT_DECISION
     };
 };
 
 /**
- * Every entity stat row on the dashboard: the stats Bedrock decides, the reviewed exceptions
- * that keep Bedrock's value inside a Java-decided stat, and the defects that keep it without a
- * reason.
+ * Every entity stat row on the dashboard: the stats Bedrock decides, and the reviewed
+ * exceptions that keep Bedrock's value inside a Java-decided stat.
  *
  * The exceptions come straight from `JAVA_STAT_EXCEPTIONS`, so a row added to the decision
  * appears on the dashboard in the same change.
@@ -201,14 +185,7 @@ const entityStatEntries = (): readonly AllowListEntry[] => [
     ...BEDROCK_DECIDED_DISAGREEMENTS.flatMap(([stat, names]) =>
         names.split(' ').map((name) => statEntry(`minecraft:${name}`, stat))
     ),
-    ...JAVA_STAT_EXCEPTIONS.map((row) => statEntry(row.identifier, row.stat)),
-    ...LEGACY_ID_STAT_DEFECTS.map(([identifier, stat]) =>
-        statEntry(
-            identifier,
-            stat,
-            `The Java stat table is keyed by Java's identifier, and this entity spawns under Bedrock's legacy one, so the override never finds its row and the pack's ${stat.replace('_', ' ')} stands.`
-        )
-    )
+    ...JAVA_STAT_EXCEPTIONS.map((row) => statEntry(row.identifier, row.stat))
 ];
 
 /**

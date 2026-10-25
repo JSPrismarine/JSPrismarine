@@ -12,10 +12,10 @@ import type {
     BlockEntityData,
     BlockPosition,
     BlockRef,
+    BlockRemoval,
     BlockStateValue,
     Difficulty,
     Dimension,
-    DroppedItem,
     TickKind,
     WorldAccess,
     Weather
@@ -28,10 +28,18 @@ export interface PlayedSound {
     readonly sound: string;
 }
 
-/** An item stack the world was asked to drop. */
-export interface SpawnedItem {
+/** A block the world was asked to take out, and what it was asked to leave behind. */
+export interface DestroyedBlock {
     readonly at: BlockPosition;
-    readonly item: DroppedItem;
+    /** What stood there, read before the replacement was written. */
+    readonly block: BlockRef;
+    readonly removal: BlockRemoval;
+}
+
+/** A block the world was asked to carry from one position to another. */
+export interface MovedBlock {
+    readonly from: BlockPosition;
+    readonly to: BlockPosition;
 }
 
 /** A block the world was asked to write with neighbor notification. */
@@ -67,8 +75,10 @@ export interface TestWorld extends WorldAccess {
     stateAt(at: BlockPosition, state: string): BlockStateValue | undefined;
     /** Every sound played so far, oldest first. */
     readonly sounds: readonly PlayedSound[];
-    /** Every item dropped so far, oldest first. */
-    readonly items: readonly SpawnedItem[];
+    /** Every block taken out so far, oldest first. */
+    readonly destroyed: readonly DestroyedBlock[];
+    /** Every block carried from one position to another so far, oldest first. */
+    readonly moved: readonly MovedBlock[];
     /** Every notifying write so far, oldest first. */
     readonly updates: readonly BlockUpdate[];
     /** Install the handler a notifying `setBlock` runs, which is where the engine hooks in. */
