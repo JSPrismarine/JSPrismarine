@@ -210,9 +210,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
             expect(missing).toEqual([
                 'minecraft:end_city',
                 'minecraft:fortress',
-                'minecraft:mineshaft',
                 'minecraft:ocean_monument',
-                'minecraft:stronghold',
                 'minecraft:woodland_mansion'
             ]);
         },
