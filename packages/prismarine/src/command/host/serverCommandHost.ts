@@ -43,18 +43,18 @@ const scoreboardCommandHost = (): ScoreboardCommandHost => {
 };
 
 /**
- * The NBT, loot, predicate and function group, of which this server has one
- * verb.
+ * The NBT, loot, predicate and function group.
  *
- * `setSlot` writes a named inventory slot, which is all `/replaceitem` needs
- * and which this server's inventories can do. Everything else refuses:
- * entities and block entities carry NBT but nothing reads or writes it by
- * path, and there is no loot runtime, no predicate evaluator and no function
- * runtime. `@jsprismarine/mcfunction` is the piece that will fill
- * `runFunction` and `schedule`; it is wired to nothing yet.
+ * The function verbs run `@jsprismarine/mcfunction` over whatever the loaded
+ * datapacks declared; `setSlot` writes a named inventory slot, which is all
+ * `/replaceitem` needs. What still refuses is NBT by path, which nothing
+ * reads or writes, item modifiers, which need the same, and the predicate
+ * evaluator.
  */
 const dataCommandHost = (server: Server): DataCommandHost => {
-    const refuse = () => unsupported('NBT, loot and function runtime');
+    const refuse = () => unsupported('reading and writing NBT by path');
+    const functions = () => server.getCommandManager().getFunctionRuntime();
+
     return {
         getData: refuse,
         countData: refuse,
@@ -64,13 +64,13 @@ const dataCommandHost = (server: Server): DataCommandHost => {
         applyItemModifier: refuse,
         setSlot: (target, slot, item, count, mode) => setItemSlot(server, target, slot, item, count, mode),
         copySlots: refuse,
-        runLootTable: refuse,
-        testPredicate: refuse,
-        runFunction: refuse,
-        schedule: refuse,
-        clearSchedule: refuse,
-        randomValue: refuse,
-        resetRandomSequence: refuse
+        runLootTable: () => unsupported('loot table runtime'),
+        testPredicate: () => unsupported('datapack predicate evaluator'),
+        runFunction: (name, source, nbt) => functions().run(name, source, nbt),
+        schedule: (name, delayTicks, mode) => functions().queue(name, delayTicks, mode),
+        clearSchedule: (name) => functions().clearQueue(name),
+        randomValue: () => unsupported('named random sequences'),
+        resetRandomSequence: () => unsupported('named random sequences')
     };
 };
 

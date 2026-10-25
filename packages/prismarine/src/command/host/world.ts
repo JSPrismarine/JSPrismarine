@@ -17,6 +17,8 @@ import type {
 import { gameRule } from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 
+import { bedrockBiomeToJava } from '@jsprismarine/mapping';
+
 import type Server from '../../Server';
 import { DIFFICULTIES, difficultyName } from '../../config/Config';
 import PlaySoundPacket from '../../network/packet/PlaySoundPacket';
@@ -25,7 +27,6 @@ import SetSpawnPositionPacket, { SpawnPositionType } from '../../network/packet/
 import SpawnParticleEffectPacket from '../../network/packet/SpawnParticleEffectPacket';
 import StopSoundPacket from '../../network/packet/StopSoundPacket';
 import PositionMode from '../../network/type/PositionMode';
-import { BEDROCK_BIOME_IDS } from '../../world/generators/datadriven/bedrockBiomeIds';
 import type { World } from '../../world/World';
 import { blockPositionOf, carryOut, loadedDimensions, playersOf, unsupported, worldOf } from './support';
 
@@ -62,8 +63,18 @@ const SPREAD_ATTEMPTS = 64;
  */
 const serverGameRuleName = (name: string): string => gameRule(name)?.legacyNames[0] ?? name;
 
-/** The Bedrock biome id to Java biome name direction, inverted from the generator's table. */
-const biomeNames = new Map<number, string>(Object.entries(BEDROCK_BIOME_IDS).map(([name, id]) => [id, name] as const));
+/**
+ * What each biome id a chunk can hold is called.
+ *
+ * Read out of `@jsprismarine/mapping`'s generated registry table rather than written down, by
+ * asking it about every id in Bedrock's range; the ids are Mojang's own numbering and are not
+ * contiguous, so the ones it does not know are left out.
+ */
+const biomeNames = new Map<number, string>(
+    Array.from({ length: 256 }, (_unused, id) => bedrockBiomeToJava(id)).flatMap((result) =>
+        result.kind === 'unknown' ? [] : [[result.bedrock.id, result.bedrock.identifier] as const]
+    )
+);
 
 /** The corners of a region, ordered so a loop can run low to high on each axis. */
 const regionOf = (from: HostVector, to: HostVector) => {
