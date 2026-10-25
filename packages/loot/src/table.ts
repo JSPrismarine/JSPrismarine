@@ -368,9 +368,10 @@ const poolAt = (value: unknown, context: ParseContext): LootPool | undefined => 
 /**
  * Collects the loot tables a table names by id, walking the raw JSON rather
  * than the compiled closures. The registry turns these into the edges of its
- * reference graph.
+ * reference graph, which is how it reports a cycle without compiling
+ * anything.
  */
-const referencesIn = (value: unknown): readonly string[] => {
+export const lootTableReferences = (value: unknown): readonly string[] => {
     const found: string[] = [];
 
     const visitEntry = (entry: unknown): void => {
@@ -416,7 +417,7 @@ export const tableAt = (value: unknown, context: ParseContext): LootTable => {
         randomSequence: sequence === undefined ? undefined : namespaced(sequence),
         pools: asList(value['pools']).flatMap((pool, index) => poolAt(pool, at.at(index)) ?? []),
         modifier: modifierAt(value['modifier'], context.at('modifier')),
-        references: referencesIn(value)
+        references: lootTableReferences(value)
     };
 };
 
