@@ -120,6 +120,15 @@ export class Entity {
     public readonly metadata = new Metadata();
 
     /**
+     * The `/tag` tags this entity carries - see {@link Entity.addTag}.
+     *
+     * Not persisted, because nothing persists an entity yet: `LevelDB.writeChunk`
+     * writes no actor records at all, so a tag survives exactly as long as the
+     * entity is in memory, which is as long as anything else about it does.
+     */
+    private readonly tags = new Set<string>();
+
+    /**
      * Entity attributes.
      *
      * What is in it is decided by {@link Entity.getDefaultAttributes}, which subclasses
@@ -823,6 +832,36 @@ export class Entity {
      */
     public setName(name: string): void {
         this.metadata.setNameTag(name);
+    }
+
+    /**
+     * Adds one of `/tag`'s arbitrary string tags.
+     *
+     * Java's `/tag` is exactly this and nothing more: a set of strings on the
+     * entity that `@e[tag=...]` tests and nothing else reads. The Bedrock
+     * client has no notion of it, so it never reaches the wire.
+     * @param {string} tag - The tag.
+     * @returns {boolean} `true` when the entity did not already carry it.
+     */
+    public addTag(tag: string): boolean {
+        if (this.tags.has(tag)) return false;
+
+        this.tags.add(tag);
+        return true;
+    }
+
+    /**
+     * Removes one of `/tag`'s tags.
+     * @param {string} tag - The tag.
+     * @returns {boolean} `true` when the entity carried it.
+     */
+    public removeTag(tag: string): boolean {
+        return this.tags.delete(tag);
+    }
+
+    /** The `/tag` tags this entity carries, in the order they were added. */
+    public getTags(): readonly string[] {
+        return [...this.tags];
     }
 
     /**
