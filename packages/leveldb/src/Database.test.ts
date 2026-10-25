@@ -410,6 +410,26 @@ describe('leveldb', () => {
 
                 expect(fs.existsSync(path.join(directory, 'LOCK'))).toBe(false);
             });
+
+            it('keeps one log file however many times it is opened', async () => {
+                const directory = scratch();
+
+                for (let open = 0; open < 6; open++) {
+                    const database = await Database.open(directory);
+                    database.put(Buffer.from(`key:${open}`), Buffer.from(`value:${open}`));
+                    await database.close();
+                }
+
+                const logs = fs.readdirSync(directory).filter((name) => name.endsWith('.log'));
+                expect(logs).toHaveLength(1);
+
+                // And nothing written along the way was lost to the cleanup.
+                const reopened = await Database.open(directory);
+                for (let open = 0; open < 6; open++) {
+                    expect(reopened.get(Buffer.from(`key:${open}`))).toEqual(Buffer.from(`value:${open}`));
+                }
+                await reopened.close();
+            });
         });
 
         describe('options', () => {

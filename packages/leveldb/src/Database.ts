@@ -113,6 +113,11 @@ export class Database {
         this.versions.logNumber = this.versions.allocateFileNumber();
         this.writeManifest();
         this.openLog();
+
+        // Everything the old logs held is in a table by now, and the fresh manifest names only
+        // the new one. Without this an open leaks a log file, and a world a developer restarts
+        // all day ends up with hundreds of empty ones to read past.
+        this.discardStaleLogs(this.versions.logNumber);
     }
 
     private readManifest(): void {
@@ -498,6 +503,19 @@ export class Database {
                 fs.unlinkSync(path.join(this.directory, name));
             } catch {
                 // Left behind; harmless, since CURRENT names the one that counts.
+            }
+        }
+    }
+
+    private discardStaleLogs(keep: number): void {
+        for (const name of fs.readdirSync(this.directory)) {
+            const parsed = parseFileName(name);
+            if (parsed?.kind !== FileKind.Log || parsed.number === keep) continue;
+
+            try {
+                fs.unlinkSync(path.join(this.directory, name));
+            } catch {
+                // Left behind; harmless, since recovery only replays what the manifest names.
             }
         }
     }
