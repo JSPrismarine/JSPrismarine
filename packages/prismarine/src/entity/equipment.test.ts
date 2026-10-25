@@ -6,8 +6,8 @@ import { itemOfDrop } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import {
     MOB_EQUIPMENT_SLOTS,
+    equipmentRegistry,
     mobEquipmentSlotOf,
-    prunedEquipmentTables,
     rollMobEquipment,
     sameEquipment,
     sameEquipmentItems,
@@ -56,68 +56,6 @@ describe('entity equipment', () => {
             expect(slotForItem(wornIn('any'))).toBe('mainhand');
             expect(slotForItem(wornIn('hand'))).toBe('mainhand');
             expect(slotForItem(wornIn('saddle'))).toBe('mainhand');
-        });
-    });
-
-    describe('prunedEquipmentTables', () => {
-        /** `skeleton_gear.json`'s two pools: the bow, and the armor set behind a chance gate. */
-        const skeletonGear = {
-            pools: [
-                { rolls: 1, entries: [{ type: 'item', name: 'minecraft:bow' }] },
-                {
-                    conditions: [{ condition: 'random_difficulty_chance', default_chance: 1 }],
-                    tiers: { initial_range: 3 },
-                    entries: [{ type: 'loot_table', name: 'loot_tables/entities/armor_set_iron.json' }]
-                }
-            ]
-        };
-
-        it('keeps the pools the Java evaluator reads whole', () => {
-            const pruned = prunedEquipmentTables(new Map([['gear', skeletonGear]]));
-
-            expect(pruned.get('gear')).toEqual({
-                pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:bow' }] }]
-            });
-        });
-
-        it('drops a pool whose conditions the evaluator would ignore', () => {
-            // The whole point: `conditions` is the plural array this evaluator does not read, so
-            // a pool carrying one would roll every time instead of at its stated chance. Handed
-            // `zombie_equipment.json` whole it armed 2000 of 2000 zombies.
-            const pruned = prunedEquipmentTables(
-                new Map([
-                    [
-                        'zombie',
-                        {
-                            pools: [
-                                {
-                                    rolls: 1,
-                                    conditions: [{ condition: 'random_regional_difficulty_chance', max_chance: 0.05 }],
-                                    entries: [{ type: 'item', name: 'minecraft:iron_sword' }]
-                                }
-                            ]
-                        }
-                    ]
-                ])
-            );
-
-            expect(pruned.get('zombie')).toEqual({ pools: [] });
-        });
-
-        it('unwraps the record the pack loader wraps each file in', () => {
-            const pruned = prunedEquipmentTables(
-                new Map([['gear', { pack: 'vanilla', path: 'loot_tables/x.json', data: skeletonGear }]])
-            );
-
-            expect(pruned.get('gear')).toEqual({
-                pools: [{ rolls: 1, entries: [{ type: 'item', name: 'minecraft:bow' }] }]
-            });
-        });
-
-        it('passes a table with no pools through untouched', () => {
-            const pruned = prunedEquipmentTables(new Map([['empty', {}]]));
-
-            expect(pruned.get('empty')).toEqual({});
         });
     });
 
@@ -238,9 +176,8 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the equipment the vanilla pac
     };
 
     it('arms each mob that vanilla always arms, in the main hand', () => {
-        // The weapon pools are plain Java grammar and fire unconditionally in vanilla too, so
-        // every roll produces one. This is the census the whole change exists for: before it,
-        // every one of these was empty.
+        // The weapon pools of these six carry no gate at all, so every roll produces one. This
+        // is the census the whole change exists for: before it, every one of these was empty.
         const weapons: readonly (readonly [string, string])[] = [
             ['loot_tables/entities/skeleton_gear.json', 'minecraft:bow'],
             ['loot_tables/entities/pillager_gear.json', 'minecraft:crossbow'],
@@ -255,12 +192,84 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the equipment the vanilla pac
         }
     }, 180_000);
 
-    it('rolls nothing from the pools whose chance gate this evaluator cannot read', () => {
-        // The conservative half of the design, pinned so it is noticed if it changes. These
-        // tables' only pools carry the plural `conditions` array, so they are left out rather
-        // than rolled every time - which, handed over whole, armed 2000 of 2000 zombies.
-        expect([...over('loot_tables/entities/zombie_equipment.json', 50)]).toEqual([]);
-        expect([...over('loot_tables/entities/fox_equipment.json', 50)]).toEqual([]);
+    it('arms a zombie at the rate its table states rather than every time or never', () => {
+        // The number the whole dialect exists for. `zombie_equipment.json` gates its weapon
+        // pool on `random_regional_difficulty_chance` at `max_chance: 0.05`, which the Java
+        // grammar read as no gate at all (2000 of 2000) and the pruning read as no pool at all
+        // (0 of 2000).
+        const rolls = 2000;
+        const counts = over('loot_tables/entities/zombie_equipment.json', rolls);
+        const armed = [...counts].filter(([key]) => key.startsWith('mainhand:')).reduce((sum, [, n]) => sum + n, 0);
+        const wearing = [...counts].filter(([key]) => key.startsWith('head:')).reduce((sum, [, n]) => sum + n, 0);
+
+        console.debug(`zombie_equipment.json over ${rolls} rolls: armed ${armed}, helmeted ${wearing}`);
+
+        expect(armed / rolls).toBeGreaterThan(0.02);
+        expect(armed / rolls).toBeLessThan(0.08);
+        // The armor pool runs at 0.15, and every set starts with a helmet.
+        expect(wearing / rolls).toBeGreaterThan(0.1);
+        expect(wearing / rolls).toBeLessThan(0.2);
+    }, 180_000);
+
+    it('dresses a mob in the tiered armor sets, which the pruning dropped whole', () => {
+        // The `tiers` ladder over six sets, reached through nested entry `pools`, which is the
+        // part of the grammar nothing here could read before.
+        const worn = new Set(
+            [...over('loot_tables/entities/skeleton_gear.json', 500).keys()].filter((key) => !key.startsWith('mainhand:'))
+        );
+
+        expect(worn.size).toBeGreaterThan(0);
+        expect([...worn].some((key) => key.startsWith('head:'))).toBe(true);
+    }, 180_000);
+
+    it('holds an item on every vanilla type whose component names a table', () => {
+        const content = vanilla();
+        const registry = equipmentRegistry(content);
+
+        // Every `minecraft:equipment.table` a type names, base definition and
+        // component groups alike, because a zombie names one table as itself
+        // and another as a rider.
+        const named = new Map<string, Set<string>>();
+        const visit = (type: string, value: unknown): void => {
+            if (Array.isArray(value)) {
+                for (const member of value) visit(type, member);
+                return;
+            }
+            if (value === null || typeof value !== 'object') return;
+            for (const [key, member] of Object.entries(value)) {
+                if (key === 'minecraft:equipment' && member !== null && typeof member === 'object') {
+                    const table = (member as Record<string, unknown>)['table'];
+                    if (typeof table === 'string') named.set(type, (named.get(type) ?? new Set()).add(table));
+                }
+                visit(type, member);
+            }
+        };
+        for (const [type, definition] of content.definitions.entities) visit(type, definition.data);
+
+        const tables = new Set([...named.values()].flatMap((own) => [...own]));
+        const rolls = 200;
+        const rollsSomething = (table: string): boolean =>
+            Array.from({ length: rolls }).some(
+                () =>
+                    Object.keys(rollMobEquipment({ content, table, itemOf: (drop) => itemOfDrop(drop, content) }))
+                        .length > 0
+            );
+        const producing = [...tables].filter(rollsSomething);
+
+        console.debug(
+            `${named.size} of ${content.definitions.entities.size} vanilla types carry the component, ` +
+                `naming ${tables.size} tables, of which ${producing.length} roll something in ${rolls} bodies`
+        );
+
+        // Every table a component names rolls something. Under the pruning,
+        // five of them had no pool left to roll and produced nothing at any
+        // sample size, zombies among them.
+        expect([...tables].sort()).toEqual(producing.sort());
+        expect(tables.size).toBe(18);
+
+        // Read rather than guessed: the registry compiled all 18 with no error,
+        // and the only thing it reports is the `functions` it names and skips.
+        expect(registry.diagnostics.errors).toEqual([]);
     }, 180_000);
 
     it('asks for a table Java has no counterpart for, which is why it reads the Bedrock one', () => {

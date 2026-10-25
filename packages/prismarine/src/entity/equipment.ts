@@ -18,27 +18,22 @@
  * `definitions.lootTables`, the Bedrock registry, through the evaluator in
  * `@jsprismarine/loot` rather than through a second evaluator written for it.
  *
- * ## Which pools it rolls, and which it leaves alone
+ * ## Which pools it rolls
  *
- * `@jsprismarine/loot` implements modern Java, where a pool carries one `condition` and an
- * entry carries one `modifier`. Bedrock still writes the older plural arrays, `conditions` and
- * `functions`, and adds a pool-level `tiers`. The evaluator does not read any of those, and a
- * condition it does not read is a condition that does not gate: handed `zombie_equipment.json`
- * whole, it armed 2000 of 2000 zombies with an iron tool, where vanilla's
- * `random_regional_difficulty_chance` arms about one in twenty.
+ * All of them. The registry is built with `dialect: 'bedrock'`, so the evaluator reads the
+ * plural `conditions` arrays, the three chance conditions, the pool-level `tiers` and the
+ * `pools` an entry nests, which is the whole of what these tables are written in.
  *
- * So {@link prunedEquipmentTables} drops every pool this evaluator cannot gate faithfully and
- * keeps the rest. What survives is each mob's signature weapon, the part of the table that is
- * plain Java grammar and fires unconditionally in vanilla too: 13 of the 18 vanilla types that
- * carry the component get theirs, among them the skeleton's bow, the pillager's crossbow, the
- * vindicator's axe, the wither skeleton's stone sword and the piglin's golden one. What is
- * dropped is the chance-gated extras - a zombie's 5 percent tool, a fox's 20 percent trinket -
- * and the tiered armor sets. Absent is the safe direction for those to be wrong, and the
- * common vanilla outcome besides.
+ * It did not always. `@jsprismarine/loot` read modern Java only, where a pool carries one
+ * `condition`, and a condition it did not read was a condition that did not gate: handed
+ * `zombie_equipment.json` whole it armed 2000 of 2000 zombies, where the table says
+ * `max_chance: 0.05`. The workaround dropped every pool it could not gate, which left 13 of the
+ * 18 vanilla types with their signature weapon and nothing else, zombies included. With the
+ * dialect read the measured rate is 99 of 2000, and all 18 types roll what their table says.
  *
- * Reading the rest needs a Bedrock loot dialect: the plural arrays, the three chance
- * conditions, `tiers`, and the nested entry `pools` the armor sets chain through. That belongs
- * in `@jsprismarine/loot` beside the Java grammar, not here.
+ * One member of the grammar is still not applied, and it reports rather than going quiet:
+ * `functions`, which is what would enchant rolled gear and vary a count. A skeleton's bow
+ * arrives unenchanted.
  *
  * ## Which slot a rolled item lands in
  *
@@ -127,61 +122,23 @@ export const slotForItem = (item: Pick<Item, 'getEquipmentSlot'>): MobEquipmentS
 };
 
 /**
- * Whether a pool is one this evaluator can roll without over-rolling it.
- *
- * `conditions` is the plural array the evaluator does not read, so a pool carrying one would
- * roll every time instead of at its stated chance. `tiers` picks among nested tables by a
- * Bedrock-only rule, and a pool carrying one has no `rolls` for the parser to work from.
- * Either way the pool is left out rather than guessed at.
- */
-const isPlainPool = (pool: unknown): boolean =>
-    pool !== null && typeof pool === 'object' && !('conditions' in pool) && !('tiers' in pool);
-
-/**
- * Every Bedrock loot table with the pools this evaluator cannot gate removed.
- *
- * A rewrite of the JSON rather than a filter at roll time, so the registry compiles and caches
- * each table once the way it does for Java's.
- *
- * @param tables - The Bedrock registry, keyed by the pack-relative path that names a table.
- * @returns The same keys, each table holding only its plain pools.
- */
-export const prunedEquipmentTables = (tables: ReadonlyMap<string, unknown>): Map<string, unknown> => {
-    const pruned = new Map<string, unknown>();
-
-    for (const [id, entry] of tables) {
-        // The loader wraps each file in a record naming its pack and path, which is the shape
-        // `packJson` unwraps; the table itself is under `data`.
-        const file = entry !== null && typeof entry === 'object' && 'data' in entry ? entry.data : entry;
-        if (file === null || typeof file !== 'object' || !('pools' in file) || !Array.isArray(file.pools)) {
-            pruned.set(id, file);
-            continue;
-        }
-
-        pruned.set(id, { ...file, pools: file.pools.filter(isPlainPool) });
-    }
-
-    return pruned;
-};
-
-/**
  * The evaluator for one content build's equipment tables, built on first use.
  *
  * Keyed by the content rather than rebuilt per roll because compiling a table is the expensive
  * half and `ServerContent` is built once and kept. `LootPackDefinitions` asks for its tables
- * under `lootTablesJava`, so handing it the Bedrock map there is what points the Java evaluator
- * at the Bedrock registry.
+ * under `lootTablesJava`, so handing it the Bedrock map there is what points the evaluator at
+ * the Bedrock registry; `dialect` is what tells it which grammar that map is written in.
  */
 const registries = new WeakMap<ServerContent, LootRegistry>();
 
 /** The equipment loot registry for one content build. */
-const equipmentRegistry = (content: ServerContent): LootRegistry => {
+export const equipmentRegistry = (content: ServerContent): LootRegistry => {
     const existing = registries.get(content);
     if (existing !== undefined) return existing;
 
     const registry = new LootRegistry(
-        { ...content.definitions, lootTablesJava: prunedEquipmentTables(content.definitions.lootTables) },
-        { worldSeed: content.loot.worldSeed }
+        { ...content.definitions, lootTablesJava: content.definitions.lootTables },
+        { dialect: 'bedrock', worldSeed: content.loot.worldSeed }
     );
     registries.set(content, registry);
 
@@ -206,8 +163,8 @@ export interface MobEquipmentRollOptions {
  * A later entry wins a slot an earlier one filled, which is the order the pools are written in.
  *
  * @returns What the mob holds and wears. Empty when the registry has no such table, and empty
- *   for the five vanilla types whose only pools are the chance-gated ones this evaluator
- *   leaves out - see the note at the top of this file.
+ *   for a roll whose every pool failed its chance gate, which is what a zombie spawning bare
+ *   is.
  */
 export const rollMobEquipment = (options: MobEquipmentRollOptions): MobEquipmentSet => {
     const { content, table, itemOf, report } = options;
