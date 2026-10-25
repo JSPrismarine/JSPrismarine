@@ -51,23 +51,26 @@ export class PerlinNoise extends GradientNoise {
         relativeZ: number,
         originalRelativeY: number
     ): number {
-        const x0 = this.permute(x);
-        const x1 = this.permute(x + 1);
-        const xy00 = this.permute(x0 + y);
-        const xy01 = this.permute(x0 + y + 1);
-        const xy10 = this.permute(x1 + y);
-        const xy11 = this.permute(x1 + y + 1);
+        // The permutation lookups are spelled inline: ten method calls per octave sample add up
+        // when a chunk samples tens of thousands of octaves. Indices are masked to [0, 256).
+        const perms = this.perms;
+        const x0 = (perms[x & 0xff] ?? 0) + y;
+        const x1 = (perms[(x + 1) & 0xff] ?? 0) + y;
+        const xy00 = (perms[x0 & 0xff] ?? 0) + z;
+        const xy01 = (perms[(x0 + 1) & 0xff] ?? 0) + z;
+        const xy10 = (perms[x1 & 0xff] ?? 0) + z;
+        const xy11 = (perms[(x1 + 1) & 0xff] ?? 0) + z;
         const relativeX1 = f32(relativeX - 1);
         const relativeY1 = f32(relativeY - 1);
         const relativeZ1 = f32(relativeZ - 1);
-        const d000 = GradientNoise.gradDot(this.permute(xy00 + z), relativeX, relativeY, relativeZ);
-        const d100 = GradientNoise.gradDot(this.permute(xy10 + z), relativeX1, relativeY, relativeZ);
-        const d010 = GradientNoise.gradDot(this.permute(xy01 + z), relativeX, relativeY1, relativeZ);
-        const d110 = GradientNoise.gradDot(this.permute(xy11 + z), relativeX1, relativeY1, relativeZ);
-        const d001 = GradientNoise.gradDot(this.permute(xy00 + z + 1), relativeX, relativeY, relativeZ1);
-        const d101 = GradientNoise.gradDot(this.permute(xy10 + z + 1), relativeX1, relativeY, relativeZ1);
-        const d011 = GradientNoise.gradDot(this.permute(xy01 + z + 1), relativeX, relativeY1, relativeZ1);
-        const d111 = GradientNoise.gradDot(this.permute(xy11 + z + 1), relativeX1, relativeY1, relativeZ1);
+        const d000 = GradientNoise.gradDot(perms[xy00 & 0xff] ?? 0, relativeX, relativeY, relativeZ);
+        const d100 = GradientNoise.gradDot(perms[xy10 & 0xff] ?? 0, relativeX1, relativeY, relativeZ);
+        const d010 = GradientNoise.gradDot(perms[xy01 & 0xff] ?? 0, relativeX, relativeY1, relativeZ);
+        const d110 = GradientNoise.gradDot(perms[xy11 & 0xff] ?? 0, relativeX1, relativeY1, relativeZ);
+        const d001 = GradientNoise.gradDot(perms[(xy00 + 1) & 0xff] ?? 0, relativeX, relativeY, relativeZ1);
+        const d101 = GradientNoise.gradDot(perms[(xy10 + 1) & 0xff] ?? 0, relativeX1, relativeY, relativeZ1);
+        const d011 = GradientNoise.gradDot(perms[(xy01 + 1) & 0xff] ?? 0, relativeX, relativeY1, relativeZ1);
+        const d111 = GradientNoise.gradDot(perms[(xy11 + 1) & 0xff] ?? 0, relativeX1, relativeY1, relativeZ1);
         return lerp3F(
             smoothstep(relativeX),
             smoothstep(originalRelativeY),

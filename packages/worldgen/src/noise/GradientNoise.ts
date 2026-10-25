@@ -21,6 +21,12 @@ export const GRADIENTS: readonly (readonly [number, number, number])[] = [
     [0, -1, -1]
 ];
 
+// The gradient triples as flat lanes, so the hot dot product reads a typed array instead of
+// chasing a nested tuple. The values are -1, 0 and 1, exact in every float width.
+const GRADIENT_X = Float64Array.from(GRADIENTS, (gradient) => gradient[0]);
+const GRADIENT_Y = Float64Array.from(GRADIENTS, (gradient) => gradient[1]);
+const GRADIENT_Z = Float64Array.from(GRADIENTS, (gradient) => gradient[2]);
+
 const ROUND_OFF = 33554432;
 // Java spells this `Math.nextDown(1.6777216E7)`; the spacing below 2^24 is 2^-29.
 const HALF_ROUND_OFF = 16777216 - 2 ** -29;
@@ -54,14 +60,14 @@ export abstract class GradientNoise implements Noise {
     public readonly offsetY: number;
     /** The random offset applied to the z coordinate before lookup. */
     public readonly offsetZ: number;
-    protected readonly perms: Int8Array;
+    protected readonly perms: Uint8Array;
 
     protected constructor(random: RandomSource, noiseOffsetScale = 256) {
         this.offsetX = random.nextDouble() * noiseOffsetScale;
         this.offsetY = random.nextDouble() * noiseOffsetScale;
         this.offsetZ = random.nextDouble() * noiseOffsetScale;
 
-        this.perms = new Int8Array(256);
+        this.perms = new Uint8Array(256);
         for (let i = 0; i < 256; i++) this.perms[i] = i;
         for (let i = 0; i < 256; i++) {
             const offset = random.nextIntBounded(256 - i);
@@ -78,14 +84,17 @@ export abstract class GradientNoise implements Noise {
 
     /** Looks one byte up in the permutation table, wrapping the index to `[0, 256)`. */
     protected permute(value: number): number {
-        return (this.perms[value & 0xff] ?? 0) & 0xff;
+        return this.perms[value & 0xff] ?? 0;
     }
 
     /** Dot product of a lattice gradient with a displacement, in single precision. */
     protected static gradDot(hash: number, x: number, y: number, z: number): number {
-        const gradient = GRADIENTS[hash & 15] ?? GRADIENTS[0];
-        if (!gradient) return 0;
-        return f32(f32(f32(gradient[0] * x) + f32(gradient[1] * y)) + f32(gradient[2] * z));
+        const index = hash & 15;
+        const dx = f32(x);
+        const dy = f32(y);
+        const dz = f32(z);
+        const firstSum = f32((GRADIENT_X[index] ?? 0) * dx + (GRADIENT_Y[index] ?? 0) * dy);
+        return f32(firstSum + (GRADIENT_Z[index] ?? 0) * dz);
     }
 
     /** The lattice gradient a permuted index selects. */
