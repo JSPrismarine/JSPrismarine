@@ -60,17 +60,17 @@ const tagLookupOf = (tags: FunctionContent['tags']): FunctionTagLookup => ({
 /**
  * Compiles every function the stack registered.
  *
- * @param content - The function half of a content build, or undefined when
- *   `content-packs` is off. Without it the stack held no datapack, so the
- *   result is an empty registry rather than a refusal: `/function` then
- *   reports that the function it was given does not exist, which is what Java
- *   reports for the same input.
+ * A stack holding no datapack compiles to an empty registry rather than a
+ * refusal: `/function` then reports that the function it was given does not
+ * exist, which is what Java reports for the same input.
+ *
+ * @param content - The function half of a content build.
  */
-export const loadServerFunctions = (content: FunctionContent | undefined): ServerFunctions => {
+export const loadServerFunctions = (content: FunctionContent): ServerFunctions => {
     const functions = new FunctionRegistry();
     const diagnostics: Diagnostic[] = [];
 
-    for (const definition of content?.functions.values() ?? []) {
+    for (const definition of content.functions.values()) {
         // The registry holds the file's text verbatim; anything else means the
         // loader routed something that is not an mcfunction into it.
         if (typeof definition.data !== 'string') continue;
@@ -82,8 +82,8 @@ export const loadServerFunctions = (content: FunctionContent | undefined): Serve
 
     return {
         functions,
-        tags: tagLookupOf(content?.tags),
-        tagIds: content?.tags?.tags(FUNCTION_TAG_REGISTRY) ?? [],
+        tags: tagLookupOf(content.tags),
+        tagIds: content.tags?.tags(FUNCTION_TAG_REGISTRY) ?? [],
         diagnostics
     };
 };
@@ -95,7 +95,9 @@ export const loadServerFunctions = (content: FunctionContent | undefined): Serve
  * whole, so everything else in this directory stays free of the eighteen
  * registries it does not read.
  *
- * @returns The two registries, or undefined when no content was built.
+ * @returns The two registries the function loader reads.
  */
-export const functionContentOf = (content: ServerContent | undefined): FunctionContent | undefined =>
-    content === undefined ? undefined : { functions: content.definitions.functions, tags: content.tags };
+export const functionContentOf = (content: ServerContent): FunctionContent => ({
+    functions: content.definitions.functions,
+    tags: content.tags
+});

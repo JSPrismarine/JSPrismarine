@@ -139,8 +139,8 @@ const SHIPPED: ReadonlyMap<string, BlockStateSchema> = new Map(
  *
  * {@link BlockStateSchemas.register} replacing a shipped name is the exception, and the
  * only reason {@link BlockStateSchemas.reset} still exists. Packs are where overriding a
- * vanilla block belongs, and the override path goes when `content-packs` stops being
- * optional; see section 10 of [the plan](../../../../../docs/plans/data-driven-vanilla.md).
+ * vanilla block belongs, and the override path goes when this catalog loses its static
+ * caches; see section 10 of [the plan](../../../../../docs/plans/data-driven-vanilla.md).
  */
 export class BlockStateSchemas {
     /** Schemas registered over {@link SHIPPED}, which are the only ones anybody can change. */

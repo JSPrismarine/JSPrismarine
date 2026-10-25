@@ -191,8 +191,8 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         const world = player.getWorld();
         const connection = session.getConnection();
 
-        // Built at startup and cached, so this is a lookup. Undefined while
-        // `content-packs` is off, and each packet below then writes what it
+        // Built at startup and cached, so this is a lookup. Undefined only when the
+        // build could not produce payloads, and each packet below then writes what it
         // wrote before the content build existed.
         const payloads = joinContentPayloads(server.getContent(), server.getLogger());
 

@@ -399,8 +399,9 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
  * it once at startup is what puts that line in front of an operator before a
  * player arrives.
  *
- * @param content - `Server.getContent()`, which is undefined while
- *   `content-packs` is off.
+ * @param content - `Server.getContent()`. Undefined is still accepted and
+ *   still answers undefined, which is what a caller holding the private
+ *   `Server.content` field before the build has run would pass.
  * @param logger - Where the report, and any failure, go.
  */
 export const joinContentPayloads = (

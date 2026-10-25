@@ -2,9 +2,9 @@
  * Blocks by name, over whichever registry the server has.
  *
  * A thin adapter now rather than a registry of its own: the names come from
- * `ServerContent`'s resolved block types when the server built its content
- * from packs, and from the shipped vanilla state catalog when it did not.
- * Either way there is one entry per block the client knows, which is the
+ * `ServerContent`'s resolved block types, and from the shipped vanilla state
+ * catalog for a server that hands over no content build at all, which is a
+ * test double. Either way there is one entry per block the client knows, which is the
  * change that matters - the class registry knew 260 and the palette has 1477,
  * so every other block used to come back as air.
  */
@@ -84,7 +84,12 @@ export default class BlockManager {
         this.registered.clear();
     }
 
-    /** The content build, or undefined while `content-packs` is off. */
+    /**
+     * The content build, which a running server always has.
+     *
+     * Undefined only for a server double that leaves `getContent` out, and that is what the
+     * fallback to the shipped state catalog below is for.
+     */
     private content(): ServerContent | undefined {
         return this.server.getContent?.();
     }

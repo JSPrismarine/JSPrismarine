@@ -123,7 +123,8 @@ export class CommandManager implements Service {
      * through.
      *
      * @returns {FunctionRuntime} The runtime, holding whatever functions the
-     * loaded datapacks declared - which is none when `content-packs` is off.
+     * loaded datapacks declared - which is none when the stack has no datapack
+     * in it.
      */
     public getFunctionRuntime(): FunctionRuntime {
         this.functions ??= new FunctionRuntime({
