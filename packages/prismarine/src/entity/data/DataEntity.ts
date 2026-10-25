@@ -18,7 +18,7 @@ import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 
 import { DamageLog } from './damageLog';
 import type { EntityFacts } from './facts';
-import { blocksPerTick } from './facts';
+import { blocksPerTick, liveFactsOf } from './facts';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
 const ARRIVAL_RADIUS = 0.25;
@@ -113,15 +113,43 @@ export class MobBody {
     /** Ticks since the destination was set without the entity getting any closer. */
     private idleTicks = 0;
     private lastDistance = Number.POSITIVE_INFINITY;
+    private live: EntityFacts;
 
     public constructor(
         /** The runtime id, unique for the length of the session. */
         public readonly id: number,
         position: EntityPosition,
-        /** The type's facts, of which `minecraft:movement` is what every goal multiplier scales. */
-        public readonly facts: EntityFacts
+        /** What the type's base components declare, which {@link MobBody.facts} falls back to. */
+        public readonly typeFacts: EntityFacts
     ) {
         this.at = position;
+        this.live = typeFacts;
+    }
+
+    /**
+     * The entity's facts as its components make them now.
+     *
+     * Everything that reads a stat off a body reads it here, and `minecraft:movement`
+     * is why: fifteen vanilla types, the zombie and the slime among them, declare it
+     * only in a component group their spawn event adds, so the type's figure is zero
+     * and a body that trusted it never moved a block.
+     *
+     * The type's own facts until {@link MobBody.watch} runs, because a body exists
+     * before the component state does - a goal component reads the actuator while
+     * the `EntityInstance` is still being built.
+     */
+    public get facts(): EntityFacts {
+        return this.live;
+    }
+
+    /**
+     * Points the body's facts at the component state, which is what makes them live.
+     *
+     * Called by {@link DataEntity}'s constructor, the first moment both halves of an
+     * entity exist, so no caller has to remember to.
+     */
+    public watch(instance: EntityInstance): void {
+        this.live = liveFactsOf(this.typeFacts, instance);
     }
 
     /** Where the entity is now. */
@@ -264,6 +292,7 @@ export class DataEntity {
         this.instance = options.instance;
         this.brainMob = options.brainMob;
         this.brain = options.brain;
+        this.body.watch(this.instance);
     }
 
     /** The runtime id, unique for the length of the session. */
@@ -271,7 +300,7 @@ export class DataEntity {
         return this.body.id;
     }
 
-    /** The type's facts: its box, its stats and its families. */
+    /** The entity's facts as its active components make them now: its box, its stats and its families. */
     public get facts(): EntityFacts {
         return this.body.facts;
     }
