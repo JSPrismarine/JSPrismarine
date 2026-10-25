@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
+import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { REDSTONE_TORCH, REPEATER, SIGNAL_STATE } from '@jsprismarine/engine-systems';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -104,6 +105,19 @@ const stateAt = (world: World, x: number, y: number, z: number, state: string) =
 
 const runTicks = async (world: World, ticks: number): Promise<void> => {
     for (let tick = 0; tick < ticks; tick++) await world.update(world.getTicks() + 1);
+};
+
+/**
+ * Puts somebody in the world, at the origin.
+ *
+ * Java simulates a chunk only while a player ticket holds it, so a world with nobody in it
+ * random-ticks nothing at all. Written straight into the world's own map rather than through
+ * `addEntity`, which wants a whole live player with a network session behind it; the ticket rule
+ * reads a position and nothing else.
+ */
+const standInPlayer = (world: World): void => {
+    const held = world as unknown as { players: Map<bigint, { isOnline(): boolean; getPosition(): Vector3 }> };
+    held.players.set(1n, { isOnline: () => true, getPosition: () => new Vector3(0, GROUND + 1, 0) });
 };
 
 describe('world', () => {
@@ -244,6 +258,7 @@ describe('world', () => {
                 // Far above Java's three, so a handful of ticks is certain to land on the one
                 // layer of the chunk that holds a crop.
                 world.getGameRuleManager().setGameRule('randomTickSpeed', 50, true);
+                standInPlayer(world);
 
                 await runTicks(world, 3);
 
@@ -254,10 +269,28 @@ describe('world', () => {
                 }
             });
 
+            it('draws nothing at all with nobody in the world', async () => {
+                const ticked: string[] = [];
+                const world = await flatWorld({ 'minecraft:wheat': (at) => ticked.push(`${at.x},${at.y},${at.z}`) });
+                world.getGameRuleManager().setGameRule('randomTickSpeed', 50, true);
+
+                for (let x = 0; x < 16; x++) {
+                    for (let z = 0; z < 16; z++)
+                        place(world, x, GROUND + 1, z, named('minecraft:wheat', { growth: 0 }));
+                }
+
+                // Java's player ticket: a chunk nobody is near is loaded and still, which is why
+                // crops do not grow while their farmer is logged off.
+                await runTicks(world, 5);
+
+                expect(ticked).toEqual([]);
+            });
+
             it('draws nothing when the random tick speed game rule is zero', async () => {
                 const ticked: string[] = [];
                 const world = await flatWorld({ 'minecraft:wheat': (at) => ticked.push(`${at.x},${at.y},${at.z}`) });
                 world.getGameRuleManager().setGameRule('randomTickSpeed', 0, true);
+                standInPlayer(world);
 
                 for (let x = 0; x < 16; x++) {
                     for (let z = 0; z < 16; z++)
