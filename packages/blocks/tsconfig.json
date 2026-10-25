@@ -1,0 +1,16 @@
+{
+    "$schema": "https://json.schemastore.org/tsconfig.json",
+    "extends": ["../../tsconfig.build.json"],
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "../../",
+        // `src/overlay.ts` writes `./families.ts` with the extension, because
+        // `utils/generate-overlay.ts` loads it under plain `node`.
+        // `rewriteRelativeImportExtensions` turns it back into `.js` on emit.
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
+        "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
+    },
+    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"],
+    "include": ["src/**/*", "src/**/*.json"]
+}
