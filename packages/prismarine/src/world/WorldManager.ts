@@ -70,8 +70,17 @@ export default class WorldManager implements Service {
         const worldData = this.server.getConfig().getWorlds()[defaultWorld];
         if (!worldData) throw new Error(`Invalid level-name`);
 
-        this.defaultWorld = await this.loadWorld(worldData, defaultWorld);
-        this.server.getLogger().info(`Loading ${this.defaultWorld.getFormattedName()} as default world!`);
+        // Named as the default before it is enabled, not after. Enabling a world generates its
+        // start region, which at `preload-radius: 24` is minutes, and until this assignment
+        // `getDefaultWorld()` answered `undefined` while its type said `World` - so a command
+        // typed at the console meanwhile threw a `TypeError` out of `CommandManager` instead of
+        // running. Nothing about the world is missing here except its terrain: it has its game
+        // rules, its name and its provider, which is what its callers ask it for.
+        const world = this.buildWorld(worldData, defaultWorld);
+        this.defaultWorld = world;
+        this.server.getLogger().info(`Loading ${world.getFormattedName()} as default world!`);
+
+        await this.enableWorld(world);
     }
 
     /**
@@ -128,6 +137,24 @@ export default class WorldManager implements Service {
      * @param folderName - the name of the folder containing the world
      */
     public async loadWorld(worldData: WorldData, folderName: string): Promise<World> {
+        const world = this.buildWorld(worldData, folderName);
+        await this.enableWorld(world);
+
+        return world;
+    }
+
+    /**
+     * Builds a world and registers it, without generating anything.
+     *
+     * Separate from {@link WorldManager.enableWorld} because the two take wildly different
+     * amounts of time and a caller may need the world during the second one. See
+     * {@link WorldManager.enable}.
+     * @param worldData - The provider key, generator and seed.
+     * @param folderName - The folder under `worlds/` this world lives in.
+     * @throws {Error} When the world is already loaded, or names a provider that is not
+     * registered.
+     */
+    private buildWorld(worldData: WorldData, folderName: string): World {
         if (!worldData) throw new Error('Invalid world data');
 
         if (this.isWorldLoaded(folderName)) {
@@ -186,10 +213,19 @@ export default class WorldManager implements Service {
         // exists in order to announce that a block changed.
         world.attachChangeSink(this.server.getWorldReplicators().for(world));
 
+        return world;
+    }
+
+    /**
+     * Opens a world's provider and generates its start region.
+     *
+     * The long half of loading a world: the spawn search and the preload both generate terrain,
+     * which is minutes rather than milliseconds.
+     * @param world - A world {@link WorldManager.buildWorld} has already registered.
+     */
+    private async enableWorld(world: World): Promise<void> {
         await world.enable();
         this.server.getLogger().verbose(`World ${world.getFormattedName()} successfully loaded!`);
-
-        return world;
     }
 
     /**
