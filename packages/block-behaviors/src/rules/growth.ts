@@ -75,20 +75,54 @@ export const advanceCounter = (
     return true;
 };
 
-/** How far a leaf block may be from a log before it decays. */
-export const MAX_LEAF_DISTANCE = 4;
+/**
+ * How far a leaf block may be from a log, through other leaves, before it decays.
+ *
+ * Java's number, read out of `LeavesBlock` in the pinned 26.3 server jar.
+ * `DECAY_DISTANCE` is 7 there and `decaying` removes a leaf whose `distance`
+ * state has reached it, so 6 is the last distance that survives. Java carries
+ * `distance` as a block state and propagates it: `updateDistance` sets it to
+ * one more than the smallest of the six neighbors', counting a block in
+ * `#minecraft:prevents_nearby_leaf_decay` as 0 and anything that is not a leaf
+ * as 7. That tag resolves to `#minecraft:logs`, which is every `_log`, `_wood`,
+ * `_stem` and `_hyphae` and their stripped forms. The fixed point of the
+ * propagation is the breadth-first distance from the nearest log through
+ * leaves, so the search below computes the same answer without a state to
+ * store.
+ *
+ * It was 4, which is Bedrock's. The trees here are built from Java's
+ * `worldgen/feature` data, and Java's `TreeFeature.updateLeaves` writes
+ * distances out to 6 from the trunk, so 4 condemned the outer rings of every
+ * canopy the generator placed.
+ */
+export const MAX_LEAF_DISTANCE = 6;
 
-/** Whether an identifier names a log, which is what holds leaves up. */
+/**
+ * Whether an identifier names a log, which is what holds leaves up.
+ *
+ * Java asks `#minecraft:prevents_nearby_leaf_decay`, which is `#minecraft:logs`
+ * and expands to every `_log`, `_wood`, `_stem` and `_hyphae`, stripped forms
+ * included. `mushroom_stem` carries the suffix and is not in the tag, so it is
+ * named out.
+ */
 export const isLogName = (identifier: string): boolean => {
     const name = bareName(identifier);
+    if (name === 'mushroom_stem') return false;
     return name.endsWith('_log') || name.endsWith('_wood') || name.endsWith('_stem') || name.endsWith('_hyphae');
 };
 
 /**
- * Whether a log is within {@link MAX_LEAF_DISTANCE} of a leaf block.
+ * Whether a log near enough to hold a leaf block up is within
+ * {@link MAX_LEAF_DISTANCE} of it.
  *
- * The search is Bedrock's: breadth first through leaves only, so leaves
- * hanging off a trunk keep each other alive and a floating canopy does not.
+ * Breadth first through leaves only, so leaves hanging off a trunk keep each
+ * other alive and a floating canopy does not. A position the server cannot
+ * read counts as holding the leaf up, which is the answer in
+ * {@link MAX_LEAF_DISTANCE}'s terms: the search cannot prove the canopy is
+ * orphaned without the chunk next door, and Java never has to decide, because
+ * `LevelAccessor.getBlockState` loads it. Guessing the other way strips the
+ * canopy off every tree on the edge of the loaded world. `BlockPhysics` makes
+ * the same assumption about ground it cannot read.
  */
 export const hasNearbyLog = (world: WorldActions, block: HookBlock): boolean => {
     const seen = new Set<string>([`${block.position.x},${block.position.y},${block.position.z}`]);
@@ -104,7 +138,7 @@ export const hasNearbyLog = (world: WorldActions, block: HookBlock): boolean => 
                 seen.add(key);
 
                 const neighbor = world.getBlock(neighborPosition);
-                if (neighbor === undefined) continue;
+                if (neighbor === undefined) return true;
                 if (isLogName(neighbor.identifier)) return true;
                 if (bareName(neighbor.identifier).endsWith('leaves')) next.push(neighborPosition);
             }

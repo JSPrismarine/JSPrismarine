@@ -84,6 +84,7 @@ export class VoxelDimension implements WorldActions {
     public readonly notified: BlockPosition[] = [];
 
     private readonly blocks = new Map<string, StoredBlock>();
+    private readonly unloaded = new Set<string>();
     private readonly blockData = new Map<string, BlockEntityData>();
     private readonly power = new Map<string, number>();
     private readonly light = new Map<string, number>();
@@ -132,6 +133,17 @@ export class VoxelDimension implements WorldActions {
         return this.blocks.get(keyOf(position))?.states[name];
     }
 
+    /**
+     * Makes a position read as unloaded, which is what the server reports past the edge of the
+     * chunks it holds.
+     *
+     * A behavior that treats an unloaded position as air gives a different answer at a chunk
+     * border than it does in the middle of one, and this is how a test says so.
+     */
+    public unload(position: BlockPosition): void {
+        this.unloaded.add(keyOf(position));
+    }
+
     /** Puts an entity in the world without spawning it through a behavior. */
     public addEntity(identifier: string, position: BlockPosition, data?: BlockEntityData): number {
         const id = this.entities.length + 1;
@@ -159,8 +171,9 @@ export class VoxelDimension implements WorldActions {
         this.randoms.push(...values);
     }
 
-    /** The block at a position, with air for an unwritten one. */
+    /** The block at a position, with air for an unwritten one and undefined for an unloaded one. */
     public getBlock(position: BlockPosition): HookBlock | undefined {
+        if (this.unloaded.has(keyOf(position))) return undefined;
         return this.block(position);
     }
 
