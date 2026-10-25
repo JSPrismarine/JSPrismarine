@@ -49,19 +49,45 @@ const BRARCHIVE_FOLDER = '__brarchive/';
 const BRARCHIVE_EXTENSION = '.brarchive';
 
 /**
+ * Which of a pack's files the caller wants the bytes of, by pack-relative
+ * path.
+ *
+ * A pack folder holds far more than definitions - the composed vanilla
+ * Bedrock pack ships 1311 `.nbt` structures and a 3 MB `.dat` beside its 2588
+ * readable files - and opening each of those costs a syscall pair and a
+ * buffer for content the caller then ignores. A caller that knows which paths
+ * it can use says so here and the rest are never opened.
+ *
+ * `manifest.json` and the `__brarchive/` containers are read whichever way
+ * this answers, because a pack cannot be expanded without them. The filter
+ * then applies to each container's members, so an archive's unwanted files
+ * are dropped too.
+ */
+export type PackFileFilter = (packPath: string) => boolean;
+
+/** The default: every file in the pack, which is what a caller reading a pack whole wants. */
+const EVERY_FILE: PackFileFilter = () => true;
+
+/**
  * Expands one stack member into the packs it holds, in apply order.
  * Unreadable members are reported rather than thrown so one bad pack does not
  * hide the rest of the report.
+ *
+ * @param wanted - Which files to read; see {@link PackFileFilter}. Every file by default.
  */
-export const expandSource = (source: BedrockPackSource, diagnostics: Diagnostic[]): PackFiles[] => {
+export const expandSource = (
+    source: BedrockPackSource,
+    diagnostics: Diagnostic[],
+    wanted: PackFileFilter = EVERY_FILE
+): PackFiles[] => {
     try {
         switch (source.kind) {
             case 'directory':
-                return [readDirectoryPack(source.path)];
+                return [readDirectoryPack(source.path, wanted)];
             case 'archive':
-                return expandArchive(source.path, diagnostics);
+                return expandArchive(source.path, diagnostics, wanted);
             case 'brarchiveLayers':
-                return readLayerFolders(source.path).map(readDirectoryPack);
+                return readLayerFolders(source.path).map((layer) => readDirectoryPack(layer, wanted));
         }
     } catch (error) {
         diagnostics.push({
@@ -74,14 +100,20 @@ export const expandSource = (source: BedrockPackSource, diagnostics: Diagnostic[
     }
 };
 
+/** Whether a path has to be read however the caller's filter answers. */
+const isStructural = (packPath: string): boolean =>
+    packPath === 'manifest.json' || (packPath.startsWith(BRARCHIVE_FOLDER) && packPath.endsWith(BRARCHIVE_EXTENSION));
+
 /** Reads a pack folder, expanding `__brarchive/` containers into their folders. */
-const readDirectoryPack = (path: string): PackFiles => {
+const readDirectoryPack = (path: string, wanted: PackFileFilter): PackFiles => {
     const files = new Map<string, Uint8Array>();
     for (const entry of readdirSync(path, { recursive: true, withFileTypes: true })) {
         if (!entry.isFile()) continue;
         const absolute = join(entry.parentPath, entry.name);
         const packPath = relative(path, absolute).split(sep).join('/');
-        addPackFile(files, packPath, readFileSync(absolute));
+        if (!isStructural(packPath) && !wanted(packPath)) continue;
+
+        addPackFile(files, packPath, readFileSync(absolute), wanted);
     }
     return { origin: path, files };
 };
@@ -94,7 +126,12 @@ const readDirectoryPack = (path: string): PackFiles => {
  * `__brarchive/entities.brarchive`, so the name alone collides and one
  * archive's members overwrite the other's.
  */
-const addPackFile = (files: Map<string, Uint8Array>, packPath: string, bytes: Uint8Array): void => {
+const addPackFile = (
+    files: Map<string, Uint8Array>,
+    packPath: string,
+    bytes: Uint8Array,
+    wanted: PackFileFilter
+): void => {
     if (!packPath.startsWith(BRARCHIVE_FOLDER) || !packPath.endsWith(BRARCHIVE_EXTENSION)) {
         files.set(packPath, bytes);
         return;
@@ -103,14 +140,14 @@ const addPackFile = (files: Map<string, Uint8Array>, packPath: string, bytes: Ui
     const folder = packPath.slice(BRARCHIVE_FOLDER.length, -BRARCHIVE_EXTENSION.length);
     for (const [member, memberBytes] of readBrarchive(bytes)) {
         const memberPath = member.startsWith(`${folder}/`) ? member : `${folder}/${member}`;
-        files.set(memberPath, memberBytes);
+        if (wanted(memberPath)) files.set(memberPath, memberBytes);
     }
 };
 
 /** Expands a `.mcpack` (manifest at the root) or `.mcaddon` (nested `.mcpack`s). */
-const expandArchive = (path: string, diagnostics: Diagnostic[]): PackFiles[] => {
+const expandArchive = (path: string, diagnostics: Diagnostic[], wanted: PackFileFilter): PackFiles[] => {
     const entries = readZip(readFileSync(path));
-    if (entries.has('manifest.json')) return [zipPack(path, entries)];
+    if (entries.has('manifest.json')) return [zipPack(path, entries, wanted)];
 
     const packs: PackFiles[] = [];
     for (const [name, bytes] of entries) {
@@ -124,7 +161,7 @@ const expandArchive = (path: string, diagnostics: Diagnostic[]): PackFiles[] => 
                 });
                 continue;
             }
-            packs.push(zipPack(`${path}/${name}`, readZip(bytes)));
+            packs.push(zipPack(`${path}/${name}`, readZip(bytes), wanted));
         } else if (name.endsWith('.mcworld') || name.endsWith('.mctemplate')) {
             diagnostics.push({
                 severity: 'warning',
@@ -145,9 +182,11 @@ const expandArchive = (path: string, diagnostics: Diagnostic[]): PackFiles[] => 
     return packs;
 };
 
-const zipPack = (origin: string, entries: Map<string, Uint8Array>): PackFiles => {
+const zipPack = (origin: string, entries: Map<string, Uint8Array>, wanted: PackFileFilter): PackFiles => {
     const files = new Map<string, Uint8Array>();
-    for (const [name, bytes] of entries) addPackFile(files, name, bytes);
+    for (const [name, bytes] of entries) {
+        if (isStructural(name) || wanted(name)) addPackFile(files, name, bytes, wanted);
+    }
     return { origin, files };
 };
 
