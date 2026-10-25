@@ -210,6 +210,7 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
             getContent: content,
             getBlockManager: () => ({
+                findBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] }),
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] })
             }),
             // What the content's `entities.drop` resolves a drop through before it makes one.
