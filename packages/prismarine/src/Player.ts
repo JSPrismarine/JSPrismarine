@@ -32,6 +32,7 @@ import PlayStatus from './network/type/PlayStatus';
 import TextPacketType from './network/type/TextPacketType';
 import { loadAdvancements } from './advancement/progress';
 import { advancementChangedDimension, advancementPlayerTick } from './advancement/triggers';
+import { enchantmentSeedOf } from './enchantment/enchantingTable';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
 import type UUID from './utils/UUID';
@@ -261,6 +262,7 @@ export default class Player extends Human {
         // Before anything can be earned, so a returning player keeps what they
         // had rather than earning their first advancement twice.
         loadAdvancements(this, playerData.advancements);
+        enchantmentSeedOf(this, playerData.enchantmentSeed);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());

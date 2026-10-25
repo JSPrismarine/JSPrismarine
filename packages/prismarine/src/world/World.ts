@@ -14,6 +14,7 @@ import UUID from '../utils/UUID';
 import Player from '../Player';
 import { advancementPlacedBlock } from '../advancement/triggers';
 import { storedAdvancements } from '../advancement/progress';
+import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
 import { spawnableEntities } from '../entity/Entities';
@@ -1690,7 +1691,8 @@ export class World implements Service {
                 yaw: player.yaw,
                 headYaw: player.headYaw
             },
-            advancements: storedAdvancements(player)
+            advancements: storedAdvancements(player),
+            enchantmentSeed: enchantmentSeedOf(player)
         } satisfies WorldPlayerData;
 
         try {
