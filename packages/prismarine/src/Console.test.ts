@@ -1,70 +1,52 @@
+import { PassThrough } from 'node:stream';
+import { setImmediate } from 'node:timers/promises';
 import { describe, expect, it, vi } from 'vitest';
-import { completeCommand, writeAbovePrompt } from './Console';
-import type { PromptWriter } from './Console';
+import type { Logger } from '@jsprismarine/logger';
+import Console, { completeCommand } from './Console';
+import type { Server } from './';
+import type { CommandManager } from './command/CommandManager';
+import { stub } from './testing/stub.test.helper';
 
-const CLEAR_ROW = '\x1b[2K\r';
-
-/** A readline stand-in that records everything written to its output. */
-const fakeCli = (overrides: Partial<PromptWriter> = {}): PromptWriter & { written: string[] } => {
-    const written: string[] = [];
-    return {
-        written,
-        output: { write: (data: string) => written.push(data) },
-        line: '',
-        prompt: vi.fn(),
-        ...overrides
-    };
+/** A server double that records what the console dispatches. */
+const fakeServer = () => {
+    const dispatchCommand = vi.fn(async () => {});
+    const server = stub<Server>({
+        on: vi.fn(),
+        getCommandManager: () => stub<CommandManager>({ dispatchCommand }),
+        getLogger: () => stub<Logger>({ setConsole: vi.fn(), info: vi.fn(), error: vi.fn() })
+    });
+    return { server, dispatchCommand };
 };
 
 describe('Console', () => {
-    describe('writeAbovePrompt', () => {
-        it('erases the row before writing, so no part of the input survives beside it', () => {
-            // The case a naive implementation gets wrong: a log shorter than what was
-            // typed. Without erasing, the tail of the typed text stays on screen.
-            const cli = fakeCli({ line: '/a-very-long-command-being-typed', _refreshLine: vi.fn() });
+    describe('line input', () => {
+        it('dispatches each non-empty line as a command from the console', async () => {
+            const { server, dispatchCommand } = fakeServer();
+            const input = new PassThrough();
+            const console = new Console(server, input);
 
-            writeAbovePrompt(cli, 'short');
+            await console.enable();
+            input.write('help\n\n   \r\nstop\n');
+            await setImmediate();
 
-            expect(cli.written[0]).toBe(`${CLEAR_ROW}short\n`);
+            expect(dispatchCommand.mock.calls).toEqual([
+                [console, console, 'help'],
+                [console, console, 'stop']
+            ]);
+            await console.disable();
         });
 
-        it('lets readline redraw itself, and does not print a second prompt', () => {
-            // The previous implementation called _refreshLine() *and* prompt(), so the
-            // prompt appeared twice.
-            const refresh = vi.fn();
-            const cli = fakeCli({ _refreshLine: refresh });
+        it('reads nothing when the input is already gone', async () => {
+            const { server, dispatchCommand } = fakeServer();
+            const input = new PassThrough();
+            input.destroy();
+            const console = new Console(server, input);
 
-            writeAbovePrompt(cli, 'log line');
+            await expect(console.enable()).resolves.toBeUndefined();
+            await setImmediate();
 
-            expect(refresh).toHaveBeenCalledTimes(1);
-            expect(cli.prompt).not.toHaveBeenCalled();
-        });
-
-        it('falls back to prompt and an echo when readline has no _refreshLine', () => {
-            const cli = fakeCli({ line: '/op someone', _refreshLine: undefined });
-
-            writeAbovePrompt(cli, 'log line');
-
-            expect(cli.prompt).toHaveBeenCalledWith(true); // preserveCursor
-            expect(cli.written.join('')).toContain('/op someone'); // the input is not lost
-        });
-
-        it('echoes nothing when nothing was typed', () => {
-            const cli = fakeCli({ line: '', _refreshLine: undefined });
-            writeAbovePrompt(cli, 'log line');
-            expect(cli.written.join('')).toBe(`${CLEAR_ROW}log line\n`);
-        });
-
-        it('holds up under a burst, as an unfiltered packet log would be', () => {
-            const refresh = vi.fn();
-            const cli = fakeCli({ line: '/help', _refreshLine: refresh });
-
-            for (let i = 0; i < 50; i++) writeAbovePrompt(cli, `packet ${i}`);
-
-            // One erase plus one message per line, and no prompts piling up.
-            expect(cli.written.length).toBe(50);
-            expect(cli.written.every((chunk) => chunk.startsWith(CLEAR_ROW))).toBe(true);
-            expect(refresh).toHaveBeenCalledTimes(50);
+            expect(dispatchCommand).not.toHaveBeenCalled();
+            await console.disable();
         });
     });
 

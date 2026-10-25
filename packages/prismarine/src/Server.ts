@@ -217,7 +217,8 @@ export default class Server extends EventEmitter {
      */
     private async enable(): Promise<void> {
         await this.config.enable();
-        await this.console?.enable();
+        // Output needs only stdout, so attach it before anything logs.
+        this.logger.setConsole(this.console);
         await this.logger.enable();
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
@@ -229,7 +230,9 @@ export default class Server extends EventEmitter {
         await this.commandManager.enable();
         await this.worldManager.enable();
 
-        this.logger.setConsole(this.console);
+        // The console reads commands as soon as it is enabled, and piped input is already
+        // waiting, so it comes last: commands need the registry and the default world.
+        await this.console?.enable();
     }
 
     /**
