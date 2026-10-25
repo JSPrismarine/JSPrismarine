@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel } from './Config';
 
@@ -163,6 +163,69 @@ describe('config', () => {
         it('should set the MOTD', () => {
             config.setMotd('Welcome to my server!');
             expect(config.getMotd()).toBe('Welcome to my server!');
+        });
+    });
+
+    /**
+     * What a subclass that answers startup questions itself gets.
+     *
+     * Every test server in this repository stubs `enable` so nothing reads a
+     * file, and the fields used to be left unset. `getDifficulty` lowercased
+     * an undefined and threw partway through the join burst, which left the
+     * joining client waiting at `AWAITING_SPAWN` for packets that never came.
+     * Each getter has to answer with what the file's default would be.
+     */
+    describe('a Config whose enable never ran', () => {
+        let configDirectory: string;
+
+        // The constructor reads `log-level`, which writes the file, so even a config nothing
+        // enables needs a directory of its own rather than the repository's.
+        beforeEach(() => {
+            configDirectory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-config-test-'));
+            vi.stubEnv('JSP_DIR', configDirectory);
+        });
+
+        afterEach(() => {
+            vi.unstubAllEnvs();
+            rmSync(configDirectory, { recursive: true, force: true });
+        });
+
+        const stubbed = () =>
+            new (class extends Config {
+                public override async enable() {}
+            })();
+
+        it('answers with the difficulty the config file defaults to', () => {
+            expect(stubbed().getDifficulty()).toBe(Difficulty.NORMAL);
+        });
+
+        it('answers every other startup question the join path asks', () => {
+            const config = stubbed();
+
+            expect(config.getGamemode()).toBe('survival');
+            expect(config.getServerPort()).toBe(19132);
+            expect(config.getServerIp()).toBe('0.0.0.0');
+            expect(config.getLevelName()).toBe('world');
+            expect(config.getMotd()).toBe('Another JSPrismarine server!');
+            expect(config.getMaxPlayers()).toBe(20);
+            expect(config.getViewDistance()).toBe(10);
+            expect(config.getOnlineMode()).toBe(false);
+            expect(config.getPacketCompressionLevel()).toBe(7);
+            expect(config.getWorlds()).toEqual({
+                world: { generator: 'Flat', provider: 'LevelDB', seed: expect.any(Number) }
+            });
+        });
+
+        it('answers the same as a config enabled over an empty directory', async () => {
+            const fromFile = new Config();
+            await fromFile.enable();
+
+            const config = stubbed();
+            expect(config.getDifficulty()).toBe(fromFile.getDifficulty());
+            expect(config.getGamemode()).toBe(fromFile.getGamemode());
+            expect(config.getViewDistance()).toBe(fromFile.getViewDistance());
+            expect(config.getLogExcludedPackets()).toStrictEqual(fromFile.getLogExcludedPackets());
+            expect(config.getCraftingRecipeLimit()).toBe(fromFile.getCraftingRecipeLimit());
         });
     });
 
