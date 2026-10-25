@@ -356,6 +356,104 @@ export const PARTIAL_BLOCK_PROPERTY_COLLAPSES = [
     { block: 'minecraft:red_mushroom_block', ...MUSHROOM_COLLAPSE }
 ] as const satisfies readonly PartialBlockPropertyCollapse[];
 
+/**
+ * A Bedrock block state whose values no single Java property spells, so there is no word
+ * vocabulary for it in {@link import('./blockStates').bedrockBlockStates}.
+ */
+export interface BlockStateLoss {
+    /** The Bedrock state name. */
+    readonly state: string;
+    /** Every Bedrock block that carries the state this way. */
+    readonly blocks: readonly string[];
+    readonly reason: string;
+    readonly reference: string;
+}
+
+/** The fifteen Bedrock buttons; Bedrock spells the oak one `wooden_button`. */
+const BEDROCK_BUTTONS = [
+    'minecraft:acacia_button',
+    'minecraft:bamboo_button',
+    'minecraft:birch_button',
+    'minecraft:cherry_button',
+    'minecraft:crimson_button',
+    'minecraft:dark_oak_button',
+    'minecraft:jungle_button',
+    'minecraft:mangrove_button',
+    'minecraft:pale_oak_button',
+    'minecraft:polished_blackstone_button',
+    'minecraft:poplar_button',
+    'minecraft:spruce_button',
+    'minecraft:stone_button',
+    'minecraft:warped_button',
+    'minecraft:wooden_button'
+] as const;
+
+const PACKED_FACES = {
+    reason: 'Bedrock packs the six face booleans Java carries separately into the bits of one number.',
+    reference: `${NOTE} section 2`
+} as const;
+
+/**
+ * The Bedrock states a caller cannot write in Java's words.
+ *
+ * {@link import('./blockStates').bedrockBlockStates} reads every other state's vocabulary out
+ * of the block mapping, by finding the one Java property whose values pick its values. These
+ * twenty-seven (block, state) pairs have no such property: Bedrock either folds two Java
+ * properties into one state or packs several booleans into one number, so a word has nothing to
+ * translate to. A caller that holds one of them keeps the Bedrock value it read.
+ */
+export const BLOCK_STATE_LOSSES = [
+    {
+        state: 'facing_direction',
+        blocks: BEDROCK_BUTTONS,
+        reason:
+            "Bedrock's button facing is the direction the button sticks out of its support, which " +
+            'Java spells as `face` and `facing` together: a floor button is 1 whichever way it faces.',
+        reference: `${NOTE} section 2`
+    },
+    {
+        state: 'huge_mushroom_bits',
+        blocks: ['minecraft:brown_mushroom_block', 'minecraft:mushroom_stem', 'minecraft:red_mushroom_block'],
+        ...PACKED_FACES
+    },
+    {
+        state: 'multi_face_direction_bits',
+        blocks: ['minecraft:glow_lichen', 'minecraft:resin_clump', 'minecraft:sculk_vein'],
+        ...PACKED_FACES
+    },
+    { state: 'books_stored', blocks: ['minecraft:chiseled_bookshelf'], ...PACKED_FACES },
+    { state: 'vine_direction_bits', blocks: ['minecraft:vine'], ...PACKED_FACES },
+    {
+        state: 'facing_direction',
+        blocks: ['minecraft:jigsaw'],
+        reason:
+            "Java's twelve jigsaw orientations are a direction and a roll together; Bedrock keeps " +
+            'the direction here and the roll in `rotation`, so neither reads back as an orientation.',
+        reference: `${NOTE} section 2`
+    },
+    {
+        state: 'rotation',
+        blocks: ['minecraft:jigsaw'],
+        reason: "The roll half of Java's jigsaw orientation; see this list's `facing_direction` entry.",
+        reference: `${NOTE} section 2`
+    },
+    {
+        state: 'lever_direction',
+        blocks: ['minecraft:lever'],
+        reason: "Java's `face` and `facing` together, the same fold as the button's.",
+        reference: `${NOTE} section 2`
+    },
+    {
+        state: 'open_bit',
+        blocks: ['minecraft:lever'],
+        reason:
+            'A floor or ceiling lever has one Bedrock direction for two Java facings, and the ' +
+            'GeyserMC join flips `open_bit` to keep south and east apart, so Java `powered` does ' +
+            'not spell it on its own.',
+        reference: `${NOTE} section 2`
+    }
+] as const satisfies readonly BlockStateLoss[];
+
 /** A Bedrock identifier that several Java blocks legitimately collapse onto. */
 export interface BlockMerge {
     /** The shared Bedrock identifier. */

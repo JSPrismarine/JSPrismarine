@@ -106,5 +106,71 @@ describe('block', () => {
             ]);
             expect(stone.getDrops(null, serverIn('minecraft:the_nether'))).toEqual([]);
         });
+
+        /**
+         * Vanilla's own stone table, whose single pool ends in the
+         * `minecraft:explosion_decay` function every block table carries.
+         */
+        const decaying = () =>
+            buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: {
+                            ...fixtureDefinitions(),
+                            lootTablesJava: new Map([
+                                [
+                                    'minecraft:blocks/stone',
+                                    definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+                                        type: 'minecraft:block',
+                                        pools: [
+                                            {
+                                                rolls: 1,
+                                                entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }],
+                                                functions: [{ type: 'minecraft:explosion_decay' }]
+                                            }
+                                        ]
+                                    })
+                                ]
+                            ])
+                        },
+                        diagnostics: []
+                    })
+                })
+            );
+
+        describe('a block an explosion took out', () => {
+            // `ApplyExplosionDecay` keeps each item of a stack with a chance
+            // of 1 / radius, so a TNT blast of radius 4 keeps a quarter of
+            // what the table rolled.
+            it('keeps the drop when the draw is under one over the radius', () => {
+                const drops = rollBlockDrops(
+                    decaying(),
+                    { identifier: 'minecraft:stone', states: {} },
+                    { explosionRadius: 4, random: { nextFloat: () => 0.2, nextInt: () => 0 } }
+                );
+
+                expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+            });
+
+            it('loses it when the draw is over', () => {
+                const drops = rollBlockDrops(
+                    decaying(),
+                    { identifier: 'minecraft:stone', states: {} },
+                    { explosionRadius: 4, random: { nextFloat: () => 0.3, nextInt: () => 0 } }
+                );
+
+                expect(drops).toEqual([]);
+            });
+
+            it('keeps everything for an ordinary break, which reports no radius', () => {
+                const drops = rollBlockDrops(
+                    decaying(),
+                    { identifier: 'minecraft:stone', states: {} },
+                    { random: { nextFloat: () => 0.99, nextInt: () => 0 } }
+                );
+
+                expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+            });
+        });
     });
 });

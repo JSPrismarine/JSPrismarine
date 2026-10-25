@@ -55,9 +55,9 @@ results report as `known`, reviewed losses as `loss`. Tag references and registr
 not cover report as `unknown`.
 
 The reviewed loss list is exported alongside the functions (`BLOCK_LOSSES`, `ITEM_LOSSES`,
-`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES`, the merge lists and the
-dropped-property lists). Every known loss carries a reason and a reference, and the property tests
-fail both when an unlisted loss appears and when a listed one stops occurring.
+`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES`, `BLOCK_STATE_LOSSES`, the merge lists
+and the dropped-property lists). Every known loss carries a reason and a reference, and the
+property tests fail both when an unlisted loss appears and when a listed one stops occurring.
 
 ## The tables
 
@@ -78,6 +78,31 @@ The generator runs Mojang's Java data generator against the hash-verified server
 reports are missing from the cache, which needs a JDK of at least version 25 (`JAVA_HOME` or
 `JSP_JAVA_HOME`). It refuses to emit when any Java identifier has neither a mapping nor a loss
 entry, or when any produced Bedrock state is missing from the pinned palette.
+
+## The block state vocabularies
+
+`bedrockBlockStates(name, states)` and `javaBlockStates(name, states)` translate a whole state
+record between Java's words and the Bedrock palette's own spelling. Java writes a direction as
+`facing=north`; Bedrock writes a number, under a state name of its own, and the number is per
+block - a dropper's `facing_direction` calls north 2 and a piston's calls it 3. A redstone torch
+spells north `south`, and a door spells it `east`. None of it follows from the state's name.
+
+```ts
+bedrockBlockStates('minecraft:piston', { facing_direction: 'north', extended_bit: true });
+// { facing_direction: 3 } - Bedrock has no extended state; an extended piston has an arm in front
+javaBlockStates('minecraft:dropper', { facing_direction: 2 }); // { facing_direction: 'north' }
+```
+
+The table is read out of the block mapping, per block, by finding the one Java property whose
+values pick each Bedrock state's values; regenerate it with:
+
+```sh
+pnpm --filter @jsprismarine/mapping run generate:block-states
+```
+
+It needs only committed inputs. The 27 `(block, state)` pairs that have no word vocabulary at all,
+because Bedrock folds two Java properties into one state or packs several booleans into one
+number, are listed in `BLOCK_STATE_LOSSES` and travel as the Bedrock value untouched.
 
 ## The block property table
 
