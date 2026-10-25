@@ -187,6 +187,37 @@ consumed the interaction, which stops the later handlers under `dispatchFirst`. 
 structural and name only what a handler reads, so the server's own `Player` and `Entity` classes are
 assignable to `HookActor` without this package depending on the server.
 
+### The held item and the clicked face
+
+Three events carry the item in the hand, under Mojang's own field name `itemStack`:
+`BlockPlaceEvent`, `BlockBreakEvent` and `BlockPlayerInteractEvent`. Each one is
+`HookItem | undefined`, and undefined means a bare hand or an action the world performed rather than
+a player. Without it a block behavior cannot decide honeycomb waxing, axe scraping, silk touch,
+shears, or which bucket filled a cauldron, because every one of those is a fact about the item and
+not about the block.
+
+`HookItem` is two members, an `identifier` and a `get(name)` component reader:
+
+```typescript
+const waxing = event.itemStack?.identifier === 'minecraft:honeycomb';
+const silkTouch = event.itemStack?.get('minecraft:enchantments');
+```
+
+It is a structural interface here rather than a dependency on `@jsprismarine/items`, which is what
+keeps the block half and the item half of the content runtime independent. `ItemStack` satisfies it
+as written: its `identifier` getter and its `get(name): unknown` component reader are the same two
+declarations, so a server passes a stack straight into a block event with no adapter, and neither
+package imports the other. `hooks.test.ts` checks the assignment against a stand-in with those
+declarations.
+
+`BlockPlaceEvent` also carries `face` and `faceLocation`, the same pair `BlockPlayerInteractEvent`
+has and the same pair Mojang's `PlayerPlaceBlockBeforeEvent` carries. `face` is the face of the
+block the new one went against, which is what a pillar's `pillar_axis` comes from; the placer's look
+direction is right only for a horizontal placement. `faceLocation` is a `FaceLocation`, each
+component in [0, 1] measured from the face's lower north-west corner, which is what picks a slab's
+half and a stair's `upside_down_bit`. `FaceLocation` is a separate type from `BlockPosition` because
+its components are fractions of a block rather than world coordinates.
+
 `behaviorFor(identifier, archetype?)` gives the family name. An archetype wins when the block's own
 definition declares one, because Mojang already decided the family there; otherwise the identifier
 picks a rule from `BLOCK_FAMILIES`. The two agree by construction: `slab_block` lands in
