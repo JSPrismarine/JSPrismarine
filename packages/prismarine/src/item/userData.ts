@@ -7,12 +7,14 @@
  * that writes none of it draws as a plain item, which is what every enchanted tool, every
  * anvil rename and every lore line looked like before this file existed.
  *
- * Two things separate it from the storage codec in `inventory/itemNbt.ts`, which writes the
- * same four fields for a world record.
+ * `inventory/itemNbt.ts` is the same compound for a world record, and what a container item
+ * holds comes straight from it: `itemSlotsToNbt` writes the `Items` list a shulker box's
+ * tooltip preview is drawn from, nested stacks and all. Two things are decided differently
+ * here, and those two are why this is not that module.
  *
  * Only what the client can draw. Storage writes the Java enchantment ids beside `ench` so the
  * round trip keeps the six Bedrock has no number for. The client cannot draw those ids, so
- * they stay off the wire and reach the player as lore instead.
+ * they stay off the top-level stack and reach the player as lore instead.
  *
  * The lore the client is given is not the lore the stack holds. An enchantment with no Bedrock
  * number is projected to a lore line through `projectToBedrock`, and those lines go above the
@@ -23,6 +25,8 @@ import { projectToBedrock, romanNumeral } from '@jsprismarine/enchantments';
 import type { EnchantmentDefinition, EnchantmentRegistry } from '@jsprismarine/enchantments';
 
 import { bedrockEnchantType } from '../enchantment/bedrockIds';
+import { ITEMS_TAG, itemSlotsToNbt } from '../inventory/itemNbt';
+import type { StoredItemStack } from '../inventory/persistence';
 import { EnchantType } from '../network/packet/PlayerEnchantOptionsPacket';
 
 /**
@@ -47,6 +51,14 @@ export interface ItemUserData {
      * client draws the damage bar from it; zero writes nothing.
      */
     readonly damage: number;
+    /**
+     * What a container item holds, one entry per slot and null for an empty one.
+     *
+     * Empty for everything but a shulker box. The client draws the four-item preview under a
+     * box from this list, so a box whose contents stay on the server looks empty in the hand
+     * however full it is.
+     */
+    readonly contents: readonly (StoredItemStack | null)[];
     /** The definitions, for naming an enchantment the client has no number for. */
     readonly enchantmentRegistry: EnchantmentRegistry | undefined;
 }
@@ -114,7 +126,8 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
         stack.enchantments.size === 0 &&
         stack.customName === undefined &&
         stack.lore.length === 0 &&
-        stack.damage <= 0
+        stack.damage <= 0 &&
+        stack.contents.length === 0
     ) {
         return null;
     }
@@ -154,6 +167,15 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
 
     if (ench.size > 0) {
         tag.addValue('ench', ench);
+        anything = true;
+    }
+
+    // Straight from the storage codec: a nested stack is written exactly as a stored one, so
+    // the preview and the record cannot drift apart. Only the filled slots go out, each
+    // carrying the slot it sits in, which is how vanilla writes a container.
+    const held = itemSlotsToNbt(stack.contents);
+    if (held.size > 0) {
+        tag.addValue(ITEMS_TAG, held);
         anything = true;
     }
 
