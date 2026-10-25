@@ -189,6 +189,14 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     );
 
     it(
+        'buries one treasure chest where the placement puts it',
+        async () => {
+            await landsIn(-23, -10, 'minecraft:buried_treasure', 'minecraft:buried_treasures', ['minecraft:chest'], 50);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'names the structure types that still have no builder',
         () => {
             const registries = loadJavaWorldgenRegistries(sources!);
@@ -200,15 +208,11 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
             // The inventory of what this server does not generate yet. A family that lands comes
             // off this list, and a type that silently stops generating lands back on it.
             expect(missing).toEqual([
-                'minecraft:buried_treasure',
-                'minecraft:desert_pyramid',
                 'minecraft:end_city',
                 'minecraft:fortress',
-                'minecraft:jungle_temple',
                 'minecraft:mineshaft',
                 'minecraft:ocean_monument',
                 'minecraft:stronghold',
-                'minecraft:swamp_hut',
                 'minecraft:woodland_mansion'
             ]);
         },
