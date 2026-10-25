@@ -42,3 +42,34 @@ executed.
 Read the table through `src/bedrockTable.ts`, which casts the parsed JSON once and exposes
 `bedrockCommandTable`, `bedrockCommand`, `bedrockCommandEnum`, `isBedrockSoftEnum` and
 `isBedrockBasicType`.
+
+## Selectors
+
+`parseSelector(input, dialect)` reads one target selector and returns one model whichever edition
+wrote it. The dialect is a flag, not a merged grammar, because the two grammars share argument
+names for `x`, `y`, `z`, `dx`, `dy`, `dz`, `scores`, `tag`, `name` and `type` and disagree on
+everything else.
+
+Java has 6 base selectors and the 21 arguments `EntitySelectorOptions` declares. Bedrock has 7 base
+selectors, `@initiator` being the extra one, and its own argument set. The parser normalizes
+Bedrock onto the Java spelling:
+
+| Bedrock | Java |
+| --- | --- |
+| `r`, `rm` | `distance` |
+| `l`, `lm` | `level` |
+| `rx`, `rxm` | `x_rotation` |
+| `ry`, `rym` | `y_rotation` |
+| `m`, with the `s`/`0`, `c`/`1`, `a`/`2`, `d`/`5` shorthands | `gamemode` |
+| `c`, signed, where a negative count means furthest first | `limit` plus `sort` |
+
+Four Java arguments have no Bedrock expression (`advancements`, `nbt`, `predicate`, `team`) and
+four Bedrock arguments have no Java expression (`family`, `hasitem`, `haspermission`,
+`has_property`). `sort=arbitrary` is a fifth Java-side gap, a value rather than an argument.
+Bedrock also allows `~` in `x`, `y` and `z` and a `!` inside `scores`, neither of which Java
+accepts.
+
+An argument from the other edition parses anyway and the result carries a note naming it. Dropping
+it silently would change which entities a command hits, and a `/execute` body the server itself
+built can legitimately carry a Java-only argument on a connection whose player is on Bedrock.
+`SelectorSyntaxError` carries the offset the parse stopped at.
