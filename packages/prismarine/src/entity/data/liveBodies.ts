@@ -22,6 +22,7 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -30,6 +31,7 @@ import type { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
+import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
 const MOVEMENT_EPSILON = 1e-4;
@@ -141,6 +143,25 @@ export class LiveBodies {
         }
 
         return moves;
+    }
+
+    /**
+     * Writes each entity's component state onto the body a save reads.
+     *
+     * Called from the save rather than from the tick: the record is a snapshot
+     * of state that changes every tick, and building one per entity per tick
+     * would be work nothing reads until a chunk is written. The chunk
+     * serializer picks it up from `Entity.persistentNbt` with every other tag
+     * the actor carries.
+     */
+    public persist(runtime: EntityRuntime): void {
+        for (const entity of runtime.all()) {
+            const body = this.bodies.get(entity.id);
+            if (body === undefined) continue;
+
+            body.persistentNbt ??= new NBTTagCompound('');
+            writeDataEntityRecord(body.persistentNbt, dataEntityRecordOf(entity, runtime.poolOf(entity.id)));
+        }
     }
 
     /** Forgets every body, for a world that is closing. */

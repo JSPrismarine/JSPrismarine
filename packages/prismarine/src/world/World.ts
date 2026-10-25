@@ -19,6 +19,7 @@ import type { BlockState } from '../block/state/BlockState';
 import { AttributeIds } from '../entity/Attribute';
 import { spawnableEntities } from '../entity/Entities';
 import type { LiveEntityRuntime } from '../entity/data/live';
+import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
@@ -665,12 +666,38 @@ export class World implements Service {
             if (nbt.getString('identifier', '') === 'minecraft:player') continue;
 
             const entity = EntitySerializer.fromNBT(nbt, this);
+            if (this.restoreDataEntity(entity)) continue;
+
             const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
             if (legacyEntity) await this.removeEntity(legacyEntity);
 
             if (entity instanceof Mob) entity.setPersistent();
             await this.addEntity(entity);
         }
+    }
+
+    /**
+     * Hands a saved mob back to the data-driven runtime, when it was one.
+     *
+     * Without this a mob that was running its components, goals and brain came
+     * back as a body with none of them behind it, and the spawn loop counted
+     * nothing against the population cap it had been spawned under, so a
+     * reloaded world over-spawned.
+     *
+     * @param stored - The body built from the actor NBT, which the runtime
+     *   reads the position and the untouched tags off and then replaces.
+     * @returns Whether the runtime took it. False means this world runs the
+     *   written entity classes, or the actor was saved by one of them, and the
+     *   caller adds the body it built.
+     */
+    private restoreDataEntity(stored: Entity): boolean {
+        const live = this.dataEntities();
+        if (live === undefined || stored.persistentNbt === null) return false;
+
+        const record = dataEntityRecordIn(stored.persistentNbt);
+        if (record === undefined) return false;
+
+        return live.restore(record, stored) !== undefined;
     }
 
     private isLegacyEntity(candidate: Entity, stored: Entity): boolean {
@@ -1629,6 +1656,10 @@ export class World implements Service {
     public async saveChunks(): Promise<void> {
         const timer = new Timer();
         this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
+
+        // A data-driven mob's state lives in the runtime, and the chunk serializer only ever
+        // sees the body. This is where the two meet, once per save rather than once per tick.
+        this.dataEntities()?.persist();
 
         const changed = Array.from(this.chunks.values()).filter((chunk) => chunk.getHasChanged());
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {

@@ -55,7 +55,9 @@ const testServer = (): Server =>
                 debug: () => {},
                 verbose: () => {}
             }),
-        getConfig: () => stub<Config>({ getPreloadRadius: () => PRELOAD_RADIUS })
+        getConfig: () => stub<Config>({ getPreloadRadius: () => PRELOAD_RADIUS }),
+        // No data-driven runtime: this world runs the written entity classes.
+        getEntityRuntime: () => undefined
     });
 
 /**

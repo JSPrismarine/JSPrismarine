@@ -128,6 +128,8 @@ const buildScene = async (name: string) => {
         getBlockManager: () => (blocksOf ??= new BlockManager(server)),
         getItemManager: () => (itemsOf ??= new ItemManager(server)),
         getContent: () => content,
+        // No data-driven runtime: this world runs the written entity classes.
+        getEntityRuntime: () => undefined,
         getWorldManager: () =>
             stub<WorldManager>({
                 getWorlds: () => (world === undefined ? [] : [world]),

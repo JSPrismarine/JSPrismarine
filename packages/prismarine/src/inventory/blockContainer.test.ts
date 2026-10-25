@@ -156,6 +156,8 @@ const buildScene = async (name: string) => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getContent: () => content,
+        // No data-driven runtime: this world runs the written entity classes.
+        getEntityRuntime: () => undefined,
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
