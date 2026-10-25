@@ -37,7 +37,7 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "vite build && node ../../scripts/emit-dts.mts",
-        "typecheck": "tsc-ts --noEmit"
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",
