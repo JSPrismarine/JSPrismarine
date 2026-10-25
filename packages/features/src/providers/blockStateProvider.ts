@@ -210,8 +210,14 @@ export const copyPropertiesProvider = (source: BlockStateProvider): BlockStatePr
         return result;
     });
 
-/** Reads a `{"id": ..., "properties": {...}}` block state. */
+/**
+ * Reads a block state.
+ *
+ * 26.3 accepts a bare identifier wherever a state is expected, which is how most of the feature
+ * data spells a block with no interesting properties.
+ */
 export const parseBlockState = (source: unknown, path: string): BlockState => {
+    if (typeof source === 'string') return blockState(normalizeIdentifier(source, path));
     const raw = asObject(source, path);
     const name = normalizeIdentifier(raw['id'] ?? raw['Name'], `${path}.id`);
     const properties = raw['properties'] ?? raw['Properties'];
@@ -233,13 +239,28 @@ const buildNoise = (raw: Record<string, unknown>, path: string): { noise: Noise;
     return { noise: parameters.create(new LegacyRandomSource(seed)), scale: asNumber(raw['scale'], `${path}.scale`) };
 };
 
+/** Resolves a `worldgen/block_state_provider` reference to its parsed provider. */
+export type BlockStateProviderResolver = (id: string, path: string) => BlockStateProvider;
+
 /**
  * Reads a `worldgen/block_state_provider_type` document.
  *
- * A bare `{"id": ...}` object is a `simple` provider, which is how most of the data spells a
- * fixed block.
+ * Three spellings are accepted, because 26.3 accepts all three: a bare identifier is a
+ * reference into the `block_state_provider` registry, which vanilla uses for the eight shared
+ * providers such as `soil_beneath_tree`; a bare `{"id": ...}` object or a bare identifier
+ * string in a state position is a `simple` provider; and an object with a `type` is a typed
+ * provider.
  */
-export const parseBlockStateProvider = (source: unknown, path: string): BlockStateProvider => {
+export const parseBlockStateProvider = (
+    source: unknown,
+    path: string,
+    resolve?: BlockStateProviderResolver
+): BlockStateProvider => {
+    if (typeof source === 'string') {
+        const id = normalizeIdentifier(source, path);
+        if (resolve === undefined) return simpleProvider(blockState(id));
+        return resolve(id, path);
+    }
     const raw = asObject(source, path);
     if (!('type' in raw)) return simpleProvider(parseBlockState(raw, path));
 
@@ -262,7 +283,8 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
 
         case 'dual_noise': {
             const { noise, scale } = buildNoise(raw, path);
-            const variety = asObject(raw['variety'], `${path}.variety`);
+            // `InclusiveRange` serializes as a two-element array, not as an object.
+            const variety = asArray(raw['variety'], `${path}.variety`);
             const slowParameters = new NormalNoise(parseNoiseParameters(raw['slow_noise']));
             const slowNoise = slowParameters.create(
                 new LegacyRandomSource(BigInt(asInteger(raw['seed'], `${path}.seed`)))
@@ -270,8 +292,8 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
             return dualNoiseProvider(
                 slowNoise,
                 asNumber(raw['slow_scale'], `${path}.slow_scale`),
-                asInteger(variety['min_inclusive'], `${path}.variety.min_inclusive`),
-                asInteger(variety['max_inclusive'], `${path}.variety.max_inclusive`),
+                asInteger(variety[0], `${path}.variety[0]`),
+                asInteger(variety[1], `${path}.variety[1]`),
                 noise,
                 scale,
                 parseStateList(raw['states'], `${path}.states`)
@@ -293,7 +315,7 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
 
         case 'randomized_int':
             return randomizedIntProvider(
-                parseBlockStateProvider(raw['source'], `${path}.source`),
+                parseBlockStateProvider(raw['source'], `${path}.source`, resolve),
                 asString(raw['property'], `${path}.property`),
                 parseIntProvider(raw['values'], `${path}.values`)
             );
@@ -301,7 +323,7 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
         case 'rotated': {
             const direction = raw['direction'];
             return rotatedProvider(
-                parseBlockStateProvider(raw['state'], `${path}.state`),
+                parseBlockStateProvider(raw['state'], `${path}.state`, resolve),
                 direction === undefined ? undefined : parseDirectionValue(direction, `${path}.direction`)
             );
         }
@@ -312,13 +334,13 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
                 const rule = asObject(entry, rulePath);
                 return {
                     ifTrue: parseBlockPredicate(rule['if_true'], `${rulePath}.if_true`),
-                    then: parseBlockStateProvider(rule['then'], `${rulePath}.then`)
+                    then: parseBlockStateProvider(rule['then'], `${rulePath}.then`, resolve)
                 };
             });
             const fallback = raw['fallback'];
             return ruleBasedProvider(
                 rules,
-                fallback === undefined ? undefined : parseBlockStateProvider(fallback, `${path}.fallback`)
+                fallback === undefined ? undefined : parseBlockStateProvider(fallback, `${path}.fallback`, resolve)
             );
         }
 
@@ -336,7 +358,7 @@ export const parseBlockStateProvider = (source: unknown, path: string): BlockSta
         }
 
         case 'copy_properties':
-            return copyPropertiesProvider(parseBlockStateProvider(raw['source'], `${path}.source`));
+            return copyPropertiesProvider(parseBlockStateProvider(raw['source'], `${path}.source`, resolve));
 
         default:
             return fail(path, `unknown block state provider type ${JSON.stringify(type)}`);

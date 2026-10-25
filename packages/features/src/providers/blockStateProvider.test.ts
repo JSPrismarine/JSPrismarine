@@ -11,6 +11,16 @@ const pick = (document: unknown, seed = 1n, position = ORIGIN, world = new TestF
     blockStateKey(parseBlockStateProvider(document, 'test').getState(world, new WorldgenRandom(seed), position));
 
 describe('parseBlockStateProvider', () => {
+    it('resolves a bare identifier through the provider registry', () => {
+        const shared = parseBlockStateProvider({ id: 'minecraft:podzol' }, 'shared');
+        const provider = parseBlockStateProvider('minecraft:podzol_beneath_tree', 'test', () => shared);
+        expect(provider).toBe(shared);
+    });
+
+    it('treats a bare identifier as a simple provider when there is no registry', () => {
+        expect(pick('minecraft:grass_block')).toBe('minecraft:grass_block');
+    });
+
     it('reads all ten registered types', () => {
         const noise = { base_octave: -3, octave_count: 1, base_amplitude: 1 };
         const documents: Record<string, unknown> = {
@@ -24,7 +34,7 @@ describe('parseBlockStateProvider', () => {
                 scale: 1,
                 slow_noise: noise,
                 slow_scale: 1,
-                variety: { min_inclusive: 1, max_inclusive: 3 },
+                variety: [1, 3],
                 states: [{ id: 'minecraft:stone' }, { id: 'minecraft:dirt' }]
             },
             noise_threshold: {
@@ -246,7 +256,7 @@ describe('parseBlockStateProvider', () => {
                 scale: 0.08,
                 slow_noise: noise,
                 slow_scale: 0.001,
-                variety: { min_inclusive: 1, max_inclusive: 2 },
+                variety: [1, 2],
                 states
             },
             'test'

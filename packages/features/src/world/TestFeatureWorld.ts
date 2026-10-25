@@ -77,6 +77,8 @@ export interface TestFeatureWorldOptions {
     readonly seaLevel?: number;
     /** The biome every position reports. Defaults to `minecraft:plains`. */
     readonly biome?: string;
+    /** The world seed. Defaults to zero. */
+    readonly seed?: bigint;
     /** The block facts. Defaults to {@link createTestOracle} with no tables. */
     readonly blocks?: BlockOracle;
 }
@@ -106,6 +108,8 @@ export class TestFeatureWorld implements FeatureWorld {
     /** @inheritDoc */
     public readonly seaLevel: number;
     /** @inheritDoc */
+    public readonly seed: bigint;
+    /** @inheritDoc */
     public readonly blocks: BlockOracle;
     /** Every successful write in the order it happened. */
     public readonly writes: { position: BlockPos; state: BlockState }[] = [];
@@ -118,6 +122,7 @@ export class TestFeatureWorld implements FeatureWorld {
         this.minY = options.minY ?? -64;
         this.height = options.height ?? 384;
         this.seaLevel = options.seaLevel ?? 63;
+        this.seed = options.seed ?? 0n;
         this.blocks = options.blocks ?? createTestOracle();
         this.defaultBiome = options.biome ?? 'minecraft:plains';
     }
