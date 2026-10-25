@@ -387,7 +387,7 @@ export const contentPayloadWarning = (report: ContentPayloadReport): string | un
 
 /**
  * The join payloads for a content build, or undefined when there is no build
- * and when the build could not produce them.
+ * or the build could not produce them.
  *
  * This is what the join burst reads, so it never throws. A build whose
  * payloads cannot be produced leaves every packet on the captured path it
