@@ -83,6 +83,7 @@
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/console-protocol": "workspace:*",
+        "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/content": "workspace:*",
         "@jsprismarine/enchantments": "workspace:*",
         "@jsprismarine/engine-systems": "workspace:*",

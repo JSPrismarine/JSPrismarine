@@ -1,15 +1,18 @@
 import type { RootCommandNode } from '@jsprismarine/brigadier';
 import { ArgumentCommandNode, CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
+import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
+import { createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
 import {
     CommandRegisterClassMalformedOrMissingError,
     CommandUnknownCommandError,
     Error,
     GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
+import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type { Command, Entity, Server, Service } from '../';
 import { Chat } from '../chat/Chat';
-import { collectAsyncCommands } from './Command';
+import { collectAsyncCommands, deferCommandWork } from './Command';
 // Imported straight from its module rather than through the barrel: `index.ts` exports
 // `./world/` before `Player`, so reaching for it via '../' lands in a half-initialized
 // module and the binding is not a constructor yet by the time `instanceof` runs.
@@ -23,6 +26,9 @@ import { CommandArgument, isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import * as Commands from './Commands';
+import { entityRefOf } from './host/support';
+import { serverCommandHost } from './host/serverCommandHost';
+import { UNWIRED_COMMANDS, buildVanillaCommands } from './vanillaCommands';
 
 /**
  * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
@@ -61,14 +67,39 @@ class LiteralCommandArgument extends CommandArgument {
     }
 }
 
+/**
+ * The permission node a vanilla command is gated by.
+ *
+ * The command layer carries a `CommandPermissionLevel`; this server gates on
+ * named nodes, and the names are the ones the legacy command classes used, so
+ * a `permissions.json` that granted `minecraft.command.me` still grants it.
+ */
+export const vanillaPermissionOf = (name: string): string => `minecraft.command.${name}`;
+
 export class CommandManager implements Service {
     private readonly commands: Map<string, Command> = new Map();
     private readonly server: Server;
     private dispatcher!: CommandDispatcher<CommandExecutor>;
 
+    /** What `@jsprismarine/commands` calls into - see {@link import('./host').serverCommandHost}. */
+    private readonly host: CommandHost;
+
+    /**
+     * The vanilla command set, as a Java-shaped Brigadier tree.
+     *
+     * A second registry beside {@link CommandManager.dispatcher} rather than a
+     * replacement for it: the two dispatch different source types, and the
+     * `jsprismarine:` commands and the two vanilla ones the package does not
+     * implement still run on the old one. A command name belongs to exactly
+     * one of them, which is what {@link CommandManager.vanillaName} decides.
+     */
+    private readonly vanilla: CommandRegistry<CommandSource>;
+
     public constructor(server: Server) {
         this.server = server;
         this.dispatcher = new CommandDispatcher<CommandExecutor>();
+        this.host = serverCommandHost(server);
+        this.vanilla = buildVanillaCommands();
     }
 
     /**
@@ -77,6 +108,13 @@ export class CommandManager implements Service {
      */
     public async enable(): Promise<void> {
         const timer = new Timer();
+
+        this.server
+            .getLogger()
+            .verbose(
+                `Registered §b${this.vanilla.getNames().length}§r vanilla command(s); ` +
+                    `§e${Object.keys(UNWIRED_COMMANDS).length}§r need a subsystem this server does not have`
+            );
 
         const commands = Object.values(Commands);
 
@@ -237,6 +275,137 @@ export class CommandManager implements Service {
         return this.dispatcher;
     }
 
+    /** The vanilla command set, for the session that has to advertise it. */
+    public getVanillaCommands(): CommandRegistry<CommandSource> {
+        return this.vanilla;
+    }
+
+    /**
+     * The vanilla command set flattened into Bedrock's overload shape.
+     *
+     * Flattened per call rather than cached: a command's tree never changes,
+     * but the list is built once per recipient and the cost is a walk of fifty
+     * trees, which is less than the packet it goes out in.
+     * @returns {FlattenedCommand[]} One entry per command, aliases folded in.
+     */
+    public getVanillaCommandList(): readonly FlattenedCommand[] {
+        return flattenCommandTree(this.vanilla).commands;
+    }
+
+    /**
+     * The command a name or alias belongs to in the vanilla set.
+     *
+     * @param {string} name - The first word of a command line, without the slash.
+     * @returns {string | undefined} The owning command's name, or undefined
+     * when the vanilla set does not hold it.
+     */
+    public vanillaName(name: string): string | undefined {
+        const lower = name.toLowerCase();
+        if (this.vanilla.getMetadata(lower) !== undefined) return lower;
+        return this.vanilla.getAliasOwner(lower);
+    }
+
+    /**
+     * The usage lines `/help` prints.
+     *
+     * @param {string} [command] - One command's name, or undefined for the whole list.
+     * @returns {string[]} One line per command, or per overload for a named command.
+     */
+    public usageLines(command?: string): readonly string[] {
+        const flattened = this.getVanillaCommandList();
+        if (command === undefined) {
+            return flattened.map((entry) => `/${entry.name} - ${entry.description}`);
+        }
+
+        const owner = this.vanillaName(command);
+        const entry = flattened.find((candidate) => candidate.name === owner);
+        if (entry === undefined) return [];
+
+        return entry.overloads.map((overload) =>
+            [`/${entry.name}`, ...overload.parameters.map((parameter) => `<${parameter.name}>`)].join(' ')
+        );
+    }
+
+    /**
+     * Builds the `CommandSourceStack` a vanilla command runs with.
+     *
+     * The console is level 5, an operator level 4 and everyone else level 0,
+     * which is the only mapping this server's named permission nodes allow:
+     * `defaultOperatorPermissions` is `*`, so an operator may run everything
+     * and a player may run what `permissions.json` names. The level is what
+     * the client is told, and the node is what the dispatch checks.
+     */
+    private vanillaSource(sender: CommandExecutor, target: CommandExecutor): CommandSource {
+        const entity = target instanceof Player ? entityRefOf(target) : undefined;
+        const operator = sender instanceof Player ? sender.isOp() : true;
+        const world = sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
+
+        return createCommandSource({
+            host: this.host,
+            ...(entity === undefined ? {} : { entity }),
+            permissionLevel:
+                sender instanceof Player
+                    ? operator
+                        ? CommandPermissionLevel.OWNER
+                        : CommandPermissionLevel.ANY
+                    : CommandPermissionLevel.INTERNAL,
+            // `sendCommandFeedback` is Java's switch for exactly this: the
+            // success message, never the failure.
+            silent: world.getGameRuleManager().getGameRule('sendCommandFeedback')?.[0] !== true,
+            dialect: sender instanceof Player ? 'bedrock' : 'java',
+            onFeedback: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(message))),
+            onError: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(`§c${message}`)))
+        });
+    }
+
+    /**
+     * Runs one vanilla command.
+     *
+     * @returns True when the command ran, false when the sender was refused or
+     * the command reported a failure; either way the sender has been told.
+     */
+    private async dispatchVanilla(
+        sender: CommandExecutor,
+        target: CommandExecutor,
+        name: string,
+        input: string
+    ): Promise<boolean> {
+        const metadata = this.vanilla.getMetadata(name)!;
+
+        if (sender instanceof Player) {
+            if (!this.server.getPermissionManager().can(sender).execute(vanillaPermissionOf(name))) {
+                await sender.sendMessage(
+                    "§cI'm sorry, but you do not have permission to perform this command. " +
+                        'Please contact the server administrators if you believe that this is in error.'
+                );
+                return false;
+            }
+        }
+
+        const source = this.vanillaSource(sender, target);
+        if (metadata.permissionLevel > source.permissionLevel) {
+            await sender.sendMessage('§cThat command needs a higher permission level');
+            return false;
+        }
+
+        // The dispatcher is synchronous and the host verbs park their delivery
+        // on the same queue the legacy bodies use, so everything one command
+        // line started is awaited here before the call returns.
+        let results: unknown = [];
+        const started = collectAsyncCommands(() => {
+            results = this.vanilla.getDispatcher().execute(input, source);
+        });
+        await Promise.all(started);
+
+        // The port's `execute` answers with one result per executed context, so
+        // a forked `execute as @e run ...` reports the whole fan-out's total,
+        // which is what upstream Brigadier's `int` return adds up to.
+        const total = Array.isArray(results)
+            ? results.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0)
+            : 0;
+        return total > 0;
+    }
+
     /**
      * Dispatches a command and executes it.
      *
@@ -259,6 +428,25 @@ export class CommandManager implements Service {
                 return false;
             }
             if (input.startsWith('/')) input = input.slice(1);
+            input = input.trim();
+
+            // The vanilla set first. A name belongs to exactly one of the two
+            // trees, and the vanilla one owns every name it holds - which is
+            // what retires a legacy class rather than shadowing it.
+            const typed = input.split(' ')[0] ?? '';
+            const vanilla = this.vanillaName(typed);
+            if (vanilla !== undefined) {
+                if (sender instanceof Player) {
+                    this.server
+                        .getLogger()
+                        .debug(
+                            `Entity with §b${sender.getRuntimeId()}§r is dispatching command: ${input} (id: ${vanilla})`,
+                            'CommandManager/dispatchCommand'
+                        );
+                }
+
+                return await this.dispatchVanilla(sender, target, vanilla, input);
+            }
 
             const parsed = this.dispatcher.parse(input.trim(), target);
             const id = parsed.getReader().getString().split(' ')[0]!;
@@ -301,7 +489,10 @@ export class CommandManager implements Service {
             // for it.
             const world =
                 sender instanceof Player ? sender.getWorld() : this.server.getWorldManager().getDefaultWorld();
-            const feedback = world.getGameRuleManager().getGameRule('sendCommandFeedback');
+            // The stored rule is a `[value, editable]` pair, so the value is
+            // what decides. Read as the pair itself, the check was a non-empty
+            // array and the gamerule never suppressed anything.
+            const feedback = world.getGameRuleManager().getGameRule('sendCommandFeedback')?.[0];
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
             if (!feedback) return true;
