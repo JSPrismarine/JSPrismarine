@@ -27,7 +27,8 @@ describe('the effect type registries', () => {
 
     it('registers the 16 location effect types, which are the entity types plus attribute', () => {
         expect(LOCATION_EFFECT_TYPES).toHaveLength(16);
-        expect([...LOCATION_EFFECT_TYPES].filter((name) => !ENTITY_EFFECT_TYPES.includes(name))).toEqual(['attribute']);
+        const entityTypes = new Set<string>(ENTITY_EFFECT_TYPES);
+        expect([...LOCATION_EFFECT_TYPES].filter((name) => !entityTypes.has(name))).toEqual(['attribute']);
     });
 
     it('rejects attribute inside an entity effect component', () => {
