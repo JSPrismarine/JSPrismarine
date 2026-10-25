@@ -752,7 +752,10 @@ export class Mob extends Entity {
      * @returns {MobLootState} What this mob is, past its type.
      */
     protected lootState(): MobLootState {
-        return { flags: { is_on_fire: this.environment.burning > 0 } };
+        // The two flags the vanilla entity tables read. Stating `is_baby` rather than leaving it
+        // out matters: an absent flag reads as "this host cannot say" and reports, and no mob on
+        // this server is a baby yet.
+        return { flags: { is_on_fire: this.environment.burning > 0, is_baby: false } };
     }
 
     /**
