@@ -34,6 +34,9 @@ import { WorldSystems } from './WorldSystems';
 /** The fixture's blocks, which are also the whole of its palette. */
 const BLOCKS = ['minecraft:air', 'minecraft:dirt', 'minecraft:farmland', 'minecraft:wheat'] as const;
 
+/** Blocks whose Java tick states use different words from Bedrock's palette. */
+const MAPPED_STATE_BLOCKS = ['minecraft:bamboo', 'minecraft:pointed_dripstone'] as const;
+
 /** The y the farmland sits at; the crop stands on top of it with the sky above. */
 const SOIL_Y = 63;
 
@@ -155,6 +158,56 @@ describe('contentRandomTickHandlers', () => {
 
         // The crop grows, the farmland dries out and the dirt spreads grass; air does nothing.
         expect(Object.keys(handlers).sort()).toEqual(['minecraft:dirt', 'minecraft:farmland', 'minecraft:wheat']);
+    });
+
+    it('dispatches random ticks for blocks whose Java state words differ from Bedrock', () => {
+        let built: ServerContent | undefined;
+        const mappedContent = buildServerContent({
+            load: () => ({
+                definitions: definitionsOf({
+                    blocks: new Map(MAPPED_STATE_BLOCKS.map((identifier) => [identifier, overlayBlock(identifier)]))
+                }),
+                diagnostics: []
+            }),
+            blockPalette: new BlockPalette(
+                MAPPED_STATE_BLOCKS.map((identifier) => [identifier, vanillaBlockPalette().entry(identifier)!.model])
+            ),
+            itemDefinitions: [],
+            seed: 1234n,
+            world: serverWorldSource({
+                worldFor: () => world,
+                content: () => built!,
+                seed: 1234n,
+                difficulty: () => Difficulty.NORMAL,
+                random: constantRandom(0.99)
+            })
+        });
+        built = mappedContent;
+
+        const reported: string[] = [];
+        const handlers = contentRandomTickHandlers({
+            content: mappedContent,
+            world: () => world,
+            report: (identifier) => reported.push(identifier)
+        });
+        const bambooTick = handlers['minecraft:bamboo'];
+        const dripstoneTick = handlers['minecraft:pointed_dripstone'];
+        expect(bambooTick).toBeDefined();
+        expect(dripstoneTick).toBeDefined();
+
+        bambooTick?.(
+            { x: 1, y: SOIL_Y + 1, z: 1 },
+            {
+                name: 'minecraft:bamboo',
+                states: { age_bit: 0, bamboo_leaf_size: 'none', bamboo_stalk_thickness: 'thin' }
+            }
+        );
+        dripstoneTick?.(
+            { x: 2, y: SOIL_Y + 1, z: 2 },
+            { name: 'minecraft:pointed_dripstone', states: { dripstone_thickness: 'tip_merge', hanging: 1 } }
+        );
+
+        expect(reported).toEqual([]);
     });
 
     it('grows a planted crop over the world tick, with nothing else driving it', () => {
