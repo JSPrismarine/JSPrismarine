@@ -15,7 +15,7 @@ import type { BlockSet } from '../registry';
 import { normalizeIdentifier, parseBlockSet } from '../registry';
 import type { BlockState, Direction } from '../world/BlockState';
 import { blockState, HORIZONTAL_DIRECTIONS, oppositeDirection, withProperty } from '../world/BlockState';
-import type { BlockPos, FeatureWorld } from '../world/FeatureWorld';
+import type { BlockPos, FeatureWorld, TemplateProcessors } from '../world/FeatureWorld';
 import { atY, offset } from '../world/FeatureWorld';
 import type { ConfiguredFeature } from './Feature';
 import { feature } from './Feature';
@@ -606,7 +606,7 @@ export const templateFeature = (
         readonly value: { readonly template: string; readonly rotations: readonly number[] };
         readonly weight: number;
     }[],
-    processors?: string
+    processors?: TemplateProcessors
 ): ConfiguredFeature =>
     feature('template', (world, random, origin) => {
         const entry = randomWeighted(templates, random);
@@ -1409,6 +1409,24 @@ export const fallenTree = (
 const parseStateList = (source: unknown, path: string): BlockState[] =>
     asArray(source, path).map((entry, index) => parseBlockState(entry, `${path}[${index}]`));
 
+/**
+ * Reads the processors a `template` feature runs its blocks through.
+ *
+ * Java's processor list codec takes an identifier, a bare list of processors, or an object
+ * holding that list, and the desert well is the one vanilla feature that writes its rules where
+ * it stands rather than naming a list. Dropping the inline form places the template unprocessed,
+ * which for the desert well is suspicious sand with nothing to brush out of it.
+ *
+ * The rules themselves stay `unknown`: this package names a chain and the world reads it.
+ */
+const parseTemplateProcessors = (value: unknown, path: string): TemplateProcessors | undefined => {
+    if (value === undefined) return undefined;
+    if (typeof value === 'string') return normalizeIdentifier(value, path);
+    if (Array.isArray(value)) return { processors: asArray(value, path) };
+
+    return { processors: asArray(asObject(value, path)['processors'], `${path}.processors`) };
+};
+
 /** Reads the structural feature types. */
 export const parseStructuralFeature = (
     type: string,
@@ -1501,7 +1519,7 @@ export const parseStructuralFeature = (
             return bonusChest();
 
         case 'template': {
-            const processors = raw['processors'];
+            const processors = parseTemplateProcessors(raw['processors'], `${path}.processors`);
             return templateFeature(
                 parseWeightedList(raw['templates'], `${path}.templates`, (value, entryPath) => {
                     const entry = asObject(value, entryPath);
@@ -1521,10 +1539,7 @@ export const parseStructuralFeature = (
                                   )
                     };
                 }),
-                // `processors` is either a reference or an inline processor list; both travel
-                // through to the structure layer untouched, because this package does not read
-                // processor documents.
-                typeof processors === 'string' ? normalizeIdentifier(processors, `${path}.processors`) : undefined
+                processors
             );
         }
 
