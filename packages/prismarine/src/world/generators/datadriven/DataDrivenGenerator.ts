@@ -14,6 +14,13 @@
 import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 
+import type { StepRegion } from '@jsprismarine/chunkgen';
+import {
+    ChunkHolderMap,
+    FEATURE_PATCH_ORDER,
+    GenerationScheduler,
+    InboundFeaturePatches
+} from '@jsprismarine/chunkgen';
 import type { BlockOracle, BlockPos, FeatureWorld, PlacedFeature } from '@jsprismarine/features';
 import {
     DECORATION_STEPS,
@@ -53,6 +60,7 @@ import { Dimensions, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
 import { GenerationStopped } from '../../Generator';
+import { GenerationChunk } from './GenerationChunk';
 import { GenerationRegion } from './GenerationRegion';
 import type { RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -123,9 +131,18 @@ interface SeededPipeline {
     readonly climateOf: (biome: string) => BiomeClimate;
     readonly oracle: BlockOracle;
     readonly translator: JavaStateTranslator;
-    readonly terrainChunks: Map<string, Promise<GenerationRegion>>;
-    readonly featurePatches: Map<string, RegionChunkPatch[]>;
-    readonly generatedChunks: Map<string, Chunk>;
+    /** Where every chunk of this world sits on the ladder, and how long each one is kept. */
+    readonly holders: ChunkHolderMap<GenerationChunk>;
+    /** The layer loop that drives a chunk and its neighborhood up the ladder. */
+    readonly scheduler: GenerationScheduler<GenerationChunk>;
+    /**
+     * The holders this generator keeps a reference on past the run that built them, oldest first.
+     *
+     * A run releases its whole neighborhood when it finishes, so without this every chunk would
+     * rebuild the twenty-five terrain tiles a `full` target drives. The value is the position,
+     * because releasing needs it and the key is a string.
+     */
+    readonly retained: Map<string, readonly [number, number]>;
     /** Each chunk's biome palette, which its eight neighbors read while they decorate. */
     readonly chunkBiomes: Map<string, ReadonlySet<string>>;
     generationTail: Promise<void>;
@@ -164,8 +181,24 @@ const BEDROCK = 'minecraft:bedrock';
 /** What a carver leaves behind. Java's carvers write cave air rather than ordinary air. */
 const CAVE_AIR = 'minecraft:cave_air';
 
-/** Bounds the cached terrain tiles and feature output kept for adjacent chunk generation. */
+/** How many chunk holders the generator keeps alive past the run that built them. */
 const GENERATION_CACHE_SIZE = 128;
+
+/**
+ * How far around a requested chunk the generator keeps holders, in chunks.
+ *
+ * Two, because that is the radius a `full` target drives `terrain` over. Keeping the terrain layer
+ * is what makes a walk across a region pay for one noise fill per chunk instead of twenty-five.
+ */
+const RETENTION_RADIUS = 2;
+
+/**
+ * The nine chunks a feature view covers, in the order their terrain is copied into it.
+ *
+ * The order decides nothing, because the nine write disjoint columns of the view. It is written
+ * down so a reader does not have to work that out.
+ */
+const FEATURE_VIEW_TILES = [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => [dx, dz] as const));
 
 /** How long the terrain fill may hold the event loop before handing it back, in milliseconds. */
 const TERRAIN_YIELD_BUDGET_MS = 4;
@@ -228,28 +261,18 @@ export class DataDrivenGenerator implements Generator {
     public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
         return this.serializeGeneration(cx, cz, pipeline, async () => {
-            const key = this.chunkKey(cx, cz);
-            const generated = pipeline.generatedChunks.get(key);
-            if (generated !== undefined) return generated;
+            this.retain(pipeline, cx, cz);
 
-            const region = this.createRegion(cx, cz, pipeline);
-            const coordinates =
-                this.options.decorate === false
-                    ? [[cx, cz] as const]
-                    : [-1, 0, 1].flatMap((dx) => [-1, 0, 1].map((dz) => [cx + dx, cz + dz] as const));
-            const terrain = await Promise.all(
-                coordinates.map(([chunkX, chunkZ]) => this.terrainFor(chunkX, chunkZ, pipeline))
-            );
-            for (const source of terrain) region.copyCenterFrom(source);
+            // Decoration is the only thing that makes a chunk need its neighborhood. With it off
+            // the ladder stops at `terrain`, which is one noise fill rather than the twenty-five
+            // a `full` target drives, and there is no Bedrock chunk yet to hand back.
+            const target = this.options.decorate === false ? 'terrain' : 'full';
+            const staged = await pipeline.scheduler.generate(cx, cz, target);
+            const promoted = staged.bedrockChunk;
+            if (promoted !== undefined) return promoted;
 
-            region.beginWriteTracking();
-            if (this.options.decorate !== false) this.decorate(cx, cz, region, pipeline);
-
-            const patches = region.takeTrackedPatches();
-            for (const patch of patches) await this.applyFeaturePatch(patch, cx, cz, pipeline);
-
-            const chunk = this.toChunk(cx, cz, region, pipeline);
-            pipeline.generatedChunks.set(key, chunk);
+            const chunk = this.toChunk(cx, cz, staged.terrain, pipeline);
+            staged.recordChunk(chunk);
             return chunk;
         });
     }
@@ -280,12 +303,19 @@ export class DataDrivenGenerator implements Generator {
         return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
     }
 
-    private createRegion(cx: number, cz: number, pipeline: SeededPipeline): GenerationRegion {
+    /**
+     * A scratch region, either one chunk wide or the three by three a feature pass writes into.
+     *
+     * @param radius - 0 for a terrain tile and for the region a chunk is promoted out of, 1 for
+     * the feature view, which is Java's `WorldGenRegion` extent.
+     */
+    private createRegion(cx: number, cz: number, radius: number, pipeline: SeededPipeline): GenerationRegion {
         return new GenerationRegion({
             chunkX: cx,
             chunkZ: cz,
             minY: this.dimension.minY,
             height: this.dimension.height,
+            radius,
             seaLevel: pipeline.settings.seaLevel,
             seed: pipeline.randomState.seed,
             blocks: pipeline.oracle,
@@ -294,40 +324,105 @@ export class DataDrivenGenerator implements Generator {
         });
     }
 
-    private async terrainFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
-        const key = this.chunkKey(cx, cz);
-        const cached = pipeline.terrainChunks.get(key);
-        if (cached !== undefined) {
-            pipeline.terrainChunks.delete(key);
-            pipeline.terrainChunks.set(key, cached);
-            return cached;
+    /**
+     * The `terrain` body: the noise fill, the surface materials and the carvers for one chunk.
+     *
+     * The tile it leaves behind is never written into again. Up to nine feature passes read it,
+     * and the chunk's own promotion copies it, so anything that wrote into it afterwards would
+     * make its contents depend on what else the generator had been asked for.
+     */
+    private async runTerrain(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
+        const chunk = region.center;
+        chunk.recordTerrain(await this.buildTerrain(chunk.chunkX, chunk.chunkZ, pipeline));
+        return chunk;
+    }
+
+    /**
+     * The `features` body: Java's decoration pass over a three by three view of finished terrain.
+     *
+     * Nothing is written through. The view collects every write the pass made and splits it by the
+     * chunk it landed in, so the eight neighbors receive a patch rather than a mutation and two
+     * feature passes that overlap cannot race. The view itself is dropped here: what survives is
+     * this chunk's own writes and the eight patches, which is a few kilobytes against the 1.7 MiB
+     * the view holds.
+     */
+    private runFeatures(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): GenerationChunk {
+        const chunk = region.center;
+        const view = this.createRegion(chunk.chunkX, chunk.chunkZ, 1, pipeline);
+        for (const [dx, dz] of FEATURE_VIEW_TILES) view.copyCenterFrom(region.neighbor(dx, dz, 'terrain').terrain);
+
+        view.beginWriteTracking();
+        this.decorate(chunk.chunkX, chunk.chunkZ, view, pipeline);
+        chunk.recordFeatures(
+            new Map(view.takeTrackedPatches().map((patch) => [this.chunkKey(patch.chunkX, patch.chunkZ), patch]))
+        );
+        return chunk;
+    }
+
+    /**
+     * The `full` body: terrain, then this chunk's own feature writes, then the eight inbound
+     * patches in {@link FEATURE_PATCH_ORDER}.
+     *
+     * The order is positional and nothing else, which is what makes the border a function of the
+     * seed and the position. Java merges nothing because it wrote through, so where two features
+     * from different chunks land on the same block Java's answer depends on which chunk reached
+     * `features` first. ADR 0002 takes that deviation on purpose; this loop is where it is paid
+     * for, and reading its eight neighbors is why the `full` step declares `features` at radius 1.
+     */
+    private runFull(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): GenerationChunk {
+        const chunk = region.center;
+        const final = this.createRegion(chunk.chunkX, chunk.chunkZ, 0, pipeline);
+        final.copyCenterFrom(chunk.terrain);
+
+        const own = chunk.ownFeatureWrites;
+        if (own !== undefined) final.applyPatch(own);
+
+        const inbound = new InboundFeaturePatches<RegionChunkPatch>();
+        for (const [dx, dz] of FEATURE_PATCH_ORDER) {
+            const patch = region.neighbor(dx, dz, 'features').featureWritesInto(chunk.chunkX, chunk.chunkZ);
+            if (patch !== undefined) inbound.receive(dx, dz, patch);
+        }
+        for (const patch of inbound.inMergeOrder()) final.applyPatch(patch);
+
+        chunk.recordChunk(this.toChunk(chunk.chunkX, chunk.chunkZ, final, pipeline));
+        return chunk;
+    }
+
+    /**
+     * Keeps the holders around a requested chunk alive past the run that built them.
+     *
+     * A run releases its whole neighborhood when it finishes, which is what makes the reference
+     * count correct and would also make every chunk rebuild its twenty-five terrain tiles. The
+     * oldest holders go when the count passes {@link GENERATION_CACHE_SIZE}. Dropping one costs a
+     * rebuild and nothing else, because every status is a pure function of the seed and the
+     * position now; the LRU this replaces dropped cross-chunk writes instead.
+     */
+    private retain(pipeline: SeededPipeline, cx: number, cz: number): void {
+        for (let dz = -RETENTION_RADIUS; dz <= RETENTION_RADIUS; dz++) {
+            for (let dx = -RETENTION_RADIUS; dx <= RETENTION_RADIUS; dx++) {
+                const position = [cx + dx, cz + dz] as const;
+                const key = this.chunkKey(position[0], position[1]);
+                if (pipeline.retained.delete(key)) {
+                    pipeline.retained.set(key, position);
+                    continue;
+                }
+
+                pipeline.holders.acquire(position[0], position[1]);
+                pipeline.retained.set(key, position);
+            }
         }
 
-        const terrain = this.buildTerrain(cx, cz, pipeline).then((region) => {
-            for (const patch of pipeline.featurePatches.get(key) ?? []) region.applyPatch(patch);
-            return region;
-        });
-        pipeline.terrainChunks.set(key, terrain);
-        this.trimCache(pipeline.terrainChunks);
-        void terrain.catch(() => {
-            if (pipeline.terrainChunks.get(key) === terrain) pipeline.terrainChunks.delete(key);
-        });
-        return terrain;
+        while (pipeline.retained.size > GENERATION_CACHE_SIZE) {
+            const oldest = pipeline.retained.entries().next().value;
+            if (oldest === undefined) return;
+
+            pipeline.retained.delete(oldest[0]);
+            pipeline.holders.release(oldest[1][0], oldest[1][1]);
+        }
     }
 
     private async buildTerrain(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
-        const region = new GenerationRegion({
-            chunkX: cx,
-            chunkZ: cz,
-            minY: this.dimension.minY,
-            height: this.dimension.height,
-            radius: 0,
-            seaLevel: pipeline.settings.seaLevel,
-            seed: pipeline.randomState.seed,
-            blocks: pipeline.oracle,
-            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
-            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
-        });
+        const region = this.createRegion(cx, cz, 0, pipeline);
 
         const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz });
         // Java reads the structure starts before it samples the terrain, so a village flattens
@@ -498,53 +593,6 @@ export class DataDrivenGenerator implements Generator {
             const oldest = cache.keys().next().value;
             if (oldest === undefined) return;
             cache.delete(oldest);
-        }
-    }
-
-    /** Stores feature output for later terrain views and updates chunks already handed out. */
-    private async applyFeaturePatch(
-        patch: RegionChunkPatch,
-        currentChunkX: number,
-        currentChunkZ: number,
-        pipeline: SeededPipeline
-    ): Promise<void> {
-        const key = this.chunkKey(patch.chunkX, patch.chunkZ);
-        const history = pipeline.featurePatches.get(key) ?? [];
-        history.push(patch);
-        pipeline.featurePatches.delete(key);
-        pipeline.featurePatches.set(key, history);
-        this.trimCache(pipeline.featurePatches);
-
-        const terrain = pipeline.terrainChunks.get(key);
-        if (terrain !== undefined) (await terrain).applyPatch(patch);
-
-        if (patch.chunkX === currentChunkX && patch.chunkZ === currentChunkZ) return;
-        const generated = pipeline.generatedChunks.get(key);
-        if (generated !== undefined) this.applyPatchToChunk(patch, generated, pipeline);
-    }
-
-    private applyPatchToChunk(patch: RegionChunkPatch, chunk: Chunk, pipeline: SeededPipeline): void {
-        for (const removal of patch.blockEntityRemovals) {
-            chunk.removeBlockEntity(removal.x - patch.chunkX * 16, removal.y, removal.z - patch.chunkZ * 16);
-        }
-
-        for (const write of patch.blocks) {
-            const runtimeId =
-                write.block.bedrock === undefined
-                    ? pipeline.translator.runtimeIdOf(write.block.java.name, write.block.java.properties)
-                    : pipeline.translator.bedrockRuntimeIdOf(write.block.bedrock.name, write.block.bedrock.states);
-            if (runtimeId === UNKNOWN_RUNTIME_ID) continue;
-
-            chunk.setBlockRuntimeId(write.x - patch.chunkX * 16, write.y, write.z - patch.chunkZ * 16, runtimeId);
-        }
-
-        for (const placed of patch.blockEntities) {
-            const blockEntity = createBlockEntity(placed, pipeline.randomState.seed);
-            if (blockEntity !== undefined) chunk.setBlockEntity(blockEntity);
-        }
-        for (const requested of patch.entitySpawns) {
-            const spawn = createEntitySpawn(requested);
-            if (spawn !== undefined) chunk.getEntitySpawns().push(spawn);
         }
     }
 
@@ -794,7 +842,8 @@ export class DataDrivenGenerator implements Generator {
         });
 
         const decoration = this.buildDecorationPlan();
-        return {
+        const holders = new ChunkHolderMap<GenerationChunk>((chunkX, chunkZ) => new GenerationChunk(chunkX, chunkZ));
+        const pipeline: SeededPipeline = {
             randomState,
             settings,
             surface,
@@ -821,12 +870,23 @@ export class DataDrivenGenerator implements Generator {
             climateOf,
             oracle,
             translator: new JavaStateTranslator(),
-            terrainChunks: new Map(),
-            featurePatches: new Map(),
-            generatedChunks: new Map(),
+            holders,
+            // The three bodies close over `pipeline`, which is assigned before any of them can
+            // run: nothing climbs a rung until `generateChunk` asks the scheduler to.
+            scheduler: new GenerationScheduler<GenerationChunk>({
+                holders,
+                tasks: {
+                    terrain: (region) => this.runTerrain(region, pipeline),
+                    features: (region) => this.runFeatures(region, pipeline),
+                    full: (region) => this.runFull(region, pipeline)
+                }
+            }),
+            retained: new Map(),
             chunkBiomes: new Map(),
             generationTail: Promise.resolve()
         };
+
+        return pipeline;
     }
 
     /** Reads a biome's `temperature` and `temperature_modifier`, memoized per biome. */

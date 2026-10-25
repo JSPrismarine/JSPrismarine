@@ -81,6 +81,7 @@
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/block-behaviors": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",
+        "@jsprismarine/chunkgen": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
         "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/content": "workspace:*",
