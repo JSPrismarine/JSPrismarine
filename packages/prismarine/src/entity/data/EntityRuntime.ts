@@ -667,6 +667,11 @@ export class EntityRuntime implements EntityScene {
      * Only a mob ever reaches this, through the goal world, so `mobGriefing` decides whether the
      * block goes at all and `doTileDrops` whether it leaves anything behind. A zombie at a door
      * with the rule off stands there instead of coming through.
+     *
+     * The host's destruction is the same one a blast and a piston go through: it raises the
+     * block's `onBreak`, so a chest a villager harvested over spills what it held, and it rolls
+     * Java's table with the position and the level view the conditions read. The write stays
+     * here, and it comes after, because a family reads the block entity it is about to lose.
      */
     public breakBlock(at: EntityPosition): void {
         if (!ruleIsOn(this.world.level, MOB_GRIEFING)) return;
@@ -675,11 +680,15 @@ export class EntityRuntime implements EntityScene {
         const block = this.world.blocks.get(position);
         if (block === undefined || block.identifier === AIR) return;
 
-        this.world.blocks.set(position, { identifier: AIR, states: {} }, true);
-        if (!ruleIsOn(this.world.level, BLOCK_DROPS)) return;
+        const dropsBlock = ruleIsOn(this.world.level, BLOCK_DROPS);
+        const destroyed = this.host.destroyBlock?.(position, { dropsBlock }) ?? false;
 
-        // A block the loot registry has no table for drops nothing rather than reporting,
-        // because a block with no table is the normal case for most of the palette.
+        this.world.blocks.set(position, { identifier: AIR, states: {} }, true);
+        if (destroyed || !dropsBlock) return;
+
+        // No live world behind the host, so there is no hook to raise and no level view to
+        // roll against. The bare table stands in, and a block the loot registry has no table
+        // for drops nothing rather than reporting, because that is most of the palette.
         const table = javaBlockLootIdOf(block.identifier);
         if (this.content().loot.table(table) === undefined) return;
         for (const stack of this.content().loot.roll(table))
