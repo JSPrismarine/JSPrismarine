@@ -14,3 +14,4 @@ export type {
 } from './messages';
 export { isConsoleMessage, isLifecycleState, isServerMessage, LIFECYCLE_STATES, PROTOCOL_VERSION } from './messages';
 export { subprocessLink } from './subprocessLink';
+export type { IpcChild } from './subprocessLink';

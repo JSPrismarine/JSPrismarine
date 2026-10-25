@@ -1,6 +1,6 @@
 import type { ChildProcess } from 'node:child_process';
 import { fork } from 'node:child_process';
-import { once } from 'node:events';
+import { EventEmitter, once } from 'node:events';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -78,5 +78,43 @@ describe('subprocessLink', () => {
         expect(closed).toHaveBeenCalledTimes(1);
         link.close();
         expect(closed).toHaveBeenCalledTimes(1);
+    });
+});
+
+/**
+ * A child whose spawn failed: Node emits `'error'` and `'close'` on it and never `'exit'`,
+ * and `connected` is true until the channel is torn down.
+ */
+class FailedSpawn extends EventEmitter {
+    connected = true;
+    send = vi.fn((_message: unknown, callback?: (error: Error | null) => void) => {
+        callback?.(null);
+        return true;
+    });
+    disconnect = vi.fn(() => {
+        this.connected = false;
+        this.emit('disconnect');
+    });
+    failSpawn(): void {
+        this.emit('error', new Error('spawn ENOENT'));
+        this.connected = false;
+        this.emit('close', -2, null);
+    }
+}
+
+describe('subprocessLink with a child that could not be spawned', () => {
+    it("closes on 'close' when no 'exit' ever comes", () => {
+        const child = new FailedSpawn();
+        child.on('error', () => {});
+        const link = subprocessLink<ServerMessage, ConsoleMessage>(child, { validate: isServerMessage });
+        const closed = vi.fn();
+        link.onClose(closed);
+
+        child.failSpawn();
+
+        expect(closed).toHaveBeenCalledTimes(1);
+        expect(link.send({ type: 'shutdown', v: 1 })).toBe(false);
+        expect(child.listenerCount('message')).toBe(0);
+        expect(child.listenerCount('close')).toBe(0);
     });
 });
