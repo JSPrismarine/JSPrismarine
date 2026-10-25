@@ -16,6 +16,7 @@ import { loadTuiFrontend, plainFrontend } from './host/frontends';
 import { spawnServerChild } from './host/ServerChild';
 import { Supervisor } from './host/Supervisor';
 import { decideMode, probeFfi } from './host/tuiGate';
+import { suppressFfiWarning } from './host/warnings';
 import { Watcher } from './host/Watcher';
 
 /**
@@ -182,6 +183,7 @@ const main = async (): Promise<void> => {
         return;
     }
 
+    suppressFfiWarning();
     const decision = args.headless
         ? { mode: 'plain' as const }
         : await decideMode({
