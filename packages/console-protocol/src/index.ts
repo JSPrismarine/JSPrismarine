@@ -1,3 +1,7 @@
+export type { ChildProcessLink, ChildProcessLinkOptions, IpcProcess } from './childProcessLink';
+export { childProcessLink } from './childProcessLink';
+export type { LinkOptions, MessageLink } from './link';
+export { memoryLinkPair } from './memoryLink';
 export type {
     ConsoleMessage,
     ConsoleMessageType,
@@ -9,3 +13,4 @@ export type {
     SupervisorState
 } from './messages';
 export { isConsoleMessage, isServerMessage, PROTOCOL_VERSION } from './messages';
+export { subprocessLink } from './subprocessLink';
