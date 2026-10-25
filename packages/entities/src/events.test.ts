@@ -88,6 +88,6 @@ describe('eventActionNames', () => {
             sequence: [{ randomize: [{ weight: 1, play_sound: {} }] }, { first_valid: [{ emit_particle: {} }] }]
         });
 
-        expect(eventActionNames(node).sort()).toEqual(['emit_particle', 'play_sound']);
+        expect([...eventActionNames(node)].sort()).toEqual(['emit_particle', 'play_sound']);
     });
 });
