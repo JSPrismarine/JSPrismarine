@@ -226,6 +226,30 @@ describe('flowerPotFamily', () => {
         expect(harness.dimension.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:poppy']);
         expect(harness.interact(origin)).toBeUndefined();
     });
+
+    it('leaves the emptied pot reading as empty', () => {
+        // `update_bit` is the pot's contents flag, and false is an empty pot. Setting it
+        // here, which is what this used to do, put a flower_pot[update_bit=1] on the wire
+        // claiming contents the player had just taken out.
+        const harness = bindFamily(flowerPotFamily, 'minecraft:flower_pot');
+        harness.dimension.set(origin, 'minecraft:flower_pot', { update_bit: false });
+        harness.dimension.setBlockData(origin, { capacity: 1, items: [{ identifier: 'minecraft:poppy', count: 1 }] });
+
+        harness.interact(origin);
+
+        expect(harness.dimension.stateAt(origin, 'update_bit')).toBe(false);
+        expect(harness.dimension.getBlockData(origin)?.items).toEqual([undefined]);
+    });
+
+    it('clears a pot that arrived with the contents flag already set', () => {
+        const harness = bindFamily(flowerPotFamily, 'minecraft:flower_pot');
+        harness.dimension.set(origin, 'minecraft:flower_pot', { update_bit: true });
+        harness.dimension.setBlockData(origin, { capacity: 1, items: [{ identifier: 'minecraft:poppy', count: 1 }] });
+
+        harness.interact(origin);
+
+        expect(harness.dimension.stateAt(origin, 'update_bit')).toBe(false);
+    });
 });
 
 describe('beaconLevels', () => {
