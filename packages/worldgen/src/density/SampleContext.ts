@@ -103,12 +103,20 @@ export class SampleContext {
     /** Post-processes `blend_density`, which is the identity outside a blending region. */
     public blendDensity: ((x: number, y: number, z: number, density: number) => number) | undefined;
 
+    /**
+     * The eight corners of each `interpolated` node's current cell, eight doubles per node id,
+     * ordered x fastest, then y, then z.
+     *
+     * Public and flat because the compiled closure reads it on every sample;
+     * {@link SampleContext.interpolationCell} is the only thing that may resize it, so a caller
+     * reads the field after that call rather than holding it across one.
+     */
+    public interpolationCorners = new Float64Array(0);
+
     private readonly cells: CacheCell[] = [];
     private readonly cornerCaches: CornerCache[] = [];
-    private readonly currentCorners: Float64Array[] = [];
-    private readonly currentCellX: number[] = [];
-    private readonly currentCellY: number[] = [];
-    private readonly currentCellZ: number[] = [];
+    /** The current cell origin per node id, three doubles each, NaN while no cell is current. */
+    private cellOrigins = new Float64Array(0);
 
     /** Returns the memo slot a compiled `cache` node owns, creating it on first use. */
     public cell(id: number): CacheCell {
@@ -128,26 +136,30 @@ export class SampleContext {
         return created;
     }
 
-    /** Returns the eight corners of the current interpolation cell, or undefined on a cell change. */
-    public interpolationCorners(id: number, x: number, y: number, z: number): Float64Array | undefined {
-        return this.currentCellX[id] === x && this.currentCellY[id] === y && this.currentCellZ[id] === z
-            ? this.currentCorners[id]
-            : undefined;
-    }
-
     /**
-     * Marks one interpolation cell current and returns the reusable buffer its eight corners
-     * go into, ordered x fastest, then y, then z.
+     * Makes one interpolation cell current and says whether its corners are already in place.
+     *
+     * @returns True when {@link SampleContext.interpolationCorners} still holds this cell's
+     *   eight corners, false when the caller has to write them. A false answer has already
+     *   recorded the new origin, so the next sample inside the cell gets a true one.
      */
-    public beginInterpolationCell(id: number, x: number, y: number, z: number): Float64Array {
-        this.currentCellX[id] = x;
-        this.currentCellY[id] = y;
-        this.currentCellZ[id] = z;
-        const existing = this.currentCorners[id];
-        if (existing) return existing;
-        const created = new Float64Array(8);
-        this.currentCorners[id] = created;
-        return created;
+    public interpolationCell(id: number, x: number, y: number, z: number): boolean {
+        const origin = id * 3;
+        if (origin + 3 > this.cellOrigins.length) this.growInterpolation(id);
+        // NaN compares false against every coordinate, which is what makes an untouched slot
+        // and a reset one both report a miss without a separate validity flag.
+        if (
+            this.cellOrigins[origin] === x &&
+            this.cellOrigins[origin + 1] === y &&
+            this.cellOrigins[origin + 2] === z
+        ) {
+            return true;
+        }
+
+        this.cellOrigins[origin] = x;
+        this.cellOrigins[origin + 1] = y;
+        this.cellOrigins[origin + 2] = z;
+        return false;
     }
 
     /**
@@ -159,8 +171,18 @@ export class SampleContext {
     public reset(): void {
         for (const cell of this.cells) cell.valid = false;
         for (const cache of this.cornerCaches) cache.clear();
-        this.currentCellX.fill(Number.NaN);
-        this.currentCellY.fill(Number.NaN);
-        this.currentCellZ.fill(Number.NaN);
+        this.cellOrigins.fill(Number.NaN);
+    }
+
+    /** Widens the interpolation buffers to hold `id`, keeping what the earlier ids held. */
+    private growInterpolation(id: number): void {
+        const count = id + 1;
+        const corners = new Float64Array(count * 8);
+        corners.set(this.interpolationCorners);
+        this.interpolationCorners = corners;
+
+        const origins = new Float64Array(count * 3).fill(Number.NaN);
+        origins.set(this.cellOrigins);
+        this.cellOrigins = origins;
     }
 }
