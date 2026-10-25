@@ -1,9 +1,10 @@
 import { NetworkUtil } from '../../network/NetworkUtil';
 import Identifiers from '../Identifiers';
+import type { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
 import type CommandData from '../type/CommandData';
 import type { CommandEnum } from '../type/CommandEnum';
 import type CommandEnumConstraint from '../type/CommandEnumConstraint';
-import { CommandParameterTypeFlag } from '../type/CommandParameter';
+import { CommandParameterFlags, CommandParameterTypeFlag } from '../type/CommandParameter';
 import DataPacket from './DataPacket';
 
 /**
@@ -25,14 +26,15 @@ const commandPermissionToString = (level: number): string =>
  *
  * Wire order at protocol 2193, each list a varuint count then its items:
  * - `Enum Values`: strings, one shared table every hard enum indexes into.
- * - `Chained Subcommand Values`: strings. This server has none.
+ * - `Chained Subcommand Values`: strings, one shared table every chained subcommand table
+ *   indexes into.
  * - `Post Fixes`: strings, the suffixes a `Postfix` parameter points at.
  * - `Enum Data`: `Name` (string) then `Values`, a list of `uint32` indices into `Enum Values`.
  *   Fixed four bytes each; the width no longer depends on how many values there are.
- * - `Chained Subcommand Data`: none.
+ * - `Chained Subcommand Data`: `Name` (string) then a list of `{first, second}` varuint pairs.
  * - `Commands`: `Name`, `Description`, `Flags` (uint16), `Permission Level` (string, see
  *   {@link commandPermissionToString}), `Alias Enum` (int32 index into `Enum Data`, -1 when
- *   the command has no aliases), `CommandData Chained Subcommand Indexes` (uint32 list, none),
+ *   the command has no aliases), `CommandData Chained Subcommand Indexes` (uint32 list),
  *   then `Overloads`: `isChaining` (bool) and `Parameter Data`: `Name`, `Parse Symbol`
  *   (uint32), `Is Optional?` (bool), `Options` (uint8).
  * - `Soft Enums`: `Enum Name` then `Enum Options`, strings.
@@ -41,8 +43,9 @@ const commandPermissionToString = (level: number): string =>
  *
  * A `Parse Symbol` is a {@link CommandParameterType} word for a plain parameter. An enum
  * parameter gets `Enum` or `SoftEnum` ORed with `Valid` and the enum's index in its own table
- * (hard and soft enums are numbered separately); a postfixed one gets `Postfix` and the index
- * into `Post Fixes`. The flag bits and type ids live in `CommandParameter.ts`.
+ * (hard enums, soft enums and chained subcommands are numbered separately); a postfixed one
+ * gets `Postfix` and the index into `Post Fixes`. The flag bits and type ids live in
+ * `CommandParameter.ts`.
  *
  * **Bound To:** Client
  */
@@ -61,6 +64,21 @@ export default class AvailableCommandsPacket extends DataPacket {
         const enumIndexes: Map<string, number> = new Map();
         const softEnums: CommandEnum[] = [];
         const softEnumIndexes: Map<string, number> = new Map();
+        const chainedValueIndexes: Map<string, number> = new Map();
+        const chainedSubcommands: CommandChainedSubcommand[] = [];
+        const chainedSubcommandIndexes: Map<string, number> = new Map();
+
+        const appendChainedSubcommand = (table: CommandChainedSubcommand) => {
+            table.values.forEach((value) => {
+                if (!chainedValueIndexes.has(value)) {
+                    chainedValueIndexes.set(value, chainedValueIndexes.size);
+                }
+            });
+            if (!chainedSubcommandIndexes.has(table.name)) {
+                const index = chainedSubcommandIndexes.set(table.name, chainedSubcommandIndexes.size).get(table.name)!;
+                chainedSubcommands[index] = table;
+            }
+        };
 
         const appendEnum = (_enum: CommandEnum) => {
             const { name, soft, values } = _enum;
@@ -87,6 +105,12 @@ export default class AvailableCommandsPacket extends DataPacket {
         this.hardcodedEnums.forEach((e) => appendEnum(e));
         this.softEnums.forEach((e) => appendEnum(e));
 
+        // Every command's own tables first, so an index a command declares and an index a
+        // parameter points at are the same number for the same table.
+        this.commandData.forEach((commandData) => {
+            commandData.chainedSubcommands.forEach((table) => appendChainedSubcommand(table));
+        });
+
         this.commandData.forEach((commandData) => {
             if (commandData.aliases) {
                 appendEnum(commandData.aliases);
@@ -96,6 +120,10 @@ export default class AvailableCommandsPacket extends DataPacket {
                 overload.forEach((parameter) => {
                     if (parameter.enum) {
                         appendEnum(parameter.enum);
+                    }
+
+                    if (parameter.chainedSubcommand) {
+                        appendChainedSubcommand(parameter.chainedSubcommand);
                     }
 
                     if (parameter.postfix) {
@@ -116,7 +144,10 @@ export default class AvailableCommandsPacket extends DataPacket {
             NetworkUtil.writeString(this, enumValue);
         });
 
-        this.writeUnsignedVarInt(0); // Chained Subcommand Values.
+        this.writeUnsignedVarInt(chainedValueIndexes.size);
+        chainedValueIndexes.forEach((_index: number, value: string) => {
+            NetworkUtil.writeString(this, value);
+        });
 
         this.writeUnsignedVarInt(postfixIndexes.size);
         postfixIndexes.forEach((_index: number, postfix: string) => {
@@ -128,11 +159,14 @@ export default class AvailableCommandsPacket extends DataPacket {
             this.writeEnum(_enum, enumValueIndexes);
         });
 
-        this.writeUnsignedVarInt(0); // Chained Subcommand Data.
+        this.writeUnsignedVarInt(chainedSubcommands.length);
+        chainedSubcommands.forEach((table: CommandChainedSubcommand) => {
+            this.writeChainedSubcommand(table, chainedValueIndexes);
+        });
 
         this.writeUnsignedVarInt(this.commandData.length);
         this.commandData.forEach((data: CommandData) => {
-            this.writeCommandData(data, enumIndexes, softEnumIndexes, postfixIndexes);
+            this.writeCommandData(data, enumIndexes, softEnumIndexes, postfixIndexes, chainedSubcommandIndexes);
         });
 
         // The collected list, not `this.softEnums`: a soft enum that only a parameter refers to
@@ -168,11 +202,37 @@ export default class AvailableCommandsPacket extends DataPacket {
         indices.forEach((index) => this.writeUnsignedIntLE(index));
     }
 
+    /**
+     * One `Chained Subcommand Data` entry: the name, then a `{first, second}` varuint pair per
+     * keyword.
+     *
+     * Mojang's schema names the two members and defines neither. The only datum the table has
+     * per entry is the keyword, so its index in `Chained Subcommand Values` goes in both, which
+     * is what `@jsprismarine/commands` builds and what gophertunnel reads back.
+     */
+    private writeChainedSubcommand(
+        { name, values }: CommandChainedSubcommand,
+        chainedValueIndexes: Map<string, number>
+    ): void {
+        const indices = values.flatMap((value) => {
+            const index = chainedValueIndexes.get(value);
+            return index === undefined ? [] : [index];
+        });
+
+        NetworkUtil.writeString(this, name);
+        this.writeUnsignedVarInt(indices.length);
+        indices.forEach((index) => {
+            this.writeUnsignedVarInt(index);
+            this.writeUnsignedVarInt(index);
+        });
+    }
+
     private writeCommandData(
         data: CommandData,
         enumIndexes: Map<string, number>,
         softEnumIndexes: Map<string, number>,
-        postfixIndexes: Map<string, number>
+        postfixIndexes: Map<string, number>,
+        chainedSubcommandIndexes: Map<string, number>
     ): void {
         NetworkUtil.writeString(this, data.commandName);
         NetworkUtil.writeString(this, data.commandDescription);
@@ -182,18 +242,35 @@ export default class AvailableCommandsPacket extends DataPacket {
         // `Alias Enum` is a signed index; -1 says the command has none.
         this.writeIntLE(data.aliases === null ? -1 : (enumIndexes.get(data.aliases.name) ?? -1));
 
-        this.writeUnsignedVarInt(0); // CommandData Chained Subcommand Indexes.
+        const chainedIndices = data.chainedSubcommands.flatMap((table) => {
+            const index = chainedSubcommandIndexes.get(table.name);
+            return index === undefined ? [] : [index];
+        });
+        this.writeUnsignedVarInt(chainedIndices.length);
+        chainedIndices.forEach((index) => this.writeUnsignedIntLE(index));
 
         this.writeUnsignedVarInt(data.overloads.length);
         data.overloads.forEach((overload) => {
-            this.writeBoolean(false); // isChaining.
+            // Mojang's own data marks an overload as chaining exactly when it ends in a
+            // chained subcommand, so the flag is read off the parameters rather than stored
+            // a second time where the two could disagree.
+            this.writeBoolean(overload.some((parameter) => parameter.chainedSubcommand !== null));
             this.writeUnsignedVarInt(overload.length);
 
             overload.forEach((parameter) => {
                 NetworkUtil.writeString(this, parameter.paramName);
 
                 let type: number = parameter.paramType;
-                if (parameter.enum !== null) {
+                let flags: number = parameter.flags;
+                if (parameter.chainedSubcommand !== null) {
+                    // A chained subcommand carries the enum flags over its own index space.
+                    // `EnumAsChainedCommand` is what tells the client which space it is in.
+                    type =
+                        CommandParameterTypeFlag.Enum |
+                        CommandParameterTypeFlag.Valid |
+                        (chainedSubcommandIndexes.get(parameter.chainedSubcommand.name) ?? 0);
+                    flags |= CommandParameterFlags.ENUM_AS_CHAINED_COMMAND;
+                } else if (parameter.enum !== null) {
                     type = parameter.enum.soft
                         ? CommandParameterTypeFlag.SoftEnum |
                           CommandParameterTypeFlag.Valid |
@@ -207,7 +284,7 @@ export default class AvailableCommandsPacket extends DataPacket {
 
                 this.writeUnsignedIntLE(type >>> 0);
                 this.writeBoolean(parameter.isOptional);
-                this.writeByte(parameter.flags);
+                this.writeByte(flags);
             });
         });
     }

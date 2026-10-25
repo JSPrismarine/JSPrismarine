@@ -1,3 +1,4 @@
+import type { CommandChainedSubcommand } from './CommandChainedSubcommand';
 import type { CommandEnum } from './CommandEnum';
 
 /**
@@ -121,19 +122,27 @@ export const CommandParameterType = {
 export type CommandParameterType = (typeof CommandParameterType)[keyof typeof CommandParameterType];
 
 /**
- * The options byte of a command parameter (`ParamOption*` in gophertunnel's `command.go`).
+ * The options byte of a command parameter (`ParamOption*` in gophertunnel's `command.go`,
+ * `CommandParameterOption` in Mojang's own naming).
  */
 export enum CommandParameterFlags {
     NONE = 0,
     FORCE_COLLAPSE_ENUM = 0x1,
-    FLAG_HAS_ENUM_CONSTRAINT = 0x2
+    FLAG_HAS_ENUM_CONSTRAINT = 0x2,
+    /**
+     * Marks the trailing "and then another subcommand" parameter of a chained `/execute`
+     * overload. The packet sets this itself for a parameter with a `chainedSubcommand`, so a
+     * caller never has to.
+     */
+    ENUM_AS_CHAINED_COMMAND = 0x4
 }
 
 /**
  * One parameter of a command overload as the `AvailableCommandsPacket` sends it.
  *
- * A parameter is either a basic type (`paramType`) or an enum (`enum`); when `enum` is set the
- * packet ignores `paramType` and writes the enum's index instead.
+ * A parameter is a basic type (`paramType`), an enum (`enum`), or the tail of a chained
+ * `/execute` overload (`chainedSubcommand`). When either of the last two is set the packet
+ * ignores `paramType` and writes the table's index instead.
  */
 export default class CommandParameter {
     public paramName: string;
@@ -142,6 +151,7 @@ export default class CommandParameter {
     public flags: CommandParameterFlags;
     public enum: CommandEnum | null;
     public postfix: string | null;
+    public chainedSubcommand: CommandChainedSubcommand | null;
 
     public constructor(data?: {
         paramName?: string;
@@ -150,6 +160,7 @@ export default class CommandParameter {
         flags?: CommandParameterFlags;
         enum?: CommandEnum | null;
         postfix?: string | null;
+        chainedSubcommand?: CommandChainedSubcommand | null;
     }) {
         this.paramName = data?.paramName ?? 'paramName';
         this.paramType = data?.paramType ?? CommandParameterType.Value;
@@ -157,5 +168,6 @@ export default class CommandParameter {
         this.flags = data?.flags ?? CommandParameterFlags.NONE;
         this.enum = data?.enum ?? null;
         this.postfix = data?.postfix ?? null;
+        this.chainedSubcommand = data?.chainedSubcommand ?? null;
     }
 }
