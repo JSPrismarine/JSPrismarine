@@ -149,6 +149,31 @@ export class ChunkSampler {
     }
 
     /**
+     * The highest y in a column whose block a predicate accepts, or undefined for none.
+     *
+     * This is the walk Java's `NoiseBasedChunkGenerator.iterateNoiseColumn` makes on behalf of
+     * `getBaseHeight`: the answer depends on the top of the column and nothing under it, so
+     * everything below the match goes unsampled. The blocks above it are sampled in the same
+     * order {@link ChunkSampler.column} uses, which is the order the aquifer expects.
+     *
+     * @param fromY - Where to start, for a caller whose dimension is shorter than the noise.
+     *   Clamped to the top of the chunk.
+     */
+    public columnTop(
+        x: number,
+        z: number,
+        accept: (state: string) => boolean,
+        fromY: number = this.volume.maxBlockY
+    ): number | undefined {
+        for (let y = Math.min(fromY, this.volume.maxBlockY); y >= this.volume.minBlockY; y--) {
+            const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+            if (accept(substance ?? this.defaultBlock)) return y;
+        }
+
+        return undefined;
+    }
+
+    /**
      * Visits every block of one interpolation cell, top slab first.
      *
      * A block is the same whichever order it is asked in, so this exists only to keep one

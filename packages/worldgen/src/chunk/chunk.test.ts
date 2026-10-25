@@ -30,6 +30,89 @@ describe('FluidStatus', () => {
 });
 
 describe('column visitation', () => {
+    /** A dimension 16 blocks tall whose density is solid below y 8 and open above it. */
+    const steppedData = (): WorldgenData =>
+        new WorldgenData({
+            densityFunctions: new Map(),
+            noises: new Map(),
+            noiseSettings: new Map([
+                [
+                    'test:flat',
+                    {
+                        noise: { min_y: 0, height: 16 },
+                        default_block: 'minecraft:stone',
+                        default_fluid: 'minecraft:water',
+                        noise_router: {
+                            temperature: 0,
+                            vegetation: 0,
+                            continents: 0,
+                            erosion: 0,
+                            depth: 0,
+                            ridges: 0,
+                            chunk_surface_level: 0,
+                            // Solid at y 0 through 7, open above: the gradient runs from 1 at
+                            // the floor to -1 at the top, crossing zero at y 8.
+                            final_density: {
+                                type: 'minecraft:gradient',
+                                axis: 'y',
+                                from_coordinate: 0,
+                                to_coordinate: 16,
+                                from_value: 1,
+                                to_value: -1
+                            }
+                        },
+                        material_rule: 'test:surface',
+                        sea_level: 8,
+                        disable_mob_generation: true,
+                        legacy_random_source: true
+                    }
+                ]
+            ])
+        });
+
+    it('stops a top-down walk at the highest block a predicate accepts', () => {
+        const data = steppedData();
+        const sampler = new ChunkSampler(new RandomState(data, 1n, data.settings('test:flat')), {
+            chunkX: 0,
+            chunkZ: 0
+        });
+        const column = sampler.column(0, 0).map((entry) => entry.state);
+        const highestStone = column.lastIndexOf('minecraft:stone');
+
+        const visited: number[] = [];
+        const top = sampler.columnTop(0, 0, (state) => {
+            visited.push(visited.length);
+            return state === 'minecraft:stone';
+        });
+
+        expect(top).toBe(highestStone);
+        // Only the blocks above the match, plus the match, were asked about.
+        expect(visited).toHaveLength(15 - highestStone + 1);
+    });
+
+    it('answers undefined for a column holding nothing the predicate accepts', () => {
+        const data = steppedData();
+        const sampler = new ChunkSampler(new RandomState(data, 1n, data.settings('test:flat')), {
+            chunkX: 0,
+            chunkZ: 0
+        });
+
+        expect(sampler.columnTop(0, 0, (state) => state === 'minecraft:bedrock')).toBeUndefined();
+    });
+
+    it('starts a top-down walk below a ceiling a shorter dimension asks for', () => {
+        const data = steppedData();
+        const sampler = new ChunkSampler(new RandomState(data, 1n, data.settings('test:flat')), {
+            chunkX: 0,
+            chunkZ: 0
+        });
+
+        expect(sampler.columnTop(0, 0, () => true)).toBe(15);
+        expect(sampler.columnTop(0, 0, () => true, 4)).toBe(4);
+        // A ceiling above the chunk is the chunk's own top, not an unsampled position.
+        expect(sampler.columnTop(0, 0, () => true, 99)).toBe(15);
+    });
+
     it('matches column output while visiting top down without requiring result objects', () => {
         const router = {
             temperature: 0,
