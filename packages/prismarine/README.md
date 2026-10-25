@@ -27,10 +27,7 @@ pnpm install @jsprismarine/prismarine --save
 
 ## JSON Schemas
 
-Fresh server installs use `config.json`. On first start, an existing
-`config.yml` or `config.yaml` is converted to `config.json` with its values and
-comments carried over; the YAML file stays in place. When both formats exist,
-`config.json` takes precedence.
+The server uses `config.json` for its settings.
 
 Draft 7 schemas for the package's JSON configuration and data files are
 included in the published package under `schemas/`. JSON object files receive
