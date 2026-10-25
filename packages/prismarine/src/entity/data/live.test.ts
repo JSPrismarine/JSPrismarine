@@ -8,6 +8,8 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import Player from '../../Player';
+import type Server from '../../Server';
+import type { Config } from '../../config/Config';
 import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { overlayPackPath } from '../../content/packStack';
 import { buildServerContent } from '../../content/ServerContent';
@@ -15,9 +17,13 @@ import type { ServerContent } from '../../content/ServerContent';
 import { serverWorldSource } from '../../content/world/serverSource';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { Item } from '../../item/Item';
+import type ItemManager from '../../item/ItemManager';
+import { testEntityServer } from '../../testing/entityServer';
+import { stub } from '../../testing/stub.test.helper';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/Dimension';
+import GameRuleManager from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';
@@ -269,6 +275,15 @@ const liveWorld = (): {
     for (let x = -LOADED_RADIUS; x <= LOADED_RADIUS; x += 1)
         for (let z = -LOADED_RADIUS; z <= LOADED_RADIUS; z += 1) chunks.set(Chunk.packXZ(x, z), flatChunk(x, z));
 
+    const server: Server = Object.assign(testEntityServer(), {
+        getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
+        // Every identifier is an item here, because the point of the loot test is which
+        // identifier the table rolled rather than what this server has registered.
+        getItemManager: () =>
+            stub<ItemManager>({ getItem: (name: string) => new Item({ id: 1, name, meta: 0, count: 1 }) }),
+        getContent: () => content
+    });
+
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
         currentTick: 0,
@@ -279,19 +294,10 @@ const liveWorld = (): {
         entityChunkIndices: new Map(),
         entityGrid: new EntityGrid(),
         players: new Map(),
-        server: {
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            // Every identifier is an item here, because the point of the loot test is which
-            // identifier the table rolled rather than what this server has registered.
-            getItemManager: () => ({
-                getItem: (name: string) => new Item({ id: 1, name, meta: 0, count: 1 })
-            }),
-            // Nothing listens, so a damage event is never cancelled and the whole pipeline
-            // runs the way it does on a server with no plugins.
-            post: () => {},
-            getContent: () => content
-        }
+        // A real one, because a `World` built on its prototype never ran the constructor that
+        // makes it, and the content level group reads the rules through it.
+        gameRuleManager: new GameRuleManager(server),
+        server
     });
 
     world.attachChangeSink({

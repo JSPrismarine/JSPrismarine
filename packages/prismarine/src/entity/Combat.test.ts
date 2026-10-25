@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { testEntityServer } from '../testing/entityServer';
 import DiamondSword from '../item/items/DiamondSword';
 import GoldenSword from '../item/items/GoldenSword';
 import IronSword from '../item/items/IronSword';
@@ -29,13 +30,7 @@ const scene = ({ pvp = true } = {}) => {
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getRandom: () => () => 0.5,
-            // No pack stack, so no enchantment definitions to run.
-            getContent: () => undefined
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async (entity: Entity, sound: LevelSoundEvent) =>
             void noises.push({ type: entity.getType(), sound }),

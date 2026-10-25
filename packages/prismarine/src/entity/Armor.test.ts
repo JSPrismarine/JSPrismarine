@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import { Difficulty } from '@jsprismarine/minecraft';
+import { testEntityServer } from '../testing/entityServer';
 import ContainerEntry from '../inventory/ContainerEntry';
 import DiamondChestplate from '../item/items/DiamondChestplate';
 import DiamondHelmet from '../item/items/DiamondHelmet';
@@ -20,14 +20,7 @@ import Human from './Human';
 const scene = () => {
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({
-            post: () => {},
-            getTick: () => 0,
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            // No pack stack, so the enchantment step has no definitions to run.
-            getContent: () => undefined
-        }),
+        getServer: () => testEntityServer(),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},

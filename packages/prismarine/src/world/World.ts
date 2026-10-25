@@ -2,7 +2,6 @@ import GameRuleManager, { GameRules } from './GameRuleManager';
 
 import fs from 'node:fs';
 
-import type { PlayerProgressJson } from '@jsprismarine/advancements';
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype, getGametypeName, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { Block, Server, Service } from '../';
@@ -24,6 +23,7 @@ import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
 import { Mob } from '../entity/Mob';
 import ContainerEntry from '../inventory/ContainerEntry';
+import { storedInventory } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
