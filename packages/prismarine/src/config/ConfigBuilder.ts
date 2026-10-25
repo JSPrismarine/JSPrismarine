@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { CONFIG_FORMATS, parseConfigDocument } from './ConfigDocument';
 import type { ConfigDocument, ConfigFormat, ConfigPath } from './ConfigDocument';
+import { toJsonFileContents } from './JsonFile';
 
 /** What a whole config file holds once parsed: a map from key to whatever the file says. */
 export type ConfigData = Record<string, unknown>;
@@ -75,9 +76,13 @@ export class ConfigBuilder {
         this.format = ext;
 
         if (!fs.existsSync(parsed.dir)) fs.mkdirSync(parsed.dir, { recursive: true });
-        if (!fs.existsSync(filePath)) fs.writeFileSync(filePath, EMPTY_FILE[this.format], 'utf8');
+        const created = !fs.existsSync(filePath);
+        if (created) fs.writeFileSync(filePath, EMPTY_FILE[this.format], 'utf8');
 
         this.path = filePath;
+        if (created && this.format === 'json' && path.basename(filePath) === 'config.json') {
+            this.write(this.read());
+        }
     }
 
     /**
@@ -115,7 +120,8 @@ export class ConfigBuilder {
     }
 
     private write(document: ConfigDocument): void {
-        fs.writeFileSync(this.path, document.toString(), 'utf8');
+        const text = this.format === 'json' ? toJsonFileContents(this.path, document) : document.toString();
+        fs.writeFileSync(this.path, text, 'utf8');
     }
 
     /**

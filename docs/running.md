@@ -53,6 +53,30 @@ The same applies to the JSON files beside it (`banned-players.json`,
 data: the server changes the entry it means to and leaves your comments in
 place. All of them may hold `//` and `/* */` comments and trailing commas.
 
+The published `@jsprismarine/prismarine` package includes Draft 7 JSON
+Schemas under `schemas/`. Each reference uses the exact package version that
+wrote the file, served from UNPKG, so a standalone server or binary does not
+need a separate npm install to make the schema available. Object files such as
+`permissions.json`, `level.json`, and fallback player data contain a `$schema`
+property. The root of `ops.json` and `banned-players.json` is an array, so those
+files instead start with a `JSPrismarine schema` comment holding the versioned
+URL. To validate those arrays in VS Code, map the file names in
+`settings.json` and replace the URL placeholders with each file's exact URL:
+
+```json
+{
+    "json.schemas": [
+        { "fileMatch": ["ops.json"], "url": "<copy the JSPrismarine schema URL from ops.json>" },
+        {
+            "fileMatch": ["banned-players.json"],
+            "url": "<copy the JSPrismarine schema URL from banned-players.json>"
+        }
+    ]
+}
+```
+
+The schemas allow comments and trailing commas in editors that support JSONC.
+
 A file that does not parse stops the server with an error naming the file
 rather than being replaced by the defaults, so a typo costs a restart, not
 the config.

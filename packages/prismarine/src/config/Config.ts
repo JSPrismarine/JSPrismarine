@@ -1,5 +1,6 @@
 import type { LogLevel } from '@jsprismarine/logger';
 import type { WorldData } from '../world/WorldManager';
+import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
 import { ConfigBuilder } from './ConfigBuilder';
@@ -16,7 +17,7 @@ const DIFFICULTIES: Readonly<Record<string, Difficulty>> = {
     easy: Difficulty.EASY,
     normal: Difficulty.NORMAL,
     hard: Difficulty.HARD
-};
+} satisfies Record<ConfigDifficulty, Difficulty>;
 
 /** What the server compresses at when the configured level is unusable. */
 const DEFAULT_PACKET_COMPRESSION_LEVEL = 7;
@@ -51,7 +52,7 @@ const COMMENTS = {
     'enable-ticking': 'Whether the world ticks. Off is only useful for tests.',
     'log-excluded-packets': 'Packet class names kept out of the traffic log at the silly level.',
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
-} as const satisfies Record<string, string>;
+} as const satisfies Record<keyof ConfigFile, string>;
 
 /** Runtime settings that take precedence over values in config.yaml. */
 export interface ConfigOptions {

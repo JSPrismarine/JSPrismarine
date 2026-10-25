@@ -4,23 +4,10 @@ import { PlayerNotFoundError } from '@jsprismarine/errors';
 import Console from '../Console';
 import type { Player, Server, Service } from '../';
 import { parseConfigDocument } from '../config/ConfigDocument';
+import type { OpEntry, PlayerPermissions } from '../config/JsonConfigTypes';
 import { readJsonFile, removeListEntries, upsertListEntry, writeJsonFile } from '../config/JsonFile';
 import { withCwd } from '../utils/cwd';
 import playerToggleOperatorEvent from '../events/player/PlayerToggleOperatorEvent';
-
-/** One line of `ops.json`. The `level` is written for the reader's sake; the UUID identifies the player. */
-interface OpEntry {
-    name: string;
-    uuid: string;
-    level?: number;
-}
-
-/** One `players` line of `permissions.json`. */
-interface PlayerPermissions {
-    name: string;
-    uuid: string;
-    permissions: string[];
-}
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 const isStringList = (value: unknown): value is string[] =>
@@ -228,7 +215,7 @@ export class PermissionManager implements Service {
         try {
             if (!fs.existsSync(file)) {
                 this.server.getLogger().warn(`Failed to load operators list!`);
-                fs.writeFileSync(file, '[]');
+                await writeJsonFile(file, await readJsonFile(file, '[]'));
             }
 
             const ops = (await readJsonFile(file, '[]')).get([]);

@@ -31,6 +31,7 @@ import MobSpawner from './MobSpawner';
 import { placePlayerSpawn } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
+import type { LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
@@ -40,6 +41,8 @@ import type { Generator } from './Generator';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
+
+export type { FlatLayer, LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
@@ -98,20 +101,6 @@ const CRACK_PARTICLES: readonly LevelEvent[] = [
 const LEVEL_DATA_FILE_NAME = 'level.json';
 const WORLDS_FOLDER_NAME = 'worlds';
 
-/** One layer of a flat world, bottom first. */
-export interface FlatLayer {
-    block: string;
-    size: number;
-}
-
-/** What a world's config section may carry, as the generator and provider read it. */
-export interface WorldConfig {
-    seed?: number;
-    provider?: string;
-    generator?: string;
-    layers?: FlatLayer[];
-}
-
 export interface WorldData {
     name: string;
     path: string;
@@ -122,34 +111,6 @@ export interface WorldData {
     config?: WorldConfig;
     /** Defaults to the Overworld, which is the only one the server generates today. */
     dimension?: DimensionDefinition;
-}
-
-export interface LevelData {
-    spawn: { x: number; y: number; z: number } | undefined;
-    gameRules: Array<[string, any]>;
-    entities: Array<{
-        type: string;
-        position: {
-            x: number;
-            y: number;
-            z: number;
-        };
-    }>;
-}
-export interface WorldPlayerData {
-    /** Written so the file says who it belongs to; the file is found by key, not by this. */
-    uuid?: string;
-    /** Written for the same reason as `uuid`. */
-    username?: string;
-    gamemode: string;
-    position: {
-        x: number;
-        y: number;
-        z: number;
-        pitch: number;
-        yaw: number;
-        headYaw: number;
-    };
 }
 
 /** How a broadcast narrows its audience beyond "everyone who can see the place". */

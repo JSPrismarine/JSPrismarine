@@ -4,7 +4,9 @@ import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Logger } from '@jsprismarine/logger';
+import pkg from '../../package.json' with { type: 'json' };
 import Console from '../Console';
+import { parseConfigDocument } from '../config/ConfigDocument';
 import type Player from '../Player';
 import { stub } from '../testing/stub.test.helper';
 import UUID from '../utils/UUID';
@@ -13,8 +15,8 @@ import type { PermissionManagerServer } from './PermissionManager';
 
 const FILFAT_UUID = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
 
-/** Strips `//` comments so a commented file can be compared as plain JSON. */
-const plain = (text: string): unknown => JSON.parse(text.replace(/\/\/.*$/gm, ''));
+/** Reads JSONC without treating the `//` inside a URL as a comment. */
+const plain = (text: string): unknown => parseConfigDocument('json', text).get([]);
 
 describe('permission', () => {
     describe('PermissionManager', () => {
@@ -134,6 +136,7 @@ describe('permission', () => {
             expect(permissions).toContain('// Permissions every player has.');
             expect(permissions).toContain('// Permissions every operator has on top of the defaults.');
             expect(plain(permissions)).toStrictEqual({
+                $schema: `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/permissions.schema.json`,
                 defaultPermissions: [
                     'minecraft.command.help',
                     'minecraft.command.list',
@@ -145,7 +148,7 @@ describe('permission', () => {
                 defaultOperatorPermissions: ['*'],
                 players: [{ name: 'filfat', uuid: FILFAT_UUID, permissions: ['*'] }]
             });
-            expect(readFileSync(path.join(directory, 'ops.json'), 'utf8')).toBe('[]');
+            expect(readFileSync(path.join(directory, 'ops.json'), 'utf8')).toContain('// JSPrismarine schema:');
             expect(manager.getDefaultPermissions()).toHaveLength(6);
         });
 
