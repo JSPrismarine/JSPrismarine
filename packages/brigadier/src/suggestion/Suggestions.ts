@@ -42,11 +42,14 @@ export default class Suggestions {
         return Promise.resolve(this.EMPTY);
     }
 
-    public static merge(command: string, input: Array<Suggestions>) {
-        if (input.length === 0) {
+    public static merge(command: string, input: Array<Suggestions>): Suggestions {
+        // Destructured rather than indexed, so the one-list case returns the list itself
+        // instead of the `Suggestions | undefined` that reading a position answers.
+        const [only, ...rest] = input;
+        if (only === undefined) {
             return this.EMPTY;
-        } else if (input.length === 1) {
-            return input[0];
+        } else if (rest.length === 0) {
+            return only;
         }
 
         const texts = [];
