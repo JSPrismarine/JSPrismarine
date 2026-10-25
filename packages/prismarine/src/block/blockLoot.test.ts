@@ -107,6 +107,73 @@ describe('block', () => {
             expect(stone.getDrops(null, serverIn('minecraft:the_nether'))).toEqual([]);
         });
 
+        /**
+         * The shulker box rule, on the fixture's one registered block: an entry whose
+         * `copy_components` lifts what the block was holding onto what it drops.
+         */
+        const copyingTable = () =>
+            buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: {
+                            ...fixtureDefinitions(),
+                            lootTablesJava: new Map([
+                                [
+                                    'minecraft:blocks/stone',
+                                    definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+                                        type: 'minecraft:block',
+                                        pools: [
+                                            {
+                                                rolls: 1,
+                                                entries: [
+                                                    {
+                                                        type: 'minecraft:item',
+                                                        name: 'minecraft:cobblestone',
+                                                        modifier: {
+                                                            type: 'minecraft:copy_components',
+                                                            source: 'block_entity',
+                                                            include: ['minecraft:container']
+                                                        }
+                                                    }
+                                                ]
+                                            }
+                                        ]
+                                    })
+                                ]
+                            ])
+                        },
+                        diagnostics: []
+                    })
+                })
+            );
+
+        it('copies what the block was holding onto what it drops', () => {
+            const held = {
+                identifier: 'minecraft:diamond_pickaxe',
+                count: 1,
+                enchantments: { 'minecraft:fortune': 3 }
+            };
+
+            const drops = rollBlockDrops(
+                copyingTable(),
+                { identifier: 'minecraft:stone', states: {} },
+                { blockEntity: { items: [undefined, held] } }
+            );
+
+            // The slot survives too, so a box put back down puts each stack where it was.
+            expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1, contents: [undefined, held] }]);
+        });
+
+        it('leaves the contents off a drop whose block was holding nothing', () => {
+            const drops = rollBlockDrops(
+                copyingTable(),
+                { identifier: 'minecraft:stone', states: {} },
+                { blockEntity: { items: [undefined, undefined] } }
+            );
+
+            expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+        });
+
         /** A stone table carrying one of the two rules a blast reaches. */
         const explosionTable = (rule: 'survives_explosion' | 'explosion_decay') =>
             buildServerContent(

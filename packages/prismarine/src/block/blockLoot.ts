@@ -15,9 +15,16 @@
  * `javaBlockStateToBedrock`, back to the Bedrock identifier it lands on.
  */
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
-import type { ItemStack as PredicateItemStack, LevelView, RandomSource } from '@jsprismarine/predicates';
+import type {
+    BlockEntityView,
+    ItemStack as PredicateItemStack,
+    LevelView,
+    RandomSource
+} from '@jsprismarine/predicates';
 
-import type { ContentBlock, ContentItemDrop } from '../content/world/adapter';
+import type { BlockEntityData, ContentBlock, ContentItemDrop } from '../content/world/adapter';
+import { bedrockItemDrops } from '../item/bedrockDrops';
+import { containerComponentOf, dropOfRolledStack } from '../item/lootStack';
 import type { ServerContent } from '../content/ServerContent';
 
 /** The prefix every Java block loot table id carries. */
@@ -85,7 +92,28 @@ export interface BlockDropContext {
     readonly explosionRadius?: number;
     /** Replaces the table's own sequenced stream, for a test that wants a scripted draw. */
     readonly random?: RandomSource;
+    /**
+     * What the block was holding, read before the break took it.
+     *
+     * Java's `LootContextParams.BLOCK_ENTITY`, which the shulker box table's
+     * `copy_components` reads: its `minecraft:container` is what the dropped box carries away.
+     * Left out for a block that holds nothing, which is every block whose table never looks.
+     */
+    readonly blockEntity?: BlockEntityData;
 }
+
+/**
+ * The block entity a table's `copy_components` reads, out of the record the block kept.
+ *
+ * @returns Undefined when the block held nothing worth copying, which leaves the parameter
+ *   out rather than offering the table an empty container.
+ */
+const blockEntityView = (block: ContentBlock, data: BlockEntityData | undefined): BlockEntityView | undefined => {
+    const contents = containerComponentOf(data?.items ?? []);
+    if (contents.length === 0) return undefined;
+
+    return { id: block.identifier, components: new Map([['minecraft:container', contents]]) };
+};
 
 /** The empty hand, which is a `tool` the `block` context key set requires even so. */
 const BARE_HAND: PredicateItemStack = { id: 'minecraft:air', count: 1, components: new Map() };
@@ -117,7 +145,8 @@ export const rollBlockDrops = (
             // the Bedrock identifier the server holds.
             block_state: { name: `minecraft:${table.slice(BLOCK_TABLE_PREFIX.length)}` },
             tool: context.tool ?? BARE_HAND,
-            explosion_radius: context.explosionRadius
+            explosion_radius: context.explosionRadius,
+            block_entity: blockEntityView(block, context.blockEntity)
         },
         level: context.level,
         random: context.random
@@ -126,5 +155,8 @@ export const rollBlockDrops = (
     // A stack whose count a modifier took to nothing is not a drop. Java's
     // `LootTable.getRandomItems` filters the empty stacks out the same way,
     // and `minecraft:explosion_decay` is the modifier that produces them.
-    return rolled.filter((stack) => stack.count > 0).map((stack) => ({ identifier: stack.id, count: stack.count }));
+    //
+    // The ids are Java's, because the table is; `bedrockItemDrops` is what makes them names
+    // the client resolves.
+    return bedrockItemDrops(rolled.filter((stack) => stack.count > 0).map(dropOfRolledStack));
 };
