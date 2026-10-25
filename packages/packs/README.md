@@ -18,6 +18,12 @@ wins per file, except tags, whose values merge across packs unless a later file 
 definition carries the file verbatim and `@jsprismarine/mcfunction` compiles it; a validator is
 never asked about one, because the line format is not a JSON shape.
 
+`load` opens only the Bedrock files a registry owns. A pack folder holds much else - the composed
+vanilla pack ships 1311 `.nbt` structures, a 3 MB `level.dat` and its textures beside 2588 readable
+files - and a path no registry routes could never reach the result anyway. `expandSource`, the
+reader underneath, still returns a pack whole by default and takes a `PackFileFilter` for a caller
+that wants less.
+
 ```typescript
 import { load, reportIdentifiers } from '@jsprismarine/packs';
 

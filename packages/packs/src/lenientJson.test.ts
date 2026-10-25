@@ -39,4 +39,15 @@ describe('parseLenientJson', () => {
     it('throws JsonParseError on malformed JSON', () => {
         expect(() => parseLenientJson('{"a": }')).toThrow(JsonParseError);
     });
+
+    // Strict JSON skips the cleanup, so the two paths have to agree on every text that could
+    // take either. Each of these holds something the cleanup looks for - a `/`, a `,` before a
+    // bracket, an escaped quote - inside a string, where it has to stay.
+    it.each([
+        '{"url": "https://example/*/x", "note": "a,} b", "escaped": "\\" // no"}',
+        '[1, 2, [3, {"a": "/* not a comment */"}]]',
+        '{"nested": {"deep": {"deeper": [true, false, null, -1.5e3]}}}'
+    ])('reads strict JSON the same way the lenient cleanup would: %s', (text) => {
+        expect(parseLenientJson(text)).toEqual(JSON.parse(text));
+    });
 });

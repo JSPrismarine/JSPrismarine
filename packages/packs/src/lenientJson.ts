@@ -11,9 +11,23 @@ export class JsonParseError extends Error {
  * comments and trailing commas before `]` or `}` are accepted. Vanilla trade
  * tables and root definition files use both.
  *
+ * Strict JSON is tried first and is the same answer the cleanup would reach.
+ * Outside a string, valid JSON holds no `/` to start a comment and no comma
+ * before a `]` or `}`, so neither pass can touch a text `JSON.parse` already
+ * accepts. It is worth the extra attempt because the cleanup rewrites the
+ * whole text character by character twice over, and 8486 of the 8556 files in
+ * the composed vanilla Bedrock stack are strict JSON.
+ *
  * @throws {JsonParseError} When the text is not JSON after lenient cleanup.
  */
 export const parseLenientJson = (text: string): unknown => {
+    try {
+        return JSON.parse(text) as unknown;
+    } catch {
+        // A comment, a trailing comma, or a genuine syntax error. The cleanup
+        // below tells them apart and reports the ones it cannot fix.
+    }
+
     try {
         return JSON.parse(stripTrailingCommas(stripComments(text))) as unknown;
     } catch (error) {

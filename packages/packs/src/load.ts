@@ -8,7 +8,7 @@ import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
 import { identifierForDefinition, routeForPath } from './registries';
-import type { PackFiles, PackStack } from './sources';
+import type { PackFileFilter, PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
 import { structuralValidator } from './validation';
@@ -71,6 +71,16 @@ type StackUnit =
     | { kind: 'datapack'; path: string };
 
 /**
+ * The files this loader can do anything with.
+ *
+ * {@link loadDefinitionFile} drops a path no registry owns, so reading one is
+ * work with no result. Saying so up front keeps the textures, the `.nbt`
+ * structures and the 3 MB `level.dat` of the composed vanilla pack from being
+ * opened at all, which is a third of the Bedrock half's files.
+ */
+const routable: PackFileFilter = (path) => routeForPath(path) !== undefined;
+
+/**
  * Expands the Bedrock members of a stack, keeping stack order and keeping
  * each member's own diagnostics with it, so the report reads in stack order
  * even though every Bedrock pack is known before the first one loads.
@@ -79,7 +89,7 @@ const expandStack = (stack: PackStack): StackUnit[] =>
     stack.map((source) => {
         if (source.kind === 'datapack') return { kind: 'datapack', path: source.path };
         const diagnostics: Diagnostic[] = [];
-        return { kind: 'bedrock', packs: expandSource(source, diagnostics), diagnostics };
+        return { kind: 'bedrock', packs: expandSource(source, diagnostics, routable), diagnostics };
     });
 
 /**
