@@ -159,3 +159,103 @@ injection point rather than a stub:
   reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
 - Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,
   which is what `@jsprismarine/packs` produces.
+
+## The surface pass, the biomes and the carvers
+
+Three stages sit on top of the terrain core. Each reads the seams the section above lists, and
+each is verified against Mojang's classes the same way: `utils/oracle/DumpSurfaceVectors.java`
+writes `vectors/surface-*.json` and `vectors/biome-*.json`, and the tests compare exactly.
+
+**The surface pass.** `SurfaceSystem.buildSurface` walks a chunk column by column from the top
+down, counting how far each solid block sits from the opening above it and the opening below it,
+and applies the dimension's material rule tree. All five `material_rule` types and all eleven
+`material_condition` types 26.3 registers are implemented:
+
+| Group | Types |
+| --- | --- |
+| Rules | `block`, `bandlands`, `sequence`, `condition`, `ore_vein` |
+| Conditions | `biome`, `noise_threshold`, `vertical_gradient`, `y_above`, `water`, `temperature`, `steep`, `not`, `hole`, `above_preliminary_surface`, `stone_depth` |
+
+A tree is parsed once into `MaterialRuleNode` values and compiled once into closures bound to a
+`MaterialRuleContext`. Conditions that depend only on the column cache their answer against a
+per-column counter and conditions that depend on the block cache against a per-block counter,
+which is what keeps the surface noise at 256 samples per chunk instead of one per block. Eroded
+badlands pillars and frozen ocean icebergs are code rather than rules in Java, and they are code
+here too.
+
+**The biome sources.** `MultiNoiseBiomeSource` holds the seven-axis climate model: six parameter
+ranges plus the tie-breaking offset, quantized by Java's single-precision multiply by 10000.
+`ClimateParameterList` builds the same search tree Java builds over the vanilla overworld's 7594
+parameter points and answers a nearest-box query through it; `findBruteForce` is the linear scan
+the tests check it against. `FixedBiomeSource`, `CheckerboardBiomeSource` and `TheEndBiomeSource`
+cover the other three layouts.
+
+`BiomeManager` is the per-block getter the surface pass needs. A biome source answers per 4 by 4
+by 4 cell, and Java does not snap a block to its own cell: it picks whichever of the eight
+surrounding cell corners is nearest after a seeded jitter, so a biome edge wanders by a block or
+two. Resolving one biome per chunk instead puts the wrong block on every column the chunk's other
+biomes own.
+
+**The carvers.** `carveChunk` runs the `cave` and `canyon` carvers over the 289 source chunks
+within eight chunks of the target, seeding each from the world seed and the source chunk position,
+and records the openings in a `CarvingMask`. Trigonometry goes through Java's 65536-entry sine
+table rather than `Math.sin`, because the two differ in the last bits and a tunnel walks a hundred
+steps.
+
+### Parity
+
+| Stage | Vectors | Result |
+| --- | --- | --- |
+| Surface pass, whole columns | 9 columns in each of overworld, nether and end | exact |
+| One synthetic rule per condition type | 15 rules, 9 columns each | exact |
+| Climate parameter lookup | 7594 overworld points, 5 nether points, 8 targets each | exact |
+| Search tree against a brute-force scan | 8 oracle targets plus a 405-point grid per list | identical |
+| Biome zoomer and its seed hash | 6 positions, 6 seeds | exact |
+| End biome source | 32 cells over all five end biomes | exact |
+| Carvers | `cave` and `canyon`, 5 chunks each, every opened block | exact |
+
+Carver paths cannot match Bedrock Edition for the same seed, because Mojang has not described
+Bedrock's generator
+([cross-edition-worldgen-parity.md](../../docs/research/cross-edition-worldgen-parity.md) section
+2). The tests that look across editions check determinism and distribution instead, and their
+names say so. Everything above compares against Java Edition, where exact equality is the point.
+
+### Refreshing these vectors
+
+`utils/oracle/run.mjs` builds the terrain core's vectors. The surface dumper is a second program
+beside it, run the same way:
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run dump:java
+JAR=node_modules/.cache/jsprismarine/java/26.3/extracted/META-INF/versions/26.3/server-26.3.jar
+javac -cp "$JAR:node_modules/.cache/jsprismarine/java/26.3/libraries/*" \
+  -d /tmp/surface-dumper packages/worldgen/utils/oracle/DumpSurfaceVectors.java
+java -cp "/tmp/surface-dumper:$JAR:node_modules/.cache/jsprismarine/java/26.3/libraries/*" \
+  DumpSurfaceVectors "$JAR" packages/worldgen/vectors
+pnpm prettier --write packages/worldgen/vectors/surface-*.json packages/worldgen/vectors/biome-*.json
+```
+
+Run it from inside `node_modules/.cache/jsprismarine/`: Mojang's logger writes a `logs/` directory
+into the working directory.
+
+`surface-registries.json` carries the `material_rule`, `material_condition`, `carver`,
+`density_function`, `noise`, `noise_settings` and biome climate documents straight out of the jar,
+so the whole suite runs with no jar present. Each document is one compact JSON string, because
+Prettier reformats nested JSON into one field per line and that turns the 55 density functions
+into 600 KB of whitespace. One test compares the committed identifiers against the jar when
+`JSP_WORLDGEN_VANILLA` is set, which is what catches drift after a version bump.
+
+### Decisions
+
+- **`biomeClimate` is a required argument of `buildSurface`, not an optional one.** The
+  `temperature` condition and the iceberg melt test read a biome's `temperature` and
+  `temperature_modifier`. A default would make a rule tree that uses them quietly place the wrong
+  block, which is the failure mode this package rejected deepslate over. `parseBiomeClimate` reads
+  the two fields out of a `worldgen/biome` document, so supplying it is one line.
+- **Quantized climate coordinates are numbers, not `BigInt`.** Java holds them as `long`, but they
+  never leave `[-20000, 20000]` and a squared distance over seven axes stays under 2^53, so the
+  arithmetic is exact either way and numbers are far cheaper. The single-precision multiply Java
+  applies before truncating is kept, because it moves `0.0003` from 2 to 3.
+- **`VerticalAnchor` and `WorldGenerationContext` live under `src/surface/`.** Both are shared with
+  the carvers' height providers and, later, with feature placement. They sit beside the first stage
+  that needed them rather than in a module of their own.
