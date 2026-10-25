@@ -73,17 +73,21 @@ const bedrockSamplesPack = (): string | undefined => {
 const JAVA_STATS_COMPARED = 423;
 
 /**
- * How many of those stats the two editions disagree on.
+ * How many of those stats the pack's own values disagree with Java on, before
+ * the stat decision in `javaStats.ts` resolves them.
  *
- * These are findings, not defects. The wither has 600 health on Bedrock and
- * 300 on Java, the witch follows from 64 blocks against Java's 16, and most of
- * the hitbox rows are Bedrock rounding a Java height such as 1.95 to 1.9. The
- * `attack_damage` rows are partly a modeling difference: Bedrock writes a
- * `{range_min, range_max}` pair where Java writes one number, and the
- * comparison reads the low end. A change in this count means either a
+ * The wither has 600 health on Bedrock and 300 on Java, the witch follows from
+ * 64 blocks against Java's 16, and most of the hitbox rows are Bedrock rounding
+ * a Java height such as 1.95 to 1.9. A change in this count means either a
  * component stopped reading the pack or a golden moved.
  */
 const JAVA_STAT_DISAGREEMENTS = 144;
+
+/**
+ * How many of those the server resolves to Java's value, which is every
+ * disagreement on a stat Java decides that is not a reviewed exception.
+ */
+const RESOLVED_TO_JAVA = 31;
 
 /**
  * The empty markers the entity reads back itself rather than through a hook,
