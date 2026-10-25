@@ -141,6 +141,11 @@ export const furnaceFamily = defineFamily(
         },
         onNeighborChanged: (event, world) => {
             if (!hasState(event.block, 'extinguished')) return;
+            // A campfire that is already out has nothing left to put out. Without this, every
+            // neighbor change reaching a drowned campfire played the fizz again, so one under
+            // water hissed at anything that moved near it.
+            if (stateBoolean(event.block, 'extinguished')) return;
+
             const above = world.getBlock(offset(event.block.position, 'up'));
             if (above === undefined || !isWater(above.identifier)) return;
             setStates(world, event.block, { extinguished: true });
