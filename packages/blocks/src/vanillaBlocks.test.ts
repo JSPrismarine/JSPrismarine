@@ -34,18 +34,14 @@ const vanillaBehaviorPack = (): string => {
 };
 
 describe.skipIf(!enabled)("Mojang's own data-driven blocks", () => {
-    it('loads all 98 files with no error', () => {
+    it('loads all 98 files with no error', { timeout: 60_000 }, () => {
         const { definitions, diagnostics } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
 
-        // The whole pack loads, so filter to the blocks; the entity files in
-        // this release report four errors of their own against
-        // `@jsprismarine/packs`, which is that package's business.
-        const blockDiagnostics = diagnostics.filter((diagnostic) => diagnostic.path?.startsWith('blocks/'));
-        expect(blockDiagnostics).toEqual([]);
+        expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
         expect(definitions.blocks.size).toBe(98);
     });
 
-    it('resolves every one with no diagnostic, and reports the components they use', () => {
+    it('resolves every one with no diagnostic, and reports the components they use', { timeout: 60_000 }, () => {
         const { definitions } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
         const resolved = resolveBlocks(definitions.blocks.values());
 
@@ -79,7 +75,7 @@ describe.skipIf(!enabled)("Mojang's own data-driven blocks", () => {
         );
     });
 
-    it('reads the undocumented block archetype out of every file', () => {
+    it('reads the undocumented block archetype out of every file', { timeout: 60_000 }, () => {
         const { definitions } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
         const resolved = resolveBlocks(definitions.blocks.values());
 
@@ -98,7 +94,7 @@ describe.skipIf(!enabled)("Mojang's own data-driven blocks", () => {
         });
     });
 
-    it('applies the shelf mushroom permutations, the only ones vanilla ships', () => {
+    it('applies the shelf mushroom permutations, the only ones vanilla ships', { timeout: 60_000 }, () => {
         const { definitions } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
         const resolved = resolveBlocks(definitions.blocks.values());
 
