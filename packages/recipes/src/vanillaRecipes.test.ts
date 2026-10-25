@@ -14,7 +14,7 @@ import type { RecipeInput } from './match';
 import { matchRecipe } from './match';
 import { parseRecipe } from './parse';
 import type { Recipe } from './types';
-import { RECIPE_TYPES } from './types';
+import { RECIPE_TYPES, STATION_BY_TYPE } from './types';
 
 /**
  * Runs the whole package over Java 26.3's 2042 vanilla recipe files. Needs
@@ -216,7 +216,9 @@ const reconstruct = (recipe: Recipe): RecipeInput | undefined => {
         case 'minecraft:smoking':
         case 'minecraft:campfire_cooking':
         case 'minecraft:stonecutting':
-            return { station: recipe.station, item: sample(recipe.ingredient) };
+            // Read off the type rather than the recipe's own `station`, which `RecipeBase`
+            // types as any station at all.
+            return { station: STATION_BY_TYPE[recipe.type], item: sample(recipe.ingredient) };
         case 'minecraft:smithing_transform':
         case 'minecraft:smithing_trim':
             return {
