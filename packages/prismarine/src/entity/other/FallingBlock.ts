@@ -1,5 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
+import { destroyBlock } from '../../world/blockDestroy';
 import { Entity } from '../Entity';
 import { MetadataFlag } from '../Metadata';
 
@@ -123,6 +124,10 @@ export default class FallingBlock extends Entity {
      * If the place it came to rest will not take a block - it landed on top of something in a
      * space already occupied - it is dropped as an item instead, which is what vanilla does and
      * what stops a fall from quietly destroying the block.
+     *
+     * What it landed *on top of* goes through the same destruction a blast or a piston makes.
+     * Java's `FallingBlockEntity` calls `Level.destroyBlock(pos, true)` before it writes, so
+     * the flower an anvil flattens is dropped rather than overwritten out of existence.
      */
     private async land(y: number): Promise<void> {
         this.settled = true;
@@ -135,6 +140,7 @@ export default class FallingBlock extends Entity {
 
         const resting = await this.getWorld().getBlockState(x, y, z);
         if (FallingBlock.canFallThrough(resting.name)) {
+            if (resting.name !== 'minecraft:air') destroyBlock({ world: this.getWorld(), position: { x, y, z } });
             await this.getWorld().setBlockByName(x, y, z, this.blockName);
             return;
         }
