@@ -17,9 +17,10 @@
 import { DIFFICULTIES } from '@jsprismarine/engine-systems';
 import type { RandomSource } from '@jsprismarine/predicates';
 
+import { applyBlockEntityRecord, blockEntityCompound, blockEntityRecord } from '../blockentity/contentRecord';
+import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { CONTENT_AREAS, notWired } from '../content/world/notWired';
 import type {
-    BlockEntityData,
     ContentBlockAccess,
     ContentLevelFacts,
     ContentPosition,
@@ -202,24 +203,39 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
     }
 });
 
-/** One block position as a map key. */
-const keyOf = (at: ContentPosition): string => `${at.x},${at.y},${at.z}`;
-
 /**
- * Where the content block entity records of one world live.
+ * Where the content block entity records of one world live: in the chunks, as block entities.
  *
- * In memory and nowhere else. The chunks hold Bedrock's own block entities as NBT compounds
- * written by every version and behavior pack a world has seen, and reading one of those into
- * the open record the behaviors share is a translation nothing performs yet. So a chest
- * filled through a content behavior keeps what it was given for as long as the server runs
- * and has forgotten it by the next start, which is a gap worth having visibly rather than a
- * half-written NBT compound that loses a player's chest on the next save.
+ * A chunk already holds Bedrock's block entities, saves them with itself and sends them to every
+ * client that loads it, so a record written here is on disk at the next save and back in the
+ * record at the next start. {@link import('../blockentity/contentRecord')} states the mapping
+ * between the two shapes.
+ *
+ * Both members are synchronous and touch only chunks in memory, for the reason
+ * {@link worldBlockStorage} is: a behavior runs inside the tick. A write into an unloaded chunk
+ * is dropped rather than awaited, which is the same answer `blocks.get` gives there.
+ *
+ * @param world - The live world, read at call time.
  */
-export const worldBlockEntities = (): BlockEntityStore => {
-    const records = new Map<string, BlockEntityData>();
+export const worldBlockEntities = (world: LiveWorld): BlockEntityStore => {
+    const chunkAt = (at: ContentPosition) => world()?.getLoadedChunk(at.x >> 4, at.z >> 4) ?? null;
 
     return {
-        at: (at) => records.get(keyOf(at)),
-        put: (at, data) => void records.set(keyOf(at), data)
+        at: (at) => {
+            const existing = chunkAt(at)?.getBlockEntity(at.x, at.y, at.z);
+            return existing ? blockEntityRecord(existing.toNBT()) : undefined;
+        },
+        put: (at, data) => {
+            const chunk = chunkAt(at);
+            if (chunk === null) return;
+
+            const nbt = blockEntityCompound(
+                chunk.getBlockEntity(at.x, at.y, at.z),
+                at,
+                chunk.getBlock(at.x, at.y, at.z).name
+            );
+            applyBlockEntityRecord(nbt, data);
+            chunk.setBlockEntity(BlockEntityRegistry.fromNBT(nbt));
+        }
     };
 };

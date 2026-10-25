@@ -176,9 +176,14 @@ subsystem that owes it, and each for a reason rather than for want of plumbing.
 | `items.stateOf`, `items.targetOf`, `items.perform` for the entity half of `ItemWorldAction` | Twenty-two of the twenty-eight variants need a player session and an entity index. |
 | The `spawning`, `ai` and `generation` groups | Left absent rather than filled with throwing members, which is what makes the projection in `views.ts` report the owner. |
 
-Block entity records are kept in memory and nowhere else. The chunks hold Bedrock's own block
-entities as NBT compounds, and translating one into the open record the behaviors share is a step
-nothing performs yet, so a container filled through a behavior forgets its contents on restart.
+Block entity records are the chunks' own block entities, so a container filled through a behavior
+is saved with its chunk and sent to every client that loads it.
+[`blockentity/contentRecord.ts`](../blockentity/contentRecord.ts) states the mapping: a container's
+`items` becomes Bedrock's `Items` list, and every other field of the record is JSON under one
+`jsprismarine:data` tag, because Bedrock has no schema for them. Tags the record does not describe
+stay where they were found. A new record is filed under the vanilla id when the server models that
+type and under a `jsprismarine:` id when it does not, rather than under a vanilla name guessed from
+the block.
 
 ## Known gaps
 

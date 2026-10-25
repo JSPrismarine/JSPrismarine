@@ -1,14 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import BinaryStream from '@jsprismarine/binaryutils';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
+import { ByteOrder, NBTReader, NBTWriter } from '@jsprismarine/nbt';
 import { constantRandom } from '@jsprismarine/predicates';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
@@ -220,8 +223,35 @@ describe('serverWorldSource', () => {
         // record. Its contents have to survive that.
         blocks.setBlock({ x: 5, y: 64, z: 4 }, { name: 'minecraft:chest', states: {} }, false);
 
-        expect(adapter.getBlockData(at)?.items).toEqual([{ identifier: 'minecraft:stick', count: 3 }]);
+        // Sparse to the chest's 27 slots, because the record is the chunk's block entity now
+        // and a container's slots are addressed by index.
+        expect(adapter.getBlockData(at)?.items?.[0]).toEqual({ identifier: 'minecraft:stick', count: 3 });
+        expect(adapter.getBlockData(at)?.items).toHaveLength(27);
         expect(adapter.getBlockData(at)?.['pairedWith']).toEqual({ x: 5, y: 64, z: 4 });
+    });
+
+    it('keeps a chest full of sticks across a save and a reload', () => {
+        const at = { x: 4, y: 64, z: 4 };
+        const adapter = content.world.blockWorld.at(DIMENSION);
+
+        content.world.engineWorld.setBlock(at, { name: 'minecraft:chest', states: {} }, false);
+        adapter.setBlockData(at, { ...adapter.getBlockData(at), items: [{ identifier: 'minecraft:stick', count: 3 }] });
+
+        // The provider's own codec, both ways, with no database in the middle: the block
+        // entities of a chunk are NBT compounds one after another.
+        const stream = new BinaryStream();
+        const writer = new NBTWriter(stream, ByteOrder.LITTLE_ENDIAN);
+        writer.setUseVarint(false);
+        for (const blockEntity of chunk.getBlockEntities()) writer.writeCompound(blockEntity.toNBT());
+
+        const reloaded = new Chunk(0, 0);
+        const reader = new NBTReader(new BinaryStream(stream.getBuffer()), ByteOrder.LITTLE_ENDIAN);
+        reader.setUseVarint(false);
+        reloaded.setBlockEntity(BlockEntityRegistry.fromNBT(reader.parse()));
+        Object.assign(world, { chunks: new Map([[Chunk.packXZ(0, 0), reloaded]]) });
+
+        expect(adapter.getBlockData(at)?.items?.[0]).toEqual({ identifier: 'minecraft:stick', count: 3 });
+        expect(adapter.getBlockData(at)?.capacity).toBe(27);
     });
 
     it('grows wheat on a random tick, reading the live light and writing the live chunk', () => {
