@@ -166,6 +166,14 @@ export class Entity {
      */
     private equipment: ViewableEquipment = {};
 
+    /**
+     * Whether this entity is standing on something rather than being carried through the air.
+     *
+     * Named apart from `Player.onGround`, which is the client's own report of the same fact for
+     * the entity it is controlling, and is set from its move packets rather than from the tick.
+     */
+    private grounded = false;
+
     /** Ticks left of the grace period after the last hit. Counted down in {@link Entity.update}. */
     protected invulnerableTicks = 0;
 
@@ -282,6 +290,33 @@ export class Entity {
      */
     public setEquipment(equipment: ViewableEquipment): this {
         this.equipment = equipment;
+        return this;
+    }
+
+    /**
+     * Whether this entity is standing on something.
+     *
+     * What `MoveActorAbsolutePacket`'s on-ground flag carries, and what the `is_on_ground`
+     * predicate reads. False for anything nothing keeps the state for, which is every entity
+     * but a data-driven mob and a player: a projectile in flight and a dropped item are both
+     * drawn by the client from its own guess, as they were before the flag was sent at all.
+     * @returns {boolean} Whether it is grounded.
+     */
+    public isOnGround(): boolean {
+        return this.grounded;
+    }
+
+    /**
+     * Records whether this entity is standing on something.
+     *
+     * Named apart from `Player.setOnGround`, which is the client reporting it for its own
+     * entity and which also pays out the fall damage the landing earned. This one is the
+     * server's own answer for an entity it is moving itself.
+     * @param {boolean} grounded - Whether it is standing on something.
+     * @returns {this} The entity, so a caller can chain.
+     */
+    public setGrounded(grounded: boolean): this {
+        this.grounded = grounded;
         return this;
     }
 
