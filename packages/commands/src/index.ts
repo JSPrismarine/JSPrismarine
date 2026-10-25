@@ -1,5 +1,6 @@
 export * from './argumentTypes';
 export * from './bedrockTable';
+export * from './commands/bedrock';
 export * from './commands/data';
 export * from './commands/entities';
 export * from './commands/execute';

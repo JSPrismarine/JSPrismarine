@@ -9,7 +9,12 @@ import type { TestCommandHostOverrides } from '../testing';
 import { testCommandHost, testEntity } from '../testing';
 import type { CommandRegistry } from '../tree';
 import { EXECUTE_CONDITIONS, EXECUTE_ON_RELATIONS, EXECUTE_STORE_TARGETS, EXECUTE_SUBCOMMANDS } from './execute';
-import { JAVA_ONLY_COMMAND_NAMES, SHARED_COMMAND_NAMES, registerVanillaCommands } from './vanilla';
+import {
+    BEDROCK_ONLY_COMMAND_NAMES,
+    JAVA_ONLY_COMMAND_NAMES,
+    SHARED_COMMAND_NAMES,
+    registerVanillaCommands
+} from './vanilla';
 
 /** Runs one command line and returns what every executed branch produced. */
 const run = (
@@ -29,14 +34,14 @@ const run = (
 };
 
 describe('the command set', () => {
-    it('registers the 46 shared names and the 4 Java-only ones', () => {
+    it('registers the 46 shared names, the 4 Java-only and the 9 Bedrock-only ones', () => {
         const names = new Set(registerVanillaCommands().getNames());
 
-        for (const name of [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES]) {
+        for (const name of [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES]) {
             expect(names.has(name), `${name} is not registered`).toBe(true);
         }
         expect(SHARED_COMMAND_NAMES).toHaveLength(46);
-        expect(names.size).toBe(50);
+        expect(names.size).toBe(59);
     });
 
     it('answers to the aliases Java gives the same command', () => {
@@ -51,7 +56,7 @@ describe('the command set', () => {
     it('flattens the whole set into a packet without dropping a command', () => {
         const { payload, notes } = buildAvailableCommands(registerVanillaCommands());
 
-        expect(payload.commands).toHaveLength(50);
+        expect(payload.commands).toHaveLength(59);
         expect(payload.commands.every((command) => command.overloads.length > 0)).toBe(true);
         expect(notes.every((note) => note.severity === 'degraded' || note.reason === 'overload-limit')).toBe(true);
     });

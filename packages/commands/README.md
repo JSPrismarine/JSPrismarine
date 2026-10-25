@@ -17,15 +17,15 @@ Mojang publishes Bedrock's whole command set as machine-readable data. The table
 
 The generator measures what it emits, and `src/bedrockTable.test.ts` asserts the counts:
 
-| | Count |
-| --- | --- |
-| Commands | 84 |
-| Overloads | 279 |
-| Parameters | 1186 |
-| Command enums | 236 |
-| Enum values | 14281 |
-| Basic parameter types | 26 |
-| Soft enums | 4 |
+|                       | Count |
+| --------------------- | ----- |
+| Commands              | 84    |
+| Overloads             | 279   |
+| Parameters            | 1186  |
+| Command enums         | 236   |
+| Enum values           | 14281 |
+| Basic parameter types | 26    |
+| Soft enums            | 4     |
 
 Nothing in the table is hand-written. A game version bump is a re-fetch and a re-run:
 
@@ -42,6 +42,14 @@ executed.
 Read the table through `src/bedrockTable.ts`, which casts the parsed JSON once and exposes
 `bedrockCommandTable`, `bedrockCommand`, `bedrockCommandEnum`, `isBedrockSoftEnum` and
 `isBedrockBasicType`.
+
+The enums are also what a Java registry argument completes from. `resourceArgument('minecraft:item')`
+sends Mojang's own `Item` enum, all 3411 values of it, rather than an unvalidated string, and the
+same holds for `minecraft:block`, `minecraft:entity_type`, `minecraft:mob_effect`,
+`minecraft:enchantment`, `minecraft:damage_type` and `minecraft:biome`. Mojang's lists are
+unnamespaced where Java's commands take a full id, so both spellings parse and a command body is
+always handed the id. A registry Bedrock publishes no enum for still degrades to a string, and a
+caller that can enumerate its own contents - a server running content packs - passes them instead.
 
 ## The command tree, and what flattening it costs
 
@@ -60,14 +68,14 @@ Bedrock's tree is a flat overload list per command with no redirects, so Java's 
 cartesian expansion. Six shapes do not survive it unchanged, and each produces a note instead of a
 silent drop:
 
-| Shape | What the client gets | Note |
-| --- | --- | --- |
-| A redirect back onto the current path, which is a cycle | One trailing chained-subcommand parameter, and the overload marked `isChaining` | `redirect-cycle` |
-| A redirect to the dispatcher root | One `CODEBUILDERARGS` parameter, which the client will not autocomplete | `redirect-to-root` |
-| An argument whose type Bedrock has no parameter type for | An `ID` string, unvalidated | `no-bedrock-type` |
-| An argument type from outside this package | An `ID` string | `untyped-argument` |
-| A node that is its own child | Nothing; the branch is cut | `self-child` |
-| An expansion past the overload cap | Nothing past the cap | `overload-limit` |
+| Shape                                                    | What the client gets                                                            | Note               |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------- | ------------------ |
+| A redirect back onto the current path, which is a cycle  | One trailing chained-subcommand parameter, and the overload marked `isChaining` | `redirect-cycle`   |
+| A redirect to the dispatcher root                        | One `CODEBUILDERARGS` parameter, which the client will not autocomplete         | `redirect-to-root` |
+| An argument whose type Bedrock has no parameter type for | An `ID` string, unvalidated                                                     | `no-bedrock-type`  |
+| An argument type from outside this package               | An `ID` string                                                                  | `untyped-argument` |
+| A node that is its own child                             | Nothing; the branch is cut                                                      | `self-child`       |
+| An expansion past the overload cap                       | Nothing past the cap                                                            | `overload-limit`   |
 
 A fork flattens normally and is noted anyway. A Bedrock client can be shown
 `/execute as @e run say hi`; what it cannot do is run the fan-out, which happens in
@@ -104,7 +112,14 @@ indices) and that every parse symbol decodes back to the table it points at.
 ## Selectors
 
 `parseSelector(input, dialect)` reads one target selector and returns one model whichever edition
-wrote it. The dialect is a flag, not a merged grammar, because the two grammars share argument
+wrote it, and `matchSelector(selector, source, { candidates, facts })` resolves that model against a
+list of candidates the caller supplies. The split is deliberate: the grammar belongs to the edition
+the string was typed in, and the matching belongs to Java's `EntitySelector`, which both dialects
+normalize onto. The order Java applies is kept because it is observable - filter, then sort, then
+cut to the limit - so a `@p` in a crowd is the nearest match of the filtered set rather than the
+nearest candidate that happens to pass. The facts an `EntityRef` does not carry (game mode,
+experience level, tags, scores, Bedrock's type families) arrive through an optional `SelectorFacts`,
+and a fact left out never matches a test that reads it. The dialect is a flag, not a merged grammar, because the two grammars share argument
 names for `x`, `y`, `z`, `dx`, `dy`, `dz`, `scores`, `tag`, `name` and `type` and disagree on
 everything else.
 
@@ -112,14 +127,14 @@ Java has 6 base selectors and the 21 arguments `EntitySelectorOptions` declares.
 selectors, `@initiator` being the extra one, and its own argument set. The parser normalizes
 Bedrock onto the Java spelling:
 
-| Bedrock | Java |
-| --- | --- |
-| `r`, `rm` | `distance` |
-| `l`, `lm` | `level` |
-| `rx`, `rxm` | `x_rotation` |
-| `ry`, `rym` | `y_rotation` |
-| `m`, with the `s`/`0`, `c`/`1`, `a`/`2`, `d`/`5` shorthands | `gamemode` |
-| `c`, signed, where a negative count means furthest first | `limit` plus `sort` |
+| Bedrock                                                     | Java                |
+| ----------------------------------------------------------- | ------------------- |
+| `r`, `rm`                                                   | `distance`          |
+| `l`, `lm`                                                   | `level`             |
+| `rx`, `rxm`                                                 | `x_rotation`        |
+| `ry`, `rym`                                                 | `y_rotation`        |
+| `m`, with the `s`/`0`, `c`/`1`, `a`/`2`, `d`/`5` shorthands | `gamemode`          |
+| `c`, signed, where a negative count means furthest first    | `limit` plus `sort` |
 
 Four Java arguments have no Bedrock expression (`advancements`, `nbt`, `predicate`, `team`) and
 four Bedrock arguments have no Java expression (`family`, `hasitem`, `haspermission`,
@@ -134,10 +149,10 @@ built can legitimately carry a Java-only argument on a connection whose player i
 
 ## The command set
 
-`registerVanillaCommands()` returns a `CommandRegistry` holding 50 commands: the 46 names Java 26.3
+`registerVanillaCommands()` returns a `CommandRegistry` holding 59 commands: the 46 names Java 26.3
 and Bedrock 1.26.50 share, plus `/data`, `/item`, `/attribute` and `/random`, which are Java-only
-and which the datapack runtime cannot work without. Aliases are registered as redirects, so `/tp`,
-`/msg`, `/w` and `/experience` parse and run as their owners.
+and which the datapack runtime cannot work without, plus nine of Bedrock's own. Aliases are
+registered as redirects, so `/tp`, `/msg`, `/w` and `/experience` parse and run as their owners.
 
 ```
 clear clone damage deop difficulty effect enchant execute fill function gamemode gamerule give
@@ -145,7 +160,23 @@ help kick kill list locate loot me op particle place playsound recipe reload rid
 scoreboard setblock setworldspawn spawnpoint spreadplayers stop stopsound summon tag teleport
 tell tellraw time title transfer weather xp
 attribute data item random
+camerashake daylock fog playanimation replaceitem testfor testforblock testforblocks titleraw
 ```
+
+Four of the Bedrock nine are older spellings of something Java says differently, and they run the
+same host verbs rather than a second implementation: `/testfor` is `execute if entity`,
+`/testforblock` is `execute if block`, `/testforblocks` is `execute if blocks`, and `/daylock` is
+`gamerule doDaylightCycle` with the sense inverted. `/replaceitem` is the `/item replace` Java
+renamed in 1.17 and Bedrock kept, and `/titleraw` is `/title` over a `rawtext` object, built from
+the same tree so a `times` form cannot exist on one and not the other. `/camerashake`, `/fog` and
+`/playanimation` have no gameplay rule behind them at all: each asks the client to draw something
+and the server's whole part is the packet, which is why nothing about them is approximated.
+
+A registry can also be asked to hold only part of the set. `new CommandRegistry({ include })` turns
+a name away, and an excluded command is built but never registered, so nothing can parse it, no
+alias is registered for it, and the flattener never puts it in the packet. That is for a host that
+cannot answer every verb: a command whose body does nothing is worse than one the client was never
+offered. `getExcludedNames()` reports the difference.
 
 `/execute` is a real subcommand chain, not `execute <target> <command>`. It has Java's 14
 subcommands, each redirecting back to the `execute` node; 13 `if`/`unless` conditions; 8 `on`
@@ -212,14 +243,20 @@ rules, 8 of which Java has no counterpart for, and it still spells the command l
 
 ## What is not wired yet
 
-- `AvailableCommandsPacket` in `packages/prismarine` writes `0` for `Chained Subcommand Values`,
-  `0` for `Chained Subcommand Data` and `false` for every overload's `isChaining`. The payload this
-  package builds carries all three, so the chained `/execute` shape cannot reach a client until the
-  packet writes them.
 - `Constraints` is always empty. Mojang's schema names the field and stops, and gophertunnel,
   Cloudburst and PocketMine do not agree on what the indices mean, so nothing is written rather
   than guessing.
 - The selector argument reads with the Java grammar unless a caller passes `dialect: 'bedrock'`.
   Wiring the dialect to the connection a `CommandRequestPacket` arrived on belongs to the server.
+  In practice both dialects parse either way: a Bedrock-only argument in a Java-dialect string is
+  normalized and noted rather than refused, so `@e[r=5,c=1]` reads as `distance=..5, limit=1, sort=nearest`.
 - `execute if stopwatch` parses and always answers false. `/stopwatch` is a 26.x Java command with
   no timer behind it here yet.
+- 29 of Bedrock's commands are not implemented. `/allowlist`, `/save`, `/setmaxplayers`,
+  `/mobevent`, `/tickingarea`, `/structure`, `/clearspawnpoint` and `/toggledownfall` each need a
+  subsystem no server here has; `/camera`, `/hud`, `/music`, `/dialogue`, `/inputpermission`,
+  `/controlscheme`, `/aimassist`, `/project` and `/sendshowstoreoffer` each need a packet this
+  repository does not write yet; and `/script`, `/scriptevent`, `/gametest`, `/editor-allowlist`,
+  `/wsserver`, `/changesetting`, `/packstack`, `/permission`, `/event`, `/reloadconfig`,
+  `/reloadpacketlimitconfig` and `/serveridentity` are editor, telemetry and Script API surfaces
+  that are out of scope by [the plan](../../docs/plans/data-driven-vanilla.md) section 12.

@@ -71,11 +71,19 @@ export type DataTarget =
 /** The five `/data modify` operations. */
 export type DataModifyOperation = 'append' | 'insert' | 'merge' | 'prepend' | 'set';
 
-/** What `/item` and `/loot replace` address. */
+/** What `/item`, `/loot replace` and `/replaceitem` address. */
 export interface ItemSlot {
     /** The slot name, `container.0` or `weapon.mainhand`. */
     readonly name: string;
     readonly count?: number;
+    /**
+     * The position inside a multi-slot group.
+     *
+     * Java names one slot with one string, `container.3`. Bedrock splits the
+     * two, `/replaceitem entity @s slot.hotbar 3`, so the index travels beside
+     * the name rather than being parsed back out of it.
+     */
+    readonly index?: number;
 }
 
 /** What `execute store` writes a result into. */
@@ -237,8 +245,22 @@ export interface DataCommandHost {
     removeData(target: DataTarget, path: string): boolean;
     /** Applies a standalone item modifier to the items in a slot. */
     applyItemModifier(target: DataTarget, slot: ItemSlot, modifier: string): number;
-    /** Puts an item stack directly into a slot. */
-    setSlot(target: DataTarget, slot: ItemSlot, item: string, count: number): number;
+    /**
+     * Puts an item stack directly into a slot.
+     *
+     * @param mode - What to do with what is already there. `replace`, Java's
+     *   only behavior, is the default; `keep` leaves an occupied slot alone and
+     *   `destroy` is Bedrock's explicit spelling of replace, both from
+     *   `/replaceitem`.
+     * @returns How many items were put in.
+     */
+    setSlot(
+        target: DataTarget,
+        slot: ItemSlot,
+        item: string,
+        count: number,
+        mode?: 'destroy' | 'keep' | 'replace'
+    ): number;
     /** Copies items from one slot range to another, optionally through a modifier. */
     copySlots(from: DataTarget, fromSlot: ItemSlot, to: DataTarget, toSlot: ItemSlot, modifier?: string): number;
     /** Runs a loot table and delivers the drops; `source` says which `/loot` source was used. */
@@ -262,6 +284,58 @@ export type LootDestination =
     | { readonly kind: 'spawn'; readonly dimension: string; readonly position: Vector3 }
     | { readonly kind: 'replace'; readonly target: DataTarget; readonly slot: ItemSlot };
 
+/**
+ * What one `/title` or `/titleraw` line asks the client to draw.
+ *
+ * One model rather than a text argument and a flag, because the three forms
+ * carry different data: a slot takes text, `clear` and `reset` take none, and
+ * `times` takes three durations and no text at all. Spelling them as one
+ * string with ignored parameters is how a `times` call silently becomes a
+ * title reading "20".
+ */
+export type TitleInstruction =
+    | {
+          readonly kind: 'title' | 'subtitle' | 'actionbar';
+          readonly text: string;
+          /** True when `text` is a `rawtext` JSON object, as `/titleraw` sends. */
+          readonly raw?: boolean;
+      }
+    | { readonly kind: 'clear' | 'reset' }
+    | {
+          readonly kind: 'times';
+          readonly fadeIn: number;
+          readonly stay: number;
+          readonly fadeOut: number;
+      };
+
+/** What `/camerashake` asks a client to do. */
+export interface CameraShake {
+    readonly action: 'add' | 'stop';
+    readonly intensity: number;
+    readonly seconds: number;
+    readonly shakeType: 'positional' | 'rotational';
+}
+
+/**
+ * One change to a player's fog stack, as `/fog` makes it.
+ *
+ * The packet carries the whole stack, so the server is the thing that
+ * remembers it; `userId` is the name a later `pop` or `remove` refers to the
+ * layer by.
+ */
+export type FogChange =
+    | { readonly mode: 'push'; readonly fogId: string; readonly userId: string }
+    | { readonly mode: 'pop' | 'remove'; readonly userId: string };
+
+/** What `/playanimation` asks a client to draw, beside the animation itself. */
+export interface AnimationRequest {
+    readonly animation: string;
+    readonly nextState?: string;
+    readonly blendOutTime?: number;
+    readonly stopExpression?: string;
+    readonly controller?: string;
+}
+
 /** The administrative verbs a command needs. */
 export interface ServerCommandHost {
     addOperator(player: EntityRef): boolean;
@@ -275,12 +349,27 @@ export interface ServerCommandHost {
     recipes(players: readonly EntityRef[], recipe: string, give: boolean): number;
     /** Sends chat text. `kind` picks the message form the client renders. */
     sendMessage(targets: readonly EntityRef[], kind: 'chat' | 'whisper' | 'emote' | 'raw', text: string): void;
-    /** Sends a title, subtitle or action bar. */
-    sendTitle(
-        targets: readonly EntityRef[],
-        kind: 'title' | 'subtitle' | 'actionbar' | 'clear' | 'reset',
-        text: string
-    ): void;
+    /** Sends a title, subtitle, action bar, clear, reset or timing change. */
+    sendTitle(targets: readonly EntityRef[], title: TitleInstruction): void;
+    /**
+     * Shakes the players' cameras.
+     *
+     * @returns How many players were shaken.
+     */
+    shakeCamera(players: readonly EntityRef[], shake: CameraShake): number;
+    /**
+     * Changes the players' fog stack.
+     *
+     * @returns How many stacks changed; a `pop` of a layer nobody pushed
+     *   changes none.
+     */
+    setFog(players: readonly EntityRef[], change: FogChange): number;
+    /**
+     * Plays a one-off animation on entities.
+     *
+     * @returns How many entities were asked to play it.
+     */
+    playAnimation(entities: readonly EntityRef[], request: AnimationRequest): number;
     /** The usage lines `/help` prints. */
     usage(command?: string): readonly string[];
 }
