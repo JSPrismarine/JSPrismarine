@@ -272,6 +272,40 @@ describe('createApp', () => {
         expect(t.actions.stop).toHaveBeenCalledOnce();
     });
 
+    it('force stops on one Ctrl+C while the server is stopping', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+
+        t.app.applyServerMessage({ type: 'lifecycle', v: 1, state: 'stopping' });
+        t.mockInput.pressCtrlC();
+        await t.renderOnce();
+
+        expect(t.actions.forceStop).toHaveBeenCalledOnce();
+        expect(t.actions.stop).not.toHaveBeenCalled();
+    });
+
+    it('sends /name to the server when name is a known command and searches otherwise', async () => {
+        const t = await setup(
+            { width: 120, height: 40 },
+            { onComplete: async (line) => ({ completions: line === '' ? ['stop', 'list'] : [], replace: line }) }
+        );
+        dispose = t.dispose;
+        t.app.applyServerMessage({ type: 'hello', v: 1, serverVersion: '0.15.2', pid: 1 });
+        await t.renderOnce();
+
+        await t.mockInput.typeText('/stop');
+        t.mockInput.pressEnter();
+        await t.renderOnce();
+        expect(t.commands).toEqual(['/stop']);
+
+        await t.mockInput.typeText('/listening');
+        t.mockInput.pressEnter();
+        await t.renderOnce();
+        await t.renderOnce();
+        expect(t.commands).toEqual(['/stop']);
+        expect(t.captureCharFrame()).toContain('no matches for "listening"');
+    });
+
     it('re-lays out when the terminal shrinks', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;

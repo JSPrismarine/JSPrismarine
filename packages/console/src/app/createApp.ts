@@ -112,6 +112,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let search: string | undefined;
     let wrap = false;
     let sidePanePreference: boolean | undefined;
+    /** Names the server completes an empty line with; `/name` lines go to the server when `name` is one. */
+    let commandNames: ReadonlySet<string> = new Set();
     let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, {});
     let jumpCursor = 0;
 
@@ -182,7 +184,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onSubmit: guard(submit),
         onComplete: props.onComplete,
         onInterrupt: guard(interrupt),
-        onHint: guard((text: string | undefined) => statusBar.setHint(text))
+        onHint: guard((text: string | undefined) => statusBar.setHint(text)),
+        serverStopping: () => state === 'stopping'
     });
 
     logColumn.add(toasts.renderable);
@@ -323,7 +326,23 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         applyLayout();
     }
 
-    /** Handles a `/` line locally. Returns false when the line is a server command. */
+    /** Asks the server which command names it knows, so `/name` can be told apart from a search. */
+    function learnCommandNames(): void {
+        props.onComplete('', 0).then(
+            guard((result: CompletionResult) => {
+                commandNames = new Set(result.completions);
+            }),
+            () => {
+                // Without names every `/` line stays local; the next hello asks again.
+            }
+        );
+    }
+
+    /**
+     * Handles a `/` line locally: `/` clears the search, `/ns:pattern` filters namespaces, and
+     * `/text` searches. Returns false when the line is a server command, which includes
+     * `/name ...` for every `name` the server completes.
+     */
     function localCommand(line: string): boolean {
         if (!line.startsWith('/')) return false;
         const body = line.slice(1).trim();
@@ -331,6 +350,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             setSearch(undefined);
             return true;
         }
+        if (commandNames.has(body.split(/\s+/, 1)[0] ?? '')) return false;
         const namespace = /^(!?)ns:(.*)$/.exec(body);
         if (namespace) {
             const [, invert, pattern] = namespace;
@@ -481,6 +501,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'hello':
                 server = { version: message.serverVersion, pid: message.pid };
                 refreshSidePane();
+                learnCommandNames();
                 return;
             case 'log': {
                 const { seq, level, namespace, at, message: text, formatted } = message;
