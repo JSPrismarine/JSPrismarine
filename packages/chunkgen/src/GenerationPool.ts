@@ -17,6 +17,8 @@
  * six in flight, and 20 microseconds of main thread CPU to receive a transferred 192 KiB column.
  * At 100 chunks a second that is 0.2% of a core, so the boundary is not what limits this.
  */
+import { existsSync } from 'node:fs';
+import { isSea } from 'node:sea';
 import { fileURLToPath } from 'node:url';
 
 import Piscina from 'piscina';
@@ -80,9 +82,11 @@ export interface GenerationPoolOptions {
     /**
      * The module each worker imports to get its status bodies.
      *
-     * A path or a `file:` URL that Node can `import()` from a worker thread, which means built
-     * JavaScript rather than the raw TypeScript a dev checkout resolves `@jsprismarine/*` to.
-     * The module exports `createGenerationPipeline`, a {@link WorkerPipelineFactory}.
+     * A path or a `file:` URL, exporting `createGenerationPipeline`, a
+     * {@link WorkerPipelineFactory}. TypeScript is as good as JavaScript here: a worker thread
+     * inherits `process.execArgv`, so whatever loader the host was started with is already
+     * installed in the worker, and a host running under `--import tsx` hands its workers a
+     * loader that follows the extensionless `@jsprismarine/*` imports a dev checkout is full of.
      */
     readonly pipeline: string;
     /**
@@ -135,6 +139,19 @@ export const defaultGenerationWorker = (): string => {
 };
 
 /**
+ * The file a module specifier names, or undefined when it names a package instead.
+ *
+ * A bare specifier is resolved by whatever loader the worker ends up with, so there is nothing
+ * to look for on disk and nothing to refuse a pool over.
+ */
+const fileBehind = (specifier: string): string | undefined => {
+    if (specifier.startsWith('file:')) return fileURLToPath(specifier);
+    if (specifier.startsWith('.') || specifier.startsWith('/')) return specifier;
+
+    return undefined;
+};
+
+/**
  * A fixed pool of piscina workers.
  *
  * Fixed rather than elastic: a worker's value is the pipeline it has already built, so one that
@@ -158,6 +175,39 @@ const piscinaRunner: TaskRunnerFactory = (options) =>
 export class GenerationPool {
     private readonly runner: TaskRunner;
     private closed = false;
+
+    /**
+     * Why this process cannot run workers, or undefined when it can.
+     *
+     * A worker thread is a second module loader rather than a copy of this one, so it reads the
+     * worker entry and the pipeline off disk through Node's own resolution. A single executable
+     * keeps its modules inside the binary and has neither file, and piscina's own worker entry
+     * is in there with them. Asking before building is what lets a caller log one line and do
+     * the work on its own thread, instead of starting six workers that reject every task.
+     *
+     * This does not promise the pipeline imports cleanly once a worker has it. That depends on
+     * the loader the host was started with, which only the import itself can settle, so a
+     * caller still needs a fallback for the first task.
+     *
+     * @param options - The options {@link GenerationPool} would be built with.
+     * @returns A sentence naming what is missing, or undefined when nothing is.
+     */
+    public static unavailable(options: GenerationPoolOptions): string | undefined {
+        if (isSea()) {
+            return 'a single executable keeps its modules in the binary, where a worker thread cannot import them';
+        }
+
+        const entries = [
+            ['worker entry', options.worker ?? defaultGenerationWorker()],
+            ['pipeline module', options.pipeline]
+        ] as const;
+        for (const [what, specifier] of entries) {
+            const file = fileBehind(specifier);
+            if (file !== undefined && !existsSync(file)) return `the ${what} ${file} is not on disk`;
+        }
+
+        return undefined;
+    }
 
     /**
      * @param options - The pipeline module, the worker entry, the worker count and the setup.
