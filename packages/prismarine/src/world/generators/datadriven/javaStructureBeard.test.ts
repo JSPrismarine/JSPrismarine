@@ -70,6 +70,45 @@ describe('createBeardifier', () => {
 
         expect(two).toBeCloseTo(one * 2, 10);
     });
+
+    it('answers what a scan over every piece answers, bit for bit', () => {
+        // The sampler visits only the pieces its column index says can reach the position. A
+        // sum of floats depends on its order and on every term, so the only acceptable
+        // evidence is the same bits a scan over the whole list produces.
+        const adaptations: readonly TerrainAdaptation[] = ['beard_thin', 'bury', 'beard_box', 'encapsulate', 'none'];
+        const pieces: BeardPiece[] = [];
+        for (let index = 0; index < 24; index++) {
+            const offsetX = (index % 6) * 13 - 30;
+            const offsetZ = Math.floor(index / 6) * 11 - 20;
+            pieces.push({
+                box: {
+                    minX: offsetX,
+                    minY: 56 + (index % 3) * 7,
+                    minZ: offsetZ,
+                    maxX: offsetX + 4 + (index % 5),
+                    maxY: 60 + (index % 3) * 7,
+                    maxZ: offsetZ + 4 + (index % 4)
+                },
+                groundLevelDelta: index % 3,
+                adaptation: adaptations[index % adaptations.length]!
+            });
+        }
+
+        const scan = (x: number, y: number, z: number): number => {
+            let density = 0;
+            for (const piece of pieces) density += createBeardifier([piece])!(context, x, y, z);
+            return density;
+        };
+
+        const indexed = createBeardifier(pieces)!;
+        for (let x = -48; x <= 48; x += 3) {
+            for (let z = -40; z <= 40; z += 5) {
+                for (let y = 40; y <= 90; y += 7) {
+                    expect(indexed(context, x, y, z)).toBe(scan(x, y, z));
+                }
+            }
+        }
+    });
 });
 
 describe('terrainAdaptationOf', () => {
