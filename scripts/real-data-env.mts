@@ -120,9 +120,9 @@ const paths: RequiredPath[] = [
  * so `1` is as good as anything and says plainly that the suite is on.
  */
 const GATES = [
+    'JSP_CONTENT_VANILLA',
     'JSP_FEATURE_CORPUS',
     'JSP_STRUCTURE_CORPUS',
-    'JSP_VANILLA_BEHAVIOR_PACK',
     'JSP_VANILLA_BLOCKS',
     'JSP_VANILLA_ENTITIES',
     'JSP_VANILLA_RECIPES',
@@ -130,17 +130,6 @@ const GATES = [
     'JSP_VANILLA_TRADE_TABLES',
     'JSP_WORLDGEN_VANILLA'
 ] as const;
-
-/**
- * One gate this script deliberately leaves off.
- *
- * `JSP_CONTENT_VANILLA` turns on `packages/prismarine`'s two vanilla content suites, and both
- * fail against the real sources today: `packStack.test.ts` builds the whole vanilla content in
- * one `it` and runs past Vitest's five second default, and `contentPayloads.test.ts` expects
- * 1613 items where the stack produces 1605. Neither is a defect this script can fix, and a gate
- * that is red on arrival would block every pull request. Add it here once both pass.
- */
-export const UNGATED = ['JSP_CONTENT_VANILLA'] as const;
 
 const missing = paths.filter((required) => !existsSync(required.value));
 if (missing.length > 0) {

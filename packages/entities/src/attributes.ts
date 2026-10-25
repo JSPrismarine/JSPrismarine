@@ -50,15 +50,24 @@ export class Attributes {
     private readonly values = new Map<AttributeName, Attribute>();
 
     /**
+     * @param overrides - Base values that replace whatever a component
+     *   declares, which is how a stat Java Edition decides reaches an entity
+     *   built from a Bedrock pack. An overridden attribute has no range: the
+     *   base and the maximum are both the given value.
+     */
+    public constructor(private readonly overrides: ReadonlyMap<AttributeName, number> = new Map()) {}
+
+    /**
      * Declares an attribute and sets it to its base value.
      *
      * A second call replaces the attribute whole, which is what a re-added
      * component group does to the stat it carries.
      */
     public define(name: AttributeName, spec: AttributeSpec): Attribute {
+        const override = this.overrides.get(name);
         const min = spec.min ?? 0;
-        const max = Math.max(min, spec.max ?? spec.base);
-        const base = Math.min(max, Math.max(min, spec.base));
+        const max = Math.max(min, override ?? spec.max ?? spec.base);
+        const base = Math.min(max, Math.max(min, override ?? spec.base));
         const attribute: Attribute = { base, min, max, current: base };
         this.values.set(name, attribute);
         return attribute;
