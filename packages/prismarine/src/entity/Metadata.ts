@@ -7,7 +7,7 @@ import { NetworkUtil } from '../network/NetworkUtil';
 /**
  * The data item ids and flag bits this server sets, in the protocol 2193 numbering.
  *
- * Two different enumerations live here. Everything down to `BOUNDINGBOX_HEIGHT` is an
+ * Two different enumerations live here. Everything down to `FUSE_TIME` is an
  * `ActorDataID`, the key of a `DataItemEntry`; everything after it is an `ActorFlags` bit
  * inside the long stored at `INDEX`. `@jsprismarine/minecraft` generates both from the
  * published docs under those names, and the entries here are the handful the server uses,
@@ -42,6 +42,8 @@ export enum MetadataFlag {
     MAX_AIR = 42,
     BOUNDINGBOX_WIDTH = 53,
     BOUNDINGBOX_HEIGHT = 54,
+    /** Ticks left on a primed TNT's fuse. The client flashes it faster as this runs down. */
+    FUSE_TIME = 55,
 
     // Flag bits inside the long stored at INDEX, not ids of their own.
     ONFIRE = 0,

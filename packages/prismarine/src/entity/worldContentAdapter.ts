@@ -25,6 +25,7 @@ import { spawnableEntities } from './Entities';
 import type { Entity, SpawnableEntityClass } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import FallingBlock from './other/FallingBlock';
+import Tnt from './other/Tnt';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
@@ -64,6 +65,16 @@ const fallingBlockName = (data: BlockEntityData | undefined): string | undefined
     typeof data?.['block'] === 'string' ? data['block'] : undefined;
 
 /**
+ * How long a lit TNT burns, which its own data carries under `fuse`.
+ *
+ * A spawn that names no fuse gets Java's 80 ticks. A blast that caught another TNT names a
+ * short one, which is what spreads a chain out over a second instead of setting it all off at
+ * once - see {@link import('./other/Tnt').randomShortFuse}.
+ */
+const tntFuse = (data: BlockEntityData | undefined): number | undefined =>
+    typeof data?.['fuse'] === 'number' ? data['fuse'] : undefined;
+
+/**
  * Builds the body for one identifier, or reports why it could not.
  *
  * @returns The entity, or a string saying what stopped it, which the caller logs.
@@ -79,6 +90,10 @@ const bodyFor = (
         if (blockName === undefined) return 'a falling block was spawned without the block it is made of';
         return new FallingBlock({ position, blockName });
     }
+
+    // The fuse has to reach the constructor rather than the persistent NBT below, because the
+    // entity counts it down from the next tick and the serializer only writes it back out.
+    if (identifier === Tnt.MOB_ID) return new Tnt({ position, fuse: tntFuse(data) });
 
     const written = classFor(identifier);
     if (written !== undefined) return new written({ position });
