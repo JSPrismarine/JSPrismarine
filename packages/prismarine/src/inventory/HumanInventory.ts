@@ -8,6 +8,9 @@ const HOTBAR_SIZE = 9;
 /** Helmet, chestplate, leggings, boots - the order the client numbers them in. */
 const ARMOR_SLOTS = 4;
 
+/** Three rows of nine, the same as a single chest. */
+const ENDER_CHEST_SLOTS = 27;
+
 export default class HumanInventory extends Inventory {
     /**
      * Which slot the hand points at.
@@ -45,6 +48,15 @@ export default class HumanInventory extends Inventory {
     /** The off hand: one slot, for a shield or a torch. */
     private readonly offhand = new Inventory(1);
 
+    /**
+     * The ender chest, which belongs to the player rather than to any block.
+     *
+     * On the player and not on the block for the reason vanilla puts it there: every
+     * `minecraft:ender_chest` in every dimension shows the same 27 slots to one player, so
+     * there is nothing a chest at a position could hold.
+     */
+    private readonly enderChest = new Inventory(ENDER_CHEST_SLOTS);
+
     public constructor() {
         super(36);
     }
@@ -57,6 +69,11 @@ export default class HumanInventory extends Inventory {
     /** What is in the off hand. */
     public getOffhand(): Inventory {
         return this.offhand;
+    }
+
+    /** The player's own ender chest contents. */
+    public getEnderChest(): Inventory {
+        return this.enderChest;
     }
 
     /**

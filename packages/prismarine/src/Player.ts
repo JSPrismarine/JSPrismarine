@@ -33,11 +33,12 @@ import TextPacketType from './network/type/TextPacketType';
 import { loadAdvancements } from './advancement/progress';
 import { advancementChangedDimension, advancementPlayerTick } from './advancement/triggers';
 import { enchantmentSeedOf } from './enchantment/enchantingTable';
+import { restoreInventory } from './inventory/persistence';
 import type Device from './utils/Device';
 import Timer from './utils/Timer';
 import type UUID from './utils/UUID';
 import type Skin from './utils/skin/Skin';
-import type { World } from './world/';
+import type { World, WorldPlayerData } from './world/';
 import { GameRules } from './world/GameRuleManager';
 import type { Position } from './world/Position';
 import { respawnPoint } from './world/SpawnPlacement';
@@ -263,6 +264,7 @@ export default class Player extends Human {
         // had rather than earning their first advancement twice.
         loadAdvancements(this, playerData.advancements);
         enchantmentSeedOf(this, playerData.enchantmentSeed);
+        this.restoreCarriedState(playerData);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
@@ -305,6 +307,29 @@ export default class Player extends Human {
     }
 
     /**
+     * Puts back what the player was carrying when they left.
+     *
+     * The attributes go in through `setValue` rather than through `setHealth`, which runs the
+     * death path: restoring a player who logged out on half a heart would otherwise announce a
+     * death they already had. Saturation is set after food because it is clamped to it.
+     *
+     * Nothing is sent from here. This runs inside {@link Player.enable}, before the client has
+     * been told its login succeeded, and the join burst sends the inventory and the attributes
+     * once the client is ready for game packets.
+     */
+    private restoreCarriedState(data: Partial<WorldPlayerData>): void {
+        restoreInventory(this.getInventory(), data.inventory, this.server.getContent());
+
+        if (data.health !== undefined) this.attributes.setValue(AttributeIds.Health, data.health);
+        if (data.food !== undefined) this.setFood(data.food);
+        if (data.saturation !== undefined) this.setSaturation(data.saturation);
+        if (data.experience !== undefined) {
+            this.attributes.setValue(AttributeIds.PlayerLevel, data.experience.level);
+            this.attributes.setValue(AttributeIds.PlayerExperience, data.experience.progress);
+        }
+    }
+
+    /**
      * On disable hook.
      *
      * @remarks Idempotent, and paired with {@link Player.enable}: everything enable claimed
@@ -320,7 +345,11 @@ export default class Player extends Human {
         // there is nothing subscribed to remove either.
         if (!this.connected) return;
 
-        if (this.xuid) await this.getWorld().savePlayerData(this);
+        // Whether or not they have an XUID. An offline player has none by construction, this
+        // server accepts offline players, and `World.playerDataKey` already falls back to the
+        // name for them - so the guard that used to be here threw away the inventory of every
+        // player on a server with online mode off.
+        await this.getWorld().savePlayerData(this);
         await this.getWorld().removeEntity(this);
 
         // `removeEntity` above already told everyone who could see this player to take them

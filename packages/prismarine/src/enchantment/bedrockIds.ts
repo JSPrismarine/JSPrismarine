@@ -41,3 +41,18 @@ const byJavaId = new Map<string, EnchantType>(
  *   honest answer: there is nothing to send.
  */
 export const bedrockEnchantType = (javaId: string): EnchantType | undefined => byJavaId.get(javaId);
+
+/** The same table read backwards, so a stored Bedrock number resolves to a Java id. */
+const byEnchantType = new Map<EnchantType, string>();
+for (const [javaId, type] of byJavaId) if (!byEnchantType.has(type)) byEnchantType.set(type, javaId);
+
+/**
+ * The Java enchantment one Bedrock number names.
+ *
+ * The inverse of {@link bedrockEnchantType}, which is what reading a stored `ench` list needs:
+ * a world written by the game itself carries the numbers and nothing else.
+ *
+ * @returns Undefined for a number no `EnchantType` member has, which a world written by a
+ *   newer client may carry.
+ */
+export const javaEnchantmentId = (type: number): string | undefined => byEnchantType.get(type);

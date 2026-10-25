@@ -16,6 +16,7 @@ import { storedAdvancements } from '../advancement/progress';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
+import { AttributeIds } from '../entity/Attribute';
 import { spawnableEntities } from '../entity/Entities';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import EntitySerializer from '../entity/EntitySerializer';
@@ -28,6 +29,7 @@ import { Item } from '../item/Item';
 import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { breakBlockWithContent, collectBreakDrops } from './blockBreak';
+import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import EntityGrid from './EntityGrid';
 import type { WorldChangeSink } from './WorldChangeSink';
@@ -485,16 +487,26 @@ export class World implements Service {
         return (await this.getChunkAt(x, z)).getBlock(x, y, z, layer);
     }
 
+    /**
+     * The block at a position, carrying the state the chunk holds.
+     *
+     * Every one of the palette's 22079 states resolves, because the names a chunk can hold
+     * come out of the same catalog the block manager answers from. The properties travel
+     * with the name, so a lit lamp, a half slab and a stair on its side each read their own
+     * facts rather than the ones their default state has.
+     * @throws When no registry names the block the chunk holds, which is a corrupt chunk or
+     * a world saved against a plugin that is no longer loaded. This used to answer air,
+     * and air is a position a caller is free to build in, so the block was lost on the next
+     * write.
+     */
     public async getBlock(x: number, y: number, z: number, layer = 0): Promise<Block> {
         const state = (await this.getChunkAt(x, z)).getBlock(x, y, z, layer);
-
-        try {
-            return this.server.getBlockManager().getBlock(state.name);
-        } catch {
-            // The chunk holds a block nobody registered a behavior for; it still exists as
-            // a state, but there is no Block to hand back.
-            return this.server.getBlockManager().getBlock('minecraft:air');
+        const block = this.server.getBlockManager().findBlock(state.name, state.properties);
+        if (!block) {
+            throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z} in world ${this.getName()}`);
         }
+
+        return block;
     }
 
     /**
@@ -1169,8 +1181,14 @@ export class World implements Service {
         this.blockUpdates.scheduleAround(x, y, z, now, delay);
 
         // Last, so that everything the change has to report has been reported before a
-        // circuit, a fluid or a fire reacts to it and writes the next block.
-        if (notifyNeighbors) this.systems.updateAround({ x, y, z }, next);
+        // circuit, a fluid or a fire reacts to it and writes the next block. The content
+        // families come after the engine systems for the same reason, and they come at all
+        // because `createContentBlockGroup().set` used to be the only write that told them:
+        // see {@link import('./neighborContent')}.
+        if (notifyNeighbors) {
+            this.systems.updateAround({ x, y, z }, next);
+            notifyContentNeighbors(this, { x, y, z });
+        }
         return true;
     }
 
@@ -1748,7 +1766,15 @@ export class World implements Service {
                 headYaw: player.headYaw
             },
             advancements: storedAdvancements(player),
-            enchantmentSeed: enchantmentSeedOf(player)
+            enchantmentSeed: enchantmentSeedOf(player),
+            inventory: storedInventory(player.getInventory()),
+            health: player.getHealth(),
+            food: player.getFood(),
+            saturation: player.getSaturation(),
+            experience: {
+                level: player.attributes.getValue(AttributeIds.PlayerLevel),
+                progress: player.attributes.getValue(AttributeIds.PlayerExperience)
+            }
         } satisfies WorldPlayerData;
 
         try {

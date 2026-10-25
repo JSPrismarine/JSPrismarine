@@ -39,6 +39,10 @@ export interface ItemProps {
      * holds them: namespaced enchantment id to level.
      */
     enchantments?: ReadonlyMap<string, number> | Readonly<Record<string, number>>;
+    /** The name an anvil gave the stack, which replaces the item's own on the client. */
+    customName?: string;
+    /** The lines an item modifier wrote under the name. */
+    lore?: readonly string[];
 }
 
 /** A player's own base attack damage, which an item modifies rather than replaces. */
@@ -121,12 +125,25 @@ export class Item {
      */
     private enchantmentLevels: ReadonlyMap<string, number>;
 
-    public constructor({ id, name, meta, count, blockRuntimeId, content, enchantments }: ItemProps) {
+    /**
+     * The stack's `minecraft:custom_name` and `minecraft:lore`.
+     *
+     * Beside the enchantments for the same reason they are: these are the two
+     * other per-stack components an anvil writes and the client draws, and a
+     * stack that loses them on a logout comes back as a plain tool with a
+     * different name.
+     */
+    private readonly customName: string | undefined;
+    private readonly loreLines: readonly string[];
+
+    public constructor({ id, name, meta, count, blockRuntimeId, content, enchantments, customName, lore }: ItemProps) {
         this.name = name;
         this.legacyId = id ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
         this.content = content;
         this.enchantmentLevels = enchantmentMap(enchantments);
+        this.customName = customName === '' ? undefined : customName;
+        this.loreLines = lore === undefined ? [] : [...lore];
         if (meta) this.meta = meta;
         // Declared by `ItemProps` but silently dropped until 2168, so a stack read off the
         // wire came back as one item however many the client said it held.
@@ -257,6 +274,16 @@ export class Item {
         return this.enchantmentLevels.get(namespacedId(enchantment)) ?? 0;
     }
 
+    /** The name an anvil gave this stack, or undefined when it still has the item's own. */
+    public getCustomName(): string | undefined {
+        return this.customName;
+    }
+
+    /** The lore lines on this stack, which is an empty array for most of them. */
+    public getLore(): readonly string[] {
+        return this.loreLines;
+    }
+
     /**
      * A copy of this stack carrying a different enchantment set.
      *
@@ -265,6 +292,20 @@ export class Item {
      * in place would have been enchanted whether they paid or not.
      */
     public withEnchantments(levels: ReadonlyMap<string, number> | Readonly<Record<string, number>>): Item {
+        return this.copyWith({ enchantments: levels });
+    }
+
+    /**
+     * A copy of this stack with a different name and lore.
+     *
+     * @param customName - The new name, or undefined to go back to the item's own.
+     */
+    public withDisplay(customName: string | undefined, lore: readonly string[] = this.loreLines): Item {
+        return this.copyWith({ customName, lore });
+    }
+
+    /** One copy constructor for the `with*` methods, so each states only what it changes. */
+    private copyWith(changes: Partial<ItemProps>): Item {
         const copy = new Item({
             id: this.legacyId,
             name: this.name,
@@ -272,7 +313,10 @@ export class Item {
             count: this.count,
             blockRuntimeId: this.placedBlockRuntimeId,
             content: this.content,
-            enchantments: levels
+            enchantments: this.enchantmentLevels,
+            customName: this.customName,
+            lore: this.loreLines,
+            ...changes
         });
         copy.durability = this.durability;
         return copy;
