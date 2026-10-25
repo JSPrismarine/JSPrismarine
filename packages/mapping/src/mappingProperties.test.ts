@@ -23,6 +23,7 @@ import { describe, expect, it } from 'vitest';
 
 import { javaBlockStateToBedrock } from './blockMapping';
 import {
+    BEDROCK_BIOME_LOSSES,
     BLOCK_LOSSES,
     BLOCK_MERGES,
     DROPPED_BLOCK_PROPERTIES,
@@ -33,6 +34,7 @@ import {
     PARTIAL_BLOCK_PROPERTY_COLLAPSES,
     REGISTRY_LOSSES
 } from './lossList';
+import { bedrockBiomeToJava, javaIdentifierToBedrock } from './registryMapping';
 import { blocksTable, entitiesTable, itemsTable, registriesTable } from './tables';
 
 // Documented totals for the pinned versions, from
@@ -44,6 +46,8 @@ const JAVA_ITEMS = 1658;
 const JAVA_ENTITY_TYPES = 161;
 const JAVA_BIOMES = 67;
 const JAVA_ENCHANTMENTS = 43;
+/** The biomes the pinned Bedrock data lists, which is every biome a chunk can store. */
+const BEDROCK_BIOMES = 89;
 
 interface PaletteFile {
     states: Record<string, Record<string, string | number>>;
@@ -118,6 +122,30 @@ describe('property 1: every Java palette entry maps', () => {
         // The loss list never shadows a table entry.
         for (const loss of ENTITY_LOSSES) expect(entitiesTable.entities).not.toHaveProperty(loss.javaId);
         for (const loss of enchantmentLosses) expect(registriesTable.enchantment).not.toHaveProperty(loss.javaId);
+    });
+
+    it('covers all 89 Bedrock biomes in the inverse direction, by id and by identifier', () => {
+        expect(Object.keys(registriesTable.bedrockBiomes)).toHaveLength(BEDROCK_BIOMES);
+        const losses: string[] = [];
+        for (const [identifier, entry] of Object.entries(registriesTable.bedrockBiomes)) {
+            for (const biome of [entry.id, identifier]) {
+                const result = bedrockBiomeToJava(biome);
+                expect(result.kind, identifier).not.toBe('unknown');
+                if (result.kind === 'unknown') continue;
+                expect(result.bedrock, identifier).toEqual({ id: entry.id, identifier });
+            }
+            if (bedrockBiomeToJava(identifier).kind === 'loss') losses.push(identifier);
+        }
+        // Both directions, as the other loss lists do: every listed loss occurs, and nothing else does.
+        expect(losses.sort()).toEqual(BEDROCK_BIOME_LOSSES.map((loss) => loss.bedrockId).sort());
+    });
+
+    it('refuses an id and an identifier the pinned Bedrock data does not have', () => {
+        expect(bedrockBiomeToJava(9999)).toEqual({ kind: 'unknown', biome: 9999 });
+        // Bedrock numbers its biomes sparsely; 50 falls inside the widest gap, 50 to 128.
+        expect(bedrockBiomeToJava(50).kind).toBe('unknown');
+        // A custom biome has no vanilla id to be stored as, so it is unknown rather than passed through.
+        expect(bedrockBiomeToJava('mypack:volcano').kind).toBe('unknown');
     });
 });
 
@@ -293,6 +321,36 @@ describe('property 3: the mapping composed with the reverse index is identity ex
             enchantmentReverse.set(bedrockId, javaId);
         }
     });
+
+    it('round-trips biomes through the generated inverse, both ways', () => {
+        const biomeLossIds = new Set(
+            REGISTRY_LOSSES.filter((loss) => loss.registry === 'biome').map((loss) => loss.javaId)
+        );
+
+        // Java to Bedrock and back is identity, except for the five merged Java biomes, which
+        // come back as the Bedrock biome's own counterpart.
+        const merged: string[] = [];
+        for (const javaId of Object.keys(registriesTable.biome)) {
+            const forward = javaIdentifierToBedrock('biome', javaId);
+            const bedrockId = forward.kind === 'loss' ? forward.loss.bedrockFallback : forward.bedrock;
+            expect(bedrockId, javaId).toBeDefined();
+            const back = bedrockBiomeToJava(bedrockId ?? '');
+            expect(back.kind, javaId).toBe('mapped');
+            if (back.kind !== 'mapped') continue;
+            if (back.java !== javaId) merged.push(javaId);
+        }
+        expect(merged.sort()).toEqual([...biomeLossIds].sort());
+
+        // Bedrock to Java and back is identity for every biome with a Java source.
+        for (const [identifier, entry] of Object.entries(registriesTable.bedrockBiomes)) {
+            const back = bedrockBiomeToJava(entry.id);
+            if (back.kind !== 'mapped') continue;
+            expect(javaIdentifierToBedrock('biome', back.java), identifier).toEqual({
+                kind: 'mapped',
+                bedrock: identifier
+            });
+        }
+    });
 });
 
 describe('property 4: every output identifier exists in the real Bedrock data for the pinned version', () => {
@@ -325,10 +383,31 @@ describe('property 4: every output identifier exists in the real Bedrock data fo
 
     it('biome and enchantment identifiers are in the pinned Bedrock name sets', () => {
         for (const bedrockId of Object.values(registriesTable.biome)) {
-            expect(registriesTable.bedrock.biome, bedrockId).toContain(bedrockId);
+            expect(registriesTable.bedrockBiomes, bedrockId).toHaveProperty(bedrockId);
+        }
+        for (const loss of REGISTRY_LOSSES) {
+            if (loss.registry !== 'biome') continue;
+            const fallback = loss.bedrockFallback;
+            expect(fallback, loss.javaId).toBeDefined();
+            if (fallback !== undefined) expect(registriesTable.bedrockBiomes, fallback).toHaveProperty(fallback);
         }
         for (const bedrockId of Object.values(registriesTable.enchantment)) {
             expect(registriesTable.bedrock.enchantment, bedrockId).toContain(bedrockId);
+        }
+    });
+
+    it('the inverse names only Java 26.3 biomes, and numbers every Bedrock biome once', () => {
+        const ids = new Set<number>();
+        for (const [identifier, entry] of Object.entries(registriesTable.bedrockBiomes)) {
+            expect(ids.has(entry.id), identifier).toBe(false);
+            ids.add(entry.id);
+            if (entry.java === undefined) continue;
+            expect(registriesTable.biome, entry.java).toHaveProperty(entry.java);
+        }
+        // Every reviewed inverse loss is a real Bedrock biome with no Java source.
+        for (const loss of BEDROCK_BIOME_LOSSES) {
+            expect(registriesTable.bedrockBiomes[loss.bedrockId], loss.bedrockId).toBeDefined();
+            expect(registriesTable.bedrockBiomes[loss.bedrockId]?.java, loss.bedrockId).toBeUndefined();
         }
     });
 });

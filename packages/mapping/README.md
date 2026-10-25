@@ -31,6 +31,22 @@ javaIdentifierToBedrock('enchantment', 'minecraft:infinity');
 // { kind: 'mapped', bedrock: 'minecraft:bow_infinity' }
 ```
 
+One inverse, for the one domain that has one. A chunk stores a numeric Bedrock biome id, so
+`bedrockBiomeToJava()` resolves that number, or the Bedrock biome identifier, back to the Bedrock
+biome and the Java biome behind it. It is total over the 89 biomes the pinned Bedrock data lists:
+62 carry a Java source, and the 27 legacy biomes Java 26.3 deleted in its 1.18 terrain rewrite are
+`BEDROCK_BIOME_LOSSES`, each with a reason.
+
+```ts
+import { bedrockBiomeToJava } from '@jsprismarine/mapping';
+
+bedrockBiomeToJava(37);
+// { kind: 'mapped', bedrock: { id: 37, identifier: 'minecraft:mesa' }, java: 'minecraft:badlands' }
+
+bedrockBiomeToJava('minecraft:taiga_hills');
+// { kind: 'loss', bedrock: { id: 19, identifier: 'minecraft:taiga_hills' }, loss: { reason: ... } }
+```
+
 `createPackIdentifierResolver()` wraps these lookups in the `IdentifierResolver` shape that
 `reportIdentifiers` in `@jsprismarine/packs` injects, so a datapack's referenced identifiers can be
 checked against the tables without that package knowing two editions exist. It resolves items,
@@ -39,9 +55,9 @@ results report as `known`, reviewed losses as `loss`. Tag references and registr
 not cover report as `unknown`.
 
 The reviewed loss list is exported alongside the functions (`BLOCK_LOSSES`, `ITEM_LOSSES`,
-`ENTITY_LOSSES`, `REGISTRY_LOSSES`, the merge lists and the dropped-property lists). Every known
-loss carries a reason and a reference, and the property tests fail both when an unlisted loss
-appears and when a listed one stops occurring.
+`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES`, the merge lists and the
+dropped-property lists). Every known loss carries a reason and a reference, and the property tests
+fail both when an unlisted loss appears and when a listed one stops occurring.
 
 ## The tables
 

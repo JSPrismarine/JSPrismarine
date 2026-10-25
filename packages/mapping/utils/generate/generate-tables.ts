@@ -20,7 +20,7 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { ENTITY_LOSSES, REGISTRY_LOSSES } from '../../src/lossList.ts';
+import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES } from '../../src/lossList.ts';
 import { type JavaNbtCompound, readGzippedJavaNbt } from './java-nbt.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -96,7 +96,10 @@ const findJava = (): string => {
 
 const reportsRoot = join(cacheRoot, 'java-reports', javaVersion);
 const generatedDir = join(reportsRoot, 'generated');
-if (!existsSync(join(generatedDir, 'reports/blocks.json'))) {
+// Both halves of the run, because both are read below and a cache carrying only the reports
+// would otherwise fail much later, on a missing directory rather than on a missing generator.
+const generatedOutputs = ['reports/blocks.json', 'data/minecraft/worldgen/biome', 'data/minecraft/enchantment'];
+if (!generatedOutputs.every((output) => existsSync(join(generatedDir, output)))) {
     console.log(`Running the Java ${javaVersion} data generator into ${generatedDir}`);
     mkdirSync(generatedDir, { recursive: true });
     execFileSync(
@@ -534,6 +537,36 @@ for (const javaId of javaBiomeFiles) {
     biomesTable[javaId] = bedrockName;
 }
 
+// The inverse: every Bedrock biome by identifier, carrying the numeric id a chunk stores and
+// the Java biome that maps onto it. A Bedrock biome that more than one Java biome reaches -
+// the River and the End - takes the one Java biome that is not a reviewed registry loss, so
+// the inverse of a merge is the Java biome the merge was named after. The Bedrock biomes no
+// Java biome reaches are the reviewed inverse losses, and the generator refuses to emit when
+// the two sets do not partition the Bedrock biome list.
+const javaByBedrockBiome = new Map<string, string>();
+for (const [javaId, bedrockName] of Object.entries(biomesTable)) {
+    if (registryLossIds.has(`biome ${javaId}`)) continue;
+    const taken = javaByBedrockBiome.get(bedrockName);
+    if (taken !== undefined) {
+        throw new Error(`Bedrock biome ${bedrockName} takes both ${taken} and ${javaId}, and neither is a loss`);
+    }
+    javaByBedrockBiome.set(bedrockName, javaId);
+}
+
+const bedrockBiomeLossIds = new Set(BEDROCK_BIOME_LOSSES.map((loss) => loss.bedrockId));
+const bedrockBiomeTable: Record<string, { id: number; java?: string }> = {};
+for (const [id, bedrockName] of [...biomeIdToName].sort(([, left], [, right]) => left.localeCompare(right))) {
+    if (id === undefined) throw new Error(`Bedrock biome ${bedrockName} has no id`);
+    const java = javaByBedrockBiome.get(bedrockName);
+    if (java === undefined && !bedrockBiomeLossIds.has(bedrockName)) {
+        throw new Error(`Bedrock biome ${bedrockName} has no Java source and no reviewed inverse loss`);
+    }
+    if (java !== undefined && bedrockBiomeLossIds.has(bedrockName)) {
+        throw new Error(`Bedrock biome ${bedrockName} is a reviewed inverse loss but ${java} maps onto it`);
+    }
+    bedrockBiomeTable[bedrockName] = java === undefined ? { id } : { id, java };
+}
+
 const bedrockEnchantmentNames = new Set(bedrockEnchantments.data_items.map((item) => item.name));
 /**
  * The three Java enchantment names Bedrock spells differently; everything
@@ -559,19 +592,19 @@ for (const javaId of javaEnchantmentFiles) {
 
 writeTable('registries.json', {
     $notice: notice(
-        `Java ${javaVersion} biome and enchantment identifiers to Bedrock ${bedrockVersion} identifiers: GeyserMC biomes.json joined against the bedrock-samples mojang-biomes ids, and the enchantment name correspondence verified against mojang-enchantments. The 'bedrock' lists are the pinned Bedrock name sets, kept beside the tables so the property tests run offline.`
+        `Java ${javaVersion} biome and enchantment identifiers to Bedrock ${bedrockVersion} identifiers: GeyserMC biomes.json joined against the bedrock-samples mojang-biomes ids, and the enchantment name correspondence verified against mojang-enchantments. 'bedrockBiomes' is the inverse, every Bedrock biome by identifier with the numeric id a chunk stores. The 'bedrock' enchantment list is the pinned Bedrock name set, kept beside the table so the property tests run offline.`
     ),
     javaVersion,
     bedrockVersion,
     geyserMappingsCommit: geyserCommit,
     biome: biomesTable,
     enchantment: enchantmentsTable,
+    bedrockBiomes: bedrockBiomeTable,
     bedrock: {
-        biome: [...biomeIdToName.values()].sort(),
         enchantment: [...bedrockEnchantmentNames].sort()
     }
 });
 
 console.log(
-    `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes, ${Object.keys(enchantmentsTable).length} enchantments.`
+    `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments.`
 );
