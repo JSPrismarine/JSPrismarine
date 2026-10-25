@@ -22,9 +22,11 @@ import { entity_identifiers, item_table } from '@jsprismarine/bedrock-data';
 import { describe, expect, it } from 'vitest';
 
 import { javaBlockStateToBedrock } from './blockMapping';
+import { bedrockBlockStates, javaBlockStates } from './blockStates';
 import {
     BEDROCK_BIOME_LOSSES,
     BLOCK_LOSSES,
+    BLOCK_STATE_LOSSES,
     BLOCK_MERGES,
     DROPPED_BLOCK_PROPERTIES,
     ENTITY_LOSSES,
@@ -35,7 +37,7 @@ import {
     REGISTRY_LOSSES
 } from './lossList';
 import { bedrockBiomeToJava, javaIdentifierToBedrock } from './registryMapping';
-import { blocksTable, entitiesTable, itemsTable, registriesTable } from './tables';
+import { blockStatesTable, blocksTable, entitiesTable, itemsTable, registriesTable } from './tables';
 
 // Documented totals for the pinned versions, from
 // docs/research/java-to-bedrock-translation.md sections 2, 3, 4 and 6.
@@ -350,6 +352,57 @@ describe('property 3: the mapping composed with the reverse index is identity ex
                 bedrock: identifier
             });
         }
+    });
+});
+
+describe('property 3 for states: the word vocabularies round-trip every state in the palette', () => {
+    it('reads back every one of the 15953 Bedrock target states unchanged', () => {
+        for (const target of paletteTargets) {
+            const words = javaBlockStates(target.name, target.states);
+            expect(bedrockBlockStates(target.name, words), `${target.name} ${JSON.stringify(words)}`).toEqual(
+                target.states
+            );
+        }
+    });
+
+    it('spells a word only where the two editions disagree', () => {
+        // The vocabularies exist to be used: an entry that changes nothing would be dead weight,
+        // and the generator drops those, so every listed block really does respell something.
+        for (const [name, index] of Object.entries(blockStatesTable.blocks)) {
+            const vocabulary = blockStatesTable.vocabularies[index];
+            expect(vocabulary, name).toBeDefined();
+            const respelled = Object.values(vocabulary ?? {}).some((words) =>
+                Object.entries(words).some(([word, value]) => word !== String(value))
+            );
+            expect(respelled, name).toBe(true);
+        }
+    });
+
+    it('leaves the reviewed losses as the Bedrock value, in both directions', () => {
+        for (const loss of BLOCK_STATE_LOSSES) {
+            for (const name of loss.blocks) {
+                const index = blockStatesTable.blocks[name];
+                const vocabulary = index === undefined ? undefined : blockStatesTable.vocabularies[index];
+                expect(vocabulary?.[loss.state], `${name}.${loss.state}`).toBeUndefined();
+                // So a caller holding the Bedrock value gets it back untouched either way.
+                expect(javaBlockStates(name, { [loss.state]: 3 })).toEqual({ [loss.state]: 3 });
+                expect(bedrockBlockStates(name, { [loss.state]: 3 })).toEqual({ [loss.state]: 3 });
+            }
+        }
+    });
+
+    it('drops the states a Bedrock block does not carry, and passes an unknown block through', () => {
+        // Java's piston `extended`: an extended Bedrock piston is a piston with an arm in front.
+        expect(bedrockBlockStates('minecraft:piston', { facing_direction: 'north', extended_bit: true })).toEqual({
+            facing_direction: 3
+        });
+        // And the piston really does spell north differently from everything that is not a piston.
+        expect(bedrockBlockStates('minecraft:dropper', { facing_direction: 'north' })).toEqual({
+            facing_direction: 2
+        });
+        // A block the pinned data does not know has nothing to translate against.
+        expect(bedrockBlockStates('mypack:turbine', { spin: 'fast' })).toEqual({ spin: 'fast' });
+        expect(javaBlockStates('mypack:turbine', { spin: 'fast' })).toEqual({ spin: 'fast' });
     });
 });
 

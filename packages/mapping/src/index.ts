@@ -5,6 +5,7 @@ export {
     type BedrockBlockState,
     type BlockMappingResult
 } from './blockMapping';
+export { bedrockBlockStates, javaBlockStates, type BlockStateValue } from './blockStates';
 export {
     BEDROCK_ONLY_BLOCKS,
     BLOCK_PROPERTY_CONFLICTS,
@@ -23,6 +24,7 @@ export {
     BEDROCK_BIOME_LOSSES,
     BLOCK_LOSSES,
     BLOCK_MERGES,
+    BLOCK_STATE_LOSSES,
     DROPPED_BLOCK_PROPERTIES,
     ENTITY_LOSSES,
     ENTITY_MERGES,
@@ -34,6 +36,7 @@ export {
     type BlockLoss,
     type BlockMerge,
     type BlockPropertyRecovery,
+    type BlockStateLoss,
     type DroppedBlockProperty,
     type EntityLoss,
     type EntityLossKind,
