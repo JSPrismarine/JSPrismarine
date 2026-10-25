@@ -228,12 +228,17 @@ describe('the stronghold', () => {
                 .filter((box) => Math.min(box.maxX - box.minX, box.maxZ - box.minZ) + 1 >= 5);
 
             expect(rooms.length).toBeGreaterThan(10);
+
+            // Collected rather than asserted inside the loop: 24 strongholds is a few hundred
+            // rooms each, and an `expect` per pair is millions of assertion objects.
+            const overlaps: string[] = [];
             for (let first = 0; first < rooms.length; first++) {
                 for (let second = first + 1; second < rooms.length; second++) {
-                    const overlap = boxesIntersect(rooms[first]!, rooms[second]!);
-                    expect(overlap, `seed ${seed}: rooms ${first} and ${second} overlap`).toBe(false);
+                    if (boxesIntersect(rooms[first]!, rooms[second]!)) overlaps.push(`${first} and ${second}`);
                 }
             }
+
+            expect(overlaps, `seed ${seed}`).toEqual([]);
         }
     });
 

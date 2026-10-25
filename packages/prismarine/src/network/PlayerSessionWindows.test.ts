@@ -84,8 +84,37 @@ describe('network', () => {
 
             const opened = await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:enchanting_table');
 
-            expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT });
+            expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT, inputs: [null, null] });
             expect(sent).toHaveLength(1);
+        });
+
+        it.each(['minecraft:anvil', 'minecraft:chipped_anvil', 'minecraft:damaged_anvil'])(
+            'opens the anvil screen for %s, whatever state it has been knocked into',
+            async (identifier) => {
+                const { session } = sessionFor();
+
+                const opened = await session.openBlockContainer(new Vector3(0, 64, 0), identifier);
+                expect(opened).toMatchObject({ screen: WindowTypes.ANVIL });
+            }
+        );
+
+        it.each([
+            ['minecraft:chest', WindowTypes.CONTAINER],
+            ['minecraft:barrel', WindowTypes.CONTAINER],
+            ['minecraft:purple_shulker_box', WindowTypes.CONTAINER],
+            ['minecraft:crafting_table', WindowTypes.WORKBENCH],
+            ['minecraft:furnace', WindowTypes.FURNACE],
+            ['minecraft:blast_furnace', WindowTypes.BLAST_FURNACE],
+            ['minecraft:smoker', WindowTypes.SMOKER],
+            ['minecraft:brewing_stand', WindowTypes.BREWING_STAND],
+            ['minecraft:hopper', WindowTypes.HOPPER],
+            ['minecraft:beacon', WindowTypes.BEACON],
+            ['minecraft:lectern', WindowTypes.LECTERN],
+            ['minecraft:crafter', WindowTypes.CRAFTER]
+        ])('draws %s as its own screen', async (identifier, screen) => {
+            const { session } = sessionFor();
+
+            expect(await session.openBlockContainer(new Vector3(0, 64, 0), identifier)).toMatchObject({ screen });
         });
 
         it('opens nothing for a block with no screen', async () => {

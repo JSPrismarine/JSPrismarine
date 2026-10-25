@@ -72,6 +72,19 @@ export interface ContentBlastOptions {
     readonly content?: ServerContent;
     /** Where a broken block's rolled drops go. */
     readonly drop?: (at: ContentPosition, item: ContentItemDrop) => void;
+    /**
+     * Takes one block out through the server's own destruction path.
+     *
+     * {@link import('./host').EntityHostFacts.destroyBlock}, which raises the block's
+     * `onBreak` before the blast writes air over it - so a chest a creeper caught spills
+     * what it held - and rolls the table with the blast radius in it.
+     *
+     * Absent on a host with no live world, and then {@link ContentBlastOptions.drop} gets
+     * the bare roll instead, with the hook unraised.
+     *
+     * @returns True when the host took the block, which means nothing more is owed for it.
+     */
+    readonly destroy?: (at: ContentPosition) => boolean;
 }
 
 /** What the blast did to one entity. */

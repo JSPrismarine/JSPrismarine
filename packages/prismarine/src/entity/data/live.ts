@@ -20,6 +20,7 @@ import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
 import type { ServerContent } from '../../content/ServerContent';
 import { contentWorldViews } from '../../content/world/views';
+import { destroyBlock } from '../../world/blockDestroy';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
@@ -81,6 +82,13 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
 const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
     players: () => options.entities.players(),
     drop: (at, item) => options.entities.drop(at, item),
+    destroyBlock: (at, destruction) => {
+        const world = options.liveWorld();
+        if (world === undefined) return false;
+
+        destroyBlock({ world, position: at, ...destruction });
+        return true;
+    },
     items: () => lyingItemsIn(options.liveWorld()),
     takeItem: (id) => {
         const world = options.liveWorld();
