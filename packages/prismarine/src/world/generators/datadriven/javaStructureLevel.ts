@@ -39,6 +39,8 @@ export interface NoiseStructureLevelOptions {
     readonly isSolid: (state: BlockState) => boolean;
     /** Which fluid a state holds, which is what the motion blocking heightmap asks. */
     readonly isFluid: (state: BlockState) => boolean;
+    /** Java's `Biome.coldEnoughToSnow`, which needs the biome registry rather than the noise. */
+    readonly coldEnoughToSnow?: (x: number, y: number, z: number) => boolean;
 }
 
 /** The terrain seam over the noise generator, shared by every structure of one world. */
@@ -112,6 +114,7 @@ export const createNoiseStructureLevel = (options: NoiseStructureLevelOptions): 
             return options.minY;
         },
         baseBlock: stateAt,
-        noiseBiome: options.noiseBiome
+        noiseBiome: options.noiseBiome,
+        ...(options.coldEnoughToSnow === undefined ? {} : { coldEnoughToSnow: options.coldEnoughToSnow })
     };
 };
