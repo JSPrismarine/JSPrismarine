@@ -23,7 +23,13 @@ import {
     placeFeature
 } from '@jsprismarine/features';
 import { boxesOverlap } from '@jsprismarine/structures';
-import type { BiomeClimate, CarverConfig, MaterialRuleNode, NoiseGeneratorSettings } from '@jsprismarine/worldgen';
+import type {
+    BiomeClimate,
+    BiomeResolver,
+    CarverConfig,
+    MaterialRuleNode,
+    NoiseGeneratorSettings
+} from '@jsprismarine/worldgen';
 import {
     BiomeManager,
     CarvingMask,
@@ -36,6 +42,7 @@ import {
     carveChunk,
     coldEnoughToSnow,
     createClimateSampler,
+    memoizeBiomeResolver,
     parseBiomeClimate,
     parseCarver
 } from '@jsprismarine/worldgen';
@@ -100,6 +107,8 @@ interface SeededPipeline {
     readonly surface: SurfaceSystem;
     readonly materialRule: MaterialRuleNode;
     readonly biomes: BiomeManager;
+    /** The per-cell biome lookup every stage shares, so a cell is resolved once per world. */
+    readonly biomeCells: BiomeResolver;
     readonly possibleBiomes: ReadonlySet<string>;
     readonly plan: readonly ScheduledFeature[];
     /** The plan split by step, so the decoration loop can interleave the structures. */
@@ -190,7 +199,7 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** @inheritDoc */
-    public generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
         return this.serializeGeneration(pipeline, async () => {
             const key = this.chunkKey(cx, cz);
@@ -305,12 +314,9 @@ export class DataDrivenGenerator implements Generator {
             for (let localZ = 0; localZ < 16; localZ++) {
                 const x = cx * 16 + localX;
                 const z = cz * 16 + localZ;
-                for (let y = ceiling; y >= floor; y--) {
-                    const state = sampler.stateAt(x, y, z);
-                    if (state === 'minecraft:air') continue;
-
-                    region.writeName(x, y, z, state);
-                }
+                sampler.forEachColumnBlock(x, z, (y, state) => {
+                    if (y >= floor && y <= ceiling && state !== 'minecraft:air') region.writeName(x, y, z, state);
+                });
 
                 if (++columnsSinceYield === 4) {
                     columnsSinceYield = 0;
@@ -458,6 +464,10 @@ export class DataDrivenGenerator implements Generator {
     }
 
     private applyPatchToChunk(patch: RegionChunkPatch, chunk: Chunk, pipeline: SeededPipeline): void {
+        for (const removal of patch.blockEntityRemovals) {
+            chunk.removeBlockEntity(removal.x - patch.chunkX * 16, removal.y, removal.z - patch.chunkZ * 16);
+        }
+
         for (const write of patch.blocks) {
             const runtimeId =
                 write.block.bedrock === undefined
@@ -582,7 +592,7 @@ export class DataDrivenGenerator implements Generator {
     private recordBiomes(cx: number, cz: number, chunk: Chunk, pipeline: SeededPipeline): void {
         const biomes = chunk.getBiomes();
         const sections = subChunkCount(this.dimension);
-        const resolver = this.biomeSource.resolver(createClimateSampler(pipeline.randomState));
+        const resolver = pipeline.biomeCells;
 
         for (let section = 0; section < sections; section++) {
             const sectionMinY = this.dimension.minY + section * 16;
@@ -628,7 +638,7 @@ export class DataDrivenGenerator implements Generator {
         const climateOf = this.climateLookup();
 
         const possibleBiomes = new Set(this.biomeSource.possibleBiomes());
-        const resolver = this.biomeSource.resolver(createClimateSampler(randomState));
+        const resolver = memoizeBiomeResolver(this.biomeSource.resolver(createClimateSampler(randomState)));
         const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(seed));
         const oracle = createJavaBlockOracle(registries.blockTags);
         const level = createNoiseStructureLevel({
@@ -650,6 +660,7 @@ export class DataDrivenGenerator implements Generator {
             surface,
             materialRule: this.materialRules.rule(settings.materialRule),
             biomes,
+            biomeCells: resolver,
             possibleBiomes,
             plan,
             planByStep: byStep(plan),
