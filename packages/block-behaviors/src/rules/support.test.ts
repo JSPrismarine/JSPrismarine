@@ -1,8 +1,9 @@
+import type { BlockPosition } from '@jsprismarine/blocks';
 import { describe, expect, it } from 'vitest';
 
 import { AIR } from '../identifiers';
 import { createVoxelWorld } from '../voxelWorld';
-import { breakBlock, isSolidSupport, popWithoutGround, popWithoutSupport } from './support';
+import { breakBlock, isSolidSupport, popBlock, popWithoutGround, popWithoutSupport } from './support';
 
 const origin = { x: 0, y: 1, z: 0 };
 const below = { x: 0, y: 0, z: 0 };
@@ -32,6 +33,38 @@ describe('breakBlock', () => {
         expect(world.identifierAt(origin)).toBe(AIR);
         expect(world.drops).toEqual([{ position: origin, drop: { identifier: 'minecraft:coal', count: 1 } }]);
         expect(world.notified).toEqual([origin]);
+    });
+});
+
+describe('popBlock', () => {
+    it('lets a world with Java’s tables decide what the popped block leaves', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(origin, 'minecraft:stone');
+
+        const destroyed: BlockPosition[] = [];
+        const rolling = Object.assign(world, {
+            destroyBlock: (position: BlockPosition) => {
+                destroyed.push(position);
+                return true;
+            }
+        });
+
+        popBlock(rolling, world.block(origin));
+
+        // The world took the drops, so the family adds none of its own: stone yields
+        // cobblestone and one of itself would be wrong.
+        expect(destroyed).toEqual([origin]);
+        expect(world.drops).toEqual([]);
+        expect(world.identifierAt(origin)).toBe(AIR);
+    });
+
+    it('drops one of the block where the world has no table to roll', () => {
+        const world = createVoxelWorld().overworld;
+        world.set(origin, 'minecraft:torch');
+
+        popBlock(world, world.block(origin));
+
+        expect(world.drops.map((entry) => entry.drop.identifier)).toEqual(['minecraft:torch']);
     });
 });
 

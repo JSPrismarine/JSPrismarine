@@ -34,6 +34,7 @@ import type {
 } from '../content/world/adapter';
 import type { BlockEntityStore, BlockStorageAccess } from '../block/contentAdapter';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
+import { destroyBlock } from './blockDestroy';
 import { timeOfDay } from './DayCycle';
 import { Dimensions, maxY } from './Dimension';
 import type { DimensionDefinition } from './Dimension';
@@ -246,6 +247,22 @@ export const worldBlockStorage = (world: LiveWorld): BlockStorageAccess => ({
         // Written bare: `createContentBlockGroup` raises `onPlace` and notifies the neighbors
         // itself, and a world that did either here would do it twice.
         world()?.setLoadedBlockRuntimeId(position.x, position.y, position.z, runtimeId, undefined, 1, false);
+    },
+
+    /**
+     * The server's one destruction path, which a family reaches through
+     * `WorldActions.destroyBlock`: `onBreak` runs and Java's table decides what falls.
+     *
+     * The write stays with the caller, so a piston popping a torch spills whatever the
+     * torch's family was holding and then writes air over it. Nothing is awaited: every
+     * caller is inside the world tick and the item entity is read by nobody this tick.
+     */
+    destroy: (position) => {
+        const loaded = world();
+        if (loaded === undefined) return false;
+
+        destroyBlock({ world: loaded, position });
+        return true;
     }
 });
 

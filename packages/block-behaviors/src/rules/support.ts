@@ -29,9 +29,18 @@ export const breakBlock = (world: WorldActions, block: HookBlock, drops: readonl
     world.notifyNeighbors(block.position);
 };
 
-/** Removes a block and drops one of itself, which is what losing support does. */
+/**
+ * Removes a block the way the world does it, which is what losing support, a piston and a
+ * falling anvil all do to the block in the way.
+ *
+ * The drop is Java's table for the block, rolled by the world through
+ * {@link WorldActions.destroyBlock}. One of the block itself is only the stand-in for a
+ * world that has no table to roll, and it is a guess: deepslate yields cobbled deepslate
+ * and a popped crop yields its seeds, neither of which is one of itself.
+ */
 export const popBlock = (world: WorldActions, block: HookBlock): void => {
-    breakBlock(world, block, [{ identifier: block.identifier, count: 1 }]);
+    const rolled = world.destroyBlock?.(block.position) ?? false;
+    breakBlock(world, block, rolled ? [] : [{ identifier: block.identifier, count: 1 }]);
 };
 
 /**

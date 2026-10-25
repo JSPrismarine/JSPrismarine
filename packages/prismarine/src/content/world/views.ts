@@ -117,11 +117,16 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         return block && { identifier: block.identifier, position: at, dimension, states: block.states };
     };
 
+    const destroy = adapter.blocks.destroy;
+
     return {
         getBlock: hookBlock,
         setBlock: (position, identifier, states = {}) => adapter.blocks.set(position, { identifier, states }, true),
         propertiesOf: (identifier) => propertiesOf(content(), identifier),
         dropItem: (position, drop) => adapter.entities.drop(position, drop),
+        // Left out rather than made to throw when the adapter cannot destroy, because a
+        // family that cannot reach the table still has its own drop to fall back on.
+        destroyBlock: destroy && ((position) => destroy(position)),
         spawnEntity: (position, identifier, data) => adapter.entities.spawn(identifier, position, data),
         removeEntity: (entity) => adapter.entities.remove(entity),
         entitiesAt: (position) =>

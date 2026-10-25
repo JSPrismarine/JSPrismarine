@@ -28,17 +28,22 @@ one. It is a `BlockWorld`, described below.
 | Group | Methods |
 | --- | --- |
 | Blocks | `getBlock`, `setBlock`, `propertiesOf` |
-| Items and entities | `dropItem`, `spawnEntity`, `removeEntity`, `entitiesAt` |
+| Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick` |
 | Block entities | `getBlockData`, `setBlockData` |
 | Updates | `notifyNeighbors`, `redstonePower`, `lightLevel` |
 | Chance | `random` |
 
-Two of those are there for reasons worth stating. `propertiesOf` returns another block's
+Three of those are there for reasons worth stating. `propertiesOf` returns another block's
 `jsprismarine:block_properties`, which is how the piston and the falling blocks read `push_reaction`
 instead of carrying a list. `random` is on the interface rather than inside the families so a test
-drives a probabilistic rule to either outcome without patching a global.
+drives a probabilistic rule to either outcome without patching a global. `destroyBlock` is how a
+family takes a block out that it is not itself: the host raises the block's `onBreak` and rolls
+Java's loot table for it, where this package would otherwise have to guess that the block drops one
+of itself. It is optional, and a host that leaves it out gets that guess, which is what the test
+voxel world does. `popBlock` is the one rule that uses it, and the piston's popped block, a block
+that lost its support and a block a falling anvil cleared out of the way all go through it.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never

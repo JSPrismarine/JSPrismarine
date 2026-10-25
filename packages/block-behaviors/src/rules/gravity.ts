@@ -12,7 +12,7 @@ import type { HookBlock } from '@jsprismarine/blocks';
 import { offset } from '../geometry';
 import { AIR, isLiquid, isReplaceable } from '../identifiers';
 import type { WorldActions } from '../world';
-import { breakBlock } from './support';
+import { popBlock } from './support';
 
 /** Game ticks between a falling block's check and its first move, as Bedrock schedules it. */
 export const FALL_DELAY = 2;
@@ -75,7 +75,7 @@ export const fallOneStep = (world: WorldActions, block: HookBlock): FallStep => 
     if (below === undefined || !isFallThrough(world, below)) return 'landed';
 
     if (!isReplaceable(below.identifier) && !isLiquid(below.identifier)) {
-        breakBlock(world, below, [{ identifier: below.identifier, count: 1 }]);
+        popBlock(world, below);
     }
 
     world.setBlock(target, block.identifier, block.states);

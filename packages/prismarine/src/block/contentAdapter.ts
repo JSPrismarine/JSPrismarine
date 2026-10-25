@@ -23,7 +23,7 @@ import type { BlockEntityData, ContentBlock, ContentBlockAccess, ContentPosition
 /** The six members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
     ContentBlockAccess,
-    'get' | 'set' | 'data' | 'setData' | 'notifyNeighbors' | 'power'
+    'get' | 'set' | 'destroy' | 'data' | 'setData' | 'notifyNeighbors' | 'power'
 >;
 
 /**
@@ -44,6 +44,15 @@ export interface BlockStorageAccess {
      * storage that does either as well would do it twice.
      */
     write(position: ContentPosition, block: ContentBlock): void;
+    /**
+     * Raises a block's `onBreak` and puts what Java's table rolls on the ground, leaving
+     * the write to the caller; see {@link ContentBlockAccess.destroy}.
+     *
+     * Optional because only a storage over a live world can do it: the drops a family makes
+     * while the hook runs have to be told apart from the table's own roll, which needs the
+     * world those drops go to.
+     */
+    destroy?(position: ContentPosition): boolean;
 }
 
 /** The block entity records of one dimension, which `data` and `setData` read and write. */
@@ -184,8 +193,14 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         }
     };
 
+    const destroy = storage.destroy;
+
     return {
         get: (at) => storage.at(at),
+        // Passed through rather than reimplemented: the hook, the roll and the ground all
+        // belong to the world the storage is over. Absent when the storage cannot do it,
+        // which is what makes a family fall back to its own drop.
+        destroy: destroy && ((at) => destroy(at)),
         set: (at, block, withNeighbors) => {
             const previous = hookBlockAt(storage, dimension, at);
             storage.write(at, block);

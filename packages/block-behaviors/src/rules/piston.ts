@@ -11,7 +11,7 @@ import type { BlockFace, BlockPosition } from '@jsprismarine/blocks';
 import { offset, opposite } from '../geometry';
 import { AIR, isLiquid, isReplaceable } from '../identifiers';
 import type { WorldActions } from '../world';
-import { breakBlock } from './support';
+import { popBlock } from './support';
 
 /** How many blocks one piston moves at once. */
 export const PISTON_PUSH_LIMIT = 12;
@@ -84,7 +84,7 @@ export const performPush = (world: WorldActions, origin: BlockPosition, face: Bl
 
     if (plan.destroyed !== undefined) {
         const popped = world.getBlock(plan.destroyed);
-        if (popped !== undefined) breakBlock(world, popped, [{ identifier: popped.identifier, count: 1 }]);
+        if (popped !== undefined) popBlock(world, popped);
     }
 
     for (let index = plan.moved.length - 1; index >= 0; index -= 1) {
