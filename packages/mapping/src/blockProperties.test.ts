@@ -50,12 +50,22 @@ describe('the flattened block property table', () => {
     it('limits collapse disagreements to Java properties Bedrock does not represent', () => {
         // Piston extension, leaf distance, bamboo and plant stage: the mapping loss list explains
         // each collapse. Anything new here is a flattening regression to review.
-        expect(BLOCK_PROPERTY_CONFLICTS.length).toBe(39);
+        expect(BLOCK_PROPERTY_CONFLICTS.length).toBe(38);
         for (const conflict of BLOCK_PROPERTY_CONFLICTS) {
             expect(['lightDampening', 'randomTick']).toContain(conflict.field);
         }
         const blocks = new Set(BLOCK_PROPERTY_CONFLICTS.map((conflict) => conflict.bedrock.split('[')[0]));
         expect(blocks.size).toBe(23);
+    });
+
+    it('resolves a collapse to the Java state whose dropped properties are at their defaults', () => {
+        // Java lists `extended=true` ahead of `extended=false`, so first-seen order gave every
+        // piston the extended state's row. A Bedrock piston is retracted unless it is firing.
+        for (const conflict of BLOCK_PROPERTY_CONFLICTS) {
+            if (!conflict.bedrock.includes('piston')) continue;
+            expect(conflict.keptSource, conflict.bedrock).toContain('extended=false');
+            expect(conflict.kept, conflict.bedrock).toBe(15);
+        }
     });
 });
 
@@ -102,6 +112,15 @@ describe('bedrockBlockPropertiesOf', () => {
             lightEmission: 9,
             randomTick: true
         });
+    });
+
+    it('dampens light through a piston the way the retracted Java piston does', () => {
+        // Both pistons' Java states disagree: extended lets light through, retracted blocks it.
+        for (const piston of ['minecraft:piston', 'minecraft:sticky_piston']) {
+            expect(bedrockBlockPropertiesOf(piston, { facing_direction: 1 })?.lightDampening, piston).toBe(15);
+        }
+        // The arm and the collision block the arm leaves behind are Bedrock's own, and let light by.
+        expect(bedrockBlockPropertiesOf('minecraft:piston_arm_collision')?.lightDampening).toBe(0);
     });
 
     it('takes the dry row where Bedrock waterlogs through the second layer, the wet one where it cannot', () => {
