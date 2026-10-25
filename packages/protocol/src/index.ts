@@ -21,6 +21,7 @@ export {
 };
 
 export * from './BatchCodec';
+export * from './BlockRuntimeId';
 export * from './CompressionCodec';
 export * from './EncryptionCodec';
 export * from './packet';
