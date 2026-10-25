@@ -13,10 +13,11 @@
  * allowed to know that two editions exist. Without it a piston arm came out as a state this
  * palette does not hold and the write was declined, so pistons never extended.
  */
+import { containerSignal } from '@jsprismarine/block-behaviors';
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
-import type { BlockEntityData, BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
-import { AIR, positionKey } from '@jsprismarine/engine-systems';
+import type { BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
+import { AIR } from '@jsprismarine/engine-systems';
 import { Gametype } from '@jsprismarine/minecraft';
 
 import {
@@ -27,6 +28,7 @@ import {
 } from '../content/world/gameRules';
 import type { GameRuleStore } from '../content/world/gameRules';
 import { destroyBlock } from './blockDestroy';
+import { worldBlockEntities } from './contentAdapter';
 import { maxY } from './Dimension';
 import { takeBlockEntity } from './blockMove';
 import type { World } from './World';
@@ -39,6 +41,29 @@ import type { WorldSystemsAccess } from './WorldSystems';
  * reacts to one. Clear is the honest answer until something drives the cycle.
  */
 const WEATHER_WITHOUT_A_CYCLE: Weather = 'clear';
+
+/** The block entity field the engine's own block states are kept under. */
+const ENGINE_STATES_FIELD = 'engineStates';
+
+/**
+ * The blocks the engine carries a state for that the Bedrock palette has no room for.
+ *
+ * One case: a piston's `extended_bit`, which Java holds in the block state and Bedrock holds
+ * nowhere, because it draws an extended piston from the arm block in front of it instead. The
+ * engine needs the flag back on its next tick to know whether to extend or retract, so it goes
+ * into the block entity, and from there to disk.
+ *
+ * Named rather than discovered, because {@link createEngineWorld}'s block read is the hottest
+ * call the engine makes - every fluid, fire and redstone tick is several of them - and a chunk
+ * block entity lookup per read would cost more than every system it serves. A name is added
+ * when a write turns up a state nothing predicted, so a new one is slow for the rest of the
+ * session rather than silently lost; after a restart only the names listed here are read back.
+ */
+const CARRIES_ENGINE_STATES = new Set<string>(['minecraft:piston', 'minecraft:sticky_piston']);
+
+/** Whether a field read back out of a block entity is a state record rather than something else. */
+const isStates = (value: unknown): value is BlockRef['states'] =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 const difficultyName = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
@@ -96,31 +121,15 @@ export const canSpreadFireAround = (world: FireSpreadWorld, at: BlockPosition): 
  */
 export const createEngineWorld = (world: World): WorldSystemsAccess => {
     /**
-     * What a comparator remembers between ticks, which is Java's
-     * `ComparatorBlockEntity.outputSignal`.
+     * The chunk's own block entities, which is where both halves of the engine's record live.
      *
-     * Held here rather than in the chunk's block entities because those are NBT compounds
-     * with no field for it, so it does not reach disk: a comparator forgets its last output
-     * across a restart and recomputes it on its next tick. The other half of the record, the
-     * container fill level a comparator reads out of a chest, stays undefined until the
-     * block entity subsystem can answer it, so a comparator reading a container reads zero.
+     * A chunk saves its block entities with itself and sends them to every client that loads
+     * it, so what goes in here is on disk at the next save and back in the record at the next
+     * start. That is what a comparator's remembered output and a piston's `extended` both
+     * need: Java keeps the first in `ComparatorBlockEntity.outputSignal` and the second in a
+     * block state, and neither has anywhere else to go on Bedrock.
      */
-    const blockEntities = new Map<string, BlockEntityData>();
-
-    /**
-     * The states the engine carries that the Bedrock block has no room for.
-     *
-     * Bedrock keeps a piston's `extended` in a block entity behind the arm rather than in the
-     * block state, and this server models no piston block entity, so the value is held here
-     * between the write that set it and the read that wants it back - the same bargain the
-     * comparator's output above makes, and for the same reason. It does not reach disk: a
-     * piston forgets it is extended across a restart, and the arm block standing in front of
-     * it is what a client sees either way.
-     *
-     * Keyed by position and checked against the identifier, so a block replaced by another
-     * one does not inherit the old one's states.
-     */
-    const dropped = new Map<string, { name: string; states: BlockRef['states'] }>();
+    const blockEntities = worldBlockEntities(() => world);
 
     const dimension = world.getDimension();
 
@@ -129,8 +138,10 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
         if (block === undefined) return AIR;
 
         const states = javaBlockStates(block.name, block.states);
-        const kept = dropped.get(positionKey(at));
-        return { name: block.name, states: kept?.name === block.name ? { ...states, ...kept.states } : states };
+        if (!CARRIES_ENGINE_STATES.has(block.name)) return { name: block.name, states };
+
+        const kept = blockEntities.at(at)?.[ENGINE_STATES_FIELD];
+        return { name: block.name, states: isStates(kept) ? { ...states, ...kept } : states };
     };
 
     /**
@@ -139,14 +150,23 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
      * A write into an unloaded chunk is refused rather than queued. The system that tried
      * reads air back on its next tick and tries again, which is a few wasted reads at the
      * edge of the loaded world and never a generated chunk.
+     *
+     * A state the Bedrock palette has no room for goes into the block entity rather than
+     * being dropped - see {@link CARRIES_ENGINE_STATES}.
      */
     const writeBlock = (at: BlockPosition, to: BlockRef, notifyNeighbors: boolean): void => {
         const states = bedrockBlockStates(to.name, to.states);
 
-        const key = positionKey(at);
         const extra = Object.entries(to.states).filter(([state]) => !(state in states));
-        if (extra.length === 0) dropped.delete(key);
-        else dropped.set(key, { name: to.name, states: Object.fromEntries(extra) });
+        if (extra.length > 0) {
+            CARRIES_ENGINE_STATES.add(to.name);
+            blockEntities.put(at, { ...blockEntities.at(at), [ENGINE_STATES_FIELD]: Object.fromEntries(extra) });
+        } else if (CARRIES_ENGINE_STATES.has(to.name)) {
+            const held = blockEntities.at(at);
+            if (held?.[ENGINE_STATES_FIELD] !== undefined) {
+                blockEntities.put(at, { ...held, [ENGINE_STATES_FIELD]: undefined });
+            }
+        }
 
         world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states }, notifyNeighbors);
     };
@@ -155,9 +175,36 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
         getBlock: readBlock,
         setBlock: writeBlock,
 
-        getBlockEntityData: (at) => blockEntities.get(positionKey(at)),
+        /**
+         * The two numbers a comparator reads, out of the block entity standing there.
+         *
+         * `analogOutput` is Java's `Block.getAnalogOutputSignal`, which for every container is
+         * `AbstractContainerMenu.getRedstoneSignalFromContainer` over what it holds. The
+         * container family already computes that from the record's own slots, so a comparator
+         * behind a chest reads the chest rather than a number somebody had to remember to
+         * write. `comparatorOutput` is `ComparatorBlockEntity.outputSignal`, which only the
+         * comparator writes.
+         */
+        getBlockEntityData: (at) => {
+            const record = blockEntities.at(at);
+            if (record === undefined) return undefined;
+
+            const comparatorOutput = typeof record.comparatorOutput === 'number' ? record.comparatorOutput : undefined;
+            const analogOutput = record.items === undefined ? undefined : containerSignal(record);
+            if (comparatorOutput === undefined && analogOutput === undefined) return undefined;
+
+            return { analogOutput, comparatorOutput };
+        },
+
+        /**
+         * Keeps what a comparator remembered.
+         *
+         * Only `comparatorOutput` is written back. `analogOutput` is derived from the
+         * container's own slots on every read, so storing it would be a second copy of the
+         * chest's contents that nothing keeps in step with them.
+         */
         setBlockEntityData: (at, data) => {
-            blockEntities.set(positionKey(at), data);
+            blockEntities.put(at, { ...blockEntities.at(at), comparatorOutput: data.comparatorOutput });
         },
 
         /**

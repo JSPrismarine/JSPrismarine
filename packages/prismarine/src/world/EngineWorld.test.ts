@@ -14,6 +14,8 @@ import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
+import { worldBlockEntities } from './contentAdapter';
+import { createEngineWorld } from './EngineWorld';
 import type { Generator } from './Generator';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
@@ -226,6 +228,73 @@ describe('world', () => {
 
                 expect(nameAt(world, 2, GROUND + 1, 0)).toBe('minecraft:dirt');
                 expect(nameAt(world, 1, GROUND + 1, 0)).toBe('minecraft:piston_arm_collision');
+            });
+        });
+
+        /**
+         * The two things the engine has nowhere else to keep: a container's fill level, which
+         * a comparator reads, and the states Bedrock's palette has no room for.
+         *
+         * Both go into the chunk's own block entities, which is what puts them on disk. A
+         * second {@link createEngineWorld} over the same world is what a restart gives: the
+         * same chunks, none of the first one's memory.
+         */
+        describe('what the engine keeps in a block entity', () => {
+            it('reads a chest fill level back as a comparator input', async () => {
+                const world = await flatWorld();
+                const store = worldBlockEntities(() => world);
+                const chest = { x: 0, y: GROUND + 1, z: 0 };
+
+                place(world, chest.x, chest.y, chest.z, named('minecraft:chest'));
+                store.put(chest, { capacity: 27, items: [{ identifier: 'minecraft:stone', count: 64 }] });
+
+                // Java's `AbstractContainerMenu.getRedstoneSignalFromContainer`: one full
+                // stack of twenty-seven slots is floor(1/27 * 14) + 1, which is one.
+                expect(createEngineWorld(world).getBlockEntityData(chest)?.analogOutput).toBe(1);
+            });
+
+            it('answers nothing for a position holding no block entity at all', async () => {
+                const world = await flatWorld();
+
+                expect(createEngineWorld(world).getBlockEntityData({ x: 3, y: GROUND + 1, z: 3 })).toBeUndefined();
+            });
+
+            it('keeps a comparator output where a restart will find it again', async () => {
+                const world = await flatWorld();
+                const at = { x: 0, y: GROUND + 1, z: 0 };
+
+                place(world, at.x, at.y, at.z, named('minecraft:unpowered_comparator'));
+                createEngineWorld(world).setBlockEntityData(at, { comparatorOutput: 11 });
+
+                // A second engine world is what a restart gives: the same chunks, none of the
+                // first one's state. The number comes back because it is in the chunk.
+                expect(createEngineWorld(world).getBlockEntityData(at)?.comparatorOutput).toBe(11);
+                expect(worldBlockEntities(() => world).at(at)?.['comparatorOutput']).toBe(11);
+            });
+
+            it('keeps a piston extended where a restart will find it again', async () => {
+                const world = await flatWorld();
+                const at = { x: 0, y: GROUND + 1, z: 0 };
+
+                place(world, at.x, at.y, at.z, named('minecraft:piston', { facing_direction: 4 }));
+                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
+
+                // Bedrock's palette has no `extended_bit`, so the flag Java keeps in the block
+                // state is in the block entity here. Without it a piston comes back from a
+                // restart thinking it is retracted and refuses to take its own arm back.
+                expect(createEngineWorld(world).getBlock(at).states['extended_bit']).toBe(true);
+                expect(worldBlockEntities(() => world).at(at)?.['engineStates']).toEqual({ extended_bit: true });
+            });
+
+            it('drops the kept state when the piston retracts', async () => {
+                const world = await flatWorld();
+                const at = { x: 0, y: GROUND + 1, z: 0 };
+
+                place(world, at.x, at.y, at.z, named('minecraft:piston', { facing_direction: 4 }));
+                world.setLoadedBlockState(-1, GROUND + 1, 0, REDSTONE_BLOCK, true);
+                world.setLoadedBlockState(-1, GROUND + 1, 0, named('minecraft:air'), true);
+
+                expect(createEngineWorld(world).getBlock(at).states['extended_bit']).toBe(false);
             });
         });
 
