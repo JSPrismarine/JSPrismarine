@@ -22,7 +22,8 @@ import {
     GENERATION_PRIORITIES,
     GenerationPool,
     GenerationScheduler,
-    InboundFeaturePatches
+    InboundFeaturePatches,
+    ShardedGenerationPool
 } from '@jsprismarine/chunkgen';
 import type { BlockOracle, BlockPos, FeatureWorld, PlacedFeature } from '@jsprismarine/features';
 import {
@@ -64,6 +65,7 @@ import SubChunk from '../../chunk/SubChunk';
 import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { WorldConfig } from '../../World';
+import { GenerationStopped } from '../../Generator';
 import type {
     ChunkRequestOptions,
     Generator,
@@ -89,6 +91,7 @@ import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { shareRegistryBundle } from './registryBundle';
+import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 
@@ -141,6 +144,44 @@ export interface DataDrivenGeneratorOptions {
      * which is Java's split and is the safety argument for the whole arrangement.
      */
     readonly terrain?: TerrainPoolOptions;
+    /**
+     * Where to run whole chunks, and how many at a time.
+     *
+     * Absent by default, which builds them on this thread. This is the pool that pays: a
+     * `terrain` pool leaves the decoration pass and the structure layout here, which is 168 of
+     * the 239 milliseconds a chunk costs, so no worker count takes it past 1.33 times. A pool
+     * of whole chunks makes all but the Bedrock translation parallel.
+     *
+     * The two are alternatives, not layers. A generator given both uses this one and leaves
+     * {@link DataDrivenGeneratorOptions.terrain} alone, because a worker running the whole
+     * ladder runs its own `terrain` inside it.
+     */
+    readonly chunks?: ChunkPoolOptions;
+}
+
+/** Where a generator runs whole chunks. */
+export interface ChunkPoolOptions {
+    /**
+     * The module a worker imports to get its generator, which {@link defaultChunkPipeline}
+     * answers for this package's own.
+     */
+    readonly pipeline: string;
+    /** How many workers. */
+    readonly workers: number;
+    /** The worker entry, which defaults to `@jsprismarine/chunkgen`'s own. */
+    readonly worker?: string;
+    /**
+     * How wide one worker's region is, in chunks.
+     *
+     * Left to `@jsprismarine/chunkgen`'s default unless a caller has measured something else.
+     * See {@link ShardedGenerationPool}: this is the trade between building a neighborhood
+     * twice and leaving a worker idle.
+     */
+    readonly regionChunks?: number;
+    /** How far behind a region's owner falls before its work is given away. */
+    readonly stealAfter?: number;
+    /** Told once, with the reason, when the chunks end up on this thread after all. */
+    readonly onUnavailable?: (reason: string) => void;
 }
 
 /** Where a generator runs its `terrain` bodies. */
@@ -180,6 +221,18 @@ export interface TerrainPoolOptions {
  */
 export const defaultTerrainPipeline = (): string => {
     const beside = import.meta.url.endsWith('.ts') ? './terrainPipeline.ts' : './terrainPipeline.es.js';
+    return fileURLToPath(new URL(beside, import.meta.url));
+};
+
+/**
+ * This package's own whole-chunk pipeline module, beside this file.
+ *
+ * Resolved the same way, and for the same reasons, as {@link defaultTerrainPipeline}.
+ *
+ * @returns The path to the module.
+ */
+export const defaultChunkPipeline = (): string => {
+    const beside = import.meta.url.endsWith('.ts') ? './chunkPipeline.ts' : './chunkPipeline.es.js';
     return fileURLToPath(new URL(beside, import.meta.url));
 };
 
@@ -340,6 +393,17 @@ export class DataDrivenGenerator implements Generator {
     private pool: GenerationPool | undefined;
 
     /**
+     * The workers that build whole chunks, or undefined when they are built on this thread.
+     *
+     * Mutually exclusive with {@link DataDrivenGenerator.pool}: see
+     * {@link DataDrivenGeneratorOptions.chunks}.
+     */
+    private chunkPool: ShardedGenerationPool | undefined;
+
+    /** Whether a chunk worker has ever answered, which tells a startup failure from a bug. */
+    private chunkPoolAnswered = false;
+
+    /**
      * The band each chunk somebody asked for is waiting in, while it is being built.
      *
      * Only the chunks a caller named, not the neighbors built to satisfy them: see
@@ -378,7 +442,49 @@ export class DataDrivenGenerator implements Generator {
         }
 
         this.biomeSource = MultiNoiseBiomeSource.fromJson(parameters);
-        this.pool = this.openPool(registries);
+        this.chunkPool = this.openChunkPool(registries);
+        // Only when the whole ladder is not already pooled: a worker that builds a chunk runs
+        // its own `terrain` inside it, and a second pool underneath would be workers asking
+        // workers.
+        this.pool = this.chunkPool === undefined ? this.openPool(registries) : undefined;
+    }
+
+    /**
+     * Starts the whole-chunk pool, or reports why there is not going to be one.
+     *
+     * Sharded rather than first-come: a chunk reads the 5 by 5 of terrain around it, so a
+     * worker that is handed scattered positions builds each neighborhood from nothing and the
+     * pool is slower than one thread. See {@link ShardedGenerationPool}.
+     */
+    private openChunkPool(registries: JavaWorldgenRegistries): ShardedGenerationPool | undefined {
+        const chunks = this.options.chunks;
+        if (chunks === undefined) return undefined;
+
+        const where = {
+            pipeline: chunks.pipeline,
+            workers: chunks.workers,
+            ...(chunks.worker === undefined ? {} : { worker: chunks.worker }),
+            ...(chunks.regionChunks === undefined ? {} : { regionChunks: chunks.regionChunks }),
+            ...(chunks.stealAfter === undefined ? {} : { stealAfter: chunks.stealAfter })
+        };
+        const reason = ShardedGenerationPool.unavailable(where);
+        if (reason !== undefined) {
+            chunks.onUnavailable?.(reason);
+            return undefined;
+        }
+
+        return new ShardedGenerationPool({
+            ...where,
+            setup: {
+                registryBundle: shareRegistryBundle(registries),
+                dimension: this.dimension,
+                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
+                ...(this.options.biomeParameters === undefined
+                    ? {}
+                    : { biomeParameters: this.options.biomeParameters }),
+                carve: this.options.carve !== false
+            } satisfies ChunkPipelineSetup
+        });
     }
 
     /**
@@ -415,6 +521,82 @@ export class DataDrivenGenerator implements Generator {
                 carve: this.options.carve !== false
             } satisfies TerrainPipelineSetup
         });
+    }
+
+    /**
+     * One whole chunk, built in the worker that owns its region.
+     *
+     * The worker climbs the ladder and hands back the merged region; the translation to
+     * Bedrock happens here, because the mapping tables live on this thread.
+     *
+     * @returns The chunk, or undefined when there is no chunk pool and the caller should build
+     * it on this thread.
+     */
+    private async pooledChunk(cx: number, cz: number, pipeline: SeededPipeline): Promise<Chunk | undefined> {
+        const pool = this.chunkPool;
+        if (pool === undefined) return undefined;
+        // Refused before it is asked for, the way `GenerationQueue` refuses the inline path:
+        // the pooled path does not go through that queue, because its depth is what holds a
+        // pool at one worker.
+        if (this.stopped) throw new GenerationStopped(cx, cz);
+
+        let result;
+        try {
+            result = await pool.run(
+                {
+                    status: 'full',
+                    chunkX: cx,
+                    chunkZ: cz,
+                    input: { seed: pipeline.randomState.seed.toString() } satisfies ChunkTaskInput
+                },
+                this.urgencyOf(cx, cz)
+            );
+            this.chunkPoolAnswered = true;
+        } catch (error) {
+            // A shutdown terminates the workers mid-chunk, so every outstanding task rejects
+            // with the worker's error rather than with a refusal. The caller asked a generator
+            // that is stopping, and that is what it should be told.
+            if (this.stopped) throw new GenerationStopped(cx, cz);
+            if (!this.abandonChunkPool(error)) throw error;
+
+            return undefined;
+        }
+
+        // The worker's own payload, arriving across a thread boundary the compiler cannot
+        // follow. Nothing but `chunkPipeline` puts anything on the other end of this.
+        const payload = result.payload as GenerationRegionPayload;
+        const region = GenerationRegion.adopt(payload, {
+            seaLevel: pipeline.settings.seaLevel,
+            seed: pipeline.randomState.seed,
+            blocks: pipeline.oracle,
+            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
+        });
+
+        return this.toChunk(cx, cz, region, pipeline);
+    }
+
+    /**
+     * Gives up on the chunk pool when its first task fails, so a world is slow rather than
+     * unplayable.
+     *
+     * The same rule {@link DataDrivenGenerator.abandonPool} applies to the terrain pool: a pool
+     * that has never answered cannot run its pipeline, and one that has answered and then threw
+     * has a chunk-shaped problem that hiding behind the inline path would only bury.
+     */
+    private abandonChunkPool(error: unknown): boolean {
+        if (this.stopped || this.chunkPoolAnswered) return false;
+
+        const pool = this.chunkPool;
+        this.chunkPool = undefined;
+        if (pool !== undefined) {
+            void pool.destroy();
+            this.options.chunks?.onUnavailable?.(
+                `a chunk worker could not run: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+
+        return true;
     }
 
     /**
@@ -466,6 +648,9 @@ export class DataDrivenGenerator implements Generator {
 
     /** The body of {@link DataDrivenGenerator.generateChunk}, once its urgency is recorded. */
     private async buildChunk(cx: number, cz: number, pipeline: SeededPipeline): Promise<Chunk> {
+        const pooled = await this.pooledChunk(cx, cz, pipeline);
+        if (pooled !== undefined) return pooled;
+
         return pipeline.queue.run(cx, cz, async () => {
             this.retain(pipeline, cx, cz);
 
@@ -477,10 +662,44 @@ export class DataDrivenGenerator implements Generator {
             const promoted = staged.bedrockChunk;
             if (promoted !== undefined) return promoted;
 
-            const chunk = this.toChunk(cx, cz, staged.terrain, pipeline);
+            // `full` leaves the merged region and `terrain` leaves only its own tile, which is
+            // what a generator with decoration off stops at.
+            const chunk = this.toChunk(cx, cz, staged.finalRegion ?? staged.terrain, pipeline);
             staged.recordChunk(chunk);
             return chunk;
         });
+    }
+
+    /**
+     * One finished chunk's merged region, packed for the thread that asked for it.
+     *
+     * What a worker runs when the whole ladder is pooled. It climbs to `full` exactly as the
+     * main thread would and stops one step short of the Bedrock translation, which stays on
+     * the thread that holds the mapping tables.
+     *
+     * The region is copied rather than moved. Moving it would leave this worker's holder with
+     * a detached chunk, and a second request for the same position - two worlds on one seed,
+     * a chunk the main thread let go of - would find nothing there. A copy is about 60
+     * microseconds against a chunk that costs a couple of hundred milliseconds to build.
+     *
+     * @param cx - Chunk x.
+     * @param cz - Chunk z.
+     * @param seed - The world seed, which pins this generator's pipeline.
+     * @returns The payload, with an empty transfer list.
+     * @throws When the ladder reached `full` without leaving a region, which would mean a
+     * status body stopped writing one.
+     */
+    public async buildFullTile(cx: number, cz: number, seed: bigint): Promise<GenerationRegionTransfer> {
+        const pipeline = this.pipelineFor(seed);
+        this.retain(pipeline, cx, cz);
+
+        const staged = await pipeline.scheduler.generate(cx, cz, 'full');
+        const region = staged.finalRegion;
+        if (region === undefined) {
+            throw new Error(`The chunk at ${cx}, ${cz} reached full without leaving a region to hand back.`);
+        }
+
+        return { payload: region.transfer().payload, transferList: [] };
     }
 
     /**
@@ -518,6 +737,7 @@ export class DataDrivenGenerator implements Generator {
         // Worker threads do not receive signals, so terminating them is the only way to stop a
         // worker that is halfway through a chunk. 2 to 24 ms, measured.
         void this.pool?.destroy();
+        void this.chunkPool?.destroy();
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
@@ -695,7 +915,7 @@ export class DataDrivenGenerator implements Generator {
         }
         for (const patch of inbound.inMergeOrder()) final.applyPatch(patch);
 
-        chunk.recordChunk(this.toChunk(chunk.chunkX, chunk.chunkZ, final, pipeline));
+        chunk.recordFinalRegion(final);
         return chunk;
     }
 
@@ -901,7 +1121,9 @@ export class DataDrivenGenerator implements Generator {
         }
 
         this.urgencies.set(key, urgency);
-        this.pool?.promote((task) => task.chunkX === cx && task.chunkZ === cz, urgency);
+        const here = (task: { chunkX: number; chunkZ: number }): boolean => task.chunkX === cx && task.chunkZ === cz;
+        this.pool?.promote(here, urgency);
+        this.chunkPool?.promote(here, urgency);
     }
 
     private trimCache<T>(cache: Map<string, T>): void {

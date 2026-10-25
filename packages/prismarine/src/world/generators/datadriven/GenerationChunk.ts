@@ -58,6 +58,7 @@ export class GenerationChunk implements StagedChunk {
     private ownWrites: RegionChunkPatch | undefined;
     private outbound: ReadonlyMap<string, RegionChunkPatch> = new Map();
     private finished: Chunk | undefined;
+    private finalTile: GenerationRegion | undefined;
 
     public constructor(
         public readonly chunkX: number,
@@ -126,8 +127,25 @@ export class GenerationChunk implements StagedChunk {
         return this.outbound.get(`${chunkX},${chunkZ}`);
     }
 
-    /** Records the finished Bedrock chunk. Called once, by the `full` body. */
+    /** Records the finished Bedrock chunk. Called once the region has been translated. */
     public recordChunk(chunk: Chunk): void {
         this.finished = chunk;
+    }
+
+    /**
+     * The merged region `full` produced, before it was translated to Bedrock.
+     *
+     * The `full` body stops here rather than translating, because the two belong to different
+     * threads: merging is a chunk's own work and runs wherever the chunk is built, while the
+     * translation reads this server's Java-to-Bedrock tables and belongs to whichever thread
+     * holds them. A worker hands this region back and the main thread finishes the job.
+     */
+    public get finalRegion(): GenerationRegion | undefined {
+        return this.finalTile;
+    }
+
+    /** Records the merged region. Called once, by the `full` body. */
+    public recordFinalRegion(region: GenerationRegion): void {
+        this.finalTile = region;
     }
 }

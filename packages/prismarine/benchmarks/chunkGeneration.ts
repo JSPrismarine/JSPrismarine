@@ -14,7 +14,11 @@
  */
 import { availableParallelism } from 'node:os';
 
-import { DataDrivenGenerator, defaultTerrainPipeline } from '../src/world/generators/datadriven/DataDrivenGenerator';
+import {
+    DataDrivenGenerator,
+    defaultChunkPipeline,
+    defaultTerrainPipeline
+} from '../src/world/generators/datadriven/DataDrivenGenerator';
 import { findJavaTemplateSource } from '../src/world/generators/datadriven/javaStructureTemplates';
 import {
     cacheRoot,
@@ -31,6 +35,9 @@ const chunks = Number.parseInt(process.argv[3] ?? '16', 10);
  * around, and the default runs the decoration pass and the Bedrock translation as well.
  */
 const arm = process.argv[4] ?? 'full';
+/** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
+const regionChunks = Number.parseInt(process.argv[5] ?? '8', 10);
+const stealAfter = Number.parseInt(process.argv[6] ?? '2', 10);
 const seed = 1234;
 
 const sources = findJavaWorldgenSources();
@@ -52,7 +59,18 @@ const generator = new DataDrivenGenerator({
     templates,
     ...(arm === 'terrain' ? { decorate: false, structures: false } : {}),
     ...(arm === 'structures' ? { decorate: false } : {}),
-    ...(workers > 0
+    ...(workers > 0 && arm === 'chunks'
+        ? {
+              chunks: {
+                  pipeline: defaultChunkPipeline(),
+                  workers,
+                  regionChunks,
+                  stealAfter,
+                  onUnavailable: (reason) => process.stderr.write(`no chunk pool: ${reason}\n`)
+              }
+          }
+        : {}),
+    ...(workers > 0 && arm !== 'chunks'
         ? {
               terrain: {
                   pipeline: defaultTerrainPipeline(),
@@ -75,7 +93,8 @@ const run = async (): Promise<void> => {
     const elapsed = performance.now() - started;
 
     process.stdout.write(
-        `${workers === 0 ? 'inline' : `${workers} workers`} (${arm}): ` +
+        `${workers === 0 ? 'inline' : `${workers} workers`} (${arm}` +
+            `${arm === 'chunks' ? `, region ${regionChunks}, steal ${stealAfter}` : ''}): ` +
             `${chunks} chunks in ${elapsed.toFixed(0)} ms, ` +
             `${(elapsed / chunks).toFixed(1)} ms/chunk, ${((chunks / elapsed) * 1000).toFixed(1)} chunks/s ` +
             `(registries loaded in ${loaded.toFixed(0)} ms, ${availableParallelism()} cores)\n`
