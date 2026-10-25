@@ -358,7 +358,11 @@ describe('component modifiers', () => {
     it('writes fireworks and a firework explosion', () => {
         expect(
             componentOf(
-                apply({ type: 'minecraft:set_fireworks', explosions: [{ shape: 'star' }], flight_duration: 2 }),
+                apply({
+                    type: 'minecraft:set_fireworks',
+                    explosions: { values: [{ shape: 'star' }], mode: 'replace_all' },
+                    flight_duration: 2
+                }),
                 'minecraft:fireworks'
             )
         ).toEqual({ explosions: [{ shape: 'star' }], flight_duration: 2 });
@@ -368,6 +372,33 @@ describe('component modifiers', () => {
                 'minecraft:firework_explosion'
             )
         ).toEqual({ shape: 'burst', trail: true });
+    });
+
+    it('runs the fireworks list operation over the explosions it is given', () => {
+        const rocket = stack('minecraft:firework_rocket', 1, [
+            ['minecraft:fireworks', { flight_duration: 1, explosions: [{ shape: 'star' }] }]
+        ]);
+        const result = apply(
+            { type: 'minecraft:set_fireworks', explosions: { values: [{ shape: 'burst' }], mode: 'append' } },
+            rocket
+        );
+
+        expect(componentOf(result, 'minecraft:fireworks')).toEqual({
+            flight_duration: 1,
+            explosions: [{ shape: 'star' }, { shape: 'burst' }]
+        });
+    });
+
+    it('leaves the explosions alone when only the flight duration is set', () => {
+        const rocket = stack('minecraft:firework_rocket', 1, [
+            ['minecraft:fireworks', { flight_duration: 1, explosions: [{ shape: 'star' }] }]
+        ]);
+        const result = apply({ type: 'minecraft:set_fireworks', flight_duration: 3 }, rocket);
+
+        expect(componentOf(result, 'minecraft:fireworks')).toEqual({
+            flight_duration: 3,
+            explosions: [{ shape: 'star' }]
+        });
     });
 
     it('writes banner patterns and custom model data', () => {
