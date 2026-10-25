@@ -39,7 +39,8 @@ const noTemplates: StructureTemplateStore = {
     template: () => undefined,
     prepared: () => undefined,
     size: () => undefined,
-    processors: () => []
+    processors: () => [],
+    javaBlockOf: () => undefined
 };
 
 const contextAt = (seed: number, chunkX = 0, chunkZ = 0): StructureBuildContext => ({

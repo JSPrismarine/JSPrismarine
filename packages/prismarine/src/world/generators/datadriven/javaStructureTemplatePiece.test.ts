@@ -139,6 +139,24 @@ describe('a template piece', () => {
         ]);
     });
 
+    it('hands the whole saved compound on, so the chunk can translate the rest of it', () => {
+        const [chest, vault] = place({}).blockEntities;
+        const savedVault = vault?.request.saved;
+
+        expect(chest?.request.saved).toBeInstanceOf(NBTTagCompound);
+        // The vault's `config`, which the three fields read out here never carried.
+        expect(savedVault instanceof NBTTagCompound && savedVault.getCompound('config', false)).toBeTruthy();
+    });
+
+    it('names the Java block a saved compound sat in, through a rotation', () => {
+        // Bedrock has one banner block where Java has sixteen, so the Java block is the only
+        // place a banner's color survives. The lookup is by the compound's own identity, which
+        // makes this a guard on the compound reaching the request unrebuilt.
+        const blocks = place({ rotation: 'clockwise_90' }).blockEntities.map((entry) => entry.request.javaBlock);
+
+        expect(blocks).toEqual(['minecraft:chest', 'minecraft:vault']);
+    });
+
     it('records the entities the template saved, at the fractional position they stand on', () => {
         const { spawns } = place({});
 

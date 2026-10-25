@@ -124,7 +124,8 @@ const recorderOf = (source: TemplateSource): Recorder => {
                 return store.prepared(identifier, placement);
             },
             size: (identifier, placement) => store.size(identifier, placement),
-            processors: (reference) => store.processors(reference)
+            processors: (reference) => store.processors(reference),
+            javaBlockOf: (identifier, nbt) => store.javaBlockOf(identifier, nbt)
         }
     };
 };

@@ -69,7 +69,8 @@ const templates: StructureTemplateStore = {
     template: () => undefined,
     prepared: () => undefined,
     size: () => undefined,
-    processors: () => []
+    processors: () => [],
+    javaBlockOf: () => undefined
 };
 
 /** One piece whose box is the start chunk's own column, which is enough to be a valid start. */
