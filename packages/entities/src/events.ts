@@ -302,6 +302,10 @@ const parseComponentGroups = (key: string, value: unknown, report: EventReport):
         return [];
     }
     const groups = value.component_groups;
+    // A `randomize` branch that changes nothing is written `"remove": {}` in
+    // the vanilla pack, so an absent `component_groups` is the empty list it
+    // means. A `component_groups` that is there and is not a list is wrong.
+    if (groups === undefined) return [];
     if (!Array.isArray(groups)) {
         report('event.invalid', `${key}.component_groups must be an array`);
         return [];

@@ -192,6 +192,16 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(diagnostics.filter((entry) => entry.code === 'entity.unknownKey')).toEqual([]);
     });
 
+    it('reports nothing malformed, because Mojang writes the shapes this package reads', () => {
+        // The pack spells "no events" as `"events": null` and "this branch
+        // changes nothing" as an empty `"remove": {}`. Both read as what they
+        // mean, so a clean start says nothing about either; a warning here is
+        // 52 lines of noise that teach an operator to skip the report.
+        expect(
+            diagnostics.filter((entry) => entry.code === 'entity.invalid' || entry.code === 'event.invalid')
+        ).toEqual([]);
+    });
+
     it('covers the components the research note predicts and reports what it does not', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();
