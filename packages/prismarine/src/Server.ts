@@ -1,6 +1,7 @@
 import { DisconnectReason } from '@jsprismarine/minecraft';
 import { RakNetListener, ServerName } from '@jsprismarine/raknet';
 import Console from './Console';
+import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
@@ -85,6 +86,7 @@ export default class Server extends EventEmitter {
     private readonly config: Config;
     private packetLogFilter: PacketLogFilter | null = null;
     private readonly console: Console | undefined;
+    private readonly consoleSender: ConsoleSender;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
     private readonly commandManager: CommandManager;
@@ -199,6 +201,7 @@ export default class Server extends EventEmitter {
         this.blockManager = new BlockManager(this);
         this.recipeManager = new RecipeManager(this);
         this.worldManager = new WorldManager(this);
+        this.consoleSender = new ConsoleSender(this);
         if (!this.headless) this.console = new Console(this);
         this.commandManager = new CommandManager(this);
         this.queryManager = new QueryManager(this);
@@ -855,6 +858,15 @@ export default class Server extends EventEmitter {
      */
     public getConsole() {
         return this.console;
+    }
+
+    /**
+     * Returns the sender the server speaks as in chat and command feedback.
+     *
+     * Unlike {@link getConsole}, this is present on a headless server too.
+     */
+    public getConsoleSender(): ConsoleSender {
+        return this.consoleSender;
     }
 
     /**

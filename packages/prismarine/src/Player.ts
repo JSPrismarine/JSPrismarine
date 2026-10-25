@@ -321,7 +321,7 @@ export default class Player extends Human {
         // Announce disconnection
         const event = new ChatEvent(
             new Chat({
-                sender: this.server.getConsole()!,
+                sender: this.server.getConsoleSender(),
                 // The bare translation key, for the reason given in ResourcePackClientResponseHandler.
                 message: `%multiplayer.player.left`,
                 parameters: [this.getName()],
@@ -841,7 +841,7 @@ export default class Player extends Human {
 
         const event = new ChatEvent(
             new Chat({
-                sender: this.server.getConsole()!,
+                sender: this.server.getConsoleSender(),
                 message: key,
                 parameters,
                 needsTranslation: true,

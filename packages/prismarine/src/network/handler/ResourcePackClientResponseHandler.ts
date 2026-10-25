@@ -264,7 +264,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
 
         const chatSpawnEvent = new ChatEvent(
             new Chat({
-                sender: server.getConsole()!,
+                sender: server.getConsoleSender(),
                 // The bare translation key: a color code in front of the `%` stops the
                 // client resolving it, and it renders the unresolved string instead.
                 message: `%multiplayer.player.joined`,
