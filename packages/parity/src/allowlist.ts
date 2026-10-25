@@ -308,6 +308,26 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 3'
     },
 
+    // The generator keeps neighbor terrain and cross-border feature output in a per-seed cache
+    // and replays it into terrain built later and into chunks it has already returned. A chunk
+    // is therefore a function of the seed, its coordinates and what else the generator has
+    // produced, which the chunk status ladder of the rewrite cannot preserve across worker
+    // threads. `worldgen.determinism` measures both halves on chunk 0,0 at seed 1234.
+    {
+        family: 'worldgen.determinism',
+        id: 'order-dependent:1234/0,0',
+        kind: 'defect',
+        reason: 'A chunk generated after its four neighbors holds different blocks from the same chunk generated first.',
+        reference: 'docs/research/worldgen-defects.md under "What the tests fail to catch, and why"'
+    },
+    {
+        family: 'worldgen.determinism',
+        id: 'mutates-after-handoff:1234/0,0',
+        kind: 'defect',
+        reason: 'A chunk already returned changes when a neighbor is generated, because the feature patch is replayed into it.',
+        reference: 'docs/research/worldgen-defects.md under "What the tests fail to catch, and why"'
+    },
+
     ...engineActorEntries(),
     ...bodilessActorEntries(),
     ...entityStatEntries(),

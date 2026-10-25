@@ -56,6 +56,12 @@ export const FAMILIES = {
     worldgenTerrain: 'worldgen.terrain',
     /** Ore and feature counts against a measured distribution (phase 4 exit). */
     worldgenFeatures: 'worldgen.features',
+    /** Every corpus chunk's blocks, biomes, heightmap and block entities against the golden. */
+    worldgenCorpus: 'worldgen.corpus',
+    /** Structure placements and their boxes against the golden the corpus scan captured. */
+    worldgenStructures: 'worldgen.structures',
+    /** The same chunk, generated twice and in different orders, is the same chunk. */
+    worldgenDeterminism: 'worldgen.determinism',
 
     /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
     commandsTree: 'commands.tree',
