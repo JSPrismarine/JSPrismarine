@@ -11,6 +11,31 @@ import type { SampleContext } from './SampleContext';
 /** A compiled density function: one closure that reads a position and the chunk context. */
 export type DensitySampler = (context: SampleContext, x: number, y: number, z: number) => number;
 
+/**
+ * The block extent an `interpolated` node holds its eight corners still across.
+ *
+ * A caller that visits a chunk in blocks of this size keeps one cell current for the whole
+ * block, which is what turns eight corner-cache lookups per sample into eight per cell.
+ */
+export interface InterpolationCellSize {
+    /** The cell side across x and across z, in blocks. */
+    readonly xz: number;
+    /** The cell height, in blocks. */
+    readonly y: number;
+}
+
+/** The greatest common divisor, with `gcd(0, n) === n` so it folds over an empty set. */
+const gcd = (a: number, b: number): number => {
+    let left = a;
+    let right = b;
+    while (right !== 0) {
+        const remainder = left % right;
+        left = right;
+        right = remainder;
+    }
+    return left;
+};
+
 /** What the compiler needs from the world seed to turn a tree into closures. */
 export interface CompileEnvironment {
     /** Returns the seeded noise instance for a `worldgen/noise` identifier. */
@@ -110,12 +135,27 @@ export class DensityFunctionCompiler {
     private readonly compiled = new Map<DensityFunctionNode, DensitySampler>();
     private readonly cacheIds = new Map<DensityFunctionNode, number>();
     private nextCacheId = 0;
+    private cellSizeXz = 0;
+    private cellSizeY = 0;
 
     public constructor(private readonly environment: CompileEnvironment) {}
 
     /** How many memo slots the trees compiled so far need. */
     public get cacheCount(): number {
         return this.nextCacheId;
+    }
+
+    /**
+     * The largest block extent that sits inside one cell of every `interpolated` node compiled
+     * so far, or undefined while none has been.
+     *
+     * Vanilla's five overworld nodes all ask for 4 by 8 by 4, so this is that. Taking the
+     * greatest common divisor is what makes the answer right for a set of differing sizes: the
+     * cells of a node of size `s` are aligned to multiples of `s`, and `gcd | s`, so a block of
+     * the divisor's size never straddles two of them.
+     */
+    public get interpolationCellSize(): InterpolationCellSize | undefined {
+        return this.cellSizeXz === 0 || this.cellSizeY === 0 ? undefined : { xz: this.cellSizeXz, y: this.cellSizeY };
     }
 
     /**
@@ -308,6 +348,8 @@ export class DensityFunctionCompiler {
                 const input = this.compile(node.input);
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
+                this.cellSizeXz = gcd(this.cellSizeXz, cellSizeXz);
+                this.cellSizeY = gcd(this.cellSizeY, cellSizeY);
                 // Positions are integers (Java samples at block positions), so a power-of-two
                 // cell size turns the floored modulus into a mask and the lattice index into an
                 // arithmetic shift. Vanilla sizes are 4 to 16.

@@ -1,4 +1,4 @@
-import type { CompileEnvironment, DensitySampler } from './density/compile';
+import type { CompileEnvironment, DensitySampler, InterpolationCellSize } from './density/compile';
 import { DensityFunctionCompiler } from './density/compile';
 import type { DensityFunctionNode } from './density/DensityFunction';
 import { SampleContext } from './density/SampleContext';
@@ -86,6 +86,17 @@ export class RandomState {
     /** Compiles a density function tree against this seed, reusing earlier compilations. */
     public sampler(node: DensityFunctionNode): DensitySampler {
         return this.compiler.compile(node);
+    }
+
+    /**
+     * The cell the `interpolated` nodes compiled so far hold their corners still across, or
+     * undefined when none of them has been compiled yet.
+     *
+     * This is a hint for a caller choosing a visiting order, not part of any result: a sample
+     * answers the same whatever order it is asked in.
+     */
+    public get interpolationCellSize(): InterpolationCellSize | undefined {
+        return this.compiler.interpolationCellSize;
     }
 
     /** Creates the per-chunk mutable state a sampler reads, with every memo slot empty. */
