@@ -33,6 +33,9 @@ const aliasRandom = (context: StructureBuildContext) =>
         )
     );
 
+/** How far above a pool piece's own floor its ground sits, Java's `getGroundLevelDelta`. */
+const GROUND_LEVEL_DELTA = 1;
+
 /** Java's quarter turns, in the order `Rotation.values()` lists them. */
 const ROTATIONS: readonly Rotation[] = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90'];
 
@@ -97,6 +100,10 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
             template: location,
             position: placed.position,
             placement: { rotation: placed.rotation },
+            // Java's `StructurePoolElement.getGroundLevelDelta` answers 1 for every element
+            // type the vanilla pools use, and only a rigid element is bearded.
+            groundLevelDelta: GROUND_LEVEL_DELTA,
+            ignoresTerrainAdaptation: element.projection !== 'rigid',
             ...(element.processors === undefined
                 ? {}
                 : { processors: element.processors satisfies ProcessorsReference })

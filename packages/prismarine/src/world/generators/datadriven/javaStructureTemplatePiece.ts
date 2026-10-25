@@ -193,6 +193,10 @@ export interface TemplatePieceOptions {
     readonly overwrite?: boolean;
     /** Whether a jigsaw block stays rather than being replaced by its `final_state`. */
     readonly keepJigsaws?: boolean;
+    /** Java's `getGroundLevelDelta`, which only a jigsaw pool piece carries. */
+    readonly groundLevelDelta?: number;
+    /** Whether the terrain adaptation leaves this piece alone, as it does a terrain-matching one. */
+    readonly ignoresTerrainAdaptation?: boolean;
     /**
      * Handles one data marker, which is how a legacy structure fills in a chest, a spawner or a
      * decoration from code. Java's `TemplateStructurePiece.handleDataMarker`.
@@ -240,7 +244,15 @@ export class TemplatePiece implements StructurePiece {
     /** @inheritDoc */
     public readonly boundingBox: BoundingBox;
 
+    /** @inheritDoc */
+    public readonly groundLevelDelta: number;
+
+    /** @inheritDoc */
+    public readonly ignoresTerrainAdaptation: boolean;
+
     public constructor(private readonly options: TemplatePieceOptions) {
+        this.groundLevelDelta = options.groundLevelDelta ?? 0;
+        this.ignoresTerrainAdaptation = options.ignoresTerrainAdaptation ?? false;
         const size = options.store.size(options.template, options.placement) ?? [0, 0, 0];
         this.boundingBox = boxFromSize(
             options.position[0],

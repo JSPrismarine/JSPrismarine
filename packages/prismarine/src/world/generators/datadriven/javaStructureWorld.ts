@@ -65,6 +65,20 @@ export interface StructurePiece {
     /** Where the piece sits, which decides the chunks it is written into. */
     readonly boundingBox: BoundingBox;
     /**
+     * How far above the piece's floor its ground sits, Java's `getGroundLevelDelta`.
+     *
+     * Only a jigsaw pool piece has one, and only the terrain adaptation reads it. Absent is 0,
+     * which is what Java answers for every other kind of piece.
+     */
+    readonly groundLevelDelta?: number;
+    /**
+     * Whether the terrain adaptation leaves this piece alone.
+     *
+     * Java beards only the `rigid` pool elements of a jigsaw structure, because a
+     * `terrain_matching` one is already following the ground it stands on.
+     */
+    readonly ignoresTerrainAdaptation?: boolean;
+    /**
      * Writes the piece.
      *
      * @param random - The chunk's structure random, reseeded per chunk the way Java reseeds it,

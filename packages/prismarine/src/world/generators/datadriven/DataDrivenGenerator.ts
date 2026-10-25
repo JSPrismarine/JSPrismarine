@@ -45,6 +45,8 @@ import type { Generator } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
+import type { BeardPiece } from './javaStructureBeard';
+import { BEARD_RADIUS, createBeardifier } from './javaStructureBeard';
 import { createNoiseStructureLevel } from './javaStructureLevel';
 import { asStructureRandom } from './javaStructureRandom';
 import { chunkWriteBox, createRegionStructureWriter } from './javaStructureRegion';
@@ -221,6 +223,10 @@ export class DataDrivenGenerator implements Generator {
         });
 
         const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz });
+        // Java reads the structure starts before it samples the terrain, so a village flattens
+        // the hillside it is about to stand on. The starts are laid out against the bare noise,
+        // which has no beard of its own, so there is no circle here.
+        sampler.context.beardifier = createBeardifier(this.beardPieces(cx, cz, pipeline));
         const floor = Math.max(this.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
             this.dimension.minY + this.dimension.height - 1,
@@ -254,6 +260,43 @@ export class DataDrivenGenerator implements Generator {
         });
 
         return region;
+    }
+
+    /**
+     * The structure pieces close enough to a chunk to push its terrain around.
+     *
+     * Java's filter is the same: a start whose structure asks for no adaptation is skipped
+     * outright, and a piece further than twelve blocks from the chunk contributes nothing at
+     * any position in it.
+     */
+    private beardPieces(cx: number, cz: number, pipeline: SeededPipeline): BeardPiece[] {
+        const structures = pipeline.structures;
+        if (structures === undefined) return [];
+
+        const minX = cx * 16 - BEARD_RADIUS;
+        const maxX = cx * 16 + 15 + BEARD_RADIUS;
+        const minZ = cz * 16 - BEARD_RADIUS;
+        const maxZ = cz * 16 + 15 + BEARD_RADIUS;
+
+        const nearby: BeardPiece[] = [];
+        for (const start of structures.startsFor(cx, cz)) {
+            if (start.terrainAdaptation === 'none') continue;
+
+            for (const piece of start.pieces) {
+                if (piece.ignoresTerrainAdaptation === true) continue;
+
+                const box = piece.boundingBox;
+                if (box.minX > maxX || box.maxX < minX || box.minZ > maxZ || box.maxZ < minZ) continue;
+
+                nearby.push({
+                    box,
+                    groundLevelDelta: piece.groundLevelDelta ?? 0,
+                    adaptation: start.terrainAdaptation
+                });
+            }
+        }
+
+        return nearby;
     }
 
     /**

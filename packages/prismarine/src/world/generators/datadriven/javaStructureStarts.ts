@@ -17,6 +17,8 @@ import { DECORATION_STEPS } from '@jsprismarine/features';
 import type { BoundingBox, RandomSource, TemplatePool } from '@jsprismarine/structures';
 import { createLegacyRandom, parseTemplatePool } from '@jsprismarine/structures';
 
+import type { TerrainAdaptation } from './javaStructureBeard';
+import { terrainAdaptationOf } from './javaStructureBeard';
 import type { NamedStructureSet } from './javaStructurePlacement';
 import { candidateChunksIn, chooseStructure, createBiomeExpander, loadStructureSets } from './javaStructurePlacement';
 import { structureRandomSeed } from './javaStructurePlacement';
@@ -69,6 +71,8 @@ export interface StructureStart {
     readonly chunkZ: number;
     /** The decoration step the pieces are written in. */
     readonly step: DecorationStep;
+    /** How the structure pushes the terrain around it, before the terrain is sampled. */
+    readonly terrainAdaptation: TerrainAdaptation;
     readonly boundingBox: BoundingBox;
     readonly pieces: readonly StructurePiece[];
     /** Java's generation point. */
@@ -243,6 +247,7 @@ export class StructureStartSource {
             chunkX,
             chunkZ,
             step: stepOf(definition.step),
+            terrainAdaptation: terrainAdaptationOf(definition.terrain_adaptation),
             boundingBox: unionOf(layout.pieces),
             pieces: layout.pieces,
             origin: layout.origin
