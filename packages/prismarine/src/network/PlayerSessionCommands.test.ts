@@ -10,6 +10,7 @@ import { Command, argument, literal } from '../command/Command';
 import { CommandArgumentEntity } from '../command/CommandArguments';
 import type { CommandExecutor } from '../command/CommandExecutor';
 import { CommandManager } from '../command/CommandManager';
+import { UNWIRED_COMMANDS } from '../command/vanillaCommands';
 import type { Config } from '../config/Config';
 import type PermissionManager from '../permission/PermissionManager';
 import { canExecute } from '../permission/PermissionManager';
@@ -84,10 +85,22 @@ describe('PlayerSession', () => {
     describe('sendAvailableCommands', () => {
         it('sends each command once', async () => {
             // The client keys commands by name; `tp` used to arrive four times over.
-            const names = (await commandsSentTo({ op: true })).map(({ commandName }) => commandName);
+            const commands = await commandsSentTo({ op: true });
+            const names = commands.map(({ commandName }) => commandName);
 
-            expect(names).toContain('tp');
+            expect(names).toContain('teleport');
             expect(new Set(names).size).toBe(names.length);
+        });
+
+        it('folds an alias into its owner rather than sending it as a command', async () => {
+            // `/tp` is `/teleport` under another name, and the packet carries that as an
+            // alias enum. Sent as a command of its own it would be a second entry the client
+            // has to guess the relationship of.
+            const commands = await commandsSentTo({ op: true });
+            const teleport = commands.find(({ commandName }) => commandName === 'teleport');
+
+            expect(commands.map(({ commandName }) => commandName)).not.toContain('tp');
+            expect(teleport?.aliases?.values).toEqual(['teleport', 'tp']);
         });
 
         it('describes brigadier arguments by their node name and parse symbol', async () => {
@@ -97,17 +110,44 @@ describe('PlayerSession', () => {
             const overloadsOf = (name: string) =>
                 commands.find(({ commandName }) => commandName === name)?.overloads.map(spell);
 
-            const message = `message: ${CommandParameterType.Message}`;
-            expect(overloadsOf('say')).toEqual([[message]]);
-            expect(overloadsOf('me')).toEqual([[message]]);
-            expect(overloadsOf('time')).toEqual([
-                [],
-                [`action: ${CommandParameterType.String}`, `value: ${CommandParameterType.Int}`]
-            ]);
             expect(overloadsOf('ban')).toEqual([
                 ['player: Player'],
                 ['player: Player', `reason: ${CommandParameterType.Message}`]
             ]);
+        });
+
+        it('describes a vanilla command through the command layer', async () => {
+            // The vanilla half carries Mojang's own parameter types, which is why `/say`
+            // goes out as `MESSAGE_ROOT` where a greedy string went out as `Message`.
+            const commands = await commandsSentTo({ op: true });
+            const overloadsOf = (name: string) =>
+                commands.find(({ commandName }) => commandName === name)?.overloads.map(spell);
+
+            expect(overloadsOf('say')).toEqual([[`message: ${CommandParameterType.MessageRoot}`]]);
+            // `add` and `set` continue identically, so the flattener folds the two keywords
+            // into one enum - which is Mojang's own encoding for a subcommand keyword.
+            expect(overloadsOf('time')).toEqual([
+                ['add|set: OPTION_ADD_SET', `amount: ${CommandParameterType.Int}`],
+                ['query: OPTION_QUERY', 'unit: TimeQuery']
+            ]);
+        });
+
+        it('sends only the vanilla commands a player may run', async () => {
+            // A fresh `permissions.json` grants `help`, `list` and `me` and nothing else, so
+            // a player who is not an operator is told about those three and no more.
+            const names = (await commandsSentTo()).map(({ commandName }) => commandName);
+
+            expect(names).toContain('help');
+            expect(names).toContain('list');
+            expect(names).toContain('me');
+            expect(names).not.toContain('teleport');
+            expect(names).not.toContain('stop');
+        });
+
+        it('never offers a command whose subsystem is missing', async () => {
+            const names = (await commandsSentTo({ op: true })).map(({ commandName }) => commandName);
+
+            for (const unwired of Object.keys(UNWIRED_COMMANDS)) expect(names).not.toContain(unwired);
         });
 
         it('folds overloads that read the same into one', async () => {
@@ -134,6 +174,9 @@ describe('PlayerSession', () => {
         });
 
         it('fills the EntityType enum /summon completes from', async () => {
+            // Mojang's own published list rather than this server's class registry: the
+            // command layer reads it out of `mojang-commands.json`, where `/summon` has it
+            // as a hard enum.
             const commands = await commandsSentTo({ op: true });
             const [entity] = commands.find(({ commandName }) => commandName === 'summon')?.overloads[0] ?? [];
 
@@ -141,16 +184,30 @@ describe('PlayerSession', () => {
             expect(entity?.enum?.values).toContain('zombie');
         });
 
+        it('fills the Item and Block enums /give and /setblock complete from', async () => {
+            const commands = await commandsSentTo({ op: true });
+            const firstOf = (name: string, index: number) =>
+                commands.find(({ commandName }) => commandName === name)?.overloads[0]?.[index];
+
+            expect(firstOf('give', 1)?.enum?.name).toBe('Item');
+            expect(firstOf('give', 1)?.enum?.values).toContain('diamond');
+            expect(firstOf('setblock', 1)?.enum?.name).toBe('Block');
+            expect(firstOf('setblock', 1)?.enum?.values).toContain('stone');
+        });
+
         it('sends an operator every command, open ones as any and the rest as gamedirectors', async () => {
             const levels = new Map(
                 (await commandsSentTo({ op: true })).map(({ commandName, permission }) => [commandName, permission])
             );
 
+            // An operator is `Owner`, which is the level that lets the client offer `/stop`.
+            // The class-registered half has no level of its own and caps at `GameDirectors`.
             expect(levels.get('help')).toBe(CommandPermissionLevel.ANY);
             expect(levels.get('me')).toBe(CommandPermissionLevel.ANY);
             expect(levels.get('say')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
-            expect(levels.get('tp')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
-            expect(levels.get('stop')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+            expect(levels.get('teleport')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
+            expect(levels.get('stop')).toBe(CommandPermissionLevel.OWNER);
+            expect(levels.get('ban')).toBe(CommandPermissionLevel.GAME_DIRECTORS);
         });
 
         it('sends a player only the commands they may run, at their own level', async () => {
