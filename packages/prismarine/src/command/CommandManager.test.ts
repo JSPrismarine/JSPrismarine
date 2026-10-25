@@ -39,6 +39,9 @@ describe('command', () => {
             getSessionManager: () => ({
                 getAllPlayers: () => []
             }),
+            // No content build, which is what decides whether the commands
+            // whose subsystem is the pack stack are registered at all.
+            getContent: () => undefined,
             on: vi.fn(),
             emit: vi.fn().mockResolvedValue({})
         }))();

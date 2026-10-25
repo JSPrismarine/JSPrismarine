@@ -12,6 +12,7 @@ import type { CommandHost, DataCommandHost } from '@jsprismarine/commands';
 import type Server from '../../Server';
 import { entityCommandHost } from './entities';
 import { setItemSlot } from './inventory';
+import { runLootCommand } from './loot';
 import { RandomSequences } from './randomSequences';
 import { Scoreboard, scoreboardCommandHost } from './scoreboard';
 import { serverSideCommandHost } from './server';
@@ -40,7 +41,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
         applyItemModifier: refuse,
         setSlot: (target, slot, item, count, mode) => setItemSlot(server, target, slot, item, count, mode),
         copySlots: refuse,
-        runLootTable: () => unsupported('loot table runtime'),
+        runLoot: (loot, commandSource, destination) => runLootCommand(server, loot, commandSource, destination),
         testPredicate: () => unsupported('datapack predicate evaluator'),
         runFunction: (name, source, nbt) => functions().run(name, source, nbt),
         schedule: (name, delayTicks, mode) => functions().queue(name, delayTicks, mode),

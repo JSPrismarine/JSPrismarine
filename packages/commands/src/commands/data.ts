@@ -30,7 +30,7 @@ import {
     softEnumArgument,
     stringArgument
 } from '../argumentTypes';
-import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot } from '../host';
+import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot, LootSource } from '../host';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
 import {
@@ -403,39 +403,63 @@ const copySlots = (context: Context, kind: 'block' | 'entity', modifier: string 
 const buildLoot = () => {
     const node = lit('loot');
 
+    /** The tool a `fish` or `mine` source was given, or none when it names the bare hand. */
+    const toolOf = (context: Context): string | undefined =>
+        context.getNodes().some((entry) => entry.getNode().getName() === 'tool')
+            ? value<string>(context, 'tool')
+            : undefined;
+
+    /** Reads whichever of the four sources the line ended in. */
+    const lootSourceOf = (context: Context, kind: LootSource['kind']): LootSource => {
+        const current = source(context);
+        if (kind === 'table') return { kind, table: value(context, 'table') };
+        if (kind === 'kill') return { kind, entity: selectOne(current, value(context, 'target')) };
+
+        const tool = toolOf(context);
+        const position = resolvePosition(value(context, 'pos'), current);
+        const where = { dimension: current.dimension, position, ...(tool === undefined ? {} : { tool }) };
+        return kind === 'mine' ? { kind, ...where } : { kind, table: value(context, 'table'), ...where };
+    };
+
     /** Hangs the four loot sources under one destination node. */
     const withSources = <T extends RequiredArgumentBuilder<CommandSource, unknown>>(
         destination: T,
-        run: (context: Context, table: string) => number
+        run: (context: Context, loot: LootSource) => number
     ): T => {
+        /** `fish` and `mine` both end in an optional tool, so both build the same tail. */
+        const withTool = (kind: 'fish' | 'mine') =>
+            arg('pos', blockPositionArgument())
+                .executes(command((context) => run(context, lootSourceOf(context, kind))))
+                .then(
+                    arg('tool', stringArgument()).executes(
+                        command((context) => run(context, lootSourceOf(context, kind)))
+                    )
+                );
+
         destination.then(
             lit('loot').then(
-                arg('table', lootTableArgument()).executes(command((context) => run(context, value(context, 'table'))))
-            )
-        );
-        destination.then(
-            lit('fish').then(
-                arg('table', lootTableArgument()).then(
-                    arg('pos', blockPositionArgument()).executes(
-                        command((context) => run(context, value(context, 'table')))
-                    )
+                arg('table', lootTableArgument()).executes(
+                    command((context) => run(context, lootSourceOf(context, 'table')))
                 )
             )
         );
+        destination.then(lit('fish').then(arg('table', lootTableArgument()).then(withTool('fish'))));
         destination.then(
-            lit('kill').then(arg('target', entityArgument()).executes(command((context) => run(context, 'kill'))))
+            lit('kill').then(
+                arg('target', entityArgument()).executes(
+                    command((context) => run(context, lootSourceOf(context, 'kill')))
+                )
+            )
         );
-        destination.then(
-            lit('mine').then(arg('pos', blockPositionArgument()).executes(command((context) => run(context, 'mine'))))
-        );
+        destination.then(lit('mine').then(withTool('mine')));
         return destination;
     };
 
     node.then(
         lit('give').then(
-            withSources(arg<unknown>('players', entityArgument()), (context, table) => {
+            withSources(arg<unknown>('players', entityArgument()), (context, loot) => {
                 const current = source(context);
-                const dropped = current.host.data.runLootTable(table, current, {
+                const dropped = current.host.data.runLoot(loot, current, {
                     kind: 'give',
                     players: select(current, value(context, 'players'))
                 });
@@ -447,9 +471,9 @@ const buildLoot = () => {
     for (const where of ['insert', 'spawn'] as const) {
         node.then(
             lit(where).then(
-                withSources(arg<unknown>('targetPos', blockPositionArgument()), (context, table) => {
+                withSources(arg<unknown>('targetPos', blockPositionArgument()), (context, loot) => {
                     const current = source(context);
-                    const dropped = current.host.data.runLootTable(table, current, {
+                    const dropped = current.host.data.runLoot(loot, current, {
                         kind: where,
                         dimension: current.dimension,
                         position: resolvePosition(value(context, 'targetPos'), current)
@@ -459,6 +483,52 @@ const buildLoot = () => {
             )
         );
     }
+
+    /**
+     * One half of `/loot replace`: the entity form or the block form.
+     *
+     * The count travels on the slot rather than scaling the roll, because
+     * Java writes into the slots the count covers starting at the one named.
+     */
+    const replaceInto = (kind: 'entity' | 'block') => {
+        const deliver = (context: Context, loot: LootSource, count: number | undefined): number => {
+            const current = source(context);
+            const slot: ItemSlot = { name: value(context, 'slot'), ...(count === undefined ? {} : { count }) };
+            const targets: readonly DataTarget[] =
+                kind === 'block'
+                    ? [
+                          {
+                              kind: 'block',
+                              dimension: current.dimension,
+                              position: resolvePosition(value(context, 'targetPos'), current)
+                          }
+                      ]
+                    : select(current, value(context, 'targets')).map((entity) => ({ kind: 'entity', entity }));
+
+            const placed = targets.reduce(
+                (total, target) => total + current.host.data.runLoot(loot, current, { kind: 'replace', target, slot }),
+                0
+            );
+            return report(current, placed, `Replaced ${placed} items`);
+        };
+
+        const slot = withSources(arg<unknown>('slot', stringArgument()), (context, loot) =>
+            deliver(context, loot, undefined)
+        );
+        slot.then(
+            withSources(arg<unknown>('count', integerArgument({ min: 0 })), (context, loot) =>
+                deliver(context, loot, value<number>(context, 'count'))
+            )
+        );
+
+        const holder =
+            kind === 'block'
+                ? arg<unknown>('targetPos', blockPositionArgument())
+                : arg<unknown>('targets', entityArgument());
+        return lit(kind).then(holder.then(slot));
+    };
+
+    node.then(lit('replace').then(replaceInto('entity')).then(replaceInto('block')));
 
     return node;
 };

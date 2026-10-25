@@ -107,7 +107,7 @@ const data = (): DataCommandHost => ({
     applyItemModifier: () => 0,
     setSlot: () => 0,
     copySlots: () => 0,
-    runLootTable: () => 0,
+    runLoot: () => 0,
     testPredicate: () => false,
     runFunction: () => 0,
     schedule: () => false,

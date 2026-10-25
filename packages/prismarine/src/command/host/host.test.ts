@@ -14,6 +14,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Player from '../../Player';
 import type { Server } from '../../';
 import type { Config } from '../../config/Config';
+import { definitionsOf, definitionOf } from '../../content/ContentOptions';
+import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
 import type { ItemManager } from '../../item/ItemManager';
@@ -30,6 +32,7 @@ import SetScorePacket from '../../network/packet/SetScorePacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
+import { LootRegistry } from '@jsprismarine/loot';
 import { Dimensions } from '../../world/Dimension';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { GameRuleEntry } from '../../world/GameRuleManager';
@@ -57,6 +60,10 @@ interface Fixture {
     readonly errors: string[];
     /** Runs one command line as the console and answers what it returned. */
     run(line: string, as?: Player): Promise<number>;
+    /** Everything `World.dropContents` was asked to put on the ground. */
+    readonly dropped: { position: Vector3; contents: unknown[] }[];
+    /** Puts a content build behind the server, which is what `/loot` reads. */
+    useContent(built: ServerContent | undefined): void;
 }
 
 const buildFixture = (): Fixture => {
@@ -68,6 +75,7 @@ const buildFixture = (): Fixture => {
     ]);
     const entities: Entity[] = [];
     const players: Player[] = [];
+    const dropped: { position: Vector3; contents: unknown[] }[] = [];
     const sent: unknown[] = [];
     const feedback: string[] = [];
     const errors: string[] = [];
@@ -107,6 +115,9 @@ const buildFixture = (): Fixture => {
             return true;
         },
         setSpawnPosition: vi.fn(),
+        dropContents: async (position: Vector3, contents: unknown[]) => {
+            dropped.push({ position, contents });
+        },
         saveLevelData: async () => {},
         loadedBlockAt: (x: number, y: number, z: number) =>
             blocks.get(key(x, y, z)) ?? { name: 'minecraft:air', states: {} },
@@ -138,7 +149,13 @@ const buildFixture = (): Fixture => {
             stub<ItemManager>({
                 getItem: (name: string) =>
                     name === 'minecraft:stone'
-                        ? stub<Item>({ getName: () => name, getMaxAmount: () => 64, meta: 0 })
+                        ? stub<Item>({
+                              getName: () => name,
+                              getId: () => 1,
+                              getMeta: () => 0,
+                              getMaxAmount: () => 64,
+                              meta: 0
+                          })
                         : null
             }),
         getRandom: () => () => 0.5,
@@ -155,15 +172,17 @@ const buildFixture = (): Fixture => {
                     })
             }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival' }),
-        // No content build behind this fixture, which is the shape of a
-        // server running with `content-packs` off.
-        getContent: () => undefined,
+        // Undefined by default, which is the shape of a server running with
+        // `content-packs` off; `useContent` hands the fixture a real one.
+        getContent: () => content,
         broadcastPacket: async (packet: unknown) => {
             sent.push(packet);
         }
     });
 
-    const registry = buildVanillaCommands();
+    let content: ServerContent | undefined;
+
+    const registry = buildVanillaCommands(true);
     const host = serverCommandHost(server);
 
     const sourceFor = (as?: Player): CommandSource =>
@@ -199,6 +218,10 @@ const buildFixture = (): Fixture => {
         sent,
         feedback,
         errors,
+        dropped,
+        useContent: (built) => {
+            content = built;
+        },
         run: async (line, as) => {
             let results: unknown = [];
             const started = collectAsyncCommands(() => {
@@ -877,6 +900,82 @@ describe('the server command host', () => {
             playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
             await expect(fixture.run('enchant @a sharpness')).rejects.toThrow(/not holding anything/);
+        });
+    });
+
+    describe('loot', () => {
+        /**
+         * A content build holding two of Java's own table shapes: a block
+         * table keyed the way `blocks/stone` is, and a plain table a
+         * `/loot ... loot <id>` names.
+         */
+        const lootContent = (): ServerContent => {
+            const definitions = definitionsOf({
+                lootTablesJava: new Map([
+                    [
+                        'minecraft:blocks/stone',
+                        definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
+                            type: 'minecraft:block',
+                            pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:stone' }] }]
+                        })
+                    ],
+                    [
+                        'mypack:prize',
+                        definitionOf('lootTablesJava', 'mypack:prize', {
+                            type: 'minecraft:chest',
+                            pools: [{ rolls: 2, entries: [{ type: 'minecraft:item', name: 'minecraft:stone' }] }]
+                        })
+                    ]
+                ])
+            });
+            return stub<ServerContent>({ loot: new LootRegistry(definitions, { worldSeed: 1n }) });
+        };
+
+        it('refuses to roll when no pack stack is loaded', async () => {
+            await expect(fixture.run('loot spawn 0 70 0 loot mypack:prize')).rejects.toThrow(/no loot tables/);
+        });
+
+        it('names a table nobody registered rather than reporting an empty roll', async () => {
+            fixture.useContent(lootContent());
+
+            await expect(fixture.run('loot spawn 0 70 0 loot mypack:nothing')).rejects.toThrow(
+                /no loot table called mypack:nothing/
+            );
+        });
+
+        it('drops what the table rolled on the ground', async () => {
+            fixture.useContent(lootContent());
+
+            await expect(fixture.run('loot spawn 1 70 1 loot mypack:prize')).resolves.toBe(2);
+
+            expect(fixture.dropped.at(-1)?.contents).toHaveLength(2);
+        });
+
+        it('gives what the table rolled to the players it named', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(lootContent());
+
+            await expect(fixture.run('loot give @a loot mypack:prize')).resolves.toBe(2);
+
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(2);
+        });
+
+        it('rolls the table of the block /loot mine names', async () => {
+            fixture.useContent(lootContent());
+            await fixture.run('setblock 2 70 2 minecraft:stone');
+
+            // One stack of stone, which is what `minecraft:blocks/stone` says
+            // a silk-touch-free break yields in this fixture's table.
+            await expect(fixture.run('loot give @a mine 2 70 2')).resolves.toBe(0);
+            await expect(fixture.run('loot spawn 3 70 3 mine 2 70 2')).resolves.toBe(1);
+        });
+
+        it('says there is nothing to insert into, because this server has no containers', async () => {
+            fixture.useContent(lootContent());
+
+            await expect(fixture.run('loot insert 0 70 0 loot mypack:prize')).rejects.toThrow(
+                /no container block entities/
+            );
         });
     });
 });

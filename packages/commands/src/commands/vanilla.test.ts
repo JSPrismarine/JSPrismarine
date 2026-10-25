@@ -308,15 +308,76 @@ describe('the data-driven commands', () => {
         const { results } = run('loot give @a loot minecraft:chests/simple_dungeon', {
             entities: { select: () => [testEntity()] },
             data: {
-                runLootTable: (table, _source, destination) => {
-                    seen.push({ table, destinationKind: destination.kind });
+                runLoot: (loot, _source, destination) => {
+                    seen.push({ loot, destinationKind: destination.kind });
                     return 3;
                 }
             }
         });
 
-        expect(seen).toEqual([{ table: 'minecraft:chests/simple_dungeon', destinationKind: 'give' }]);
+        expect(seen).toEqual([
+            { loot: { kind: 'table', table: 'minecraft:chests/simple_dungeon' }, destinationKind: 'give' }
+        ]);
         expect(results).toEqual([3]);
+    });
+
+    it('/loot mine names the block rather than a table, which is what it has', () => {
+        const seen: unknown[] = [];
+        run('loot spawn 1 2 3 mine 4 5 6 minecraft:diamond_pickaxe', {
+            data: {
+                runLoot: (loot, _source, destination) => {
+                    seen.push({ loot, destination });
+                    return 1;
+                }
+            }
+        });
+
+        expect(seen).toEqual([
+            {
+                loot: {
+                    kind: 'mine',
+                    dimension: 'minecraft:overworld',
+                    position: { x: 4, y: 5, z: 6 },
+                    tool: 'minecraft:diamond_pickaxe'
+                },
+                destination: {
+                    kind: 'spawn',
+                    dimension: 'minecraft:overworld',
+                    position: { x: 1, y: 2, z: 3 }
+                }
+            }
+        ]);
+    });
+
+    it('/loot kill names the entity it would roll', () => {
+        const seen: unknown[] = [];
+        run('loot give @a kill @e', {
+            entities: { select: () => [testEntity()] },
+            data: {
+                runLoot: (loot) => {
+                    seen.push(loot);
+                    return 1;
+                }
+            }
+        });
+
+        expect(seen).toEqual([{ kind: 'kill', entity: testEntity() }]);
+    });
+
+    it('/loot replace writes one slot per named entity', () => {
+        const seen: unknown[] = [];
+        run('loot replace entity @a container.0 3 loot mypack:prize', {
+            entities: { select: () => [testEntity(), testEntity()] },
+            data: {
+                runLoot: (_loot, _source, destination) => {
+                    seen.push(destination);
+                    return 1;
+                }
+            }
+        });
+
+        expect(seen).toHaveLength(2);
+        expect(seen[0]).toMatchObject({ kind: 'replace', slot: { name: 'container.0', count: 3 } });
     });
 
     it('/function returns what the function returned', () => {
