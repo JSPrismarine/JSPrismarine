@@ -11,8 +11,8 @@ const SHIFT_TAB = '\u001B[Z';
 
 const noCompletions = async (): Promise<CompletionResult> => ({ completions: [], replace: '' });
 
-async function setup(overrides: Partial<InputBarProps> = {}) {
-    const test = await createTestRenderer({ width: 40, height: 4, exitOnCtrlC: false });
+async function setup(overrides: Partial<InputBarProps> = {}, size = { width: 40, height: 4 }) {
+    const test = await createTestRenderer({ ...size, exitOnCtrlC: false });
     const submitted: string[] = [];
     const interrupts: InterruptKind[] = [];
     const hints: (string | undefined)[] = [];
@@ -193,6 +193,43 @@ describe('createInputBar', () => {
         await t.flush();
 
         expect(t.bar.getValue()).toBe('second');
+    });
+
+    it('keeps typed text when a completion resolves after more typing', async () => {
+        let resolveCompletion: ((result: CompletionResult) => void) | undefined;
+        const t = await setup({
+            onComplete: () =>
+                new Promise<CompletionResult>((resolve) => {
+                    resolveCompletion = resolve;
+                })
+        });
+        dispose = t.dispose;
+
+        await t.mockInput.typeText('l');
+        t.mockInput.pressTab();
+        await t.mockInput.typeText('x');
+        resolveCompletion?.({ completions: ['list', 'login'], replace: 'l' });
+        await t.flush();
+        await t.renderOnce();
+
+        expect(t.bar.getValue()).toBe('lx');
+        expect(t.captureCharFrame()).not.toContain('[list]');
+    });
+
+    it('re-lays out the completion strip when the terminal resizes', async () => {
+        const t = await setup(
+            { onComplete: async (line) => ({ completions: ['alpha-one', 'alpha-two', 'alpha-three'], replace: line }) },
+            { width: 20, height: 4 }
+        );
+        dispose = t.dispose;
+
+        await t.mockInput.typeText('a');
+        t.mockInput.pressTab();
+        await t.waitForFrame((frame) => frame.includes('[alpha-one]'));
+        expect(t.captureCharFrame()).not.toContain('alpha-three');
+
+        t.resize(40, 4);
+        await t.waitForFrame((frame) => frame.includes('[alpha-one]  alpha-two   alpha-three'));
     });
 
     describe('Ctrl+C', () => {

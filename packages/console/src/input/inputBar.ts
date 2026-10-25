@@ -1,5 +1,5 @@
 import type { KeyEvent } from '@opentui/core';
-import { BoxRenderable, InputRenderable, TextRenderable } from '@opentui/core';
+import { BoxRenderable, CliRenderEvents, InputRenderable, TextRenderable } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { CompletionState, formatCompletionStrip } from './completion';
@@ -69,10 +69,11 @@ export const INTERRUPT_WINDOW_MS = 2000;
  * means; this function applies the action to the line, the history, and the completion strip
  * and calls the matching prop. Keys decoded as `edit` fall through to the line editor.
  *
- * Completion is asynchronous. The newest Tab wins: a result that arrives after a later Tab
- * is dropped. One candidate replaces the text at once; several open a one-row strip above
- * the prompt with the first candidate applied, and Tab and Shift+Tab cycle through them.
- * Any other key closes the strip and keeps the applied candidate.
+ * Completion is asynchronous. The newest Tab wins, and any key that edits or moves the line
+ * cancels the pending request, so a late result never overwrites what was typed after Tab.
+ * One candidate replaces the text at once; several open a one-row strip above the prompt
+ * with the first candidate applied, and Tab and Shift+Tab cycle through them. Any other key
+ * closes the strip and keeps the applied candidate. The strip is re-laid out on resize.
  */
 export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, props: InputBarProps): InputBar {
     const { renderer, theme } = ctx;
@@ -132,12 +133,17 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         strip.visible = false;
     }
 
+    function layoutStrip(): void {
+        if (!completion.isOpen) return;
+        strip.content = formatCompletionStrip(completion.candidates, completion.selectedIndex, renderer.terminalWidth);
+        strip.visible = true;
+    }
+
     function applySelectedCandidate(): void {
         const candidate = completion.selected;
         if (candidate === undefined) return;
         setLine(completionPrefix + candidate + completionSuffix, completionPrefix.length + candidate.length);
-        strip.content = formatCompletionStrip(completion.candidates, completion.selectedIndex, renderer.terminalWidth);
-        strip.visible = true;
+        layoutStrip();
     }
 
     function applyCompletion(result: CompletionResult, line: string, cursor: number): void {
@@ -188,6 +194,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             interruptPresses = 0;
             showHint(undefined);
         }
+        // Only Tab keeps a request alive; anything else changes the line the answer was asked for.
+        if (action.type !== 'complete' && action.type !== 'cycle') completionRequest += 1;
 
         switch (action.type) {
             case 'edit':
@@ -244,6 +252,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         }
     }
 
+    renderer.on(CliRenderEvents.RESIZE, layoutStrip);
+
     return {
         renderable: root,
         focus: () => input.focus(),
@@ -260,6 +270,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         getValue: () => input.value,
         dispose: () => {
             disposed = true;
+            renderer.off(CliRenderEvents.RESIZE, layoutStrip);
             root.destroyRecursively();
         }
     };
