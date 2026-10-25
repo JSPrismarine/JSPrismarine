@@ -51,6 +51,7 @@ import type { Generator } from './Generator';
 import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
+import { sectionTakesRandomTicks } from './randomTickSections';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
@@ -675,6 +676,10 @@ export class World implements Service {
             if (nbt.getString('identifier', '') === 'minecraft:player') continue;
 
             const entity = EntitySerializer.fromNBT(nbt, this);
+
+            // Before the restore, not after: `level.json` holds a copy of every entity and
+            // `enable` rebuilds those as written classes, so the actor record has to displace
+            // that copy whichever path ends up holding the mob.
             if (this.restoreDataEntity(entity)) continue;
 
             const legacyEntity = this.getEntities().find((candidate) => this.isLegacyEntity(candidate, entity));
@@ -1302,16 +1307,18 @@ export class World implements Service {
      *
      * Only a chunk a player ticket holds is simulated, so an empty server draws nothing at all
      * however much of the world is in memory - which is also why nobody's furnaces burn while
-     * they are logged off. And within a chunk, only the sub chunks that hold anything: the
-     * three hundred blocks of air over an Overworld column take no random ticks, and drawing
-     * for them was most of what an idle world spent its tick on.
+     * they are logged off. And within a chunk, only the sections whose palette holds something
+     * that takes random ticks, which is Java's `LevelChunkSection.isRandomlyTicking`; see
+     * {@link sectionTakesRandomTicks}. The three hundred blocks of air over an Overworld column
+     * and the stone under it are both skipped.
      *
-     * Java's own section test is stricter still, asking the section's palette whether anything
-     * in it takes random ticks at all. A sub chunk that exists and is not empty is the cheap
-     * half of that, and the one that removes the twenty-three empty sections.
+     * The section test has to be Java's rather than merely cheap, because the draw state is one
+     * counter shared across the world: a section drawn for that Java skips steps the counter and
+     * moves every position drawn afterwards.
      * Public for the same reason {@link World.loadedBlockAt} is: {@link WorldSystems} is handed
      * the world's reads rather than the world itself.
-     * @returns {RandomTickChunk[]} One entry per simulated chunk, with its occupied sections.
+     * @returns {RandomTickChunk[]} One entry per simulated chunk, with its randomly ticking
+     * sections.
      */
     public randomTickChunks(): RandomTickChunk[] {
         const players = this.getPlayers();
@@ -1325,7 +1332,7 @@ export class World implements Service {
 
             const sections: number[] = [];
             for (const [index, subChunk] of chunk.getSubChunks()) {
-                if (!subChunk.isEmpty()) sections.push(index);
+                if (sectionTakesRandomTicks(subChunk)) sections.push(index);
             }
             if (sections.length > 0) visited.push({ x, z, sections });
         }
@@ -1333,7 +1340,19 @@ export class World implements Service {
         return visited;
     }
 
-    /** Whether a chunk is close enough to a player for the world to simulate it. */
+    /**
+     * Whether a chunk is close enough to a player for the world to simulate it.
+     *
+     * Chebyshev distance, so the simulated area is a square: (2 * {@link SIMULATION_DISTANCE}
+     * + 1) squared, 441 chunks at the default of 10. That is Java's own shape, not an
+     * approximation of a circle. `DistanceManager.addPlayer` puts a `PLAYER_SIMULATION` ticket
+     * of level `31 - simulationDistance` on the player's chunk, `ChunkTracker` propagates it
+     * through the full 3 by 3 neighborhood at a cost of one per step - diagonals included,
+     * which is what makes it Chebyshev - and `ChunkLevel.isEntityTicking` admits every chunk at
+     * level 31 or below. Java's two euclidean player-distance tests are elsewhere: the 128
+     * block disc belongs to mob spawning, and `ChunkMap.anyPlayerCloseEnoughTo` to the fire
+     * spread radius, which {@link import('./EngineWorld').canSpreadFireAround} already answers.
+     */
     private withinSimulationDistance(player: Player, chunkX: number, chunkZ: number): boolean {
         const position = player.getPosition();
         return (
