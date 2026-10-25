@@ -1,0 +1,74 @@
+{
+    "name": "@jsprismarine/items",
+    "version": "0.0.0",
+    "description": "The item definition and component runtime: Java 26.3's 122 data component types over Bedrock item identities",
+    "sideEffects": false,
+    "publishConfig": {
+        "access": "public",
+        "exports": {
+            ".": {
+                "types": "./dist/index.d.ts",
+                "import": "./dist/index.es.js",
+                "module": "./dist/index.es.js",
+                "require": "./dist/index.cjs.cjs"
+            },
+            "./*": {
+                "types": "./dist/*.d.ts",
+                "import": "./dist/*.es.js",
+                "module": "./dist/*.es.js",
+                "require": "./dist/*.cjs.cjs"
+            },
+            "./package.json": "./package.json"
+        }
+    },
+    "type": "module",
+    "files": [
+        "dist",
+        "CHANGELOG.md",
+        "README.md"
+    ],
+    "main": "./dist/index.cjs.cjs",
+    "module": "./dist/index.es.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": "./src/index.ts",
+        "./*": "./src/*.ts",
+        "./package.json": "./package.json"
+    },
+    "scripts": {
+        "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
+        "generate:item-types": "node utils/generate/generate-item-types.ts",
+        "build": "vite build && node ../../scripts/emit-dts.mts",
+        "build:watch": "vite build --watch",
+        "test": "vitest run",
+        "typecheck": "tsc-ts --noEmit"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/JSPrismarine/JSPrismarine.git"
+    },
+    "keywords": [
+        "jsprismarine",
+        "minecraft",
+        "bedrock",
+        "items",
+        "components"
+    ],
+    "author": "JSPrismarine",
+    "license": "MIT",
+    "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/items",
+    "dependencies": {
+        "@jsprismarine/content": "workspace:*"
+    },
+    "devDependencies": {
+        "@jsprismarine/bedrock-data": "workspace:*",
+        "@jsprismarine/mapping": "workspace:*",
+        "@types/node": "24.19.2",
+        "glob": "13.0.6",
+        "prettier": "3.9.10",
+        "rimraf": "6.1.3",
+        "typescript": "7.0.2",
+        "vite": "8.3.5",
+        "vitest": "5.0.5"
+    }
+}
