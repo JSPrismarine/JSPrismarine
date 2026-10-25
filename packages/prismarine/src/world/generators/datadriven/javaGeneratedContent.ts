@@ -12,29 +12,10 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
+import { bedrockBlockEntityIdForJavaType } from '../../../blockentity/bedrockBlockEntityIds';
 import { bedrockLootPathOf } from '../../../content/lootTablePaths';
 import type { EntitySpawn } from '../../EntitySpawn';
 import type { RegionBlockEntity, RegionEntitySpawn } from './GenerationRegion';
-
-/**
- * What Bedrock calls each Java block entity a feature or a structure attaches.
- *
- * A short table rather than a generated one, because neither edition publishes a block entity id
- * mapping. `@jsprismarine/features` names the chest, the spawner and the end gateway from
- * `structural.ts` and the bee nest from `tree.ts`; the structures add the barrel a village house
- * keeps its loot in and the trapped chest, which Bedrock stores under the same id as a chest.
- *
- * A type with no row loses its contents and keeps its block, which is what the generated chunk
- * would show for a container this server cannot name.
- */
-const BEDROCK_BLOCK_ENTITY_IDS: Readonly<Record<string, string>> = {
-    'minecraft:barrel': 'Barrel',
-    'minecraft:beehive': 'Beehive',
-    'minecraft:chest': 'Chest',
-    'minecraft:end_gateway': 'EndGateway',
-    'minecraft:mob_spawner': 'MobSpawner',
-    'minecraft:trapped_chest': 'Chest'
-};
 
 /** Java's `LegacyRandomSource` multiplier, reused here only to spread the bits of a position. */
 const SCRAMBLE = 0x5deece66dn;
@@ -55,11 +36,11 @@ const lootSeedOf = (seed: bigint, x: number, y: number, z: number): number => {
 /**
  * Builds the block entity a feature asked for.
  *
- * @returns The block entity, or undefined for a Java type this server has no Bedrock name for,
- *   which leaves the block itself in place rather than the chunk unreadable.
+ * @returns The block entity, or undefined for a Java type Bedrock has no counterpart for, which
+ *   leaves the block itself in place rather than the chunk unreadable.
  */
 export const createBlockEntity = (placed: RegionBlockEntity, seed: bigint): BlockEntity | undefined => {
-    const id = BEDROCK_BLOCK_ENTITY_IDS[placed.request.id];
+    const id = bedrockBlockEntityIdForJavaType(placed.request.id);
     if (id === undefined) return undefined;
 
     const nbt = new NBTTagCompound('');

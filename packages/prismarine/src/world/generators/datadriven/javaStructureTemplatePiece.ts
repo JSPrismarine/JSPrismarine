@@ -308,6 +308,8 @@ export class TemplatePiece implements StructurePiece {
             if (request !== undefined) writer.setBlockEntity(x, y, z, request);
         }
 
+        this.placeEntities(writer);
+
         const handler = this.options.onDataMarker;
         if (handler !== undefined) {
             for (const marker of prepared.markers) {
@@ -321,7 +323,63 @@ export class TemplatePiece implements StructurePiece {
 
         this.options.onPlaced?.(writer, random);
     }
+
+    /**
+     * Records the entities the template saved, which is Java's `addEntitiesToWorld`.
+     *
+     * A template's entity list is how a village gets its villagers and its cats, an igloo its
+     * two villagers and a bastion its piglins. The whole saved entity is not kept: the chunk
+     * carries a type and a place to stand, and the world builds the entity from its own
+     * defaults when the chunk is first loaded.
+     */
+    private placeEntities(writer: StructureWriter): void {
+        const prepared = this.options.store.prepared(this.options.template, this.options.placement);
+        if (prepared === undefined) return;
+
+        const [originX, originY, originZ] = this.options.position;
+        for (const entity of prepared.template.entities) {
+            const nbt = entity.nbt;
+            if (nbt === undefined) continue;
+
+            const type = stringField(nbt, 'id');
+            if (type === undefined) continue;
+
+            writer.spawnEntity(
+                type,
+                originX + entity.pos[0],
+                originY + entity.pos[1],
+                originZ + entity.pos[2],
+                turnedYaw(savedYaw(nbt), this.options.placement)
+            );
+        }
+    }
 }
+
+/** The yaw a saved entity faces, out of the two-float `Rotation` list Java writes. */
+const savedYaw = (nbt: NBTTagCompound): number => {
+    const rotation = nbt.children.get('Rotation');
+    if (!(rotation instanceof Set)) return 0;
+
+    const [yaw] = [...rotation];
+    return yaw instanceof Types.FloatVal || yaw instanceof Types.DoubleVal ? yaw.getValue() : 0;
+};
+
+/**
+ * The yaw an entity ends up facing under a placement, Java's `Entity.mirror` then
+ * `Entity.rotate`: the mirror reflects the angle and the rotation adds its quarter turns.
+ */
+const turnedYaw = (yaw: number, placement: Placement): number => {
+    const mirrored = placement.mirror === 'left_right' ? -yaw : placement.mirror === 'front_back' ? 180 - yaw : yaw;
+    const quarters =
+        placement.rotation === 'clockwise_90'
+            ? 90
+            : placement.rotation === 'clockwise_180'
+              ? 180
+              : placement.rotation === 'counterclockwise_90'
+                ? 270
+                : 0;
+    return mirrored + quarters;
+};
 
 /** The Bedrock view of a Java state, for the processors' location and protection tests. */
 const bedrockViewOf = (state: { name: string; properties: Readonly<Record<string, string>> }) => {
@@ -360,13 +418,29 @@ const blockEntityOf = (nbt: NBTTagCompound): BlockEntityRequest | undefined => {
     const id = stringField(nbt, 'id');
     if (id === undefined) return undefined;
 
-    const lootTable = stringField(nbt, 'LootTable') ?? stringField(nbt, 'loot_table');
+    const lootTable = lootTableOf(nbt);
     const spawnEntity = spawnerEntityOf(nbt);
     return {
         id,
         ...(lootTable === undefined ? {} : { lootTable }),
         ...(spawnEntity === undefined ? {} : { spawnEntity })
     };
+};
+
+/**
+ * The table a saved container rolls when it is first opened.
+ *
+ * A chest, a barrel, a decorated pot and a suspicious sand all carry it at the top level under
+ * one of the two spellings Java has used. A vault keeps it a level down, inside the `config`
+ * that also names the key it wants, which is why reading only the top level left every trial
+ * chamber vault with nothing to give.
+ */
+const lootTableOf = (nbt: NBTTagCompound): string | undefined => {
+    const direct = stringField(nbt, 'LootTable') ?? stringField(nbt, 'loot_table');
+    if (direct !== undefined) return direct;
+
+    const config = compoundField(nbt, 'config');
+    return config === undefined ? undefined : stringField(config, 'loot_table');
 };
 
 /** The entity a saved spawner produces, which both NBT spellings bury a level or two down. */

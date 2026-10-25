@@ -498,9 +498,20 @@ export class GenerationRegion {
      * is where Java's `end_spike` puts the crystal it summons.
      */
     private recordEntity(type: string, position: BlockPos, yaw: number): void {
-        if (this.indexOf(position.x, position.y, position.z) === -1) return;
+        this.spawnEntityAt(type, position.x + 0.5, position.y, position.z + 0.5, yaw);
+    }
 
-        const spawn = { type, x: position.x + 0.5, y: position.y, z: position.z + 0.5, yaw };
+    /**
+     * Records an entity at the position it stands on, which a structure template saves whole.
+     *
+     * A template's entities sit between blocks: a cushion is saved at y 0.9375 and a villager
+     * in the middle of its block, so the coordinates are taken as given rather than snapped to
+     * the block the entity happens to be over.
+     */
+    public spawnEntityAt(type: string, x: number, y: number, z: number, yaw: number): void {
+        if (this.indexOf(Math.floor(x), Math.floor(y), Math.floor(z)) === -1) return;
+
+        const spawn = { type, x, y, z, yaw };
         this.entitySpawns.push(spawn);
         if (this.trackingWrites) this.trackedEntitySpawns.push(spawn);
     }
