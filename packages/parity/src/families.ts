@@ -26,8 +26,10 @@ export const FAMILIES = {
     mappingItems: 'mapping.items',
     /** Chunker's totality property over Java's entity type registry. */
     mappingEntities: 'mapping.entities',
-    /** Chunker's totality property over the remaining mapped registries, biome and enchantment. */
+    /** Chunker's totality property over the four mapped registries beyond block, item and entity. */
     mappingRegistries: 'mapping.registries',
+    /** The registries that reach a client with no published Java-to-Bedrock pairing to map them by. */
+    mappingUntranslated: 'mapping.untranslated',
 
     /** The per-state block property table against the Java 26.3 jar dump (phase 1 exit). */
     blocksProperties: 'blocks.properties',

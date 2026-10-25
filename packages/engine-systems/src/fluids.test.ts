@@ -105,6 +105,26 @@ describe('fluid spread', () => {
         expect(test.world.nameAt(at(8))).toBe('minecraft:air');
     });
 
+    it('asks the host to take a block the stream reached out, with its drops', () => {
+        trough(test, 0, 20);
+        test.world.place(at(1), block('minecraft:torch'));
+        test.world.place(at(0), waterSource);
+
+        fluidTick(test.engine.updates, test.world, at(0));
+        settle(test);
+
+        // Java's `beforeDestroyingBlock`: the torch is destroyed rather than overwritten, so
+        // its loot table rolls and the water arrives in the same write.
+        expect(test.world.destroyed).toHaveLength(1);
+        const [washed] = test.world.destroyed;
+        expect(washed?.at).toEqual(at(1));
+        expect(washed?.block).toEqual(block('minecraft:torch'));
+        expect(washed?.removal.drops).toBe(true);
+        expect(washed?.removal.notifyNeighbors).toBe(true);
+        expect(fluidKindOf(washed!.removal.replacement!)).toBe('water');
+        expect(fluidKindOf(block(test.world.nameAt(at(1))))).toBe('water');
+    });
+
     it('carries overworld lava three blocks, because it drops two levels per block', () => {
         trough(test, 0, 20);
         test.world.place(at(0), lavaSource);
