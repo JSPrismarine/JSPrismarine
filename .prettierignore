@@ -18,6 +18,7 @@ packages/bedrock-data/src/resources/*
 packages/bedrock-data/src/generated/*
 packages/bedrock-data/src/jsp/*
 packages/bedrock-data/src/vendor/*
+packages/entity-goals/src/generated/*
 packages/mapping/src/tables/*
 packages/minecraft/src/generated/*
 packages/minecraft/datagen/snapshot/*
