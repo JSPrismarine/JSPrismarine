@@ -4,9 +4,11 @@ import type { Filter } from '@jsprismarine/packs';
 
 import type { EntityInstance } from '../entityInstance';
 import { splitSpawnReference } from '../eventEngine';
+import { parseEventTarget } from '../events';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
+import type { TriggerComponentParams } from '../triggers';
 import type { ComponentRecord } from './schemas';
 import {
     asList,
@@ -819,19 +821,15 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
     }
 };
 
-/** What one of the ten `minecraft:on_*` trigger components declares. */
-export interface TriggerComponentParams {
-    readonly event?: string;
-    readonly target: string;
-    readonly filters?: Filter;
-}
-
 /**
- * Builds one of the ten `minecraft:on_*` components.
+ * Builds one of the eleven `minecraft:on_*` components.
  *
- * The engine fires these at fixed points the goal and combat systems own, so
- * this package parses them and leaves firing to the later agent that adds
- * those systems.
+ * The component carries no hooks because it runs at a fixed point rather than
+ * on a schedule of its own. {@link EntityInstance.trigger} reads the parsed
+ * body back and fires it, which is what makes the component do something:
+ * `minecraft:damage_sensor` and {@link EntityInstance.damage} reach the hurt
+ * and death ones, and {@link EntityInstance.setAttackTarget} reaches the two
+ * target ones.
  */
 export const triggerComponent = (name: string): ComponentFactory<EntityHooks, TriggerComponentParams> => ({
     name,
@@ -844,7 +842,8 @@ export const triggerComponent = (name: string): ComponentFactory<EntityHooks, Tr
             if (!parsed.ok) return parsed;
             filters = parsed.value;
         }
-        return accepted({ event: stringAt(value, 'event'), target: stringAt(value, 'target') ?? 'self', filters });
+        const target = parseEventTarget(value.target, () => undefined);
+        return accepted({ event: stringAt(value, 'event'), target, filters });
     },
     create: () => ({})
 });

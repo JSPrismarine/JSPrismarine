@@ -13,13 +13,18 @@ import type {
     EntityNameSet,
     FilterContext,
     FilterEntityView,
+    FilterSubjects,
     RandomSource
 } from './filterContext';
 import { defaultRandom } from './filterContext';
+import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
-import type { DamageEvent, DamageOutcome, EntityActuator, EntityHooks } from './hooks';
+import type { EntityAction } from './events';
+import type { DamageEvent, DamageOutcome, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
 import type { PropertyDefinition, PropertyValue } from './properties';
 import { PropertyValues } from './properties';
+import type { TriggerComponentName } from './triggers';
+import { isTriggerParams } from './triggers';
 
 /**
  * The third content layer for entities: one live entity, holding its active
@@ -69,6 +74,8 @@ export interface EntityEnvironment {
     filterContext?(entity: EntityInstance): FilterContext;
     /** Moves, looks and jumps on behalf of the goals. */
     actuator?: EntityActuator;
+    /** Carries out the event actions that leave the package, such as `play_sound`. */
+    effects?: EntityEffects;
     /** Draws the `randomize` weights and the `random_chance` filter. */
     random?: RandomSource;
     /** Evaluates a Molang expression for a `set_property` value or a component's expression. */
@@ -114,6 +121,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private active = new Map<string, ActiveComponent>();
     private table = new HookTable<EntityHooks>([]);
     private pending: EventEffects[] = [];
+    private home: EntityPosition | undefined;
+    private target: FilterEntityView | undefined;
 
     /**
      * @param holder - A holder from the registry of resolved entity types.
@@ -269,6 +278,124 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.environment.remove(this, reason);
     }
 
+    /**
+     * The position `set_home_position` recorded, which `home_distance` measures
+     * against and `execute_event_on_home_block` fires its event on.
+     */
+    public get homePosition(): EntityPosition | undefined {
+        return this.home;
+    }
+
+    /** Records where the entity's home is, which `minecraft:home` restricts it to. */
+    public setHomePosition(position: EntityPosition | undefined): void {
+        this.home = position;
+    }
+
+    /**
+     * Carries out one event action.
+     *
+     * `set_home_position` and `stop_movement` go through the actuator and
+     * `reset_target` moves state the entity owns; the other six leave through
+     * {@link EntityEnvironment.effects}.
+     *
+     * @returns Whether anything carried the action out. False means the
+     *   environment left the member out or the actuator is absent, which the
+     *   caller reports.
+     */
+    public perform(action: EntityAction): boolean {
+        const effects = this.environment.effects;
+        switch (action.name) {
+            case 'play_sound':
+                if (effects?.playSound === undefined) return false;
+                effects.playSound(this, action.sound);
+                return true;
+            case 'emit_particle':
+                if (effects?.emitParticle === undefined) return false;
+                effects.emitParticle(this, action.particle);
+                return true;
+            case 'emit_vibration':
+                if (effects?.emitVibration === undefined) return false;
+                effects.emitVibration(this, action.vibration);
+                return true;
+            case 'queue_command':
+                if (effects?.queueCommand === undefined) return false;
+                for (const command of action.commands) effects.queueCommand(this, command, action.target);
+                return true;
+            case 'drop_item':
+                if (effects?.dropItem === undefined) return false;
+                effects.dropItem(this, action.slot);
+                return true;
+            case 'set_home_position': {
+                const position = this.actuator?.position();
+                if (position === undefined) return false;
+                this.home = position;
+                return true;
+            }
+            case 'execute_event_on_home_block':
+                if (this.home === undefined || effects?.executeEventOnBlock === undefined) return false;
+                effects.executeEventOnBlock(this, this.home, action.event);
+                return true;
+            case 'stop_movement':
+                // The actuator paths in three dimensions at once, so either
+                // axis the action names stops the whole path.
+                if (this.actuator === undefined || (!action.horizontal && !action.vertical)) return false;
+                this.actuator.stopMoving();
+                return true;
+            case 'reset_target':
+                this.setAttackTarget(undefined);
+                return true;
+        }
+    }
+
+    /**
+     * Fires one of the eleven `minecraft:on_*` components.
+     *
+     * The component's own `filters` gate it, a `self` target queues the event
+     * for the entity's next tick, and any other target leaves as an outgoing
+     * trigger for the environment to route. Nothing happens when the component
+     * is not active or names no event, which four vanilla bodies do.
+     *
+     * @param subjects - Extra filter subjects the fixed point knows about,
+     *   such as the damager behind `minecraft:on_hurt_by_player`.
+     * @returns The event that fired, or undefined when nothing did.
+     */
+    public trigger(component: TriggerComponentName, subjects: FilterSubjects = {}): string | undefined {
+        const params = this.componentParams(component);
+        if (!isTriggerParams(params) || params.event === undefined) return undefined;
+        if (params.filters !== undefined && !evaluateFilter(params.filters, { ...this.filterContext(), ...subjects }))
+            return undefined;
+
+        if (params.target === 'self') {
+            this.fire(params.event);
+            return params.event;
+        }
+        if (this.environment.route === undefined) {
+            this.report(`${component} fires ${params.event} on ${params.target}, which nothing routes`);
+            return undefined;
+        }
+        this.environment.route({ event: params.event, target: params.target }, this);
+        return params.event;
+    }
+
+    /** What the entity is attacking now, which the `is_target` filter test reads. */
+    public get attackTarget(): FilterEntityView | undefined {
+        return this.target;
+    }
+
+    /**
+     * Points the entity at a target, or clears it when passed undefined.
+     *
+     * Taking a target fires `minecraft:on_target_acquired` and losing one
+     * fires `minecraft:on_target_escape`, each only when the target actually
+     * changes, so a goal that reasserts the same target every tick fires
+     * neither.
+     */
+    public setAttackTarget(view: FilterEntityView | undefined): void {
+        if (view === this.target) return;
+        this.target = view;
+        this.trigger(view === undefined ? 'minecraft:on_target_escape' : 'minecraft:on_target_acquired');
+    }
+
     /** Asks the world to replace the entity with another type, for `minecraft:transformation`. */
     public transform(request: TransformRequest): void {
         if (this.environment.transform === undefined) {
@@ -298,7 +425,14 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             this.environment.route(trigger, this);
         }
 
-        for (const action of effects.actions) this.report(`${effects.event} asks for ${action.name}`);
+        for (const action of effects.actions) {
+            if (action.parsed === undefined) {
+                this.report(`${effects.event} asks for ${action.name}, which this package does not carry out`);
+                continue;
+            }
+            if (!this.perform(action.parsed))
+                this.report(`${effects.event} asks for ${action.name}, which nothing in the world carries out`);
+        }
         for (const message of effects.unhandled) this.report(message);
     }
 
@@ -401,7 +535,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             carries: (matches) => outer.carries?.(matches),
             vehicle: () => outer.vehicle?.(),
             owner: () => outer.owner?.(),
-            attackTarget: () => outer.attackTarget?.(),
+            attackTarget: () => this.target ?? outer.attackTarget?.(),
             leashHolder: () => outer.leashHolder?.(),
             trusts: (other) => outer.trusts?.(other)
         };
@@ -419,6 +553,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         if (name === 'is_baby') return this.hasComponent('minecraft:is_baby');
         if (name === 'is_tamed') return this.hasComponent('minecraft:is_tamed');
         if (name === 'is_persistent') return this.hasComponent('minecraft:persistent');
+        if (name === 'has_target') return this.target !== undefined;
         return undefined;
     }
 
@@ -426,6 +561,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         switch (name) {
             case 'actor_health':
                 return this.attributes.get('health')?.current;
+            case 'home_distance':
+                return this.homeDistance();
             case 'is_variant':
                 return this.integerValue('minecraft:variant');
             case 'is_mark_variant':
@@ -435,6 +572,13 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             default:
                 return undefined;
         }
+    }
+
+    /** How far the entity is from its home, or undefined when it has none or cannot be located. */
+    private homeDistance(): number | undefined {
+        const position = this.actuator?.position();
+        if (this.home === undefined || position === undefined) return undefined;
+        return Math.hypot(position.x - this.home.x, position.y - this.home.y, position.z - this.home.z);
     }
 
     /** The `value` of one of the three integer state components. */

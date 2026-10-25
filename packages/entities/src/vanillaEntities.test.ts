@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { createEntityComponentRegistry } from './components';
 import type { EntityFile } from './entityTypes';
 import { EntityTypes } from './entityTypes';
+import { eventActions } from './events';
 import { hasFilterTest } from './filters';
 
 /**
@@ -198,6 +199,38 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(componentCovered).toBeGreaterThanOrEqual(102);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
+    });
+
+    it('parses every event action the pack writes into one it carries out', () => {
+        const uses = new Map<string, number>();
+        const unparsed = new Set<string>();
+
+        for (const [, type] of types.registry) {
+            for (const [, node] of type.entity.events) {
+                for (const action of eventActions(node)) {
+                    uses.set(action.name, (uses.get(action.name) ?? 0) + 1);
+                    if (action.parsed === undefined) unparsed.add(action.name);
+                }
+            }
+        }
+
+        process.stdout.write(
+            `event actions in vanilla: ${[...uses].map(([name, count]) => `${name} ${count}`).join(', ')}\n`
+        );
+
+        // The eight keys the composed pack writes, by uses. `queue_command`
+        // is the ninth the package carries out and no vanilla entity uses.
+        expect(Object.fromEntries(uses)).toEqual({
+            play_sound: 23,
+            set_home_position: 17,
+            emit_vibration: 9,
+            drop_item: 2,
+            execute_event_on_home_block: 2,
+            emit_particle: 1,
+            reset_target: 1,
+            stop_movement: 1
+        });
+        expect([...unparsed]).toEqual([]);
     });
 
     it('spawns every entity that declares a spawn event without throwing', () => {

@@ -301,12 +301,27 @@ describe('determineEvent', () => {
         expect(effects.unhandled[0]).toContain('would loop');
     });
 
-    it('keeps an action it does not carry out, with its body', () => {
+    it('collects an action with its body and its parsed form', () => {
         const effects = determineEvent(
             runtime({ events: { 'minecraft:noise': { play_sound: { sound: 'mob.cow.say' } } } }),
             'minecraft:noise'
         );
 
-        expect(effects.actions).toEqual([{ name: 'play_sound', value: { sound: 'mob.cow.say' } }]);
+        expect(effects.actions).toEqual([
+            {
+                name: 'play_sound',
+                value: { sound: 'mob.cow.say' },
+                parsed: { name: 'play_sound', sound: 'mob.cow.say' }
+            }
+        ]);
+    });
+
+    it('leaves an action it does not carry out unparsed', () => {
+        const effects = determineEvent(
+            runtime({ events: { 'minecraft:odd': { spin_around: { times: 3 } } } }),
+            'minecraft:odd'
+        );
+
+        expect(effects.actions).toEqual([{ name: 'spin_around', value: { times: 3 }, parsed: undefined }]);
     });
 });
