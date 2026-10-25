@@ -7,8 +7,10 @@ server one object, `ServerContent`.
 It also owns the other half of that job: the single world interface the four migrating subsystems
 implement, out of which the nine world interfaces those packages declare are projected.
 
-Nothing here is on by default. `config.yaml`'s `content-packs` starts at `false`, so the server
-boots on the managers it has always used while the subsystems move across one at a time.
+Every server builds this. There is no setting that turns it off, and a stack that will not load
+stops the server rather than leaving it running on nothing. `content-strict` decides whether a
+single pack that reports an error also fails the build; `content-world-packs` and
+`content-datapacks` add to the stack.
 
 ## What one build produces
 
@@ -183,8 +185,8 @@ A player's right click goes through [`item/interaction.ts`](../item/interaction.
 reaches `World.useItemOn`. The block the player clicked gets `onPlayerInteract`, unless the player
 is sneaking with something in hand; then the item gets `onUseOn`; and only when both decline does
 the item place the block it names, through the adapter, so `onPlace` runs and a container gets its
-record. The path declines whenever `content-packs` is off, and `World.useItemOn` runs as it always
-has.
+record. The path declines for a block and an item the stack has no type for, and `World.useItemOn`
+runs as it always has.
 
 ### Network (`src/network/`)
 
