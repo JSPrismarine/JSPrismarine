@@ -107,6 +107,84 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
 ];
 
 /**
+ * The mobs whose health neither edition reads off the attribute base.
+ *
+ * Java's supplier gives a horse 53 and then draws its real health between 15 and 30 at spawn;
+ * Bedrock writes the same draw as a range in the entity file. Comparing the two bases compares
+ * two numbers no horse ever has.
+ */
+const randomizedHealthEntries = (): readonly AllowListEntry[] =>
+    ['minecraft:donkey', 'minecraft:horse', 'minecraft:llama', 'minecraft:mule', 'minecraft:trader_llama'].map(
+        (bedrockId) => ({
+            family: 'entities.stats' as const,
+            id: `health:${bedrockId}`,
+            kind: 'accepted' as const,
+            reason: 'Both editions draw the health of a horse-like mob at spawn, so neither base is its health.',
+            reference: 'bedrock-samples 1.26.50.4 entities/horse.json, which writes the draw as a range'
+        })
+    );
+
+/**
+ * The mobs whose health follows their size, written as one component group per size.
+ *
+ * Spawning the type picks one group, so the comparison sees that group's health against Java's
+ * single supplier base. Java computes the same health from the size at spawn instead.
+ */
+const sizedHealthEntries = (): readonly AllowListEntry[] =>
+    ['minecraft:magma_cube', 'minecraft:slime', 'minecraft:sulfur_cube'].map((bedrockId) => ({
+        family: 'entities.stats' as const,
+        id: `health:${bedrockId}`,
+        kind: 'accepted' as const,
+        reason: 'Health follows the size in both editions; Bedrock writes one component group per size.',
+        reference: 'bedrock-samples 1.26.50.4 entities/slime.json, which declares 16, 4 and 1'
+    }));
+
+/**
+ * Advertised actor types Mojang's behavior pack defines no entity file for.
+ *
+ * Five are engine entities whose behavior is code in both editions, and three are Education
+ * Edition content that plan section 12 puts out of scope. The elder guardian ghost is the
+ * curse effect the client draws, with no server-side body at all.
+ */
+const engineActorEntries = (): readonly AllowListEntry[] =>
+    (
+        [
+            ['minecraft:item', 'A dropped item stack is an engine entity in both editions.'],
+            ['minecraft:falling_block', 'A falling block is an engine entity in both editions.'],
+            ['minecraft:painting', 'A painting is an engine entity in both editions.'],
+            ['minecraft:leash_knot', 'A leash knot is an engine entity in both editions.'],
+            ['minecraft:evocation_fang', "The evoker's fang is an engine entity with no definition."],
+            ['minecraft:balloon', 'Education Edition content, which plan section 12 puts out of scope.'],
+            ['minecraft:agent', 'Education Edition content, which plan section 12 puts out of scope.'],
+            ['minecraft:ice_bomb', 'Education Edition content, which plan section 12 puts out of scope.'],
+            ['minecraft:elder_guardian_ghost', 'The curse effect the client draws, with no server-side body.']
+        ] as const
+    ).map(([id, reason]) => ({
+        family: 'entities.addactor' as const,
+        id: `no-definition:${id}`,
+        kind: 'accepted' as const,
+        reason,
+        reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities, which has no file for it'
+    }));
+
+/** Advertised actor types whose definition declares no collision box at the top level. */
+const bodilessActorEntries = (): readonly AllowListEntry[] =>
+    (
+        [
+            ['minecraft:lightning_bolt', 'A lightning bolt has no body; the client draws the bolt.'],
+            ['minecraft:area_effect_cloud', 'A lingering potion cloud has no body an entity collides with.'],
+            ['minecraft:ominous_item_spawner', 'The trial spawner projectile has no body.'],
+            ['minecraft:shulker', "The shulker's box grows and shrinks, so its collision box is in a component group."]
+        ] as const
+    ).map(([id, reason]) => ({
+        family: 'entities.addactor' as const,
+        id: `no-collision-box:${id}`,
+        kind: 'accepted' as const,
+        reason,
+        reference: 'bedrock-samples 1.26.50.4 behavior_pack/entities'
+    }));
+
+/**
  * Every expected gap the suite carries. Entries land here when a comparison starts failing for
  * a reason the project accepts, and leave when the gap closes - `checkAllowList` fails the
  * suite in both directions, so this list can neither hide a new gap nor go stale.
@@ -165,6 +243,8 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
     },
 
+    ...engineActorEntries(),
+    ...bodilessActorEntries(),
     ...randomizedHealthEntries(),
     ...sizedHealthEntries(),
     {

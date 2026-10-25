@@ -69,12 +69,18 @@ const pinnedJavaVersion = (): string | undefined => {
     return sources.javaServer?.version;
 };
 
-/** The first path under `root` that satisfies `holds`, searched one directory level at a time. */
+/**
+ * The first directory under `root` at exactly `depth` levels down that satisfies `holds`.
+ *
+ * The fetch cache nests a source under its version and then under the archive's own top-level
+ * folder, whose name carries a commit hash, so the path cannot be written out.
+ */
 const firstMatching = (root: string, depth: number, holds: (path: string) => boolean): string | undefined => {
     if (!existsSync(root)) return undefined;
     if (depth === 0) return holds(root) ? root : undefined;
-    for (const entry of readdirSync(root)) {
-        const found = firstMatching(join(root, entry), depth - 1, holds);
+    for (const entry of readdirSync(root, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue;
+        const found = firstMatching(join(root, entry.name), depth - 1, holds);
         if (found) return found;
     }
     return undefined;
