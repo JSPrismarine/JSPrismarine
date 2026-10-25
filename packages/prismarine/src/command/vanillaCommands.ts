@@ -31,7 +31,6 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     item: 'item modifiers and Java-addressable inventory slots',
     locate: 'a structure, biome and point-of-interest index',
     place: 'runtime feature, jigsaw and structure placement',
-    recipe: 'per-player recipe unlocking; the recipe book compiles but no `UnlockedRecipesPacket` is written',
     ride: 'entity riding outside the data-driven entity runtime',
     spawnpoint: 'per-player spawn points; a respawn reads the world spawn',
     weather: 'a weather cycle; nothing raises rain or thunder'
@@ -41,14 +40,16 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
  * The commands whose whole subsystem is the pack stack, and which are
  * therefore advertised only when `content-packs` is on.
  *
- * `/loot` rolls Java's tables and there are none without a content build, so
- * with the packs off it could do nothing at all. The rest of the set either
- * works without content or reports the same thing Java reports for an empty
- * datapack: `/function` on a server with no functions answers that the
- * function does not exist, which is the truth and is useful.
+ * `/loot` rolls Java's tables and `/recipe` unlocks out of Java's book, and
+ * there is neither without a content build, so with the packs off the two
+ * could do nothing at all. The rest of the set either works without content
+ * or reports the same thing Java reports for an empty datapack: `/function`
+ * on a server with no functions answers that the function does not exist,
+ * which is the truth and is useful.
  */
 export const CONTENT_ONLY_COMMANDS: Readonly<Record<string, string>> = {
-    loot: "Java's loot tables, which come from the pack stack; turn on content-packs"
+    loot: "Java's loot tables, which come from the pack stack; turn on content-packs",
+    recipe: "Java's recipe book, which comes from the pack stack; turn on content-packs"
 };
 
 /**

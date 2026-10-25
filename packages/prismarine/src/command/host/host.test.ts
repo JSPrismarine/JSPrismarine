@@ -29,10 +29,12 @@ import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
 import RemoveObjectivePacket from '../../network/packet/RemoveObjectivePacket';
 import SetDisplayObjectivePacket from '../../network/packet/SetDisplayObjectivePacket';
 import SetScorePacket from '../../network/packet/SetScorePacket';
+import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet/UnlockedRecipesPacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { LootRegistry } from '@jsprismarine/loot';
+import { loadRecipes } from '@jsprismarine/recipes';
 import { Dimensions } from '../../world/Dimension';
 import type GameRuleManager from '../../world/GameRuleManager';
 import type { GameRuleEntry } from '../../world/GameRuleManager';
@@ -976,6 +978,88 @@ describe('the server command host', () => {
             await expect(fixture.run('loot insert 0 70 0 loot mypack:prize')).rejects.toThrow(
                 /no container block entities/
             );
+        });
+    });
+
+    describe('recipes', () => {
+        /** A book of two recipes, built through the real loader. */
+        const recipeContent = (): ServerContent => {
+            const loaded = loadRecipes([
+                [
+                    'mypack:cake',
+                    {
+                        type: 'minecraft:crafting_shapeless',
+                        ingredients: ['minecraft:wheat'],
+                        result: { id: 'minecraft:cake' }
+                    }
+                ],
+                [
+                    'mypack:torch',
+                    {
+                        type: 'minecraft:crafting_shapeless',
+                        ingredients: ['minecraft:coal'],
+                        result: { id: 'minecraft:torch' }
+                    }
+                ]
+            ]);
+            return stub<ServerContent>({ recipes: loaded.book });
+        };
+
+        it('refuses when no recipe book is loaded', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('recipe give @a mypack:cake')).rejects.toThrow(/no recipes/);
+        });
+
+        it('names a recipe the book does not hold', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(recipeContent());
+
+            await expect(fixture.run('recipe give @a mypack:nothing')).rejects.toThrow(/no recipe called/);
+        });
+
+        it('tells the client which recipe it just unlocked', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(recipeContent());
+
+            await expect(fixture.run('recipe give @a mypack:cake')).resolves.toBe(1);
+
+            const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
+            expect(packet?.type).toBe(UnlockedRecipesType.NewlyUnlocked);
+            expect(packet?.recipes).toEqual(['mypack:cake']);
+        });
+
+        it('changes nothing when the player already had it', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(recipeContent());
+
+            await fixture.run('recipe give @a mypack:cake');
+            await expect(fixture.run('recipe give @a mypack:cake')).resolves.toBe(0);
+        });
+
+        it('unlocks the whole book for a star, and locks it again', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(recipeContent());
+
+            await expect(fixture.run('recipe give @a *')).resolves.toBe(1);
+            const unlocked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
+            expect(unlocked?.recipes).toEqual(['mypack:cake', 'mypack:torch']);
+
+            await expect(fixture.run('recipe take @a *')).resolves.toBe(1);
+            const locked = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
+            expect(locked?.type).toBe(UnlockedRecipesType.RemoveAll);
+        });
+
+        it('locks one recipe without touching the rest', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            fixture.useContent(recipeContent());
+
+            await fixture.run('recipe give @a *');
+            await expect(fixture.run('recipe take @a mypack:cake')).resolves.toBe(1);
+
+            const packet = fixture.sent.filter((entry) => entry instanceof UnlockedRecipesPacket).at(-1);
+            expect(packet?.type).toBe(UnlockedRecipesType.RemoveUnlocked);
+            expect(packet?.recipes).toEqual(['mypack:cake']);
         });
     });
 });

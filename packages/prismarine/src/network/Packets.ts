@@ -158,6 +158,7 @@ import TakeItemActorPacket from './packet/TakeItemActorPacket';
 import TextPacket from './packet/TextPacket';
 import TickingAreasLoadStatusPacket from './packet/TickingAreasLoadStatusPacket';
 import TransferPacket from './packet/TransferPacket';
+import UnlockedRecipesPacket from './packet/UnlockedRecipesPacket';
 import UpdateAbilitiesPacket from './packet/UpdateAbilitiesPacket';
 import UpdateAdventureSettingsPacket from './packet/UpdateAdventureSettingsPacket';
 import UpdateAttributesPacket from './packet/UpdateAttributesPacket';
@@ -336,6 +337,7 @@ export {
     TextPacket,
     TickingAreasLoadStatusPacket,
     TransferPacket,
+    UnlockedRecipesPacket,
     UpdateAbilitiesPacket,
     UpdateAdventureSettingsPacket,
     UpdateAttributesPacket,

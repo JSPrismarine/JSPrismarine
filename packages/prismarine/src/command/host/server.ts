@@ -17,7 +17,8 @@ import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import TransferPacket from '../../network/packet/TransferPacket';
 import TextPacketType from '../../network/type/TextPacketType';
-import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer, unsupported } from './support';
+import { UnlockedRecipes, changeRecipes } from './recipes';
+import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer } from './support';
 
 /**
  * How the client renders each of the four message kinds a command sends.
@@ -114,6 +115,9 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
      */
     const fogStacks = new Map<bigint, readonly FogLayer[]>();
 
+    /** Which recipes each player has unlocked; see {@link UnlockedRecipes}. */
+    const unlocked = new UnlockedRecipes();
+
     const operator = (ref: EntityRef, op: boolean): boolean => {
         const player = resolvePlayer(server, ref);
         if (player === undefined) return false;
@@ -150,7 +154,8 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
             return carryOut(player.getNetworkSession().send(packet), true);
         },
 
-        recipes: () => unsupported('per-player recipe unlocking'),
+        recipes: (players, recipe, give) =>
+            changeRecipes(server, unlocked, server.getContent()?.recipes, players, recipe, give),
 
         sendMessage: (targets, kind, text) => {
             for (const player of playersOf(server, targets)) {
