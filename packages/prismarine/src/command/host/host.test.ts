@@ -18,7 +18,7 @@ import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
-import type { ItemManager } from '../../item/ItemManager';
+import type ItemManager from '../../item/ItemManager';
 import type { Item } from '../../item/Item';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
@@ -93,7 +93,9 @@ const buildFixture = (): Fixture => {
         }
     });
 
-    const world = stub<World>({
+    // Annotated, because `world` and `server` name each other: without a declared type
+    // TypeScript would have to infer one from the other and gives up.
+    const world: World = stub<World>({
         getDimension: () => Dimensions.Overworld,
         getGameRuleManager: () => gameRules,
         getEntities: () => entities,
@@ -131,13 +133,16 @@ const buildFixture = (): Fixture => {
         },
         getLoadedChunk: () => null,
         getSeed: () => 1,
+        // No data-driven runtime, which is the shape of a world running with
+        // `content-packs` off and what keeps `/summon` on the written classes.
+        dataEntities: () => undefined,
         // Late-bound: an entity class reads the server off the world it is
         // built in, and the server double is built from this one.
         getServer: () => server
     });
     let ticks = 0;
 
-    const server = stub<Server>({
+    const server: Server = stub<Server>({
         getLogger: () => stub({ debug: () => {}, verbose: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] }),
         getSessionManager: () => stub({ getAllPlayers: () => players }),
@@ -145,7 +150,7 @@ const buildFixture = (): Fixture => {
             stub<PermissionManager>({
                 isOp: () => false,
                 setOp: async () => true,
-                can: () => ({ execute: () => true })
+                can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
             }),
         getItemManager: () =>
             stub<ItemManager>({

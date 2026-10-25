@@ -213,6 +213,8 @@ export class EntityRuntime implements EntityScene {
         // The body comes first: a goal component builds its support while the instance is being
         // constructed, and that reads the actuator straight away.
         const body = new MobBody(id, at, facts);
+        body.yaw = options.yaw ?? 0;
+        body.pitch = options.pitch ?? 0;
         this.spawning = body;
         const instance = new EntityInstance(registry.holder(reference), {
             id,

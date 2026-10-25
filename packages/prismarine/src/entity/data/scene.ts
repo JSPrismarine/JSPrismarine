@@ -21,6 +21,15 @@ export interface SpawnOptions {
     readonly cause?: 'spawned' | 'born' | 'transformed' | 'primed';
     /** The pool whose cap the spawn counts against, when a spawn rule produced it. */
     readonly pool?: string;
+    /**
+     * Which way the entity faces, in degrees, for a caller that knows.
+     *
+     * Applied before the spawn event runs, so the body a client is first sent
+     * already faces the right way. A spawn rule names no rotation and gets 0,
+     * which is what every mob the spawner places has always had.
+     */
+    readonly yaw?: number;
+    readonly pitch?: number;
 }
 
 /** The runtime as the AI projections read it. */
