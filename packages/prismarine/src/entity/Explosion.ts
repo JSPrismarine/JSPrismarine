@@ -23,7 +23,9 @@ import { destroyedBlockDrops } from '../world/blockDestroy';
 import type { Item } from '../item/Item';
 import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
+import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import Tnt, { randomShortFuse } from './other/Tnt';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
@@ -74,14 +76,26 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
     const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
     const caught = entitiesNear(world, at);
     const drops: Array<{ at: BlockPosition; item: Block | Item }> = [];
+    const caughtTnt: BlockPosition[] = [];
 
     const blast = castBlast<CaughtEntity>(explosionWorldOf(world), {
         center,
         radius: power,
         entities: caught,
         breaksBlocks: breaksBlocks && griefingAllowed(world),
-        onBlockDestroyed: (position) => collectDrops(world, position, power, drops)
+        onBlockDestroyed: (position, block) => {
+            if (block.name === Tnt.MOB_ID) {
+                caughtTnt.push(position);
+                return;
+            }
+
+            collectDrops(world, position, power, drops);
+        }
     });
+
+    // After the rays rather than inside them, because each one is a fresh entity in the world
+    // and a blast measures the world as it stood when it went off.
+    await Promise.all(caughtTnt.map(async (position) => primeTnt(world, position, source)));
 
     // After the rays, so an entity is measured against the world as it still stands and a wall
     // shields what is behind it even though the wall is about to stop existing. Java's order.
@@ -110,6 +124,31 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
  * write into a chunk that is not in memory is declined rather than generating terrain.
  */
 const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(world);
+
+/**
+ * Lights the TNT a blast caught, which is what makes a chain.
+ *
+ * Java's `TntBlock.wasExploded`. The block is not dropped and not rolled for loot -
+ * `TntBlock.dropFromExplosion` returns false - it becomes a primed entity standing in the
+ * middle of where it was, with {@link randomShortFuse}'s 10 to 29 ticks rather than a full
+ * fuse. The spread is what makes a pile of TNT ripple outward over a second instead of going
+ * off as one blast, and the short fuse is why the ripple is quick.
+ *
+ * The blast has already written air over the block by the time this runs, so there is nothing
+ * to clear first.
+ */
+const primeTnt = async (world: World, at: BlockPosition, source: Entity | null): Promise<void> => {
+    const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
+    if (!allowed) return;
+
+    await world.addEntity(
+        new Tnt({
+            position: new Position(at.x + 0.5, at.y, at.z + 0.5, world),
+            fuse: randomShortFuse(),
+            source
+        })
+    );
+};
 
 /** Whether the world lets explosions rearrange it. */
 const griefingAllowed = (world: World): boolean => {

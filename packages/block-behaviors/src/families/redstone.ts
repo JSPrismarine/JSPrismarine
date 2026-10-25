@@ -154,7 +154,7 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
         case 'tnt':
             if (!powered) return;
             world.setBlock(block.position, 'minecraft:air');
-            world.spawnEntity(block.position, 'minecraft:tnt', { fuse: 80 });
+            world.spawnEntity(block.position, 'minecraft:tnt', { fuse: TNT_FUSE_TICKS });
             return;
         case 'bell':
             if (powered) world.playSound(block.position, 'block.bell.hit');
