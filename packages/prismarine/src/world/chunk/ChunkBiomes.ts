@@ -1,4 +1,4 @@
-import BinaryStream from '@jsprismarine/binaryutils';
+import type BinaryStream from '@jsprismarine/binaryutils';
 
 import { minSubChunk, subChunkCount } from '../Dimension';
 import type { DimensionDefinition } from '../Dimension';
@@ -56,6 +56,13 @@ const bitsFor = (paletteSize: number): number => {
 /** XZY with y fastest, the order both the disk and the network form pack. */
 const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | ((z & 0xf) << 4) | (y & 0xf);
 
+/**
+ * One column's biomes, held as a palette per sub chunk.
+ *
+ * A section that is all one biome stays a single number rather than 4096 entries, so a column of
+ * untouched terrain costs one value per sub chunk. Writing a second biome into a section expands
+ * it, and the disk and network forms both pack from whichever representation a section is in.
+ */
 export class ChunkBiomes {
     private readonly dimension: DimensionDefinition;
     private readonly sections: PackedSection[];
