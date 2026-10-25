@@ -110,6 +110,19 @@ export class ChunkStep {
     }
 
     /**
+     * How wide a scheduler layer is when it brings a neighborhood to `status` for this target.
+     *
+     * Java's `ChunkStep.getAccumulatedRadiusOf`, which answers 0 for the target status itself
+     * rather than asking the accumulated dependencies. A step never lists its own status among its
+     * dependencies, so the plain lookup reads -1 there and the last layer would run on nothing.
+     *
+     * @returns The radius in chunks, or -1 when the target does not depend on that status at all.
+     */
+    public accumulatedRadiusOf(status: ChunkStatus): number {
+        return status === this.targetStatus ? 0 : this.accumulatedDependencies.radiusOf(status);
+    }
+
+    /**
      * Checks a read against the declared window and returns the status that read is good for.
      *
      * @param dx - Chunk offset on x from the chunk this step is running on.

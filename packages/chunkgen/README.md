@@ -105,9 +105,49 @@ writes the blocks writes the heights with them. And it does not police neighbor 
 outside its own 16 by 16 column reads as air and refuses a write, and the step table is what turns
 an undeclared neighbor read into a throw.
 
+## The holder and the scheduler
+
+A `ChunkHolder` is one chunk's place in the ladder: the proto chunk, and one promise per status.
+The first caller to ask for a status creates the promise and runs the body; every later caller
+awaits that same promise. That is what makes a (chunk, status) body run exactly once however many
+requests overlap. Java needs a compare-and-exchange on `startedWork` for it, because several pool
+threads reach `applyStep` at once; only the thread that owns the holder map touches a holder here,
+and a map insert cannot be interleaved. `startedWork` is kept anyway, because it is what catches a
+layer loop that skips a rung.
+
+`ChunkHolderMap` decides how long a holder lives, by reference count. A run acquires every chunk
+inside its radius before it runs a step and releases them all when it finishes, so nothing it
+depends on can be dropped while it is in flight, and a holder nothing needs goes away. The
+generator's 128-entry LRU got this wrong in a way that was measurable: `preload-radius: 5` is 121
+chunks, right at the edge, so a feature pass writing into a neighbor could land on a holder that
+had already been evicted. A caller that wants a chunk to stay resident past a run acquires its own
+reference.
+
+`GenerationScheduler` is the layer loop. To bring a chunk to a status, the neighborhood has to
+reach that status's dependencies first, so a run walks the ladder from `empty` upward and applies
+each step to the square the accumulated dependency table sizes.
+
+```ts
+const holders = new ChunkHolderMap((chunkX, chunkZ) => ProtoChunk.create({ chunkX, chunkZ, minY: -64, height: 384 }));
+const scheduler = new GenerationScheduler({ holders, tasks: { terrain: buildTerrain } });
+
+scheduler.layersFor('terrain'); // [['empty', 9], ['structure_starts', 9], ..., ['terrain', 0]]
+const chunk = await scheduler.generate(0, 0, 'terrain');
+```
+
+A status with no entry in `tasks` passes its chunk through, which is what every status above
+`terrain` does today. The bodies live in the server, because they need the noise, the biome source
+and the feature registries; the scheduler only knows how to order them and what each one may read.
+
+Two properties follow, and the tests count them rather than assert them in prose. Nine chunks asked
+for at once at a `full` target build terrain over the union of their windows, 49 bodies, where
+`DataDrivenGenerator.generateChunk` builds a 3 by 3 tile per chunk and so builds 81. And the
+sixteen chunks of a 4 by 4 area come out identical whether they are asked for row major, reversed,
+shuffled, one at a time or all sixteen at once.
+
 ## What is not here yet
 
-The holder, the scheduler, the feature patch and the worker pool. They land in later slices of
+The feature patch and the worker pool. They land in later slices of
 [the plan](../../docs/plans/chunk-generation-rewrite.md), and until they do, nothing in the server
 imports this package.
 
