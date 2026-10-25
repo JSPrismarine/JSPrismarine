@@ -231,6 +231,10 @@ needs the other's ordering, and adding a block renumbers nothing. The alternativ
 palette both sides sort by the FNV-1 64 hash of the block name, renumbers every vanilla block the
 moment a pack adds one.
 
+`@jsprismarine/protocol` owns that hash, since the chunk and inventory encoders need it too.
+`fnv1a32`, `blockStateCompound`, `writeBlockStateNbt`, `blockRuntimeId`, `UNKNOWN_BLOCK_NAME` and
+`UNKNOWN_RUNTIME_ID` are re-exported here so a caller building block payloads has them in one import.
+
 One subtlety decides whether the hash is right: a flag is a byte and a number is an int, and the two
 hash differently. A state has to arrive as a boolean to be written as a byte, which is the shape
 `BlockStateModel` normalizes to, and which is why `readCapturedBlockState` turns a captured byte back
@@ -249,8 +253,6 @@ told about a block registry that disagrees with its own does not complain, it dr
   `Recipe` classes, so the shapes here are named after the wire's fields and a caller adapts. Moving
   those two packets into `@jsprismarine/protocol` would let this package be checked against them the
   way the other two are.
-- **`fnv1a32` exists twice.** `@jsprismarine/prismarine`'s `BlockRuntimeIds` has the same algorithm
-  and the same serialization. One of the two should import the other.
 - **Item tags.** `item_tags` is written present and empty, because Bedrock item tags are their own
   registry and `@jsprismarine/items` will not translate a Java tag into one.
 

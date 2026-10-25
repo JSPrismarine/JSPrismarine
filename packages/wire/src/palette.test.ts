@@ -8,10 +8,11 @@ import {
     UNKNOWN_RUNTIME_ID,
     assertBlockPaletteAgrees,
     blockRuntimeId,
+    blockStateCompound,
     fnv1a32,
     readCapturedBlockState,
-    serializeBlockState,
-    verifyBlockRuntimeIds
+    verifyBlockRuntimeIds,
+    writeBlockStateNbt
 } from './palette';
 import { nbtCompound, nbtInt, nbtList, nbtString, writeNetworkNbt } from './nbt';
 
@@ -36,9 +37,9 @@ describe('fnv1a32', () => {
     });
 });
 
-describe('serializeBlockState', () => {
+describe('writeBlockStateNbt', () => {
     it('writes the compound with fixed width lengths, not the network varints', () => {
-        const bytes = serializeBlockState('minecraft:stone');
+        const bytes = writeBlockStateNbt(blockStateCompound('minecraft:stone'));
 
         // TAG_Compound, an empty name as a two byte length, then TAG_String
         // `name` - the varint flavor would write one byte lengths here.
@@ -46,8 +47,8 @@ describe('serializeBlockState', () => {
     });
 
     it('sorts the states, because the two sides hash bytes and not meaning', () => {
-        expect(serializeBlockState('a', { zebra: 1, apple: 2 })).toEqual(
-            serializeBlockState('a', { apple: 2, zebra: 1 })
+        expect(writeBlockStateNbt(blockStateCompound('a', { zebra: 1, apple: 2 }))).toEqual(
+            writeBlockStateNbt(blockStateCompound('a', { apple: 2, zebra: 1 }))
         );
     });
 });
