@@ -151,3 +151,135 @@ describe('Xoroshiro128PlusPlus', () => {
         expect(zeroed.nextLong()).toBe(substituted.nextLong());
     });
 });
+
+/**
+ * `XoroshiroRandomSource` runs the recurrence over 32-bit lanes; this oracle is the original
+ * `BigInt` formulation of every derived method over {@link Xoroshiro128PlusPlus}, which the jar
+ * vectors above verify against Java directly. The property tests below hold the two to bit
+ * equality across millions of draws, so a lane-arithmetic mistake cannot hide in a carry or a
+ * sign extension the six golden seeds happen not to reach.
+ */
+class BigIntOracle {
+    private readonly generator: Xoroshiro128PlusPlus;
+
+    public constructor(seedLo: bigint, seedHi: bigint) {
+        this.generator = new Xoroshiro128PlusPlus(seedLo, seedHi);
+    }
+
+    public nextLong(): bigint {
+        return this.generator.nextLong();
+    }
+
+    public nextInt(): number {
+        return Number(BigInt.asIntN(32, this.generator.nextLong()));
+    }
+
+    public nextIntBounded(bound: number): number {
+        const boundBig = BigInt(bound);
+        let product = BigInt(this.nextInt() >>> 0) * boundBig;
+        let fractionalPart = product & 0xffffffffn;
+        if (fractionalPart < boundBig) {
+            const threshold = BigInt((-bound >>> 0) % bound);
+            while (fractionalPart < threshold) {
+                product = BigInt(this.nextInt() >>> 0) * boundBig;
+                fractionalPart = product & 0xffffffffn;
+            }
+        }
+        return Number(BigInt.asIntN(32, product >> 32n));
+    }
+
+    public nextBoolean(): boolean {
+        return (this.generator.nextLong() & 1n) !== 0n;
+    }
+
+    public nextFloat(): number {
+        return Math.fround(Math.fround(Number(this.nextBits(24))) * Math.fround(5.9604645e-8));
+    }
+
+    public nextDouble(): number {
+        return Number(this.nextBits(53)) * Math.fround(1.110223e-16);
+    }
+
+    private nextBits(bits: number): bigint {
+        return BigInt.asUintN(64, this.generator.nextLong()) >> BigInt(64 - bits);
+    }
+}
+
+describe('the lane implementation against the BigInt oracle', () => {
+    const seedCases: readonly (readonly [bigint, bigint])[] = [
+        [0n, 0n],
+        [-1n, -1n],
+        [1n, 0n],
+        [0x7fffffffffffffffn, -0x8000000000000000n],
+        [-7046029254386353131n, 7640891576956012809n],
+        [0x123456789abcdef0n, -0x0fedcba987654321n]
+    ];
+
+    // Bounds that hit the Lemire fast path, the rejection loop and the extremes.
+    const bounds = [1, 2, 3, 17, 256, 1000, 0x40000001, 0x7fffffff];
+
+    it('matches over a million mixed draws', { timeout: 60_000 }, () => {
+        // Plain comparisons keep a million draws fast; `expect` only fires on a mismatch so a
+        // failure still reports the differing pair.
+        const check = (actual: unknown, wanted: unknown, seedLo: bigint, i: number): void => {
+            if (actual !== wanted) expect(`${actual} at draw ${i} of seed ${seedLo}`).toBe(`${wanted}`);
+        };
+        for (const [seedLo, seedHi] of seedCases) {
+            const lanes = new XoroshiroRandomSource(seedLo, seedHi);
+            const oracle = new BigIntOracle(seedLo, seedHi);
+            for (let i = 0; i < 180_000; i++) {
+                switch (i % 6) {
+                    case 0:
+                        check(lanes.nextLong(), oracle.nextLong(), seedLo, i);
+                        break;
+                    case 1:
+                        check(lanes.nextInt(), oracle.nextInt(), seedLo, i);
+                        break;
+                    case 2: {
+                        const bound = bounds[(i >> 2) % bounds.length] ?? 1;
+                        check(lanes.nextIntBounded(bound), oracle.nextIntBounded(bound), seedLo, i);
+                        break;
+                    }
+                    case 3:
+                        check(lanes.nextFloat(), oracle.nextFloat(), seedLo, i);
+                        break;
+                    case 4:
+                        check(lanes.nextDouble(), oracle.nextDouble(), seedLo, i);
+                        break;
+                    default:
+                        check(lanes.nextBoolean(), oracle.nextBoolean(), seedLo, i);
+                }
+            }
+            // The streams stayed in lockstep to the end.
+            expect(lanes.nextLong()).toBe(oracle.nextLong());
+        }
+    });
+
+    it('computes the same positional seed for extreme block positions', () => {
+        const factory = XoroshiroRandomSource.fromSeed(1234n).forkPositional();
+        // The factory's state is the two longs `forkPositional` drew from the same root.
+        const oracleSeed = XoroshiroRandomSource.fromSeed(1234n);
+        const seedLo = oracleSeed.nextLong();
+        const seedHi = oracleSeed.nextLong();
+
+        const axis = [-2147483648, -30_000_000, -123_457, -1, 0, 1, 7_777_777, 30_000_000, 2147483647];
+        const heights = [-2032, -64, 0, 319, 2031];
+        for (const x of axis) {
+            for (const z of axis) {
+                for (const y of heights) {
+                    const lanes = factory.at(x, y, z);
+                    const oracle = new BigIntOracle(positionalSeed(x, y, z) ^ seedLo, seedHi);
+                    expect(lanes.nextLong()).toBe(oracle.nextLong());
+                    expect(lanes.nextIntBounded(10)).toBe(oracle.nextIntBounded(10));
+                    expect(lanes.nextIntBounded(9)).toBe(oracle.nextIntBounded(9));
+                }
+            }
+        }
+    });
+
+    it('substitutes the constant state when the lanes come out all zero', () => {
+        const fromLanes = XoroshiroRandomSource.fromLanes(0, 0, 0, 0);
+        const substituted = new XoroshiroRandomSource(0n, 0n);
+        expect(fromLanes.nextLong()).toBe(substituted.nextLong());
+    });
+});
