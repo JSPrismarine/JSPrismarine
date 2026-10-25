@@ -1,10 +1,10 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
-import { randomOf } from '../block/DropTable';
-import type { Item } from '../item/Item';
+import { Item } from '../item/Item';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
+import { lootLevelOf } from '../world/lootLevel';
 import { Attribute, AttributeIds, Attributes } from './Attribute';
 import { DamageCause } from './DamageCause';
 import type { DamageSource } from './DamageSource';
@@ -14,9 +14,10 @@ import { FALL_GRACE, isAllowed } from './Environment';
 import { freshEnvironment, tickEnvironment } from './MobEnvironment';
 import type { EntitySize } from './EntitySize';
 import { sizeOf } from './EntitySize';
-import { lootOf } from './LootTables';
 import { MetadataFlag } from './Metadata';
 import { statsOf } from './MobStats';
+import type { MobLootState } from './mobLoot';
+import { lootDamageSource, rollMobDrops } from './mobLoot';
 import BlockView, { STEP_HEIGHT } from './ai/BlockView';
 import { wanderingBrain } from './ai/Brains';
 import type GoalSelector from './ai/GoalSelector';
@@ -742,11 +743,24 @@ export class Mob extends Entity {
     }
 
     /**
+     * What the loot predicates read about this mob beyond its type: its flags, its data
+     * components and its per-type state - see {@link MobLootState}.
+     *
+     * Overridden by the species whose table branches on something only that species has, which
+     * today is the sheep and its wool. It goes once the entity component runtime carries those,
+     * because then the view is built from the components rather than written per class.
+     * @returns {MobLootState} What this mob is, past its type.
+     */
+    protected lootState(): MobLootState {
+        return { flags: { is_on_fire: this.environment.burning > 0 } };
+    }
+
+    /**
      * Leaves behind whatever this kind of mob leaves behind.
      *
-     * Rolled through the same {@link DropTable} a block's drops go through, because they are the
-     * same problem: a declarative table that can be read against the game beats a `Math.random()`
-     * buried in a method per species.
+     * Rolled out of Java's own loot table for the species, through the same `ServerContent.loot`
+     * a breaking block rolls through. Who swung, what they held, how the mob died and what it
+     * was are all context the table reads, rather than branches written here.
      */
     private async dropLoot(): Promise<void> {
         const world = this.getWorld();
@@ -754,10 +768,21 @@ export class Mob extends Entity {
         const [enabled] = world.getGameRuleManager().getGameRule(GameRules.DoMobLoot) ?? [true];
         if (!enabled) return;
 
-        const table = lootOf(this.getType());
-        if (!table) return;
+        const content = this.getServer().getContent?.();
+        if (!content) return;
 
-        await world.dropContents(this.getPosition(), table.roll(randomOf(this.getServer())));
+        const at = this.getPosition();
+        const drops = rollMobDrops(content, this.getType(), {
+            position: { x: at.getX(), y: at.getY(), z: at.getZ() },
+            self: this.lootState(),
+            damage: lootDamageSource(content, this.getLastDamageSource()),
+            level: lootLevelOf(world)
+        });
+
+        await world.dropContents(
+            at,
+            drops.map((drop) => new Item({ name: drop.identifier, count: drop.count, content }))
+        );
     }
 
     /** Turns the route into a desired velocity, and gives up on it if the mob is going nowhere. */
