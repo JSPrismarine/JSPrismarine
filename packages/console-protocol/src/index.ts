@@ -12,5 +12,5 @@ export type {
     SupervisorEvent,
     SupervisorState
 } from './messages';
-export { isConsoleMessage, isServerMessage, PROTOCOL_VERSION } from './messages';
+export { isConsoleMessage, isLifecycleState, isServerMessage, LIFECYCLE_STATES, PROTOCOL_VERSION } from './messages';
 export { subprocessLink } from './subprocessLink';

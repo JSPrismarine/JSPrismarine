@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isConsoleMessage, isServerMessage, PROTOCOL_VERSION } from './messages';
+import { isConsoleMessage, isServerMessage, LIFECYCLE_STATES, PROTOCOL_VERSION } from './messages';
 
 describe('isServerMessage', () => {
     it('accepts every server message type', () => {
@@ -36,6 +36,20 @@ describe('isServerMessage', () => {
     it('rejects console messages', () => {
         expect(isServerMessage({ type: 'command', v: 1, id: 'a', line: 'help' })).toBe(false);
     });
+
+    it('rejects a log with a level the logger does not define', () => {
+        const log = { type: 'log', v: 1, seq: 1, level: 'bogus', namespace: '', at: 1, message: 'm', formatted: 'm' };
+        expect(isServerMessage(log)).toBe(false);
+        expect(isServerMessage({ ...log, level: 'INFO' })).toBe(false);
+        expect(isServerMessage({ ...log, level: 'info' })).toBe(true);
+    });
+
+    it('accepts every lifecycle state and rejects an unknown one', () => {
+        for (const state of LIFECYCLE_STATES)
+            expect(isServerMessage({ type: 'lifecycle', v: 1, state }), state).toBe(true);
+        expect(isServerMessage({ type: 'lifecycle', v: 1, state: 'crashed' })).toBe(false);
+        expect(isServerMessage({ type: 'lifecycle', v: 1, state: 'bogus' })).toBe(false);
+    });
 });
 
 describe('isConsoleMessage', () => {
@@ -47,6 +61,11 @@ describe('isConsoleMessage', () => {
             { type: 'subscribe', v: 1, level: 'debug' }
         ];
         for (const message of messages) expect(isConsoleMessage(message), message.type).toBe(true);
+    });
+
+    it('rejects a subscribe with a level the logger does not define', () => {
+        expect(isConsoleMessage({ type: 'subscribe', v: 1, level: 'bogus' })).toBe(false);
+        expect(isConsoleMessage({ type: 'subscribe', v: 1, level: 'silly' })).toBe(true);
     });
 
     it('rejects server messages, other versions, and bad shapes', () => {
