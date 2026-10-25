@@ -6,6 +6,9 @@ import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
 import type { Random } from './block/DropTable';
 import { ChatManager } from './chat/ChatManager';
+import { buildServerContent } from './content/ServerContent';
+import type { ServerContent } from './content/ServerContent';
+import { readContentSettings } from './content/settings';
 import { StationRegistry } from './crafting/CraftingStation';
 import RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
@@ -133,6 +136,16 @@ export default class Server extends EventEmitter {
     private random: Random = Math.random;
 
     /**
+     * Every content registry built from the pack stack, or undefined while `content-packs` is off.
+     *
+     * Off by default: the managers below still own blocks, items, entities and world generation,
+     * and they are being moved across one subsystem at a time. A manager that has been moved
+     * reads this when it is there and falls back to its own table when it is not, so a server
+     * with the flag off behaves exactly as it did before.
+     */
+    private content: ServerContent | undefined;
+
+    /**
      * If the server is stopping.
      * @internal
      */
@@ -216,6 +229,7 @@ export default class Server extends EventEmitter {
         await this.config.enable();
         await this.console?.enable();
         await this.logger.enable();
+        this.enableContent();
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
         await this.itemManager.enable();
@@ -227,6 +241,41 @@ export default class Server extends EventEmitter {
         await this.worldManager.enable();
 
         this.logger.setConsole(this.console);
+    }
+
+    /**
+     * Builds the content registries from the pack stack, when `content-packs` is on.
+     *
+     * Reported rather than thrown unless the stack is strict. A pack that will not load is
+     * worth a loud log line; it is not worth refusing to start a server whose managers still
+     * hold their own tables. Strict mode is the opposite choice and is what a test uses.
+     * @internal
+     */
+    private enableContent(): void {
+        const settings = readContentSettings();
+        this.content = undefined;
+        if (!settings.enabled) return;
+
+        const timer = new Timer();
+        try {
+            this.content = buildServerContent({
+                strict: settings.strict,
+                packs: {
+                    worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
+                    pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
+                }
+            });
+        } catch (error: unknown) {
+            this.logger.error(error);
+            this.logger.error('Failed to build the content registries; the pack stack was not loaded');
+            return;
+        }
+
+        const errors = this.content.diagnostics.filter((diagnostic) => diagnostic.severity === 'error').length;
+        this.logger.info(
+            `Loaded §e${this.content.blocks.types.size}§r blocks, §e${this.content.items.registry.size}§r items and §e${this.content.entities.registry.size}§r entities from the pack stack in §e${timer.stop()} ms`
+        );
+        if (errors > 0) this.logger.warn(`The pack stack reported §c${errors}§r error(s); see the content report`);
     }
 
     /**
@@ -745,6 +794,30 @@ export default class Server extends EventEmitter {
      */
     public getBlockManager(): BlockManager {
         return this.blockManager;
+    }
+
+    /**
+     * Every content registry built from the pack stack.
+     *
+     * Undefined while `content-packs` is off, which is the default, and undefined after a
+     * build that failed. A caller that needs content either falls back to the manager it
+     * replaced or reports that the flag is off; it must not assume a value.
+     * @returns {ServerContent | undefined} The content, or undefined when none was built.
+     */
+    public getContent(): ServerContent | undefined {
+        return this.content;
+    }
+
+    /**
+     * Replaces the content registries.
+     *
+     * For a test and for a plugin that composes its own stack. Hands over a whole build, not
+     * a patch: a registry's numeric ids are positional, so a half-replaced content set would
+     * leave the flattened tables indexed against a palette that no longer matches.
+     * @param content - The build to run on, or undefined to go back to the managers' tables.
+     */
+    public setContent(content: ServerContent | undefined): void {
+        this.content = content;
     }
 
     /**
