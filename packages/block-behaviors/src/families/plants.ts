@@ -175,21 +175,23 @@ export const saplingFamily = defineFamily(
 /** The chance a decaying leaf block drops a sapling. */
 export const SAPLING_DROP_CHANCE = 1 / 20;
 
-/** Leaves, which decay when no log is within six blocks and come away to shears. */
+/**
+ * Leaves, which decay when no log is within six blocks and come away to shears.
+ *
+ * No `onNeighborChanged`, deliberately. Java recomputes a leaf's `distance` state when a
+ * neighbor changes, and Bedrock's `update_bit` is the engine's own marker for the same
+ * check. This server has neither: {@link hasNearbyLog} walks the canopy from scratch on
+ * every random tick, so nothing reads a scheduling flag back. Writing one cost two block
+ * writes per leaf per tick forever - the clearing write notified the six neighbors, each
+ * un-flagged leaf flagged itself again, and the canopy never settled - and every write
+ * carried a block-change packet, a light update, seven scheduled physics positions and six
+ * more neighbor notifications. Leaving the hook off also keeps leaves out of the neighbor
+ * walk entirely, because the adapter skips a block whose families declare no reaction.
+ */
 export const leavesFamily = defineFamily(
     'jsprismarine:leaves',
     'Decays on a random tick when no log is within six blocks through other leaves, unless persistent_bit is set, drops a sapling by chance, and drops itself to shears or silk touch.',
     {
-        onNeighborChanged: (event, world) => {
-            if (stateBoolean(event.block, 'persistent_bit')) return;
-            if (stateBoolean(event.block, 'update_bit')) return;
-            setStates(world, event.block, { update_bit: true });
-            world.scheduleTick(event.block.position, 1);
-        },
-        onTick: (event, world) => {
-            if (!stateBoolean(event.block, 'update_bit')) return;
-            setStates(world, event.block, { update_bit: false });
-        },
         onRandomTick: (event, world) => {
             if (stateBoolean(event.block, 'persistent_bit')) return;
             if (hasNearbyLog(world, event.block)) return;
