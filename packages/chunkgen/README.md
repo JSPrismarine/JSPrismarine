@@ -221,18 +221,26 @@ Two constraints are not negotiable.
 sends it to a thread pool and keeps `features`, which writes radius 1, on a single executor. Two
 `terrain` bodies can never touch the same block, so no two workers can race.
 
-**The module has to be something Node can `import()` from a worker thread.** A built `.js` in a
-published package; in a dev checkout Node loads this package's own worker entry straight from
-TypeScript, but a pipeline module that imports other workspace packages needs them built.
+**The module has to be something the worker's loader can `import()`.** A worker thread inherits
+`process.execArgv`, so the loader the host was started with is already installed in the worker. A
+published install needs nothing: the specifier is a built `.js`. A dev checkout runs under
+`node --import tsx`, and its workers do too, which is what follows the extensionless
+`@jsprismarine/*` imports a `.ts` pipeline module is full of. Nothing has to be built first.
 
 `Math.random` is shadowed inside the worker and throws. It is seeded independently per V8
 isolate, so a main thread and six workers produce seven different sequences and a decorator that
 reached for it would give a different world depending on which worker ran the chunk.
 
-## What is not here yet
+### When a pool cannot start
 
-The server's own terrain pipeline module, and the wiring that hands `terrain` to the pool. They
-land in a later slice of [the plan](../../docs/plans/chunk-generation-rewrite.md).
+`GenerationPool.unavailable(options)` answers with a sentence or with undefined, and a caller is
+expected to ask before it builds one. It refuses a single executable, where the modules live in
+the binary and no worker thread can reach them, and it refuses a worker entry or a pipeline
+module that is not on disk.
+
+It cannot promise the import succeeds, because that depends on the loader, so the first task is
+still the real test. A caller that wants a server rather than a fast one catches that rejection,
+says so once, and runs the body on its own thread.
 
 ## Installation
 

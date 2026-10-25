@@ -143,6 +143,38 @@ describe('GenerationPool', () => {
         await expect(closing.destroy()).resolves.toBeUndefined();
     }, 60_000);
 
+    describe('unavailable', () => {
+        it('says nothing when both files are on disk', () => {
+            expect(GenerationPool.unavailable({ pipeline: FAKE_PIPELINE, workers: 1 })).toBe(undefined);
+        });
+
+        it('names the pipeline module when it is not on disk', () => {
+            const reason = GenerationPool.unavailable({ pipeline: '/nowhere/terrainPipeline.js', workers: 1 });
+
+            expect(reason).toMatch(/pipeline module \/nowhere\/terrainPipeline\.js is not on disk/);
+        });
+
+        it('names the worker entry when it is not on disk', () => {
+            const reason = GenerationPool.unavailable({
+                pipeline: FAKE_PIPELINE,
+                worker: '/nowhere/generationWorker.js',
+                workers: 1
+            });
+
+            expect(reason).toMatch(/worker entry \/nowhere\/generationWorker\.js is not on disk/);
+        });
+
+        it('leaves a bare specifier to the loader rather than looking for a file', () => {
+            expect(GenerationPool.unavailable({ pipeline: 'some-package/pipeline', workers: 1 })).toBe(undefined);
+        });
+
+        it('reads a file URL as the file it names', () => {
+            const url = new URL('../test/fakePipeline.mjs', import.meta.url).href;
+
+            expect(GenerationPool.unavailable({ pipeline: url, workers: 1 })).toBe(undefined);
+        });
+    });
+
     it('refuses Math.random inside a worker', async () => {
         pool = new GenerationPool({
             pipeline: fileURLToPath(new URL('../test/randomPipeline.mjs', import.meta.url)),
