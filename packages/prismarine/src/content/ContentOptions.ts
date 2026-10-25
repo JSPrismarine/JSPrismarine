@@ -10,7 +10,14 @@
  */
 import type { BlockPalette } from '@jsprismarine/blocks';
 import type { Definition as ContentDefinition } from '@jsprismarine/content';
-import type { Definition, Definitions, LoadOptions, LoadResult, PackStack } from '@jsprismarine/packs';
+import type {
+    Definition,
+    Definitions,
+    IdentifierResolver,
+    LoadOptions,
+    LoadResult,
+    PackStack
+} from '@jsprismarine/packs';
 import { JAVA_REGISTRY_IDS, REGISTRY_IDS } from '@jsprismarine/packs';
 
 import type { PackStackRequest } from './packStack';
@@ -35,6 +42,12 @@ export interface ContentOptions {
     readonly strict?: boolean;
     /** Replaces the pack loader, which is how a test builds content without touching the disk. */
     readonly load?: PackLoader;
+    /**
+     * Resolves the Java identifiers the stack references against Bedrock.
+     * Defaults to `@jsprismarine/mapping`'s tables; a test replaces it to
+     * drive the totality check without them.
+     */
+    readonly identifiers?: IdentifierResolver;
     /** The world the behavior families act through. Defaults to one that throws on every call. */
     readonly world?: ServerWorldSource;
     /** The world seed, which the loot sequences are keyed from. */

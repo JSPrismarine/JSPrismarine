@@ -4,6 +4,7 @@ export * from './ServerContent';
 export * from './packStack';
 export * from './settings';
 export * from './tags';
+export * from './unmappedIdentifiers';
 export * from './world/adapter';
 export * from './world/notWired';
 export * from './world/unwired';
