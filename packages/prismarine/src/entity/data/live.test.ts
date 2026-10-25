@@ -753,7 +753,7 @@ describe('the data-driven entity runtime over a live world', () => {
 
             Object.assign(built.world, {
                 name: 'roundtrip',
-                seed: 1234,
+                seed: 1234n,
                 // Only read for the name in the save log and for a chunk the database
                 // has no record of, which is not the one this writes and reads back.
                 generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) },

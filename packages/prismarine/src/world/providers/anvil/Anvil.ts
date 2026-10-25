@@ -42,7 +42,7 @@ export default class Anvil extends BaseProvider {
     public async readChunk(
         cx: number,
         cz: number,
-        seed: number,
+        seed: bigint,
         generator: Generator,
         config?: WorldConfig,
         options?: ChunkRequestOptions

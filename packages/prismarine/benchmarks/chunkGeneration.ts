@@ -38,7 +38,7 @@ const arm = process.argv[4] ?? 'full';
 /** Region size and steal threshold, for sweeping the sharded pool's two knobs. */
 const regionChunks = Number.parseInt(process.argv[5] ?? '8', 10);
 const stealAfter = Number.parseInt(process.argv[6] ?? '2', 10);
-const seed = 1234;
+const seed = 1234n;
 
 const sources = findJavaWorldgenSources();
 if (sources === undefined) {

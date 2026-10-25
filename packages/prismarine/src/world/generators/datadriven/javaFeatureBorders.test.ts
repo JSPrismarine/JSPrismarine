@@ -27,7 +27,7 @@ const CHUNK_TIMEOUT = 600_000;
  * -97,48 at y 126 to 129, and the crown reaches two columns into -96,48.
  */
 const TREE = {
-    seed: 987_654_321,
+    seed: 987_654_321n,
     trunk: { chunkX: -97, chunkZ: 48, localX: 15 },
     crown: { chunkX: -96, chunkZ: 48 },
     localZ: 3

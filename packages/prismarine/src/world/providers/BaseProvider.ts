@@ -58,7 +58,7 @@ export default abstract class BaseProvider implements Provider {
     public abstract readChunk(
         cx: number,
         cz: number,
-        seed: number,
+        seed: bigint,
         generator: Generator,
         config?: WorldConfig,
         options?: ChunkRequestOptions

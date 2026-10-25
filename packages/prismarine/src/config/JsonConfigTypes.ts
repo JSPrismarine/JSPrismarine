@@ -12,7 +12,16 @@ export interface FlatLayer {
 
 /** The configuration saved for one world. */
 export interface WorldData {
-    seed: number;
+    /**
+     * The world seed, read the way Java reads the text in its world creation box: a value that
+     * parses as a 64-bit integer is that integer, and anything else is its `String.hashCode`.
+     *
+     * Spell it as a string. A Java seed is a 64-bit integer and a JSON or YAML number is a
+     * double, which is exact only below 2^53. Written as a number, `8475011743740320021` is
+     * read back as `8475011743740319744` and generates a different world. A number is still
+     * accepted for configs written before this, and is exact for seeds below 2^53.
+     */
+    seed: string | number;
     provider?: string;
     generator?: string;
     layers?: FlatLayer[];

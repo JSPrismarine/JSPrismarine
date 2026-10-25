@@ -195,7 +195,8 @@ export interface WorldData {
     path: string;
     server: Server;
     provider: BaseProvider;
-    seed: number;
+    /** The world seed, as a 64-bit value. See {@link import('../utils/Seed').worldSeedOf}. */
+    seed: bigint;
     generator: Generator;
     config?: WorldConfig;
     /** Defaults to the Overworld, which is the only one the server generates today. */
@@ -288,7 +289,7 @@ export class World implements Service {
     private saving: Promise<void> | null = null;
     private readonly provider: BaseProvider & Provider;
     private readonly server: Server;
-    private readonly seed: number;
+    private readonly seed: bigint;
     private readonly generator: Generator;
     private readonly config: WorldConfig;
     private readonly dimension: DimensionDefinition;
@@ -2202,7 +2203,13 @@ export class World implements Service {
         return `§b'${this.name}'/${this.generator.constructor.name}§r`;
     }
 
-    public getSeed(): number {
+    /**
+     * The seed every generated chunk, structure placement and carver in this world comes from.
+     *
+     * A 64-bit value, as Java's is. It was a `number` until it turned out that a seed above
+     * 2^53 arrived here rounded, which generated a world the player had not asked for.
+     */
+    public getSeed(): bigint {
         return this.seed;
     }
 

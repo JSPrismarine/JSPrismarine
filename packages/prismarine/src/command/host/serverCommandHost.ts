@@ -64,9 +64,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
  */
 export const serverCommandHost = (server: Server): CommandHost => {
     const scoreboard = new Scoreboard();
-    const sequences = new RandomSequences(() =>
-        BigInt(Math.trunc(server.getWorldManager().getDefaultWorld().getSeed()))
-    );
+    const sequences = new RandomSequences(() => server.getWorldManager().getDefaultWorld().getSeed());
 
     return {
         entities: entityCommandHost(server, scoreboard),

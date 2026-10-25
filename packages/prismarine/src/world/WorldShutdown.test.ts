@@ -136,7 +136,7 @@ class CountingLevelDB extends LevelDB {
     public override async readChunk(
         cx: number,
         cz: number,
-        seed: number,
+        seed: bigint,
         generator: Generator,
         config?: Parameters<LevelDB['readChunk']>[4]
     ): Promise<Chunk> {
@@ -150,7 +150,7 @@ const buildWorld = (name: string, generator: Generator) => {
     const server = testServer();
     const folder = path.join(scratch, 'worlds', name);
     const provider = new CountingLevelDB(folder, server);
-    const world = new World({ name, path: folder, server, provider, seed: 1234, generator });
+    const world = new World({ name, path: folder, server, provider, seed: 1234n, generator });
 
     return { world, provider };
 };
@@ -377,7 +377,7 @@ const persistedChunks = async (name: string): Promise<Chunk[]> => {
     const chunks: Chunk[] = [];
     for (let cx = -PRELOAD_RADIUS; cx <= PRELOAD_RADIUS; cx++) {
         for (let cz = -PRELOAD_RADIUS; cz <= PRELOAD_RADIUS; cz++) {
-            const chunk = await provider.readChunk(cx, cz, 1234, refuse).catch(() => null);
+            const chunk = await provider.readChunk(cx, cz, 1234n, refuse).catch(() => null);
             if (chunk !== null) chunks.push(chunk);
         }
     }

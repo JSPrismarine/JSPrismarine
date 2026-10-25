@@ -31,8 +31,17 @@ const javaStringHash = (text: string): bigint => {
     return BigInt(hash);
 };
 
-export const SeedGenerator = () => {
-    return Math.floor(Math.random() * (Number.MAX_SAFE_INTEGER - 1 + 1)) + 1;
+/**
+ * A fresh world seed, drawn over the whole 64-bit range Java draws one over.
+ *
+ * Two 32-bit halves rather than one `Math.random`, which only has 53 bits to give and would
+ * leave the top of the range unreachable.
+ *
+ * @returns A random signed 64-bit seed.
+ */
+export const SeedGenerator = (): bigint => {
+    const half = () => BigInt(Math.floor(Math.random() * 0x1_0000_0000));
+    return BigInt.asIntN(64, (half() << 32n) | half());
 };
 
 /**

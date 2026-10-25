@@ -173,7 +173,7 @@ const buildScene = async (name: string) => {
     });
 
     const provider = new LevelDB(folder, server);
-    world = new World({ name, path: folder, server, provider, seed: 1234, generator: generator() });
+    world = new World({ name, path: folder, server, provider, seed: 1234n, generator: generator() });
     provider.setWorld(world);
     await provider.enable();
 

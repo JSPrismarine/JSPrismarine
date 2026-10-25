@@ -47,7 +47,7 @@ export interface StructureSearchRequest {
      * for "any village" costs the same as one for a single identifier.
      */
     readonly wanted: (structure: string) => boolean;
-    readonly seed?: number;
+    readonly seed?: bigint;
 }
 
 /** Where a structure search found something. */
@@ -81,7 +81,7 @@ export interface Generator {
     generateChunk(
         cx: number,
         cz: number,
-        seed?: number,
+        seed?: bigint,
         config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk>;
@@ -98,7 +98,7 @@ export interface Generator {
      * Optional, because a generator with no cheaper answer than its own chunks has nothing to
      * add here and a caller falls back to generating one.
      */
-    surfaceAt?(x: number, z: number, seed?: number): SurfaceProbe;
+    surfaceAt?(x: number, z: number, seed?: bigint): SurfaceProbe;
 
     /**
      * Says that a chunk already asked for is wanted more than it was.

@@ -37,7 +37,7 @@ const testWorld = () => {
         provider: stub<BaseProvider & Provider>({
             readChunk: async (x, z) => new Chunk(x, z, new Map(), Dimensions.Overworld)
         }),
-        seed: 0,
+        seed: 0n,
         generator: stub<Generator>({})
     });
 };

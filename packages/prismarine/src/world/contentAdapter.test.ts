@@ -129,7 +129,7 @@ describe.skipIf(!enabled)('the biomes of a generated overworld', () => {
                 [-80, 120],
                 [300, 300]
             ]) {
-                const chunk = await generator.generateChunk(cx!, cz!, 1234);
+                const chunk = await generator.generateChunk(cx!, cz!, 1234n);
                 const { blocks } = groupsOver(chunk, contentWith({}));
 
                 for (let y = Dimensions.Overworld.minY; y < 320; y += 16) {

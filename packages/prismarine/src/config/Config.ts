@@ -61,7 +61,7 @@ const COMMENTS = {
     port: 'The UDP port the server listens on. Bedrock clients look for 19132.',
     'server-ip': 'The address to listen on. 0.0.0.0 accepts connections on every interface.',
     'level-name': 'Which entry of `worlds` players join.',
-    worlds: 'Every world the server loads, by name, with its generator, provider and seed.',
+    worlds: 'Every world the server loads, by name, with its generator, provider and seed. Write the seed as a string; a 64-bit seed written as a number is rounded.',
     'max-players': 'How many players may be online at once.',
     gamemode: 'The default game mode for new players: survival, creative, adventure or spectator.',
     difficulty: 'How dangerous the monsters are: peaceful, easy, normal or hard.',
@@ -122,9 +122,15 @@ const DEFAULTS = {
     'crafting-recipe-limit': -1
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
 
-/** The single flat world a server with no `worlds` key runs, on a seed of its own. */
+/**
+ * The single flat world a server with no `worlds` key runs, on a seed of its own.
+ *
+ * The seed is written as a string because it is a 64-bit value and a JSON number is a double:
+ * written as a number, half the seeds this draws would be read back rounded. See
+ * {@link import('./JsonConfigTypes').WorldData.seed}.
+ */
 const defaultWorlds = (): Record<string, WorldData> => ({
-    world: { generator: 'Flat', provider: 'LevelDB', seed: SeedGenerator() }
+    world: { generator: 'Flat', provider: 'LevelDB', seed: SeedGenerator().toString() }
 });
 
 /** Runtime settings that take precedence over values in the server config file. */

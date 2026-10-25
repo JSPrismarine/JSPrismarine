@@ -139,7 +139,7 @@ const buildFixture = (): Fixture => {
             return true;
         },
         getLoadedChunk: () => null,
-        getSeed: () => 1,
+        getSeed: () => 1n,
         // Inert, which is what keeps `/summon` on the written classes here.
         dataEntities: () => inertEntityRuntime(),
         // Late-bound: an entity class reads the server off the world it is

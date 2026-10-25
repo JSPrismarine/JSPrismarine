@@ -75,22 +75,23 @@ interface Readings {
 
 const readingsFor = async (subject: (typeof SUBJECTS)[number]): Promise<Readings> => {
     const { seed, chunkX, chunkZ } = subject;
+    const worldSeed = BigInt(seed);
     const digest = (chunk: Parameters<typeof captureChunk>[1]): string =>
         captureChunk({ id: 'subject', tier: 'full', why: subject.why, seed, chunkX, chunkZ }, chunk).digest.digests
             .blocks;
 
     const first = fresh(environment!);
-    const chunk = await first.generateChunk(chunkX, chunkZ, seed);
+    const chunk = await first.generateChunk(chunkX, chunkZ, worldSeed);
     const alone = digest(chunk);
-    const repeated = digest(await fresh(environment!).generateChunk(chunkX, chunkZ, seed));
+    const repeated = digest(await fresh(environment!).generateChunk(chunkX, chunkZ, worldSeed));
 
     const later = fresh(environment!);
-    for (const [x, z] of NEIGHBORS) await later.generateChunk(chunkX + x, chunkZ + z, seed);
-    const afterNeighbors = digest(await later.generateChunk(chunkX, chunkZ, seed));
+    for (const [x, z] of NEIGHBORS) await later.generateChunk(chunkX + x, chunkZ + z, worldSeed);
+    const afterNeighbors = digest(await later.generateChunk(chunkX, chunkZ, worldSeed));
 
     // The same object the first generator handed back, read again now that its four neighbors
     // have been generated in the same generator.
-    for (const [x, z] of NEIGHBORS) await first.generateChunk(chunkX + x, chunkZ + z, seed);
+    for (const [x, z] of NEIGHBORS) await first.generateChunk(chunkX + x, chunkZ + z, worldSeed);
     return { alone, repeated, afterNeighbors, afterHandoff: digest(chunk) };
 };
 

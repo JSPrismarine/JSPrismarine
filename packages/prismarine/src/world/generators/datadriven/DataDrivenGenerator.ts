@@ -632,11 +632,11 @@ export class DataDrivenGenerator implements Generator {
     public async generateChunk(
         cx: number,
         cz: number,
-        seed = 0,
+        seed = 0n,
         _config?: WorldConfig,
         options?: ChunkRequestOptions
     ): Promise<Chunk> {
-        const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
+        const pipeline = this.pipelineFor(seed);
         const key = this.chunkKey(cx, cz);
         this.urgencies.set(key, options?.urgency ?? 'immediate');
         try {
@@ -741,8 +741,8 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
-    public unmappedStates(seed: number): readonly string[] {
-        return this.pipelineFor(BigInt(Math.trunc(seed))).translator.unmappedStates();
+    public unmappedStates(seed: bigint): readonly string[] {
+        return this.pipelineFor(seed).translator.unmappedStates();
     }
 
     /**
@@ -752,18 +752,18 @@ export class DataDrivenGenerator implements Generator {
      * cheap way to ask where a structure is: a comparison against Java's `/locate` needs the
      * generation point and the box, and neither needs a block placed.
      */
-    public structureStartsAt(chunkX: number, chunkZ: number, seed = 0): readonly StructureStart[] {
-        return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.startsFor(chunkX, chunkZ) ?? [];
+    public structureStartsAt(chunkX: number, chunkZ: number, seed = 0n): readonly StructureStart[] {
+        return this.pipelineFor(seed).structures?.startsFor(chunkX, chunkZ) ?? [];
     }
 
     /** The structure types this server has no builder for, which therefore generate nothing. */
-    public unbuiltStructureTypes(seed = 0): ReadonlySet<string> {
-        return this.pipelineFor(BigInt(Math.trunc(seed))).structures?.unbuiltTypes() ?? new Set();
+    public unbuiltStructureTypes(seed = 0n): ReadonlySet<string> {
+        return this.pipelineFor(seed).structures?.unbuiltTypes() ?? new Set();
     }
 
     /** @inheritDoc */
     public locate(request: StructureSearchRequest): StructureSearchResult | undefined {
-        const starts = this.pipelineFor(BigInt(Math.trunc(request.seed ?? 0))).structures;
+        const starts = this.pipelineFor(request.seed ?? 0n).structures;
         if (starts === undefined) return undefined;
 
         const found = starts.locate({
@@ -778,8 +778,8 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /** @inheritDoc */
-    public surfaceAt(x: number, z: number, seed = 0): SurfaceProbe {
-        const level = this.pipelineFor(BigInt(Math.trunc(seed))).level;
+    public surfaceAt(x: number, z: number, seed = 0n): SurfaceProbe {
+        const level = this.pipelineFor(seed).level;
 
         // `baseHeight` answers the level above the topmost match, the way Java's does, so the
         // block itself is one below. `MOTION_BLOCKING` stops at solid or fluid, which is the

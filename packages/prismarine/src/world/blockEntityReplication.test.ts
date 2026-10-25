@@ -71,7 +71,7 @@ const flatWorld = async () => {
         path: path.join(os.tmpdir(), 'block-entity-replication-test'),
         server: testServer(),
         provider: stub<BaseProvider & Provider>({ readChunk: async (x, z) => flatChunk(x, z) }),
-        seed: 0,
+        seed: 0n,
         generator: stub<Generator>({})
     });
 

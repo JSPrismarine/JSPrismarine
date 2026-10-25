@@ -1,5 +1,6 @@
 import type { Server, Service } from '../';
 import { withCwd } from '../utils/cwd';
+import { worldSeedOf } from '../utils/Seed';
 import { GeneratorManager } from './GeneratorManager';
 import { contentRandomTickHandlers } from './randomTicks';
 import { World } from './World';
@@ -189,7 +190,8 @@ export default class WorldManager implements Service {
             server: this.server,
             provider: new provider(levelPath, this.server),
 
-            seed: worldData.seed,
+            // The config holds whatever the file said; this is where it becomes a seed.
+            seed: worldSeedOf(worldData.seed),
             generator,
             config: { ...worldData },
             randomTickHandlers: contentRandomTickHandlers({

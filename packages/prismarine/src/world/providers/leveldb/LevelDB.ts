@@ -130,7 +130,7 @@ export default class LevelDB extends BaseProvider {
     public async readChunk(
         cx: number,
         cz: number,
-        seed: number,
+        seed: bigint,
         generator: Generator,
         config?: WorldConfig,
         options?: ChunkRequestOptions
@@ -434,7 +434,7 @@ export default class LevelDB extends BaseProvider {
         const root = new NBTTagCompound('');
 
         root.addValue('LevelName', new Types.StringVal(name));
-        root.addValue('RandomSeed', new Types.LongVal(BigInt(Math.trunc(world.getSeed()))));
+        root.addValue('RandomSeed', new Types.LongVal(world.getSeed()));
         root.addValue('StorageVersion', new Types.NumberVal(LEVEL_DAT_STORAGE_VERSION));
         root.addValue('lastOpenedWithVersion', versionList());
 

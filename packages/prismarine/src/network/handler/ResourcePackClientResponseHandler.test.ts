@@ -67,7 +67,7 @@ const harness = ({
         getSpawnPosition: async () => spawn,
         getName: () => 'test-world',
         getUUID: () => 'level-uuid',
-        getSeed: () => 42,
+        getSeed: () => 42n,
         getGameRuleManager: () => stub<GameRuleManager>()
     });
 

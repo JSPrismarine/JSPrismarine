@@ -41,7 +41,8 @@ describe('config', () => {
                 world: {
                     generator: 'Flat',
                     provider: 'LevelDB',
-                    seed: expect.any(Number)
+                    // A string, because the seed is 64 bits and a JSON number is a double.
+                    seed: expect.stringMatching(/^-?\d+$/)
                 }
             });
         });
@@ -212,7 +213,7 @@ describe('config', () => {
             expect(config.getOnlineMode()).toBe(false);
             expect(config.getPacketCompressionLevel()).toBe(7);
             expect(config.getWorlds()).toEqual({
-                world: { generator: 'Flat', provider: 'LevelDB', seed: expect.any(Number) }
+                world: { generator: 'Flat', provider: 'LevelDB', seed: expect.stringMatching(/^-?\d+$/) }
             });
         });
 

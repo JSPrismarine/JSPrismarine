@@ -23,7 +23,7 @@ import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorld
 const sources = findJavaWorldgenSources();
 const enabled = sources !== undefined;
 
-const SEED = 1234;
+const SEED = 1234n;
 
 /** How long one chunk may take. Terrain alone is about 0.6 seconds, decoration adds to it. */
 const CHUNK_TIMEOUT = 180_000;
@@ -74,7 +74,7 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
             const other = new DataDrivenGenerator({ registries, decorate: false, carve: false });
 
             const mine = await terrainOnly.generateChunk(1, -2, SEED);
-            const theirs = await other.generateChunk(1, -2, SEED + 1);
+            const theirs = await other.generateChunk(1, -2, SEED + 1n);
 
             expect(columnOf(theirs, 7, 9)).not.toEqual(columnOf(mine, 7, 9));
         },
@@ -313,7 +313,7 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
             const stopping = new DataDrivenGenerator({ registries, decorate: false, carve: false });
             stopping.stopGenerating();
 
-            await expect(stopping.generateChunk(0, 0, SEED + 1)).rejects.toBeInstanceOf(GenerationStopped);
+            await expect(stopping.generateChunk(0, 0, SEED + 1n)).rejects.toBeInstanceOf(GenerationStopped);
         },
         CHUNK_TIMEOUT
     );

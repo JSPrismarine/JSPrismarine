@@ -44,7 +44,7 @@ const DEEP_DARK = 190;
  * The pieces of `Server` and `World` a provider touches. Hand-rolled rather than mocked, so what
  * the provider actually depends on stays visible.
  */
-const harness = (worldPath: string, name = 'testworld') => {
+const harness = (worldPath: string, name = 'testworld', seed = 1234n) => {
     const warnings: string[] = [];
     const logger = stub<Logger>({
         warn: (message: string) => {
@@ -59,7 +59,7 @@ const harness = (worldPath: string, name = 'testworld') => {
 
     const world = stub<World>({
         getName: () => name,
-        getSeed: () => 1234,
+        getSeed: () => seed,
         getDimension: () => Dimensions.Overworld,
         getEntities: () => [],
         getServer: () => server
@@ -119,6 +119,39 @@ describe('world', () => {
             expect(level.storageVersion).toBe(10);
             expect(level.root.getString('LevelName', '')).toBe('MyWorld');
             expect(level.root.getLong('RandomSeed', 0n)).toBe(1234n);
+        });
+
+        it.each([8475011743740320021n, -8475011743740320021n, 2n ** 63n - 1n])(
+            'round-trips the seed %s through RandomSeed',
+            async (seed) => {
+                const worldPath = scratch();
+                const { provider } = harness(worldPath, 'MyWorld', seed);
+                await provider.enable();
+                await provider.disable();
+
+                const level = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat')));
+
+                expect(level.root.getLong('RandomSeed', 0n)).toBe(seed);
+            }
+        );
+
+        it('keeps the RandomSeed of a world saved before the seed was 64 bit', async () => {
+            const worldPath = scratch();
+            const first = harness(worldPath, 'MyWorld', 1234n);
+            await first.provider.enable();
+            await first.provider.disable();
+
+            // A level.dat that is already there is read and written back, never rebuilt, so a
+            // world made by an older server keeps the seed it was generated with.
+            const reopened = harness(worldPath, 'MyWorld', 9999n);
+            await reopened.provider.enable();
+            reopened.provider.saveLevelData({ x: 1, y: 2, z: 3 });
+            await reopened.provider.disable();
+
+            const level = decodeLevelDat(fs.readFileSync(path.join(worldPath, 'level.dat')));
+
+            expect(level.root.getLong('RandomSeed', 0n)).toBe(1234n);
+            expect(level.root.getNumber('SpawnX', 0)).toBe(1);
         });
 
         it('stores player data in a player_server NBT record', async () => {
@@ -259,7 +292,7 @@ describe('world', () => {
             await provider.enable();
 
             const gen = generator();
-            const chunk = await provider.readChunk(0, 0, 1234, gen);
+            const chunk = await provider.readChunk(0, 0, 1234n, gen);
 
             expect(gen.calls).toEqual([[0, 0]]);
             expect(chunk.getHasChanged()).toBe(false);
@@ -277,7 +310,7 @@ describe('world', () => {
                 const second = harness(worldPath);
                 await second.provider.enable();
                 const gen = generator();
-                const restored = await second.provider.readChunk(0, 0, 1234, gen);
+                const restored = await second.provider.readChunk(0, 0, 1234n, gen);
 
                 // Not regenerated: the chunk was found on disk.
                 expect(gen.calls).toEqual([]);
@@ -299,7 +332,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
+                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
 
                 expect(restored.getMinY()).toBe(-64);
                 expect(restored.getMaxY()).toBe(319);
@@ -324,7 +357,7 @@ describe('world', () => {
 
                 for (let cx = -2; cx <= 2; cx++) {
                     for (let cz = -2; cz <= 2; cz++) {
-                        const restored = await reopened.provider.readChunk(cx, cz, 1234, generator());
+                        const restored = await reopened.provider.readChunk(cx, cz, 1234n, generator());
                         expect(restored.getBlockRuntimeId(3, -64, 4)).toBe(id('minecraft:bedrock'));
                     }
                 }
@@ -357,7 +390,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
+                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
 
                 const chest = restored.getBlockEntity(1, 64, 1);
                 const beacon = restored.getBlockEntity(2, 64, 2);
@@ -386,7 +419,7 @@ describe('world', () => {
 
                 const reopened = harness(worldPath);
                 await reopened.provider.enable();
-                const restored = await reopened.provider.readChunk(0, 0, 1234, generator());
+                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
 
                 expect(restored.getBiome(0, 64, 0)).toBe(DESERT);
                 expect(restored.getBiome(15, -64, 15)).toBe(JUNGLE);

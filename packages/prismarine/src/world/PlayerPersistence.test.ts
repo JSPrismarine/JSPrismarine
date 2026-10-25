@@ -91,7 +91,7 @@ const buildWorld = (server: Server) => {
         path: folder,
         server,
         provider,
-        seed: 1234,
+        seed: 1234n,
         generator: generator()
     });
 

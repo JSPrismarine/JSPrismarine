@@ -110,6 +110,28 @@ are. When a new version adds a setting, the server adds that key and its
 comment to the end of your file and leaves the rest alone, so there is no
 need to regenerate the file after an upgrade.
 
+### World seeds
+
+Write a world's `seed` as a string:
+
+```json
+{
+    "worlds": {
+        "world": { "generator": "Overworld", "provider": "LevelDB", "seed": "8475011743740320021" }
+    }
+}
+```
+
+A Minecraft seed is a 64-bit integer and a JSON number is a double, which is
+exact only below 2^53. Written as a number, `8475011743740320021` is read back
+as `8475011743740319744` and generates a different world. A number still works
+and is exact for seeds below 2^53.
+
+The string is read the way Java reads the text in its world creation box: a
+value that parses as a 64-bit integer is that integer, and anything else is
+its `String.hashCode`, so `"glacier"` is seed 108181935 here and in Java. An
+absent or empty seed is 0.
+
 The same applies to the JSON files beside it (`banned-players.json`,
 `ops.json`, `permissions.json`) and to each world's `level.json` and player
 data: the server changes the entry it means to and leaves your comments in

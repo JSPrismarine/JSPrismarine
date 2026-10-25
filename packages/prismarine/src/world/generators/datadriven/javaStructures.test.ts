@@ -28,7 +28,7 @@ const enabled = sources !== undefined;
 /** Generating a chunk that holds a structure runs the whole stack, which is not fast. */
 const CHUNK_TIMEOUT = 900_000;
 
-const SEED = 1234;
+const SEED = 1234n;
 
 /**
  * Java's random spread placement puts this seed's plains village here. The chunk is far from the

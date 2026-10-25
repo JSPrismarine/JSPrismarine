@@ -21,7 +21,7 @@ export default interface Provider extends Service {
     readChunk(
         cx: number,
         cz: number,
-        seed: number,
+        seed: bigint,
         generator: Generator,
         config?: WorldConfig,
         options?: ChunkRequestOptions

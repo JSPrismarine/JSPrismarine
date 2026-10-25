@@ -285,7 +285,7 @@ const startGame = (blockProperties: readonly BlockProperty[] | null): Buffer => 
     packet.entityId = 1n;
     packet.runtimeEntityId = 1n;
     packet.gamemode = 1;
-    packet.seed = 0;
+    packet.seed = 0n;
     packet.worldSpawnPos = new Vector3(0, 64, 0);
     packet.levelId = 'level';
     packet.worldName = 'world';

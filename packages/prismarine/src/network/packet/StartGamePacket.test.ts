@@ -28,7 +28,7 @@ const SEED_OFFSET = HEADER.length + 3 + 5 * 4;
  * The fields a server fills in. Everything else the packet writes is a fixed value, so the
  * bytes below spell those out by hand where the test pins them.
  */
-const build = (seed = 258, prepare?: (packet: StartGamePacket) => void): StartGamePacket => {
+const build = (seed = 258n, prepare?: (packet: StartGamePacket) => void): StartGamePacket => {
     const packet = new StartGamePacket();
     packet.entityId = -2n;
     packet.runtimeEntityId = 7n;
@@ -214,7 +214,7 @@ describe('StartGamePacket', () => {
 
     it('declares the properties it was given instead, when the content build supplies them', () => {
         const properties = [{ name: 'mypack:lamp', definition: Buffer.from([0x0a, 0x00, 0x00]) }];
-        const { data } = decode(build(258, (packet) => void (packet.blockProperties = properties)));
+        const { data } = decode(build(258n, (packet) => void (packet.blockProperties = properties)));
 
         // The captured vanilla definitions are the manager path's; a content
         // build decides the whole list, this one included.
@@ -241,8 +241,8 @@ describe('StartGamePacket', () => {
     });
 
     it('writes a negative seed as its two 64 bit complement bytes', () => {
-        const buffer = build(-1).getBuffer();
-        const { data } = decode(build(-1));
+        const buffer = build(-1n).getBuffer();
+        const { data } = decode(build(-1n));
 
         expect(buffer.subarray(SEED_OFFSET, SEED_OFFSET + 8)).toEqual(Buffer.alloc(8, 0xff));
         expect(data.seed).toBe(0xffff_ffff_ffff_ffffn);

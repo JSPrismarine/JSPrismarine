@@ -86,7 +86,7 @@ const testWorld = (generator: Generator) =>
         provider: stub<BaseProvider & Provider>({
             readChunk: async (x, z, _seed, chunkGenerator) => chunkGenerator.generateChunk(x, z)
         }),
-        seed: 1234,
+        seed: 1234n,
         generator
     });
 

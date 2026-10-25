@@ -19,7 +19,7 @@ import {
 } from '../src/world/generators/datadriven/javaWorldgenData';
 import type Chunk from '../src/world/chunk/Chunk';
 
-const SEED = 1234;
+const SEED = 1234n;
 
 /**
  * Chunks from more than one region, so the pool routes them to different workers.

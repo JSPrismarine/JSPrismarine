@@ -152,7 +152,7 @@ const loadedWorld = async (name: string) => {
     const server = testServer();
     const folder = path.join(scratch, 'worlds', name);
     const provider = new GatedLevelDB(folder, server);
-    const world = new World({ name, path: folder, server, provider, seed: 1234, generator });
+    const world = new World({ name, path: folder, server, provider, seed: 1234n, generator });
 
     // Counted here rather than in `writeChunk`, because a pass that writes nothing still has
     // to be distinguishable from no pass at all.
@@ -293,7 +293,7 @@ describe('what a backgrounded autosave writes', () => {
 
         try {
             for (let i = 0; i < CHUNK_COUNT; i++) {
-                const read = await reader.readChunk(i, 0, 1234, generator);
+                const read = await reader.readChunk(i, 0, 1234n, generator);
                 expect(snapshot(read), `chunk ${i},0`).toEqual(before[i]);
             }
         } finally {

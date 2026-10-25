@@ -308,7 +308,7 @@ export const generateCorpusChunk = async (
     entry: CorpusChunk
 ): Promise<CapturedChunk> => {
     const generator = generatorFor(environment, entry.tier);
-    return captureChunk(entry, await generator.generateChunk(entry.chunkX, entry.chunkZ, entry.seed));
+    return captureChunk(entry, await generator.generateChunk(entry.chunkX, entry.chunkZ, BigInt(entry.seed)));
 };
 
 /** Every structure start the placement scan reaches, deduplicated and ordered. */
@@ -319,6 +319,8 @@ export const captureStructures = (
     const unbuilt = new Set<string>();
 
     for (const seed of STRUCTURE_SCAN_SEEDS) {
+        // The plan numbers its seeds so the golden can hold them; the generator wants the long.
+        const worldSeed = BigInt(seed);
         const generator = new DataDrivenGenerator({
             registries: environment.registries,
             templates: environment.templates
@@ -326,7 +328,7 @@ export const captureStructures = (
 
         for (let chunkX = -STRUCTURE_SCAN_RADIUS; chunkX < STRUCTURE_SCAN_RADIUS; chunkX++) {
             for (let chunkZ = -STRUCTURE_SCAN_RADIUS; chunkZ < STRUCTURE_SCAN_RADIUS; chunkZ++) {
-                for (const start of generator.structureStartsAt(chunkX, chunkZ, seed)) {
+                for (const start of generator.structureStartsAt(chunkX, chunkZ, worldSeed)) {
                     placements.set(`${seed}/${start.structure}@${start.chunkX},${start.chunkZ}`, {
                         seed,
                         structure: start.structure,
@@ -349,7 +351,7 @@ export const captureStructures = (
             }
         }
 
-        for (const type of generator.unbuiltStructureTypes(seed)) unbuilt.add(type);
+        for (const type of generator.unbuiltStructureTypes(worldSeed)) unbuilt.add(type);
     }
 
     return {
@@ -391,7 +393,7 @@ export const captureCorpus = async (
     for (const entry of CORPUS_CHUNKS) {
         const at = performance.now();
         const generator = generatorFor(environment, entry.tier);
-        const chunk = await generator.generateChunk(entry.chunkX, entry.chunkZ, entry.seed);
+        const chunk = await generator.generateChunk(entry.chunkX, entry.chunkZ, BigInt(entry.seed));
         minY = chunk.getMinY();
         height = chunk.getMaxY() - minY + 1;
 

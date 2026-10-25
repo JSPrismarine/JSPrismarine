@@ -40,7 +40,7 @@ const testWorld = (readChunk: BaseProvider['readChunk'], generator: Generator = 
             getEntityRuntime: () => inertEntityRuntime()
         }),
         provider: stub<BaseProvider & Provider>({ readChunk }),
-        seed: 0,
+        seed: 0n,
         generator
     });
 };

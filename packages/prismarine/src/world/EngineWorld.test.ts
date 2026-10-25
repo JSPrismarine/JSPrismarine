@@ -115,7 +115,7 @@ const flatWorld = async (randomTickHandlers?: Record<string, (at: { x: number; y
         path: path.join(os.tmpdir(), 'engine-systems-test'),
         server: testServer(),
         provider: stub<BaseProvider & Provider>({ readChunk: async (x, z) => flatChunk(x, z) }),
-        seed: 0,
+        seed: 0n,
         generator: stub<Generator>({}),
         randomTickHandlers
     });

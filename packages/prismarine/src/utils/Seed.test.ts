@@ -6,15 +6,16 @@ const LONG_MIN = -(2n ** 63n);
 
 describe('utils', () => {
     describe('SeedGenerator', () => {
-        it('should generate a number', () => {
+        it('should generate a seed inside the long range', () => {
             const seed = SeedGenerator();
-            expect(typeof seed).toBe('number');
+            expect(typeof seed).toBe('bigint');
+            expect(seed).toBeGreaterThanOrEqual(LONG_MIN);
+            expect(seed).toBeLessThanOrEqual(LONG_MAX);
         });
 
-        it('should generate a number within the safe integer range', () => {
-            const seed = SeedGenerator();
-            expect(seed).toBeGreaterThanOrEqual(1);
-            expect(seed).toBeLessThanOrEqual(Number.MAX_SAFE_INTEGER);
+        it('should reach past the safe integer range', () => {
+            const seeds = Array.from({ length: 64 }, () => SeedGenerator());
+            expect(seeds.some((seed) => seed > BigInt(Number.MAX_SAFE_INTEGER))).toBe(true);
         });
 
         it('should generate different numbers on subsequent calls', () => {

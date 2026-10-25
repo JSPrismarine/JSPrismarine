@@ -38,6 +38,7 @@ import { isPreLoginHandler } from './network/handler/PreLoginPacketHandler';
 import { PermissionManager } from './permission/PermissionManager';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
+import { worldSeedOf } from './utils/Seed';
 import ChunkScheduler from './world/ChunkScheduler';
 import WorldManager from './world/WorldManager';
 
@@ -391,8 +392,7 @@ export default class Server extends EventEmitter {
      * @internal
      */
     private worldSeed(): bigint {
-        const seed = this.config.getWorlds()[this.config.getLevelName()]?.seed;
-        return typeof seed === 'number' ? BigInt(Math.trunc(seed)) : 0n;
+        return worldSeedOf(this.config.getWorlds()[this.config.getLevelName()]?.seed);
     }
 
     /**

@@ -64,12 +64,12 @@ export default class Overworld extends BaseGenerator {
      *   with this server, and generating without them would produce a world that is
      *   quietly not Java's.
      */
-    public async generateChunk(cx: number, cz: number, seed?: number): Promise<Chunk> {
+    public async generateChunk(cx: number, cz: number, seed?: bigint): Promise<Chunk> {
         return this.require().generateChunk(cx, cz, seed);
     }
 
     /** @inheritDoc */
-    public surfaceAt(x: number, z: number, seed?: number): SurfaceProbe {
+    public surfaceAt(x: number, z: number, seed?: bigint): SurfaceProbe {
         return this.require().surfaceAt(x, z, seed);
     }
 

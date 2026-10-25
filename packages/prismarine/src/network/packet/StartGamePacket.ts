@@ -97,7 +97,8 @@ export default class StartGamePacket extends DataPacket {
     public scenarioIdentifier!: string;
     public levelId!: string;
     public worldName!: string;
-    public seed!: number;
+    /** The world seed, which the wire carries as a uint64 and the client shows as it is. */
+    public seed!: bigint;
     public time: number = 0;
     public ticks: number = 0;
 
@@ -128,7 +129,7 @@ export default class StartGamePacket extends DataPacket {
 
         // LevelSettings.
         // Seed is a uint64. A negative seed goes out as its two's complement bytes.
-        this.writeUnsignedLongLE(BigInt.asUintN(64, BigInt(this.seed)));
+        this.writeUnsignedLongLE(BigInt.asUintN(64, this.seed));
 
         this.writeShortLE(0); // Spawn Biome Type: Default
         NetworkUtil.writeString(this, 'minecraft:plains'); // User Defined Biome Name
