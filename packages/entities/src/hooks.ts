@@ -89,6 +89,37 @@ export interface DamageOutcome {
 }
 
 /**
+ * The causes `minecraft:fire_immune` turns aside.
+ *
+ * Bedrock writes the component as an empty marker, so the cause list is the
+ * whole of what it means. `magma` is the block's own cause and is listed
+ * separately from `fire`, which is why both are here.
+ */
+export const FIRE_DAMAGE_CAUSES: readonly string[] = [
+    'campfire',
+    'fire',
+    'fire_tick',
+    'lava',
+    'magma',
+    'soul_campfire'
+];
+
+/** The causes `minecraft:freezing_immune` turns aside. */
+export const FREEZING_DAMAGE_CAUSES: readonly string[] = ['freezing'];
+
+/** What one damage event did to the entity. */
+export interface DamageResult {
+    /** The damage applied after every component had its say; never negative. */
+    readonly amount: number;
+    /** The health left, or undefined when the entity declares no `minecraft:health`. */
+    readonly health?: number;
+    /** Whether the damage took the entity to zero health. */
+    readonly died: boolean;
+    /** The events the damage queued, in the order they were raised. */
+    readonly events: readonly string[];
+}
+
+/**
  * The hooks an entity component may implement.
  *
  * `onInitialize` and `onRemove` are what make component groups a state

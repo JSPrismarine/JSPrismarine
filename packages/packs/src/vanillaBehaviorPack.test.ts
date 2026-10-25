@@ -1,16 +1,22 @@
-import { existsSync, mkdtempSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterAll, describe, expect, it } from 'vitest';
 
+import { readBedrockSchemas } from './bedrockSchemas';
+import { bedrockSchemaValidator } from './bedrockSchemaValidator';
 import type { Diagnostic } from './diagnostics';
+import { parseLenientJson } from './lenientJson';
 import { load } from './load';
 import type { Definitions } from './load';
+import type { DefinitionValidator } from './validation';
+import { composeValidators, structuralValidator } from './validation';
 
 /**
  * Loads the whole real vanilla Bedrock behavior pack, every registry, and
- * checks that it reports no error. Mojang's data is the specification the
- * loader answers to, so an error here is a loader defect, not a bad file.
+ * checks that it reports no error, with Mojang's own `metadata/json_schemas`
+ * in the validator. Mojang's data is the specification the loader answers to,
+ * so an error here is a loader defect, not a bad file.
  *
  * Two corpora, because they cover different code: `bedrock-samples` is the
  * loose-folder publication of the 1.26.50 pack, and the BDS `vanilla` layers
@@ -24,19 +30,32 @@ const enabled = !!process.env.JSP_VANILLA_BEHAVIOR_PACK;
 
 const cacheRoot = join(import.meta.dirname, '..', '..', '..', 'node_modules', '.cache', 'jsprismarine');
 
-/** The `bedrock-samples` behavior pack directory, whose folder name carries a commit hash. */
-const samplesBehaviorPack = (): string => {
+/** The `bedrock-samples` checkout, whose folder name carries a commit hash. */
+const samplesCheckout = (): string => {
     const root = join(cacheRoot, 'bedrock-samples');
     for (const version of readdirSync(root)) {
         const unpacked = join(root, version, 'unpacked');
         if (!existsSync(unpacked)) continue;
         for (const checkout of readdirSync(unpacked)) {
-            const pack = join(unpacked, checkout, 'behavior_pack');
-            if (existsSync(join(pack, 'entities'))) return pack;
+            if (existsSync(join(unpacked, checkout, 'behavior_pack', 'entities'))) return join(unpacked, checkout);
         }
     }
-    throw new Error(`no bedrock-samples behavior pack under ${root}; run the bedrock-data fetch:sources script`);
+    throw new Error(`no bedrock-samples checkout under ${root}; run the bedrock-data fetch:sources script`);
 };
+
+/**
+ * The structural checks plus Mojang's published schemas, built once on first
+ * use so a run without the cache still skips rather than throwing. The
+ * schemas cover entities, items, blocks, biomes, spawn rules and the
+ * crafting catalog; the structural checks cover the rest and report unknown
+ * keys, which the schemas leave open.
+ */
+let cachedValidator: DefinitionValidator | undefined;
+const validator = (): DefinitionValidator =>
+    (cachedValidator ??= composeValidators(
+        structuralValidator,
+        bedrockSchemaValidator(readBedrockSchemas(samplesCheckout()))
+    ));
 
 const temporaryDirs: string[] = [];
 afterAll(() => {
@@ -82,9 +101,13 @@ const sizes = (corpus: string, definitions: Definitions): Record<string, number>
 
 describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
     it('loads every bedrock-samples registry with no error', { timeout: 60_000 }, () => {
-        const { definitions, diagnostics } = load([{ kind: 'directory', path: samplesBehaviorPack() }]);
+        const { definitions, diagnostics } = load(
+            [{ kind: 'directory', path: join(samplesCheckout(), 'behavior_pack') }],
+            { validator: validator() }
+        );
 
         expect(errorsOf(diagnostics)).toEqual([]);
+        expect(diagnostics.filter((diagnostic) => diagnostic.code.startsWith('definition.schema'))).toEqual([]);
         // The 1.26.50.4 publication. bedrock-samples ships no features,
         // feature rules or item catalog, which the BDS layers below cover.
         expect(sizes('bedrock-samples', definitions)).toMatchObject({
@@ -103,7 +126,8 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
         // A strict load of the shipped vanilla stack has to succeed: this is
         // the headline stack the package exists to read.
         const { definitions, diagnostics } = load([{ kind: 'brarchiveLayers', path: bdsVanillaLayers() }], {
-            strict: true
+            strict: true,
+            validator: validator()
         });
 
         expect(errorsOf(diagnostics)).toEqual([]);
@@ -143,5 +167,21 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
         expect(diagnostics.filter((diagnostic) => diagnostic.code === 'definition.mcb')).not.toEqual([]);
         expect(definitions.entities.get('minecraft:creeper')?.path).toBe('entities/creeper.json');
         expect(definitions.lootTables.get('loot_tables/entities/creeper.json')).toBeDefined();
+    });
+
+    it('reports a corrupted copy of a real vanilla entity against the schema', () => {
+        // The two tests above pass if the schema layer silently checks
+        // nothing, so this one proves the schemas are loaded and biting:
+        // a real file, one field changed, checked on its own.
+        const path = join(samplesCheckout(), 'behavior_pack', 'entities', 'creeper.json');
+        const creeper = parseLenientJson(readFileSync(path, 'utf8'));
+        const wrapper = (creeper as Record<string, Record<string, Record<string, unknown>>>)['minecraft:entity']!;
+        wrapper.components = { ...wrapper.components, 'minecraft:explode': 'soon' };
+
+        expect(validator()({ registry: 'entities', path: 'entities/creeper.json', data: creeper })).toContainEqual({
+            severity: 'error',
+            code: 'definition.schema',
+            message: '/minecraft:entity/components/minecraft:explode must be object'
+        });
     });
 });

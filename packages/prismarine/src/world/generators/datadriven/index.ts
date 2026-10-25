@@ -5,9 +5,15 @@
  * themselves; see [`javaWorldgenData.ts`](javaWorldgenData.ts) for which directories and why.
  */
 export { DataDrivenGenerator, type DataDrivenGeneratorOptions } from './DataDrivenGenerator';
-export { GenerationRegion, type GenerationRegionOptions } from './GenerationRegion';
+export {
+    GenerationRegion,
+    type GenerationRegionOptions,
+    type RegionBlockEntity,
+    type RegionEntitySpawn
+} from './GenerationRegion';
 export { BEDROCK_BIOME_IDS } from './bedrockBiomeIds';
 export { createJavaBlockOracle } from './javaBlockOracle';
+export { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 export { JavaStateTranslator, bedrockBiomeIdOf, type JavaState } from './javaTranslation';
 export {
     JAVA_WORLDGEN_ENV,

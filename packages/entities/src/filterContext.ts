@@ -242,3 +242,15 @@ export interface FilterContext {
  * for itself. A fixed point such as a damage event supplies the ones it knows.
  */
 export type FilterSubjects = Omit<FilterContext, 'self' | 'random'>;
+
+/**
+ * The subjects a damage event supplies. Whoever dealt the damage answers both
+ * `damager` and `other`, which is the subject a vanilla `minecraft:damage_sensor`
+ * filter names.
+ */
+export const damagerSubjects = (damager: FilterEntityView | undefined): FilterSubjects =>
+    damager === undefined ? {} : { damager, other: damager };
+
+/** Whether a view belongs to the `player` type family. */
+export const isPlayerView = (view: FilterEntityView | undefined): boolean =>
+    view?.names?.('is_family')?.includes('player') === true;
