@@ -81,22 +81,39 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
     const server = new Server({ config, logger, headless: remote || args.headless });
     attach?.(server);
 
-    let forceExitTriggered = false;
-    for (const signal of ['SIGSEGV', 'SIGHUP', 'SIGINT', 'SIGTERM', 'uncaughtException'] as const) {
-        process.on(signal, async (error: unknown) => {
-            // Handle spamming ctrl+c.
-            if (forceExitTriggered) {
-                process.exit(1);
-            }
-            forceExitTriggered = true;
-
-            if (error instanceof Error) {
-                logger.error(error);
-            }
-
-            void server.shutdown({ crash: signal === 'uncaughtException' });
+    const stop = (options?: { crash?: boolean }): void => {
+        server.shutdown(options).catch((error: unknown) => {
+            logger.error(error);
+            process.exit(1);
         });
-    }
+    };
+
+    /** The signals that ask this server to stop, as opposed to reporting that it has broken. */
+    const TERMINATION_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
+
+    // A listener takes Node's default disposition away, and that default is the only thing
+    // that can end this process while the event loop is blocked - which, on a server
+    // generating terrain, is most of the time. Measured against a loop held for five seconds:
+    // the default killed at the signal, a listener ran 3.3 seconds after it. So the listeners
+    // last exactly as long as it takes to decide to stop, and the next signal is the kernel's
+    // again. `removeAllListeners` rather than removing these by reference, because one
+    // listener left behind by anything else would keep the default switched off.
+    server.releaseOnShutdown(() => {
+        for (const signal of TERMINATION_SIGNALS) process.removeAllListeners(signal);
+    });
+
+    for (const signal of TERMINATION_SIGNALS) process.on(signal, () => stop());
+
+    // Not a request to stop but a report that the process is already lost, which is what
+    // `crash` tells the shutdown. The previous single handler compared its argument against
+    // the string 'uncaughtException' - a value no listener is ever passed, since a signal
+    // listener gets the signal's name and this one gets the error - so a crash shut down as
+    // though it had been asked to politely.
+    process.on('SIGSEGV', () => stop({ crash: true }));
+    process.on('uncaughtException', (error: Error) => {
+        logger.error(error);
+        stop({ crash: true });
+    });
 
     // In a function rather than top-level await so the entry also works where top-level
     // await cannot: a single-executable application runs its main script as CommonJS.
