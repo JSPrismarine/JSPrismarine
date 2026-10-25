@@ -70,6 +70,10 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
     // the stand-in. Only what touches the disk, the network or a chunk is replaced.
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
+        // Empty and never written, because `addEntity` below replaces the real one. It is
+        // here because a world with no entity map is not a world: `dropContents` counts the
+        // stacks already on the ground before it adds another.
+        entities: new Map(),
         currentTick: 0,
         blockUpdates: new BlockUpdateScheduler(),
         systems: { onBlockChanged: () => {}, updateAround: () => {} },
