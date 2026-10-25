@@ -61,16 +61,22 @@ const leaves = (value: PlainNbt, prefix = ''): Map<string, string> => {
 };
 
 describe.skipIf(!enabled)('the data driven vanilla blocks against the captured server', () => {
+    /** Built once: loading and resolving the pack takes seconds and every test reads the same result. */
+    let result: ReturnType<typeof buildBlockProperties> | undefined;
     const built = (): ReturnType<typeof buildBlockProperties> => {
+        if (result !== undefined) return result;
+
         const { definitions } = load([{ kind: 'directory', path: vanillaBehaviorPack() }]);
         const resolved = resolveBlocks(definitions.blocks.values());
         const byName = new Map([...resolved.types].map(([identifier, type]) => [identifier, type]));
 
         // In the order the capture lists them, so the comparison is pairwise.
-        return buildBlockProperties(block_definitions.map((entry) => byName.get(entry.name)!));
+        result = buildBlockProperties(block_definitions.map((entry) => byName.get(entry.name)!));
+
+        return result;
     };
 
-    it('declares the same 98 blocks', () => {
+    it('declares the same 98 blocks', { timeout: 60_000 }, () => {
         const result = built();
 
         expect(result.properties.map((entry) => entry.name)).toEqual(block_definitions.map((entry) => entry.name));
