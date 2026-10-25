@@ -136,7 +136,7 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
 
     if (args.watch) {
         const packagesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
-        new Watcher({
+        await new Watcher({
             packagesDir,
             onEvent: (event) => supervisor.emit(event),
             requestRestart: (reason) => supervisor.restart(reason)

@@ -1,9 +1,18 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
-import { spawnSync } from 'node:child_process';
-import type { FSWatcher } from 'node:fs';
+import { spawn } from 'node:child_process';
 import { readdirSync, watch } from 'node:fs';
 import path from 'node:path';
 import type { Timers } from './ServerChild';
+
+/**
+ * The part of `fs.watch` the watcher uses: one recursive watch per directory, closed on
+ * {@link Watcher.close}. Injected so tests can fire changes without touching the file system.
+ */
+export type WatchDirectory = (
+    dir: string,
+    options: { recursive: true },
+    listener: (event: string, filename: string | null) => void
+) => { close(): void };
 
 /** Options for {@link Watcher}. */
 export interface WatcherOptions {
@@ -16,13 +25,15 @@ export interface WatcherOptions {
     /** How long changes may settle before one restart is requested, in milliseconds; defaults to 150. */
     debounceMs?: number;
     /**
-     * Regenerates the bedrock-data JSON and returns whether it succeeded. Defaults to
-     * `pnpm run generate` in `packages/bedrock-data`, which also fetches the resources
-     * submodule when a fresh clone left it empty.
+     * Regenerates the bedrock-data JSON and resolves whether it succeeded; a rejection counts
+     * as a failure. Defaults to `pnpm run generate` in `packages/bedrock-data`, which also
+     * fetches the resources submodule when a fresh clone left it empty.
      */
-    generate?: () => boolean;
+    generate?: () => boolean | Promise<boolean>;
     /** Defaults to the global timers. */
     timers?: Timers;
+    /** Defaults to `fs.watch`. */
+    watch?: WatchDirectory;
 }
 
 /**
@@ -45,20 +56,24 @@ const SOURCE_FILE = /\.(ts|json)$/;
  * {@link WatcherOptions.requestRestart}; it never prints and never touches the child itself.
  * Changes are debounced so a save that touches several files restarts the server once, and a
  * restart requested while the generator runs is dropped because the generator requests its
- * own once it finishes.
+ * own once it finishes. The generator runs as a child process without blocking the host, so
+ * the frontend keeps painting and reading keys while it works.
  */
 export class Watcher {
-    private readonly watchers: FSWatcher[] = [];
+    private readonly watchers: Array<{ close(): void }> = [];
+    private readonly watchDirectory: WatchDirectory;
     private readonly timers: Timers;
     private readonly debounceMs: number;
-    private readonly generate: () => boolean;
+    private readonly generate: () => boolean | Promise<boolean>;
     private generating = false;
+    private generateQueued = false;
     private restartTimer: ReturnType<typeof setTimeout> | undefined;
     private generateTimer: ReturnType<typeof setTimeout> | undefined;
     private pendingReason: string | undefined;
 
     public constructor(private readonly options: WatcherOptions) {
         this.timers = options.timers ?? globalThis;
+        this.watchDirectory = options.watch ?? watch;
         this.debounceMs = options.debounceMs ?? 150;
         this.generate = options.generate ?? (() => runBedrockDataGenerator(this.bedrockDataDir));
     }
@@ -71,10 +86,10 @@ export class Watcher {
      * Generates the bedrock-data JSON once, then starts watching. The generated JSON is
      * ignored by Git, so a fresh checkout has the directory but not the files the package
      * imports; the generator skips anything already up to date, so running it on every start
-     * costs nothing. Start the server after this returns so the first generation is in place.
+     * costs nothing. Start the server after this resolves so the first generation is in place.
      */
-    public start(): void {
-        this.generateBedrockData({ restart: false });
+    public async start(): Promise<void> {
+        await this.generateBedrockData({ restart: false });
 
         // The generator's inputs live outside the restart watchers: the resources submodule
         // and the generator script itself.
@@ -107,7 +122,7 @@ export class Watcher {
 
     private watch(dir: string, onChange: (filename: string | null) => void): void {
         try {
-            this.watchers.push(watch(dir, { recursive: true }, (_event, filename) => onChange(filename)));
+            this.watchers.push(this.watchDirectory(dir, { recursive: true }, (_event, filename) => onChange(filename)));
         } catch {
             // Not every package has a src directory, and the generator inputs are optional;
             // nothing to watch there.
@@ -128,26 +143,51 @@ export class Watcher {
 
     private requestGenerate(): void {
         this.timers.clearTimeout(this.generateTimer);
-        this.generateTimer = this.timers.setTimeout(() => this.generateBedrockData({ restart: true }), this.debounceMs);
+        this.generateTimer = this.timers.setTimeout(
+            () => void this.generateBedrockData({ restart: true }),
+            this.debounceMs
+        );
     }
 
     /**
      * Regenerates the bedrock-data JSON, then requests the one restart that picks the fresh
-     * data up. Restarts are held back while the generator runs.
+     * data up. Restarts are held back while the generator runs, and an input that changes
+     * mid-run queues one more run so its change is not lost.
      */
-    private generateBedrockData({ restart }: { restart: boolean }): void {
+    private async generateBedrockData({ restart }: { restart: boolean }): Promise<void> {
+        if (this.generating) {
+            this.generateQueued = true;
+            return;
+        }
         this.generating = true;
         this.options.onEvent({ type: 'supervisor.generating' });
-        const ok = this.generate();
+        let ok: boolean;
+        try {
+            ok = await this.generate();
+        } catch {
+            ok = false;
+        }
         this.generating = false;
         this.options.onEvent({ type: 'supervisor.generating', ok });
+        if (this.generateQueued) {
+            this.generateQueued = false;
+            await this.generateBedrockData({ restart: true });
+            return;
+        }
         if (restart) this.requestRestart(path.join('packages', 'bedrock-data', 'src', 'generated'));
     }
 }
 
-const runBedrockDataGenerator = (bedrockDataDir: string): boolean => {
-    // The generator's own output stays out of the terminal: in TUI mode it would land on top
-    // of the screen, and in plain mode the `generating` events already say what is happening.
-    const result = spawnSync('pnpm', ['run', 'generate'], { cwd: bedrockDataDir, stdio: 'ignore' });
-    return result.status === 0;
-};
+const runBedrockDataGenerator = (bedrockDataDir: string): Promise<boolean> =>
+    new Promise((done) => {
+        // The generator's own output stays out of the terminal: in TUI mode it would land on
+        // top of the screen, and in plain mode the `generating` events already say what is
+        // happening. On Windows `pnpm` is a `.cmd` shim, which only a shell can start.
+        const child = spawn('pnpm', ['run', 'generate'], {
+            cwd: bedrockDataDir,
+            stdio: 'ignore',
+            shell: process.platform === 'win32'
+        });
+        child.on('error', () => done(false));
+        child.on('close', (code) => done(code === 0));
+    });
