@@ -1,7 +1,12 @@
-import { assert, describe, expect, it } from 'vitest';
+import { Registry } from '@jsprismarine/content';
+import type { EntityPosition, EntityType } from '@jsprismarine/entities';
+import { describe, expect, it } from 'vitest';
 
+import type { ServerContent } from '../content/ServerContent';
+import type { EntityRuntime } from '../entity/data/EntityRuntime';
+import type { LiveEntityRuntime } from '../entity/data/live';
 import type { Entity } from '../entity/Entity';
-import { Mob } from '../entity/Mob';
+import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 
@@ -14,9 +19,38 @@ import { World } from './World';
  * once, appear a dozen times, or never appear at all.
  */
 
+/** A registry that carries the named types and nothing else. */
+const registryOf = (identifiers: readonly string[]): Registry<EntityType> => {
+    const registry = new Registry<EntityType>('entities');
+    registry.rebuild(identifiers.map((identifier) => [identifier, stub<EntityType>({ identifier })]));
+    return registry;
+};
+
+/** One spawn the world asked the data-driven runtime for. */
+interface Asked {
+    readonly identifier: string;
+    readonly at: EntityPosition;
+    readonly yaw: number | undefined;
+}
+
 /** A world reduced to what loading a chunk touches: no disk, no network, no generator. */
-const worldLoading = (chunk: Chunk) => {
+const worldLoading = (
+    chunk: Chunk,
+    declared: readonly string[] = ['minecraft:villager_v2', 'minecraft:iron_golem']
+) => {
     const added: Entity[] = [];
+    const asked: Asked[] = [];
+
+    const content = stub<ServerContent>({ entities: { registry: registryOf(declared) } as ServerContent['entities'] });
+    const live = stub<LiveEntityRuntime>({
+        runtime: stub<EntityRuntime>({
+            content: () => content,
+            spawn: (identifier, at, options) => {
+                asked.push({ identifier, at, yaw: options?.yaw });
+                return undefined;
+            }
+        })
+    });
 
     const world: World = Object.assign(Object.create(World.prototype), {
         entities: new Map(),
@@ -28,14 +62,17 @@ const worldLoading = (chunk: Chunk) => {
         provider: { readChunk: async () => chunk },
         systems: { onChunkLoaded: () => {} },
         addEntity: async (entity: Entity) => void added.push(entity),
+        dataEntities: () => live,
         server: { getLogger: () => ({ debug: () => {}, warn: () => {} }) }
     });
 
-    return { world, added };
+    return { world, added, asked };
 };
 
 describe('mobs left by world generation', () => {
-    it('become real entities when the chunk is loaded', async () => {
+    it('are spawned into the data-driven runtime when the chunk is loaded', async () => {
+        // The runtime and not a body, because a village's villager wants its components, its
+        // brain and its trades, and only the runtime gives it them.
         const chunk = new Chunk(0, 0);
         chunk
             .getEntitySpawns()
@@ -44,15 +81,14 @@ describe('mobs left by world generation', () => {
                 { type: 'minecraft:iron_golem', x: 4.5, y: 70, z: 4.5 }
             );
 
-        const { world, added } = worldLoading(chunk);
+        const { world, asked } = worldLoading(chunk);
         await world.loadChunk(0, 0);
 
-        expect(added.map((entity) => entity.getType())).toEqual(['minecraft:villager_v2', 'minecraft:iron_golem']);
+        expect(asked.map((spawn) => spawn.identifier)).toEqual(['minecraft:villager_v2', 'minecraft:iron_golem']);
 
         // At the coordinates generation asked for, facing the way it asked.
-        expect(added[0]!.getPosition().getX()).toBe(8.5);
-        expect(added[0]!.getPosition().getY()).toBe(70);
-        expect(added[0]!.yaw).toBe(90);
+        expect(asked[0]!.at).toEqual({ x: 8.5, y: 70, z: 8.5 });
+        expect(asked[0]!.yaw).toBe(90);
     });
 
     it('are created once however often the chunk is loaded', async () => {
@@ -62,29 +98,26 @@ describe('mobs left by world generation', () => {
         const chunk = new Chunk(0, 0);
         chunk.getEntitySpawns().push({ type: 'minecraft:villager_v2', x: 8.5, y: 70, z: 8.5 });
 
-        const { world, added } = worldLoading(chunk);
+        const { world, asked } = worldLoading(chunk);
         await world.loadChunk(0, 0);
         await world.loadChunk(0, 0);
         await world.loadChunk(0, 0);
 
-        expect(added).toHaveLength(1);
+        expect(asked).toHaveLength(1);
     });
 
-    it('are marked as belonging where they were put', async () => {
-        // The spawner removes mobs nobody is near. A village that emptied itself the first time you
-        // walked away would be worse than no village at all.
+    it('builds the written class for a type no pack declares but this server does', async () => {
         const chunk = new Chunk(0, 0);
-        chunk.getEntitySpawns().push({ type: 'minecraft:villager_v2', x: 8.5, y: 70, z: 8.5 });
+        chunk.getEntitySpawns().push({ type: 'minecraft:tnt', x: 1.5, y: 70, z: 1.5 });
 
-        const { world, added } = worldLoading(chunk);
+        const { world, added, asked } = worldLoading(chunk, []);
         await world.loadChunk(0, 0);
 
-        const [first] = added;
-        assert(first instanceof Mob);
-        expect(first.isPersistent()).toBe(true);
+        expect(asked).toEqual([]);
+        expect(added.map((entity) => entity.getType())).toEqual(['minecraft:tnt']);
     });
 
-    it('skips a mob this server has no class for, and keeps the rest', async () => {
+    it('skips a type nothing can build, and keeps the rest', async () => {
         const chunk = new Chunk(0, 0);
         chunk
             .getEntitySpawns()
@@ -93,16 +126,17 @@ describe('mobs left by world generation', () => {
                 { type: 'minecraft:villager_v2', x: 8.5, y: 70, z: 8.5 }
             );
 
-        const { world, added } = worldLoading(chunk);
+        const { world, asked } = worldLoading(chunk);
         await world.loadChunk(0, 0);
 
-        expect(added.map((entity) => entity.getType())).toEqual(['minecraft:villager_v2']);
+        expect(asked.map((spawn) => spawn.identifier)).toEqual(['minecraft:villager_v2']);
     });
 
     it('costs nothing for the overwhelming majority of chunks, which have none', async () => {
-        const { world, added } = worldLoading(new Chunk(0, 0));
+        const { world, added, asked } = worldLoading(new Chunk(0, 0));
         await world.loadChunk(0, 0);
 
         expect(added).toHaveLength(0);
+        expect(asked).toHaveLength(0);
     });
 });

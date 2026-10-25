@@ -17,13 +17,13 @@ import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
 import { AttributeIds } from '../entity/Attribute';
-import { spawnableEntities } from '../entity/Entities';
+import { writtenEntities } from '../entity/Entities';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import { dataEntityRecordIn } from '../entity/data/persistence';
 import EntitySerializer from '../entity/EntitySerializer';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
-import { Mob } from '../entity/Mob';
+import { GenericEntity } from '../entity/GenericEntity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { storedInventory } from '../inventory/persistence';
 import { Item } from '../item/Item';
@@ -378,22 +378,19 @@ export class World implements Service {
         }
         if (level.entities) {
             for (const entityData of level.entities) {
-                const Entity = spawnableEntities().find((e) => e.MOB_ID === entityData.type);
-                if (!Entity) {
-                    this.server.getLogger().warn(`Entity type ${entityData.type} not found`);
-                    continue;
-                }
-
                 // The saved coordinates are actually used now. They used to be spread into
                 // an options object that had no place for them, so every entity restored
                 // from disk silently reappeared at the origin.
                 const { x, y, z } = entityData.position;
-                const entity = new Entity({ position: new Position(x, y, z, this) });
+                const position = new Position(x, y, z, this);
+                const Written = writtenEntities().get(entityData.type);
 
-                // Written to the save file, so it was here on purpose and stays.
-                if (entity instanceof Mob) entity.setPersistent();
-
-                await this.addEntity(entity);
+                // A body either way, and the identifier is kept either way, because the chunk's
+                // own actor record is what carries a mob's components and it displaces this copy
+                // as soon as the chunk loads - see `createStoredEntities`.
+                await this.addEntity(
+                    Written ? new Written({ position }) : new GenericEntity({ identifier: entityData.type, position })
+                );
             }
         }
 
@@ -715,7 +712,6 @@ export class World implements Service {
 
             if (this.restoreDataEntity(entity)) continue;
 
-            if (entity instanceof Mob) entity.setPersistent();
             await this.addEntity(entity);
         }
     }
@@ -771,24 +767,31 @@ export class World implements Service {
         if (spawns.length === 0) return;
 
         for (const spawn of spawns) {
-            const Entity = spawnableEntities().find((candidate) => candidate.MOB_ID === spawn.type);
-            if (!Entity) {
-                this.server.getLogger().debug(`World generation asked for ${spawn.type}, which has no entity class`);
+            const at = { x: spawn.x, y: spawn.y, z: spawn.z };
+
+            // The runtime first, because a village's villager wants its components, its brain
+            // and its trades, and only the runtime can give it them. Asked whether it declares
+            // the type before spawning, so an identifier no pack carries falls through to the
+            // written classes without the runtime reporting a refusal nobody wanted.
+            const live = this.dataEntities();
+            if (live.runtime.content().entities.registry.has(spawn.type)) {
+                live.runtime.spawn(spawn.type, at, { yaw: spawn.yaw ?? 0, pitch: 0 });
                 continue;
             }
 
-            const entity = new Entity({
-                position: new Position(spawn.x, spawn.y, spawn.z, this),
-                yaw: spawn.yaw ?? 0,
-                headYaw: spawn.yaw ?? 0
-            });
+            const Written = writtenEntities().get(spawn.type);
+            if (!Written) {
+                this.server.getLogger().debug(`World generation asked for ${spawn.type}, which nothing can build`);
+                continue;
+            }
 
-            // A village's inhabitants belong to the village. The spawner tidies away mobs nobody is
-            // near, and a village that emptied itself the first time you left would be worse than
-            // no village at all.
-            if (entity instanceof Mob) entity.setPersistent();
-
-            await this.addEntity(entity);
+            await this.addEntity(
+                new Written({
+                    position: new Position(spawn.x, spawn.y, spawn.z, this),
+                    yaw: spawn.yaw ?? 0,
+                    headYaw: spawn.yaw ?? 0
+                })
+            );
         }
     }
 
@@ -1667,7 +1670,11 @@ export class World implements Service {
         // Kept in step only once something has asked for it; before that the first count
         // reads the map, which already holds this arrival. Re-adding one the world already
         // has is a replacement rather than an arrival.
-        if (this.itemEntities !== undefined && entity instanceof ItemEntity && !this.entities.has(entity.getRuntimeId()))
+        if (
+            this.itemEntities !== undefined &&
+            entity instanceof ItemEntity &&
+            !this.entities.has(entity.getRuntimeId())
+        )
             this.itemEntities += 1;
 
         this.entities.set(entity.getRuntimeId(), entity);

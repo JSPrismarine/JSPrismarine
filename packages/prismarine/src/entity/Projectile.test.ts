@@ -9,7 +9,20 @@ import type { Entity } from './Entity';
 import Arrow from './other/Arrow';
 import type { Projectile } from './other/Projectile';
 import Snowball from './other/Snowball';
-import Cow from './passive/Cow';
+import { Attribute, AttributeIds } from './Attribute';
+import { GenericEntity } from './GenericEntity';
+
+/** What every mob in this file has, which is what the damage expectations count down from. */
+const MOB_HEALTH = 10;
+
+/** A body that remembers the shove it was given instead of spending it. */
+class Shoved extends GenericEntity {
+    public shove: { x: number; z: number; strength: number } | undefined;
+
+    public override applyKnockback(directionX: number, directionZ: number, strength: number): void {
+        this.shove = { x: directionX, z: directionZ, strength };
+    }
+}
 
 /**
  * Things in flight.
@@ -35,12 +48,7 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
         getLoadedChunk: () => null
     };
 
-    /**
-     * Builds one of this file's species at a place in `world`.
-     *
-     * The options are the union of what the species here take: `Projectile` adds a velocity and
-     * an owner to the position every entity needs, and the passive mobs ignore both.
-     */
+    /** Builds one of this file's projectiles at a place in `world`. */
     const spawn = <T extends Entity>(
         Species: new (options: { position: Position; velocity?: Vector3; owner?: Entity | null }) => T,
         { at, ...rest }: { at: readonly [x: number, y: number, z: number]; velocity?: Vector3; owner?: Entity | null }
@@ -50,6 +58,22 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
         return entity;
     };
 
+    /**
+     * A target for the arrow, with the health the expectations count down from.
+     *
+     * `GenericEntity` is what the data-driven runtime gives every mob, so it is what a shot
+     * actually meets. The shove is recorded rather than applied, because the base entity has
+     * no velocity to spend.
+     */
+    const target = (x: number): Shoved => {
+        const body = new Shoved({ identifier: 'minecraft:cow', position: new Position(x, 64, 0, world) });
+        body.attributes.setAttribute(
+            new Attribute({ name: AttributeIds.Health, min: 0, max: MOB_HEALTH, def: MOB_HEALTH })
+        );
+        nearby.push(body);
+        return body;
+    };
+
     /** Arrows read the world through their own view, so it is described there. */
     const describeBlocks = (projectile: Projectile) => {
         const view = projectile['view'];
@@ -57,7 +81,7 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
         view.isLoaded = () => true;
     };
 
-    return { world, spawn, describeBlocks, removed, nearby };
+    return { world, spawn, target, describeBlocks, removed, nearby };
 };
 
 /** An arrow launched east from the origin. */
@@ -78,17 +102,17 @@ describe('projectiles', () => {
         it('hits something standing between where it was and where it would end up', async () => {
             // Three blocks in one tick, past a cow at one block. A check at the destination alone
             // would find nothing but open air.
-            const cow = stage.spawn(Cow, { at: [1, 64, 0] });
+            const cow = stage.target(1);
             const arrow = arrowEast(stage, 3);
 
             await arrow.update(0);
 
-            expect(cow.getHealth()).toBeLessThan(10);
+            expect(cow.getHealth()).toBeLessThan(MOB_HEALTH);
         });
 
         it('reports itself as a projectile, and names the shooter', async () => {
-            const shooter = stage.spawn(Cow, { at: [-5, 64, 0] });
-            const cow = stage.spawn(Cow, { at: [1, 64, 0] });
+            const shooter = stage.target(-5);
+            const cow = stage.target(1);
 
             const arrow = stage.spawn(Arrow, { at: [0, 64, 0], velocity: new Vector3(3, 0, 0), owner: shooter });
             stage.describeBlocks(arrow);
@@ -102,17 +126,17 @@ describe('projectiles', () => {
         it('does not hit the shooter on the tick it was loosed', async () => {
             // An arrow starts inside the bow that fired it, so without the grace period nothing
             // would ever leave the string.
-            const shooter = stage.spawn(Cow, { at: [0, 64, 0] });
+            const shooter = stage.target(0);
             const arrow = stage.spawn(Arrow, { at: [0, 64, 0], velocity: new Vector3(3, 0, 0), owner: shooter });
             stage.describeBlocks(arrow);
 
             await arrow.update(0);
 
-            expect(shooter.getHealth()).toBe(10);
+            expect(shooter.getHealth()).toBe(MOB_HEALTH);
         });
 
         it('flies on through anything it could not hurt', async () => {
-            const cow = stage.spawn(Cow, { at: [1, 64, 0] });
+            const cow = stage.target(1);
             await cow.damage(100);
 
             const arrow = arrowEast(stage, 3);
@@ -150,12 +174,12 @@ describe('projectiles', () => {
         it('hits harder the faster it is going', async () => {
             const hurtBy = async (speed: number) => {
                 const round = scene();
-                const cow = round.spawn(Cow, { at: [1, 64, 0] });
+                const cow = round.target(1);
                 const arrow = round.spawn(Arrow, { at: [0, 64, 0], velocity: new Vector3(speed, 0, 0) });
                 round.describeBlocks(arrow);
 
                 await arrow.update(0);
-                return 10 - cow.getHealth();
+                return MOB_HEALTH - cow.getHealth();
             };
 
             expect(await hurtBy(3)).toBeGreaterThan(await hurtBy(1));
@@ -164,14 +188,14 @@ describe('projectiles', () => {
 
     describe('the harmless ones', () => {
         it('shove without hurting', async () => {
-            const cow = stage.spawn(Cow, { at: [1, 64, 0] });
+            const cow = stage.target(1);
             const snowball = stage.spawn(Snowball, { at: [0, 64, 0], velocity: new Vector3(2, 0, 0) });
             stage.describeBlocks(snowball);
 
             await snowball.update(0);
 
-            expect(cow.getHealth()).toBe(10);
-            expect(cow['pendingKnockback']?.impulse.getX()).toBeGreaterThan(0);
+            expect(cow.getHealth()).toBe(MOB_HEALTH);
+            expect(cow.shove?.x).toBeGreaterThan(0);
         });
     });
 

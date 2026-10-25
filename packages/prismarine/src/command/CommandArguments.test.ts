@@ -1,20 +1,24 @@
 import { describe, expect, it } from 'vitest';
 
-import { spawnableEntities } from '../entity/Entities';
+import type Server from '../Server';
+import { testContent } from '../testing/entityServer';
+import { stub } from '../testing/stub.test.helper';
 import { CommandArgumentCommand, CommandArgumentMob } from './CommandArguments';
 import { CommandParameterType } from '../network/type/CommandParameter';
 
 describe('command', () => {
     describe('CommandArgumentMob', () => {
-        it('lists every summonable entity in the EntityType enum', () => {
+        it('lists what the pack stack declares summonable, plus the written classes', () => {
             // The enum went out empty, so the client had nothing to complete after `/summon `.
-            const [parameter] = new CommandArgumentMob().getParameters();
+            // The fixture stack declares one summonable entity, the cow.
+            const server = stub<Server>({ getContent: () => testContent() });
+            const [parameter] = new CommandArgumentMob().getParameters(server);
 
             const values = parameter?.enum?.values ?? [];
             expect(parameter?.enum?.name).toBe('EntityType');
-            expect(values).toHaveLength(spawnableEntities().length);
-            expect(values).toContain('zombie');
-            expect(values).toContain('cat');
+            expect(values).toContain('cow');
+            expect(values).toContain('tnt');
+            expect(values).toContain('arrow');
             // What a player types, and what the command's parser prefixes `minecraft:` onto.
             expect(values.filter((value) => value.startsWith('minecraft:'))).toEqual([]);
         });

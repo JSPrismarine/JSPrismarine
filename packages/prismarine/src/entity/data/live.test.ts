@@ -675,17 +675,36 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(live.bodies.size).toBe(1);
         });
 
+        it('summons the villager Bedrock summons, not the pre-1.11 one', () => {
+            // Mojang's `EntityType` enum still lists `villager` and has no `villager_v2`, so
+            // the typed name has to be renamed before the registry is asked. Bedrock spawns
+            // the current villager, the one with the brain, the professions and the trades.
+            const ref = summon('minecraft:villager', { x: 1.5, y: GROUND_Y, z: 1.5 });
+
+            expect(ref?.type).toBe('minecraft:villager_v2');
+            expect(live.runtime.all().map((entity) => entity.identifier)).toEqual(['minecraft:villager_v2']);
+        });
+
+        it('leaves a Bedrock-only identifier as typed', () => {
+            // `villager_v2` is not a Java entity type, so the rename table does not touch it
+            // and the spelling a pack would use still works.
+            const ref = summon('minecraft:villager_v2', { x: 1.5, y: GROUND_Y, z: 1.5 });
+
+            expect(ref?.type).toBe('minecraft:villager_v2');
+        });
+
         it('summons nothing for an identifier no pack and no class declares', () => {
             expect(summon('jsprismarine:nothing', { x: 0.5, y: GROUND_Y, z: 0.5 })).toBeUndefined();
             expect(live.runtime.all()).toEqual([]);
         });
 
         it('still builds the written class for an identifier the content has no type for', () => {
-            // The wither has a class and no entity file here, which is the legacy path the
-            // data path must not take away: `/summon` falls through to it rather than refusing.
-            const ref = summon('minecraft:wither', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            // A lit TNT has a class and no entity file here. It is one of the seven entities
+            // whose behavior is not a component set, so `/summon` falls through to the class
+            // rather than refusing.
+            const ref = summon('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
 
-            expect(ref?.type).toBe('minecraft:wither');
+            expect(ref?.type).toBe('minecraft:tnt');
             expect(live.runtime.all()).toEqual([]);
         });
     });

@@ -18,7 +18,7 @@ import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
-import { spawnableEntities } from '../../entity/Entities';
+import { writtenEntities } from '../../entity/Entities';
 import type ItemManager from '../../item/ItemManager';
 import type { Item } from '../../item/Item';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -195,11 +195,10 @@ const buildFixture = (): Fixture => {
 
     let content: ServerContent | undefined;
 
-    // The entity ids a real build would thread in are the ones this server
-    // can actually spawn, which with no data-driven runtime is the written
-    // classes. Taken from them rather than listed, so a new class does not
-    // quietly become unsummonable here.
-    const registry = buildVanillaCommands({ entityTypes: spawnableEntities().map((entity) => entity.MOB_ID) });
+    // The entity ids a real build would thread in are the ones this server can actually
+    // spawn, which with no data-driven runtime is the written classes. Taken from them
+    // rather than listed, so a new class does not quietly become unsummonable here.
+    const registry = buildVanillaCommands({ entityTypes: [...writtenEntities().keys(), 'minecraft:allay'] });
     const host = serverCommandHost(server);
 
     const sourceFor = (as?: Player): CommandSource =>
@@ -464,38 +463,22 @@ describe('the server command host', () => {
             expect(cow.setHealth).toHaveBeenCalled();
         });
 
-        it('summons an entity into the world', async () => {
-            await expect(fixture.run('summon minecraft:pig 5 6 7')).resolves.toBe(1);
+        it('summons a written class into the world', async () => {
+            // A lit TNT is one of the seven entities no behavior pack describes, so it is
+            // built as a class rather than through the runtime this fixture does not have.
+            await expect(fixture.run('summon minecraft:tnt 5 6 7')).resolves.toBe(1);
 
             const summoned = fixture.entities.at(-1);
-            expect(summoned?.getType()).toBe('minecraft:pig');
+            expect(summoned?.getType()).toBe('minecraft:tnt');
             expect(summoned?.getPosition().getX()).toBe(5);
         });
 
-        it('summons nothing for a type no class answers to', async () => {
-            // `minecraft:allay` is in Mojang's own `EntityType` enum and this server has no
-            // class for it, so the line parses and the summon reports that it did nothing.
+        it('summons nothing for a type with neither a class nor a declared type', async () => {
+            // `minecraft:allay` is in Mojang's own `EntityType` enum, and this fixture has no
+            // runtime behind it, so the line parses and the summon reports that it did nothing.
+            // The identifier rename and the data path are covered in `data/live.test.ts`.
             await expect(fixture.run('summon minecraft:allay')).resolves.toBe(0);
             expect(fixture.entities).toHaveLength(0);
-        });
-
-        it('summons the villager with the brain, not the legacy one', async () => {
-            // Mojang's `EntityType` enum still lists `villager` and has no
-            // `villager_v2`, and this server keeps both classes, so the typed
-            // name alone reached `OldVillager`. Bedrock spawns the current
-            // one, and so does the runtime the brain registry resolves
-            // through.
-            await expect(fixture.run('summon minecraft:villager 1 2 3')).resolves.toBe(1);
-
-            expect(fixture.entities.at(-1)?.getType()).toBe('minecraft:villager_v2');
-        });
-
-        it('leaves a Bedrock-only identifier as typed', async () => {
-            // `villager_v2` is not a Java entity type, so the rename table
-            // does not touch it and the spelling a pack would use still works.
-            await expect(fixture.run('summon minecraft:villager_v2 1 2 3')).resolves.toBe(1);
-
-            expect(fixture.entities.at(-1)?.getType()).toBe('minecraft:villager_v2');
         });
 
         it('damages an entity', async () => {

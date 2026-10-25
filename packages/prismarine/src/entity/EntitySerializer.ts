@@ -1,7 +1,7 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
-import { spawnableEntities } from './Entities';
-import type { Entity, SpawnableEntityClass } from './Entity';
+import { writtenEntities } from './Entities';
+import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -25,24 +25,6 @@ import type { World } from '../world/World';
 const REWRITTEN = ['identifier', 'Pos', 'Rotation'] as const;
 
 export class EntitySerializer {
-    private static index: Map<string, SpawnableEntityClass> | null = null;
-
-    /**
-     * The classes an identifier can be restored as. Only those a position alone can build: a
-     * falling block needs the block it is made of, which the actor NBT does not carry, so it loads
-     * as a {@link GenericEntity} like any other unmodeled actor.
-     */
-    private static classes(): Map<string, SpawnableEntityClass> {
-        if (this.index !== null) return this.index;
-
-        this.index = new Map();
-        for (const candidate of spawnableEntities()) {
-            this.index.set(candidate.MOB_ID, candidate);
-        }
-
-        return this.index;
-    }
-
     /**
      * Builds an entity from its stored NBT.
      *
@@ -55,7 +37,7 @@ export class EntitySerializer {
         const [yaw, pitch] = readFloats(nbt, 'Rotation', 2);
 
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
-        const modeled = this.classes().get(identifier);
+        const modeled = writtenEntities().get(identifier);
 
         const entity = modeled
             ? new modeled({ position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 })
@@ -83,15 +65,6 @@ export class EntitySerializer {
         if (!nbt.has('Invulnerable')) nbt.addValue('Invulnerable', new Types.ByteVal(0));
 
         return nbt;
-    }
-
-    /** Whether the server has a class for an identifier, as opposed to merely preserving it. */
-    public static isModeled(identifier: string): boolean {
-        return this.classes().has(identifier);
-    }
-
-    public static reset(): void {
-        this.index = null;
     }
 }
 

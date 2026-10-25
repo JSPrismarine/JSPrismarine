@@ -1,4 +1,5 @@
 import type { Vector3 } from '@jsprismarine/math';
+import type { Item } from '../item/Item';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type Server from '../Server';
@@ -149,6 +150,15 @@ export class Entity {
      */
     public persistentNbt: NBTTagCompound | null = null;
 
+    /**
+     * What this entity is holding, if anything.
+     *
+     * Purely what the client draws: nothing reads it to decide how hard a blow lands, which
+     * comes from the attack attribute. But a skeleton with no bow in its hand fires arrows from
+     * an empty fist, and that reads as a bug rather than as an attack.
+     */
+    private heldItem: Item | null = null;
+
     /** Ticks left of the grace period after the last hit. Counted down in {@link Entity.update}. */
     protected invulnerableTicks = 0;
 
@@ -220,6 +230,28 @@ export class Entity {
     protected applySize(): void {
         const { width, height } = sizeOf(this.getType());
         this.metadata.setBoundingBox(width, height);
+    }
+
+    /**
+     * What this entity is holding, for whoever has to draw it.
+     * @returns {Item | null} The item, or null for empty hands.
+     */
+    public getHeldItem(): Item | null {
+        return this.heldItem;
+    }
+
+    /**
+     * Puts something in this entity's hand.
+     *
+     * Stored rather than broadcast, because an entity is often given its item before it is in a
+     * world and there is nobody to tell. Everyone who can see it is told when it is spawned to
+     * them - see `PlayerSession.sendAddActor`.
+     * @param {Item | null} item - What to hold.
+     * @returns {this} The entity, so a caller can chain.
+     */
+    public setHeldItem(item: Item | null): this {
+        this.heldItem = item;
+        return this;
     }
 
     /**

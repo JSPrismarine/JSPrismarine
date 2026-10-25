@@ -1,19 +1,18 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import type Server from '../Server';
+import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
-import Cat from './passive/Cat';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
  * to answer for that as well as name itself.
  */
-const world = stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
+const world = stub<World>({ getName: () => 'test', getServer: () => testEntityServer() });
 
 const floats = (values: number[]) => new Set(values.map((value) => new Types.FloatVal(value)));
 
@@ -32,20 +31,22 @@ const keysOf = (compound: NBTTagCompound) => [...compound.entries()].map(([key])
 
 describe('entity', () => {
     describe('EntitySerializer', () => {
-        it('builds the modeled class for an identifier it knows', () => {
-            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'), world);
+        it('builds the written class for an identifier one covers', () => {
+            // A lit TNT counts its own fuse down, which no component set describes, so it is
+            // one of the seven entities this server still writes a class for.
+            const tnt = EntitySerializer.fromNBT(actor('minecraft:tnt'), world);
 
-            expect(cow.getType()).toBe('minecraft:cow');
-            expect(cow).not.toBeInstanceOf(GenericEntity);
+            expect(tnt.getType()).toBe('minecraft:tnt');
+            expect(tnt).not.toBeInstanceOf(GenericEntity);
         });
 
         it('falls back to a generic entity that still says what it is', () => {
-            // Without this, every mob the server has no class for would vanish from the world -
-            // or the world would refuse to load at all.
-            const llama = EntitySerializer.fromNBT(actor('minecraft:some_future_mob'), world);
+            // Every mob loads this way now, because the runtime drives it through its
+            // components and the body only has to say which mob it is.
+            const cow = EntitySerializer.fromNBT(actor('minecraft:cow'), world);
 
-            expect(llama).toBeInstanceOf(GenericEntity);
-            expect(llama.getType()).toBe('minecraft:some_future_mob');
+            expect(cow).toBeInstanceOf(GenericEntity);
+            expect(cow.getType()).toBe('minecraft:cow');
         });
 
         it('restores the position, including below y=0', () => {
@@ -149,11 +150,6 @@ describe('entity', () => {
             expect(written.getByte('Invulnerable', 1)).toBe(0);
         });
 
-        it('knows which identifiers it models', () => {
-            expect(EntitySerializer.isModeled('minecraft:cow')).toBe(true);
-            expect(EntitySerializer.isModeled('minecraft:some_future_mob')).toBe(false);
-        });
-
         describe('identity', () => {
             // Every entity once read its uuid off the world it was built in, so all of them
             // shared one. Only players carry a uuid now, and each entity has its own runtime id.
@@ -185,8 +181,14 @@ describe('entity', () => {
             });
 
             it('gives two entities built directly their own runtime ids', () => {
-                const first = new Cat({ position: new Position(0, 0, 0, world) });
-                const second = new Cat({ position: new Position(0, 0, 0, world) });
+                const first = new GenericEntity({
+                    identifier: 'minecraft:cat',
+                    position: new Position(0, 0, 0, world)
+                });
+                const second = new GenericEntity({
+                    identifier: 'minecraft:cat',
+                    position: new Position(0, 0, 0, world)
+                });
 
                 expect(first.getRuntimeId()).not.toBe(second.getRuntimeId());
             });
