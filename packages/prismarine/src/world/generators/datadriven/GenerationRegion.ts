@@ -17,7 +17,8 @@ import type {
     BlockPos,
     BlockState,
     FeatureWorld,
-    HeightmapType
+    HeightmapType,
+    TemplateRequest
 } from '@jsprismarine/features';
 import type { BedrockBlockState } from '@jsprismarine/structures';
 import type { SurfaceChunk } from '@jsprismarine/worldgen';
@@ -140,8 +141,13 @@ export class GenerationRegion {
 
     /** The state at a block position, air outside the region. */
     public stateAt(x: number, y: number, z: number): BlockState {
+        return this.blockAt(x, y, z).java;
+    }
+
+    /** The palette entry at a block position, air outside the region. */
+    public blockAt(x: number, y: number, z: number): RegionBlock {
         const index = this.indexOf(x, y, z);
-        return index === -1 ? AIR_STATE : this.palette[this.states[index]!]!;
+        return index === -1 ? this.palette[0]! : this.palette[this.states[index]!]!;
     }
 
     /** Writes a state, ignoring a position outside the region. Returns whether it landed. */
@@ -150,12 +156,35 @@ export class GenerationRegion {
         if (index === -1) return false;
 
         this.states[index] = this.paletteSlot(state);
+        this.afterWrite(index, x, y, z, state.name === AIR);
+        return true;
+    }
+
+    /**
+     * Writes a block a structure template resolved, which is already a Bedrock state.
+     *
+     * The Java view the region keeps beside it is the Bedrock identifier with no properties.
+     * That only decides what a later feature reads back at the position, and the two editions
+     * agree on the identifier for every block a vanilla template places; the chunk gets the
+     * exact Bedrock state.
+     */
+    public writeBedrock(x: number, y: number, z: number, state: BedrockBlockState): boolean {
+        const index = this.indexOf(x, y, z);
+        if (index === -1) return false;
+
+        this.states[index] = this.bedrockSlot(state);
+        this.afterWrite(index, x, y, z, state.name === AIR);
+        return true;
+    }
+
+    /** The bookkeeping every write does once its state has landed in the buffer. */
+    private afterWrite(index: number, x: number, y: number, z: number, isAir: boolean): void {
         // A block entity belongs to the block it was attached to, so overwriting that block
         // takes it away, as Java's `setBlock` does.
         if (this.blockEntities.size > 0) this.blockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
-        if (state.name !== AIR) {
+        if (!isAir) {
             if (y > this.highest[column]!) this.highest[column] = y;
         } else if (y === this.highest[column]) {
             // Removing the topmost block drops the column's ceiling to the next one down.
@@ -163,8 +192,6 @@ export class GenerationRegion {
             while (next >= this.minY && this.stateAt(x, next, z).name === AIR) next--;
             this.highest[column] = next;
         }
-
-        return true;
     }
 
     /**
@@ -209,6 +236,7 @@ export class GenerationRegion {
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
             setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
             spawnEntity: (type, position, yaw) => this.recordEntity(type, position, yaw),
+            placeTemplate: (request) => this.stampTemplate(request),
             ...(this.options.isColdEnoughToSnow
                 ? {
                       isColdEnoughToSnow: (position: { x: number; y: number; z: number }) =>
@@ -228,19 +256,39 @@ export class GenerationRegion {
         return this.entitySpawns.filter((spawn) => this.isInCenterChunk(Math.floor(spawn.x), Math.floor(spawn.z)));
     }
 
-    /** Every non-air state the center chunk holds, for the translation pass. */
-    public forEachCenterBlock(visit: (localX: number, y: number, localZ: number, state: BlockState) => void): void {
+    /** Every non-air block the center chunk holds, for the translation pass. */
+    public forEachCenterBlock(visit: (localX: number, y: number, localZ: number, block: RegionBlock) => void): void {
         for (let localX = 0; localX < 16; localX++) {
             for (let localZ = 0; localZ < 16; localZ++) {
                 const x = this.chunkX * 16 + localX;
                 const z = this.chunkZ * 16 + localZ;
                 const top = this.highest[this.columnIndex(x, z)]!;
                 for (let y = this.minY; y <= top; y++) {
-                    const state = this.stateAt(x, y, z);
-                    if (state.name !== AIR) visit(localX, y, localZ, state);
+                    const block = this.blockAt(x, y, z);
+                    if (block.java.name !== AIR) visit(localX, y, localZ, block);
                 }
             }
         }
+    }
+
+    /**
+     * Stamps a structure template, which `template` and `fossil` delegate to.
+     *
+     * @returns Whether any block landed, or false on a server that carries no templates, which
+     *   is the same answer the feature gets for a placement the world refused.
+     */
+    private stampTemplate(request: TemplateRequest): boolean {
+        const source = this.options.templates;
+        if (source === undefined) return false;
+
+        const target: TemplateTarget = {
+            blockAt: (x, y, z) => this.stateAt(x, y, z),
+            heightAt: (heightmap, x, z) => this.heightAt(heightmap, x, z),
+            hasTag: (identifier, tag) => this.options.blocks.hasTag({ name: identifier, properties: {} }, tag),
+            write: (x, y, z, state) => this.writeBedrock(x, y, z, state)
+        };
+
+        return placeJavaTemplate(request, source, target, this.options.seed);
     }
 
     /**
@@ -276,10 +324,10 @@ export class GenerationRegion {
     /** A bare identifier as a state, memoized through the palette's own index. */
     private stateOf(name: string): BlockState {
         const slot = this.paletteIndex.get(name);
-        if (slot !== undefined) return this.palette[slot]!;
+        if (slot !== undefined) return this.palette[slot]!.java;
 
         const state: BlockState = { name, properties: {} };
-        this.paletteIndex.set(name, this.palette.push(state) - 1);
+        this.paletteIndex.set(name, this.palette.push({ java: state }) - 1);
         return state;
     }
 
@@ -305,7 +353,26 @@ export class GenerationRegion {
         const existing = this.paletteIndex.get(key);
         if (existing !== undefined) return existing;
 
-        const slot = this.palette.push(state) - 1;
+        const slot = this.palette.push({ java: state }) - 1;
+        this.paletteIndex.set(key, slot);
+        return slot;
+    }
+
+    /**
+     * The palette slot for a Bedrock state, in its own key space.
+     *
+     * The namespace matters: a Java `minecraft:bone_block[axis=y]` and the Bedrock state a
+     * template resolved to the same block are different entries, because only the second one
+     * reaches the chunk without a mapping lookup.
+     */
+    private bedrockSlot(state: BedrockBlockState): number {
+        const keys = Object.keys(state.states).sort();
+        const key = `bedrock|${state.name}[${keys.map((name) => `${name}=${state.states[name]}`).join(',')}]`;
+
+        const existing = this.paletteIndex.get(key);
+        if (existing !== undefined) return existing;
+
+        const slot = this.palette.push({ java: { name: state.name, properties: {} }, bedrock: state }) - 1;
         this.paletteIndex.set(key, slot);
         return slot;
     }

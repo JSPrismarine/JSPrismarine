@@ -55,6 +55,29 @@ export class JavaStateTranslator {
         return runtimeId;
     }
 
+    /**
+     * The runtime id for a Bedrock state that reached the generator already translated, which
+     * is what `@jsprismarine/structures` hands back for a block out of a structure template.
+     *
+     * @returns The id, or {@link UNKNOWN_RUNTIME_ID} when this server's palette has no such
+     *   state, which the caller treats the same way as an unmapped Java one.
+     */
+    public bedrockRuntimeIdOf(name: string, states: Readonly<Record<string, string | number>>): number {
+        const key = `bedrock|${keyOf(name, undefined)}|${Object.keys(states)
+            .sort()
+            .map((state) => `${state}=${states[state]}`)
+            .join(',')}`;
+        const cached = this.runtimeIds.get(key);
+        if (cached !== undefined) return cached;
+
+        const runtimeId = BlockRuntimeIds.tryGetByState(name, states);
+        if (runtimeId === null) this.unmapped.add(key);
+
+        const resolved = runtimeId ?? UNKNOWN_RUNTIME_ID;
+        this.runtimeIds.set(key, resolved);
+        return resolved;
+    }
+
     /** Every Java state the translator could not place, for a generator to report once. */
     public unmappedStates(): readonly string[] {
         return [...this.unmapped];
