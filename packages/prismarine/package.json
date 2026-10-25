@@ -79,6 +79,7 @@
     "dependencies": {
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
+        "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/errors": "workspace:*",
         "@jsprismarine/leveldb": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
