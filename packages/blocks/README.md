@@ -256,6 +256,11 @@ property-table bump is a reviewable diff rather than a silent change at load.
 pnpm --filter @jsprismarine/blocks run generate:overlay
 ```
 
+The script builds the package and then runs `utils/generate-overlay.mjs` over `dist/`. It is plain
+JavaScript on purpose: a generator that imported `src/` would have to spell its specifiers the way
+`node`'s resolver wants, and nothing under `src/` should be shaped by a build script. A dependent
+package needs no `allowImportingTsExtensions` to typecheck against this one.
+
 Each file carries the Bedrock-expressible properties as real Bedrock components, filled from
 `bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus the two components above. The generator
 writes Prettier-shaped JSON so the committed pack passes `prettier --check` with no second pass, and
