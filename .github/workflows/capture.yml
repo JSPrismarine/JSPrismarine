@@ -1,0 +1,109 @@
+name: Capture
+
+# The capture boots a real Bedrock Dedicated Server and generates a reference world, which
+# takes tens of minutes and needs a 315 MB download. It runs on a version bump and weekly, not
+# on every pull request, and it opens a pull request rather than pushing a golden itself.
+#
+# Weekly matters for a reason the research note records: Mojang re-uploads and pulls versions
+# with no retention promise, and a weekly run is what turns "the pinned zip is gone" into a
+# failing job instead of a surprise during the next bump.
+on:
+    schedule:
+        - cron: '17 4 * * 1'
+    push:
+        branches:
+            - master
+        paths:
+            - 'packages/bedrock-data/sources.json'
+            - 'packages/bedrock-data/utils/bedrock-dump/**'
+            - '.github/workflows/capture.yml'
+    workflow_dispatch:
+
+permissions:
+    contents: write
+    pull-requests: write
+
+jobs:
+    capture:
+        name: 📼 Capture the pinned Bedrock Dedicated Server
+        # The pinned zip is the Linux x86-64 build and the job refuses to run anywhere else.
+        runs-on: ubuntu-latest
+        timeout-minutes: 180
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  submodules: 'recursive'
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            - name: ☕ Setup JDK
+              uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6
+              with:
+                  distribution: temurin
+                  java-version: '25'
+
+            - name: Cache the fetched sources
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: node_modules/.cache/jsprismarine
+                  key: ${{ runner.os }}-jsp-sources-${{ hashFiles('packages/bedrock-data/sources.json', 'packages/bedrock-data/pack-hashes.json') }}
+                  restore-keys: |
+                      ${{ runner.os }}-jsp-sources-
+
+            - name: ⬇️ Fetch the pinned sources
+              run: pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+
+            # The packet pass logs a real client into the server, so the client has to be built.
+            - name: 🔨 Build
+              run: pnpm run build
+
+            - name: 📼 Capture the Bedrock goldens
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
+
+            - name: 🏭 Run the Java data generator
+              run: pnpm --filter @jsprismarine/bedrock-data run datagen:java
+
+            - name: 📼 Capture the Java goldens
+              run: pnpm --filter @jsprismarine/bedrock-data run dump:java
+
+            - name: 🔎 Show what moved
+              run: |
+                  git status --short -- packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json
+                  git diff --stat -- packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json
+
+            # The suites read the goldens that were just rewritten, so a capture that broke
+            # something fails here rather than in the pull request it would otherwise open.
+            - name: 🧪 Test the captured goldens
+              run: |
+                  node scripts/real-data-env.mts --github-env
+                  pnpm run test
+
+            - name: 📊 Publish the parity dashboard
+              if: ${{ !cancelled() }}
+              run: pnpm --filter @jsprismarine/parity run dashboard
+
+            - name: 🔀 Open a pull request when a golden moved
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  BASE: ${{ github.ref_name }}
+                  RUN_ID: ${{ github.run_id }}
+              run: |
+                  set -euo pipefail
+                  paths="packages/bedrock-data/src/jsp packages/bedrock-data/pack-hashes.json"
+                  # shellcheck disable=SC2086
+                  if git diff --quiet -- $paths && [ -z "$(git ls-files --others --exclude-standard -- $paths)" ]; then
+                      echo "Every golden is unchanged; nothing to open."
+                      exit 0
+                  fi
+                  branch="capture/${BASE}-${RUN_ID}"
+                  git config user.name 'github-actions[bot]'
+                  git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+                  git switch -c "$branch"
+                  # shellcheck disable=SC2086
+                  git add -- $paths
+                  git commit -m 'chore(bedrock-data): refresh the captured goldens'
+                  git push origin "$branch"
+                  gh pr create --base "$BASE" --head "$branch" \
+                      --title 'chore(bedrock-data): refresh the captured goldens' \
+                      --body "The capture job re-ran against the pinned sources and a golden moved. Review the diff: an upstream change explains it, or the capture itself regressed. Run $RUN_ID."
