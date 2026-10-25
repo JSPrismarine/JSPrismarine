@@ -64,8 +64,8 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | `blocks` | properties | Every Bedrock block state's property row against the Java 26.3 jar dump |
 | `items` | components | Java's items and data component types against the Bedrock item capture |
 | `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
-| `loot` | tables | Java's vanilla loot tables, parsed with their references resolved |
-| `entities` | stats, addactor | Mob health against Java's attribute dump; a packet row per actor type |
+| `loot` | tables, distribution | Java's vanilla loot tables, parsed with their references resolved; rolled counts against the weights each table declares |
+| `entities` | stats, addactor | The nine shared mob stats against Java's attribute dump; a packet row per actor type |
 | `worldgen` | biomes, terrain, features | Java's biome lookups and dumped columns; feature counts |
 | `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
 | `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
@@ -86,10 +86,12 @@ by `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`, or built by not
 naming what is absent in the skipped test's title. The dashboard shows that row as
 `not measured`, which is visually distinct from `green` and does not count toward a pass.
 
-Two sources are in the third state today. No committed golden holds a generated reference
-region, and nothing samples Java's ore and feature counts, so `worldgen.features` reports
-`not measured` and the terrain row's reference region is the nine Java columns the worldgen
-oracle dumped rather than a whole world.
+One source is in the third state today: the reference world `dump:bedrock` generates, which
+carries both the region to count over and `blockCounts`, the block histogram an ore and feature
+count compares against. Mojang publishes Bedrock Dedicated Server as a Linux x86-64 binary and
+the capture job runs it, so the golden comes out of CI rather than off a developer's machine.
+Until it lands, `worldgen.features` reports `not measured`, and the terrain row's reference
+region is the nine Java columns the worldgen oracle dumped rather than a whole world.
 
 ### The allow list
 
