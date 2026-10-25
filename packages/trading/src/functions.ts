@@ -165,14 +165,36 @@ const randomAuxValue: TradeFunctionApplier = (stack, spec, context) => {
     return { stack: withComponent(stack, 'minecraft:aux_value', between(context.random, range.min, range.max)) };
 };
 
-/** The six functions vanilla's trade tables use. */
+/**
+ * `random_block_state`, which replaced `random_aux_value` on the coral trades
+ * between bedrock-samples 1.26.50.4 and BDS 1.26.51.1. Every state a stack
+ * draws accumulates under one component.
+ */
+const randomBlockState: TradeFunctionApplier = (stack, spec, context) => {
+    const name = spec.body.block_state;
+    if (typeof name !== 'string') {
+        context.report?.('trading.badFunction', 'random_block_state needs a string `block_state`');
+        return { stack };
+    }
+    const range = rangeAt(spec.body, 'values', { min: 0, max: 0 });
+    const existing = stack.components.get('minecraft:block_states');
+    const states: Record<string, unknown> =
+        typeof existing === 'object' && existing !== null && !Array.isArray(existing)
+            ? { ...(existing as Record<string, unknown>) }
+            : {};
+    states[name] = between(context.random, range.min, range.max);
+    return { stack: withComponent(stack, 'minecraft:block_states', states) };
+};
+
+/** The seven functions vanilla's trade tables use. */
 export const VANILLA_TRADE_FUNCTIONS: ReadonlyMap<string, TradeFunctionApplier> = new Map([
     ['enchant_with_levels', enchantWithLevels],
     ['enchant_book_for_trading', enchantBookForTrading],
     ['exploration_map', explorationMap],
     ['set_potion', setPotion],
     ['random_dye', randomDye],
-    ['random_aux_value', randomAuxValue]
+    ['random_aux_value', randomAuxValue],
+    ['random_block_state', randomBlockState]
 ]);
 
 /**
