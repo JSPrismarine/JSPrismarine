@@ -51,7 +51,7 @@ export const COMMAND_CATALOG = [
     { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup'), ctrl('u')] },
     { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown'), ctrl('d')] },
     { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [empty('home')] },
-    { id: 'log.bottom', title: 'Jump to bottom and follow', group: 'Log', bindings: [empty('end')] },
+    { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [empty('end')] },
     { id: 'log.search', title: 'Search', group: 'Log', bindings: [empty('/')] },
     { id: 'log.searchNext', title: 'Next match', group: 'Log', bindings: [empty('n')] },
     { id: 'log.searchPrev', title: 'Previous match', group: 'Log', bindings: [empty('n', true)] },
