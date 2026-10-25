@@ -8,6 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Console from './Console';
 import Player from './Player';
 import type Server from './Server';
+import type { WorldManager } from './world/WorldManager';
 import type { Block } from './block/Block';
 import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
@@ -54,6 +55,9 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
+        // A login looks for the player's record in every loaded world, each world keeping its
+        // own: see `lastPlayerRecord`.
+        getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world] }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
         getContent: () => undefined,
