@@ -14,7 +14,7 @@ interface BlockEntityClass {
  * Whether a module export is a block entity class: a function carrying a string ID and a reader.
  * The module exports a helper alongside the classes, so this is what tells them apart.
  */
-const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =>
+const isBlockEntityClass = <T>(candidate: T): candidate is T & BlockEntityClass =>
     typeof candidate === 'function' &&
     'ID' in candidate &&
     typeof candidate.ID === 'string' &&
@@ -33,7 +33,7 @@ const isBlockEntityClass = (candidate: unknown): candidate is BlockEntityClass =
 const MODELED: ReadonlyMap<string, BlockEntityClass> = new Map(
     Object.values(BlockEntities)
         .filter(isBlockEntityClass)
-        .map((candidate) => [candidate.ID, candidate])
+        .map((candidate) => [candidate.ID, candidate] as const)
 );
 
 /**
