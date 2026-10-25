@@ -8,7 +8,9 @@ import { constantRandom } from '@jsprismarine/predicates';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import { advancementsOf } from '../advancement/progress';
 import BlockManager from '../block/BlockManager';
+import { Attributes } from '../entity/Attribute';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
@@ -52,6 +54,38 @@ const ITEMS = ['minecraft:bone_meal', 'minecraft:chest', 'minecraft:stick'];
 
 const DIMENSION = 'minecraft:overworld';
 
+/**
+ * Three advancements, one per block-use trigger the click path raises.
+ *
+ * Trigger only and no conditions: `location_check` resolves the block out of the live world
+ * through the level rather than out of the event, and what is under test here is that the call
+ * site raises the trigger at all.
+ */
+const blockUseAdvancements = () =>
+    new Map([
+        [
+            'test:any_use',
+            definitionOf('advancements', 'test:any_use', {
+                criteria: { used: { trigger: 'minecraft:any_block_use' } },
+                requirements: [['used']]
+            })
+        ],
+        [
+            'test:default_use',
+            definitionOf('advancements', 'test:default_use', {
+                criteria: { used: { trigger: 'minecraft:default_block_use' } },
+                requirements: [['used']]
+            })
+        ],
+        [
+            'test:item_used',
+            definitionOf('advancements', 'test:item_used', {
+                criteria: { used: { trigger: 'minecraft:item_used_on_block' } },
+                requirements: [['used']]
+            })
+        ]
+    ]);
+
 /** One block definition, read from the overlay the server itself loads. */
 const overlayBlock = (identifier: string) => {
     const file = join(overlayPackPath(), 'blocks', `${identifier.slice('minecraft:'.length)}.block.json`);
@@ -59,7 +93,10 @@ const overlayBlock = (identifier: string) => {
 };
 
 /** A `World` reduced to what the interaction path touches, on a real chunk and real systems. */
-const liveWorld = (blockManager: BlockManager): { world: World; chunk: Chunk; sounds: string[] } => {
+const liveWorld = (
+    blockManager: BlockManager,
+    content: () => ServerContent
+): { world: World; chunk: Chunk; sounds: string[] } => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
 
@@ -76,6 +113,9 @@ const liveWorld = (blockManager: BlockManager): { world: World; chunk: Chunk; so
             getBlockManager: () => blockManager,
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
             getItemManager: () => ({ getItem: () => null }),
+            // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
+            // to land. Read late, because the content is built over this world.
+            getContent: () => content(),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} })
         }
     });
@@ -120,6 +160,13 @@ const playerHolding = (world: World, identifier: string, sneaking = false): Play
         getNetworkSession: () => session,
         getRuntimeId: () => 7n,
         getPosition: () => new Vector3(1.5, 65, 1.5),
+        getName: () => 'tester',
+        getType: () => 'minecraft:player',
+        getEquipment: () => ({}),
+        attributes: new Attributes(Attributes.getPlayerDefaults()),
+        metadata: { sprinting: false },
+        isFlying: () => false,
+        getSaturation: () => 5,
         getFallDistance: () => 0,
         getFood: () => 20,
         isOnGround: () => true,
@@ -144,9 +191,9 @@ describe('useItemOnBlock', () => {
 
     beforeEach(() => {
         const blockManager = new BlockManager({ getLogger: () => ({ verbose: () => {} }) } as never);
-        ({ world, chunk, sounds } = liveWorld(blockManager));
-
         let built: ServerContent | undefined;
+        ({ world, chunk, sounds } = liveWorld(blockManager, () => built!));
+
         handle = serverWorldSource({
             worldFor: () => world,
             content: () => built!,
@@ -158,7 +205,10 @@ describe('useItemOnBlock', () => {
 
         content = buildServerContent({
             load: () => ({
-                definitions: definitionsOf({ blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])) }),
+                definitions: definitionsOf({
+                    blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
+                    advancements: blockUseAdvancements()
+                }),
                 diagnostics: []
             }),
             blockPalette: new BlockPalette(
@@ -239,6 +289,39 @@ describe('useItemOnBlock', () => {
         expect(session.opened[0]!.contents[0]!.getCount()).toBe(5);
         expect(session.opened[0]!.contents[1]!.toItemStack().getName()).toBe('minecraft:air');
         expect(sounds).toContain('random.chestopen');
+    });
+
+    /** Whether a player earned one of the fixture's advancements. */
+    const earned = (player: Player, id: string): boolean => {
+        const advancement = content.advancements.get(id);
+        return advancement !== undefined && advancementsOf(player).isDone(advancement);
+    };
+
+    it('raises the block-use triggers when the block took the click', () => {
+        place(chunk, { x: 2, y: 63, z: 2 }, 'minecraft:stone');
+        place(chunk, { x: 2, y: 64, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: false, open_bit: false });
+        place(chunk, { x: 2, y: 65, z: 2 }, 'minecraft:wooden_door', { upper_block_bit: true, open_bit: false });
+
+        const player = playerHolding(world, 'minecraft:stick');
+        click(player, { x: 2, y: 64, z: 2 });
+
+        expect(earned(player, 'test:any_use')).toBe(true);
+        expect(earned(player, 'test:default_use')).toBe(true);
+        expect(earned(player, 'test:item_used')).toBe(false);
+    });
+
+    it('raises item_used_on_block when the item took the click', () => {
+        place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:farmland', { moisturized_amount: 7 });
+        place(chunk, { x: 6, y: 64, z: 6 }, 'minecraft:wheat', { growth: 0 });
+        world.getSystems().onChunkLoaded(0, 0);
+        world.getSystems().lighting.flush();
+
+        const player = playerHolding(world, 'minecraft:bone_meal');
+        click(player, { x: 6, y: 64, z: 6 });
+
+        expect(earned(player, 'test:item_used')).toBe(true);
+        expect(earned(player, 'test:any_use')).toBe(true);
+        expect(earned(player, 'test:default_use')).toBe(false);
     });
 
     it('opens nothing for a block that has no screen', async () => {

@@ -17,6 +17,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
 
+import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { DamageCause } from '../entity/DamageCause';
@@ -203,6 +204,10 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         held.durability = Math.max(0, held.durability - amount);
 
         if (broke) inventory.setItemInHand(new ContainerEntry({ item: held, count: 0 }));
+
+        // After the write, so what the trigger reports is the stack as it now
+        // stands rather than as it stood before the hit.
+        advancementDurabilityChanged(entity, held, held.durability, amount);
     };
 
     const teleportRandomly = (source: ItemSource, radius: number): void => {
@@ -232,7 +237,15 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         switch (action.kind) {
             case 'feed': {
                 const entity = entityOf(action.target);
-                if (entity instanceof Player) entity.addFood(action.nutrition, action.saturation);
+                if (!(entity instanceof Player)) return;
+
+                entity.addFood(action.nutrition, action.saturation);
+
+                // The action names the nutrition and not the food, so what was
+                // eaten is read out of the hand. `minecraft:consumable` raises
+                // this while the stack is still there: the behavior returns the
+                // reduced stack to its caller, which writes it back afterwards.
+                advancementConsumedItem(entity, entity.getInventory().getItemInHand());
                 return;
             }
             case 'damage-entity': {

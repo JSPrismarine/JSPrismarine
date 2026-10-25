@@ -4,7 +4,7 @@ import { buildServerContent } from '../content/ServerContent';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureItemDefinitions } from '../content/testing';
-import type Player from '../Player';
+import Player from '../Player';
 import type Server from '../Server';
 import type { World } from '../world/World';
 import { Attributes } from '../entity/Attribute';
@@ -13,9 +13,19 @@ import type { Entity } from '../entity/Entity';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
 import { Item } from '../item/Item';
-import { stub } from '../testing/stub.test.helper';
+import { createItemActorPort } from '../item/actorPort';
+import type { ContentEntityAccess } from '../content/world/adapter';
+import { unwiredWorld } from '../content/world/unwired';
+import { stub, stubOf } from '../testing/stub.test.helper';
 import { advancementsOf, loadAdvancements, storedAdvancements } from './progress';
-import { advancementItemCrafted, advancementKill, advancementPickedUpItem, advancementPlayerTick } from './triggers';
+import {
+    advancementBlockUsed,
+    advancementItemCrafted,
+    advancementItemUsedOnBlock,
+    advancementKill,
+    advancementPickedUpItem,
+    advancementPlayerTick
+} from './triggers';
 
 /**
  * A player earning vanilla advancements by playing.
@@ -133,6 +143,64 @@ const advancementDefinitions = () =>
                 criteria: { anywhere: { trigger: 'minecraft:location' } },
                 requirements: [['anywhere']]
             })
+        ],
+        [
+            // Verbatim from Java 26.3, display aside: one criterion with no
+            // conditions at all, so the first thing a player eats opens the
+            // whole husbandry branch.
+            'minecraft:husbandry/root',
+            definitionOf('advancements', 'minecraft:husbandry/root', {
+                criteria: { consumed_item: { trigger: 'minecraft:consume_item' } },
+                requirements: [['consumed_item']]
+            })
+        ],
+        [
+            'minecraft:story/wear_out_a_pickaxe',
+            definitionOf('advancements', 'minecraft:story/wear_out_a_pickaxe', {
+                criteria: {
+                    worn: {
+                        conditions: { item: { items: 'minecraft:diamond_pickaxe' }, durability: { max: 2 } },
+                        trigger: 'minecraft:item_durability_changed'
+                    }
+                },
+                requirements: [['worn']]
+            })
+        ],
+        [
+            // No conditions, because `location_check` resolves the block out of
+            // the live world through the level rather than out of the event, and
+            // this fixture has no world. The trigger is what is under test here.
+            'minecraft:story/use_a_block',
+            definitionOf('advancements', 'minecraft:story/use_a_block', {
+                criteria: { touched: { trigger: 'minecraft:default_block_use' } },
+                requirements: [['touched']]
+            })
+        ],
+        [
+            'minecraft:story/use_a_pickaxe_on_a_lamp',
+            definitionOf('advancements', 'minecraft:story/use_a_pickaxe_on_a_lamp', {
+                criteria: {
+                    used: {
+                        conditions: {
+                            location: [
+                                {
+                                    type: 'minecraft:match_tool',
+                                    predicate: { items: 'minecraft:diamond_pickaxe' }
+                                }
+                            ]
+                        },
+                        trigger: 'minecraft:item_used_on_block'
+                    }
+                },
+                requirements: [['used']]
+            })
+        ],
+        [
+            'minecraft:story/touch_anything',
+            definitionOf('advancements', 'minecraft:story/touch_anything', {
+                criteria: { touched: { trigger: 'minecraft:any_block_use' } },
+                requirements: [['touched']]
+            })
         ]
     ]);
 
@@ -162,16 +230,29 @@ const content = (): ServerContent =>
         itemDefinitions: fixtureItemDefinitions()
     });
 
-/** A player with an inventory, the attributes a subject reads, and a world to announce into. */
+/** Whoever is holding the item, as the item runtime names one, matched to the player below. */
+const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
+
+/**
+ * A player with an inventory, the attributes a subject reads, and a world to announce into.
+ *
+ * The item actor port is the real one, built over the same player, so the two triggers whose
+ * call site is inside it are driven by the call site rather than by the helper.
+ */
 const scene = ({ withContent = true }: { withContent?: boolean } = {}) => {
     const built = withContent ? content() : undefined;
     const announced: Array<{ key: string; parameters: string[] }> = [];
     const inventory = new HumanInventory();
 
     const server = stub<Server>({ getContent: () => built });
-    const world = stub<World>({ getPlayers: () => [player] });
+    const world = stub<World>({
+        getPlayers: () => [player],
+        getEntity: (runtimeId: bigint) => (runtimeId === 7n ? player : null),
+        loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }) as never,
+        getServer: () => server
+    });
 
-    const player: Player = stub<Player>({
+    const player: Player = stubOf(Player, {
         getType: () => 'minecraft:player',
         getName: () => 'tester',
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
@@ -186,12 +267,19 @@ const scene = ({ withContent = true }: { withContent?: boolean } = {}) => {
         isFlying: () => false,
         getFood: () => 20,
         getSaturation: () => 5,
+        addFood: () => {},
         sendMessage: async (message: string, _type?: number, parameters: string[] = []) => {
             announced.push({ key: message, parameters });
         }
     });
 
-    return { player, inventory, announced };
+    const port = createItemActorPort({
+        world: () => world,
+        entities: stub<ContentEntityAccess>({ drop: () => {} }),
+        level: { ...unwiredWorld().level, gameTime: () => 0 }
+    });
+
+    return { player, inventory, announced, port };
 };
 
 const mob = (type: string): Entity =>
@@ -303,6 +391,64 @@ describe('earning vanilla advancements by playing', () => {
         expect(announced).toEqual([
             { key: 'chat.type.achievement', parameters: ['tester', 'advancements.story.mine_stone.title'] }
         ]);
+    });
+
+    it('earns husbandry/root the first time the player eats anything', () => {
+        const { player, port, inventory } = scene();
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 }));
+
+        expect(done(player, 'minecraft:husbandry/root')).toBe(false);
+
+        // Through the port's own `feed`, which is where `minecraft:consumable`
+        // lands, rather than through the trigger helper.
+        port.perform({ kind: 'feed', target: SOURCE, nutrition: 4, saturation: 2.4 });
+
+        expect(done(player, 'minecraft:husbandry/root')).toBe(true);
+    });
+
+    it('earns a durability advancement from the hit that wore the tool down', () => {
+        const { player, port, inventory } = scene();
+        const pickaxe = new Item({ name: 'minecraft:diamond_pickaxe' });
+        inventory.setItem(0, new ContainerEntry({ item: pickaxe, count: 1 }));
+        pickaxe.durability = 4;
+
+        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: false });
+        expect(done(player, 'minecraft:story/wear_out_a_pickaxe')).toBe(false);
+
+        // One more, which takes it to the single point the criterion asks for.
+        port.perform({ kind: 'consume-durability', source: SOURCE, amount: 1, broke: false });
+        expect(done(player, 'minecraft:story/wear_out_a_pickaxe')).toBe(true);
+    });
+
+    it('earns the block-use advancements from a block that took the click', () => {
+        const { player } = scene();
+        const event = { origin: { x: 1, y: 64, z: 2 }, block: 'minecraft:redstone_lamp' };
+
+        advancementBlockUsed(player, event, true);
+
+        expect(done(player, 'minecraft:story/use_a_block')).toBe(true);
+        expect(done(player, 'minecraft:story/touch_anything')).toBe(true);
+    });
+
+    it('leaves default_block_use alone when the item took the click instead', () => {
+        const { player } = scene();
+        const event = { origin: { x: 1, y: 64, z: 2 }, block: 'minecraft:redstone_lamp' };
+
+        advancementBlockUsed(player, event, false);
+
+        expect(done(player, 'minecraft:story/use_a_block')).toBe(false);
+        expect(done(player, 'minecraft:story/touch_anything')).toBe(true);
+    });
+
+    it('earns item_used_on_block from the tool that did it', () => {
+        const { player } = scene();
+        const event = { origin: { x: 1, y: 64, z: 2 }, block: 'minecraft:redstone_lamp' };
+
+        advancementItemUsedOnBlock(player, { ...event, tool: new Item({ name: 'minecraft:stone' }) });
+        expect(done(player, 'minecraft:story/use_a_pickaxe_on_a_lamp')).toBe(false);
+
+        advancementItemUsedOnBlock(player, { ...event, tool: new Item({ name: 'minecraft:diamond_pickaxe' }) });
+        expect(done(player, 'minecraft:story/use_a_pickaxe_on_a_lamp')).toBe(true);
     });
 
     it('raises nothing at all when the server built no content', () => {

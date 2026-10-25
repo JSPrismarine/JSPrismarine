@@ -29,6 +29,7 @@ import type { ItemSource } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
+import { advancementBlockUsed, advancementItemUsedOnBlock } from '../advancement/triggers';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import ContainerEntry from '../inventory/ContainerEntry';
@@ -118,6 +119,13 @@ const placeBlock = (interaction: BlockInteraction, identifier: string, face: Blo
     blocks.playSound(target, 'place');
     return true;
 };
+
+/** The clicked block's position as the advancement conditions read one. */
+const origin = (interaction: BlockInteraction) => ({
+    x: interaction.position.x,
+    y: interaction.position.y,
+    z: interaction.position.z
+});
 
 /** What a block is holding, off its block entity record, one entry per slot the screen shows. */
 const storedContents = (interaction: BlockInteraction, slots: number): ContainerEntry[] => {
@@ -218,8 +226,11 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             // are different halves of one click: a barrel's family sets `open_bit` and returns
             // `true`, a chest's plays the open sound and declines, and neither opens a screen -
             // `jsprismarine:utility` says in as many words that the screens belong here.
-            if (openContainer(interaction, block)) return 'handled';
-            if (consumed === true) return 'handled';
+            const opened = openContainer(interaction, block);
+            if (opened || consumed === true) {
+                advancementBlockUsed(player, { origin: origin(interaction), block: block.identifier }, true);
+                return 'handled';
+            }
         }
 
         if (stack !== undefined) {
@@ -231,7 +242,14 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
                 blockFace: face,
                 faceLocation: interaction.faceLocation
             });
-            if (used !== undefined) return 'handled';
+            if (used !== undefined) {
+                // Java raises both: `any_block_use` for every interaction with a block, and
+                // `item_used_on_block` for the item that did it, whose conditions see the tool.
+                const event = { origin: origin(interaction), block: block.identifier, tool: held };
+                advancementBlockUsed(player, event, false);
+                advancementItemUsedOnBlock(player, event);
+                return 'handled';
+            }
         }
 
         return placeBlock(interaction, held.getName(), face) ? 'handled' : 'declined';
