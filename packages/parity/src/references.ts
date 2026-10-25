@@ -1,6 +1,13 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+// The generator's own loader decides where the datapack and the data generator reports are,
+// including the two environment overrides it documents. Asking it is the only way a row that
+// depends on that data agrees with the generator about whether this checkout has it. The
+// module imports nothing but `node:fs` and `node:path`, so `scripts/dashboard.ts` can load it
+// under plain node.
+import { findJavaWorldgenSources } from '@jsprismarine/prismarine/world/generators/datadriven/javaWorldgenData';
+
 /**
  * Where each comparison's reference data comes from, and whether this checkout has it.
  *
@@ -25,6 +32,17 @@ export const FETCH_CACHE = join(repoRoot, 'node_modules/.cache/jsprismarine');
 
 /** Where `dump:bedrock` writes the reference world golden, relative to the repository root. */
 export const REFERENCE_WORLD_PATH = 'packages/bedrock-data/src/jsp/reference_world.json';
+
+/** Where `capture:corpus` writes the generation corpus golden, relative to the repository root. */
+export const GENERATION_CORPUS_PATH = 'packages/parity/goldens/worldgen-corpus.json';
+
+/**
+ * The Java Edition version the pinned datapack and data generator reports come from.
+ *
+ * The generation corpus is a recording of what the server produced against one version of that
+ * data, so a bump makes the recording stale. The corpus rows read this and say so.
+ */
+export const pinnedJavaDataVersion = (): string | undefined => pinnedJavaVersion();
 
 /** How a reference source reaches this checkout. */
 export type ReferenceKind =
@@ -157,6 +175,35 @@ export const REFERENCES = {
         'packages/worldgen/vectors/biome-points.json',
         "Java's multi-noise biome lookups for the overworld and the end"
     ),
+
+    /**
+     * The generation corpus: what this server's chunk generator produced at a named commit.
+     *
+     * The only reference here the server itself wrote, so it measures change rather than
+     * parity with Java. `packages/parity/README.md` under "The generation corpus" says what
+     * that row does and does not claim.
+     */
+    generationCorpus: committed(
+        'generation-corpus',
+        GENERATION_CORPUS_PATH,
+        "digests, whole chunks, a block census and the structure placements of this server's own generator"
+    ),
+
+    /**
+     * Java's world generation registries: the vanilla datapack and the data generator reports.
+     *
+     * Together they are what the data-driven generator reads, so a row that regenerates a chunk
+     * needs both. The generator's own loader finds them, including its two path overrides.
+     */
+    javaWorldgenData: {
+        id: 'java-worldgen-data',
+        kind: 'fetched',
+        holds: "Java's density functions, biomes, features, structures and the 7594 climate boxes",
+        howToGet:
+            'run `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` and ' +
+            '`pnpm --filter @jsprismarine/bedrock-data run datagen:java`',
+        locate: () => findJavaWorldgenSources()?.datapack
+    },
 
     /** The pinned Java server jar, which carries the vanilla datapack. */
     javaServerJar: {

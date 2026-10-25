@@ -6,7 +6,9 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import type { ClimateEntry } from '@jsprismarine/worldgen';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 
-import { REFERENCES, REFERENCE_WORLD_PATH } from './references.ts';
+import type { GenerationCorpusGolden } from './generation/golden.ts';
+import { GENERATION_CORPUS_FORMAT } from './generation/golden.ts';
+import { GENERATION_CORPUS_PATH, REFERENCES, REFERENCE_WORLD_PATH, pinnedJavaDataVersion } from './references.ts';
 
 /**
  * Loaders for the reference data the repository already carries: the captures under
@@ -365,6 +367,53 @@ export const loadReferenceWorld = (): ReferenceWorldGolden => {
     }
     if (!Array.isArray(golden.chunks) || golden.chunks.length === 0 || typeof golden.blockCounts !== 'object') {
         throw new Error(`${REFERENCE_WORLD_PATH} carries no chunks or no block histogram`);
+    }
+
+    return golden;
+};
+
+/**
+ * Reads the generation corpus golden and checks it is the shape and the vintage the rows expect.
+ *
+ * Two things can make the file unreadable rather than merely different. A format version the
+ * rows were not written against means a field may have changed meaning, and a Java data version
+ * other than the one the capture ran against means every block in the file was generated from
+ * different inputs. Both throw with what to do, because a corpus row that quietly compared a
+ * stale recording would be worse than no row.
+ *
+ * @throws {Error} When the file is absent, its format version is not
+ *   {@link GENERATION_CORPUS_FORMAT}, or it was captured against a different Java data version.
+ */
+export const loadGenerationCorpus = (): GenerationCorpusGolden => {
+    const path = REFERENCES.generationCorpus.locate();
+    if (path === undefined) {
+        throw new Error(
+            `${GENERATION_CORPUS_PATH} is not in this checkout; run ` +
+                '`pnpm --filter @jsprismarine/parity run capture:corpus` to write it'
+        );
+    }
+
+    // Parsed JSON boundary; the fields are checked below before anything reads them.
+    const golden = readJson(path) as GenerationCorpusGolden;
+    if (golden.formatVersion !== GENERATION_CORPUS_FORMAT) {
+        throw new Error(
+            `${GENERATION_CORPUS_PATH} is format version ${golden.formatVersion}, and the worldgen rows are ` +
+                `written against ${GENERATION_CORPUS_FORMAT}. Reread packages/parity/README.md under "The ` +
+                'generation corpus" and update the rows before trusting them.'
+        );
+    }
+
+    const pinned = pinnedJavaDataVersion();
+    if (pinned !== undefined && golden.provenance.javaVersion !== pinned) {
+        throw new Error(
+            `${GENERATION_CORPUS_PATH} was captured against Java ${golden.provenance.javaVersion} and this ` +
+                `checkout pins Java ${pinned}. The generator reads that data, so the corpus is stale: ` +
+                'recapture it with `pnpm --filter @jsprismarine/parity run capture:corpus`.'
+        );
+    }
+
+    if (golden.chunks.length === 0 || golden.samples.length === 0) {
+        throw new Error(`${GENERATION_CORPUS_PATH} carries no chunks or no whole-chunk sample`);
     }
 
     return golden;
