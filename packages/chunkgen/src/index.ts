@@ -29,3 +29,11 @@ export type {
     ProtoEntitySpawn
 } from './ProtoChunk';
 export { ChunkStatusRegressionError, HEIGHTMAPS, ProtoChunk, ProtoChunkDetachedError } from './ProtoChunk';
+export type { StagedChunk } from './StagedChunk';
+export type { FeaturePatchOffset } from './FeaturePatch';
+export {
+    DuplicateFeaturePatchError,
+    FEATURE_PATCH_ORDER,
+    FeaturePatchOutOfRangeError,
+    InboundFeaturePatches
+} from './FeaturePatch';
