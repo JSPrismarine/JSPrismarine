@@ -104,6 +104,10 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
             // type the vanilla pools use, and only a rigid element is bearded.
             groundLevelDelta: GROUND_LEVEL_DELTA,
             ignoresTerrainAdaptation: element.projection !== 'rigid',
+            // Java places a legacy element through `BlockIgnoreProcessor.STRUCTURE_AND_AIR`,
+            // so the air inside a village house leaves the ground under it alone instead of
+            // punching a hole in the hillside the house is bearded into.
+            overwrite: element.type !== 'minecraft:legacy_single_pool_element',
             ...(element.processors === undefined
                 ? {}
                 : { processors: element.processors satisfies ProcessorsReference })
