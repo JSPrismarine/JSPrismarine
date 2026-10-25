@@ -1,4 +1,4 @@
-import { clamp, f32, floor, floorDiv, floorMod, lerp3F, lerpF } from '../math';
+import { clamp, f32, floor, floorDiv, floorMod, lerpF } from '../math';
 import { BLENDED_NOISE_SEED, createBlendedNoiseSampler } from '../noise/BlendedNoise';
 import type { Noise } from '../noise/GradientNoise';
 import { SimplexNoise } from '../noise/SimplexNoise';
