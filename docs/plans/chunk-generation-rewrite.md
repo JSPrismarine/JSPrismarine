@@ -33,7 +33,7 @@ Name them by these labels; later slices refer to them.
 | Label | Command | What it holds |
 | --- | --- | --- |
 | **corpus** | `pnpm --filter @jsprismarine/parity run test` then `pnpm --filter @jsprismarine/parity run dashboard` | `worldgen.terrain`, `worldgen.corpus`, `worldgen.structures` and `worldgen.determinism` stay green, and no other row turns red or `defects` |
-| **generator** | `JSP_WORLDGEN_VANILLA=1 pnpm vitest run packages/prismarine/src/world/generators` | the gated suite, real structures in real chunks |
+| **generator** | `pnpm vitest run packages/prismarine/src/world/generators` | the gated suite, real structures in real chunks |
 | **sampler** | `pnpm --filter @jsprismarine/worldgen exec vitest run src/chunk/golden.test.ts` | six whole chunks, sha256, bit for bit |
 | **types** | `pnpm run typecheck` | 43 of 43, test files included |
 

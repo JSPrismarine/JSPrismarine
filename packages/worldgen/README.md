@@ -37,9 +37,7 @@ those and compare exactly, not within a tolerance. What matches today:
 | Overworld chunk columns with aquifers applied | 9 columns, 384 blocks each | exact |
 
 Refresh the vectors with `pnpm --filter @jsprismarine/worldgen run vectors`, which needs the
-pinned jar (`pnpm --filter @jsprismarine/bedrock-data run dump:java`) and a JDK 25 or newer. The
-tests that read the jar directly, rather than the committed vectors, are gated behind
-`JSP_WORLDGEN_VANILLA=1`; without it they skip and the rest of the suite still runs.
+pinned jar (`pnpm --filter @jsprismarine/bedrock-data run dump:java`) and a JDK 25 or newer.
 
 26.3 computes the whole density and noise stack in single precision. This package rounds through
 `Math.fround` at every point Java narrows a value, which is why the comparisons above are exact
@@ -250,8 +248,7 @@ into the working directory.
 `density_function`, `noise`, `noise_settings` and biome climate documents straight out of the jar,
 so the whole suite runs with no jar present. Each document is one compact JSON string, because
 Prettier reformats nested JSON into one field per line and that turns the 55 density functions
-into 600 KB of whitespace. One test compares the committed identifiers against the jar when
-`JSP_WORLDGEN_VANILLA` is set, which is what catches drift after a version bump.
+into 600 KB of whitespace.
 
 ### Decisions
 

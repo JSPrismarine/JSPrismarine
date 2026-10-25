@@ -17,7 +17,7 @@ import { CHUNK_SIZE, ChunkSampler } from './ChunkSampler';
  *
  * The hashes were captured from the implementation those jar vectors verified. A deliberate
  * change to the terrain has to replace them, and the replacement is only trustworthy if the
- * jar-vector tests pass first: run `JSP_WORLDGEN_VANILLA=1 vitest run src/chunk` and take the
+ * jar-vector tests pass first: run `vitest run src/chunk` and take the
  * digests this test reports.
  */
 

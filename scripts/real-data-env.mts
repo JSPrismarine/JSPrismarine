@@ -1,4 +1,4 @@
-import { existsSync, appendFileSync, readFileSync, readdirSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -127,8 +127,7 @@ const GATES = [
     'JSP_VANILLA_ENTITIES',
     'JSP_VANILLA_RECIPES',
     'JSP_VANILLA_SPAWN_RULES',
-    'JSP_VANILLA_TRADE_TABLES',
-    'JSP_WORLDGEN_VANILLA'
+    'JSP_VANILLA_TRADE_TABLES'
 ] as const;
 
 const missing = paths.filter((required) => !existsSync(required.value));

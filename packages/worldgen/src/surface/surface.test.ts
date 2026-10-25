@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 
-import { loadVanillaWorldgenData } from '../../vectors/javaWorldgenData';
 import biomeVectors from '../../vectors/biome-points.json' with { type: 'json' };
+import { loadVanillaWorldgenData } from '../../vectors/javaWorldgenData';
 import columnVectors from '../../vectors/surface-columns.json' with { type: 'json' };
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
 import type { BiomeClimate, BiomeClimateLookup } from '../biome/BiomeClimate';
@@ -133,8 +133,8 @@ const runsOf = (chunk: BlockArraySurfaceChunk, blockX: number, blockZ: number): 
 };
 
 /**
- * These run only with `JSP_WORLDGEN_VANILLA` set, because they read the pinned Java Edition
- * server jar, which a clean checkout does not have. Everything else in this file reads the
+ * These read the pinned Java Edition server jar,
+ * which a clean checkout does not have. Everything else in this file reads the
  * committed vectors instead, so the default run stays offline.
  */
 describe.skipIf(!loadVanillaWorldgenData())('the committed registry documents against the jar', () => {

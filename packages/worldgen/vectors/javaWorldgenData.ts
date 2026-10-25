@@ -108,17 +108,12 @@ export interface VanillaWorldgenData {
 
 /**
  * Loads the real vanilla worldgen registries out of the pinned Java Edition server jar.
- *
- * Returns undefined unless `JSP_WORLDGEN_VANILLA` is set, because the jar is a fetched
- * artifact that a clean checkout does not have. `JSP_JAVA_SERVER_JAR` points at an unpacked
- * inner server jar for an offline run.
  */
 export const loadVanillaWorldgenData = (): VanillaWorldgenData | undefined => {
-    if (!process.env['JSP_WORLDGEN_VANILLA']) return undefined;
     const jar = innerJarPath();
     if (!jar) {
         throw new Error(
-            'JSP_WORLDGEN_VANILLA is set but the pinned Java server jar is not unpacked. Run ' +
+            'The pinned Java server jar is not unpacked. Run ' +
                 '`pnpm --filter @jsprismarine/bedrock-data run dump:java` or point JSP_JAVA_SERVER_JAR at one.'
         );
     }
