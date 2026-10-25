@@ -3,6 +3,7 @@ export * from './block/';
 export * from './command/';
 export * from './config/';
 export * from './console/';
+export * from './content/';
 export * from './entity/';
 export * from './inventory/';
 export * from './item/';

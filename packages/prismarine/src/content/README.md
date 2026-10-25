@@ -1,0 +1,172 @@
+# The content composition root
+
+Twenty packages each own one content domain and none of them knows the others exist. This directory
+is the only place that does. It loads a pack stack, resolves every domain against it, and hands the
+server one object, `ServerContent`.
+
+It also owns the other half of that job: the single world interface the four migrating subsystems
+implement, out of which the nine world interfaces those packages declare are projected.
+
+Nothing here is on by default. `config.yaml`'s `content-packs` starts at `false`, so the server
+boots on the managers it has always used while the subsystems move across one at a time.
+
+## What one build produces
+
+Against the pinned BDS 1.26.51 pack, the `jsprismarine_vanilla` overlay and the Java 26.3 vanilla
+datapack, `buildServerContent()` takes about 3.6 seconds and reports no errors:
+
+| Registry | Count |
+| --- | --- |
+| Blocks, and palette states | 1477, 22079 |
+| Items | 1613 |
+| Entity types, of which brain mobs | 136, 20 |
+| Recipes | 2042 |
+| Loot tables | 1447 |
+| Enchantments | 43 |
+| Spawn rules | 60 |
+| Trade tables | 18 |
+| Biomes | 89 |
+| Features, feature rules | 210, 241 |
+| Tags, over 20 tagged registries | 883 |
+
+## Composition order
+
+The order is forced. Each step needs the one before it, and three of the dependencies run backwards,
+which is why the code looks the way it does.
+
+1. **Resolve the pack stack.** `resolvePackStack` assembles the composed vanilla Bedrock pack, this
+   project's `jsprismarine_vanilla` overlay from `@jsprismarine/blocks`, the Java vanilla datapack,
+   then the world's packs and the plugins', in that order. Mojang's two halves are fetched rather
+   than published with this server, so a member whose directory is not on disk is reported as a
+   `pack.missing` warning and left out. `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK`
+   point at local copies, and an override that points at nothing is an omission rather than a
+   fallback to the cache.
+2. **Load it.** `@jsprismarine/packs` composes the stack into one `Definitions` object, with
+   Bedrock definitions replaced whole by a later pack and Java tags merged across packs.
+3. **Build the world views.** `contentWorldViews` projects the nine content world interfaces out of
+   the one `ServerWorldAdapter`. It is built before the content, because the behavior families take
+   a world at registration time, and it reads the content back through a lookup closure, because a
+   behavior reads a block's properties at hook time. That is the first backwards dependency.
+4. **Register the block behavior families, then resolve the blocks.** `resolveBlocks` attaches the
+   49 families as it resolves, so they have to exist first.
+5. **Register the item behavior families, then resolve the items.** The 47 families build item
+   stacks through an `ItemFactory` over a registry that does not exist until they are registered,
+   so the factory is `deferredItemFactory()` and is bound afterwards. Second backwards dependency.
+6. **Build the entity component registry, then load the entities.** `createGoalEntityRegistry`
+   registers all 170 goals before `@jsprismarine/entities`'s reference components, because that
+   registration skips names already taken and the goals are the implementations the server wants.
+   Third backwards dependency.
+7. **Merge the tags, then load the recipes.** A `#tag` ingredient parses as accepting nothing
+   without a tag lookup.
+8. **Parse the rest**: loot, advancements, enchantments, spawn rules, trade tables, biomes,
+   features.
+9. **Flatten.** `flattenBlockStates` and `flattenItemFacts` precompute the hot columns into typed
+   arrays indexed by runtime id, which is what the tick loop, the light engine and the explosion
+   code read instead of calling through a type.
+
+A content reload replaces the whole build. Registry ids are positional, so hold a key or a `Holder`
+across one, never a number.
+
+## Testing without Mojang's data
+
+`testing.ts` builds the same `ServerContent` out of a handful of definitions and a two-block
+palette, through the real loaders and the real families:
+
+```typescript
+import { buildServerContent } from './ServerContent';
+import { fixtureContentOptions } from './testing';
+
+const content = buildServerContent(fixtureContentOptions({ world: singleDimension(myAdapter) }));
+```
+
+Every source is injectable. `ContentOptions.load` replaces the pack loader, `blockPalette` replaces
+the captured 22079-state palette with one that matches the fixture, and `itemDefinitions` replaces
+Java's committed item table. A test that genuinely needs the fetched data gates itself behind
+`JSP_CONTENT_VANILLA`; see the last `describe` in `packStack.test.ts`.
+
+A tiny stack needs a tiny palette. Flattening fails on a runtime id no definition covered, which is
+the point of it, so loading two blocks against the vanilla palette fails by design.
+
+## The adapter surface
+
+`ServerWorldAdapter` in [`world/adapter.ts`](world/adapter.ts) is the one interface the following
+subsystems implement. `contentWorldViews` turns it into the nine the content packages declare:
+
+| Package | Interface it declares | Where it comes from |
+| --- | --- | --- |
+| `block-behaviors` | `BlockWorld` and its `WorldActions` | `level`, `blocks`, `entities`, `effects`, `ticks`, `random`, plus `jsprismarine:block_properties` out of the resolved block types |
+| `item-behaviors` | `WorldActions`, a different interface of the same name | `blocks` and `random` for two members, the optional `items` group for the other seven |
+| `lighting` | `BlockLightView` | `level` and `blocks`, with the two per-state numbers read out of the flattened block table |
+| `engine-systems` | `WorldAccess` | the six core groups, renamed; nothing optional |
+| `spawning` | `SpawnWorld` | the core groups, plus the optional `spawning` group for `site`, `poolCount` and `mobEventActive` |
+| `entity-goals` | `GoalWorld` | the optional `ai` group, per entity |
+| `entities` | `EntityActuator` | the optional `ai` group, per entity |
+| `entity-brains` | `BrainWorld` | the optional `ai` group |
+| `features` | `FeatureWorld` | the optional `generation` group, per decorated chunk |
+| `commands` | `CommandHost` | the optional `commands` group, once `@jsprismarine/commands` is a dependency |
+
+Six groups are required and five are optional. A projection that needs an absent group throws
+`NotWiredError`, which names the member and the subsystem that owes it. Nothing returns a value it
+guessed: a spawn rule reading light level 0 everywhere looks like a dark world rather than like
+missing code, and that is the failure this rule exists to prevent.
+
+`unwiredWorld()` is an adapter whose every member throws. It is the default, so content builds with
+no world at all and the first hook that touches the world says what is missing.
+
+## What each of the four subsystems implements
+
+Each owns part of one object. Build it per dimension and hand a `ServerWorldSource` to
+`ContentOptions.world`.
+
+### Blocks and items (`src/block/`, `src/item/`)
+
+- `blocks.get`, `blocks.set`, `blocks.data`, `blocks.setData`, `blocks.notifyNeighbors`,
+  `blocks.power`, over chunk storage and the block entity index.
+- The optional `items` group: `stateOf`, `environment`, `targetOf`, `includes`, `transform`,
+  `effectsOf` and `perform`. `perform` takes one `ItemWorldAction`, a tagged union of 28 variants,
+  so adding an effect is a new case rather than a new adapter method.
+- The per-state block properties already come from `ServerContent`; nothing to do there.
+
+### World (`src/world/`)
+
+- `level`: the dimension identifier, its bounds, its sea level, the seed, the clock, the difficulty
+  and the weather.
+- `blocks.light`, `blocks.isLoaded`, `blocks.surfaceY`, `blocks.biome`, `blocks.biomeTags`.
+- `ticks`: the two scheduled tick lists, with Java's dedupe rule and `willTickThisTick`.
+- `random`: the world's own `RandomSource`, so a seeded world is reproducible.
+- The optional `generation` group: `featureWorld(chunkX, chunkZ)`. This one is generation time
+  rather than live world. The states are Java states, the chunk is still being built and the region
+  is gone once decoration finishes, which is why it is a factory rather than a member.
+
+### Entities (`src/entity/`)
+
+- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`.
+- The optional `spawning` group: `site`, `poolCount`, `mobEventActive` and the optional
+  `villageBorderDistance`.
+- The optional `ai` group: `goalWorld(entity)`, `actuator(entity)` and `brainWorld()`. `GoalWorld`
+  has 44 optional members, and a goal whose world cannot answer one refuses to start rather than
+  throwing, so this can come up a member at a time.
+
+### Network (`src/network/`)
+
+- `effects`: `playSound`, `spawnParticle`, `emitGameEvent`.
+- The optional `commands` group, once `@jsprismarine/commands` is a dependency. It is typed here as
+  `ContentCommandHostSlot`, that package's five groups with their bodies left open, so the real
+  `CommandHost` is assignable without this package depending on it yet. Replace the type with the
+  real import when you take the dependency.
+- `@jsprismarine/wire` needs no adapter. It reads `ServerContent.blocks.palette`,
+  `ServerContent.items.registry` and `ServerContent.recipes` to write `StartGamePacket`'s block
+  properties, `ItemRegistryPacket`, `CreativeContentPacket` and `CraftingDataPacket`.
+
+## Known gaps
+
+- `ServerContent.structures` is an empty registry. `@jsprismarine/packs` routes no structure
+  registry, because the templates are NBT rather than JSON. The registry is declared so the seam
+  does not move once it does route them.
+- `SpawnWorld.biome` is deliberately not projected. It returns a `string` where the adapter returns
+  `string | undefined` for an unloaded chunk, and the interface declares it optional precisely so a
+  world that cannot always answer leaves it out. A spawn rule's `is_biome` then refuses rather than
+  matching a biome the server guessed.
+- Worldgen's `WorldgenData` is not built here. Java's `density_function`, `noise` and
+  `noise_settings` registries are not among the ones `@jsprismarine/packs` loads, so the world
+  subsystem reads them itself for now.
