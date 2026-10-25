@@ -88,6 +88,12 @@ const hookBlockAt = (
     return block && { identifier: block.identifier, position, dimension, states: block.states };
 };
 
+interface NeighborNotification {
+    readonly at: ContentPosition;
+    readonly changed: HookBlock;
+    nextFace: number;
+}
+
 /**
  * The hook table of a block, or undefined when the content has no such state.
  *
@@ -153,25 +159,43 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
     const dimension = options.dimension ?? 'minecraft:overworld';
 
     /**
-     * How many nested neighbor notifications are still allowed.
+     * How many chained neighbor notifications one write may raise.
      *
      * A behavior reacting to `onNeighborChanged` may write a block, which
-     * notifies its neighbors in turn, and a redstone loop does that forever.
-     * Java bounds the same recursion at 1000000 updates; the budget here is
-     * `@jsprismarine/engine-systems`'s own constant rather than a second copy
-     * of the number.
+     * notifies its neighbors in turn. The explicit stack below keeps that
+     * depth-first update order without using the JavaScript call stack.
      */
-    let budget = MAX_CHAINED_NEIGHBOR_UPDATES;
+    let chainedUpdates = 0;
+    let dispatching = false;
+    const stack: NeighborNotification[] = [];
+    let queued: NeighborNotification[] = [];
 
     const notifyNeighbors = (at: ContentPosition): void => {
         const changed = hookBlockAt(storage, dimension, at);
         if (!changed) return;
-        if (budget <= 0) return;
+        if (chainedUpdates >= MAX_CHAINED_NEIGHBOR_UPDATES) return;
 
-        budget--;
+        chainedUpdates++;
+        queued.push({ at, changed, nextFace: 0 });
+        if (dispatching) return;
+
+        dispatching = true;
         try {
-            for (const face of BLOCK_FACES) {
-                const position = relative(at, face);
+            while (stack.length > 0 || queued.length > 0) {
+                for (let i = queued.length - 1; i >= 0; i--) stack.push(queued[i]!);
+                queued = [];
+
+                const update = stack.at(-1);
+                if (!update) continue;
+
+                const face = BLOCK_FACES[update.nextFace];
+                if (face === undefined) {
+                    stack.pop();
+                    continue;
+                }
+                update.nextFace++;
+
+                const position = relative(update.at, face);
                 const neighbor = storage.at(position);
                 if (!neighbor || !reactsToNeighbors(content, neighbor.identifier)) continue;
 
@@ -185,11 +209,14 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
                     block: reacting,
                     // The face the changed block sits on, read from the neighbor's side.
                     face: opposite(face),
-                    neighbor: changed
+                    neighbor: update.changed
                 });
             }
         } finally {
-            budget++;
+            stack.length = 0;
+            queued = [];
+            chainedUpdates = 0;
+            dispatching = false;
         }
     };
 
