@@ -8,6 +8,7 @@ import { createEntityComponentRegistry } from './components';
 import type { EntityFile } from './entityTypes';
 import { EntityTypes } from './entityTypes';
 import { eventActions } from './events';
+import { TRIGGER_COMPONENTS } from './triggers';
 import { hasFilterTest } from './filters';
 
 /**
@@ -83,6 +84,12 @@ const JAVA_STATS_COMPARED = 423;
  * component stopped reading the pack or a golden moved.
  */
 const JAVA_STAT_DISAGREEMENTS = 144;
+
+/**
+ * The empty markers the entity reads back itself rather than through a hook,
+ * because the component name is the whole of what each one means.
+ */
+const MARKER_COMPONENTS = ['minecraft:persistent', 'minecraft:fire_immune', 'minecraft:freezing_immune'];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
 const isCollisionBox = (value: unknown): value is { readonly width: number; readonly height: number } =>
@@ -200,10 +207,20 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         for (const file of files) filterTestsIn(file.data, tests);
         const implementedTests = [...tests].filter(hasFilterTest);
 
+        // Behavior is a hook, or a body the entity reads back itself: the
+        // eleven triggers, which fire at a point the engine reaches rather
+        // than on a schedule, and the three empty immunity and persistence
+        // markers, whose name is the whole of what each one means.
+        const withHooks = registry
+            .names()
+            .filter((name) => !name.startsWith('minecraft:behavior.') && registry.hooksOf(name).size > 0);
+        const withBehavior = [...withHooks, ...TRIGGER_COMPONENTS, ...MARKER_COMPONENTS];
+
         process.stdout.write(
             [
                 `entities: ${types.registry.size}`,
                 `non-goal keys in vanilla: ${others.length}, implemented: ${implementedOthers.length}`,
+                `non-goal keys that carry behavior: ${withBehavior.length}`,
                 `goals in vanilla: ${goals.length}, implemented: ${implementedGoals.length}`,
                 `entities with every non-goal component implemented: ${componentCovered}`,
                 `entities with every goal implemented: ${goalCovered}`,
@@ -220,6 +237,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
         expect(implementedOthers.length).toBeGreaterThanOrEqual(157);
+        expect(withBehavior).toHaveLength(37);
         expect(componentCovered).toBeGreaterThanOrEqual(102);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
@@ -270,12 +288,36 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
             const measured: readonly (readonly [string, number | undefined, number | undefined])[] = [
                 ['max_health', entity.attributes.get('health')?.base, java.attributes['minecraft:max_health']],
-                ['movement_speed', entity.attributes.get('movement')?.base, java.attributes['minecraft:movement_speed']],
-                ['attack_damage', entity.attributes.get('attack_damage')?.base, java.attributes['minecraft:attack_damage']],
-                ['follow_range', entity.attributes.get('follow_range')?.base, java.attributes['minecraft:follow_range']],
-                ['knockback_resistance', entity.attributes.get('knockback_resistance')?.base, java.attributes['minecraft:knockback_resistance']],
-                ['flying_speed', entity.attributes.get('flying_speed')?.base, java.attributes['minecraft:flying_speed']],
-                ['jump_strength', entity.attributes.get('jump_strength')?.base, java.attributes['minecraft:jump_strength']],
+                [
+                    'movement_speed',
+                    entity.attributes.get('movement')?.base,
+                    java.attributes['minecraft:movement_speed']
+                ],
+                [
+                    'attack_damage',
+                    entity.attributes.get('attack_damage')?.base,
+                    java.attributes['minecraft:attack_damage']
+                ],
+                [
+                    'follow_range',
+                    entity.attributes.get('follow_range')?.base,
+                    java.attributes['minecraft:follow_range']
+                ],
+                [
+                    'knockback_resistance',
+                    entity.attributes.get('knockback_resistance')?.base,
+                    java.attributes['minecraft:knockback_resistance']
+                ],
+                [
+                    'flying_speed',
+                    entity.attributes.get('flying_speed')?.base,
+                    java.attributes['minecraft:flying_speed']
+                ],
+                [
+                    'jump_strength',
+                    entity.attributes.get('jump_strength')?.base,
+                    java.attributes['minecraft:jump_strength']
+                ],
                 ['width', size?.width, java.width],
                 ['height', size?.height, java.height]
             ];

@@ -61,9 +61,23 @@ of `first_valid`. A node's own `filters` gate the whole node. Nodes nest without
   engine reads it as Molang and vanilla also writes enum members bare, so the parser keeps the text
   and the engine resolves it: a member of the target property's enum wins, and anything else goes to
   the Molang evaluator.
-- The actions this package does not carry out keep their bodies in `EventEffects.actions`, including
-  the five vanilla uses that appear in no documentation page: `first_valid` (which is modeled),
-  `set_home_position`, `drop_item`, `execute_event_on_home_block` and `stop_movement`.
+
+## Event actions
+
+Nine action keys parse into an `EntityAction` and run. Eight are everything the composed vanilla
+pack writes, measured over its 850 events: `play_sound` 23 uses, `set_home_position` 17,
+`emit_vibration` 9, `drop_item` 2, `execute_event_on_home_block` 2, and one each of `emit_particle`,
+`reset_target` and `stop_movement`. The ninth is `queue_command`, which the documentation describes
+and no vanilla entity uses. Four of those eight appear in no documentation page.
+
+Six of the nine leave the package through `EntityEnvironment.effects`: `playSound`, `emitParticle`,
+`emitVibration`, `queueCommand`, `dropItem` and `executeEventOnBlock`. The other three stay here.
+`set_home_position` reads the actuator's position and records it, which is what `home_distance` then
+measures against; `stop_movement` abandons the path through the actuator; and `reset_target` clears
+the attack target the entity owns.
+
+Nothing passes silently. An action key the package does not parse, a body it cannot read, and an
+action whose environment member a caller left out each reach the report with the event that asked.
 
 Applying effects removes groups first and adds second, so a group an event both removes and adds
 ends up active and re-initialized. That is the documented rule: "adding a component group that is
@@ -154,27 +168,70 @@ name so the order is stable.
 `minecraft:behavior.look_at_player` ship as reference implementations, one per control flag. They
 move the entity through `EntityActuator`, the navigation and look-control seam a caller supplies.
 
+## Damage, triggers and riding
+
+Three pieces of entity state live here because the components that read and write them do.
+
+`EntityInstance.damage` runs one damage event end to end. The first component that answers
+`onDamage` decides the amount, which is what `minecraft:damage_sensor` does with its cause list and
+filters. An immunity component turns the cause aside afterwards, so a sensor still fires its event
+on damage the entity ends up ignoring: `minecraft:fire_immune` covers `campfire`, `fire`,
+`fire_tick`, `lava`, `magma` and `soul_campfire`, and `minecraft:freezing_immune` covers `freezing`.
+What is left comes off the `health` attribute. Whoever dealt the damage answers both the `damager`
+and the `other` filter subjects.
+
+The eleven `minecraft:on_*` components fire through `EntityInstance.trigger`, which evaluates the
+component's own filters, queues a `self` event for the next tick and routes any other target. Five
+fire from inside the package: `on_hurt`, `on_hurt_by_player` and `on_death` from a damage event, and
+`on_target_acquired` and `on_target_escape` from `setAttackTarget`. The other six name equipment,
+fire, flight, sleep and friendly anger, which no state here owns, so a caller fires those.
+
+`minecraft:rideable` seats riders on the vehicle. `mount` checks the seat count and the
+`family_types` list, moves a rider off whatever it was riding, and fires `on_rider_enter_event`;
+`dismount` fires `on_rider_exit_event`; and taking the component off a group empties the seats. That
+answers `rider_count` and `is_controlling_passenger_family` on the vehicle, and `is_riding` and the
+`vehicle` subject on the rider.
+
 ## Components
 
 Components come in two kinds, and the difference matters when reading the coverage numbers.
 
-Components with behavior contribute hooks. `minecraft:timer` draws its duration and fires its event,
-restarting whenever its group is re-added. `minecraft:environment_sensor` evaluates its triggers
-every tick. `minecraft:damage_sensor` answers a damage event by cause and filters, and the first
-trigger that matches wins. `minecraft:transformation` counts down and asks the world to replace the
-entity. `minecraft:despawn` applies the standard distance and chance rules, or its filters when it
-has them. `minecraft:instant_despawn` removes the entity the moment it becomes active. The attribute
-components (`health`, `movement`, `underwater_movement`, `lava_movement`, `flying_speed`,
-`follow_range`, `knockback_resistance`, `attack_damage`, `attack`, `horse.jump_strength`) write their
-attribute when they initialize, which is what makes a re-added group reset the stat it carries.
+Components with behavior contribute hooks. The nine attribute components (`health`, `movement`,
+`underwater_movement`, `lava_movement`, `flying_speed`, `follow_range`, `knockback_resistance`,
+`attack_damage`, `horse.jump_strength`) and `minecraft:attack` write their attribute when they
+initialize, which is what makes a re-added group reset the stat it carries. The rest:
+
+| Component | What it does |
+| --- | --- |
+| `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
+| `minecraft:ageable` | Counts the baby's `duration` down and raises `grow_up` |
+| `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta` and raises `calm_event` |
+| `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
+| `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
+| `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
+| `minecraft:damage_over_time` | Hurts the entity every `time_between_hurt` seconds while it is active |
+| `minecraft:breathable` | Spends and refills the air supply, and suffocates once it is gone |
+| `minecraft:ambient_sound_interval` | Plays its sound on the interval its body names |
+| `minecraft:rideable` | Holds the seats, and empties them when the component goes |
+| `minecraft:transformation` | Counts down and asks the world to replace the entity |
+| `minecraft:despawn` | Applies the distance and chance rules, or its filters, unless the entity is persistent |
+| `minecraft:instant_despawn` | Removes the entity the moment it becomes active |
+| the eleven `minecraft:on_*` | Raise their event at the fixed point the engine or a caller reaches |
+
+Three more are empty markers the entity reads directly rather than through a hook, because the
+component name is the whole of what each one means: `minecraft:persistent` stops
+`minecraft:despawn`, and `minecraft:fire_immune` and `minecraft:freezing_immune` turn their causes
+aside in `EntityInstance.damage`.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`,
 which is the whole of what a flag like `minecraft:can_climb` or a table reference like
 `minecraft:shareables` means to the server. `minecraft:collision_box`, `minecraft:type_family`,
-`minecraft:loot`, `minecraft:experience_reward`, `minecraft:rideable`, `minecraft:inventory`,
-`minecraft:equipment`, `minecraft:breathable`, `minecraft:physics`, `minecraft:pushable`, the seven
-`minecraft:navigation.*` flavors, the nine `minecraft:movement.*` flavors, the six integer state
-components and the ten `minecraft:on_*` triggers are written out; the rest are parsed structurally.
+`minecraft:loot`, `minecraft:experience_reward`, `minecraft:inventory`, `minecraft:equipment`,
+`minecraft:physics`, `minecraft:pushable`, the seven `minecraft:navigation.*` flavors, the nine
+`minecraft:movement.*` flavors and the six integer state components are written out; the rest are
+parsed structurally. `minecraft:type_family` and the integer state components are data a filter
+reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
+with no caller view.
 
 The line the package draws is every non-goal key that two or more of the 129 vanilla entities use.
 The 45 keys exactly one entity uses stay unregistered on purpose, so loading the vanilla pack names
@@ -191,12 +248,24 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, of which 157 are implemented |
+| Non-goal keys that carry behavior rather than data | 37 |
 | Entities whose every non-goal component is implemented | 102 of 129 |
 | Goals in vanilla | 170, of which 3 are implemented |
 | Entities whose every goal is implemented | 38 of 129 |
 | Entities fully covered, components and goals | 33 of 129 |
 | Filter tests the documentation lists | 107, all implemented |
 | Filter tests vanilla uses | 86, all implemented |
+| Event action keys vanilla uses | 8, all carried out; 56 uses |
+| Stats both editions publish for the same entity | 423, of which 279 agree |
+
+The 144 stats the two editions disagree on are findings, not defects: `movement_speed` 41,
+`height` 33, `width` 22, `follow_range` 19, `attack_damage` 15, `max_health` 10, `flying_speed` 2
+and `knockback_resistance` 2, against the 93 entity types of
+`@jsprismarine/bedrock-data`'s `java_entity_attributes`. The wither has 600 health on Bedrock and
+300 on Java. The witch follows from 64 blocks against Java's 16. Most hitbox rows are Bedrock
+rounding a Java height such as 1.95 to 1.9. The `attack_damage` rows are partly a modeling
+difference, because Bedrock writes a `{range_min, range_max}` pair where Java writes one number and
+the comparison reads the low end.
 
 The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 157
 keys cover 102. The 27 entities that are not component-covered need keys only they use, such as the
@@ -222,6 +291,14 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
 - **Trading.** `minecraft:economy_trade_table` and `minecraft:trade_table` parse as data today;
   the tier, demand and restock machinery is the trading agent's.
 - **The world seams.** `EntityActuator` for navigation and look control, `EntityEnvironment.remove`
-  and `transform` for despawn and transformation, `route` for a trigger aimed at another entity,
-  `molang` for the expressions in component bodies, and `filterContext` for everything about the
-  world a filter asks.
+  and `transform` for despawn and transformation, `effects` for the six event actions that leave the
+  package, `route` for a trigger aimed at another entity, `molang` for the expressions in component
+  bodies, and `filterContext` for everything about the world a filter asks.
+- **The six trigger components nothing here fires.** `on_equipment_changed`, `on_ignite`,
+  `on_start_landing`, `on_start_takeoff`, `on_wake_with_owner` and `on_friendly_anger` need
+  equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
+  `EntityInstance.trigger` the moment a caller reaches its fixed point.
+- **The components that still parse as data.** `minecraft:breedable`, `minecraft:tameable`,
+  `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`, `minecraft:explode`,
+  `minecraft:healable` and the rest need items, interaction and a world to act on. The load report
+  and `EntityType.unimplementedComponents` keep naming the 45 keys that are not registered at all.
