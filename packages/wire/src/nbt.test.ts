@@ -59,25 +59,11 @@ describe('the NBT builder', () => {
 });
 
 describe('a round trip of what a real server sent', () => {
-    it('reads and rewrites 97 of the 98 captured block definitions byte for byte', () => {
+    it('reads and rewrites all 98 captured block definitions byte for byte', () => {
         const rewritten = block_definitions.filter((entry) =>
             writeNetworkNbt(readNetworkNbt(entry.definition)).equals(entry.definition)
         );
 
-        expect(rewritten).toHaveLength(97);
-    });
-
-    it('differs only on the one definition with an empty list in it', () => {
-        // The writer in `@jsprismarine/nbt` types an empty list TAG_BYTE where
-        // the server types it TAG_END. `minecraft:red_shrub` has the capture's
-        // only empty list, an off collision box with no boxes in it.
-        const differing = block_definitions.filter(
-            (entry) => !writeNetworkNbt(readNetworkNbt(entry.definition)).equals(entry.definition)
-        );
-
-        expect(differing.map((entry) => entry.name)).toEqual(['minecraft:red_shrub']);
-        expect(nbtToPlain(readNetworkNbt(writeNetworkNbt(readNetworkNbt(differing[0]!.definition))))).toEqual(
-            nbtToPlain(readNetworkNbt(differing[0]!.definition))
-        );
+        expect(rewritten).toHaveLength(98);
     });
 });

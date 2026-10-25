@@ -13,10 +13,11 @@
  * sorts. That is what makes a generated definition comparable to a captured
  * one byte for byte rather than only field by field.
  *
- * The second is the empty list. BDS types an empty list `TAG_END`; the
- * writer types it `TAG_BYTE`. One captured block definition out of 98,
- * `minecraft:red_shrub`, has an empty list in it, and that one byte is the
- * only disagreement in the whole capture. See the README.
+ * The second is the empty list. BDS types an empty list `TAG_END`, which the
+ * writer in `@jsprismarine/nbt` now does too; it used to type it `TAG_BYTE`,
+ * and that single byte in `minecraft:red_shrub`, the one captured definition
+ * with an empty list in it, was the whole capture's only disagreement. All 98
+ * now read and rewrite byte for byte. See the README.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';

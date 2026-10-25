@@ -139,9 +139,6 @@ describe.skipIf(!enabled)('the data driven vanilla blocks against the captured s
 
         console.debug(`bytes: ${identical.length}/${result.properties.length} identical to the capture`);
 
-        // `minecraft:red_shrub` is the one block with an empty NBT list in it,
-        // and the writer in `@jsprismarine/nbt` types an empty list TAG_BYTE
-        // where the server types it TAG_END. One byte, in one block.
-        expect(result.properties.length - identical.length).toBe(1);
+        expect(result.properties.length - identical.length).toBe(0);
     });
 });

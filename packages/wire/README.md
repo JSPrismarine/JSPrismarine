@@ -36,7 +36,7 @@ The captures are in the repository already:
 
 Measured against them, with the numbers the tests print:
 
-- **Block properties.** All 2250 fields of all 98 data-driven vanilla blocks match, and 97 of the 98
+- **Block properties.** All 2250 fields of all 98 data-driven vanilla blocks match, and all 98
   definitions are byte-for-byte identical to what the server sent. Run it with
   `JSP_VANILLA_BLOCKS=1`, which needs the cache
   `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` populates.
@@ -45,8 +45,7 @@ Measured against them, with the numbers the tests print:
   spears, whose Bedrock attack damage is one higher than Java's and whose `use_duration` the capture
   sets to 1440000, and the breeze rod, which Bedrock holds out in front and Java does not.
 - **Runtime ids.** All 1065 captured `network_id` values are reproduced from the state compound.
-- **Round trip.** 97 of the 98 captured definitions read and rewrite byte for byte; see
-  [what is left](#what-is-left) for the one that does not.
+- **Round trip.** All 98 captured definitions read and rewrite byte for byte.
 
 ## buildBlockProperties
 
@@ -245,10 +244,6 @@ told about a block registry that disagrees with its own does not complain, it dr
 
 ## What is left
 
-- **One byte of one definition.** The writer in `@jsprismarine/nbt` types an empty NBT list
-  `TAG_BYTE`, and a Bedrock Dedicated Server types it `TAG_END`. `minecraft:red_shrub` is the only
-  one of the 98 with an empty list in it - a collision box turned off, with no boxes - so 97 of 98
-  definitions are byte identical and that one is not. The fix belongs in the NBT writer.
 - **`BlockProperty` and `ItemRegistryEntry` are deep imports.** `@jsprismarine/protocol` exports the
   two packet classes and their payload types but not these member types, so this package imports
   them from `@jsprismarine/protocol/packet/StartGamePacket` and
