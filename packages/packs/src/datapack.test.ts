@@ -54,6 +54,28 @@ describe('datapack sources', () => {
         expect(definitions.damageTypes.get('fixture:laser')).toBeDefined();
     });
 
+    it('keeps an mcfunction as its own text, and lets a later pack replace it', () => {
+        const first = writeDatapack({
+            'pack.mcmeta': MCMETA,
+            'data/fixture/function/greet.mcfunction': 'say hello\n'
+        });
+        const second = writeDatapack({
+            'pack.mcmeta': MCMETA,
+            'data/fixture/function/greet.mcfunction': 'say goodbye\n'
+        });
+
+        const { definitions, diagnostics } = load(
+            [
+                { kind: 'datapack', path: first },
+                { kind: 'datapack', path: second }
+            ],
+            { strict: true }
+        );
+
+        expect(diagnostics).toEqual([]);
+        expect(definitions.functions.get('fixture:greet')?.data).toBe('say goodbye\n');
+    });
+
     it('loads a zip datapack and drops traversal-shaped entries', () => {
         const zip = join(temporaryDir(), 'pack.zip');
         writeFileSync(

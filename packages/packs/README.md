@@ -10,9 +10,13 @@ object, which maps identifier to winning parsed definition for each registry, pl
 report. The Bedrock registries (blocks, items, entities, loot tables, trade tables, spawn rules,
 recipes, biomes, features, feature rules, item catalog) resolve by identifier: a later pack wins and
 its definition replaces the earlier one whole. The Java registries (`lootTablesJava`, `recipesJava`,
-`advancements`, `tags`, `enchantments`, `damageTypes`, `predicates`, `itemModifiers`, keyed by
-namespaced id, from the 26.3 singular directory names) resolve by Java's rule: a later pack wins per
-file, except tags, whose values merge across packs unless a later file sets `replace`.
+`advancements`, `tags`, `enchantments`, `damageTypes`, `predicates`, `itemModifiers`, `functions`,
+keyed by namespaced id, from the 26.3 singular directory names) resolve by Java's rule: a later pack
+wins per file, except tags, whose values merge across packs unless a later file sets `replace`.
+
+`functions` is the one registry whose `data` is not parsed JSON. A `.mcfunction` is text, so its
+definition carries the file verbatim and `@jsprismarine/mcfunction` compiles it; a validator is
+never asked about one, because the line format is not a JSON shape.
 
 ```typescript
 import { load, reportIdentifiers } from '@jsprismarine/packs';

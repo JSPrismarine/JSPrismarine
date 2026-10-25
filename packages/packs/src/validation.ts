@@ -124,6 +124,8 @@ interface JavaShape {
     optional?: Readonly<Record<string, 'object' | 'array' | 'string' | 'number'>>;
     /** Whether a root array is also a valid file, as it is for predicates and item modifiers. */
     allowsArrayRoot?: boolean;
+    /** Whether the file is text rather than JSON, which only an mcfunction is. */
+    allowsTextRoot?: boolean;
 }
 
 const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
@@ -136,7 +138,10 @@ const JAVA_SHAPES: Record<JavaRegistryId, JavaShape> = {
     },
     damageTypes: { required: { message_id: 'string', scaling: 'string', exhaustion: 'number' } },
     predicates: { allowsArrayRoot: true, optional: { condition: 'string' } },
-    itemModifiers: { allowsArrayRoot: true, optional: { type: 'string' } }
+    itemModifiers: { allowsArrayRoot: true, optional: { type: 'string' } },
+    // An mcfunction is text; `loadDatapack` registers it without consulting a
+    // validator, and the line format is checked when it compiles.
+    functions: { allowsTextRoot: true }
 };
 
 const matchesType = (value: unknown, type: 'object' | 'array' | 'string' | 'number'): boolean => {
@@ -152,6 +157,7 @@ const validateJavaDefinition = (registry: JavaRegistryId, data: unknown): Valida
     const shape = JAVA_SHAPES[registry];
     const findings: ValidationFinding[] = [];
 
+    if (shape.allowsTextRoot) return findings;
     if (shape.allowsArrayRoot && Array.isArray(data)) return findings;
     if (!isRecord(data)) {
         return [

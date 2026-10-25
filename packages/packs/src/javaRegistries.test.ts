@@ -36,6 +36,17 @@ describe('routeDatapackPath', () => {
         });
     });
 
+    it('routes an mcfunction, which is the one datapack file that is not JSON', () => {
+        expect(routeDatapackPath('data/mypack/function/setup/stage.mcfunction')).toEqual({
+            registry: 'functions',
+            identifier: 'mypack:setup/stage'
+        });
+        // The plural 1.20 spelling is not the 26.3 one, and a file directly
+        // under the namespace names no function.
+        expect(routeDatapackPath('data/mypack/functions/setup.mcfunction')).toBeUndefined();
+        expect(routeDatapackPath('data/mypack/function.mcfunction')).toBeUndefined();
+    });
+
     it('keys tags by tagged registry plus namespaced id, with two-segment worldgen roots', () => {
         expect(routeDatapackPath('data/minecraft/tags/block/mineable/axe.json')).toEqual({
             registry: 'tags',
