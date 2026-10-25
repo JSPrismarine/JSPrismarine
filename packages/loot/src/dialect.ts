@@ -131,12 +131,7 @@ export const reportPoolKeys = (value: JsonObject, context: ParseContext, dialect
  *
  * @param type - The entry's `type`, without the namespace.
  */
-export const reportEntryKeys = (
-    value: JsonObject,
-    context: ParseContext,
-    dialect: LootDialect,
-    type: string
-): void => {
+export const reportEntryKeys = (value: JsonObject, context: ParseContext, dialect: LootDialect, type: string): void => {
     const { entry, byEntryType } = KEYS[dialect];
     const own = byEntryType[type];
 
