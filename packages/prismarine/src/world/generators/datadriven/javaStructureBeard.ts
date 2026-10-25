@@ -98,7 +98,25 @@ const buryContribution = (x: number, y: number, z: number): number => {
 };
 
 /**
+ * The side of one bucket of the column index {@link createBeardifier} builds, as a power of
+ * two so a column's bucket is a shift.
+ *
+ * Four blocks matches the density stack's horizontal cell size, so one bucket covers a whole
+ * cell's worth of columns.
+ */
+const BUCKET_SHIFT = 2;
+
+const BUCKET_SIZE = 1 << BUCKET_SHIFT;
+
+/**
  * Builds the density contribution for the pieces near one chunk.
+ *
+ * This sampler is the right operand of the top-level add in the overworld's `final_density`, so
+ * it runs on all 98304 samples of a chunk and its per-sample cost is multiplied by that. The
+ * pieces are therefore indexed by column: every adaptation's contribution is exactly zero once
+ * the column is more than {@link BEARD_RADIUS} from the piece's box in x or in z, so a sample
+ * only has to visit the pieces whose reach covers its own bucket. The index preserves the order
+ * the pieces were given in, because the sum of several `float` contributions depends on it.
  *
  * @param pieces - Every piece whose box comes within {@link BEARD_RADIUS} of the chunk. Pieces
  *   further away contribute nothing, so filtering before building this is what keeps the per
@@ -109,10 +127,22 @@ const buryContribution = (x: number, y: number, z: number): number => {
 export const createBeardifier = (pieces: readonly BeardPiece[]): DensitySampler | undefined => {
     if (pieces.length === 0) return undefined;
 
+    const index = indexByColumn(pieces);
+    const { minX, minZ, bucketsZ, starts, members } = index;
+
     return (_context, x, y, z) => {
+        const bucketX = (x - minX) >> BUCKET_SHIFT;
+        const bucketZ = (z - minZ) >> BUCKET_SHIFT;
+        if (bucketX < 0 || bucketX >= index.bucketsX || bucketZ < 0 || bucketZ >= bucketsZ) return 0;
+
+        const bucket = bucketX * bucketsZ + bucketZ;
+        const end = starts[bucket + 1] ?? 0;
         let density = 0;
 
-        for (const piece of pieces) {
+        for (let slot = starts[bucket] ?? 0; slot < end; slot++) {
+            const piece = pieces[members[slot] ?? 0];
+            if (piece === undefined) continue;
+
             const box = piece.box;
             const dx = Math.max(0, Math.max(box.minX - x, x - box.maxX));
             const dz = Math.max(0, Math.max(box.minZ - z, z - box.maxZ));
@@ -143,6 +173,82 @@ export const createBeardifier = (pieces: readonly BeardPiece[]): DensitySampler 
 
         return density;
     };
+};
+
+/** The column index {@link createBeardifier} reads, in compressed sparse row form. */
+interface BeardColumnIndex {
+    /** The lowest block x any piece reaches, which is the index's origin. */
+    readonly minX: number;
+    /** The lowest block z any piece reaches. */
+    readonly minZ: number;
+    readonly bucketsX: number;
+    readonly bucketsZ: number;
+    /** Where each bucket's run of members begins, with one extra entry for the end. */
+    readonly starts: Int32Array;
+    /** The piece indices, each bucket's run ascending so the sum keeps its order. */
+    readonly members: Int32Array;
+}
+
+/**
+ * Buckets the pieces by the columns they reach.
+ *
+ * A piece's reach is its box grown by {@link BEARD_RADIUS} horizontally, which bounds every
+ * adaptation: the beard kernel is zero outside that cube, and both `bury` and `encapsulate`
+ * fall to zero at a shorter distance than it.
+ */
+const indexByColumn = (pieces: readonly BeardPiece[]): BeardColumnIndex => {
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minZ = Number.POSITIVE_INFINITY;
+    let maxZ = Number.NEGATIVE_INFINITY;
+    for (const piece of pieces) {
+        minX = Math.min(minX, piece.box.minX - BEARD_RADIUS);
+        maxX = Math.max(maxX, piece.box.maxX + BEARD_RADIUS);
+        minZ = Math.min(minZ, piece.box.minZ - BEARD_RADIUS);
+        maxZ = Math.max(maxZ, piece.box.maxZ + BEARD_RADIUS);
+    }
+
+    const originX = Math.floor(minX / BUCKET_SIZE) * BUCKET_SIZE;
+    const originZ = Math.floor(minZ / BUCKET_SIZE) * BUCKET_SIZE;
+    const bucketsX = ((maxX - originX) >> BUCKET_SHIFT) + 1;
+    const bucketsZ = ((maxZ - originZ) >> BUCKET_SHIFT) + 1;
+
+    const starts = new Int32Array(bucketsX * bucketsZ + 1);
+    const span = (piece: BeardPiece): readonly [number, number, number, number] => [
+        (piece.box.minX - BEARD_RADIUS - originX) >> BUCKET_SHIFT,
+        (piece.box.maxX + BEARD_RADIUS - originX) >> BUCKET_SHIFT,
+        (piece.box.minZ - BEARD_RADIUS - originZ) >> BUCKET_SHIFT,
+        (piece.box.maxZ + BEARD_RADIUS - originZ) >> BUCKET_SHIFT
+    ];
+
+    for (const piece of pieces) {
+        const [firstX, lastX, firstZ, lastZ] = span(piece);
+        for (let bucketX = firstX; bucketX <= lastX; bucketX++) {
+            for (let bucketZ = firstZ; bucketZ <= lastZ; bucketZ++) {
+                const next = bucketX * bucketsZ + bucketZ + 1;
+                starts[next] = (starts[next] ?? 0) + 1;
+            }
+        }
+    }
+    for (let bucket = 0; bucket < starts.length - 1; bucket++) {
+        starts[bucket + 1] = (starts[bucket + 1] ?? 0) + (starts[bucket] ?? 0);
+    }
+
+    const cursor = Int32Array.from(starts.subarray(0, starts.length - 1));
+    const members = new Int32Array(starts[starts.length - 1] ?? 0);
+    for (const [order, piece] of pieces.entries()) {
+        const [firstX, lastX, firstZ, lastZ] = span(piece);
+        for (let bucketX = firstX; bucketX <= lastX; bucketX++) {
+            for (let bucketZ = firstZ; bucketZ <= lastZ; bucketZ++) {
+                const bucket = bucketX * bucketsZ + bucketZ;
+                const slot = cursor[bucket] ?? 0;
+                cursor[bucket] = slot + 1;
+                members[slot] = order;
+            }
+        }
+    }
+
+    return { minX: originX, minZ: originZ, bucketsX, bucketsZ, starts, members };
 };
 
 /** The adaptation a `worldgen/structure` document asks for. */
