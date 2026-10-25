@@ -3,7 +3,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import type Console from './Console';
 import Player from './Player';
@@ -43,6 +43,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     const actorEvents: number[] = [];
     const actorSounds: number[] = [];
     const disconnects: Parameters<ClientConnection['disconnect']>[] = [];
+    const isOp = vi.fn(() => false);
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -52,7 +53,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
         getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
-        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
+        getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
@@ -109,7 +110,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     // `update` does nothing for a player who never finished joining.
     player['connected'] = true;
 
-    return { player, sent, events, actorEvents, actorSounds, disconnects };
+    return { player, sent, events, actorEvents, actorSounds, disconnects, isOp };
 };
 
 /** Runs `n` ticks, the way the world does. */
@@ -126,6 +127,16 @@ const move = async (player: Player, blocks: number, type = PositionMode.Normal) 
 };
 
 describe('Player', () => {
+    describe('isOp', () => {
+        it('checks operator status by UUID', () => {
+            const { player, isOp } = fakePlayer();
+
+            player.isOp();
+
+            expect(isOp).toHaveBeenCalledWith(player.getUUID().toString());
+        });
+    });
+
     describe('enable', () => {
         it('sends nothing', async () => {
             // It runs during login, before the client has `PlayStatus(LoginSuccess)`. The
