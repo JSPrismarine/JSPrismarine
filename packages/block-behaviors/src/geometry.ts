@@ -43,28 +43,34 @@ const CLOCKWISE: Readonly<Record<BlockFace, BlockFace>> = {
     west: 'north'
 };
 
+/** The horizontal face across the block, which stays horizontal. */
+export function opposite(face: HorizontalFace): HorizontalFace;
+/** The face across the block from this one. */
+export function opposite(face: BlockFace): BlockFace;
 /**
  * The face across the block from this one.
  *
- * The overload keeps a horizontal face horizontal, so a caller that already
- * knows it has one does not have to narrow the result back.
+ * The horizontal overload keeps a horizontal face horizontal, so a caller
+ * that already knows it has one does not have to narrow the result back.
  */
-export function opposite(face: HorizontalFace): HorizontalFace;
-export function opposite(face: BlockFace): BlockFace;
 export function opposite(face: BlockFace): BlockFace {
     return OPPOSITES[face];
 }
 
-/** The face a quarter turn clockwise when seen from above; vertical faces are unchanged. */
+/** The horizontal face a quarter turn clockwise, which stays horizontal. */
 export function rotateClockwise(face: HorizontalFace): HorizontalFace;
+/** The face a quarter turn clockwise; a vertical face is unchanged. */
 export function rotateClockwise(face: BlockFace): BlockFace;
+/** The face a quarter turn clockwise when seen from above. */
 export function rotateClockwise(face: BlockFace): BlockFace {
     return CLOCKWISE[face];
 }
 
-/** The face a quarter turn counterclockwise when seen from above. */
+/** The horizontal face a quarter turn counterclockwise, which stays horizontal. */
 export function rotateCounterClockwise(face: HorizontalFace): HorizontalFace;
+/** The face a quarter turn counterclockwise; a vertical face is unchanged. */
 export function rotateCounterClockwise(face: BlockFace): BlockFace;
+/** The face a quarter turn counterclockwise when seen from above. */
 export function rotateCounterClockwise(face: BlockFace): BlockFace {
     return CLOCKWISE[CLOCKWISE[CLOCKWISE[face]]];
 }

@@ -52,7 +52,7 @@ export const PORTAL_DELAY_TICKS = 80;
 /** The portal blocks, the portal frames and the two fires. */
 export const portalFamily = defineFamily(
     'jsprismarine:portal',
-    'Counts an entity down to a nether portal trip and spreads fire to what burns. The destination search across dimensions is left to the server, which owns the dimension list.',
+    'Counts an entity down to a nether portal trip, ages fire out, and fills an end portal frame. The destination search across dimensions is left to the server, which owns the dimension list.',
     {
         onStepOn: (event, world) => {
             const name = bareName(event.block.identifier);
@@ -98,7 +98,7 @@ export const SCULK_SPREAD_RANGE = 8;
 /** The sculk blocks: the catalyst, the shrieker, the sensor and the veins. */
 export const sculkFamily = defineFamily(
     'jsprismarine:sculk',
-    'Blooms a catalyst and lays sculk under a death nearby, runs the shrieker warning, and cycles the sensor through its three phases.',
+    'Runs the shrieker warning, cycles the sensor through its three phases, and gives experience for breaking sculk. The catalyst needs a mob death, which no block hook reports.',
     {
         onStepOn: (event, world) => {
             const name = bareName(event.block.identifier);
