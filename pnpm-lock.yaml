@@ -760,6 +760,9 @@ importers:
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser
+      '@jsprismarine/console':
+        specifier: workspace:*
+        version: link:../console
       '@jsprismarine/console-protocol':
         specifier: workspace:*
         version: link:../console-protocol
