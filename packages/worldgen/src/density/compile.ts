@@ -309,28 +309,38 @@ export class DensityFunctionCompiler {
                 const cellSizeXz = node.cellSizeXz;
                 const cellSizeY = node.cellSizeY;
                 // Positions are integers (Java samples at block positions), so a power-of-two
-                // cell size turns the floored modulus into a mask. Vanilla sizes are 4 to 16.
-                const maskXz = (cellSizeXz & (cellSizeXz - 1)) === 0 ? cellSizeXz - 1 : undefined;
-                const maskY = (cellSizeY & (cellSizeY - 1)) === 0 ? cellSizeY - 1 : undefined;
+                // cell size turns the floored modulus into a mask and the lattice index into an
+                // arithmetic shift. Vanilla sizes are 4 to 16.
+                const powerOfTwoXz = (cellSizeXz & (cellSizeXz - 1)) === 0;
+                const powerOfTwoY = (cellSizeY & (cellSizeY - 1)) === 0;
+                const maskXz = powerOfTwoXz ? cellSizeXz - 1 : 0;
+                const maskY = powerOfTwoY ? cellSizeY - 1 : 0;
+                const shiftXz = powerOfTwoXz ? Math.log2(cellSizeXz) : 0;
+                const shiftY = powerOfTwoY ? Math.log2(cellSizeY) : 0;
+                // The interpolation weight only ever takes `cellSize` values, and dividing by
+                // the cell size is exact for a power of two, so the table holds the same bits
+                // the division produced.
+                const alphaXz = Float64Array.from({ length: cellSizeXz }, (_, step) => f32(step / cellSizeXz));
+                const alphaY = Float64Array.from({ length: cellSizeY }, (_, step) => f32(step / cellSizeY));
                 return (context, x, y, z) => {
-                    const xInCell = maskXz === undefined ? floorMod(x, cellSizeXz) : x & maskXz;
-                    const yInCell = maskY === undefined ? floorMod(y, cellSizeY) : y & maskY;
-                    const zInCell = maskXz === undefined ? floorMod(z, cellSizeXz) : z & maskXz;
+                    const xInCell = powerOfTwoXz ? x & maskXz : floorMod(x, cellSizeXz);
+                    const yInCell = powerOfTwoY ? y & maskY : floorMod(y, cellSizeY);
+                    const zInCell = powerOfTwoXz ? z & maskXz : floorMod(z, cellSizeXz);
                     const x0 = x - xInCell;
                     const y0 = y - yInCell;
                     const z0 = z - zInCell;
                     // The corner cache indexes the lattice, so it wants cell indices. They are
                     // exact: x0 is x floored to a multiple of the cell size.
-                    const cellX = x0 / cellSizeXz;
-                    const cellY = y0 / cellSizeY;
-                    const cellZ = z0 / cellSizeXz;
+                    const cellX = powerOfTwoXz ? x >> shiftXz : x0 / cellSizeXz;
+                    const cellY = powerOfTwoY ? y >> shiftY : y0 / cellSizeY;
+                    const cellZ = powerOfTwoXz ? z >> shiftXz : z0 / cellSizeXz;
                     if (xInCell === 0 && yInCell === 0 && zInCell === 0) {
                         return context.cornerCache(id).getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
                     }
 
-                    let corners = context.interpolationCorners(id, x0, y0, z0);
-                    if (corners === undefined) {
-                        corners = context.beginInterpolationCell(id, x0, y0, z0);
+                    const base = id << 3;
+                    if (!context.interpolationCell(id, x0, y0, z0)) {
+                        const corners = context.interpolationCorners;
                         const cache = context.cornerCache(id);
                         const x1 = x0 + cellSizeXz;
                         const y1 = y0 + cellSizeY;
@@ -338,28 +348,29 @@ export class DensityFunctionCompiler {
                         const cellX1 = cellX + 1;
                         const cellY1 = cellY + 1;
                         const cellZ1 = cellZ + 1;
-                        corners[0] = cache.getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
-                        corners[1] = cache.getOrCompute(context, input, cellX1, cellY, cellZ, x1, y0, z0);
-                        corners[2] = cache.getOrCompute(context, input, cellX, cellY1, cellZ, x0, y1, z0);
-                        corners[3] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ, x1, y1, z0);
-                        corners[4] = cache.getOrCompute(context, input, cellX, cellY, cellZ1, x0, y0, z1);
-                        corners[5] = cache.getOrCompute(context, input, cellX1, cellY, cellZ1, x1, y0, z1);
-                        corners[6] = cache.getOrCompute(context, input, cellX, cellY1, cellZ1, x0, y1, z1);
-                        corners[7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
+                        corners[base] = cache.getOrCompute(context, input, cellX, cellY, cellZ, x0, y0, z0);
+                        corners[base + 1] = cache.getOrCompute(context, input, cellX1, cellY, cellZ, x1, y0, z0);
+                        corners[base + 2] = cache.getOrCompute(context, input, cellX, cellY1, cellZ, x0, y1, z0);
+                        corners[base + 3] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ, x1, y1, z0);
+                        corners[base + 4] = cache.getOrCompute(context, input, cellX, cellY, cellZ1, x0, y0, z1);
+                        corners[base + 5] = cache.getOrCompute(context, input, cellX1, cellY, cellZ1, x1, y0, z1);
+                        corners[base + 6] = cache.getOrCompute(context, input, cellX, cellY1, cellZ1, x0, y1, z1);
+                        corners[base + 7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
                     }
 
+                    const corners = context.interpolationCorners;
                     return lerp3F(
-                        f32(xInCell / cellSizeXz),
-                        f32(yInCell / cellSizeY),
-                        f32(zInCell / cellSizeXz),
-                        corners[0] ?? 0,
-                        corners[1] ?? 0,
-                        corners[2] ?? 0,
-                        corners[3] ?? 0,
-                        corners[4] ?? 0,
-                        corners[5] ?? 0,
-                        corners[6] ?? 0,
-                        corners[7] ?? 0
+                        alphaXz[xInCell] ?? 0,
+                        alphaY[yInCell] ?? 0,
+                        alphaXz[zInCell] ?? 0,
+                        corners[base] ?? 0,
+                        corners[base + 1] ?? 0,
+                        corners[base + 2] ?? 0,
+                        corners[base + 3] ?? 0,
+                        corners[base + 4] ?? 0,
+                        corners[base + 5] ?? 0,
+                        corners[base + 6] ?? 0,
+                        corners[base + 7] ?? 0
                     );
                 };
             }
