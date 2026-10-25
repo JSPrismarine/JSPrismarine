@@ -9,6 +9,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../content/testing';
+import CreativeInventory from '../inventory/CreativeInventory';
 import { stub } from '../testing/stub.test.helper';
 import GameRuleManager from '../world/GameRuleManager';
 import { ContentPaletteError } from './contentPalette';
@@ -18,10 +19,12 @@ import {
     joinContentPayloads,
     networkContentPayloads
 } from './contentPayloads';
+import { itemAsStack } from './packet/CreativeContentPacket';
 import StartGamePacket from './packet/StartGamePacket';
 
 import type { ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
 import type Server from '../Server';
+import type { CreativeRegistries } from '../inventory/CreativeInventory';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import type { Definition, Definitions } from '@jsprismarine/packs';
@@ -260,6 +263,18 @@ describe('network', () => {
 });
 
 /**
+ * The registries `CreativeInventory` reads, with nothing registered.
+ *
+ * A registered class only supplies the server's own numeric handle on an
+ * item, and the captured item table supplies every number that reaches the
+ * wire, so an empty pair builds the same menu a running server builds.
+ */
+const emptyRegistries: CreativeRegistries = {
+    getBlockManager: () => ({ getBlocks: () => [] }),
+    getItemManager: () => ({ getItems: () => [] })
+};
+
+/**
  * A `StartGamePacket` whose only variable is `Block Properties`, encoded.
  *
  * Everything else is a fixed value, so two buffers that differ differ in the
@@ -422,6 +437,39 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
         );
 
         expect(shared).not.toHaveLength(0);
+    }, 180_000);
+
+    it('writes the creative menu the captured catalog describes, entry for entry', () => {
+        // The menu a pick is read against, so the order and the length are
+        // the whole of the agreement: an entry at a different position hands
+        // a player an item they did not click.
+        CreativeInventory.reset();
+        const theirs = CreativeInventory.getEntries(emptyRegistries);
+        const ours = vanilla().creative.entries;
+
+        expect(ours).toHaveLength(theirs.length);
+
+        const disagreements = ours.flatMap((entry, index) => {
+            const captured = itemAsStack(theirs[index]!.item);
+            if (captured.runtimeId !== entry.item.runtimeId) return [`${index}: id ${entry.item.runtimeId}`];
+            if (captured.meta !== entry.item.meta) return [`${index}: meta ${entry.item.meta}`];
+            if (captured.blockRuntimeId !== entry.item.blockRuntimeId) return [`${index}: block id`];
+            if (theirs[index]!.group !== entry.group) return [`${index}: group ${entry.group}`];
+
+            return [];
+        });
+
+        // The user data blob is left out on purpose: the captured path drops
+        // the catalog's NBT and this one carries it, which is the one place
+        // the content build sends more than the path it replaces.
+        const withNbt = ours.filter(
+            (entry, index) => !entry.item.userData.equals(itemAsStack(theirs[index]!.item).userData)
+        );
+        console.debug(
+            `creative entries: ${ours.length}, ${disagreements.length} disagree, ${withNbt.length} gained NBT`
+        );
+
+        expect(disagreements).toEqual([]);
     }, 180_000);
 
     it('writes the same StartGamePacket the captured path writes', () => {

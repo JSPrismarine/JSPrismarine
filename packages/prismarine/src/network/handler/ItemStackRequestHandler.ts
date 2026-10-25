@@ -6,6 +6,7 @@ import CreativeInventory from '../../inventory/CreativeInventory';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
+import { joinContentPayloads } from '../contentPayloads';
 import type ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import type {
     ItemStackResponse,
@@ -35,6 +36,30 @@ const PLAYER_CONTAINERS = new Set<number>([
  * uniqueness costs nothing extra that way.
  */
 let nextStackId = 1;
+
+/**
+ * The item a creative pick names.
+ *
+ * The client answers with the position of the entry it was shown, so this
+ * has to read the list `CreativeContentPacket` sent: the content build's menu
+ * when there is one, and `CreativeInventory`'s otherwise. Reading the other
+ * one hands the player an item they did not click.
+ *
+ * @param netId - The one-based creative net id the client sent back.
+ * @returns The item, or null when the id names no entry.
+ */
+const creativePick = (server: Server, netId: number): Item | null => {
+    const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+    if (payloads === undefined) return CreativeInventory.get(server, netId);
+
+    const picked = payloads.creativeItems[netId - 1];
+    if (picked === undefined) return null;
+
+    // The registry's number as the legacy id, which is what `getNetworkId`
+    // falls back to for a name the committed item table does not have. That
+    // is how a pack's own item reaches the wire at all.
+    return new Item({ id: picked.runtimeId, name: picked.name, meta: picked.meta });
+};
 
 /** Amount, as the docs bound it: a request moves between one item and a full stack of 64. */
 const MIN_AMOUNT = 1;
@@ -163,7 +188,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
                 switch (action.type) {
                     case ItemStackRequestActionType.CREATIVE_CREATE: {
-                        created = CreativeInventory.get(server, action.creativeItemNetId!);
+                        created = creativePick(server, action.creativeItemNetId!);
                         if (!created) return deny(`no creative entry ${action.creativeItemNetId}`);
                         break;
                     }

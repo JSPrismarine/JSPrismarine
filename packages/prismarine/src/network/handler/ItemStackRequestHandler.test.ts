@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { buildServerContent } from '../../content/ServerContent';
+import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import { StationRegistry } from '../../crafting/CraftingStation';
@@ -14,6 +16,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
 import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/ItemStackResponsePacket';
@@ -55,7 +58,11 @@ const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
     CreativeInventory['entries'] = creative.map((item) => ({ item, group: 0 }));
 
     // A refusal says why it refused, and says it through the logger.
-    return stub<Server>({ getLogger: () => stub<Logger>({ debug: () => {} }), ...overrides });
+    return stub<Server>({
+        getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
+        getContent: () => undefined,
+        ...overrides
+    });
 };
 
 const run = async (
@@ -121,6 +128,50 @@ describe('network', () => {
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
             expect(response.responses[0]?.requestId).toBe(-7);
             expect(response.responses[0]?.containers[0]?.slots.map((s) => s.slot)).toEqual([3]);
+        });
+
+        it('reads a creative pick off the menu the content build sent', async () => {
+            // The client answers with a position in the list it was shown, so
+            // a server whose menu came from the registries has to read that
+            // one. Here the two disagree on purpose: the captured menu's
+            // first entry is a plank and the content build's is not.
+            const content = buildServerContent(fixtureContentOptions());
+            const payloads = joinContentPayloads(
+                content,
+                stub<Logger>({ info: () => {}, warn: () => {}, error: () => {} }),
+                { clientPalette: fixtureBlockPalette() }
+            );
+            const expected = payloads?.creativeItems[0]?.name;
+            expect(expected).toBeDefined();
+            expect(expected).not.toBe('minecraft:oak_planks');
+
+            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })], {
+                getContent: () => content
+            });
+            const inventory = new HumanInventory();
+
+            await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.getItem(3).getName()).toBe(expected);
         });
 
         it('does not hand the same object to two players', async () => {
