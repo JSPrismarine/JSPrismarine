@@ -2,6 +2,7 @@ export * from './Managers';
 export * from './block/';
 export * from './command/';
 export * from './config/';
+export * from './console/';
 export * from './entity/';
 export * from './inventory/';
 export * from './item/';
