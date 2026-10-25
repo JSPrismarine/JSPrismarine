@@ -25,8 +25,10 @@ const writeDatapack = (files: Record<string, string>): string => {
     return root;
 };
 
+// `rolls` included because the strict build compiles every table, and a Java
+// pool without one is a pool the grammar reports.
 const lootTable = (item: string): string =>
-    JSON.stringify({ pools: [{ entries: [{ type: 'minecraft:item', name: item }] }] });
+    JSON.stringify({ pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: item }] }] });
 
 /** A content build over one datapack and nothing else. */
 const buildOver = (path: string, strict: boolean) =>
@@ -84,7 +86,7 @@ describe('the Java identifier check', () => {
             // registry the server evaluates in Java's own shape.
             'data/fixture/tags/item/gems.json': JSON.stringify({ values: ['minecraft:diamond'] }),
             'data/fixture/loot_table/tagged.json': JSON.stringify({
-                pools: [{ entries: [{ type: 'minecraft:tag', items: '#fixture:gems' }] }]
+                pools: [{ rolls: 1, entries: [{ type: 'minecraft:tag', items: '#fixture:gems' }] }]
             }),
             'data/fixture/loot_table/lossy.json': lootTable('minecraft:spectral_arrow'),
             'data/fixture/predicate/wet.json': JSON.stringify({

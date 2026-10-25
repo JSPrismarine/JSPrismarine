@@ -241,6 +241,12 @@ describe.skipIf(!java)('what Java’s own tables drop', () => {
                     definitions: {
                         ...fixtureDefinitions(),
                         lootTablesJava: java!.lootTablesJava,
+                        // The predicates and item modifiers are here because
+                        // the build compiles every table, and 214 of the block
+                        // tables reach for `minecraft:tool/can_shear` and its
+                        // kind by reference.
+                        predicates: java!.predicates,
+                        itemModifiers: java!.itemModifiers,
                         // The recipes are here because `furnace_smelt` smelts
                         // through them: a burning cow's beef is cooked by the
                         // same `minecraft:cooked_beef` recipe a furnace uses.

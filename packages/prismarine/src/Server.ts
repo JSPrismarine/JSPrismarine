@@ -6,6 +6,7 @@ import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
 import type { Random } from './utils/Random';
 import { ChatManager } from './chat/ChatManager';
+import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
@@ -355,6 +356,14 @@ export default class Server extends EventEmitter {
         this.logger.info(
             `Loaded §e${this.content.blocks.types.size}§r blocks, §e${this.content.items.registry.size}§r items and §e${this.content.entities.registry.size}§r entities from the pack stack in §e${timer.stop()} ms`
         );
+
+        // The build compiles both loot registries whole, so what a table could
+        // not be read for is known now rather than at the first chest.
+        const loot = lootBuildReport(this.content);
+        this.logger.info(lootSummary(loot));
+        const unapplied = lootWarning(loot);
+        if (unapplied !== undefined) this.logger.warn(unapplied);
+
         if (errors > 0) this.logger.warn(`The pack stack reported §c${errors}§r error(s); see the content report`);
     }
 

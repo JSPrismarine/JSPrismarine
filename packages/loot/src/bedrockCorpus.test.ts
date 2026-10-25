@@ -239,7 +239,7 @@ describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
             ).validate()
         ).not.toThrow();
 
-        const unreviewed = new Map(definitions().lootTables);
+        const unreviewed = new Map<string, unknown>(definitions().lootTables);
         unreviewed.set('loot_tables/made_up.json', {
             data: {
                 pools: [

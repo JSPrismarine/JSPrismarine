@@ -81,6 +81,19 @@ export interface LootRollRequest extends Omit<LootContextOptions, 'content'> {
 export type LootTableCycle = readonly string[];
 
 /**
+ * One finding, with the table that was being compiled when it was reported.
+ *
+ * A {@link Diagnostic} carries a path inside one file and no file, because the
+ * grammar parses files it is handed. The registry is what knows which file, so
+ * it is what says: a host restating these in its own report needs the id to
+ * find the pack and the path on disk.
+ */
+export interface LootFinding extends Diagnostic {
+    /** The registered id of the table, or the empty string for a finding that belongs to no one table. */
+    readonly id: string;
+}
+
+/**
  * Finds every cycle in a reference graph, reporting each as the chain from
  * the table that closes it back to itself.
  */
@@ -141,6 +154,8 @@ export class LootRegistry {
     private readonly resolver: ReferenceResolver;
     private readonly content: LootContentOptions;
     private readonly compiled = new Map<string, LootTable>();
+    /** The table each diagnostic belongs to, by the diagnostic's index. */
+    private readonly owners: string[] = [];
     private cycleCache: readonly LootTableCycle[] | undefined;
     private validated = false;
 
@@ -175,6 +190,30 @@ export class LootRegistry {
     }
 
     /**
+     * Everything reported so far, each attributed to the table it came from.
+     *
+     * This is {@link diagnostics} for a host that writes its own report, such
+     * as one naming the pack and the file a finding sits in. Call
+     * {@link validate} first for the whole picture; on its own this holds only
+     * what the tables compiled so far reported.
+     */
+    public get findings(): readonly LootFinding[] {
+        return this.diagnostics.entries.map((entry, index) => ({ ...entry, id: this.owners[index] ?? '' }));
+    }
+
+    /**
+     * Records that everything reported from `from` onwards belongs to `id`.
+     *
+     * Index-keyed rather than a field on the diagnostic, because the collector
+     * is shared with `@jsprismarine/predicates`, which reports against a path
+     * inside a file and has no notion of which file.
+     */
+    private attribute(id: string, from: number): void {
+        while (this.owners.length < from) this.owners.push('');
+        while (this.owners.length < this.diagnostics.entries.length) this.owners.push(id);
+    }
+
+    /**
      * Compiles a table, or returns undefined when the stack has no such id.
      * Parse diagnostics land in {@link diagnostics}.
      *
@@ -187,6 +226,7 @@ export class LootRegistry {
         const json = packJson(this.definitions.lootTables.tables.get(id));
         if (json === undefined) return undefined;
 
+        const before = this.diagnostics.entries.length;
         const { value } = parseLootTable(json, {
             id,
             path: id,
@@ -197,6 +237,7 @@ export class LootRegistry {
             difficulty: this.options.difficulty,
             strict: this.options.strict
         });
+        this.attribute(id, before);
         this.compiled.set(id, value);
         return value;
     }
@@ -209,7 +250,9 @@ export class LootRegistry {
     public roll(id: string, request: LootRollRequest = {}): readonly ItemStack[] {
         const table = this.table(id);
         if (table === undefined) {
+            const before = this.diagnostics.entries.length;
             this.diagnostics.error(id, `unknown loot table ${id}`);
+            this.attribute(id, before);
             return [];
         }
 
@@ -249,14 +292,21 @@ export class LootRegistry {
      * Compiles every registered table and walks the reference graph, so a
      * malformed pack fails at load rather than at the first chest.
      *
-     * @returns Everything reported so far, cycles included.
+     * Runs once: a second call answers from what the first reported.
+     *
+     * @returns Everything reported so far, cycles included. {@link findings}
+     *   is the same list with each entry's table named.
+     * @throws {import('./table').LootGrammarError} In strict mode, at the first
+     *   table that reported an error.
      */
     public validate(): readonly Diagnostic[] {
         if (this.validated) return this.diagnostics.entries;
         this.validated = true;
 
         for (const chain of this.cycles) {
+            const before = this.diagnostics.entries.length;
             this.diagnostics.error(chain[0] ?? '', `loot table reference cycle: ${chain.join(' -> ')}`);
+            this.attribute(chain[0] ?? '', before);
         }
         for (const id of this.ids) this.table(id);
         return this.diagnostics.entries;

@@ -141,6 +141,36 @@ export interface ServerContent {
     readonly tags: ContentTags;
 }
 
+/**
+ * Compiles every table a loot registry holds and restates what it reported in
+ * the shared report shape.
+ *
+ * `@jsprismarine/loot` reports against a table id and a field path, the way
+ * `@jsprismarine/recipes` does, so the pack and the file on disk are looked up
+ * here from the registry the tables were loaded into.
+ *
+ * Nothing here is an error for the vanilla stack: over 1447 Java tables it
+ * reports nothing at all, and over 309 Bedrock tables it reports 1484 reviewed
+ * gaps, each naming what a roll comes out without. An error means a pack
+ * carries grammar nobody has reviewed, which is what `content-strict` refuses.
+ *
+ * @param registry - The registry to drain. It is validated here, so a strict
+ *   one throws rather than returning.
+ * @param files - The loader's records for those tables, for the pack and path.
+ * @throws {import('@jsprismarine/loot').LootGrammarError} In strict mode, when a table reported an error.
+ */
+const lootDiagnostics = (registry: LootRegistry, files: ReadonlyMap<string, Definition>): readonly Diagnostic[] => {
+    registry.validate();
+
+    return registry.findings.map((finding) => ({
+        severity: finding.severity,
+        code: finding.severity === 'error' ? 'loot.invalid' : 'loot.unapplied',
+        pack: files.get(finding.id)?.pack ?? registry.dialect,
+        path: files.get(finding.id)?.path,
+        message: `${finding.path}: ${finding.message}`
+    }));
+};
+
 /** Builds a `Registry<Definition>` straight from one of the loaded registries. */
 const registryOf = (name: string, definitions: ReadonlyMap<string, Definition>): Registry<Definition> => {
     const registry = new Registry<Definition>(name);
@@ -166,6 +196,8 @@ const registryOf = (name: string, definitions: ReadonlyMap<string, Definition>):
  *   and no reviewed loss entry.
  * @throws {import('@jsprismarine/blocks').BlockLoadError} In strict mode,
  *   when a block definition does not resolve.
+ * @throws {import('@jsprismarine/loot').LootGrammarError} In strict mode, when
+ *   a loot table carries grammar this server has no reviewed entry for.
  */
 export const buildServerContent = (options: ContentOptions = {}): ServerContent => {
     const strict = options.strict ?? false;
@@ -261,6 +293,41 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         items: { tagsOf: itemTagIndex(tags) }
     });
 
+    // The three seams a loot table reaches that no pack states. Without the
+    // enchantment view `enchant_randomly` and `enchant_with_levels` report and
+    // leave the stack bare across 25 vanilla tables, and without the item
+    // limits a rolled count clamps to 64 whatever the item is. `structures`
+    // stays out: an `exploration_map` needs a structure search, and this
+    // server has none to offer yet, so the modifier reports rather than
+    // pointing a map at a made-up place.
+    const loot = new LootRegistry(
+        { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+        {
+            worldSeed: options.seed ?? 0n,
+            enchantments: (random) => createEnchantmentView(enchantments, { random }),
+            items: itemStackOpsFor(items.types),
+            strict
+        }
+    );
+
+    // The same evaluator over the behavior pack's own tables, which is what a
+    // mob spawns holding. Two registries rather than one because a registry
+    // reads one dialect, and which dialect is a member of the source rather
+    // than a word sitting beside it: `javaLootTables` over this map is the
+    // mistake that armed 2000 zombies of 2000, and it no longer compiles.
+    const equipmentLoot = new LootRegistry(
+        { ...definitions, lootTables: bedrockLootTables(definitions.lootTables) },
+        { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), strict }
+    );
+
+    // Both registries compile every table here rather than at the first chest,
+    // which is the only thing that makes `strict` mean anything for loot: a
+    // table nobody rolls reports nothing, so a strict build that waits for a
+    // roll refuses at a random later moment or never. Draining them is also
+    // what puts the dialect's reviewed gaps in the content report.
+    diagnostics.push(...lootDiagnostics(loot, definitions.lootTablesJava));
+    diagnostics.push(...lootDiagnostics(equipmentLoot, definitions.lootTables));
+
     // The engine evaluates loot conditions, so it needs the same views a loot
     // roll does. Without `items` the `count` of an item predicate and the slot
     // counts of `inventory_changed` report instead of answering; without
@@ -298,32 +365,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             brains
         },
         recipes: recipes.book,
-        // The three seams a loot table reaches that no pack states. Without
-        // the enchantment view `enchant_randomly` and `enchant_with_levels`
-        // report and leave the stack bare across 25 vanilla tables, and
-        // without the item limits a rolled count clamps to 64 whatever the
-        // item is. `structures` stays out: an `exploration_map` needs a
-        // structure search, and this server has none to offer yet, so the
-        // modifier reports rather than pointing a map at a made-up place.
-        loot: new LootRegistry(
-            { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
-            {
-                worldSeed: options.seed ?? 0n,
-                enchantments: (random) => createEnchantmentView(enchantments, { random }),
-                items: itemStackOpsFor(items.types),
-                strict
-            }
-        ),
-        // The same evaluator over the behavior pack's own tables, which is
-        // what a mob spawns holding. Two registries rather than one because a
-        // registry reads one dialect, and which dialect is now a member of the
-        // source rather than a word sitting beside it: `javaLootTables` over
-        // this map is the mistake that armed 2000 zombies of 2000, and it no
-        // longer compiles.
-        equipmentLoot: new LootRegistry(
-            { ...definitions, lootTables: bedrockLootTables(definitions.lootTables) },
-            { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), strict }
-        ),
+        loot,
+        equipmentLoot,
         advancements,
         enchantments,
         spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),
