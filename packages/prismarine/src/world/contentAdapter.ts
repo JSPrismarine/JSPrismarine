@@ -15,11 +15,14 @@
  * have got them.
  */
 import { DIFFICULTIES } from '@jsprismarine/engine-systems';
+import { bedrockBiomeToJava } from '@jsprismarine/mapping';
+import type { Definition } from '@jsprismarine/packs';
 import type { RandomSource } from '@jsprismarine/predicates';
 
 import { applyBlockEntityRecord, blockEntityCompound, blockEntityRecord } from '../blockentity/contentRecord';
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
-import { CONTENT_AREAS, notWired } from '../content/world/notWired';
+import { parseBiomeTags } from '../content/biomeTags';
+import type { BiomeTagIndex } from '../content/biomeTags';
 import type {
     ContentBlockAccess,
     ContentLevelFacts,
@@ -49,6 +52,18 @@ export interface WorldContentGroups {
 /** The live world for one dimension, or undefined when none is loaded. */
 export type LiveWorld = () => World | undefined;
 
+/**
+ * The little of the built content these groups read.
+ *
+ * `ServerContent` satisfies it; this names only the registry `blocks.biomeTags` reads, so the
+ * world subsystem does not take a dependency on the whole content build to answer one question
+ * and a test does not have to build a pack stack to drive it.
+ */
+export interface WorldContentBiomes {
+    /** Bedrock's biome definitions by identifier, whose `minecraft:tags` are the biome's tags. */
+    readonly biomes: Iterable<readonly [string, Definition]>;
+}
+
 /** What {@link worldContentGroups} is built over. */
 export interface WorldContentGroupOptions {
     /** The namespaced dimension identifier these groups answer for. */
@@ -61,6 +76,8 @@ export interface WorldContentGroupOptions {
     difficulty(): number;
     /** Where every chance a content package rolls comes from, so a test can seed it. */
     readonly random: RandomSource;
+    /** The built content, read at call time; `blocks.biomeTags` reads its `biomes` registry. */
+    readonly content: () => WorldContentBiomes;
 }
 
 /** The dimension definitions by their namespaced identifier. */
@@ -111,6 +128,33 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         return world;
     };
 
+    /**
+     * The Bedrock biome at a position, or undefined when its chunk is not loaded.
+     *
+     * A chunk stores the number the client knows the biome by rather than a name, so the name
+     * comes from `@jsprismarine/mapping`'s generated inverse. One of Bedrock's legacy biomes
+     * is still a biome here: the inverse reports it as a loss because Java has no name for it,
+     * and the Bedrock identifier - which is what this server deals in - comes back either way.
+     * A number the pinned Bedrock data does not list is one nothing in this server wrote, and
+     * there is no name to give it.
+     */
+    const biomeAt = (at: ContentPosition): string | undefined => {
+        const chunk = live().getLoadedChunk(at.x >> 4, at.z >> 4);
+        if (chunk === null) return undefined;
+
+        const biome = bedrockBiomeToJava(chunk.getBiome(at.x, at.y, at.z));
+        return biome.kind === 'unknown' ? undefined : biome.bedrock.identifier;
+    };
+
+    // Parsed once per content build rather than per lookup: a spawn pass asks for the tags of
+    // every candidate position, and the pack stack's biome definitions do not change under it.
+    let indexed: { content: WorldContentBiomes; tags: BiomeTagIndex } | undefined;
+    const biomeTags = (): BiomeTagIndex => {
+        const content = options.content();
+        if (indexed?.content !== content) indexed = { content, tags: parseBiomeTags(content.biomes) };
+        return indexed.tags;
+    };
+
     const level: ContentLevelFacts = {
         dimension,
         minY: definition.minY,
@@ -148,14 +192,14 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             const highest = chunk.getHighestBlockAt(x & 0xf, z & 0xf);
             return highest === null ? undefined : highest + 1;
         },
-        // A chunk stores a numeric Bedrock biome id, and nothing maps those back to
-        // identifiers: `@jsprismarine/mapping` maps Java identifiers to Bedrock ones, in that
-        // direction only. Guessing would make a spawn rule's `is_biome` match the wrong
-        // biome everywhere rather than refuse.
-        biome: notWired('blocks.biome', CONTENT_AREAS.world),
-        // Bedrock keeps biome tags in the biome definitions of the pack stack, which nothing
-        // parses yet, so `has_biome_tag` has no table to read.
-        biomeTags: notWired('blocks.biomeTags', CONTENT_AREAS.world)
+        biome: biomeAt,
+        // Bedrock keeps a biome's tags in its own definition, so the answer is the tags of
+        // whichever biome the chunk says the position is in. An unloaded chunk has no biome
+        // and so no tags, which is what a spawn rule reads as every `has_biome_tag` failing.
+        biomeTags: (at) => {
+            const biome = biomeAt(at);
+            return biome === undefined ? [] : (biomeTags().get(biome) ?? []);
+        }
     };
 
     const ticks: ContentTickScheduler = {
