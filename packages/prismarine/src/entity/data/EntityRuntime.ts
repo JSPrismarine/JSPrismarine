@@ -32,8 +32,11 @@ import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
+import type { ContentItemDrop } from '../../content/world/adapter';
 import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
+import { bedrockItemDrops } from '../../item/bedrockDrops';
+import { dropOfRolledStack } from '../../item/lootStack';
 import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { detonate } from './explosion';
@@ -694,8 +697,7 @@ export class EntityRuntime implements EntityScene {
         // for drops nothing rather than reporting, because that is most of the palette.
         const table = javaBlockLootIdOf(block.identifier);
         if (this.content().loot.table(table) === undefined) return;
-        for (const stack of this.content().loot.roll(table))
-            this.host.drop(position, { identifier: stack.id, count: stack.count });
+        for (const drop of this.rolled(table)) this.host.drop(position, drop);
     }
 
     /**
@@ -795,8 +797,26 @@ export class EntityRuntime implements EntityScene {
         }
 
         const position = blockPositionOf(at);
-        for (const stack of this.content().loot.roll(id))
-            this.host.drop(position, { identifier: stack.id, count: stack.count });
+        for (const drop of this.rolled(id)) this.host.drop(position, drop);
+    }
+
+    /**
+     * One loot table's result, as drops the rest of the server carries.
+     *
+     * Every table here is Java's, so every id out of one is a Java id and every
+     * component on a rolled stack is Java's too. `dropOfRolledStack` reads the
+     * enchantments, the durability, the name, the lore and the contents off the
+     * stack, and `bedrockItemDrops` renames the five ids the two editions spell
+     * differently. The three other roll sites, the block break, the mob death
+     * and `/loot`, go through the same pair.
+     */
+    private rolled(table: string): readonly ContentItemDrop[] {
+        return bedrockItemDrops(
+            this.content()
+                .loot.roll(table)
+                .filter((stack) => stack.count > 0)
+                .map(dropOfRolledStack)
+        );
     }
 
     /** Fires an entity event on a named subject, which a `trigger` with a target does. */
