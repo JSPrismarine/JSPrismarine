@@ -9,32 +9,15 @@ import { REFERENCES } from './references.ts';
 /**
  * Phase 2's loot exit criterion, green by structure for every table: all 1447 of Java's
  * vanilla loot tables parse, resolve the predicates, item modifiers and tables they reference,
- * and hold no reference cycle. Distribution is the other half of the criterion and needs
- * sampled rolls, which the loot package's own corpus test does.
+ * and hold no reference cycle. Distribution is the other half of the criterion and has its own
+ * row, `loot.distribution`.
  *
  * Gap ids: `structure:<json path>` for a table member the registry reports an error for, and
  * `cycle:<first table of the cycle>` for a loop the evaluator would not come back from.
  */
 const compareLootTables = (): { gaps: string[]; tables: number; detail: string[] } => {
     const { definitions } = loadVanillaDatapack();
-
-    let nextMapId = 0;
-    const registry = new LootRegistry(definitions, {
-        worldSeed: 1234n,
-        content: {
-            recipes: definitions.recipesJava,
-            itemTag: (tag) => {
-                const file = packJson(definitions.tags.get(`item/${tag}`));
-                const values =
-                    typeof file === 'object' && file !== null && 'values' in file
-                        ? (file as { values: unknown }).values
-                        : undefined;
-                return Array.isArray(values) ? values.filter((value) => typeof value === 'string') : undefined;
-            },
-            structures: () => ({ x: 512, y: 64, z: -512 }),
-            mapIds: () => nextMapId++
-        }
-    });
+    const registry = vanillaLootRegistry(definitions);
 
     const errors = registry.validate().filter((entry) => entry.severity === 'error');
     const gaps = [

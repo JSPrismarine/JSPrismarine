@@ -40,6 +40,8 @@ export const FAMILIES = {
 
     /** Java's vanilla loot tables, by structure, through the loot evaluator (phase 2 exit). */
     lootTables: 'loot.tables',
+    /** Rolled item counts against the distribution each table's own weights predict (phase 2 exit). */
+    lootDistribution: 'loot.distribution',
 
     /** Entity stats against the Java attribute dump over 93 entity types (phase 3 exit). */
     entitiesStats: 'entities.stats',

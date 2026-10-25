@@ -1,3 +1,5 @@
+import type { LootContentOptions } from '@jsprismarine/loot';
+import { LootRegistry, packJson } from '@jsprismarine/loot';
 import { load, readZip } from '@jsprismarine/packs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -62,3 +64,39 @@ export type VanillaDatapack = ReturnType<typeof load>;
 
 /** Loads the vanilla datapack through the pack loader, the way a server loads one. */
 export const loadVanillaDatapack = (): VanillaDatapack => load([{ kind: 'datapack', path: unpackVanillaDatapack() }]);
+
+/** The world seed both loot rows roll from, so a draw is the same on every machine. */
+export const VANILLA_LOOT_SEED = 1234n;
+
+/**
+ * The content seams a vanilla loot table reaches: smelting recipes, item tags, a structure
+ * locator and a map id allocator.
+ *
+ * The locator answers every request with the same position, because no row here checks where an
+ * explorer map points, only that the table produced one.
+ */
+export const vanillaLootContent = (definitions: VanillaDatapack['definitions']): LootContentOptions => {
+    let nextMapId = 0;
+
+    return {
+        recipes: definitions.recipesJava,
+        itemTag: (tag) => {
+            const file = packJson(definitions.tags.get(`item/${tag}`));
+            const values = typeof file === 'object' && file !== null && 'values' in file ? file.values : undefined;
+            return Array.isArray(values) ? values.filter((value) => typeof value === 'string') : undefined;
+        },
+        structures: () => ({ x: 512, y: 64, z: -512 }),
+        mapIds: () => nextMapId++
+    };
+};
+
+/**
+ * A loot registry over the vanilla datapack, with those seams filled in.
+ *
+ * Both loot rows need it: the structural one compiles every table through it, and the
+ * distribution one takes its compiled tables.
+ *
+ * @param definitions - The loaded datapack, so a caller that already has one does not reload it.
+ */
+export const vanillaLootRegistry = (definitions: VanillaDatapack['definitions']): LootRegistry =>
+    new LootRegistry(definitions, { worldSeed: VANILLA_LOOT_SEED, content: vanillaLootContent(definitions) });
