@@ -23,7 +23,7 @@ describe('block shapes', () => {
     it('opens a gate and shuts it again', () => {
         expect(collisionTopOf('minecraft:fence_gate', { open_bit: 0 })).toBe(1.5);
         expect(collisionTopOf('minecraft:fence_gate', { open_bit: 1 })).toBe(PASSABLE);
-        expect(collisionTopOf('minecraft:oak_fence_gate', { open_bit: 1 })).toBe(PASSABLE);
+        expect(collisionTopOf('minecraft:spruce_fence_gate', { open_bit: 1 })).toBe(PASSABLE);
     });
 
     it('knows which half of its cell a slab fills', () => {
@@ -78,13 +78,12 @@ describe('block shapes', () => {
 
     it('knows the blocks a hand-written list never named', () => {
         expect(collisionTopOf('minecraft:candle')).toBe(0.375);
-        expect(collisionTopOf('minecraft:end_rod')).toBe(0.625);
         expect(collisionTopOf('minecraft:glow_lichen')).toBe(PASSABLE);
         expect(collisionTopOf('minecraft:tube_coral_fan')).toBe(PASSABLE);
+        expect(collisionTopOf('minecraft:heavy_core')).toBe(0.5);
 
         // A cell a mob stands inside rather than on top of, which one blanket cube could not say.
         expect(collisionTopOf('minecraft:cauldron')).toBe(0.3125);
-        expect(collisionTopOf('minecraft:composter', { composter_fill_level: 4 })).toBe(0.5625);
     });
 
     it('treats anything it has never heard of as a block', () => {

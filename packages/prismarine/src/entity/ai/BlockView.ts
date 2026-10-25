@@ -1,8 +1,9 @@
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import { FENCE_HEIGHT, collisionTopOf } from '../../world/physics/BlockShapes';
+import { liquidOf } from '../../world/physics/BlockRules';
+import { collisionTopOf } from '../../world/physics/BlockShapes';
 import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
-import { BREAKS_A_FALL } from '../Environment';
+import { breaksAFall } from '../Environment';
 
 /**
  * What the world looks like to a mob, read synchronously.
@@ -33,13 +34,14 @@ const EPSILON = 1e-7;
  */
 export const STEP_HEIGHT = 0.6;
 
-/** Passable, but not something to stand on and not something to breathe in. */
-const LIQUID_NAMES: ReadonlySet<string> = new Set([
-    'minecraft:water',
-    'minecraft:flowing_water',
-    'minecraft:lava',
-    'minecraft:flowing_lava'
-]);
+/**
+ * The highest surface a mob can get onto by jumping.
+ *
+ * Vanilla's impulse, gravity and drag give an arc that peaks at 1.252 blocks, which
+ * `ai/MobMovement.test.ts` measures off the real jump. A fence is 1.5 tall for exactly this
+ * reason, and so is a wall and a shut gate - they are the heights nothing clears.
+ */
+export const JUMP_REACH = 1.252;
 
 /**
  * Passable but harmful; a mob would rather go round, and is hurt if it does not.
@@ -66,7 +68,7 @@ interface BlockFacts {
     liquid: boolean;
     /** What standing in this does, or null if it does nothing. */
     harm: DamageCause | null;
-    /** Whether landing in or on it costs nothing - see `Environment.BREAKS_A_FALL`. */
+    /** Whether landing in or on it costs nothing - see `Environment.breaksAFall`. */
     softFall: boolean;
 }
 
@@ -94,9 +96,9 @@ const factsFor = (runtimeId: number): BlockFacts => {
     const resolved: BlockFacts = {
         top,
         passable: top === 0,
-        liquid: name !== undefined && LIQUID_NAMES.has(name),
+        liquid: name !== undefined && liquidOf(name) !== null,
         harm: name !== undefined ? (HAZARDS.get(name) ?? null) : null,
-        softFall: name !== undefined && BREAKS_A_FALL.has(name)
+        softFall: name !== undefined && breaksAFall(name)
     };
 
     facts.set(runtimeId, resolved);
@@ -376,7 +378,7 @@ export class BlockView {
 
     /** Whether something in this cell is too tall to be jumped, whatever a mob does. */
     public isUnjumpable(x: number, y: number, z: number): boolean {
-        return this.at(x, y, z).top >= FENCE_HEIGHT;
+        return this.at(x, y, z).top > JUMP_REACH;
     }
 }
 
