@@ -39,6 +39,7 @@ export {
 } from './FeaturePatch';
 export type {
     GenerationPoolOptions,
+    GenerationPriority,
     GenerationResult,
     GenerationTask,
     GenerationWorkerData,
@@ -46,4 +47,10 @@ export type {
     WorkerPipeline,
     WorkerPipelineFactory
 } from './GenerationPool';
-export { defaultGenerationWorker, GenerationPool, GenerationPoolClosedError } from './GenerationPool';
+export {
+    defaultGenerationWorker,
+    GENERATION_PRIORITIES,
+    GenerationCanceledError,
+    GenerationPool,
+    GenerationPoolClosedError
+} from './GenerationPool';
