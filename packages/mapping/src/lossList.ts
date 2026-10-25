@@ -833,7 +833,7 @@ export const ENTITY_MERGES = [
 /** A Java registry entry whose identity does not survive the mapping. */
 export interface RegistryLoss {
     /** The registry the entry belongs to. */
-    readonly registry: 'biome' | 'enchantment';
+    readonly registry: 'biome' | 'enchantment' | 'mob_effect' | 'potion';
     /** The Java identifier. */
     readonly javaId: string;
     /** The Bedrock identifier the entry falls back to, when one exists. */
@@ -849,9 +849,16 @@ const END_BIOME = {
     reference: `${NOTE} section 6`
 } as const;
 
+const BEDROCK_HAS_NO_EFFECT = {
+    registry: 'mob_effect',
+    reference: `${NOTE} section 3`
+} as const;
+
 /**
  * The reviewed losses in the remaining registries: the biome merges onto
- * Bedrock's shared ids, and the one vanilla enchantment with no Bedrock id.
+ * Bedrock's shared ids, the one vanilla enchantment with no Bedrock id, and
+ * the four mob effects and one potion Bedrock's pinned name lists do not
+ * have.
  */
 export const REGISTRY_LOSSES = [
     {
@@ -870,6 +877,32 @@ export const REGISTRY_LOSSES = [
         javaId: 'minecraft:sweeping_edge',
         reason: 'The only vanilla Java enchantment with no Bedrock id; Geyser renders it as lore text with a glint.',
         reference: `${NOTE} section 3; GeyserMC/Geyser#3121`
+    },
+    {
+        javaId: 'minecraft:dolphins_grace',
+        reason: "Bedrock gives a dolphin's boost no effect of its own; the swim speed is applied directly.",
+        ...BEDROCK_HAS_NO_EFFECT
+    },
+    {
+        javaId: 'minecraft:glowing',
+        reason: 'Bedrock has no glowing effect; the outline a Java client draws is one of the 44 client-decided differences.',
+        ...BEDROCK_HAS_NO_EFFECT
+    },
+    {
+        javaId: 'minecraft:luck',
+        reason: 'Bedrock has no luck effect, and no loot table field it would weight.',
+        ...BEDROCK_HAS_NO_EFFECT
+    },
+    {
+        javaId: 'minecraft:unluck',
+        reason: "Bedrock has no bad luck effect; it is Java's luck effect with a negative amplifier and shares its fate.",
+        ...BEDROCK_HAS_NO_EFFECT
+    },
+    {
+        registry: 'potion',
+        javaId: 'minecraft:luck',
+        reason: 'The luck potion is Java-only, because the luck effect it applies has no Bedrock counterpart.',
+        reference: `${NOTE} section 3`
     }
 ] as const satisfies readonly RegistryLoss[];
 
@@ -948,3 +981,61 @@ export const BEDROCK_BIOME_LOSSES = [
     { bedrockId: 'minecraft:taiga_hills', ...LEGACY_TERRAIN_VARIANT },
     { bedrockId: 'minecraft:taiga_mutated', ...LEGACY_MUTATED_VARIANT }
 ] as const satisfies readonly BedrockBiomeLoss[];
+
+/**
+ * A whole Java registry whose entries reach the Bedrock client but which
+ * this package has no table for.
+ *
+ * The row is registry-wide rather than one row per entry because the gap is
+ * the same for every entry: the value travels in Bedrock, and nothing here
+ * decides what it travels as. Two things keep the row from growing into a
+ * blanket pass. The identifier still has to be an entry of the pinned Java
+ * 26.3 registry, so a typo fails the load; and `entries.count` pins how many
+ * entries that is, so a version that adds one fails the property test and
+ * comes back for review.
+ */
+export interface UntranslatedRegistry {
+    /** The registry as a datapack reference names it. */
+    readonly registry: string;
+    /** How many entries the pinned Java 26.3 data publishes for it. */
+    readonly entries: { readonly count: number };
+    /** What carries the value on the Bedrock side, which is what a later table has to produce. */
+    readonly carrier: string;
+    readonly reason: string;
+    readonly reference: string;
+}
+
+/**
+ * The three registries whose entries this package cannot name in Bedrock
+ * yet.
+ *
+ * All three are pinned-source problems rather than design problems: Bedrock
+ * holds each of these as a number or a short code decided in client code,
+ * and neither GeyserMC/mappings nor the bedrock-samples metadata publishes
+ * the correspondence, so there is nothing to generate a table from. Mapping
+ * them means capturing the Bedrock side first, which is Phase 2 and Phase 3
+ * work.
+ */
+export const UNTRANSLATED_REGISTRIES = [
+    {
+        registry: 'banner_pattern',
+        entries: { count: 43 },
+        carrier: "the banner's block entity NBT, which lists patterns by a short code such as `bs` or `cr`",
+        reason: 'Bedrock names banner patterns by two-letter code rather than by identifier, and no pinned source publishes the pairing; Geyser keeps it in client code.',
+        reference: `${NOTE} section 5`
+    },
+    {
+        registry: 'instrument',
+        entries: { count: 8 },
+        carrier: "the goat horn item's data value, 0 to 7",
+        reason: 'Bedrock selects a goat horn sound by the item data value, in the order the eight horns were added; the identifiers exist only on the Java side.',
+        reference: `${NOTE} section 5`
+    },
+    {
+        registry: 'painting_variant',
+        entries: { count: 51 },
+        carrier: "the painting entity's `Motive` string, which is a resource pack name rather than a registry id",
+        reason: 'Bedrock paintings are named by the resource pack texture they draw, so the set a client knows is whatever its pack ships; the pinned metadata lists no painting registry.',
+        reference: `${NOTE} section 5`
+    }
+] as const satisfies readonly UntranslatedRegistry[];

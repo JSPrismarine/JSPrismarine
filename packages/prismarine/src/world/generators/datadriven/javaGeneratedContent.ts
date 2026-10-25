@@ -17,17 +17,23 @@ import type { EntitySpawn } from '../../EntitySpawn';
 import type { RegionBlockEntity, RegionEntitySpawn } from './GenerationRegion';
 
 /**
- * What Bedrock calls each Java block entity a feature attaches.
+ * What Bedrock calls each Java block entity a feature or a structure attaches.
  *
- * Four rows rather than a generated table, because neither edition publishes a block entity id
- * mapping and these are the only types `@jsprismarine/features` names: `structural.ts` asks for
- * the chest, the spawner and the end gateway, and `tree.ts` for the bee nest.
+ * A short table rather than a generated one, because neither edition publishes a block entity id
+ * mapping. `@jsprismarine/features` names the chest, the spawner and the end gateway from
+ * `structural.ts` and the bee nest from `tree.ts`; the structures add the barrel a village house
+ * keeps its loot in and the trapped chest, which Bedrock stores under the same id as a chest.
+ *
+ * A type with no row loses its contents and keeps its block, which is what the generated chunk
+ * would show for a container this server cannot name.
  */
 const BEDROCK_BLOCK_ENTITY_IDS: Readonly<Record<string, string>> = {
+    'minecraft:barrel': 'Barrel',
     'minecraft:beehive': 'Beehive',
     'minecraft:chest': 'Chest',
     'minecraft:end_gateway': 'EndGateway',
-    'minecraft:mob_spawner': 'MobSpawner'
+    'minecraft:mob_spawner': 'MobSpawner',
+    'minecraft:trapped_chest': 'Chest'
 };
 
 /** Java's `LegacyRandomSource` multiplier, reused here only to spread the bits of a position. */

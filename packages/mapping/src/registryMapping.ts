@@ -3,7 +3,7 @@ import { BEDROCK_BIOME_LOSSES, REGISTRY_LOSSES } from './lossList';
 import { registriesTable } from './tables';
 
 /** The registries beyond blocks, items and entities that this package maps. */
-export const MAPPED_REGISTRIES = ['biome', 'enchantment'] as const;
+export const MAPPED_REGISTRIES = ['biome', 'enchantment', 'mob_effect', 'potion'] as const;
 /** One of {@link MAPPED_REGISTRIES}. */
 export type MappedRegistry = (typeof MAPPED_REGISTRIES)[number];
 
@@ -13,8 +13,8 @@ export type IdentifierMappingResult =
     | { readonly kind: 'mapped'; readonly bedrock: string }
     /**
      * A reviewed loss. Merged biomes carry the shared Bedrock biome in
-     * `loss.bedrockFallback`; `sweeping_edge` carries no fallback because
-     * Bedrock has no id for it at all.
+     * `loss.bedrockFallback`; `sweeping_edge`, the four effects and the luck
+     * potion carry no fallback, because Bedrock has no id for them at all.
      */
     | { readonly kind: 'loss'; readonly loss: RegistryLoss }
     /** A non-`minecraft:` identifier, passed through untouched for custom content. */

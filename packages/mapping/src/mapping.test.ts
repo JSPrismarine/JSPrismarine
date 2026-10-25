@@ -141,8 +141,8 @@ describe('javaEntityTypeToBedrock', () => {
 
 describe('javaIdentifierToBedrock', () => {
     it('exposes the mapped registries as literal types', () => {
-        expectTypeOf<MappedRegistry>().toEqualTypeOf<'biome' | 'enchantment'>();
-        expect(MAPPED_REGISTRIES).toEqual(['biome', 'enchantment']);
+        expectTypeOf<MappedRegistry>().toEqualTypeOf<'biome' | 'enchantment' | 'mob_effect' | 'potion'>();
+        expect(MAPPED_REGISTRIES).toEqual(['biome', 'enchantment', 'mob_effect', 'potion']);
         // @ts-expect-error entity types have their own function
         void ((): unknown => javaIdentifierToBedrock('entity_type', 'minecraft:cow'));
     });
@@ -173,6 +173,41 @@ describe('javaIdentifierToBedrock', () => {
 
     it('reports sweeping_edge as the one vanilla enchantment loss', () => {
         const result = javaIdentifierToBedrock('enchantment', 'minecraft:sweeping_edge');
+        expect(result.kind).toBe('loss');
+        if (result.kind === 'loss') expect(result.loss.bedrockFallback).toBeUndefined();
+    });
+
+    it('maps mob effects, renaming the raid reward Bedrock spells the other way round', () => {
+        expect(javaIdentifierToBedrock('mob_effect', 'minecraft:wither')).toEqual({
+            kind: 'mapped',
+            bedrock: 'minecraft:wither'
+        });
+        expect(javaIdentifierToBedrock('mob_effect', 'minecraft:hero_of_the_village')).toEqual({
+            kind: 'mapped',
+            bedrock: 'minecraft:village_hero'
+        });
+    });
+
+    it('reports the four mob effects Bedrock has no id for as losses', () => {
+        for (const javaId of ['dolphins_grace', 'glowing', 'luck', 'unluck']) {
+            const result = javaIdentifierToBedrock('mob_effect', `minecraft:${javaId}`);
+            expect(result.kind, javaId).toBe('loss');
+        }
+    });
+
+    it('maps potions, dropping the underscore Bedrock leaves out of night vision', () => {
+        expect(javaIdentifierToBedrock('potion', 'minecraft:strong_turtle_master')).toEqual({
+            kind: 'mapped',
+            bedrock: 'minecraft:strong_turtle_master'
+        });
+        expect(javaIdentifierToBedrock('potion', 'minecraft:long_night_vision')).toEqual({
+            kind: 'mapped',
+            bedrock: 'minecraft:long_nightvision'
+        });
+    });
+
+    it('reports the luck potion as the one potion loss', () => {
+        const result = javaIdentifierToBedrock('potion', 'minecraft:luck');
         expect(result.kind).toBe('loss');
         if (result.kind === 'loss') expect(result.loss.bedrockFallback).toBeUndefined();
     });
