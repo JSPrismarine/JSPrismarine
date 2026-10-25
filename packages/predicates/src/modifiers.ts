@@ -264,7 +264,10 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
             );
     },
     furnace_smelt: (value, context) => {
-        const useInputCount = asBoolean(member(value, 'use_input_count')) ?? false;
+        // Java's codec reads `use_input_count` with `optionalFieldOf(name, true)`, so a table
+        // that leaves it out keeps the input count. A default of false cooked three raw beef
+        // off a burning cow down to one cooked one.
+        const useInputCount = asBoolean(member(value, 'use_input_count')) ?? true;
         const path = context.path;
         return (stack, evaluation) => {
             const smelt = requireHost(evaluation.content.smeltingResult, evaluation, path, 'furnace_smelt');
