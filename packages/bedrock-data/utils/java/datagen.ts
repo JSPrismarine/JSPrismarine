@@ -32,6 +32,7 @@ import { fileURLToPath } from 'node:url';
 import { hashFile } from '../fetch/hash.ts';
 import { loadSourceDescriptors } from '../fetch/manifest.ts';
 import { readZipEntry } from '../fetch/unzip.ts';
+import { extractJavaStructures } from './extract-structures.ts';
 import { findJdkHome } from './jdk.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -75,10 +76,22 @@ const jarPath =
 
 const datapackDir = join(cacheRoot, 'vanilla-datapack', version);
 const reportsDir = join(cacheRoot, 'java-reports', version, 'generated');
+const structuresDir = join(cacheRoot, 'java-structures', version);
 const workDir = join(cacheRoot, 'java-datagen', version);
 
-if (hasAll(datapackDir, DATAPACK_WITNESSES) && hasAll(reportsDir, REPORT_WITNESSES) && !force) {
-    console.log(`Java ${version} datapack and reports are already in ${cacheRoot}; pass --force to regenerate.`);
+/** One template every overworld needs, which proves the extraction finished. */
+const STRUCTURE_WITNESSES = ['village/plains/houses/plains_small_house_1.nbt'];
+
+if (
+    hasAll(datapackDir, DATAPACK_WITNESSES) &&
+    hasAll(reportsDir, REPORT_WITNESSES) &&
+    hasAll(structuresDir, STRUCTURE_WITNESSES) &&
+    !force
+) {
+    console.log(
+        `Java ${version} datapack, reports and structure templates are already in ${cacheRoot}; ` +
+            'pass --force to regenerate.'
+    );
     process.exit(0);
 }
 
