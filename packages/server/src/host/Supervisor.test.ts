@@ -48,16 +48,22 @@ class FakeChild implements ServerChild {
 
 const settle = () => new Promise((done) => setTimeout(done, 0));
 
-const setup = () => {
+const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
     const children: FakeChild[] = [];
     const exit = vi.fn<(code: number) => void>();
+    let failures = options.failSpawns ?? 0;
     const supervisor = new Supervisor({
         spawnChild: async () => {
+            if (failures > 0) {
+                failures -= 1;
+                throw new Error('spawn EAGAIN');
+            }
             const child = new FakeChild(100 + children.length);
             children.push(child);
             return child;
         },
-        exit
+        exit,
+        canRestart: options.canRestart ?? true
     });
     const events: SupervisorEvent[] = [];
     supervisor.onEvent((event) => events.push(event));
@@ -142,6 +148,59 @@ describe('Supervisor', () => {
         await settle();
         expect(children).toHaveLength(2);
         expect(states().at(-1)).toBe('2:starting');
+    });
+
+    it('exits with the crash code when nothing can restart the child', async () => {
+        const { supervisor, children, states, exit } = setup({ canRestart: false });
+        await supervisor.start();
+
+        children[0]?.exit(3);
+
+        expect(states()).toEqual(['1:starting', '1:stopped']);
+        expect(exit).toHaveBeenCalledWith(3);
+    });
+
+    it('reports a rejected spawn as a crash and stays restartable', async () => {
+        const { supervisor, children, states, exit, events } = setup({ failSpawns: 1 });
+
+        await supervisor.start();
+
+        expect(states()).toEqual(['1:starting', '1:crashed', '1:waiting']);
+        expect(events).toContainEqual({ type: 'supervisor.output', stream: 'stderr', text: 'spawn EAGAIN' });
+        expect(exit).not.toHaveBeenCalled();
+
+        supervisor.restart('packages/alpha/src/a.ts');
+        await settle();
+        expect(children).toHaveLength(1);
+        expect(supervisor.state).toBe('starting');
+    });
+
+    it('exits with code 1 when the spawn is rejected and nothing can restart it', async () => {
+        const { supervisor, states, exit } = setup({ failSpawns: 1, canRestart: false });
+
+        await supervisor.start();
+
+        expect(states()).toEqual(['1:starting', '1:stopped']);
+        expect(exit).toHaveBeenCalledWith(1);
+    });
+
+    it('still stops after a rejected spawn', async () => {
+        const { supervisor, exit } = setup({ failSpawns: 1 });
+        await supervisor.start();
+
+        supervisor.stop();
+
+        expect(exit).toHaveBeenCalledWith(0);
+    });
+
+    it('exits with code 1 when a signal kills the child unasked', async () => {
+        const { supervisor, children, states, exit } = setup();
+        await supervisor.start();
+
+        children[0]?.exit(null, 'SIGSEGV');
+
+        expect(states().at(-1)).toBe('1:stopped');
+        expect(exit).toHaveBeenCalledWith(1);
     });
 
     it('stops the child and exits with its code', async () => {
