@@ -131,6 +131,6 @@ export const isAllowed = (world: World, cause: DamageCause): boolean => {
     const rule = GOVERNED_BY[cause];
     if (!rule) return true;
 
-    const [enabled] = world.getGameRuleManager().getGameRule(rule) ?? [true];
+    const [enabled] = world.getGameRuleManager()?.getGameRule(rule) ?? [true];
     return Boolean(enabled);
 };

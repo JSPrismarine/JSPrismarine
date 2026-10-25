@@ -1,7 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import { GameRules } from '../world/GameRuleManager';
 import { meleeEnchantmentBonus } from '../enchantment/melee';
+import { GameRules } from '../world/GameRuleManager';
 import { AttributeIds } from './Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
@@ -108,7 +108,7 @@ export const canHarm = (attacker: Entity, target: Entity): boolean => {
     if (attacker.getWorld() !== target.getWorld()) return false;
 
     if (attacker instanceof Human && target instanceof Human) {
-        const [pvp] = target.getWorld().getGameRuleManager().getGameRule(GameRules.PVP) ?? [true];
+        const [pvp] = target.getWorld().getGameRuleManager()?.getGameRule(GameRules.PVP) ?? [true];
         if (!pvp) return false;
     }
 

@@ -13,14 +13,14 @@
  * player killed by a creeper is told it was a creeper.
  * @see https://minecraft.wiki/w/Explosion
  */
-import { explode as castBlast } from '@jsprismarine/engine-systems';
 import type { BlockPosition, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
-import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { explode as castBlast } from '@jsprismarine/engine-systems';
 import { Vector3 } from '@jsprismarine/math';
+import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import type { Block } from '../block/Block';
-import { destroyedBlockDrops } from '../world/blockDestroy';
 import type { Item } from '../item/Item';
+import { destroyedBlockDrops } from '../world/blockDestroy';
 import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
@@ -152,7 +152,7 @@ const primeTnt = async (world: World, at: BlockPosition, source: Entity | null):
 
 /** Whether the world lets explosions rearrange it. */
 const griefingAllowed = (world: World): boolean => {
-    const [allowed] = world.getGameRuleManager().getGameRule(GameRules.MobGriefing) ?? [true];
+    const [allowed] = world.getGameRuleManager()?.getGameRule(GameRules.MobGriefing) ?? [true];
     return Boolean(allowed);
 };
 

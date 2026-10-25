@@ -3,10 +3,10 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Dimension, Generator } from '@jsprismarine/minecraft';
 import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
 import type GameRuleManager from '../../world/GameRuleManager';
-import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
 
@@ -103,7 +103,7 @@ export default class StartGamePacket extends DataPacket {
 
     public worldSpawnPos!: Vector3;
 
-    public gameRules!: GameRuleManager;
+    public gameRules: GameRuleManager | null = null;
 
     /**
      * `Block Properties`, or null to send the captured vanilla definitions
@@ -171,7 +171,14 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(1); // Commands Enabled
         this.writeByte(0); // Texture Packs Required
 
-        this.gameRules.networkSerialize(this); // Rule Data
+        if (this.gameRules) {
+            this.gameRules.networkSerialize(this); // Rule Data
+        } else {
+            // The first `unsignedVarInt` in the serialized `gameRules` is
+            // the size. Since `gameRules` === null, we just
+            // send a straight `0`
+            this.writeUnsignedVarInt(0);
+        }
 
         // Experiments. The toggle count is the one list in the packet counted by a fixed
         // 32 bit integer.
