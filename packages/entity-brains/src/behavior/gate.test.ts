@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { MemoryModuleTypes } from '../memory.js';
+import { MemoryModuleTypes, UNIT } from '../memory.js';
 import { Brain } from '../brain.js';
 import { TestWorld } from '../testWorld.js';
 import { behavior, countDownCooldownTicks, gatedBy, sequence, triggerIf } from './builder.js';
@@ -282,7 +282,7 @@ describe('BehaviorBuilder', () => {
                 if (cooldown.tryGet() !== undefined) {
                     return false;
                 }
-                cooldown.setWithExpiry(Symbol.for('@jsprismarine/entity-brains/unit'), 5);
+                cooldown.setWithExpiry(UNIT, 5);
                 return true;
             });
         expect(control.trigger(ctx, 0)).toBe(true);
