@@ -36,6 +36,7 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
     const server: Server = stub<Server>({
         getVersion: () => '1.2.3',
         getTPS: () => 20,
+        getTickMs: () => 12.5,
         getConsole: () => undefined,
         getConsoleSender: () => sender,
         getCommandManager: () => stub<CommandManager>({ dispatchCommand, getCommands: () => commands }),
@@ -248,7 +249,8 @@ describe('RemoteConsole', () => {
         await vi.advanceTimersByTimeAsync(1000);
         const statuses = () => received.filter((message) => message.type === 'status');
         expect(statuses()).toHaveLength(1);
-        expect(statuses()[0]).toMatchObject({ tps: 20, tickMs: 50, players: 0, maxPlayers: 20 });
+        // The measured tick duration, not the 50 ms the rate implies.
+        expect(statuses()[0]).toMatchObject({ tps: 20, tickMs: 12.5, players: 0, maxPlayers: 20 });
         expect(statuses()[0]?.rssBytes).toBeGreaterThan(0);
         expect(statuses()[0]?.uptimeMs).toBeGreaterThan(0);
 

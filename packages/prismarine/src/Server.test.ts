@@ -50,7 +50,7 @@ describe('Server', () => {
      * One folder per test keeps each startup independent. LevelDB takes a directory lock, so
      * two servers must not open the same world at once.
      */
-    const debugConfig = (levelName: string) =>
+    const debugConfig = (levelName: string, options: { ticking?: boolean } = {}) =>
         new (class DebugConfig extends Config {
             public override async enable() {}
 
@@ -98,7 +98,7 @@ describe('Server', () => {
             }
 
             public override getEnableTicking() {
-                return false;
+                return options.ticking ?? false;
             }
 
             public override getEnableProcessTitle() {
@@ -119,6 +119,26 @@ describe('Server', () => {
 
         await prismarine.bootstrap('0.0.0.0', 12345);
         await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
+    });
+
+    it('measures how long its ticks take once it is ticking', async () => {
+        const prismarine = new Server({
+            logger: new Logger(),
+            config: debugConfig('test-world-ticking', { ticking: true })
+        });
+        // No tick has run yet, so there is nothing to report.
+        expect(prismarine.getTickMs()).toBe(0);
+
+        await prismarine.bootstrap('0.0.0.0', 12345);
+        await new Promise((resolve) => setTimeout(resolve, 200));
+        try {
+            const tickMs = prismarine.getTickMs();
+            expect(tickMs).toBeGreaterThan(0);
+            // An idle flat world with no chunks loaded does not take a whole tick period.
+            expect(tickMs).toBeLessThan(50);
+        } finally {
+            await prismarine.shutdown({ stayAlive: true });
+        }
     });
 
     it('starts and stops without crashing in headless mode', async () => {
