@@ -673,16 +673,17 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
         };
     },
     set_fireworks: (value, context) => {
-        const explosions = asList(member(value, 'explosions'));
-        const operation = listOperation(member(value, 'explosions'), context.at('explosions'));
+        const held = member(value, 'explosions');
+        const explosions = asList(member(held, 'values'));
+        const operation = listOperation(held, context.at('explosions'));
         const flight =
             member(value, 'flight_duration') === undefined
                 ? undefined
                 : intProviderAt(member(value, 'flight_duration'), context.at('flight_duration'));
         return (stack, evaluation) => {
             const current = componentOf(stack, 'minecraft:fireworks');
-            const held = Array.isArray(current['explosions']) ? current['explosions'] : [];
-            current['explosions'] = operation(held, explosions);
+            const previous = Array.isArray(current['explosions']) ? current['explosions'] : [];
+            if (held !== undefined) current['explosions'] = operation(previous, explosions);
             if (flight) current['flight_duration'] = flight(evaluation);
             return evaluation.items.withComponent(stack, 'minecraft:fireworks', current);
         };
