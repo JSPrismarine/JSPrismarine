@@ -160,6 +160,26 @@ export const entityFixtureDefinitions = () =>
             )
         ],
         [
+            'minecraft:villager_v2',
+            definitionOf(
+                'entities',
+                'minecraft:villager_v2',
+                entityFile('minecraft:villager_v2', {
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:movement': { value: 5 },
+                        'minecraft:collision_box': { width: 0.6, height: 1.9 },
+                        'minecraft:economy_trade_table': {
+                            table: 'trading/economy_trades/farmer_trades.json',
+                            display_name: 'entity.villager.farmer',
+                            new_screen: true,
+                            persist_trades: true
+                        }
+                    }
+                })
+            )
+        ],
+        [
             'minecraft:goat',
             definitionOf(
                 'entities',
@@ -192,8 +212,41 @@ export const entityFixtureStack = (): Definitions =>
                     format_version: '1.8.0',
                     'minecraft:spawn_rules': {
                         description: { identifier: 'minecraft:cow', population_control: 'animal' },
-                        conditions: []
+                        conditions: [
+                            {
+                                'minecraft:spawns_on_surface': {},
+                                'minecraft:brightness_filter': { min: 7, max: 15 },
+                                'minecraft:weight': { default: 10 },
+                                'minecraft:herd': { min_size: 1, max_size: 2 },
+                                'minecraft:spawns_on_block_filter': 'minecraft:stone',
+                                'minecraft:biome_filter': { test: 'has_biome_tag', value: 'minecraft:plains' }
+                            }
+                        ]
                     }
+                })
+            ]
+        ]),
+        tradeTables: new Map([
+            [
+                'trading/economy_trades/farmer_trades.json',
+                definitionOf('tradeTables', 'trading/economy_trades/farmer_trades.json', {
+                    tiers: [
+                        {
+                            total_exp_required: 0,
+                            groups: [
+                                {
+                                    num_to_select: 1,
+                                    trades: [
+                                        {
+                                            wants: [{ item: 'minecraft:wheat', quantity: 20 }],
+                                            gives: [{ item: 'minecraft:emerald', quantity: 1 }],
+                                            max_uses: 16
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
                 })
             ]
         ]),

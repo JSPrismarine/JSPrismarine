@@ -24,6 +24,7 @@ import { EntityInstance, noEffects } from '@jsprismarine/entities';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner } from '@jsprismarine/spawning';
+import type { Merchant } from '@jsprismarine/trading';
 
 import type { ServerContent } from '../../content/ServerContent';
 import { DataEntity, MobBody, distance } from './DataEntity';
@@ -34,6 +35,7 @@ import { brainMobOf, brainWorldOf } from './brainWorld';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
 import type { EntityScene, SpawnOptions } from './scene';
+import { merchantFor } from './trading';
 
 /** How to build one {@link EntityRuntime}. */
 export interface EntityRuntimeOptions {
@@ -70,6 +72,8 @@ export class EntityRuntime implements EntityScene {
     private spawning: MobBody | undefined;
     /** The pool each entity's spawn counted against, for `SpawnWorld.poolCount`. */
     private readonly pools = new Map<number, string>();
+    /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
+    private readonly merchants = new Map<number, Merchant>();
     private readonly lookupContent: () => ServerContent;
     private readonly onReport: (message: string) => void;
     private facts: EntityFactsLookup | undefined;
@@ -193,6 +197,7 @@ export class EntityRuntime implements EntityScene {
         this.entities.delete(id);
         this.byInstance.delete(entity.instance);
         this.pools.delete(id);
+        this.merchants.delete(id);
     }
 
     /**
@@ -388,6 +393,27 @@ export class EntityRuntime implements EntityScene {
             return;
         }
         this.report(`${source.identifier} triggers ${event} on ${target}, which nothing routes`);
+    }
+
+    /**
+     * The merchant one entity trades through.
+     *
+     * Built on first ask and kept, because `persist_trades` means a villager's
+     * offers are drawn once and survive until it dies. An entity that carries
+     * neither trade component, or names a table the stack has no file for,
+     * gets no merchant and does not trade.
+     */
+    public merchant(entity: DataEntity): Merchant | undefined {
+        const cached = this.merchants.get(entity.id);
+        if (cached !== undefined) return cached;
+
+        const built = merchantFor(entity.instance, {
+            content: this.content(),
+            random: this.world.random,
+            report: (code, message) => this.report(`${entity.identifier} trade table ${code}: ${message}`)
+        });
+        if (built !== undefined) this.merchants.set(entity.id, built);
+        return built;
     }
 
     /** Records what the runtime met and could not carry out. */
