@@ -62,7 +62,6 @@ export class Position extends Vector3 {
      * @returns {World} The world of the position.
      */
     public getWorld(): World {
-        // TODO: assert the world is loaded, else throw
         return this.world;
     }
 

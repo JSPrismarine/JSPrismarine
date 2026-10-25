@@ -768,7 +768,7 @@ export class Mob extends Entity {
     private async dropLoot(): Promise<void> {
         const world = this.getWorld();
 
-        const [enabled] = world.getGameRuleManager().getGameRule(GameRules.DoMobLoot) ?? [true];
+        const [enabled] = world.getGameRuleManager()?.getGameRule(GameRules.DoMobLoot) ?? [true];
         if (!enabled) return;
 
         const content = this.getServer().getContent?.();
