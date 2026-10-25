@@ -11,6 +11,7 @@
  * [`javaWorldgenData.ts`](javaWorldgenData.ts). A server with neither cannot run this
  * generator, and says so rather than producing a world that is quietly not Java's.
  */
+import { performance } from 'node:perf_hooks';
 import { setImmediate as yieldEventLoop } from 'node:timers/promises';
 
 import type { BlockOracle, DecorationStep, PlacedFeature, ScheduledFeature } from '@jsprismarine/features';
@@ -135,6 +136,9 @@ const CAVE_AIR = 'minecraft:cave_air';
 
 /** Bounds the cached terrain tiles and feature output kept for adjacent chunk generation. */
 const GENERATION_CACHE_SIZE = 128;
+
+/** How long the terrain fill may hold the event loop before handing it back, in milliseconds. */
+const TERRAIN_YIELD_BUDGET_MS = 4;
 
 /** The source a generator with no templates uses, which places the structures that need none. */
 const EMPTY_TEMPLATES: TemplateSource = { template: () => undefined, processorList: () => undefined };
@@ -309,7 +313,7 @@ export class DataDrivenGenerator implements Generator {
             pipeline.settings.noiseSettings.minY + pipeline.settings.noiseSettings.height - 1
         );
 
-        let columnsSinceYield = 0;
+        let lastYield = performance.now();
         for (let localX = 0; localX < 16; localX++) {
             for (let localZ = 0; localZ < 16; localZ++) {
                 const x = cx * 16 + localX;
@@ -318,9 +322,13 @@ export class DataDrivenGenerator implements Generator {
                     if (y >= floor && y <= ceiling && state !== 'minecraft:air') region.writeName(x, y, z, state);
                 });
 
-                if (++columnsSinceYield === 4) {
-                    columnsSinceYield = 0;
+                // A yield is a trip around the event loop, which on a loaded host costs more
+                // than the work it interrupts: a fixed yield every four columns spent most of a
+                // preload waiting to be scheduled again. The budget bounds how long the loop is
+                // held whatever the host's speed, which is the property the yield is here for.
+                if (performance.now() - lastYield >= TERRAIN_YIELD_BUDGET_MS) {
                     await yieldEventLoop();
+                    lastYield = performance.now();
                 }
             }
         }
