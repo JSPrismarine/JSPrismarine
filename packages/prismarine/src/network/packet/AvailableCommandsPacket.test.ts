@@ -15,7 +15,7 @@ import PlayerSession from '../PlayerSession';
 import { CommandChainedSubcommand } from '../type/CommandChainedSubcommand';
 import CommandData from '../type/CommandData';
 import { CommandEnum } from '../type/CommandEnum';
-import CommandParameter, { CommandParameterType } from '../type/CommandParameter';
+import CommandParameter, { CommandArgumentType, CommandParameterType } from '../type/CommandParameter';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
 import type DataPacket from './DataPacket';
 
@@ -162,8 +162,11 @@ const SOFT_ENUM = 0x4000000;
 /**
  * The basic argument type ids of protocol 2193 that a plain parameter may carry. The low 16
  * bits of a parameter's `Parse Symbol` once its flags are masked off.
+ *
+ * Read off {@link CommandArgumentType} rather than listed, so a type the command layer starts
+ * sending is checked against the table the packet writes from instead of against a copy of it.
  */
-const ARGUMENT_TYPE_IDS = new Set([1, 3, 4, 5, 6, 7, 8, 56, 64, 65, 67, 68, 70, 74, 87]);
+const ARGUMENT_TYPE_IDS = new Set(Object.values(CommandArgumentType).filter((id) => typeof id === 'number'));
 
 describe('AvailableCommandsPacket', () => {
     it('writes one command with every parameter kind in protocol 2193 order', () => {

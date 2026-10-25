@@ -1,43 +1,16 @@
+/**
+ * The command classes this server still registers itself.
+ *
+ * Everything vanilla now comes from `@jsprismarine/commands` through
+ * {@link import('./vanillaCommands').buildVanillaCommands}; what is left here
+ * is the `jsprismarine:` namespace and the two vanilla commands that package
+ * does not implement, `/ban` and `/pardon`, which Bedrock has no counterpart
+ * for and Java keeps outside the shared set.
+ */
 import DebugCommand from './jsprismarine/DebugCommand';
-import ReloadCommand from './jsprismarine/ReloadCommand';
 import TpsCommand from './jsprismarine/TpsCommand';
 import VersionCommand from './jsprismarine/VersionCommand';
 import BanCommand from './vanilla/BanCommand';
-import DeopCommand from './vanilla/DeopCommand';
-import ExecuteCommand from './vanilla/ExecuteCommand';
-import GamemodeCommand from './vanilla/GamemodeCommand';
-import GameRuleCommand from './vanilla/GameruleCommand';
-import HelpCommand from './vanilla/HelpCommand';
-import KickCommand from './vanilla/KickCommand';
-import ListCommand from './vanilla/ListCommand';
-import MeCommand from './vanilla/MeCommand';
-import OpCommand from './vanilla/OpCommand';
 import PardonCommand from './vanilla/PardonCommand';
-import SayCommand from './vanilla/SayCommand';
-import StopCommand from './vanilla/StopCommand';
-import SummonCommand from './vanilla/SummonCommand';
-import TimeCommand from './vanilla/TimeCommand';
-import TpCommand from './vanilla/TpCommand';
 
-export {
-    BanCommand,
-    DebugCommand,
-    DeopCommand,
-    ExecuteCommand,
-    GamemodeCommand,
-    GameRuleCommand,
-    HelpCommand,
-    KickCommand,
-    ListCommand,
-    MeCommand,
-    OpCommand,
-    PardonCommand,
-    ReloadCommand,
-    SayCommand,
-    StopCommand,
-    SummonCommand,
-    TimeCommand,
-    TpCommand,
-    TpsCommand,
-    VersionCommand
-};
+export { BanCommand, DebugCommand, PardonCommand, TpsCommand, VersionCommand };

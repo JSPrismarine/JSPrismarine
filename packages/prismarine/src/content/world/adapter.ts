@@ -19,6 +19,7 @@
  */
 import type { BlockStateValue } from '@jsprismarine/blocks';
 import type { BlockEntityData, BlockProperties } from '@jsprismarine/block-behaviors';
+import type { CommandHost } from '@jsprismarine/commands';
 import type { Difficulty, TickKind, Weather } from '@jsprismarine/engine-systems';
 import type { EntityActuator, EntityInstance } from '@jsprismarine/entities';
 import type { FeatureWorld } from '@jsprismarine/features';
@@ -251,23 +252,6 @@ export interface ContentGenerationAccess {
 }
 
 /**
- * The slot `CommandHost` from `@jsprismarine/commands` fills.
- *
- * Declared as that interface's five groups with their bodies left open, so
- * the real `CommandHost` is assignable to it and this package does not have
- * to depend on `@jsprismarine/commands` before it lands. The network
- * subsystem replaces this type with the real import when it takes the
- * dependency.
- */
-export interface ContentCommandHostSlot {
-    readonly entities: object;
-    readonly world: object;
-    readonly scoreboard: object;
-    readonly data: object;
-    readonly server: object;
-}
-
-/**
  * Everything the content packages do to one dimension.
  *
  * The six required groups are the facts and effects more than one package
@@ -291,8 +275,17 @@ export interface ServerWorldAdapter {
     readonly ai?: ContentAiAccess;
     /** Owned by the world subsystem. */
     readonly generation?: ContentGenerationAccess;
-    /** Owned by the network subsystem. */
-    readonly commands?: ContentCommandHostSlot;
+    /**
+     * Owned by the command subsystem; see
+     * {@link import('../../command/host').serverCommandHost}.
+     *
+     * The real interface rather than a structural stand-in: this package takes
+     * the dependency now that the command layer is wired. Nothing projects the
+     * group yet, so no content behavior can run a command - which is the one
+     * direction the command layer deliberately does not open until a behavior
+     * asks for it.
+     */
+    readonly commands?: CommandHost;
 }
 
 /**

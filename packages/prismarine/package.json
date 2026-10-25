@@ -82,6 +82,7 @@
         "@jsprismarine/block-behaviors": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",
         "@jsprismarine/color-parser": "workspace:*",
+        "@jsprismarine/commands": "workspace:*",
         "@jsprismarine/content": "workspace:*",
         "@jsprismarine/enchantments": "workspace:*",
         "@jsprismarine/engine-systems": "workspace:*",

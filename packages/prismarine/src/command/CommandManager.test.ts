@@ -15,6 +15,7 @@ import type SessionManager from '../SessionManager';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import UUID from '../utils/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
+import type { GameRuleEntry } from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
 import { CommandParameterFlags } from '../network/type/CommandParameter';
@@ -75,13 +76,25 @@ describe('command', () => {
         /** A manager whose permission checks are observable, plus the spy watching them. */
         const managerWithPermissionSpy = (granted = true) => {
             const can = vi.fn().mockReturnValue({ execute: () => granted });
-            // An unset rule keeps command feedback off, so the double needs no chat manager.
-            const gameRules = stub<GameRuleManager>({ getGameRule: () => null });
+            // A working rule store rather than an empty one: the vanilla `/gamerule` reads
+            // and writes through it, and `sendCommandFeedback` decides whether a success
+            // message reaches the sender at all.
+            const rules = new Map<string, GameRuleEntry>([
+                ['sendCommandFeedback', [true, true]],
+                ['fallDamage', [true, true]]
+            ]);
+            const gameRules = stub<GameRuleManager>({
+                getGameRule: (name: string) => rules.get(name) ?? null,
+                setGameRule: (name: string, value: boolean | number, editable: boolean) => {
+                    rules.set(name, [value, editable]);
+                }
+            });
             const world = stub<World>({ getGameRuleManager: () => gameRules });
-            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world });
+            const worldManager = stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] });
 
             return {
                 can,
+                rules,
                 commandManager: new CommandManager(
                     stub<Server>({
                         ...server,
@@ -149,8 +162,8 @@ describe('command', () => {
 
         it('should list each command once, with the overloads of every branch', async () => {
             // The client keys commands by name. One entry per top-level argument node, which
-            // is what the tree walk used to produce, sent `/tp` four times and left the client
-            // with whichever copy it read last.
+            // is what the tree walk used to produce, sent `/ban` three times and left the
+            // client with whichever copy it read last.
             const commandManager = new CommandManager(server);
             await commandManager.enable();
 
@@ -159,12 +172,24 @@ describe('command', () => {
             expect(new Set(names).size).toBe(names.length);
 
             const overloadsOf = (name: string) => list.find(([literal]) => literal === name)?.[2];
-            // `/tp <destination>`, `/tp <victim>`, `/tp <victim> <destination>` twice over.
-            expect(overloadsOf('tp')).toHaveLength(4);
-            // Bare `/time`, then `/time <action> <value>`.
-            expect(overloadsOf('time')?.map((overload) => overload.length)).toEqual([0, 2]);
-            // `/list` runs bare and takes nothing else.
-            expect(overloadsOf('list')).toEqual([[]]);
+            // `/ban <player>` and `/ban <player> <reason>`.
+            expect(overloadsOf('ban')?.map((overload) => overload.length)).toEqual([1, 2]);
+            // `/version` runs bare and takes nothing else.
+            expect(overloadsOf('version')).toEqual([[]]);
+        });
+
+        it('should keep the vanilla set out of the class-registered list', async () => {
+            // A name belongs to exactly one of the two trees. A vanilla command that was
+            // also still registered as a class would reach the client twice over.
+            const commandManager = new CommandManager(server);
+            await commandManager.enable();
+
+            const classes = commandManager.getCommandsList().map(([name]) => name);
+            const vanilla = commandManager.getVanillaCommandList().map((command) => command.name);
+
+            expect(classes.filter((name) => vanilla.includes(name))).toEqual([]);
+            expect(vanilla).toContain('teleport');
+            expect(vanilla).toContain('time');
         });
 
         it('should flatten nested literals and redirect targets into hard enums', () => {
@@ -196,18 +221,34 @@ describe('command', () => {
             expect(redirectedParameter?.enum?.soft).toBe(false);
         });
 
-        it('should dispatch /gamerule to its executor', async () => {
-            // The executor refuses non-player sources, and that refusal reaching the
-            // console proves the dispatcher found the command under the name `/help` lists.
-            const commandManager = new CommandManager(server);
+        it('should dispatch a vanilla command through the command layer', async () => {
+            // `/gamerule <rule>` reads through the host, so the value reaching the console
+            // proves the vanilla tree parsed it and the host answered.
+            const { commandManager } = managerWithPermissionSpy();
             await commandManager.enable();
 
             const console = new Console(server);
             const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
 
-            await commandManager.dispatchCommand(console, console, '/gamerule');
+            await expect(commandManager.dispatchCommand(console, console, '/gamerule fall_damage true')).resolves.toBe(
+                true
+            );
+            expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('minecraft:fall_damage = true'));
+        });
 
-            expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining("can't be run from the console"));
+        it('should refuse a vanilla command whose subsystem is missing', async () => {
+            // `/effect` is not registered at all, so the client is never offered it and the
+            // dispatcher reports it unknown rather than accepting it and doing nothing.
+            const { commandManager } = managerWithPermissionSpy();
+            await commandManager.enable();
+
+            const console = new Console(server);
+            const sendMessage = vi.spyOn(console, 'sendMessage').mockImplementation(() => {});
+
+            await expect(commandManager.dispatchCommand(console, console, '/effect give @s speed')).resolves.toBe(
+                false
+            );
+            expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Unknown command'));
         });
 
         it('should resolve to true once a command has run', async () => {

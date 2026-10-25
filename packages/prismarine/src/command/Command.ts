@@ -42,9 +42,28 @@ const running: Promise<CommandFeedback>[] = [];
 export const asyncCommand =
     (run: (context: CommandContext<CommandExecutor>) => Promise<CommandFeedback>) =>
     (context: CommandContext<CommandExecutor>): number => {
-        running.push(run(context));
+        deferCommandWork(run(context));
         return COMMAND_RAN;
     };
+
+/**
+ * Parks work a synchronous command body started, so the dispatch awaits it.
+ *
+ * The seam `@jsprismarine/commands` defines is synchronous - a host verb
+ * answers how many blocks changed or whether the player exists - while nearly
+ * every server API that carries the change out is asynchronous, because the
+ * change goes out over the wire. A host verb therefore decides the answer
+ * synchronously and hands the delivery here.
+ *
+ * It is the same queue {@link asyncCommand} uses and the same guarantee:
+ * {@link collectAsyncCommands} hands the promises to
+ * `CommandManager.dispatchCommand`, which awaits them before any feedback goes
+ * out, so a rejection reaches the sender rather than becoming an unhandled
+ * rejection.
+ */
+export const deferCommandWork = (work: Promise<CommandFeedback>): void => {
+    running.push(work);
+};
 
 /**
  * Runs `execute` and returns the bodies {@link asyncCommand} started while it ran.
