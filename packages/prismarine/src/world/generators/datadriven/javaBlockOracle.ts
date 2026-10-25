@@ -20,6 +20,12 @@ const WATER_BLOCKS = new Set(['minecraft:water', 'minecraft:bubble_column', 'min
 /** Java's `#minecraft:replaceable`, which is what `canBeReplaced` resolves to for most blocks. */
 const REPLACEABLE_TAG = 'minecraft:replaceable';
 
+/** The cached flag for a block that fills its whole cell. */
+const FULL_CUBE = 1;
+
+/** The cached flag for a block another block can stand on. */
+const STURDY_TOP = 2;
+
 /**
  * Expands a Java block tag registry into flat identifier sets.
  *
@@ -83,29 +89,30 @@ const normalize = (id: string): string => (id.includes(':') ? id : `minecraft:${
 export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
     const tags = expandTags(blockTags);
     const replaceable = tags.get(REPLACEABLE_TAG) ?? new Set<string>();
-    const fullCubes = new Map<string, boolean>();
-    const sturdyTops = new Map<string, boolean>();
+    const facts = new Map<string, number>();
 
     /**
-     * The Bedrock facts for a Java state.
+     * The Bedrock facts for a Java state, as the two flags above.
+     *
+     * The decoration pass asks this of millions of positions per chunk, so the answer is a
+     * number rather than a record: a record would allocate on every hit, and the hits are the
+     * whole point of the cache.
      *
      * An unmapped Java block answers "not a full cube", which makes a feature treat it as
      * something it may not build on, rather than quietly building on a block this server
      * cannot place anyway.
      */
-    const bedrockFacts = (state: BlockState): { fullCube: boolean; sturdyTop: boolean } => {
-        const key = state.name;
-        const cachedCube = fullCubes.get(key);
-        if (cachedCube !== undefined) return { fullCube: cachedCube, sturdyTop: sturdyTops.get(key) ?? false };
+    const bedrockFacts = (state: BlockState): number => {
+        const cached = facts.get(state.name);
+        if (cached !== undefined) return cached;
 
         const mapped = javaBlockStateToBedrock(state.name, state.properties);
         const block = mapped.kind === 'unknown' ? undefined : mapped.bedrock;
-        const fullCube = block === undefined ? false : isFullCube(block);
-        const sturdyTop = block === undefined ? false : hasSturdyTopFace(block);
+        const flags =
+            block === undefined ? 0 : (isFullCube(block) ? FULL_CUBE : 0) | (hasSturdyTopFace(block) ? STURDY_TOP : 0);
 
-        fullCubes.set(key, fullCube);
-        sturdyTops.set(key, sturdyTop);
-        return { fullCube, sturdyTop };
+        facts.set(state.name, flags);
+        return flags;
     };
 
     const isAir = (state: BlockState): boolean => AIR_BLOCKS.has(state.name);
@@ -122,13 +129,13 @@ export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
      * features build on or test against, and disagrees for the slabs and stairs features do
      * not read.
      */
-    const isSolid = (state: BlockState): boolean => !isAir(state) && bedrockFacts(state).fullCube;
+    const isSolid = (state: BlockState): boolean => !isAir(state) && (bedrockFacts(state) & FULL_CUBE) !== 0;
 
     return {
         isAir,
         isSolid,
         isSturdy: (state: BlockState, direction: Direction) =>
-            direction === 'up' ? bedrockFacts(state).sturdyTop : bedrockFacts(state).fullCube,
+            (bedrockFacts(state) & (direction === 'up' ? STURDY_TOP : FULL_CUBE)) !== 0,
         isReplaceable: (state: BlockState) => isAir(state) || replaceable.has(state.name),
         fluid,
         hasTag: (state: BlockState, tag: string) => tags.get(normalize(tag))?.has(state.name) ?? false,
@@ -138,10 +145,10 @@ export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
          * full cube needs something with a sturdy top under it, and that is what this answers.
          */
         canSurvive: (world, position, state) => {
-            if (bedrockFacts(state).fullCube) return true;
+            if ((bedrockFacts(state) & FULL_CUBE) !== 0) return true;
 
             const below = world.getBlock({ x: position.x, y: position.y - 1, z: position.z });
-            return bedrockFacts(below).sturdyTop;
+            return (bedrockFacts(below) & STURDY_TOP) !== 0;
         },
         tagMembers: (tag: string) => [...(tags.get(normalize(tag)) ?? [])]
     };
