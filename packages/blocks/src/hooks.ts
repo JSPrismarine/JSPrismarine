@@ -5,7 +5,9 @@
  * forward a hook straight to a pack's JavaScript without a translation table.
  * The event objects are structural and name only what a handler reads, so the
  * server's own `Player`, `Entity` and `World` classes are assignable to them
- * without this package depending on the server.
+ * without this package depending on the server. {@link HookItem} is the same
+ * idea for the held item: `@jsprismarine/items`'s `ItemStack` satisfies it
+ * and neither package imports the other.
  */
 
 /** A block position in world coordinates, with integer components. */
@@ -20,6 +22,21 @@ export const BLOCK_FACES = ['down', 'up', 'north', 'south', 'west', 'east'] as c
 
 /** One of {@link BLOCK_FACES}. */
 export type BlockFace = (typeof BLOCK_FACES)[number];
+
+/**
+ * A point on a block face, each component in [0, 1] and measured from the
+ * face's lower north-west corner, which is where Mojang's `faceLocation`
+ * starts counting.
+ *
+ * It is a separate type from {@link BlockPosition} because its components are
+ * fractions of a block rather than world coordinates. A slab reads `y` to
+ * decide which half it takes.
+ */
+export interface FaceLocation {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
 
 /** A block state value as the palette holds it; booleans travel as 0 and 1 on the wire. */
 export type BlockStateValue = string | number | boolean;
@@ -45,6 +62,30 @@ export interface HookActor {
     readonly position: BlockPosition;
 }
 
+/**
+ * The item in the hand that placed, broke or used the block.
+ *
+ * Mojang's events carry the whole `ItemStack`; this names the two things a
+ * block behavior reads off one, so honeycomb, an axe, shears, a bucket and a
+ * silk touch enchantment are all decidable without this package depending on
+ * `@jsprismarine/items`. That package's `ItemStack` satisfies this
+ * structurally, with the same `identifier` getter and the same
+ * `get(name): unknown` component reader, so it is assignable here with no
+ * adapter and no import in either direction.
+ */
+export interface HookItem {
+    /** The namespaced item identifier, such as `minecraft:honeycomb`. */
+    readonly identifier: string;
+    /**
+     * One of the item's components, by name.
+     *
+     * @param name - A component name, such as `minecraft:enchantments`.
+     * @returns The component's parameters, or undefined when the item does
+     *   not carry it.
+     */
+    get(name: string): unknown;
+}
+
 /** What every block hook receives: the block the hook fired for. */
 export interface BlockEvent {
     readonly block: HookBlock;
@@ -56,6 +97,22 @@ export interface BlockPlaceEvent extends BlockEvent {
     readonly previous: HookBlock | undefined;
     /** Who placed it, absent for a placement the world itself performed. */
     readonly placedBy: HookActor | undefined;
+    /**
+     * The item the placement came out of, absent for a placement the world
+     * itself performed.
+     */
+    readonly itemStack: HookItem | undefined;
+    /**
+     * The face of the block the new one was placed against, so a pillar takes
+     * its axis from the click rather than from where the placer stood.
+     * Absent for a placement with no face.
+     */
+    readonly face: BlockFace | undefined;
+    /**
+     * Where on that face the click landed, which picks a slab's half and a
+     * stair's `upside_down_bit`. Absent when the placement has no face.
+     */
+    readonly faceLocation: FaceLocation | undefined;
 }
 
 /** A block was broken. */
@@ -64,6 +121,12 @@ export interface BlockBreakEvent extends BlockEvent {
     readonly brokenBlock: HookBlock;
     /** Who broke it, absent for a break the world itself performed. */
     readonly brokenBy: HookActor | undefined;
+    /**
+     * What the breaker held, which decides silk touch, fortune and whether
+     * shears took the leaves. Absent for a bare hand and for a break the
+     * world itself performed.
+     */
+    readonly itemStack: HookItem | undefined;
 }
 
 /** A block next to this one changed. */
@@ -84,8 +147,13 @@ export interface BlockPlayerInteractEvent extends BlockEvent {
     readonly player: HookActor;
     /** The face the player clicked, absent when the interaction has no face. */
     readonly face: BlockFace | undefined;
-    /** Where on the face the click landed, each component in [0, 1]. */
-    readonly faceLocation: BlockPosition | undefined;
+    /** Where on the face the click landed. */
+    readonly faceLocation: FaceLocation | undefined;
+    /**
+     * What the player held, which decides waxing, scraping, filling and
+     * lighting. Absent for a bare hand.
+     */
+    readonly itemStack: HookItem | undefined;
 }
 
 /** An entity walked onto the block. */
