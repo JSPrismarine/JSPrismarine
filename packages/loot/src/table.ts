@@ -318,6 +318,35 @@ const containerAt = (value: unknown, context: ParseContext): LootEntryContainer 
     };
 };
 
+/**
+ * Compiles a bare list of entry containers, which is the `entries` field a
+ * `set_contents` modifier carries. It is the only place the entry grammar
+ * appears outside a pool.
+ */
+export const parseLootEntries = (
+    value: unknown,
+    options: ParseOptions = {}
+): ParseResult<readonly LootEntryContainer[]> => {
+    const context = rootContext(options);
+    const containers = asList(value).map((entry, index) => containerAt(entry, context.at(index)));
+    return { value: containers, diagnostics: context.diagnostics.entries };
+};
+
+/**
+ * Produces every stack a bare entry list offers. Unlike a pool, nothing is
+ * weighed or drawn: Java's `set_contents` takes all of them.
+ */
+export const produceEntries = (
+    containers: readonly LootEntryContainer[],
+    evaluation: LootEvaluation
+): readonly ItemStack[] => {
+    const drawn: ItemStack[] = [];
+    for (const container of containers) {
+        container((entry) => entry.produce((stack) => drawn.push(stack), evaluation), evaluation);
+    }
+    return drawn;
+};
+
 const poolAt = (value: unknown, context: ParseContext): LootPool | undefined => {
     if (!isJsonObject(value)) {
         context.error('a loot pool must be an object');
