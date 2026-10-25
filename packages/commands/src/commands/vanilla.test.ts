@@ -645,7 +645,7 @@ describe('/execute as a real subcommand chain', () => {
         const { commands, notes } = flattenCommandTree(registry);
         const execute = commands.find((command) => command.name === 'execute')!;
 
-        expect(execute.chainedSubcommands[0]?.values.sort()).toEqual([...EXECUTE_SUBCOMMANDS].sort());
+        expect([...(execute.chainedSubcommands[0]?.values ?? [])].sort()).toEqual([...EXECUTE_SUBCOMMANDS].sort());
         expect(execute.overloads.some((overload) => overload.chaining)).toBe(true);
         expect(
             execute.overloads.some((overload) =>
