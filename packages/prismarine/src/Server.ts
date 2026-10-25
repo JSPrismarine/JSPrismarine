@@ -33,6 +33,7 @@ import WorldManager from './world/WorldManager';
 
 import type { InetAddress, RakNetSession } from '@jsprismarine/raknet';
 import type { Config } from './config/Config';
+import type { RemoteConsole } from './console/RemoteConsole';
 
 import type { Logger } from '@jsprismarine/logger';
 import pkg from '../package.json' with { type: 'json' };
@@ -86,6 +87,7 @@ export default class Server extends EventEmitter {
     private readonly config: Config;
     private packetLogFilter: PacketLogFilter | null = null;
     private readonly console: Console | undefined;
+    private remoteConsole: RemoteConsole | undefined;
     private readonly consoleSender: ConsoleSender;
     private readonly packetRegistry: PacketRegistry;
     private readonly sessionManager = new SessionManager();
@@ -276,6 +278,7 @@ export default class Server extends EventEmitter {
      * @returns {Promise<void>} A promise that resolves when the server is started.
      */
     public async bootstrap(serverIp?: string, port?: number): Promise<void> {
+        await this.remoteConsole?.enable();
         await this.enable();
 
         const bindAddress = serverIp ?? this.config.getServerIp();
@@ -596,6 +599,17 @@ export default class Server extends EventEmitter {
         }
 
         this.logger.info(`JSPrismarine is now listening on port §b${bindPort}`);
+        this.remoteConsole?.markRunning();
+    }
+
+    /**
+     * Attaches the remote console a host process talks to. Call it before {@link bootstrap}:
+     * the server enables it as it starts, reports `running` once it listens, reports
+     * `stopping` as {@link shutdown} begins, and disables it last, so the final messages
+     * leave the channel before the process exits.
+     */
+    public attachRemoteConsole(remote: RemoteConsole): void {
+        this.remoteConsole = remote;
     }
 
     /**
@@ -609,6 +623,7 @@ export default class Server extends EventEmitter {
         if (this.stopping) return;
         this.stopping = true;
 
+        this.remoteConsole?.markStopping();
         this.logger.info('Stopping server', 'Server/kill');
         await this.console?.disable();
 
@@ -632,12 +647,17 @@ export default class Server extends EventEmitter {
             // Finally, remove all listeners.
             this.removeAllListeners();
 
+            // Last, after the logger has closed: `process.exit` discards IPC writes still
+            // queued, and this waits for them.
+            await this.remoteConsole?.disable();
+
             // Logger is no longer available.
             console.debug('Server stopped, Goodbye!\n');
 
             if (!options?.stayAlive) process.exit(options?.crash ? 1 : 0);
         } catch (error: unknown) {
             console.error(error);
+            await this.remoteConsole?.disable();
             if (!options?.stayAlive) process.exit(1);
         }
     }
