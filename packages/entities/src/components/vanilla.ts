@@ -182,6 +182,133 @@ export const physics: ComponentFactory<EntityHooks, PhysicsParams> = {
     create: () => ({})
 };
 
+/**
+ * How many ticks apart an environmental hurt lands.
+ *
+ * Both editions give an entity half a second of invulnerability after
+ * environmental damage, which is what makes `minecraft:hurt_on_condition`'s
+ * `damage_per_tick: 4` in lava the four damage per half second a player sees
+ * rather than eighty a second.
+ */
+export const HURT_INTERVAL_TICKS = 10;
+
+/** One entry of `minecraft:hurt_on_condition.damage_conditions`. */
+export interface DamageCondition {
+    /** Gates the condition; absent means it always hurts. */
+    readonly filters?: Filter;
+    /** The damage cause to apply, such as `lava`. */
+    readonly cause: string;
+    readonly damagePerTick: number;
+}
+
+/** What `minecraft:hurt_on_condition` declares. */
+export interface HurtOnConditionParams {
+    readonly conditions: readonly DamageCondition[];
+}
+
+interface IntervalState {
+    remaining: number;
+}
+
+/**
+ * `minecraft:hurt_on_condition`, carried by 87 vanilla entities and in all but
+ * a few of them the lava rule.
+ *
+ * Every condition whose filters pass hurts, on the {@link HURT_INTERVAL_TICKS}
+ * cadence, so the damage reaches the sensors, the immunities and the hurt
+ * triggers through {@link EntityInstance.damage} like any other.
+ */
+export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParams> = {
+    name: 'minecraft:hurt_on_condition',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const conditions: DamageCondition[] = [];
+        for (const entry of asList(value.damage_conditions)) {
+            if (!isRecord(entry)) return rejected('minecraft:hurt_on_condition damage_conditions must be objects');
+            let filters: Filter | undefined;
+            if (entry.filters !== undefined) {
+                const parsed = parseFilterValue(entry.filters, 'minecraft:hurt_on_condition filters');
+                if (!parsed.ok) return parsed;
+                filters = parsed.value;
+            }
+            conditions.push({
+                filters,
+                cause: stringAt(entry, 'cause') ?? 'none',
+                damagePerTick: numberAt(entry, 'damage_per_tick', 0)
+            });
+        }
+        return accepted({ conditions });
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, IntervalState>();
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, { remaining: 0 });
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+                state.remaining -= 1;
+                if (state.remaining > 0) return;
+
+                const context = entity.filterContext();
+                let hurt = false;
+                for (const condition of params.conditions) {
+                    if (condition.damagePerTick <= 0) continue;
+                    if (condition.filters !== undefined && !evaluateFilter(condition.filters, context)) continue;
+                    entity.damage({ cause: condition.cause, amount: condition.damagePerTick });
+                    hurt = true;
+                }
+                state.remaining = hurt ? HURT_INTERVAL_TICKS : 0;
+            }
+        };
+    }
+};
+
+/** What `minecraft:damage_over_time` declares. */
+export interface DamageOverTimeParams {
+    readonly damagePerHurt: number;
+    /** Seconds between hurts; a zero falls back to the half-second hurt interval. */
+    readonly timeBetweenHurt: number;
+}
+
+/**
+ * `minecraft:damage_over_time`, which hurts the entity while it is active.
+ *
+ * The axolotl, the dolphin and the vex are the three vanilla users, and two of
+ * them write `time_between_hurt: 0`, which the engine floors at
+ * {@link HURT_INTERVAL_TICKS} rather than hurting every tick.
+ */
+export const damageOverTime: ComponentFactory<EntityHooks, DamageOverTimeParams> = {
+    name: 'minecraft:damage_over_time',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) =>
+        isRecord(value)
+            ? accepted({
+                  damagePerHurt: numberAt(value, 'damage_per_hurt', 0),
+                  timeBetweenHurt: numberAt(value, 'time_between_hurt', 0)
+              })
+            : rejected('expected an object'),
+    create: (params) => {
+        const interval = Math.max(HURT_INTERVAL_TICKS, Math.round(params.timeBetweenHurt * TICKS_PER_SECOND));
+        const states = new WeakMap<EntityInstance, IntervalState>();
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, { remaining: interval });
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined || params.damagePerHurt <= 0) return;
+                state.remaining -= 1;
+                if (state.remaining > 0) return;
+                state.remaining = interval;
+                entity.damage({ cause: 'none', amount: params.damagePerHurt });
+            }
+        };
+    }
+};
+
 /** What `minecraft:breathable` declares. */
 export interface BreathableParams {
     /** How many seconds of air the entity holds. */
@@ -195,15 +322,34 @@ export interface BreathableParams {
     readonly inhaleTime: number;
 }
 
+/** How much health one suffocation hurt takes, which both editions put at one heart. */
+export const SUFFOCATION_DAMAGE = 2;
+
+/** One entity's air, in ticks of supply left. */
+interface AirState {
+    remaining: number;
+    /** Ticks until the next suffocation hurt, once the supply is gone. */
+    untilHurt: number;
+}
+
 /**
- * `minecraft:breathable`.
+ * `minecraft:breathable`, carried by 84 vanilla entities.
+ *
+ * The component holds the air supply and spends it. An entity in a medium it
+ * cannot breathe loses a tick of supply per tick; one back in a medium it can
+ * breathe refills to full, over `inhale_time` when the body names one. An
+ * entity out of supply suffocates every `suffocate_time` seconds, or every
+ * half second when the body writes the vanilla `0`.
+ *
+ * Which medium the entity is in comes from the `in_water` and `in_lava` filter
+ * facts, so an environment that answers neither leaves the entity breathing.
  *
  * Two vanilla files still write the pre-rename `totalSupply` and
  * `suffocateTime`, so both spellings read.
  */
 export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
     name: 'minecraft:breathable',
-    hooks: [],
+    hooks: ['onInitialize', 'onTick'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         const totalSupply = numberAt(value, 'total_supply', numberAt(value, 'totalSupply', 15));
@@ -218,7 +364,47 @@ export const breathable: ComponentFactory<EntityHooks, BreathableParams> = {
             inhaleTime: numberAt(value, 'inhale_time', 0)
         });
     },
-    create: () => ({})
+    create: (params) => {
+        const supply = Math.max(0, Math.round(params.totalSupply * TICKS_PER_SECOND));
+        const hurtInterval =
+            params.suffocateTime > 0 ? Math.round(params.suffocateTime * TICKS_PER_SECOND) : HURT_INTERVAL_TICKS;
+        const inhale = Math.max(1, Math.round(params.inhaleTime * TICKS_PER_SECOND));
+        const states = new WeakMap<EntityInstance, AirState>();
+
+        /** Whether the medium the entity is in is one the component says it breathes. */
+        const canBreathe = (entity: EntityInstance): boolean => {
+            const self = entity.filterContext().self;
+            if (self.flag?.('in_lava') === true) return params.breathesLava;
+            if (self.flag?.('in_water') === true) return params.breathesWater;
+            return params.breathesAir;
+        };
+
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, { remaining: supply, untilHurt: hurtInterval });
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+
+                if (canBreathe(entity)) {
+                    state.remaining = Math.min(supply, state.remaining + Math.ceil(supply / inhale));
+                    state.untilHurt = hurtInterval;
+                    return;
+                }
+
+                if (state.remaining > 0) {
+                    state.remaining -= 1;
+                    return;
+                }
+
+                state.untilHurt -= 1;
+                if (state.untilHurt > 0) return;
+                state.untilHurt = hurtInterval;
+                entity.damage({ cause: 'drowning', amount: SUFFOCATION_DAMAGE });
+            }
+        };
+    }
 };
 
 /** What `minecraft:pushable` declares. */
@@ -496,6 +682,9 @@ export const despawn: ComponentFactory<EntityHooks, DespawnParams> = {
     },
     create: (params) => ({
         onTick: (entity) => {
+            // A named or tamed mob carries `minecraft:persistent`, and the
+            // documented rule is that it never despawns, filters or not.
+            if (entity.hasComponent('minecraft:persistent')) return;
             if (params.filters !== undefined) {
                 if (evaluateFilter(params.filters, entity.filterContext())) entity.remove('despawn filters passed');
                 return;
