@@ -346,6 +346,9 @@ const liveWorld = (): {
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks,
+        // `loadChunk` joins a load already in flight through this, and a world built on the
+        // prototype never ran the constructor that would have made it.
+        loading: new Map(),
         currentTick: 0,
         spawn: new Vector3(8, GROUND_Y, 8),
         dimension: Dimensions.Overworld,

@@ -56,6 +56,9 @@ const worldLoading = (
         entities: new Map(),
         entityChunkIndices: new Map(),
         chunks: new Map(),
+        // `loadChunk` joins a load already in flight through this, and a world built on the
+        // prototype never ran the constructor that would have made it.
+        loading: new Map(),
         seed: 1,
         generator: {},
         config: {},

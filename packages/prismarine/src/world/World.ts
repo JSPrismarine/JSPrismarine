@@ -242,6 +242,14 @@ export class World implements Service {
     private readonly players: Map<bigint, Player> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
 
+    /**
+     * The chunk loads that have been started and have not finished, by packed position.
+     *
+     * What makes a second request for a chunk already on its way wait for that one instead of
+     * generating it again. See {@link World.loadChunk}.
+     */
+    private readonly loading: Map<number, Promise<Chunk>> = new Map();
+
     /** The last chunk {@link getLoadedChunk} answered with. A packed key is never negative. */
     private lastChunkIndex = -1;
     private lastChunk: Chunk | null = null;
@@ -765,6 +773,14 @@ export class World implements Service {
 
     /**
      * Loads a chunk in a given x and z and returns its.
+     *
+     * A request for a chunk that is already being loaded joins that one rather than starting a
+     * second. They arrive together constantly - the preload asks for a batch of thirty-two in
+     * one turn, and every player whose view distance reaches a chunk asks for it as well - and
+     * each duplicate was a whole chunk generated and then thrown away, because the last one to
+     * finish overwrote the others in the map. Worse than wasted: two callers held two different
+     * objects for one position, so a block written into one was invisible through the other.
+     *
      * @param {number} x - x coordinate.
      * @param {number} z - z coordinate.
      * @throws {Error} When the world has been closed, since its provider is gone and a chunk
@@ -777,6 +793,22 @@ export class World implements Service {
         if (this.closed) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} has been closed`);
 
         const index = Chunk.packXZ(x, z);
+        const running = this.loading.get(index);
+        if (running !== undefined) return running;
+
+        // The entry is dropped whether the load worked or not, so a chunk whose provider threw
+        // is asked for again next time rather than handing out the same failure forever.
+        const load = this.readChunkInto(index, x, z);
+        this.loading.set(index, load);
+        try {
+            return await load;
+        } finally {
+            this.loading.delete(index);
+        }
+    }
+
+    /** The body of {@link World.loadChunk}, once it is this call's job to do the loading. */
+    private async readChunkInto(index: number, x: number, z: number): Promise<Chunk> {
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
