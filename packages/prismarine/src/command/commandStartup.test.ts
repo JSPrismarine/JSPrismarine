@@ -16,7 +16,11 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Server from '../Server';
 import { Config } from '../config/Config';
+import { CONTENT_ENABLED_ENV } from '../content/settings';
 import { buildContentTags } from '../content/tags';
+import { openContainerContents } from '../inventory/containerStore';
+import { stub } from '../testing/stub.test.helper';
+import type Player from '../Player';
 import type { World } from '../world/World';
 import type { CommandExecutor } from './CommandExecutor';
 import { unwiredCommands } from './vanillaCommands';
@@ -376,5 +380,211 @@ describe('the command layer on a booted server', () => {
             await expect(run('/return 1')).resolves.toBe(false);
             expect(answers.some((line) => line.includes('inside a function'))).toBe(true);
         });
+    });
+});
+
+/**
+ * The same server with `content-packs` on, which is the only configuration
+ * three of these four behaviors exist in.
+ *
+ * A pack-defined entity needs a pack to define it, `/loot` needs a table to
+ * roll, and a container block needs the block entity records the content
+ * world keeps. So this boots a second server over the real pack stack plus
+ * two fixtures of its own: a behavior pack declaring one entity Mojang never
+ * published, and a datapack declaring one loot table.
+ */
+describe('the command layer on a server with the pack stack on', () => {
+    let root: string;
+    let server: Server;
+    let world: World;
+    let sender: CommandExecutor;
+    let previousDir: string | undefined;
+    let previousContent: string | undefined;
+
+    const run = async (line: string) => server.getCommandManager().dispatchCommand(sender, sender, line);
+
+    /** A behavior pack whose one entity is a mob no Mojang enum lists. */
+    const writeBehaviorPack = (at: string): void => {
+        const files: Record<string, unknown> = {
+            'manifest.json': {
+                format_version: 2,
+                header: {
+                    name: 'commandfixture',
+                    uuid: '2f3c1f00-0000-4000-8000-0000000000a1',
+                    version: [1, 0, 0],
+                    min_engine_version: [1, 26, 50]
+                },
+                modules: [{ type: 'data', uuid: '2f3c1f00-0000-4000-8001-0000000000a1', version: [1, 0, 0] }]
+            },
+            'entities/dragon.json': {
+                format_version: '1.21.0',
+                'minecraft:entity': {
+                    description: { identifier: 'mypack:dragon', is_spawnable: true, is_summonable: true },
+                    components: { 'minecraft:health': { value: 40, max: 40 } }
+                }
+            }
+        };
+        for (const [relative, data] of Object.entries(files)) {
+            const absolute = path.join(at, ...relative.split('/'));
+            mkdirSync(path.dirname(absolute), { recursive: true });
+            writeFileSync(absolute, JSON.stringify(data));
+        }
+    };
+
+    /** A datapack whose one loot table rolls a fixed, countable stack. */
+    const writeDatapack = (at: string): void => {
+        const files: Record<string, unknown> = {
+            'pack.mcmeta': { pack: { description: 'commandfixture', min_format: 121, max_format: 121 } },
+            'data/mypack/loot_table/gifts.json': {
+                type: 'minecraft:chest',
+                pools: [{ rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }] }]
+            }
+        };
+        for (const [relative, data] of Object.entries(files)) {
+            const absolute = path.join(at, ...relative.split('/'));
+            mkdirSync(path.dirname(absolute), { recursive: true });
+            writeFileSync(absolute, JSON.stringify(data));
+        }
+    };
+
+    beforeAll(async () => {
+        root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-content-'));
+        writeBehaviorPack(path.join(root, 'behaviorpack'));
+        writeDatapack(path.join(root, 'datapack'));
+        // `readContentSettings` reads this file out of `JSP_DIR`, before the
+        // `Config` the server was handed is enabled, so the two fixtures go in
+        // here rather than through `debugConfig`.
+        writeFileSync(
+            path.join(root, 'config.yaml'),
+            [
+                'content-packs: true',
+                'content-strict: false',
+                'content-world-packs:',
+                `    - ${path.join(root, 'behaviorpack')}`,
+                'content-datapacks:',
+                `    - ${path.join(root, 'datapack')}`,
+                ''
+            ].join('\n')
+        );
+
+        previousDir = process.env.JSP_DIR;
+        previousContent = process.env[CONTENT_ENABLED_ENV];
+        process.env.JSP_DIR = root;
+        process.env[CONTENT_ENABLED_ENV] = '1';
+
+        server = new Server({ logger: new Logger(), config: debugConfig('content-commands'), headless: true });
+        vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
+        await server.bootstrap('0.0.0.0', 12348);
+
+        world = server.getWorldManager().getDefaultWorld();
+        await world.getChunkAt(0, 0);
+
+        sender = {
+            sendMessage: async () => {},
+            getName: () => 'CONSOLE',
+            getFormattedUsername: () => 'CONSOLE',
+            getServer: () => server
+        };
+    }, 120_000);
+
+    afterAll(async () => {
+        await world?.getProvider()?.close?.();
+        rmSync(root, { recursive: true, force: true });
+        if (previousDir === undefined) delete process.env.JSP_DIR;
+        else process.env.JSP_DIR = previousDir;
+        if (previousContent === undefined) delete process.env[CONTENT_ENABLED_ENV];
+        else process.env[CONTENT_ENABLED_ENV] = previousContent;
+    });
+
+    /** The data-driven entity standing at a position, which is what a summon has to produce. */
+    const dataEntityAt = (x: number, z: number) =>
+        world
+            .dataEntities()
+            ?.runtime.all()
+            .find((entity) => Math.floor(entity.body.position.x) === x && Math.floor(entity.body.position.z) === z);
+
+    it('built its content from the pack stack, the fixtures included', () => {
+        const content = server.getContent();
+
+        expect(content?.entities.registry.has('mypack:dragon')).toBe(true);
+        expect(content?.entities.registry.has('minecraft:villager_v2')).toBe(true);
+        expect(content?.loot.table('mypack:gifts')).toBeDefined();
+    });
+
+    it('summons a pack-defined entity by the name only the pack knows', async () => {
+        // The parse is the half that used to fail: `mypack:dragon` is not in
+        // Mojang's frozen 229-entry `EntityType` enum.
+        await expect(run('/summon mypack:dragon 4 70 4')).resolves.toBe(true);
+
+        expect(dataEntityAt(4, 4)?.identifier).toBe('mypack:dragon');
+    });
+
+    it('summons the villager Bedrock actually spawns, with its Java brain', async () => {
+        // Mojang's enum has `villager` and no `villager_v2`, so the typed name
+        // is the legacy entity's and the spawned one has to be the current one.
+        await expect(run('/summon villager 6 70 6')).resolves.toBe(true);
+
+        const villager = dataEntityAt(6, 6);
+        expect(villager?.identifier).toBe('minecraft:villager_v2');
+        expect(villager?.brainMob?.id).toBe('minecraft:villager');
+    });
+
+    /**
+     * What a block holds, read the way opening it reads.
+     *
+     * `openContainerContents` is the read the client's `InventoryContent`
+     * follows a `ContainerOpen` with, so a stack that shows up here is a
+     * stack the next player to open the block is sent. It asks its player
+     * only for the server and the dimension, because the one container whose
+     * slots belong to a player is the ender chest and none of these is one.
+     */
+    const contentsOf = (at: readonly [number, number, number], identifier: string) =>
+        openContainerContents(
+            stub<Player>({ getServer: () => server, getWorld: () => world }),
+            { x: at[0], y: at[1], z: at[2] },
+            identifier
+        );
+
+    it('fills a real chest through /loot insert, and the chest keeps it', async () => {
+        await run('/setblock 8 70 8 minecraft:chest');
+
+        await expect(run('/loot insert 8 70 8 loot mypack:gifts')).resolves.toBe(true);
+
+        // Read back through the open path rather than through the one the
+        // command wrote with, so this says the chest holds it and not merely
+        // that the write returned.
+        const held = contentsOf([8, 70, 8], 'minecraft:chest');
+        expect(held.filter((entry) => entry.getItem().getName() === 'minecraft:cobblestone')).toHaveLength(1);
+    });
+
+    it('refuses /loot insert where no block stores anything', async () => {
+        await run('/setblock 9 70 9 minecraft:stone');
+
+        await expect(run('/loot insert 9 70 9 loot mypack:gifts')).resolves.toBe(false);
+    });
+
+    it('writes a container block slot through /replaceitem block', async () => {
+        await run('/setblock 10 70 10 minecraft:chest');
+
+        await expect(run('/replaceitem block 10 70 10 slot.container 5 minecraft:diamond 3')).resolves.toBe(true);
+
+        const held = contentsOf([10, 70, 10], 'minecraft:chest');
+        expect(held[5]?.getItem().getName()).toBe('minecraft:diamond');
+        expect(held[5]?.getCount()).toBe(3);
+    });
+
+    it('refuses a container slot the block does not have', async () => {
+        await run('/setblock 11 70 11 minecraft:hopper');
+
+        // A hopper has five, so slot 20 is nowhere.
+        await expect(run('/replaceitem block 11 70 11 slot.container 20 minecraft:diamond')).resolves.toBe(false);
+    });
+
+    it('writes a container block slot through /loot replace block too', async () => {
+        await run('/setblock 12 70 12 minecraft:chest');
+
+        await expect(run('/loot replace block 12 70 12 container.2 loot mypack:gifts')).resolves.toBe(true);
+
+        expect(contentsOf([12, 70, 12], 'minecraft:chest')[2]?.getItem().getName()).toBe('minecraft:cobblestone');
     });
 });
