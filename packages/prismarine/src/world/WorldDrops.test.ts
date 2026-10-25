@@ -5,11 +5,13 @@ import { describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import type { Entity } from '../entity/Entity';
+import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '../network/packet/AddItemActorPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
+import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 
 /**
  * A break, all the way to the packet that puts the dropped stack on someone's screen.
@@ -89,7 +91,7 @@ const fakeWorld = (initial: BlockState) => {
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name })
             }),
             getConfig: () => ({ getProximityBroadcast: () => true }),
-            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
+            getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
             // No content, which is `content-packs` off: the break takes the path this server
             // has always had, and the block itself says what it drops.
             getContent: () => undefined
@@ -99,6 +101,33 @@ const fakeWorld = (initial: BlockState) => {
     world.attachChangeSink(new NetworkWorldReplicator(world, world.getServer()));
 
     return { world, player, sent, entities };
+};
+
+/**
+ * A world with nothing in it but the entity map and a logger.
+ *
+ * {@link fakeWorld} goes all the way to the wire, which is the point of it and the wrong
+ * shape for a test that drops thousands of stacks: the limit is about how many entities the
+ * world keeps, not about what any of them sent.
+ */
+const emptyWorld = () => {
+    const warnings: string[] = [];
+    const entities = new Map<bigint, Entity>();
+
+    const world: World = Object.assign(Object.create(World.prototype), {
+        name: 'flooded',
+        entities,
+        players: new Map(),
+        entityChunkIndices: new Map(),
+        chunks: new Map(),
+        currentTick: 0,
+        changes: NULL_WORLD_CHANGE_SINK,
+        server: {
+            getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) })
+        }
+    });
+
+    return { world, entities, warnings };
 };
 
 describe('world', () => {
@@ -131,6 +160,30 @@ describe('world', () => {
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(entities.size).toBe(1);
+        });
+
+        it('stops at the item entity limit however much is dropped at once', async () => {
+            // The reported crash: a world that had just generated a region started ticking
+            // it, leaf decay broke tens of thousands of leaves, and every break rolled a
+            // loot table through here. Nothing counted the stacks already on the ground.
+            const { world, entities, warnings } = emptyWorld();
+            const position = new Vector3(10, 64, -20);
+            const stacks = (count: number) =>
+                Array.from({ length: count }, () => new Item({ id: 4, name: 'minecraft:cobblestone', meta: 0 }));
+
+            for (let burst = 0; burst < 3; burst += 1) {
+                await world.dropContents(position, stacks(World.ITEM_ENTITY_LIMIT));
+            }
+
+            expect(entities.size).toBe(World.ITEM_ENTITY_LIMIT);
+            // Said once rather than once per lost stack, which would be the same flood.
+            expect(warnings).toHaveLength(1);
+
+            // And the room comes back, so a world that fills up once is not full for ever.
+            await world.removeEntity([...entities.values()][0]!);
+            await world.dropContents(position, stacks(4));
+
+            expect(entities.size).toBe(World.ITEM_ENTITY_LIMIT);
         });
 
         it('drops nothing in creative, where breaking is not mining', async () => {
