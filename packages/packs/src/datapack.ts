@@ -37,25 +37,58 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
 const isSafePath = (path: string): boolean =>
     !path.startsWith('/') && !path.includes('\\') && path.split('/').every((segment) => segment !== '..');
 
-/** Reads a datapack folder or zip into file bytes by pack-relative path. */
-const readDatapackFiles = (path: string): Map<string, Uint8Array> => {
+/** What a datapack holds: every path in it, and the bytes of the ones this loader reads. */
+interface DatapackContents {
+    /** Every pack-relative path the pack carries, read or not. */
+    readonly paths: readonly string[];
+    /** The bytes of the files {@link readable} kept, by pack-relative path. */
+    readonly files: Map<string, Uint8Array>;
+}
+
+/**
+ * Whether a datapack file is one this loader reads.
+ *
+ * `pack.mcmeta` names the overlays, a path {@link routeDatapackPath} routes is a definition, and
+ * a path that routes once its leading directory is dropped is an overlay's copy of one. Nothing
+ * else reaches the registries, and a vanilla 26.3 datapack is 8373 files of which 6335 route -
+ * the rest are the worldgen, villager trade and nested built-in pack registries this loader does
+ * not consume, and opening each of them costs a syscall pair for bytes that go straight back out.
+ *
+ * Overlay directories are matched by shape rather than by name because the names are in
+ * `pack.mcmeta`, which this answers about too. Keeping a file of a directory that turns out not
+ * to be an overlay only costs the read.
+ */
+const readable = (path: string): boolean => {
+    if (path === 'pack.mcmeta' || routeDatapackPath(path) !== undefined) return true;
+
+    const separator = path.indexOf('/');
+    return separator > 0 && routeDatapackPath(path.slice(separator + 1)) !== undefined;
+};
+
+/** Reads a datapack folder or zip: every path in it, and the bytes of the readable ones. */
+const readDatapackFiles = (path: string): DatapackContents => {
+    const paths: string[] = [];
+    const files = new Map<string, Uint8Array>();
+
     if (statSync(path).isDirectory()) {
-        const files = new Map<string, Uint8Array>();
         for (const entry of readdirSync(path, { recursive: true, withFileTypes: true })) {
             if (!entry.isFile()) continue;
             const absolute = join(entry.parentPath, entry.name);
-            files.set(relative(path, absolute).split(sep).join('/'), readFileSync(absolute));
+            const packPath = relative(path, absolute).split(sep).join('/');
+            paths.push(packPath);
+            if (readable(packPath)) files.set(packPath, readFileSync(absolute));
         }
-        return files;
+        return { paths, files };
     }
 
     const bytes = readFileSync(path);
     if (!isZip(bytes)) throw new Error(`${path} is neither a directory nor a zip archive`);
-    const files = new Map<string, Uint8Array>();
     for (const [name, data] of readZip(bytes)) {
-        if (isSafePath(name)) files.set(name, data);
+        if (!isSafePath(name)) continue;
+        paths.push(name);
+        if (readable(name)) files.set(name, data);
     }
-    return files;
+    return { paths, files };
 };
 
 /** Parses `pack.mcmeta` and reports the format gate; the pack loads either way. */
@@ -124,11 +157,12 @@ const readMcmeta = (
  * nothing.
  */
 const applyOverlays = (
-    files: Map<string, Uint8Array>,
+    contents: DatapackContents,
     mcmeta: PackMcmeta | undefined,
     pack: string,
     collector: DiagnosticCollector
 ): Map<string, Uint8Array> => {
+    const { files, paths } = contents;
     const overlays = mcmeta?.overlays ?? [];
     if (overlays.length === 0) return files;
 
@@ -141,11 +175,15 @@ const applyOverlays = (
     for (const overlay of overlays) {
         const prefix = `${overlay.directory}/`;
         const applies = coversFormat(overlay.formats, DATA_PACK_FORMAT);
+        // Counted over every path rather than over the files that were read, so an overlay of
+        // registries this loader skips is still an overlay that holds something.
         let found = 0;
-        for (const [path, bytes] of files) {
+        for (const path of paths) {
             if (!path.startsWith(prefix)) continue;
             found += 1;
-            if (applies) effective.set(path.slice(prefix.length), bytes);
+
+            const bytes = files.get(path);
+            if (applies && bytes !== undefined) effective.set(path.slice(prefix.length), bytes);
         }
         if (found === 0) {
             collector.add({
@@ -200,9 +238,9 @@ export const loadDatapack = (
 ): void => {
     const pack = basename(path);
 
-    let files: Map<string, Uint8Array>;
+    let contents: DatapackContents;
     try {
-        files = readDatapackFiles(path);
+        contents = readDatapackFiles(path);
     } catch (error) {
         collector.add({
             severity: 'error',
@@ -213,9 +251,9 @@ export const loadDatapack = (
         return;
     }
 
-    const mcmeta = readMcmeta(files, pack, collector);
+    const mcmeta = readMcmeta(contents.files, pack, collector);
 
-    for (const [filePath, bytes] of applyOverlays(files, mcmeta, pack, collector)) {
+    for (const [filePath, bytes] of applyOverlays(contents, mcmeta, pack, collector)) {
         const route = routeDatapackPath(filePath);
         if (!route) continue;
 
