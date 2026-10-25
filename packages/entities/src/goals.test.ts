@@ -208,4 +208,39 @@ describe('GoalScheduler', () => {
 
         expect(scheduler.runningGoals()).toEqual(['a', 'b']);
     });
+
+    it('puts a goal added after a tick in its place in the order', () => {
+        const scheduler = new GoalScheduler();
+        const log: string[] = [];
+        const late = new RecordingGoal('late', log);
+        const early = new RecordingGoal('early', log);
+        scheduler.add(entry('late', 5, [], late));
+        late.ready = true;
+        scheduler.tick();
+
+        scheduler.add(entry('early', 1, [], early));
+        early.ready = true;
+        scheduler.tick();
+
+        expect(scheduler.names()).toEqual(['early', 'late']);
+        expect(scheduler.runningGoals()).toEqual(['early', 'late']);
+    });
+
+    it('takes a goal removed after a tick back out of the order', () => {
+        const scheduler = new GoalScheduler();
+        const log: string[] = [];
+        const kept = new RecordingGoal('kept', log);
+        const dropped = new RecordingGoal('dropped', log);
+        scheduler.add(entry('kept', 1, [], kept));
+        scheduler.add(entry('dropped', 2, [], dropped));
+        kept.ready = true;
+        dropped.ready = true;
+        scheduler.tick();
+
+        scheduler.remove('dropped');
+        scheduler.tick();
+
+        expect(scheduler.names()).toEqual(['kept']);
+        expect(scheduler.runningGoals()).toEqual(['kept']);
+    });
 });

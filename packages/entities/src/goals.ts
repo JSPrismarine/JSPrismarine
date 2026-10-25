@@ -136,10 +136,22 @@ export class GoalScheduler {
     private readonly running = new Set<string>();
     private readonly holders = new Map<ControlFlag, string>();
 
+    /**
+     * The entries in priority order, kept until a goal is added or taken off.
+     *
+     * {@link GoalScheduler.tick} walks the order three times a tick, and the
+     * order only changes when the component set does, which is rare: an entity
+     * carries its goals for its whole life unless an event swaps a component
+     * group in. Sorting it per walk made the sort and its `localeCompare`
+     * comparator a tenth of what ticking a mob cost.
+     */
+    private order: readonly ScheduledGoal[] | undefined;
+
     /** Registers a goal, replacing any goal already registered under the name. */
     public add(entry: ScheduledGoal): void {
         this.remove(entry.name);
         this.entries.set(entry.name, entry);
+        this.order = undefined;
     }
 
     /** Takes a goal off, stopping it first when it is running. */
@@ -148,6 +160,7 @@ export class GoalScheduler {
         if (entry === undefined) return;
         if (this.running.has(name)) this.stop(entry);
         this.entries.delete(name);
+        this.order = undefined;
     }
 
     /** The names of the goals running now, in priority order. */
@@ -193,7 +206,10 @@ export class GoalScheduler {
 
     /** Registered goals sorted by priority, then by name so the order is stable. */
     private sorted(): readonly ScheduledGoal[] {
-        return [...this.entries.values()].sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name));
+        this.order ??= [...this.entries.values()].sort(
+            (a, b) => a.priority - b.priority || a.name.localeCompare(b.name)
+        );
+        return this.order;
     }
 
     private canTakeFlags(entry: ScheduledGoal): boolean {
