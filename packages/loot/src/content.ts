@@ -147,7 +147,7 @@ const createContentView = (
     options: LootContentOptions,
     evaluationOf: () => LootEvaluation | undefined
 ): ContentView => {
-    const smelting = options.recipes === undefined ? undefined : smeltingIndex(options.recipes, options.itemTag);
+    const smelting = smeltingIndexOf(options);
     const palette = options.dyeColors ?? [...DYE_COLORS];
 
     const view: ContentView = {
