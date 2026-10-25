@@ -806,9 +806,7 @@ export default class PlayerSession {
             await this.connection.sendDataPacket(packet);
 
             const sent = craftingRecipeCount(packet.payload);
-            this.server
-                .getLogger()
-                .debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
+            this.server.getLogger().debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
 
             return;
         }
