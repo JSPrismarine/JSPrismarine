@@ -225,6 +225,26 @@ describe('the Bedrock-only commands', () => {
                 })
             ).toEqual([7]);
         });
+
+        it("addresses a container block, which is Mojang's other two overloads", () => {
+            expect(placed('replaceitem block 1 70 2 slot.container 4 minecraft:diamond 5')).toEqual([
+                {
+                    target: { kind: 'block', dimension: 'minecraft:overworld', position: { x: 1, y: 70, z: 2 } },
+                    slot: { name: 'slot.container', index: 4, count: 5 },
+                    item: 'minecraft:diamond',
+                    count: 5,
+                    mode: 'replace'
+                }
+            ]);
+        });
+
+        it('gives the block form the same old-item handling the entity form has', () => {
+            expect(placed('replaceitem block 0 0 0 slot.container 0 keep minecraft:stone')[0]?.mode).toBe('keep');
+        });
+
+        it('offers the block form only the slot group Bedrock names', () => {
+            expect(() => placed('replaceitem block 0 0 0 slot.hotbar 0 minecraft:stone')).toThrow();
+        });
     });
 
     describe('/camerashake', () => {
