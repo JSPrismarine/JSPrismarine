@@ -99,6 +99,10 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     const server = stub<Server>({
         getTick: () => TICK,
+        // No content, which is `content-packs` off: every click goes down the legacy path,
+        // which is what the rest of this file is about.
+        getContent: () => undefined,
+        getContentWorld: () => undefined,
         getLogger: () =>
             stub<Logger>({
                 debug: (...message) => void logged.push(`debug: ${String(message[0] ?? '')}`),

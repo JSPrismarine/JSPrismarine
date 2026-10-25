@@ -1,0 +1,342 @@
+/**
+ * The entity half of the `items` group, over the live player sessions and the live entity index.
+ *
+ * `contentAdapter.ts` beside this file splits `ItemWorldAction`'s 28 variants in two. A variant
+ * whose subject is a place in the world is performed there; a variant whose subject is an entity,
+ * an inventory or a screen arrives here, along with the two questions an item behavior asks about
+ * whoever is holding it.
+ *
+ * What a variant does here is what this server can actually do. The ones it has a system for -
+ * eating, a blow, a stack into the inventory, durability, armor, a name tag, a teleport, an item
+ * cooldown - are performed against that system. The ones whose system this server has not written
+ * are reported once per kind and ignored, naming what is missing, because `perform` returns
+ * nothing and there is no value to guess; what would be dishonest is reporting success. The item
+ * cooldowns are the one piece of state the port keeps, because `minecraft:use_cooldown` is the
+ * only one of the twenty-two whose state nothing else on the server holds.
+ */
+import { Vector3 } from '@jsprismarine/math';
+import { Gametype } from '@jsprismarine/minecraft';
+
+import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
+import ContainerEntry from '../inventory/ContainerEntry';
+import { DamageCause } from '../entity/DamageCause';
+import { DamageSource } from '../entity/DamageSource';
+import { Item } from './Item';
+import Player from '../Player';
+import { Position } from '../world/Position';
+import type { ActorItemAction, ItemActorPort } from './contentAdapter';
+import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
+import type { Entity } from '../entity/Entity';
+import type { ItemStack } from '@jsprismarine/items';
+import type { EquipmentSlot, ItemSource, SourceState } from '@jsprismarine/item-behaviors';
+import type { World } from '../world/World';
+
+/** The live world whose entities and players this port acts on. */
+export type LiveWorld = () => World | undefined;
+
+/** What {@link createItemActorPort} is built over. */
+export interface ItemActorPortOptions {
+    /** The live world, read at call time, because the content is built before any world loads. */
+    readonly world: LiveWorld;
+    /** The `entities` group, which is how a stack that does not fit reaches the ground. */
+    readonly entities: ContentEntityAccess;
+    /** The clock, which is what an item cooldown is measured against. */
+    readonly level: ContentLevelFacts;
+}
+
+/**
+ * The port, plus the one thing the interaction path has to tell it.
+ *
+ * `targetOf` answers a question about an interaction that is happening now, so the interaction
+ * has to say what it landed on. Scoped to the call rather than stored, so a target cannot outlive
+ * the interaction that found it and be read by the next one.
+ */
+export interface ServerItemActorPort extends ItemActorPort {
+    /** Runs a body with one interaction's target recorded, so {@link ItemActorPort.targetOf} answers. */
+    duringInteraction<T>(source: ItemSource, target: ItemSource | undefined, body: () => T): T;
+}
+
+/** The armor inventory index each `minecraft:equippable` slot name writes into. */
+const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
+    head: ArmorSlot.Head,
+    chest: ArmorSlot.Torso,
+    legs: ArmorSlot.Legs,
+    feet: ArmorSlot.Feet
+};
+
+/** Every cause this server names, keyed by the bare name a Java damage type carries. */
+const DAMAGE_CAUSES: ReadonlyMap<string, DamageCause> = new Map(
+    Object.values(DamageCause).map((cause) => [cause, cause])
+);
+
+/**
+ * The cause for a Java damage type identifier.
+ *
+ * Derived from {@link DamageCause}'s own values, which are Java's names, rather than from a second
+ * table: `minecraft:magic` is `magic` is {@link DamageCause.Magic}. A type this server does not
+ * name is generic damage, which is what every unmodeled source already is here.
+ */
+const causeOf = (damageType: string): DamageCause =>
+    DAMAGE_CAUSES.get(damageType.replace(/^[^:]*:/, '')) ?? DamageCause.Generic;
+
+/** One cooldown, keyed by the entity and the group `minecraft:use_cooldown` names. */
+const cooldownKey = (runtimeId: number, group: string): string => `${runtimeId}:${group}`;
+
+/**
+ * Whether the point an entity reports is in water.
+ *
+ * A player reports its eyes rather than its feet, which is what `eyeInWater` asks about, and a
+ * player is the only thing on this server that uses an item.
+ */
+const inWater = (world: World, entity: Entity): boolean => {
+    const position = entity.getPosition();
+    const block = world.loadedBlockAt(
+        Math.floor(position.getX()),
+        Math.floor(position.getY()),
+        Math.floor(position.getZ())
+    );
+
+    return block?.name === 'minecraft:water' || block?.name === 'minecraft:flowing_water';
+};
+
+/** Builds the port over one live world. */
+export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
+    const { world, entities, level } = options;
+
+    /** Game tick each cooldown runs out at. */
+    const cooldowns = new Map<string, number>();
+
+    /** What the interaction being performed landed on, by the runtime id of whoever started it. */
+    const targets = new Map<number, ItemSource>();
+
+    const entityOf = (source: ItemSource): Entity | null => world()?.getEntity(BigInt(source.runtimeId)) ?? null;
+
+    /** What is reported for a system this server has not written, once per kind. */
+    const reported = new Set<string>();
+    const missing = (action: ActorItemAction, system: string): void => {
+        if (reported.has(action.kind)) return;
+        reported.add(action.kind);
+
+        world()
+            ?.getServer()
+            .getLogger()
+            .debug(`an item behavior asked for ${action.kind}, which needs ${system}`, 'item/actorPort');
+    };
+
+    /** The server's own item for a stack an item behavior built, or null when nothing has it. */
+    const itemOf = (stack: ItemStack): Item | null => {
+        const loaded = world();
+        const registered = loaded?.getServer().getItemManager().getItem(stack.identifier) ?? null;
+        if (registered === null) return null;
+
+        return new Item({
+            id: registered.getId(),
+            name: registered.getName(),
+            meta: registered.getMeta(),
+            count: stack.count
+        });
+    };
+
+    const give = (source: ItemSource, stack: ItemStack): void => {
+        const entity = entityOf(source);
+        const item = itemOf(stack);
+        if (item === null) return;
+
+        const position = entity?.getPosition();
+        if (!(entity instanceof Player)) {
+            if (position === undefined) return;
+            entities.drop(
+                { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
+                { identifier: stack.identifier, count: stack.count }
+            );
+            return;
+        }
+
+        // What would not fit goes on the ground, which is what vanilla does with a full
+        // inventory, and `addItem` reports how many of them that is.
+        const leftOver = entity.getInventory().addItem(new ContainerEntry({ item, count: stack.count }));
+        if (leftOver > 0 && position !== undefined) {
+            entities.drop(
+                { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
+                { identifier: stack.identifier, count: leftOver }
+            );
+        }
+    };
+
+    const equip = (source: ItemSource, slot: EquipmentSlot, stack: ItemStack): boolean => {
+        const entity = entityOf(source);
+        const item = itemOf(stack);
+        if (!(entity instanceof Player) || item === null) return false;
+
+        const entry = new ContainerEntry({ item, count: stack.count });
+        const inventory = entity.getInventory();
+
+        if (slot === 'offhand') {
+            inventory.getOffhand().setItem(0, entry);
+            return true;
+        }
+        if (slot === 'hand' || slot === 'mainhand') {
+            inventory.setItemInHand(entry);
+            return true;
+        }
+
+        const index = ARMOR_INDEX[slot];
+        if (index === undefined) return false;
+
+        inventory.getArmor().setItem(index, entry);
+        return true;
+    };
+
+    /**
+     * Spends durability on whatever the source is holding.
+     *
+     * The amount is already through `spendDurability`, so Unbreaking and an item with no
+     * `minecraft:max_damage` are accounted for. A stack the hit finished off is cleared, which is
+     * what `broke` says happened.
+     */
+    const spend = (source: ItemSource, amount: number, broke: boolean): void => {
+        const entity = entityOf(source);
+        if (!(entity instanceof Player)) return;
+
+        const inventory = entity.getInventory();
+        const held = inventory.getItemInHand();
+        held.durability = Math.max(0, held.durability - amount);
+
+        if (broke) inventory.setItemInHand(new ContainerEntry({ item: held, count: 0 }));
+    };
+
+    const teleportRandomly = (source: ItemSource, radius: number): void => {
+        const entity = entityOf(source);
+        const loaded = world();
+        if (entity === null || loaded === undefined) return;
+
+        const from = entity.getPosition();
+        const x = from.getX() + (loaded.getServer().getRandom()() * 2 - 1) * radius;
+        const z = from.getZ() + (loaded.getServer().getRandom()() * 2 - 1) * radius;
+
+        // Onto whatever is standing at the column, because dropping a player inside terrain is
+        // worse than not teleporting them at all.
+        const surface = loaded.getLoadedChunk(Math.floor(x) >> 4, Math.floor(z) >> 4)
+            ? loaded
+                  .getLoadedChunk(Math.floor(x) >> 4, Math.floor(z) >> 4)!
+                  .getHighestBlockAt(Math.floor(x) & 0xf, Math.floor(z) & 0xf)
+            : null;
+        if (surface === null) return;
+
+        void entity
+            .setPosition({ position: Position.fromVector3(new Vector3(x + 0.5, surface + 1, z + 0.5), loaded) })
+            .catch((error: unknown) => loaded.getServer().getLogger().error(error));
+    };
+
+    const perform = (action: ActorItemAction): void => {
+        switch (action.kind) {
+            case 'feed': {
+                const entity = entityOf(action.target);
+                if (entity instanceof Player) entity.addFood(action.nutrition, action.saturation);
+                return;
+            }
+            case 'damage-entity': {
+                const entity = entityOf(action.target);
+                if (entity === null) return;
+
+                void entity
+                    .damage(action.amount, DamageSource.of(causeOf(action.damageType)))
+                    .catch((error: unknown) => world()?.getServer().getLogger().error(error));
+                return;
+            }
+            case 'give-item':
+                return give(action.source, action.item);
+            case 'equip':
+                if (!equip(action.target, action.slot, action.item))
+                    missing(action, `an equipment slot for ${action.slot}`);
+                return;
+            case 'consume-durability':
+                return spend(action.source, action.amount, action.broke);
+            case 'name-entity': {
+                entityOf(action.target)?.metadata.setNameTag(action.name);
+                return;
+            }
+            case 'teleport-randomly':
+                return teleportRandomly(action.target, action.radius);
+            case 'start-cooldown':
+                cooldowns.set(cooldownKey(action.source.runtimeId, action.group), level.gameTime() + action.ticks);
+                return;
+            case 'launch-projectile':
+                // The entity factory can put a projectile in the world, but nothing gives it the
+                // velocity it was shot with, so it would stand still where it was thrown from.
+                return missing(action, 'projectile motion');
+            case 'apply-effects':
+            case 'remove-effects':
+                return missing(action, 'a status effect system');
+            case 'grant-experience':
+                return missing(action, 'a player experience bar');
+            case 'attach-lead':
+            case 'dye-entity':
+            case 'shear-entity':
+                return missing(action, 'the entity components that hold it');
+            case 'blocking':
+            case 'disable-shield':
+                return missing(action, 'shield blocking');
+            case 'brush':
+            case 'fishing':
+            case 'locate':
+            case 'map':
+            case 'open-screen':
+                return missing(action, `the ${action.kind} system`);
+        }
+    };
+
+    return {
+        stateOf: (source): SourceState => {
+            const entity = entityOf(source);
+            const loaded = world();
+            const position = entity?.getPosition();
+            const player = entity instanceof Player ? entity : undefined;
+            const now = level.gameTime();
+
+            const waiting: string[] = [];
+            for (const [key, expiry] of cooldowns) {
+                if (expiry <= now) {
+                    cooldowns.delete(key);
+                    continue;
+                }
+                const [runtimeId, group] = [key.slice(0, key.indexOf(':')), key.slice(key.indexOf(':') + 1)];
+                if (Number(runtimeId) === source.runtimeId) waiting.push(group);
+            }
+
+            return {
+                position: {
+                    x: Math.floor(position?.getX() ?? 0),
+                    y: Math.floor(position?.getY() ?? 0),
+                    z: Math.floor(position?.getZ() ?? 0)
+                },
+                creative: player?.gamemode === Gametype.CREATIVE,
+                onGround: player?.isOnGround() ?? true,
+                eyeInWater: entity !== null && loaded !== undefined ? inWater(loaded, entity) : false,
+                // No elytra and no weather on this server, so both are facts rather than
+                // defaults: nothing can be gliding and nothing can be rained on.
+                gliding: false,
+                inWaterOrRain: entity !== null && loaded !== undefined ? inWater(loaded, entity) : false,
+                fallDistance: player?.getFallDistance() ?? 0,
+                // This server runs no status effect system, so nothing has any.
+                effects: [],
+                cooldownGroups: waiting,
+                foodLevel: player?.getFood() ?? 20
+            };
+        },
+        targetOf: (source) => targets.get(source.runtimeId),
+        perform,
+        duringInteraction: (source, target, body) => {
+            const previous = targets.get(source.runtimeId);
+            if (target === undefined) targets.delete(source.runtimeId);
+            else targets.set(source.runtimeId, target);
+
+            try {
+                return body();
+            } finally {
+                if (previous === undefined) targets.delete(source.runtimeId);
+                else targets.set(source.runtimeId, previous);
+            }
+        }
+    };
+};

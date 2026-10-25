@@ -7,6 +7,8 @@ import type Server from '../../Server';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
 import HumanInventory from '../../inventory/HumanInventory';
+import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
+import type { InteractionResult } from '../../item/interaction';
 import Identifiers from '../Identifiers';
 import type { InventoryTransactionPacket } from '../Packets';
 import type { ReleaseItemData, UseItemData, UseItemOnEntityData } from '../packet/InventoryTransactionPacket';
@@ -31,6 +33,71 @@ const SPRINT_KNOCKBACK = 1;
 
 /** A block has six faces, and the docs' Face names one of them. */
 const FACE_COUNT = 6;
+
+/**
+ * One right click on a block, offered to the content hooks.
+ *
+ * Declines whenever there is no content, which is what `content-packs` off means, so the caller
+ * falls through to `World.useItemOn` and a server without content behaves as it always has.
+ *
+ * @returns Whether a behavior family or a content placement consumed the click.
+ */
+const contentUse = (server: Server, player: Player, data: UseItemData): InteractionResult => {
+    const content = server.getContent();
+    const actors = server.getContentWorld()?.actorsAt(player.getWorld().getDimension().name);
+    if (content === undefined || actors === undefined) return 'declined';
+
+    try {
+        return useItemOnBlock({
+            content,
+            actors,
+            player,
+            position: {
+                x: data.blockPosition.getX(),
+                y: data.blockPosition.getY(),
+                z: data.blockPosition.getZ()
+            },
+            face: data.blockFace,
+            faceLocation: {
+                x: data.clickPosition.getX(),
+                y: data.clickPosition.getY(),
+                z: data.clickPosition.getZ()
+            }
+        });
+    } catch (error: unknown) {
+        // A behavior that throws must not cost the player the click, and it must not go
+        // unreported either. The legacy path runs and the throw reaches the log.
+        server.getLogger().error(error);
+        return 'declined';
+    }
+};
+
+/**
+ * One right click on an entity, offered to the content hooks.
+ *
+ * @returns Whether a behavior consumed the click. Nothing follows it either way: this server has
+ *   no legacy path for using an item on an entity.
+ */
+const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntityData): InteractionResult => {
+    const content = server.getContent();
+    const actors = server.getContentWorld()?.actorsAt(player.getWorld().getDimension().name);
+    if (content === undefined || actors === undefined) return 'declined';
+
+    const target = player.getWorld().getEntity(data.entityRuntimeId);
+    if (target === null) return 'declined';
+
+    try {
+        return useItemOnEntity({
+            content,
+            actors,
+            player,
+            target: { identifier: target.getType(), runtimeId: Number(target.getRuntimeId()) }
+        });
+    } catch (error: unknown) {
+        server.getLogger().error(error);
+        return 'declined';
+    }
+};
 
 const isFiniteVector = (vector: Vector3): boolean =>
     Number.isFinite(vector.getX()) && Number.isFinite(vector.getY()) && Number.isFinite(vector.getZ());
@@ -206,8 +273,14 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * From Position the client sent.
      */
     private async handleUseItemOnEntity(data: UseItemOnEntityData, server: Server, player: Player): Promise<void> {
-        // Interacting and using an item on something are not attacks (shearing a sheep, putting
-        // a saddle on a pig) and are not handled yet.
+        if (data.actionType === ItemUseOnActorActionType.INTERACT) {
+            // Shearing a sheep, dyeing one, putting a name tag on a pig. The item behavior reads
+            // what the click landed on through `targetOf` rather than through a hook of its own,
+            // so the content path is given the target and runs the item's `onUse`.
+            contentUseOnEntity(server, player, data);
+            return;
+        }
+
         if (data.actionType !== ItemUseOnActorActionType.ATTACK) return;
 
         const target = player.getWorld().getEntity(data.entityRuntimeId);
@@ -287,6 +360,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 }
 
                 if (data.actionType === ItemUseActionType.PLACE) {
+                    // The content path first, where the block's and the item's behavior families
+                    // get the click. It declines when `content-packs` is off and when nothing in
+                    // the content wanted the click, and the path this server has always had runs.
+                    if (contentUse(server, player, data) === 'handled') return;
+
                     await world.useItemOn(
                         player.getInventory().getItemInHand(),
                         data.blockPosition,
