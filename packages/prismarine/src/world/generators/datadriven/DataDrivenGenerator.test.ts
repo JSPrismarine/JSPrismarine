@@ -7,7 +7,7 @@
  * ```sh
  * pnpm --filter @jsprismarine/bedrock-data run fetch:sources
  * pnpm --filter @jsprismarine/bedrock-data run datagen:java
- * JSP_WORLDGEN_VANILLA=1 pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
+ * pnpm --filter @jsprismarine/prismarine exec vitest run src/world/generators
  * ```
  */
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -21,7 +21,7 @@ import { bedrockBiomeIdOf } from './javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
-const enabled = process.env.JSP_WORLDGEN_VANILLA === '1' && sources !== undefined;
+const enabled = sources !== undefined;
 
 const SEED = 1234;
 
@@ -212,11 +212,18 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
         'finishes the chunk it had started and refuses the ones queued behind it',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);
-            const stopping = new DataDrivenGenerator({ registries, decorate: false, carve: false });
+            const stopping = new DataDrivenGenerator({
+                registries,
+                decorate: false,
+                carve: false,
+                concurrency: 1
+            });
 
             // Asked for in one turn, the way the start region asks for a batch.
             const inFlight = stopping.generateChunk(0, 0, SEED);
-            const queued = [stopping.generateChunk(1, 0, SEED), stopping.generateChunk(2, 0, SEED)];
+            // Settled up front, because a shutdown refuses the queue the moment it is called
+            // and a rejection nobody is waiting on yet is an unhandled one.
+            const queued = Promise.allSettled([stopping.generateChunk(1, 0, SEED), stopping.generateChunk(2, 0, SEED)]);
 
             // One turn of the event loop, so the first request is past the front of the queue
             // and generating. That is the state a shutdown finds, and the one a half-built
@@ -225,9 +232,53 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
             stopping.stopGenerating();
 
             expect((await inFlight).getHighestBlockAt(0, 0)).not.toBeNull();
-            for (const request of queued) {
-                await expect(request).rejects.toBeInstanceOf(GenerationStopped);
+            for (const result of await queued) {
+                expect(result.status === 'rejected' && result.reason).toBeInstanceOf(GenerationStopped);
             }
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'refuses everything past the depth it is building at, however large the batch',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const depth = 3;
+            const stopping = new DataDrivenGenerator({
+                registries,
+                decorate: false,
+                carve: false,
+                concurrency: depth
+            });
+
+            // Thirty-two in one turn, which is what the start region asks for.
+            const batch = Promise.allSettled(
+                Array.from({ length: 32 }, (_entry, index) => stopping.generateChunk(index, 7, SEED))
+            );
+            await new Promise((resolve) => setImmediate(resolve));
+            stopping.stopGenerating();
+
+            const settled = await batch;
+            const refused = settled.filter(
+                (result) => result.status === 'rejected' && result.reason instanceof GenerationStopped
+            );
+
+            // Everything past the depth is dropped, which is what takes a cold preload's
+            // shutdown from twenty-two seconds to under one.
+            expect(refused).toHaveLength(settled.length - depth);
+            expect(settled.filter((result) => result.status === 'fulfilled')).toHaveLength(depth);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'refuses a request made after the shutdown, for a world it had never been asked about',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const stopping = new DataDrivenGenerator({ registries, decorate: false, carve: false });
+            stopping.stopGenerating();
+
+            await expect(stopping.generateChunk(0, 0, SEED + 1)).rejects.toBeInstanceOf(GenerationStopped);
         },
         CHUNK_TIMEOUT
     );

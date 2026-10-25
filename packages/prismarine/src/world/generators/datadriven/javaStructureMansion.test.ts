@@ -8,7 +8,7 @@ import { buildWoodlandMansion } from './javaStructureMansion';
 import type { StructureBuildContext, StructureLayout } from './javaStructureStarts';
 import type { StructureTemplateStore } from './javaStructureTemplatePiece';
 import { createStructureTemplateStore } from './javaStructureTemplatePiece';
-import { findJavaTemplateSource } from './javaStructureTemplates';
+import { createTemplateSource, findJavaTemplates } from './javaStructureTemplates';
 import type { StructureLevel, StructurePiece, StructureWriter } from './javaStructureWorld';
 import { unionOf } from './javaStructureWorld';
 import type { TemplateSource } from './javaTemplatePlacement';
@@ -28,6 +28,12 @@ const SPREAD_SEEDS = [1, 7919, 104_729, 1_299_709, 15_485_863, 179_424_673, 2_03
 
 /** A seed whose mansion has rooms on all three floors. */
 const THREE_FLOOR_SEED = 42;
+
+/** The fetched Java templates, if this test process has the real-data corpus. */
+const JAVA_TEMPLATE_BYTES = findJavaTemplates(cacheRoot()) ?? new Map<string, Uint8Array>();
+
+/** The real template source shared by the tests that need the corpus. */
+const JAVA_TEMPLATE_SOURCE = createTemplateSource(() => JAVA_TEMPLATE_BYTES, new Map());
 
 /** The templates that are not rooms, by the footprint each one really has. */
 const FOOTPRINTS: Readonly<Record<string, readonly [number, number]>> = {
@@ -394,21 +400,20 @@ describe('buildWoodlandMansion', () => {
  * Gated, because it reads the structure templates the fetch extracts from the server jar:
  *
  * ```sh
- * JSP_WORLDGEN_VANILLA=1 pnpm exec vitest run src/world/generators/datadriven/javaStructureMansion.test.ts
+ * pnpm exec vitest run src/world/generators/datadriven/javaStructureMansion.test.ts
  * ```
  */
-describe.skipIf(process.env.JSP_WORLDGEN_VANILLA !== '1')('the mansion against the real templates', () => {
+describe.skipIf(JAVA_TEMPLATE_BYTES.size === 0)('the mansion against the real templates', () => {
     it('names only templates this server carries', () => {
-        const vanilla = findJavaTemplateSource(cacheRoot(), new Map());
         const named = new Set(SPREAD_SEEDS.flatMap((seed) => mansionAt(seed).names));
 
         // Eight mansions between them draw most of the room collections.
         expect(named.size).toBeGreaterThan(30);
-        expect([...named].filter((identifier) => vanilla.template(identifier) === undefined)).toEqual([]);
+        expect([...named].filter((identifier) => JAVA_TEMPLATE_SOURCE.template(identifier) === undefined)).toEqual([]);
     });
 
     it('composes the real templates into one building of the size a mansion has', () => {
-        const store = createStructureTemplateStore(findJavaTemplateSource(cacheRoot(), new Map()));
+        const store = createStructureTemplateStore(JAVA_TEMPLATE_SOURCE);
         const layout = laidOut(buildWoodlandMansion(contextOf(store, THREE_FLOOR_SEED)))!;
         const box = unionOf(layout.pieces);
 

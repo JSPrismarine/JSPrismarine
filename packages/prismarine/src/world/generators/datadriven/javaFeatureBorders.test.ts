@@ -4,7 +4,7 @@
  * Gated the same way as the rest of the generator suite:
  *
  * ```sh
- * JSP_WORLDGEN_VANILLA=1 pnpm vitest run packages/prismarine/src/world/generators
+ * vitest run packages/prismarine/src/world/generators
  * ```
  */
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -14,7 +14,7 @@ import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
 
 const sources = findJavaWorldgenSources();
-const enabled = process.env.JSP_WORLDGEN_VANILLA === '1' && sources !== undefined;
+const enabled = sources !== undefined;
 
 /** Decorating one chunk drives nine feature passes over twenty-five terrain tiles. */
 const CHUNK_TIMEOUT = 600_000;
