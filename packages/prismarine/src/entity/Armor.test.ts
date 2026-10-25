@@ -2,12 +2,13 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { testEntityServer } from '../testing/entityServer';
 import ContainerEntry from '../inventory/ContainerEntry';
-import DiamondChestplate from '../item/items/DiamondChestplate';
-import DiamondHelmet from '../item/items/DiamondHelmet';
-import IronChestplate from '../item/items/IronChestplate';
+import { Item } from '../item/Item';
 import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
 import Human from './Human';
+
+/** A stack of one vanilla item, whose armor points come from its Java components. */
+const item = (name: string) => new Item({ name });
 
 /**
  * Armor, finally doing something.
@@ -55,28 +56,28 @@ describe('armor', () => {
 
     it('reads the points the item itself declares', () => {
         const human = stage.wearer();
-        wear(human, 1, new IronChestplate());
+        wear(human, 1, item('minecraft:iron_chestplate'));
 
         expect(human.getArmorDefensePoints()).toBe(6);
     });
 
     it('adds the pieces up', () => {
         const human = stage.wearer();
-        wear(human, 0, new DiamondHelmet());
-        wear(human, 1, new DiamondChestplate());
+        wear(human, 0, item('minecraft:diamond_helmet'));
+        wear(human, 1, item('minecraft:diamond_chestplate'));
 
-        const helmet = new DiamondHelmet().getArmorDefensePoints();
-        const chest = new DiamondChestplate().getArmorDefensePoints();
+        const helmet = item('minecraft:diamond_helmet').getArmorDefensePoints();
+        const chest = item('minecraft:diamond_chestplate').getArmorDefensePoints();
 
         expect(human.getArmorDefensePoints()).toBe(helmet + chest);
     });
 
     it('carries toughness, which only the good armor has', () => {
         const iron = stage.wearer();
-        wear(iron, 1, new IronChestplate());
+        wear(iron, 1, item('minecraft:iron_chestplate'));
 
         const diamond = stage.wearer();
-        wear(diamond, 1, new DiamondChestplate());
+        wear(diamond, 1, item('minecraft:diamond_chestplate'));
 
         expect(diamond.getArmorToughness()).toBeGreaterThan(iron.getArmorToughness());
     });
@@ -85,7 +86,7 @@ describe('armor', () => {
         it('takes the edge off a blow', async () => {
             const bare = stage.wearer();
             const armored = stage.wearer();
-            wear(armored, 1, new IronChestplate());
+            wear(armored, 1, item('minecraft:iron_chestplate'));
 
             await bare.damage(10);
             await armored.damage(10);
@@ -96,7 +97,7 @@ describe('armor', () => {
         it('does nothing against drowning, which is not a blow', async () => {
             const bare = stage.wearer();
             const armored = stage.wearer();
-            wear(armored, 1, new IronChestplate());
+            wear(armored, 1, item('minecraft:iron_chestplate'));
 
             await bare.damage(6, DamageCause.Drowning);
             await armored.damage(6, DamageCause.Drowning);
@@ -107,8 +108,8 @@ describe('armor', () => {
         it('protects less as the blow gets harder, which is what toughness softens', async () => {
             const soft = stage.wearer();
             const hard = stage.wearer();
-            wear(soft, 1, new IronChestplate());
-            wear(hard, 1, new IronChestplate());
+            wear(soft, 1, item('minecraft:iron_chestplate'));
+            wear(hard, 1, item('minecraft:iron_chestplate'));
 
             await soft.damage(4);
             await hard.damage(16);
