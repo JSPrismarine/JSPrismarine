@@ -11,9 +11,17 @@
         "incremental": false,
         "inlineSourceMap": false,
         "paths": {
-            "@jsprismarine/*": ["../*/dist/index.d.ts"]
+            "@jsprismarine/*": [
+                "../*/dist/index.d.ts"
+            ]
         }
     },
-    "include": ["src/**/*", "src/**/*.json"],
-    "exclude": ["src/**/*.test.*"]
+    "include": [
+        "src/**/*",
+        "src/**/*.json"
+    ],
+    "exclude": [
+        "src/**/*.test.*",
+        "src/**/__fixtures__/**"
+    ]
 }
