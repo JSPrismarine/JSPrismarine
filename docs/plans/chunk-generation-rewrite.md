@@ -12,6 +12,12 @@ Read [ADR 0002](../adr/0002-chunk-generation-architecture.md), then
 6 and 7. Those sections are the specification. The ADR is the decision about which parts of it to
 copy and which one to deviate from.
 
+Section 6 of [worldgen-defects.md](../research/worldgen-defects.md) is superseded. Its 875 ms for
+structures is a one-dimensional walk artifact and its wall-clock ladder was taken on a loaded
+host. ADR 0002's "Why the current shape costs 1572 ms" has the second measurement pass. Take
+counts and microbenchmarks from either; take wall-clock totals from neither until someone retakes
+them on an idle machine.
+
 Get the real data on disk and the environment variables into the shell:
 
 ```sh
@@ -136,43 +142,43 @@ lint` fail, remove it. Then confirm the rule finds nothing today, or fix what it
 
 ---
 
-## Slice 3: measure where the 875 ms of structure work goes
+## Slice 3: stop assembling structures that the biome will reject
 
-**What changes.** Nothing in the repository. This slice produces a number and appends a section to
-[worldgen-defects.md](../research/worldgen-defects.md).
+**What changes.** `StructureStartSource.buildStart` tests the biome before calling the builder
+instead of after, so a candidate that cannot exist where it landed is never assembled.
 
-**Why it is its own slice.** Structures are 56% of the per-chunk cost and nothing has split that
-between deciding a chunk is a structure chunk, laying the pieces out, and writing the blocks.
-ADR 0002's throughput table assumes structures fall from 875 ms to about 60 ms per chunk. Every
-slice after 7 is sized by whether that is true.
+**Why this is slice 3 and not slice 13.** It is 87% of all structure layout time, measured. Over a
+102 by 102 chunk area at seed 1234, 256 candidate starts were laid out and 234 were rejected by
+the biome check, and those 234 cost 85.5 of the 98.1 seconds. A rejected village costs 3083 ms, a
+rejected trial chamber 2145 ms, a rejected desert pyramid 796 ms. The cost is jigsaw assembly, not
+terrain sampling. Nothing else in this plan is a single line change worth a factor of seven.
 
-**What to measure.** Per generated chunk, on a warm pipeline, walking a row of eight chunks at
-seed 1234:
+**Files.** `packages/prismarine/src/world/generators/datadriven/javaStructureStarts.ts`
+(`buildStart` at `:200`, `biomeAllows` at `:241`).
 
-1. Calls to `StructureStartSource.startsFor`, and how many distinct `(set, chunk)` keys each one
-   newly lays out (`javaStructureStarts.ts:169` and `:189`).
-2. Calls to `StructureLevel.baseHeight` and `baseBlock`, and calls to
-   `createNoiseStructureLevel.columnAt` that miss the cache (`javaStructureLevel.ts:64`).
-3. How many times `columns.clear()` and `samplers.clear()` fire (`javaStructureLevel.ts:57`
-   and `:72`).
-4. Wall time split three ways: `candidateChunksIn` plus `chooseStructure`, the builder call in
-   `buildStart` (`javaStructureStarts.ts:213`), and `piece.place` in `decorate`
-   (`DataDrivenGenerator.ts:558`).
-5. The same four numbers with `beardPieces` stubbed to return `[]`, which isolates the nine extra
-   `startsFor` calls per chunk from the one `decorate` makes.
+**This needs a parity ruling before any code.** Java also checks the biome after
+`findGenerationPoint`, so moving the check in front of the builder is a deviation. Settle it this
+way. Java's check reads the biome at the generation point; a pre-check can only read the biome
+somewhere else, so the two agree only when the generation point sits in a biome the earlier
+position already allowed. Measure, over the same 102 by 102 area, how far each kept start's
+generation point is from its start chunk, and how many starts a coarse pre-check over the start
+chunk's own biome quarts would wrongly reject. If that number is zero, make the pre-check exact by
+testing the union of biomes the start chunk's quarts hold and keeping the exact check at `:225`
+as it is; a candidate then has to fail both to be dropped, and no kept start can be lost. If it is
+not zero, report the number and stop, because a cheaper world is not worth a different world.
 
-**Method.** A throwaway Vitest file beside the generator, deleted before the commit, the way
-[worldgen-defects.md](../research/worldgen-defects.md) section "Reproducing this" describes. Use
-`node:inspector/promises` for the self-time table.
+**Depends on.** Slice 1, so the corpus can prove no start moved.
 
-**Prove it correct.** The three wall-time parts sum to within 10% of the structure total measured
-by turning `structures: false` on and off.
+**Prove it correct.** **generator** green, all 12 structure placements in
+`javaStructures.test.ts` in the same chunks. `worldgen.structures` green against the golden, which
+holds the placement scan.
 
-**Prove no output change.** Nothing ships. Confirm `git status --short` shows only the research
-note.
+**Prove no output change.** All four checks byte-identical. Every rejected candidate is a
+structure that was already not in the world, so a correct version of this change is invisible in
+every digest. If a digest moves, the pre-check is rejecting something Java keeps.
 
-**Output.** A table in the research note, plus a one-line answer to: how much of the 875 ms
-survives when each start is laid out once and each column is sampled once?
+**Report.** Layout milliseconds per chunk, before and after, on both a 40-chunk walk and a 2-D
+fill, because the two differ by a factor of 33.
 
 ---
 
@@ -384,7 +390,8 @@ this chunk, all of which exist because the pyramid drove the neighbourhood to `s
 first. Piece placement stays where it is, inside `features`, clipped to the chunk by
 `chunkWriteBox`.
 
-**Depends on.** Slices 3, 6 and 7. Slice 3's measurement says how much this is worth.
+**Depends on.** Slices 6 and 7. Measured, this is worth about 8 ms per chunk on its own, so
+land it for the shape rather than the speed.
 
 **Prove it correct.** The 12 structure tests in `javaStructures.test.ts` still place a village, a
 shipwreck, a stronghold and the other nine in the chunks the seeded placement chose.
@@ -393,7 +400,9 @@ shipwreck, a stronghold and the other nine in the chunks the seeded placement ch
 **Prove no output change.** All four checks byte-identical, digests included. A start is already a
 pure function of the seed and its chunk, so moving where it is computed must change nothing.
 
-**Report.** The per-chunk structure time before and after, measured the way slice 3 measured it.
+**Report.** The candidate scan time per chunk before and after. It was about 11 ms at four
+scans per chunk, because `buried_treasures` and `mineshafts` have spacing 1 and each scan does 289
+region draws for each of them.
 
 ---
 
@@ -534,66 +543,87 @@ suspecting the workers.
 
 ---
 
-## Slice 13: make one structure layout cheap
+## Slice 13: make the structure layout that survives slice 3 cheap
 
-**What changes.** Whatever slice 3 found. The two mechanisms visible in the code today:
+**What changes.** The two remaining structure costs, both measured, in either order.
 
-`StructureLevel.baseHeight` asks `columnAt` for a whole 384-block column and then scans it
-downward (`javaStructureLevel.ts:103`). `columnAt` sampled every block of it through
-`ChunkSampler.column`, which is 384 `final_density` evaluations and 384 aquifer calls plus 768
-allocations, for one height. Java's `iterateNoiseColumn` walks from the top and returns at the
-first block the predicate accepts. Give `ChunkSampler` a top-down walk with an early exit and have
-`baseHeight` use it.
+**Memoize `jigsawBlocksOf`.** `packages/structures/src/jigsaw.ts:329` rescans every block of a
+template looking for jigsaw blocks, and `shuffledJigsaws` at `:460` calls it inside a loop over
+parent jigsaws, candidate elements and rotations with no cache. It is 20.9% self time in a CPU
+profile of a window containing a trial chamber. A template's jigsaw blocks are a function of the
+template and the rotation, so a `Map` keyed by both is the whole fix.
 
-The column and sampler caches clear wholesale, `columns` at 16384 entries and `samplers` at 256
-(`javaStructureLevel.ts:57` and `:72`). A structure spanning a wide area can empty the cache
-mid-layout and pay for everything again. Retain by chunk through the holder instead, and release
-with the holder.
+**Give `baseHeight` a cheap column.** `StructureLevel.baseHeight` asks `columnAt` for a whole
+384-block column with aquifers on and scans it downward (`javaStructureLevel.ts:103`), which is
+384 `final_density` evaluations, 384 aquifer calls and 768 allocations for one height. Java's
+`getBaseHeight` walks cells from the top with aquifers off and returns at the first block the
+predicate accepts. Measured, this is 50 column misses per chunk, 6% of the chunk's density
+samples and 16% of layout wall time; a desert pyramid alone asks for 441 columns. Add an
+early-exiting walk to `ChunkSampler` and have `baseHeight` use it.
 
-**Files.** `packages/worldgen/src/chunk/ChunkSampler.ts`,
+While there, the column and sampler caches clear wholesale, `columns` at 16384 entries and
+`samplers` at 256 (`javaStructureLevel.ts:57` and `:72`). Retain by chunk through the holder
+instead, and release with the holder.
+
+**Files.** `packages/structures/src/jigsaw.ts`, `packages/worldgen/src/chunk/ChunkSampler.ts`,
 `packages/prismarine/src/world/generators/datadriven/javaStructureLevel.ts`.
 
 **Depends on.** Slices 3 and 8.
 
 **Prove it correct.** **sampler** byte-identical. The early exit must return the same height, not
-an approximation of it. The 12 structure tests place everything in the same chunks as before.
+an approximation of it. The structures corpus in `packages/structures/src/corpus.test.ts` and the
+12 placements in `javaStructures.test.ts` are unchanged.
 
-**Prove no output change.** All four checks byte-identical, digests included.
+**Prove no output change.** All four checks byte-identical, digests included. A memo and an early
+exit that change a block have a bug in them, not a trade-off.
 
-**Report.** Per-chunk structure time against slice 8's number, and against ADR 0002's assumption
-of about 60 ms.
+**Report.** Layout milliseconds per chunk on both the 40-chunk walk and the 2-D fill, against
+slice 3's numbers.
 
 ---
 
 ## Slice 14: make the terrain fill cheap
 
 **What changes.** The per-block cost of `buildTerrain`. 227 ms for 98304 blocks is 2.3
-microseconds each, and 55% of all CPU samples are inside density and Perlin evaluation.
+microseconds each, and 55% of all CPU samples are inside density and Perlin evaluation. By this
+point terrain is about 90% of the per-chunk cost, so this slice and slice 15 are the only ones
+left that move the number. The target is 2.5 times.
 
-**What to try, in this order, measuring each.** Skip the air above the column's surface rather
-than evaluating `final_density` for every block from y=320 downward. Iterate in the order the
+**Index the beard pieces by column first.** `createBeardifier` (`DataDrivenGenerator.ts:327`,
+`javaStructureBeard.ts:108`) is the right operand of the top-level add in the overworld's
+`final_density`, so it runs on every one of the 98304 samples and scans the whole piece list each
+time. Measured per tile: 0.5 ms at no pieces, 11.3 ms at 10, 32.5 ms at 40, 125 ms at 76 under
+`beard_thin` and 220 ms at 76 under `encapsulate`. That is the largest single item in this slice
+for any chunk near a structure, and the pieces are fixed for the whole tile, so bucketing them by
+block column once per tile turns a list scan per sample into a short list lookup.
+
+**Then, in this order, measuring each.** Skip the air above the column's surface rather than
+evaluating `final_density` for every block from y=320 downward. Iterate in the order the
 `interpolated` nodes' cell lattice wants, so the direct-mapped `CornerCache` never evicts within a
 chunk. Give `Aquifer.computeSubstance` the same treatment, since it is the second item after the
 noise. Keep every per-chunk buffer a typed array sized once.
 
 **Files.** `packages/worldgen/src/chunk/ChunkSampler.ts`,
-`packages/worldgen/src/chunk/Aquifer.ts`, `packages/worldgen/src/density/SampleContext.ts`.
+`packages/worldgen/src/chunk/Aquifer.ts`, `packages/worldgen/src/density/SampleContext.ts`,
+`packages/prismarine/src/world/generators/datadriven/javaStructureBeard.ts`.
 
 **Depends on.** Slice 11, so the gain is measured where it lands.
 
 **Prove no output change.** **sampler** is the whole test here: six whole chunks, 98304 blocks
 each, bit for bit. Run it after every change, not at the end. Then all four checks.
 
-**Report.** Milliseconds per chunk for `buildTerrain` alone, before and after each change.
+**Report.** Milliseconds per chunk for `buildTerrain` alone, before and after each change, for a
+chunk with no structure near it and a chunk inside an ancient city's beard. One number for both
+hides the thing this slice is fixing.
 
 ---
 
 ## Slice 15: the WebAssembly terrain kernel
 
-**Only start this once slices 13 and 14 have landed and been measured.** ADR 0002's arithmetic
-says 50 chunks per second needs it and 100 is at the edge even with it. If slices 13 and 14
-overshot, re-derive the arithmetic before writing any WAT. A slow algorithm compiled to
-WebAssembly is still slow.
+**Only start this once slice 14 has landed and been measured.** ADR 0002's arithmetic says 50
+chunks per second on a moving front needs it, and 100 while filling a region needs it. If slice
+14 overshot its 2.5 times, re-derive the arithmetic before writing any WAT. A slow algorithm
+compiled to WebAssembly is still slow.
 
 **What changes.** The density and noise evaluation for a whole chunk moves into one WebAssembly
 module with linear memory as the chunk buffer. JavaScript crosses the boundary once per chunk.
@@ -639,31 +669,38 @@ on a second Ctrl+C during a preload.
 
 ## The order, and what it buys at each point
 
-| After slice | What is true | Chunks/s |
-| --- | --- | --- |
-| 1, 2 | Output is pinned and the two nondeterminism hazards are banned | 0.6 |
-| 6 | Each chunk's terrain is computed once | about 0.8 |
-| 7 | Output is a function of the seed and position, order independent | about 0.8 |
-| 8 | Each structure start is laid out once | about 0.9 |
-| 9, 10, 11 | Terrain runs on six workers | about 4 |
-| 12 | Every pure status runs on six workers | about 4.5 |
-| 13 | Structure layout is no longer the biggest item | about 16 |
-| 14 | The terrain fill is twice as fast | about 26 |
-| 15 | The terrain kernel is WebAssembly | about 52 |
+Two columns, because structure layout costs 33 times more on a moving front than on a region
+fill. A fill is what a preload does; a front is a player walking in one direction, where every
+step drags a fresh column of chunks into the radius-11 structure window.
 
-Every number past slice 9 is derived from ADR 0002's table, not measured, and the two that carry
-the most risk are slices 13 and 14. Slice 3 exists to replace the first of them with a measurement
-before anyone commits to it.
+| After slice | What is true | Fill chunks/s | Front chunks/s |
+| --- | --- | --- | --- |
+| 1, 2 | Output is pinned and the two nondeterminism hazards are banned | 0.6 | 0.6 |
+| 3 | A structure is rejected before it is assembled, not after | 1.0 | 1.0 |
+| 6 | Each chunk's terrain is computed once | about 4.0 | about 3.5 |
+| 7 | Output is a function of the seed and position, order independent | about 4.0 | about 3.5 |
+| 8 | Each structure start is laid out once, at a radius-0 status | about 4.1 | about 3.6 |
+| 9, 10, 11 | Terrain runs on six workers | about 19 | about 17 |
+| 12 | Every pure status runs on six workers | about 19 | about 17 |
+| 13 | `jigsawBlocksOf` is memoized and `baseHeight` exits early | about 20 | about 19 |
+| 14 | The terrain fill is 2.5 times faster | about 42 | about 31 |
+| 15 | The terrain kernel is WebAssembly | about 93 | about 52 |
+
+Rows 1 to 8 are arithmetic over measured parts. Rows 9 to 15 apply the measured 4.7 times and two
+targets that are not measurements: 2.5 times on the terrain fill and 6.4 times from WebAssembly,
+the second of which was measured on a kernel and not on this fill. After slice 11 terrain is about
+90% of the per-chunk cost, so slices 14 and 15 are the only ones left that move the number.
 
 ## Risks, worst first
 
-**1. The 875 ms of structure work may not shrink.** It is 56% of the chunk, nobody has split it,
-and every row past slice 9 assumes it falls to about 60 ms. If the cost turns out to be in
-`piece.place` rather than in `baseHeight`, then the ladder and the caches buy nothing there,
-structures become the floor, and 50 chunks per second needs the structure builders rewritten,
-which is 9000 lines across eight files. This is first because it is the largest number, the least
-examined, and the only one that would invalidate the plan rather than slow it down. Slice 3 is in
-front of everything expensive for that reason.
+**1. Moving the biome check in front of the builder is a deviation from Java's order.** It is 87%
+of structure layout time and the single largest lever in this plan, and Java checks the biome at
+the generation point after assembling, which a pre-check cannot do. If a start's generation point
+can sit in a biome the start chunk's own quarts do not hold, a pre-check drops a structure Java
+keeps, and the world is quietly different in a way no digest in the corpus would show unless that
+exact chunk is in it. Slice 3's instruction is to measure how often that happens and to stop and
+report rather than ship if the answer is not zero. This is first because it is the only risk where
+the failure is a wrong world rather than a slow one.
 
 **2. The patch merge changes chunk borders by an unmeasured amount.** The 169-positions-per-chunk
 figure that sizes it was taken before the biome filter fix cut the feature count per chunk. If the
@@ -672,37 +709,53 @@ stopping at a border), the parity claim gets harder to defend and slice 7 has to
 positional order over feature passes, whose nine-deep colour chain stalls every teleport into
 new terrain. Slice 7's instruction to count and locate the changed positions is the early warning.
 
-**3. 4.7 times is this machine's ceiling, not a portable one.** It was measured on an M1 Pro at
+**3. Terrain is now the whole problem and it has to get 2.5 to 4.5 times faster.** After slices 3
+to 11 it is about 90% of the per-chunk cost. 227 ms for 98304 blocks is where the target lives,
+and nothing has profiled that fill at the level slices 14 and 15 need. The hot path is also
+exactly where a reassociated float expression hides, so the two slices that have to deliver the
+factor are the two most likely to change a block.
+
+**4. The beardifier makes terrain cost several times more near a structure.** `createBeardifier`
+is the right operand of the top-level add in the overworld's `final_density`
+(`DataDrivenGenerator.ts:327`), so every density sample runs the loop at
+`javaStructureBeard.ts:108` over every nearby piece. Measured per 98304 samples, which is one
+terrain tile: 0.5 ms at no pieces, 32.5 ms at 40, 220 ms at 76 under `encapsulate`, which is an
+ancient city. At three new tiles per chunk that is about 660 ms per chunk inside an ancient
+city's beard against 1.5 ms away from everything, so the 227 ms the terrain rows assume is an
+average over a very wide spread, and the expensive end is where players go. Slice 6 takes it from
+three tiles to one; slice 14 has to index the pieces by column.
+
+**5. 4.7 times is this machine's ceiling, not a portable one.** It was measured on an M1 Pro at
 load average 36 to 158, so it is a floor for that machine and a fiction for a two-core VPS. The
 design has to run with zero workers and produce the same bytes, which slice 11's pool-size sweep
 enforces. The chunks-per-second table does not travel; say so wherever it is quoted.
 
-**4. The worker may drag the server into its module graph.** `toChunk` and
+**6. The worker may drag the server into its module graph.** `toChunk` and
 `javaGeneratedContent.ts` reach `BlockRuntimeIds`, `BlockEntityRegistry` and `bedrockLootPathOf`,
 all of which live in `packages/prismarine`. Slice 9 keeps translation on the main thread so the
 worker should not need them, but the worker's pipeline entry still lives in that package and ESM
 evaluates whole subgraphs. Measure worker startup time and RSS in slice 11; if it is far above the
 40 ms the research note predicts for a generator import, the subgraph is the reason.
 
-**5. The corpus landed while this plan was being written, and it is still moving.** Run
+**7. The corpus landed while this plan was being written, and it is still moving.** Run
 `git status --short packages/parity` before slice 1 touches anything there. The three family ids,
 the golden and `packages/parity/src/generation/` are in the tree; the three row test files may
 not be. Writing a second corpus beside the one that exists is the failure mode here, and it costs
 a merge conflict in a committed golden that nobody can resolve by hand.
 
-**6. A new package is a published product.** `@jsprismarine/chunkgen` needs a README, a Changeset,
+**8. A new package is a published product.** `@jsprismarine/chunkgen` needs a README, a Changeset,
 entries in the build and typecheck project lists, and from its first release its interface is a
 compatibility commitment. Slice 4 is where that is cheapest to get right and most tempting to
 skip.
 
-**7. `serializeGeneration` is load-bearing until slice 7.** It is the only thing that makes
+**9. `serializeGeneration` is load-bearing until slice 7.** It is the only thing that makes
 today's feature ordering reproducible inside one process. Removing it earlier makes the corpus
 intermittent rather than wrong, which is the worst failure mode to debug.
 
-**8. WebAssembly is a second copy of the hot path.** Every later change to a density function has
+**10. WebAssembly is a second copy of the hot path.** Every later change to a density function has
 to land twice, in the same floating point association order, forever. That is why slice 15 is last
 and conditional rather than an obvious win.
 
-**9. Memory.** Six workers at about 80 MiB each plus the retained holder working set is roughly
+**11. Memory.** Six workers at about 80 MiB each plus the retained holder working set is roughly
 500 MiB. That is fine on 16 GiB and unknown on a small host, and the reference-counted retention
 replaces an LRU that at least had a hard bound.

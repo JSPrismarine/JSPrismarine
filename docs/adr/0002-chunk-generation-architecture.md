@@ -69,27 +69,65 @@ last numbers taken end to end ([worldgen-defects.md](../research/worldgen-defect
 | Feature decoration | 16 | 1% |
 | Carvers | 0 | 0% |
 
-Two of those three are work the design does twice.
+The 454 ms is the 3 by 3 window, and it is work the design does nine times. `generateChunk`
+builds nine independent radius-0 terrain regions and merges their centres into one radius-1 region
+with `copyCenterFrom` (`DataDrivenGenerator.ts:236`). Walking along a row, each new chunk needs
+three new tiles. The `terrainChunks` cache holds 128 of them and then evicts, so a preload at
+`preload-radius: 5` is 121 chunks and sits right at the edge.
 
-The 454 ms is the 3 by 3 window. `generateChunk` builds nine independent radius-0 terrain regions
-and merges their centres into one radius-1 region with `copyCenterFrom`
-(`DataDrivenGenerator.ts:236`). Walking along a row, each new chunk needs three new tiles. The
-`terrainChunks` cache holds 128 of them and then evicts, so a preload at `preload-radius: 5` is
-121 chunks and sits right at the edge.
+The 875 ms is not what it looks like, and the second measurement pass changed this decision. It
+is not duplicated work, it is not a cache miss, and it is not noise evaluation. The start cache
+already works: `startsFor` is called four times per chunk in steady state rather than ten, and
+essentially every `startAt` inside those calls hits the cache. What the 875 ms is, measured over a
+40-chunk walk at seed 1234, is first-time jigsaw assembly of candidate starts, at 0.83 new
+layouts per chunk costing about 375 ms each.
 
-The 875 ms is the structure scan, run ten times per chunk. `startsFor` scans Java's radius-8
-reference window, 289 chunk positions per structure set, and lays out every start it has not seen
-before (`javaStructureStarts.ts:169`). `beardPieces` calls it once per terrain tile, so nine times
-per generated chunk over a union window of radius 9, and `decorate` calls it a tenth time. Laying
-out one start asks `StructureLevel.baseHeight` for a ground height, and
-`createNoiseStructureLevel.columnAt` answers it by sampling the entire 384-block column through
-`ChunkSampler.column` (`javaStructureLevel.ts:64`), which is 384 `final_density` evaluations and
-384 aquifer calls for one height. The column cache clears wholesale at 16384 entries and the
-sampler cache at 256, so a structure that reaches past the window pays for the whole set again.
+Two numbers from that pass matter more than the 875 itself.
 
-A CPU profile agrees about where the time is and says it is all the same work: 55% of samples are
-inside density function and Perlin noise evaluation in `@jsprismarine/worldgen`, with
-`gradDot` at 16.1% and `sampleAndLerp` at 11.4%.
+**91% of candidates are assembled and then thrown away.** Over a 102 by 102 chunk area, 256
+candidate starts were laid out and 234 were rejected, and those 234 consumed 87% of all layout
+time. The rejection is `javaStructureStarts.ts:225`, the biome check at the generation point,
+which runs after the builder at `:213` has fully assembled the structure. A rejected village costs
+3083 ms, a rejected trial chamber 2145 ms, a rejected desert pyramid 796 ms. The cost is jigsaw
+assembly, not terrain sampling: `jigsawBlocksOf` in `packages/structures/src/jigsaw.ts:329` is
+20.9% self time on its own, rescanning every block of a template inside a loop over parent
+jigsaws, candidate elements and rotations, with no cache.
+
+**875 ms per chunk is a 1-D artifact, not a steady-state constant.** Layout arrives in bursts, one
+per candidate entering the window, so the eight-chunk sample that produced 875 happened to cross a
+couple of jigsaw candidates. The same walk over 40 chunks reads 311 ms per chunk. Filling a 102 by
+102 area reads 9.4 ms per chunk, because a 1-D front drags 19 fresh chunks into the window at
+every step where a 2-D fill drags one. Java pays the same total, since its radius-8
+`structure_references` requires that neighbourhood to have reached `structure_starts` too.
+
+The structure-level column sampling is badly shaped and is not the bottleneck. One
+`StructureLevel.baseHeight` call samples an entire 384-block column top to bottom with aquifers on
+and materializes it as a 384-entry array (`javaStructureLevel.ts:64`), where Java's
+`getBaseHeight` walks cells downward with aquifers off and stops at the first match. A desert
+pyramid asks for 441 columns, a shipwreck 253, a village 180. Measured, that is about 50 column
+misses per chunk, 6% of the chunk's density samples and 16% of layout wall time. Worth fixing,
+not worth leading with.
+
+A CPU profile of the terrain pass agrees about where its own time goes: 55% of samples are inside
+density function and Perlin noise evaluation in `@jsprismarine/worldgen`, with `gradDot` at 16.1%
+and `sampleAndLerp` at 11.4%.
+
+One structure cost is not in the structure code at all. `createBeardifier`
+(`DataDrivenGenerator.ts:327`) is the right operand of the top-level add in the overworld's
+`final_density`, so once it is installed every density sample runs it, and the closure at
+`javaStructureBeard.ts:108` loops over every nearby piece. Measured at 98304 calls, which is one
+chunk, it costs 0.5 ms with no pieces, 32.5 ms with 40, 125 ms with 76 under `beard_thin` and 220
+ms with 76 under `encapsulate`, which is what an ancient city asks for. Today that is paid once
+per terrain tile and a chunk builds three new tiles in steady state, so a chunk inside an ancient
+city's beard spends roughly 660 ms there. A structures-on and structures-off measurement charges
+that to structures; it is spent inside `buildTerrain`.
+
+A warning about all of these numbers. The end-to-end ladder in
+[worldgen-defects.md](../research/worldgen-defects.md) section 6 was taken on a host under heavy
+load, and a repeat attempt read the same chunk at 1064 ms, 8347 ms and 21435 ms. The
+microbenchmarks and the counts above are sound because they are relative and in-process. The
+wall-clock totals are not, and they should be retaken on an idle machine before anyone optimizes
+against them.
 
 ## What each stage buys
 
@@ -101,49 +139,55 @@ chunk generation at 4.4
 section 6). So 50 chunks/s is 20 ms aggregate per chunk and 94 ms per chunk per worker, and 100
 chunks/s is 10 ms aggregate and 47 ms per worker.
 
-| Stage | Per chunk, one worker | Aggregate at 4.7x | Chunks/s |
-| --- | --- | --- | --- |
-| Today | 1572 ms | n/a, one thread | 0.6 |
-| The ladder, nothing else | about 1110 ms | n/a, one thread | 0.9 |
-| The ladder plus the pool | about 1110 ms | 236 ms | 4.2 |
-| Plus the structure fixes | about 300 ms | 64 ms | 16 |
-| Plus a faster terrain fill | about 185 ms | 39 ms | 26 |
-| Plus a WebAssembly terrain kernel | about 90 ms | 19 ms | 52 |
+Two cost models, because structure layout differs by a factor of 33 between them. A **fill** is a
+square region generated at once, which is what a preload does. A **front** is a player walking in
+one direction, where every step drags a fresh column of chunks into the structure window.
+
+| Stage | Fill, ms/chunk | Front, ms/chunk | Fill chunks/s at 4.7x | Front chunks/s at 4.7x |
+| --- | --- | --- | --- | --- |
+| Today | 1572 | 1572 | 0.6, one thread | 0.6, one thread |
+| The ladder | about 250 | about 550 | 4.0, one thread | 1.8, one thread |
+| Plus rejecting a structure before assembling it | about 243 | about 283 | 4.1, one thread | 3.5, one thread |
+| Plus the pool | about 243 | about 283 | 19 | 17 |
+| Plus a faster terrain fill, 2.5x | about 112 | about 152 | 42 | 31 |
+| Plus a WebAssembly terrain kernel | about 50 | about 90 | 93 | 52 |
+
+The last two rows do not stack. A WebAssembly fill replaces the JavaScript one, so its row is 6.4
+times against the original 227 ms rather than against the 2.5 times row above it.
 
 Read the rows as follows.
 
-**The ladder buys 1.4 times, and it is not optional.** It removes the 454 ms of duplicate
+**The ladder buys 3 to 6 times, and it is not optional.** It removes the 454 ms of duplicate
 neighbour terrain outright, because each chunk's terrain is computed once into its holder and read
 by up to nine feature passes. It computes each chunk's structure reference set once rather than
-the ten times `startsFor` is called for it today, because the set lives on the holder, and it lays
-each start out once at a radius-0 `structure_starts` status rather than on demand from whichever
-window reached it first. It does not make
-one terrain tile or one structure layout any faster. What it is really for is correctness and
-parallelism. It is the only shape in which every status is a pure function, which is the
-precondition for everything below it.
+the four times `startsFor` is called for it today, which is worth about 8 ms. It does not make one
+terrain tile or one structure layout any faster, and it does not reduce the total structure layout
+work at all; it only moves when that work is paid, which is also true of Java. What the ladder is
+really for is correctness and parallelism. It is the only shape in which every status is a pure
+function, which is the precondition for everything below it.
+
+**Rejecting a structure before assembling it is the whole structure problem.** 234 of 256
+candidates were assembled and then discarded by the biome check at
+`javaStructureStarts.ts:225`, consuming 87% of all layout time. Moving the check in front of the
+builder takes the front model from 310 ms per chunk of layout to about 40, and the fill model from
+9.4 to about 1.2. It is also the only item in this decision that deviates from Java's order, since
+Java filters after `findGenerationPoint` too, so it needs a parity ruling rather than just an
+implementation. Memoizing `jigsawBlocksOf`, which is 20.9% self time with no cache, is the same
+saving taken from the other side and needs no ruling at all.
 
 **The pool buys 4.7 times and no more.** That is measured, twice, on this machine, and it is a
 property of six performance cores and V8 isolates rather than of this code. More workers past six
-made it worse. At 4.7 times, the pool alone turns 1110 ms into 236 ms aggregate, which is 4.2
-chunks per second. The target is 12 to 24 times further away than that.
+made it worse. It is also the point at which terrain becomes roughly 90% of the per-chunk cost and
+everything else stops mattering.
 
-**The structure fixes are the largest single item and the least explored.** 875 ms of 1572 is 56%,
-and nothing has profiled how it splits between deciding a chunk is a structure chunk, laying out
-the pieces, and writing the blocks. Three mechanisms are visible in the code: `baseHeight` samples
-a whole column where Java's `iterateNoiseColumn` stops at the first block the heightmap predicate
-accepts; the column and sampler caches clear wholesale instead of being retained by the holder;
-and the scan runs ten times per chunk. The 300 ms row assumes those take structures to roughly 60
-ms per chunk. That number is the one most likely to be wrong in either direction, and the plan
-puts a measurement slice in front of the fix.
-
-**The terrain fill is 227 ms for 98304 blocks, 2.3 microseconds per block.** The density stack is
-already in good shape: `density/compile.ts` compiles the function graph to closures, and
-`SampleContext.CornerCache` is a flat direct-mapped `Float64Array` lattice rather than deepslate's
-template-string `Map`, which is worth 36 times on corner lookups by itself. What is left is the
-per-block work: one `final_density` evaluation and one `Aquifer.computeSubstance` for every block
-of the column, from the top of the world to the bottom, with no early exit and one closure call
-per node. The 185 ms row assumes 2 times from cell-ordered iteration, typed scratch buffers and
-skipping the empty air above the surface. That is a guess until someone profiles it.
+**The terrain fill is 227 ms for 98304 blocks, 2.3 microseconds per block, and after the two rows
+above it is the whole remaining problem.** The density stack is already in good shape:
+`density/compile.ts` compiles the function graph to closures, and `SampleContext.CornerCache` is a
+flat direct-mapped `Float64Array` lattice rather than deepslate's template-string `Map`, which is
+worth 36 times on corner lookups by itself. What is left is the per-block work: one
+`final_density` evaluation and one `Aquifer.computeSubstance` for every block of the column, from
+the top of the world to the bottom, with no early exit and one closure call per node. The 2.5
+times row is a target, not a measurement.
 
 **WebAssembly is worth 6.4 times on the arithmetic and only if the whole fill moves inside it.**
 An exported call costs 9.7 nanoseconds, so calling into WebAssembly per density sample would spend
@@ -152,13 +196,26 @@ travels through `postMessage`, so every worker instantiates the same module. The
 floating point multiplication is not associative. The measured port diverged by 1.4e-13 purely
 because the hand-written WAT computed `t*(t*(t*x))` where the JavaScript computed `((t*t)*t)*x`.
 
-**The honest conclusion.** 50 chunks per second is reachable, and it needs the ladder, the pool,
-the structure fixes and a WebAssembly terrain kernel, in that order. 100 chunks per second sits at
-the edge of the arithmetic. It requires the whole per-chunk budget to fit in 47 ms on one worker,
-which means terrain at 20 ms, structures at 20 ms and features at 7 ms, and nothing in the
-measurements says the structure layout can reach 20 ms. Treat 50 as the commitment and 100 as the
-thing a second round of profiling decides. No stage reaches the target alone, and the pool, which
-is the part that sounds like the answer, is worth less than either algorithmic stage.
+**The honest conclusion.** 50 chunks per second is reachable on both models, and it needs the
+ladder, the structure rejection fix, the pool and a WebAssembly terrain kernel together. 100
+chunks per second is reachable while filling a region and not while walking a front, where the
+structure window keeps paying. No stage reaches the target alone, and the pool, which is the part
+that sounds like the answer, is worth less than the two algorithmic stages beside it.
+
+The number this rests on is terrain at 227 ms per chunk. After the ladder and the rejection fix,
+terrain is about 90% of the per-chunk cost, so the whole remaining question is how fast
+`ChunkSampler` can fill a chunk. 50 chunks per second on a front needs it about 2.5 times faster;
+100 chunks per second on a fill needs it about 4.5 times faster. WebAssembly measured 6.4 times
+on the arithmetic, which is the only measurement in range of either, and it only applies if the
+whole fill moves inside the module.
+
+The terrain rows are an average and the beardifier is why they are not a constant. A chunk away
+from every structure pays 0.5 ms for it; a chunk inside an ancient city's beard pays 220 ms per
+terrain tile. The ladder takes that from three tiles per chunk to one, which is the largest
+single thing the ladder buys that is not in the 454 ms, and indexing the pieces by column instead
+of scanning the list on every sample takes most of the rest. Until that lands, terrain near a
+large structure costs several times the 227 ms these rows assume, in exactly the places players
+walk to.
 
 ## What guarantees byte-identical output
 
