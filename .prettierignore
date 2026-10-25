@@ -22,6 +22,7 @@ packages/entity-goals/src/generated/*
 packages/mapping/src/tables/*
 packages/minecraft/src/generated/*
 packages/minecraft/datagen/snapshot/*
+packages/parity/goldens/*
 
 # Test files
 # Fixture pack JSON exercises lenient parsing (comments, trailing commas), which Prettier rejects.
