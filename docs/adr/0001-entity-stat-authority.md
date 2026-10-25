@@ -100,5 +100,5 @@ the zombified piglin as `zombie_pigman`. `javaAttributeBases` resolves those thr
 `@jsprismarine/mapping`, which owns the identifier seam, so the decision reaches them rather than
 silently passing them over.
 
-The 113 are accepted divergences, not defects, and the parity dashboard should carry them as
+The 118 are accepted divergences, not defects, and the parity dashboard should carry them as
 allow-list rows built from `statRuling`.
