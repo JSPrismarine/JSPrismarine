@@ -94,6 +94,33 @@ export const readZipEntry = async (archivePath: string, name: string): Promise<B
 };
 
 /**
+ * Reads the entries of an in-memory archive whose names a filter accepts.
+ *
+ * This exists for the one archive that holds another: Mojang's bundler jar carries the real
+ * server jar as a single entry, so the inner one is read as bytes and then read again as an
+ * archive, with no temporary file in between.
+ *
+ * @param accept - Decides which entry names are wanted, so a caller after 1511 of 17655 entries
+ *   inflates only those.
+ */
+export const readZipEntriesFrom = (archive: Buffer, accept: (name: string) => boolean): Map<string, Buffer> => {
+    const found = new Map<string, Buffer>();
+    for (const entry of readCentralDirectory(archive)) {
+        if (entry.name.endsWith('/') || !accept(entry.name)) continue;
+
+        assertSafeEntryName(entry.name);
+        found.set(entry.name, readEntryData(archive, entry));
+    }
+    return found;
+};
+
+/** The entries of an archive on disk whose names a filter accepts. */
+export const readZipEntries = async (
+    archivePath: string,
+    accept: (name: string) => boolean
+): Promise<Map<string, Buffer>> => readZipEntriesFrom(await readFile(archivePath), accept);
+
+/**
  * Unpacks a zip archive into a directory, creating it if needed. Supports the
  * stored and deflate methods, which is all the pinned sources use, and fails
  * on zip64. Every entry is written as a regular file; entry names that could

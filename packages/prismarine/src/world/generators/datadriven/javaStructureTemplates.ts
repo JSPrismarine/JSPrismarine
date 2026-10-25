@@ -8,8 +8,9 @@
  *
  * Reading them out of the jar inflates every one of its 17655 entries, so it is not something to
  * do while a world is being generated. Two sources are supported, cheapest first: a directory of
- * loose `.nbt` files, which is what a fetch step should leave behind, and the jar itself, read
- * once and reduced to the 4 MB of templates.
+ * loose `.nbt` files, read one file at a time, which is what
+ * `pnpm --filter @jsprismarine/bedrock-data run extract:structures` leaves behind; and the jar
+ * itself, read once and reduced to the templates, for a checkout that never ran that step.
  *
  * Everything here is extracted game data and therefore untrusted. The bytes are parsed by
  * `@jsprismarine/structures` and nothing in them is executed or resolved against the file system.
@@ -77,13 +78,65 @@ export const createTemplateSource = (
 };
 
 /**
+ * A source over a directory of extracted `.nbt` files, which is what the fetch leaves behind.
+ *
+ * Each template is read when it is first asked for, so a world that places one village reads
+ * the dozen files that village is made of rather than all 1511.
+ */
+export const createDirectoryTemplateSource = (root: string, processorLists: JavaRegistry): TemplateSource => {
+    const decoded = new Map<string, JavaStructureTemplate | undefined>();
+
+    return {
+        template: (identifier) => {
+            if (decoded.has(identifier)) return decoded.get(identifier);
+
+            let template: JavaStructureTemplate | undefined;
+            try {
+                // Extracted game data: read as bytes, parsed, never executed. The identifier
+                // comes from Mojang's own registries, and a path leaving the root resolves to
+                // no file rather than to another one.
+                const path = join(root, ...pathPartsOf(identifier));
+                template = existsSync(path) ? readJavaStructureTemplate(readFileSync(path)) : undefined;
+            } catch {
+                template = undefined;
+            }
+
+            decoded.set(identifier, template);
+            return template;
+        },
+        processorList: (identifier) => processorLists.get(identifier)
+    };
+};
+
+/** The file path segments a namespaced identifier names, refusing anything that could escape. */
+const pathPartsOf = (identifier: string): readonly string[] => {
+    const parts = identifier.replace(/^minecraft:/, '').split('/');
+    if (parts.some((part) => part === '' || part === '.' || part === '..' || part.includes('\\'))) return ['.missing'];
+
+    const last = parts.at(-1);
+    return last === undefined ? ['.missing'] : [...parts.slice(0, -1), `${last}.nbt`];
+};
+
+/**
  * The source for whatever the fetch left on disk.
  *
  * Always returns a source: one that finds no files places no template, which is the same answer
  * the feature gets for a template this server does not carry.
  */
-export const findJavaTemplateSource = (cacheRoot: string, processorLists: JavaRegistry): TemplateSource =>
-    createTemplateSource(() => findJavaTemplates(cacheRoot) ?? new Map(), processorLists);
+export const findJavaTemplateSource = (cacheRoot: string, processorLists: JavaRegistry): TemplateSource => {
+    const directory = javaTemplateDirectory(cacheRoot);
+    return directory === undefined
+        ? createTemplateSource(() => findJavaTemplates(cacheRoot) ?? new Map(), processorLists)
+        : createDirectoryTemplateSource(directory, processorLists);
+};
+
+/** The extracted template directory, from the override or the cache, when there is one. */
+export const javaTemplateDirectory = (cacheRoot: string): string | undefined => {
+    const override = process.env[JAVA_TEMPLATE_ENV.templates];
+    if (override !== undefined && override !== '') return existsSync(override) ? override : undefined;
+
+    return newestVersionIn(join(cacheRoot, 'java-structures'));
+};
 
 /** Every `.nbt` under a directory, as `minecraft:<path without the extension>`. */
 export const readTemplateDirectory = (root: string, namespace = 'minecraft'): Map<string, Uint8Array> => {

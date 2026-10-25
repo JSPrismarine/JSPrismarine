@@ -1,0 +1,226 @@
+/**
+ * The data-driven entity runtime, over a running server.
+ *
+ * `EntityRuntime` is written against two seams and no server: `EntityWorldFacts`
+ * for the blocks, the clock and the random draws, and `EntityHostFacts` for
+ * the things an entity index does not hold - players, item stacks on the
+ * ground, and damage going out to either. This module supplies both from a
+ * live {@link World}, gives every entity a body a client can see through
+ * {@link LiveBodies}, and hands the whole thing to `World.tick` as one call.
+ *
+ * {@link EntityRuntimes} is the registry the two ends meet in. The content
+ * world adapter builds one runtime per dimension while it assembles that
+ * dimension's groups, because the groups are projections of the runtime; the
+ * world of that dimension looks its own up by name and ticks it. Neither has
+ * to know how the other got there.
+ */
+import type { SpawnWorld } from '@jsprismarine/spawning';
+
+import { singleDimension } from '../../content/world/adapter';
+import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
+import type { ServerContent } from '../../content/ServerContent';
+import { contentWorldViews } from '../../content/world/views';
+import type { World } from '../../world/World';
+import { DamageCause } from '../DamageCause';
+import { DamageSource } from '../DamageSource';
+import { Entity } from '../Entity';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
+import { EntityRuntime } from './EntityRuntime';
+import { LiveBodies } from './liveBodies';
+import { Item as ItemEntity } from '../other/Item';
+
+/** What {@link EntityRuntimes.open} is given for one dimension. */
+export interface LiveEntityOptions {
+    /** The namespaced dimension identifier, such as `minecraft:overworld`. */
+    readonly dimension: string;
+    /** The built content, read at call time; the runtime outlives any one build. */
+    content(): ServerContent;
+    /** The groups the blocks, world and effects subsystems own, for this dimension. */
+    readonly world: EntityWorldFacts;
+    /**
+     * The live world's own entity group.
+     *
+     * Players and item drops come from here rather than from the runtime,
+     * because a player is driven by a network session and a dropped stack by
+     * the item subsystem. Neither is a component set.
+     */
+    readonly entities: ContentEntityAccess;
+    /** The live world of this dimension, or undefined when none is loaded. */
+    liveWorld(): World | undefined;
+    /** Receives everything the runtime met and could not carry out. */
+    report(message: string): void;
+}
+
+/**
+ * Every item stack lying in one world, as the pickup goals read them.
+ *
+ * The server's item entities are `minecraft:item` bodies with a
+ * `ContainerEntry` on them. One that has lost its stack - taken this tick by
+ * somebody else - is left out rather than reported as an empty pile.
+ */
+const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] => {
+    if (world === undefined) return [];
+
+    const found: ContentItemEntity[] = [];
+    for (const entity of world.getEntities()) {
+        if (!(entity instanceof ItemEntity)) continue;
+        const held = entity.getItem();
+        if (held === undefined) continue;
+
+        const at = entity.getPosition();
+        found.push({
+            id: Number(entity.getRuntimeId()),
+            position: { x: at.getX(), y: at.getY(), z: at.getZ() },
+            item: { identifier: held.getItem().getName(), count: held.getCount() }
+        });
+    }
+    return found;
+};
+
+/** The host facts over one live world. */
+const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
+    players: () => options.entities.players(),
+    drop: (at, item) => options.entities.drop(at, item),
+    items: () => lyingItemsIn(options.liveWorld()),
+    takeItem: (id) => {
+        const world = options.liveWorld();
+        const entity = world?.getEntity(BigInt(id));
+        if (world === undefined || !(entity instanceof ItemEntity)) return undefined;
+
+        const held = entity.getItem();
+        if (held === undefined) return undefined;
+
+        void world.removeEntity(entity).catch((error: unknown) => options.report(String(error)));
+        return { identifier: held.getItem().getName(), count: held.getCount() };
+    },
+    hurt: (id, amount, _cause, sourceId) => {
+        const world = options.liveWorld();
+        const target = world?.getEntity(BigInt(id));
+        if (target === null || target === undefined) return;
+
+        // The attacker travels with the blow, so a player who was bitten knows what bit them
+        // and the death message names it.
+        const attacker = sourceId === undefined ? null : (world?.getEntity(BigInt(sourceId)) ?? null);
+        const source = attacker === null ? DamageSource.of(DamageCause.Attack) : DamageSource.entity(attacker);
+        void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
+    },
+    // Nothing on this server runs the pillager patrol or the village raid, so no named mob
+    // event is ever active. Said as a fact rather than guessed: the rules that gate on one
+    // refuse, which is what keeps a patrol from spawning every cycle.
+    mobEventActive: () => false
+});
+
+/**
+ * One dimension's data-driven entities, and everything that drives them.
+ *
+ * The deep part of this module: a caller holds one of these and calls
+ * {@link LiveEntityRuntime.tick} once a tick. Behind that are the runtime, the
+ * spawn loop, the despawn pass and the bodies the clients are sent, and none
+ * of them has to be started, stopped or ordered by the caller.
+ */
+export class LiveEntityRuntime {
+    /** The entities themselves, for the content adapter's three groups and for tests. */
+    public readonly runtime: EntityRuntime;
+
+    /** The body each entity shows a client. */
+    public readonly bodies: LiveBodies;
+
+    private readonly options: LiveEntityOptions;
+    /** The world the spawn rules read, which is not known until the adapter is assembled. */
+    private spawnWorld: SpawnWorld | undefined;
+    private started = false;
+
+    public constructor(options: LiveEntityOptions) {
+        this.options = options;
+        this.bodies = new LiveBodies({ world: options.liveWorld, report: options.report });
+        this.runtime = new EntityRuntime({
+            content: options.content,
+            world: options.world,
+            host: liveHost(options),
+            report: options.report,
+            onSpawn: (entity) => this.bodies.add(entity),
+            onRemove: (entity) => this.bodies.drop(entity),
+            // One pool of runtime ids with the server's own entities, so a goal that holds
+            // the id of a player cannot be handed a data-driven mob that happens to share it.
+            nextId: () => {
+                Entity.runtimeIdCount += 1n;
+                return Number(Entity.runtimeIdCount);
+            }
+        });
+    }
+
+    /**
+     * Takes the assembled adapter for this dimension, which is where the spawn
+     * rules read the world from.
+     *
+     * Separate from the constructor because the adapter holds groups projected
+     * out of this runtime, so the runtime exists first. The spawn world is
+     * `src/content/world/views.ts`'s projection rather than another one written
+     * here, so a spawn rule and a block behavior read the same world.
+     */
+    public attach(adapter: ServerWorldAdapter): void {
+        this.spawnWorld = contentWorldViews(
+            singleDimension(adapter),
+            this.options.content,
+            this.options.dimension
+        ).spawnWorld;
+    }
+
+    /**
+     * Runs one server tick: the entities, the spawn cycle, the despawn pass,
+     * and then the bodies.
+     *
+     * The spawn loop starts on the first tick rather than on construction,
+     * because it reads the loaded spawn rules and the content finishes
+     * building after the adapter that made this runtime.
+     *
+     * @param tick - The world's tick counter, which the pools' cadences are
+     *   measured against.
+     */
+    public async tick(tick: number): Promise<void> {
+        if (!this.started && this.spawnWorld !== undefined) {
+            this.runtime.startSpawning(this.spawnWorld);
+            this.started = true;
+        }
+
+        this.runtime.tick(tick);
+        await Promise.all(this.bodies.sync(this.runtime));
+    }
+}
+
+/**
+ * The data-driven entity runtimes of a server, one per dimension.
+ *
+ * Held by the server rather than by either end: the content world adapter
+ * opens one while it assembles a dimension's groups, and that dimension's
+ * `World` looks it up by name to tick it.
+ */
+export class EntityRuntimes {
+    private readonly byDimension = new Map<string, LiveEntityRuntime>();
+
+    /**
+     * The runtime for one dimension, built on first ask and kept.
+     *
+     * @returns The existing runtime when the dimension already has one, so an
+     *   adapter rebuilt for the same dimension drives the same entities.
+     */
+    public open(options: LiveEntityOptions): LiveEntityRuntime {
+        const existing = this.byDimension.get(options.dimension);
+        if (existing !== undefined) return existing;
+
+        const created = new LiveEntityRuntime(options);
+        this.byDimension.set(options.dimension, created);
+        return created;
+    }
+
+    /** The runtime of one dimension, or undefined when nothing opened one. */
+    public at(dimension: string): LiveEntityRuntime | undefined {
+        return this.byDimension.get(dimension);
+    }
+
+    /** Forgets one dimension's runtime, which is what closing its world does. */
+    public close(dimension: string): void {
+        this.byDimension.get(dimension)?.bodies.clear();
+        this.byDimension.delete(dimension);
+    }
+}

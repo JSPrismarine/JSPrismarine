@@ -10,7 +10,7 @@ import { fetchSource, hashSourceContent, resolveContentRoot } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
 import type { SourceDescriptor } from './manifest.ts';
-import { extractZip, readZipEntry } from './unzip.ts';
+import { extractZip, readZipEntriesFrom, readZipEntry } from './unzip.ts';
 
 /** Builds a zip archive of stored (uncompressed) entries, for tests only. */
 const buildZip = (entries: Record<string, string>): Buffer => {
@@ -168,6 +168,30 @@ describe('readZipEntry', () => {
 
         expect((await readZipEntry(archive, 'version.json'))?.toString('utf8')).toBe('{"id":"26.3"}');
         expect(await readZipEntry(archive, 'absent.json')).toBeUndefined();
+    });
+});
+
+describe('readZipEntriesFrom', () => {
+    it('reads the entries the filter accepts and leaves the rest alone', () => {
+        const archive = buildZip({
+            'data/minecraft/structure/igloo/top.nbt': 'igloo',
+            'data/minecraft/loot_table/blocks/stone.json': 'loot',
+            'data/minecraft/structure/village/house.nbt': 'house'
+        });
+
+        const found = readZipEntriesFrom(archive, (name) => name.endsWith('.nbt'));
+
+        expect([...found.keys()].sort()).toEqual([
+            'data/minecraft/structure/igloo/top.nbt',
+            'data/minecraft/structure/village/house.nbt'
+        ]);
+        expect(found.get('data/minecraft/structure/igloo/top.nbt')?.toString('utf8')).toBe('igloo');
+    });
+
+    it('refuses an entry whose name could escape a destination directory', () => {
+        const archive = buildZip({ '../evil.nbt': 'nope' });
+
+        expect(() => readZipEntriesFrom(archive, () => true)).toThrow(/unsafe name/);
     });
 });
 

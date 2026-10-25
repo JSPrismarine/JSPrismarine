@@ -105,14 +105,21 @@ the rest of the repository reads, under the same gitignored cache:
   tags, and the loot, advancement, predicate, enchantment and feature corpus suites read it.
 - `java-reports/<version>/generated/reports/`, the data reports. The mapping and item table
   generators read them, and the overworld generator reads `biome_parameters` from them.
+- `java-structures/<version>/`, the 1511 structure templates. The data generator writes no NBT,
+  so these come straight out of the jar; `pnpm run extract:structures` does that step on its own,
+  for a checkout with no JDK.
+
+The templates matter for speed rather than for correctness. The world generator can read them
+out of the jar, but that means inflating all 17655 of its entries on the first template a world
+places, inside chunk generation. The extracted directory is read one file at a time instead.
 
 The generator writes no `pack.mcmeta`, so this step writes one from the `pack_version` the jar
 declares in its `version.json`; that file is what marks the directory as a loadable datapack. The
 same `version.json` names the JDK the jar needs, found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on
 macOS, `/usr/libexec/java_home`.
 
-A second run is a no-op once both directories hold the files the step checks for. Pass `--force`
-to regenerate:
+A second run is a no-op once all three directories hold the files the step checks for. Pass
+`--force` to regenerate:
 
 ```sh
 pnpm run datagen:java -- --force

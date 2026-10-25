@@ -68,7 +68,9 @@ const testServer = (): Server =>
                 getDifficulty: () => Difficulty.NORMAL,
                 getEntityTrackingInterval: () => 20
             }),
-        getBlockManager: () => stub<BlockManager>({ findBlock: () => null })
+        getBlockManager: () => stub<BlockManager>({ findBlock: () => null }),
+        // No content, so no data-driven entities; the world keeps the written classes.
+        getEntityRuntime: () => undefined
     });
 
 /** A world with nine flat chunks around the origin already in memory. */

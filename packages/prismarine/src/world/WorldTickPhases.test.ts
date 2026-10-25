@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { Dimensions } from './Dimension';
 import EntityGrid from './EntityGrid';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
@@ -50,6 +51,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         // One short of the second the time is put on the wire, so that the phase runs at all:
         // it is sent once a second rather than every tick.
         currentTick,
+        dimension: Dimensions.Overworld,
         getEntities: () => [],
         getPlayers: () => [],
         runBlockUpdates: async () => void calls.push('blockUpdates'),
@@ -58,7 +60,9 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         save: async () => {},
         server: {
             getConfig: () => ({ getEntityTrackingInterval: () => trackingInterval }),
-            getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} })
+            getLogger: () => ({ verbose: () => {}, error: () => {}, warn: () => {} }),
+            // No content, so no data-driven entities and the legacy spawner above still runs.
+            getEntityRuntime: () => undefined
         }
     });
 

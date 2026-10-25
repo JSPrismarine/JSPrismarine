@@ -41,6 +41,7 @@
         "datagen:java": "node utils/java/datagen.ts",
         "dump:bedrock": "node utils/bedrock-dump/run.ts",
         "dump:java": "node utils/java-dump/run.mjs",
+        "extract:structures": "node utils/java/extract-structures.ts",
         "fetch:sources": "node utils/fetch/fetch-sources.ts",
         "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
         "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",

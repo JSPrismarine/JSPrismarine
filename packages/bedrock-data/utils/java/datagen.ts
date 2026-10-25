@@ -181,5 +181,10 @@ writeFileSync(join(datapackDir, 'pack.mcmeta'), `${JSON.stringify(mcmeta, undefi
 
 rmSync(workDir, { recursive: true, force: true });
 
+// The generator writes no NBT, so the structure templates come straight out of the jar. Doing
+// it here means one command leaves a complete world generation cache behind.
+const templateCount = await extractJavaStructures(jarPath, structuresDir);
+
 console.log(`Wrote the vanilla datapack to ${datapackDir} (pack format ${major}.${minor})`);
 console.log(`Wrote the data reports to ${join(reportsDir, 'reports')}`);
+console.log(`Wrote ${templateCount} structure templates to ${structuresDir}`);
