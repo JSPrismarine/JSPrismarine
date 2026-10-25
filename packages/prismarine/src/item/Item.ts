@@ -334,6 +334,44 @@ export class Item {
     }
 
     /**
+     * How fast this mines one block, which is Java's `Player.getDestroySpeed`
+     * as far as a stack alone can answer it.
+     *
+     * The `minecraft:tool` rules give the base - the first rule whose block
+     * set matches and that states a speed - and `minecraft:mining_efficiency`
+     * raises it, which is the attribute Efficiency's modifier writes. Java
+     * only adds the attribute to a speed already above one, so Efficiency does
+     * nothing for a tool that is the wrong tool for the block.
+     *
+     * Dig Speed, Mining Fatigue, being underwater without Aqua Affinity and
+     * being off the ground are the four other terms of Java's formula, and
+     * none of them is modeled: there is no effect system and no swimming state
+     * on an entity.
+     *
+     * @param block - The block identifier being mined.
+     * @returns A multiplier on the base rate; 1 for a bare hand or an item
+     *   with no rule for the block, which is Java's `Item.getDestroySpeed`.
+     */
+    public getMiningSpeed(block: string): number {
+        const parameters = this.type()?.params(tool);
+        const tags: TagLookup | undefined = this.content?.tags;
+
+        let speed = parameters?.default_mining_speed ?? 1;
+        for (const rule of parameters?.rules ?? []) {
+            if (rule.speed === undefined) continue;
+            if (holderSetIncludes(tags, rule.blocks, block)) {
+                speed = rule.speed;
+                break;
+            }
+        }
+
+        const enchantments = this.content?.enchantments;
+        if (speed <= 1 || enchantments === undefined || this.enchantmentLevels.size === 0) return speed;
+
+        return attributeValueOf(enchantments, this.asPredicateStack(), 'minecraft:mining_efficiency', speed);
+    }
+
+    /**
      * This stack as the loot, predicate and enchantment grammars read one.
      *
      * The components carry what those grammars actually look at today:
