@@ -108,11 +108,11 @@ one member answers 43 boolean tests, one answers 17 numeric tests and one answer
 The rest are the facts that need their own shape: properties, components, equipment, slot fill,
 vehicle, owner, attack target, leash holder and trust.
 
-Two shapes the vanilla files write are not in the published grammar, and `normalizeFilterSource`
-rewrites them before the parser sees them. Five vanilla filters put `all_of` and `any_of` in one
-object, which reads as one `all_of` over the two groups; one filter, in the skeleton's
-`minecraft:lightning_immune` group, writes the legacy shorthand `{"other_with_families":
-"lightning"}`.
+Two shapes the vanilla files write are not in the published grammar, and the packs parser reads
+both. Five vanilla filters put `all_of` and `any_of` in one object, which reads as one `all_of`
+over the two groups; one filter, in the skeleton's `minecraft:lightning_immune` group, writes the
+legacy shorthand `{"other_with_families": "lightning"}`. `parseEntityFilter` is that parser under
+the name this package calls it by.
 
 ## The goal seam
 

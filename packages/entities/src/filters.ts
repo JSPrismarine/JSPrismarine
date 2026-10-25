@@ -1,4 +1,5 @@
 import type { Filter, FilterOperator, FilterSubject, FilterTest } from '@jsprismarine/packs';
+import { parseFilter } from '@jsprismarine/packs';
 
 import type {
     EntityFlag,
@@ -289,6 +290,16 @@ const readProperty = (subject: FilterEntityView, test: FilterTest): Fact => {
     if (typeof name !== 'string') return undefined;
     return subject.property?.(name);
 };
+
+/**
+ * Parses a filter out of an entity definition. `@jsprismarine/packs` owns the
+ * grammar and reads every shape the vanilla files write, including the two
+ * this package used to rewrite first, so this is its parser under the name
+ * the entity side calls it by.
+ *
+ * @throws {FilterParseError} When the value does not follow the grammar.
+ */
+export const parseEntityFilter = parseFilter;
 
 /** Every filter test this package evaluates, in name order. */
 export const IMPLEMENTED_FILTER_TESTS: readonly string[] = [...readers.keys()].sort();
