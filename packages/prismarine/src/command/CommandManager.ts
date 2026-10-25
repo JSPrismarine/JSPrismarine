@@ -412,8 +412,9 @@ export class CommandManager implements Service {
      * The vanilla command set flattened into Bedrock's overload shape.
      *
      * Flattened per call rather than cached: a command's tree never changes,
-     * but the list is built once per recipient and the cost is a walk of fifty
-     * trees, which is less than the packet it goes out in.
+     * but the list is built once per recipient and the cost is a walk of the
+     * fifty-odd trees this server registers, which is less than the packet it
+     * goes out in.
      * @returns {FlattenedCommand[]} One entry per command, aliases folded in.
      */
     public getVanillaCommandList(): readonly FlattenedCommand[] {
@@ -479,7 +480,7 @@ export class CommandManager implements Service {
                     : CommandPermissionLevel.INTERNAL,
             // `sendCommandFeedback` is Java's switch for exactly this: the
             // success message, never the failure.
-            silent: world.getGameRuleManager().getGameRule('sendCommandFeedback')?.[0] !== true,
+            silent: world.getGameRuleManager()?.getGameRule('sendCommandFeedback')?.[0] !== true,
             dialect: sender instanceof Player ? 'bedrock' : 'java',
             onFeedback: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(message))),
             onError: (message) => deferCommandWork(Promise.resolve(sender.sendMessage(`§c${message}`)))
@@ -620,7 +621,7 @@ export class CommandManager implements Service {
             // The stored rule is a `[value, editable]` pair, so the value is
             // what decides. Read as the pair itself, the check was a non-empty
             // array and the gamerule never suppressed anything.
-            const feedback = world.getGameRuleManager().getGameRule('sendCommandFeedback')?.[0];
+            const feedback = world.getGameRuleManager()?.getGameRule('sendCommandFeedback')?.[0];
 
             // Make sure we don't send feedback if sendCommandFeedback is set to false
             if (!feedback) return true;
