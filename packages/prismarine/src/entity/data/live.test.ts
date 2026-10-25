@@ -1,11 +1,12 @@
-import { readFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import Player from '../../Player';
 import type Server from '../../Server';
@@ -25,6 +26,7 @@ import { Scoreboard } from '../../command/host/scoreboard';
 import type WorldManager from '../../world/WorldManager';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
+import LevelDB from '../../world/providers/leveldb/LevelDB';
 import { Dimensions } from '../../world/Dimension';
 import GameRuleManager from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
@@ -684,6 +686,150 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(ref?.type).toBe('minecraft:wither');
             expect(live.runtime.all()).toEqual([]);
+        });
+    });
+
+    describe('surviving a restart', () => {
+        const folders: string[] = [];
+        /** Every provider opened here, closed between runs: LevelDB allows one per folder. */
+        const providers: LevelDB[] = [];
+
+        afterEach(async () => {
+            for (const provider of providers.splice(0)) await provider.disable();
+            while (folders.length > 0) rmSync(folders.pop()!, { recursive: true, force: true });
+        });
+
+        /**
+         * One run of the server over a world folder: a fresh runtime, a fresh
+         * world, and a LevelDB provider on the real disk. Called twice over the
+         * same folder, it is a restart.
+         */
+        const session = async (folder: string) => {
+            const built = liveWorld();
+            const provider = new LevelDB(folder, built.world.getServer());
+            providers.push(provider);
+
+            Object.assign(built.world, {
+                name: 'roundtrip',
+                seed: 1234,
+                // Only read for the name in the save log and for a chunk the database
+                // has no record of, which is not the one this writes and reads back.
+                generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) },
+                provider
+            });
+            provider.setWorld(built.world);
+            await provider.enable();
+
+            built.hold(buildOver(built.world, built.runtimes));
+            const opened = built.runtimes.at(DIMENSION);
+            if (opened === undefined) throw new Error('the content world opened no entity runtime');
+
+            return { world: built.world, live: opened, provider };
+        };
+
+        it('brings a data entity back as a data entity, with the state it was saved with', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-roundtrip-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            const saved = first.live.runtime.spawn(
+                'jsprismarine:dustling',
+                { x: 2.5, y: GROUND_Y, z: 3.5 },
+                { pool: 'animal' }
+            );
+            if (saved === undefined) throw new Error('the fixture declares no jsprismarine:dustling');
+
+            // State nothing but the save can carry: two hit points gone, a home, a held
+            // item and a breeding cooldown the type's definition says nothing about.
+            saved.instance.attributes.set('health', 4);
+            saved.body.home = { x: 2, y: GROUND_Y, z: 3 };
+            saved.body.carried = 'minecraft:wheat';
+            saved.body.breedCooldown = 120;
+            saved.body.yaw = 45;
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            const restored = second.live.runtime.all();
+            expect(restored).toHaveLength(1);
+            expect(restored[0]?.identifier).toBe('jsprismarine:dustling');
+            // A data entity rather than a GenericEntity: it has the component set the
+            // definition builds, the groups its spawn event added, and its goals.
+            expect(restored[0]?.instance.activeComponentGroups()).toEqual(['settled']);
+            expect(restored[0]?.instance.goals.names()).toContain('minecraft:behavior.random_stroll');
+            expect(restored[0]?.instance.attributes.get('health')?.current).toBe(4);
+            expect(restored[0]?.body.home).toEqual({ x: 2, y: GROUND_Y, z: 3 });
+            expect(restored[0]?.body.carried).toBe('minecraft:wheat');
+            expect(restored[0]?.body.breedCooldown).toBe(120);
+            expect(restored[0]?.body.yaw).toBe(45);
+            expect(restored[0]?.position).toEqual({ x: 2.5, y: GROUND_Y, z: 3.5 });
+
+            // One body in the world, and it is the restored entity's rather than a
+            // second one left behind by the legacy restore.
+            expect(typesIn(second.world).filter((type) => type === 'jsprismarine:dustling')).toHaveLength(1);
+            expect(second.live.bodies.size).toBe(1);
+        });
+
+        it('counts a restored entity against the population pool it was spawned under', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-pool-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            first.live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 3.5 }, { pool: 'animal' });
+            expect(first.live.runtime.poolCount('animal')).toBe(1);
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            expect(second.live.runtime.poolCount('animal')).toBe(1);
+        });
+
+        it('restores a brain mob with its brain, not a body with nothing behind it', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-brain-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            first.live.runtime.spawn('minecraft:villager_v2', { x: 2.5, y: GROUND_Y, z: 3.5 });
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            const villager = second.live.runtime.all()[0];
+            expect(villager?.brainMob?.id).toBe('minecraft:villager');
+            expect(villager?.brain).toBeDefined();
+        });
+
+        it('leaves an actor the data path never wrote to the written classes', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-legacy-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            // Added straight to the world, the way the legacy entity path does, so the
+            // saved actor carries no record of a data entity.
+            await first.world.addEntity(
+                new ItemEntity({
+                    position: new Position(2.5, GROUND_Y, 3.5, first.world),
+                    item: undefined
+                })
+            );
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            expect(second.live.runtime.all()).toEqual([]);
+            expect(typesIn(second.world)).toContain('minecraft:item');
         });
     });
 });

@@ -25,9 +25,11 @@ import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
+import type { DataEntity } from './DataEntity';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
+import type { DataEntityRecord } from './persistence';
 import { Item as ItemEntity } from '../other/Item';
 
 /** What {@link EntityRuntimes.open} is given for one dimension. */
@@ -193,6 +195,40 @@ export class LiveEntityRuntime {
 
         this.runtime.tick(tick);
         await Promise.all(this.bodies.sync(this.runtime));
+    }
+
+    /**
+     * Writes every entity's component state onto its body, ready for a save.
+     *
+     * Called by `World.saveChunks` before it writes anything, because a data
+     * entity's state lives in the runtime and the chunk serializer only ever
+     * sees the body.
+     */
+    public persist(): void {
+        this.bodies.persist(this.runtime);
+    }
+
+    /**
+     * Brings one saved entity back into the runtime.
+     *
+     * The body built from the file is not the body that ends up in the world:
+     * the runtime makes its own, so that one entity is not driven by two
+     * systems. Everything the file carried that this server does not model,
+     * the actor's `UniqueID` first among them, moves onto the new body, so the
+     * next save addresses the same actor rather than writing a second one.
+     *
+     * @param stored - The body `EntitySerializer` built from the actor NBT.
+     * @returns The entity, or undefined when no loaded pack declares its type,
+     *   in which case the caller keeps the body it was given.
+     */
+    public restore(record: DataEntityRecord, stored: Entity): DataEntity | undefined {
+        const at = stored.getPosition();
+        const entity = this.runtime.restore(record, { x: at.getX(), y: at.getY(), z: at.getZ() });
+        if (entity === undefined) return undefined;
+
+        const body = this.bodies.bodyOf(entity.id);
+        if (body !== undefined) body.persistentNbt = stored.persistentNbt;
+        return entity;
     }
 }
 

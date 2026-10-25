@@ -48,6 +48,8 @@ import { brainMobOf, brainWorldOf } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
+import type { DataEntityRecord } from './persistence';
+import { applyDataEntityRecord } from './persistence';
 import { PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
@@ -200,6 +202,55 @@ export class EntityRuntime implements EntityScene {
      * @returns The entity, or undefined when the content declares no such type.
      */
     public spawn(identifier: string, at: EntityPosition, options: SpawnOptions = {}): DataEntity | undefined {
+        const entity = this.create(identifier, at, options);
+        if (entity === undefined) return undefined;
+
+        entity.instance.spawn(options.cause ?? 'spawned', options.event);
+        // After the spawn event, so the body a client is sent already carries whatever the
+        // event added: a baby is born a baby rather than growing into one on the next tick.
+        this.onSpawn(entity);
+        return entity;
+    }
+
+    /**
+     * Brings one saved entity back, with the state it was saved with.
+     *
+     * No spawn event runs. The record already holds what the spawn event did
+     * the first time, and running it again would add the groups a second time
+     * and reset every attribute the entity had spent: a wounded mob would come
+     * back at full health and a sheared sheep with its wool.
+     *
+     * @param at - Where the saved body stood, which the record does not carry
+     *   because the actor compound already does.
+     * @returns The entity, or undefined when no loaded pack declares its type,
+     *   in which case the caller restores the saved body the way it always did.
+     */
+    public restore(record: DataEntityRecord, at: EntityPosition): DataEntity | undefined {
+        const entity = this.create(record.identifier, at, {
+            pool: record.pool,
+            yaw: record.yaw,
+            pitch: record.pitch
+        });
+        if (entity === undefined) return undefined;
+
+        applyDataEntityRecord(entity, record);
+        this.onSpawn(entity);
+        return entity;
+    }
+
+    /** The population pool one entity's spawn counted against, if any. */
+    public poolOf(id: number): string | undefined {
+        return this.pools.get(id);
+    }
+
+    /**
+     * Builds one entity and puts it in the index, without running anything on it.
+     *
+     * The step {@link EntityRuntime.spawn} and {@link EntityRuntime.restore}
+     * share. What separates the two is only what happens to the entity next: a
+     * spawn runs its spawn event, a restore writes the state it was saved with.
+     */
+    private create(identifier: string, at: EntityPosition, options: SpawnOptions): DataEntity | undefined {
         const content = this.content();
         const registry = content.entities.registry;
         const reference = identifier.includes('<') ? identifier.slice(0, identifier.indexOf('<')) : identifier;
@@ -246,10 +297,6 @@ export class EntityRuntime implements EntityScene {
             brainMob?.initMemories?.({ world: this.brainWorld(), body: brainMobOf(entity, brain, this) });
         }
 
-        instance.spawn(options.cause ?? 'spawned', options.event);
-        // After the spawn event, so the body a client is sent already carries whatever the
-        // event added: a baby is born a baby rather than growing into one on the next tick.
-        this.onSpawn(entity);
         return entity;
     }
 

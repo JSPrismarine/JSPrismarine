@@ -58,6 +58,10 @@ export const testEntityServer = (options: TestEntityServerOptions = {}): Server 
         getTick: () => options.tick ?? 0,
         getRandom: () => () => options.chance ?? 0.5,
         getContent: () => options.content,
+        // No data-driven runtime, which is the shape of a server with `content-packs` off.
+        // `World.saveChunks` and `World.loadChunk` both ask, so a world double that saves or
+        // loads a chunk reaches this whether or not the test is about entities at all.
+        getEntityRuntime: () => undefined,
         getConfig: () =>
             stub<Config>({
                 getDifficulty: () => options.difficulty ?? Difficulty.NORMAL
