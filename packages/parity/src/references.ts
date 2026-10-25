@@ -1,6 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 
 /**
  * Where each comparison's reference data comes from, and whether this checkout has it.
@@ -16,12 +15,10 @@ import { dirname, join } from 'node:path';
  * dashboard renders as "not measured" rather than counting toward a green row.
  */
 
-const require = createRequire(import.meta.url);
-
-/** The directory a workspace package lives in, found through its own package.json export. */
-const packageRoot = (name: string): string => dirname(require.resolve(`${name}/package.json`));
-
-const repoRoot = join(packageRoot('@jsprismarine/parity'), '..', '..');
+// This file is `packages/parity/src/references.ts`, so the repository root is three up. The
+// path is walked rather than resolved through the package name, because a package cannot
+// resolve itself by name and `scripts/dashboard.ts` runs outside the bundler.
+const repoRoot = join(import.meta.dirname, '..', '..', '..');
 
 /** The fetch cache `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` writes into. */
 export const FETCH_CACHE = join(repoRoot, 'node_modules/.cache/jsprismarine');
