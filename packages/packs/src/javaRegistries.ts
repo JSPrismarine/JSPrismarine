@@ -56,8 +56,13 @@ export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
  */
 export const FUNCTION_EXTENSION = '.mcfunction';
 
-/** The 26.3 directory under `data/<namespace>/` for each JSON registry. */
-const DIRECTORIES: Record<string, Exclude<JavaRegistryId, 'tags' | 'functions'>> = {
+/**
+ * The 26.3 directory under `data/<namespace>/` for each JSON registry. The
+ * directory name is also the name Java uses for the registry in a reference,
+ * so the identifier report reads this to turn `loot_table` into the registry
+ * holding the loot tables.
+ */
+export const JAVA_REGISTRY_DIRECTORIES: Readonly<Record<string, Exclude<JavaRegistryId, 'tags' | 'functions'>>> = {
     loot_table: 'lootTablesJava',
     recipe: 'recipesJava',
     advancement: 'advancements',
@@ -128,7 +133,7 @@ export const routeDatapackPath = (path: string): JavaRoute | undefined => {
         return { registry: 'tags', identifier: `${taggedRegistry}/${namespace}:${tagPath}`, taggedRegistry };
     }
 
-    const registry = DIRECTORIES[folder];
+    const registry = JAVA_REGISTRY_DIRECTORIES[folder];
     if (!registry) return undefined;
 
     const idPath = rest.join('/');

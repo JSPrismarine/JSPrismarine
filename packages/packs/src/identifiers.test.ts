@@ -50,19 +50,96 @@ const fixturePack = (): string =>
     });
 
 describe('reportIdentifiers', () => {
-    it('lists every referenced identifier as unknown under the default resolver', () => {
+    it('lists every reference the pack stack does not close under the default resolver', () => {
         const { definitions } = load([{ kind: 'datapack', path: fixturePack() }], { strict: true });
         const report = reportIdentifiers(definitions);
 
-        expect(report).toEqual([
-            { registry: 'block', id: 'fixture:marble', resolution: 'unknown', references: 1 },
-            { registry: 'block', id: 'minecraft:polished_marble', resolution: 'unknown', references: 1 },
-            { registry: 'item', id: '#fixture:gems', resolution: 'unknown', references: 1 },
-            { registry: 'item', id: '#minecraft:beacon_payment_items', resolution: 'unknown', references: 1 },
-            { registry: 'item', id: 'fixture:ruby', resolution: 'unknown', references: 3 },
-            { registry: 'item', id: 'minecraft:emerald', resolution: 'unknown', references: 1 },
-            { registry: 'worldgen/biome', id: 'fixture:gem_fields', resolution: 'unknown', references: 1 }
+        // `#fixture:gems` is the one the stack closes itself, because the
+        // pack carries the tag file. Everything else needs a resolver, and
+        // the default one knows nothing.
+        expect(
+            report.map(({ registry, id, resolution, source, references }) => [
+                registry,
+                id,
+                resolution,
+                source,
+                references
+            ])
+        ).toEqual([
+            ['block', 'fixture:marble', 'unknown', 'resolver', 1],
+            ['block', 'minecraft:polished_marble', 'unknown', 'resolver', 1],
+            ['item', '#fixture:gems', 'known', 'pack', 1],
+            ['item', '#minecraft:beacon_payment_items', 'unknown', 'resolver', 1],
+            ['item', 'fixture:ruby', 'unknown', 'resolver', 3],
+            ['item', 'minecraft:emerald', 'unknown', 'resolver', 1],
+            ['worldgen/biome', 'fixture:gem_fields', 'unknown', 'resolver', 1]
         ]);
+    });
+
+    it('names the pack and the file the reference came from', () => {
+        const { definitions } = load([{ kind: 'datapack', path: fixturePack() }], { strict: true });
+        const report = reportIdentifiers(definitions);
+
+        expect(report.find((entry) => entry.id === 'fixture:marble')).toMatchObject({
+            path: 'data/fixture/predicate/on_marble.json'
+        });
+        expect(report.find((entry) => entry.id === 'fixture:gem_fields')).toMatchObject({
+            path: 'data/fixture/tags/worldgen/biome/shiny.json'
+        });
+    });
+
+    it('closes a reference into a registry the stack itself fills', () => {
+        const pack = writeDatapack({
+            'pack.mcmeta': MCMETA,
+            'data/fixture/loot_table/entry.json': JSON.stringify({
+                pools: [{ entries: [{ type: 'minecraft:loot_table', value: 'fixture:nested' }] }],
+                functions: [{ function: 'minecraft:reference', name: 'fixture:paint' }]
+            }),
+            'data/fixture/loot_table/nested.json': JSON.stringify({ pools: [] }),
+            'data/fixture/item_modifier/paint.json': JSON.stringify({ function: 'minecraft:set_name' })
+        });
+        const { definitions } = load([{ kind: 'datapack', path: pack }], { strict: true });
+
+        // `name` under a loot function reads as an item by field name, and
+        // `function` points at the item modifier registry the pack fills.
+        const byId = new Map(reportIdentifiers(definitions).map((entry) => [entry.id, entry]));
+        expect(byId.get('minecraft:reference')).toMatchObject({ registry: 'function', resolution: 'unknown' });
+        expect(byId.get('fixture:paint')).toMatchObject({ registry: 'item', resolution: 'unknown' });
+    });
+
+    it('reads an id field from the keys beside it rather than always as an item', () => {
+        const pack = writeDatapack({
+            'pack.mcmeta': MCMETA,
+            'data/fixture/loot_table/mixed.json': JSON.stringify({
+                pools: [
+                    {
+                        entries: [
+                            { type: 'minecraft:item', name: 'fixture:bowl', components: { id: 'fixture:plain' } },
+                            { type: 'minecraft:dynamic', name: 'minecraft:sherds' }
+                        ],
+                        conditions: [
+                            { predicate: { tags: [{ id: 'fixture:burns', expected: true }] } },
+                            { effects: [{ id: 'fixture:dizzy', duration: 20 }] },
+                            { modifier: { type: 'minecraft:set_potion', id: 'fixture:murky' } },
+                            { state: { id: 'fixture:slab', properties: { type: 'top' } } },
+                            { attribute: 'fixture:reach', id: 'fixture:reach_bonus', amount: 1, operation: 'add_value' }
+                        ]
+                    }
+                ]
+            })
+        });
+        const { definitions } = load([{ kind: 'datapack', path: pack }], { strict: true });
+
+        const byId = new Map(reportIdentifiers(definitions).map((entry) => [entry.id, entry.registry]));
+        expect(byId.get('fixture:plain')).toBe('item');
+        expect(byId.get('fixture:burns')).toBe('damage_type');
+        expect(byId.get('fixture:dizzy')).toBe('mob_effect');
+        expect(byId.get('fixture:murky')).toBe('potion');
+        expect(byId.get('fixture:slab')).toBe('block');
+        // An attribute modifier names itself; the dynamic drop names one of
+        // the block's own drops. Neither is an entry of any registry.
+        expect(byId.has('fixture:reach_bonus')).toBe(false);
+        expect(byId.has('minecraft:sherds')).toBe(false);
     });
 
     it('carries the injected resolver verdict per identifier', () => {
