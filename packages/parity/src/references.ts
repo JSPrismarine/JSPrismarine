@@ -123,6 +123,13 @@ export const REFERENCES = {
         'the biome list a Bedrock Dedicated Server sends a joining client'
     ),
 
+    /** The Java 26.3 identifier census: every identifier of a registry no Bedrock table answers. */
+    javaIdentifierCensus: committed(
+        'java-identifier-census',
+        'packages/mapping/src/tables/javaIdentifiers.json',
+        "Java 26.3's identifiers for the registries no Bedrock mapping table answers"
+    ),
+
     /** Mojang's published Bedrock command metadata, generated into this repository's own table. */
     bedrockCommandMetadata: committed(
         'bedrock-command-metadata',

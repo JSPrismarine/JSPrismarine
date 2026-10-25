@@ -11,7 +11,8 @@ import {
     ENTITY_MERGES,
     ITEM_LOSSES,
     ITEM_MERGES,
-    REGISTRY_LOSSES
+    REGISTRY_LOSSES,
+    UNTRANSLATED_REGISTRIES
 } from '@jsprismarine/mapping/lossList';
 
 import type { Family } from './families.ts';
@@ -111,6 +112,24 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
         reference: loss.reference
     }))
 ];
+
+/**
+ * The registries whose entries reach a Bedrock client under something other than an
+ * identifier, as allow-list rows.
+ *
+ * Nothing in the repository publishes the pairing for these three, so the mapping names no
+ * entry of them and the dashboard carries the whole registry as one accepted gap. The reason
+ * and the reference come from `UNTRANSLATED_REGISTRIES` itself, and the carrier goes on the
+ * end because it says what a Phase 2 or Phase 3 capture would have to produce.
+ */
+const untranslatedRegistryEntries = (): readonly AllowListEntry[] =>
+    UNTRANSLATED_REGISTRIES.map((registry) => ({
+        family: 'mapping.untranslated' as const,
+        id: `untranslated:${registry.registry}`,
+        kind: 'accepted' as const,
+        reason: `${registry.reason} It travels in ${registry.carrier}.`,
+        reference: registry.reference
+    }));
 
 /** Where the entity stat decision is written down, cited by every row derived from it. */
 const STAT_DECISION = 'docs/adr/0001-entity-stat-authority.md, and decision 11 of docs/plans/data-driven-vanilla.md';
@@ -292,7 +311,8 @@ export const allowList: readonly AllowListEntry[] = [
     ...engineActorEntries(),
     ...bodilessActorEntries(),
     ...entityStatEntries(),
-    ...mappingLossEntries()
+    ...mappingLossEntries(),
+    ...untranslatedRegistryEntries()
 ];
 
 /** The allow-listed gap ids for one family. */

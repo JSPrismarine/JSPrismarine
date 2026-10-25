@@ -60,7 +60,7 @@ dot-separated lowercase segments, a group followed by a domain, declared in
 | Group | Rows | What it measures |
 | --- | --- | --- |
 | `registry` | blocks, items, entities, biomes | The catalogs the server ships against the Bedrock captures |
-| `mapping` | blocks, items, entities, registries | Chunker's totality property per mapping domain |
+| `mapping` | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, and the three registries no published pairing covers |
 | `blocks` | properties | Every Bedrock block state's property row against the Java 26.3 jar dump |
 | `items` | components | Java's items and data component types against the Bedrock item capture |
 | `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |

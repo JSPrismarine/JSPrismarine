@@ -16,7 +16,7 @@ Each test file covers one behavior family, named by its top-level `describe`
 | Group           | Rows                                | What it measures                                                                                                      |
 | --------------- | ----------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | `registry.*`    | blocks, items, entities, biomes     | The catalogs the server ships against the Bedrock captures                                                            |
-| `mapping.*`     | blocks, items, entities, registries | Chunker's totality property per mapping domain, with the reviewed losses                                              |
+| `mapping.*`     | blocks, items, entities, registries, untranslated | Chunker's totality property per mapping domain, with the reviewed losses; the banner pattern, instrument and painting registries no pairing covers |
 | `blocks.*`      | properties                          | Every Bedrock block state's property row against the Java 26.3 jar dump                                               |
 | `items.*`       | components                          | Java's 1658 items and 122 component types against the Bedrock item capture                                            |
 | `recipes.*`     | registry                            | Java's 2042 recipe files, parsed and compiled through the mapping                                                     |
@@ -51,7 +51,10 @@ records. A `defect` is a gap this suite found that nobody has fixed; the dashboa
 in their own column, and a family carrying one reads `defects` rather than `green`.
 
 The reviewed losses of `@jsprismarine/mapping` become allow-list rows automatically, derived
-from that package's own loss list, which is what plan section 5 asks for.
+from that package's own loss list, which is what plan section 5 asks for. The three registries
+`UNTRANSLATED_REGISTRIES` declares become the `mapping.untranslated` rows the same way, and
+that row holds each registry's pinned entry count, so a Java version that adds a banner pattern
+fails rather than widening the gap.
 
 The entity stat rows work the same way. Which edition decides a stat is settled in
 [ADR 0001](../../docs/adr/0001-entity-stat-authority.md) and held in
