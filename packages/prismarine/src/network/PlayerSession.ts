@@ -767,6 +767,33 @@ export default class PlayerSession {
     }
 
     /**
+     * Tells this client that one slot of a container it has open now holds something else.
+     *
+     * The counterpart to {@link PlayerSession.sendCraftingSlot} for a block's own slots. An
+     * `ItemStackResponse` only ever reaches the client that sent the request, so this is the
+     * only way to tell the other players standing at the same chest that a stack has gone.
+     *
+     * @param windowId - The `Container Id` this client opened the block under, which is its own.
+     * @param containerId - The `Container Name` the client numbers the slot by.
+     * @param slot - The slot within that container.
+     * @param item - What is in it now, or `null` to empty it.
+     */
+    public async sendContainerSlot(
+        windowId: number,
+        containerId: number,
+        slot: number,
+        item: Item | null
+    ): Promise<void> {
+        const packet = new InventorySlotPacket();
+        packet.windowId = windowId;
+        packet.containerId = containerId;
+        packet.inventorySlot = slot;
+        packet.item = item;
+
+        await this.connection.sendDataPacket(packet);
+    }
+
+    /**
      * Opens the player's own inventory, as the client asked.
      *
      * Under its own window id rather than under zero. Zero is the inventory the client always
@@ -824,7 +851,10 @@ export default class PlayerSession {
         this.openWindows.set(packet.windowId, packet.containerType);
         await this.connection.sendDataPacket(packet);
 
-        if (container.slots > 0) {
+        // What the caller read out of the block rather than what the block type says it holds:
+        // a double chest is 54 entries from two block entities, which `blockContainerOf` does
+        // not know about and the caller does.
+        if (contents.length > 0) {
             const content = new InventoryContentPacket();
             content.windowId = packet.windowId;
             content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;

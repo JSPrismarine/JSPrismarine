@@ -1,3 +1,4 @@
+import type { Vector3 } from '@jsprismarine/math';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
@@ -7,6 +8,9 @@ import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import type HumanInventory from '../../inventory/HumanInventory';
+import { blockSlotName, blockSlotOf, isTakeOnlySlot, screenStoresSlots } from '../../inventory/containerSlots';
+import { containerAnchorOf, isPerPlayerContainer, openContainerSlots } from '../../inventory/containerStore';
+import type { OpenContainerSlots } from '../../inventory/containerStore';
 import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import { joinContentPayloads } from '../contentPayloads';
@@ -82,16 +86,43 @@ const creativePick = (server: Server, netId: number): Item | null => {
  */
 const WORKSTATION = -1;
 
+/**
+ * The store id {@link ItemStackRequestHandler.locate} answers with for a block's own slot.
+ *
+ * Negative for the same reason {@link WORKSTATION} is, and a different number because the two
+ * are different stores: a furnace has both, its fuel slot belonging to the block and its screen
+ * belonging to nothing.
+ */
+const BLOCK_CONTAINER = -2;
+
+/**
+ * The block's own slots, read on demand.
+ *
+ * A function rather than the slots themselves, because reading them means reading the chunk's
+ * block entity back out of its NBT, and most requests - every craft, every move inside the
+ * player's own inventory - never go near a block at all.
+ */
+type OpenContainerLookup = () => OpenContainerSlots | null;
+
 /** What one request may reach into besides the player's own containers. */
 interface WorkstationContext {
     readonly session: PlayerSession;
     /** Workstation slots the whole packet changed, so the table's rows can be redrawn once. */
     readonly changed: Set<number>;
+    /** Block slots the whole packet changed, so every other player at the block can be told. */
+    readonly containerChanged: Set<number>;
 }
 
 /** Amount, as the docs bound it: a request moves between one item and a full stack of 64. */
 const MIN_AMOUNT = 1;
 const MAX_AMOUNT = 64;
+
+/** A window's block position as the content packages take one, which is whole numbers. */
+const blockPositionOf = (position: Vector3) => ({
+    x: Math.floor(position.getX()),
+    y: Math.floor(position.getY()),
+    z: Math.floor(position.getZ())
+});
 
 /**
  * Whether an id is one a client makes up: negative and odd. A positive value is a stack id
@@ -145,11 +176,16 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // reason the grid slots are gathered: the table's offers depend on what is in it.
         const workstationChanged = new Set<number>();
 
+        // The block's own slots a request moved something into or out of, gathered so that every
+        // other player with the same block open can be told once the packet has been answered.
+        const containerChanged = new Set<number>();
+
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
             this.apply(request, server, player, inventory, craftingInput, craftingChanged, {
                 session,
-                changed: workstationChanged
+                changed: workstationChanged,
+                containerChanged
             })
         );
 
@@ -164,6 +200,56 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         const open = session.getOpenBlockContainer();
         if (open !== undefined && open.screen === WindowTypes.ENCHANTMENT && workstationChanged.size > 0) {
             await refreshEnchantOptions(player, open);
+        }
+
+        // Everyone else standing at the same chest. Their client holds its own copy of the
+        // slots and nothing in the exchange above goes anywhere near them, so without this two
+        // players sharing a chest each see only their own half of what is in it.
+        if (open !== undefined && containerChanged.size > 0) {
+            await this.tellOtherViewers(player, open, containerChanged);
+        }
+    }
+
+    /**
+     * Tells every other player with the same block open what changed in it.
+     *
+     * One `InventorySlot` per slot rather than the whole container, because each viewer opened
+     * the block under a window id of their own and the slots that moved are usually one or two.
+     * The player who made the change is left out: their client has already been answered by the
+     * `ItemStackResponse`, and telling it again would overwrite what it just drew.
+     */
+    private async tellOtherViewers(
+        player: Player,
+        open: OpenBlockContainer,
+        slots: ReadonlySet<number>
+    ): Promise<void> {
+        // Nobody else is looking at an ender chest: two players at one are looking at two
+        // different inventories, and the block holds neither.
+        if (isPerPlayerContainer(open.identifier)) return;
+
+        // Which block the slots belong to, rather than which block was clicked: either half of a
+        // double chest opens the same 54 slots, so the two have to compare as one container.
+        const changed = containerAnchorOf(player, blockPositionOf(open.position), open.identifier);
+
+        for (const other of player.getWorld().getPlayers()) {
+            if (other === player) continue;
+
+            const theirs = other.getNetworkSession().getOpenBlockContainer();
+            if (theirs === undefined) continue;
+
+            const at = blockPositionOf(theirs.position);
+            const anchor = containerAnchorOf(other, at, theirs.identifier);
+            if (anchor.x !== changed.x || anchor.y !== changed.y || anchor.z !== changed.z) continue;
+
+            const held = openContainerSlots(other, at, theirs.identifier);
+            if (held === undefined) continue;
+
+            for (const slot of slots) {
+                const named = blockSlotName(theirs.screen, slot);
+                await other
+                    .getNetworkSession()
+                    .sendContainerSlot(theirs.windowId, named.containerId, named.slotId, held.get(slot));
+            }
         }
     }
 
@@ -180,9 +266,19 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         const touched = new Set<number>();
         const craftingTouched = new Set<number>();
         const workstationTouched = new Set<number>();
+        const containerTouched = new Set<number>();
         let cursorTouched = false;
 
         const open = context.session.getOpenBlockContainer();
+
+        // The block's own slots, read lazily: most requests never go near them, and reading them
+        // means reading the chunk's block entity back out of its NBT.
+        let store: OpenContainerSlots | null | undefined;
+        const container: OpenContainerLookup = () =>
+            (store ??=
+                open === undefined || !screenStoresSlots(open.screen)
+                    ? null
+                    : (openContainerSlots(player, blockPositionOf(open.position), open.identifier) ?? null));
 
         // Everything this request may change, as it stands before it runs.
         //
@@ -224,6 +320,10 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                 .debug(`Refused item stack request ${request.requestId}: ${reason}`, 'ItemStackRequestHandler/apply');
 
             this.restore(before, inventory, craftingInput, open);
+            // Thrown away rather than written: the block's slots are only ever read from the
+            // block entity at the start of a request, so forgetting what this one did to them
+            // puts the container back as it stands.
+            store?.rollBack();
 
             return this.reject(request);
         };
@@ -258,11 +358,15 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             // take from, so the conjured stack simply lands - and where it lands
                             // is usually the pointer, not a slot, because that is what dragging
                             // one out of the menu means.
-                            const to = this.locate(action.destination!, craftingInput, open);
+                            const to = this.locate(action.destination!, craftingInput, open, container);
                             if (!to)
                                 return deny(
                                     `creative pick has nowhere to land: container ${action.destination!.container.containerId} slot ${action.destination!.slotId}`
                                 );
+
+                            if (open !== undefined && to[0] === BLOCK_CONTAINER && isTakeOnlySlot(open.screen, to[1])) {
+                                return deny(`slot ${to[1]} of a ${WindowTypes[open.screen]} only ever gives items out`);
+                            }
 
                             // Built fresh rather than handed over: the creative list is one set
                             // of items shared by every player, and putting one of them in an
@@ -281,6 +385,9 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             if (to[0] === WORKSTATION) {
                                 if (open !== undefined) open.inputs[to[1]] = stack;
                                 workstationTouched.add(to[1]);
+                            } else if (to[0] === BLOCK_CONTAINER) {
+                                container()?.set(to[1], stack);
+                                containerTouched.add(to[1]);
                             } else if (to[0] === ContainerUiId.CURSOR) {
                                 inventory.setCursor(stack);
                                 cursorTouched = true;
@@ -327,34 +434,59 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             inventory,
                             craftingInput,
                             action.count,
-                            open
+                            open,
+                            container
                         );
                         if (!moved)
                             return deny(
                                 `cannot move ${action.source!.container.containerId}/${action.source!.slotId} -> ${action.destination!.container.containerId}/${action.destination!.slotId}`
                             );
 
-                        for (const [container, slot] of moved) {
-                            if (container === WORKSTATION) workstationTouched.add(slot);
-                            else if (container === ContainerUiId.CURSOR) cursorTouched = true;
-                            else if (container === ContainerUiId.CRAFTING_INPUT) craftingTouched.add(slot);
+                        for (const [store, slot] of moved) {
+                            if (store === WORKSTATION) workstationTouched.add(slot);
+                            else if (store === BLOCK_CONTAINER) containerTouched.add(slot);
+                            else if (store === ContainerUiId.CURSOR) cursorTouched = true;
+                            else if (store === ContainerUiId.CRAFTING_INPUT) craftingTouched.add(slot);
                             else touched.add(slot);
                         }
                         break;
                     }
 
                     case ItemStackRequestActionType.SWAP: {
-                        const first = this.slotOf(action.source!);
-                        const second = this.slotOf(action.destination!);
+                        // Located rather than read as two inventory slots: a swap is how a player
+                        // trades the stack on the pointer for the one in a chest, and reading both
+                        // ends as inventory indices refused every swap that named anything else.
+                        const first = this.locate(action.source!, craftingInput, open, container);
+                        const second = this.locate(action.destination!, craftingInput, open, container);
                         if (first === null || second === null)
                             return deny(
                                 `cannot swap ${action.source!.container.containerId}/${action.source!.slotId} <-> ${action.destination!.container.containerId}/${action.destination!.slotId}`
                             );
 
-                        const held = inventory.getItem(first);
-                        inventory.setItem(first, new ContainerEntry({ item: inventory.getItem(second) }));
-                        inventory.setItem(second, new ContainerEntry({ item: held }));
-                        touched.add(first).add(second);
+                        const takeOnly =
+                            open !== undefined &&
+                            ((first[0] === BLOCK_CONTAINER && isTakeOnlySlot(open.screen, first[1])) ||
+                                (second[0] === BLOCK_CONTAINER && isTakeOnlySlot(open.screen, second[1])));
+                        if (takeOnly) return deny(`a ${WindowTypes[open!.screen]} output slot takes nothing`);
+
+                        const held = this.readAt(first, inventory, craftingInput, open, container);
+                        this.writeAt(
+                            first,
+                            this.readAt(second, inventory, craftingInput, open, container),
+                            inventory,
+                            craftingInput,
+                            open,
+                            container
+                        );
+                        this.writeAt(second, held, inventory, craftingInput, open, container);
+
+                        for (const at of [first, second]) {
+                            if (at[0] === WORKSTATION) workstationTouched.add(at[1]);
+                            else if (at[0] === BLOCK_CONTAINER) containerTouched.add(at[1]);
+                            else if (at[0] === ContainerUiId.CURSOR) cursorTouched = true;
+                            else if (at[0] === ContainerUiId.CRAFTING_INPUT) craftingTouched.add(at[1]);
+                            else touched.add(at[1]);
+                        }
                         break;
                     }
 
@@ -370,7 +502,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         // Located rather than looked up as an inventory slot: throwing away what
                         // is on the pointer is the ordinary way to get rid of a creative pick,
                         // and refusing it leaves the stack stuck to the mouse.
-                        const from = this.locate(action.source!, craftingInput, open);
+                        const from = this.locate(action.source!, craftingInput, open, container);
                         if (!from)
                             return deny(
                                 `cannot drop from ${action.source!.container.containerId}/${action.source!.slotId}`
@@ -379,6 +511,9 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         if (from[0] === WORKSTATION) {
                             if (open !== undefined) open.inputs[from[1]] = null;
                             workstationTouched.add(from[1]);
+                        } else if (from[0] === BLOCK_CONTAINER) {
+                            container()?.set(from[1], null);
+                            containerTouched.add(from[1]);
                         } else if (from[0] === ContainerUiId.CURSOR) {
                             inventory.setCursor(null);
                             cursorTouched = true;
@@ -520,8 +655,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             return deny(`a step threw: ${error instanceof Error ? error.message : String(error)}`);
         }
 
+        // Written back only now, because everything up to here could still have been refused and
+        // a refusal has to leave the block holding what it held.
+        store?.commit();
+
         for (const slot of craftingTouched) craftingChanged.add(slot);
         for (const slot of workstationTouched) context.changed.add(slot);
+        for (const slot of containerTouched) context.containerChanged.add(slot);
 
         // Only the containers something changed in. A container with no slots is legal on the
         // wire but says nothing, and it named both kept stores in every answer whether or not
@@ -556,10 +696,36 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                 : Array.from(workstationTouched, (slot) => ({
                       container: { containerId: workstationContainerId(open, slot), dynamicId: null },
                       slots: [this.describeItem(0, open.inputs[slot] ?? null)]
-                  })))
+                  }))),
+            // The block's own slots, under the `Container Name` the client numbers each by, and
+            // grouped by it: a chest's whole range is one container, and a furnace's three slots
+            // are three. Ungrouped, a move that touched two chest slots named the same container
+            // twice in one answer.
+            ...(open === undefined ? [] : this.describeBlockSlots(open, containerTouched, container))
         ].filter((container) => container.slots.length > 0);
 
         return { result: ItemStackResponseResult.OK, requestId: request.requestId, containers };
+    }
+
+    /** The block's touched slots as response containers, one per `Container Name` they fall in. */
+    private describeBlockSlots(
+        open: OpenBlockContainer,
+        touched: ReadonlySet<number>,
+        container: OpenContainerLookup
+    ): ItemStackResponseContainerInfo[] {
+        const byContainer = new Map<number, ItemStackResponseSlotInfo[]>();
+
+        for (const slot of touched) {
+            const named = blockSlotName(open.screen, slot);
+            const slots = byContainer.get(named.containerId) ?? [];
+            slots.push(this.describeItem(named.slotId, container()?.get(slot) ?? null));
+            byContainer.set(named.containerId, slots);
+        }
+
+        return Array.from(byContainer, ([containerId, slots]) => ({
+            container: { containerId, dynamicId: null },
+            slots
+        }));
     }
 
     /**
@@ -683,33 +849,22 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         inventory: HumanInventory,
         craftingInput: CraftingInput,
         count?: number,
-        open?: OpenBlockContainer
+        open?: OpenBlockContainer,
+        container: OpenContainerLookup = () => null
     ): Array<[number, number]> | null {
-        const source = this.locate(from, craftingInput, open);
-        const destination = this.locate(to, craftingInput, open);
+        const source = this.locate(from, craftingInput, open, container);
+        const destination = this.locate(to, craftingInput, open, container);
         if (!source || !destination) return null;
 
-        const armor = inventory.getArmor();
+        // A furnace's output holds what the smelt produced, so vanilla refuses anything dropped
+        // onto it. Taking from it is the ordinary way to empty a furnace and stays allowed.
+        if (open !== undefined && destination[0] === BLOCK_CONTAINER && isTakeOnlySlot(open.screen, destination[1])) {
+            return null;
+        }
 
-        const read = (at: [number, number]): Item | null => {
-            if (at[0] === WORKSTATION) return open?.inputs[at[1]] ?? null;
-            if (at[0] === ContainerUiId.CRAFTING_INPUT) return craftingInput.get(at[1]);
-            if (at[0] === ContainerUiId.CURSOR) return inventory.getCursor();
-            if (at[0] === ContainerUiId.ARMOR_CONTAINER) return armor.isEmpty(at[1]) ? null : armor.getItem(at[1]);
-
-            return this.itemOrNull(inventory, at[1]);
-        };
-
+        const read = (at: [number, number]): Item | null => this.readAt(at, inventory, craftingInput, open, container);
         const write = (at: [number, number], item: Item | null): void => {
-            if (at[0] === WORKSTATION) {
-                if (open !== undefined) open.inputs[at[1]] = item;
-            } else if (at[0] === ContainerUiId.CRAFTING_INPUT) craftingInput.set(at[1], item);
-            else if (at[0] === ContainerUiId.CURSOR) inventory.setCursor(item);
-            else if (at[0] === ContainerUiId.ARMOR_CONTAINER) {
-                if (item) armor.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
-                else armor.removeItem(at[1]);
-            } else if (item) inventory.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
-            else inventory.removeItem(at[1]);
+            this.writeAt(at, item, inventory, craftingInput, open, container);
         };
 
         const moving = read(source);
@@ -761,16 +916,74 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         return new Item({ id: item.getId(), name: item.getName(), meta: item.meta, count });
     }
 
+    /**
+     * One slot of whichever store a request names, or null when the slot is out of range.
+     *
+     * Shared by the move, the swap and the creative pick so that all three reach the same
+     * stores: before this the swap read both ends as inventory indices and refused anything
+     * else, which is why a stack could not be swapped with one in a chest.
+     */
+    private readAt(
+        at: [number, number],
+        inventory: HumanInventory,
+        craftingInput: CraftingInput,
+        open: OpenBlockContainer | undefined,
+        container: OpenContainerLookup
+    ): Item | null {
+        if (at[0] === WORKSTATION) return open?.inputs[at[1]] ?? null;
+        if (at[0] === BLOCK_CONTAINER) return container()?.get(at[1]) ?? null;
+        if (at[0] === ContainerUiId.CRAFTING_INPUT) return craftingInput.get(at[1]);
+        if (at[0] === ContainerUiId.CURSOR) return inventory.getCursor();
+        if (at[0] === ContainerUiId.ARMOR_CONTAINER) {
+            const armor = inventory.getArmor();
+            return armor.isEmpty(at[1]) ? null : armor.getItem(at[1]);
+        }
+
+        return this.itemOrNull(inventory, at[1]);
+    }
+
+    /** The counterpart to {@link ItemStackRequestHandler.readAt}: `null` empties the slot. */
+    private writeAt(
+        at: [number, number],
+        item: Item | null,
+        inventory: HumanInventory,
+        craftingInput: CraftingInput,
+        open: OpenBlockContainer | undefined,
+        container: OpenContainerLookup
+    ): void {
+        if (at[0] === WORKSTATION) {
+            if (open !== undefined) open.inputs[at[1]] = item;
+        } else if (at[0] === BLOCK_CONTAINER) container()?.set(at[1], item);
+        else if (at[0] === ContainerUiId.CRAFTING_INPUT) craftingInput.set(at[1], item);
+        else if (at[0] === ContainerUiId.CURSOR) inventory.setCursor(item);
+        else if (at[0] === ContainerUiId.ARMOR_CONTAINER) {
+            const armor = inventory.getArmor();
+            if (item) armor.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
+            else armor.removeItem(at[1]);
+        } else if (item) inventory.setItem(at[1], new ContainerEntry({ item, count: item.getAmount() }));
+        else inventory.removeItem(at[1]);
+    }
+
     /** Which store and which slot a request names, or `null` for neither. */
     private locate(
         info: ItemStackRequestSlotInfo,
         craftingInput: CraftingInput,
-        open?: OpenBlockContainer
+        open?: OpenBlockContainer,
+        container: OpenContainerLookup = () => null
     ): [number, number] | null {
         // Before the crafting grid, because an anvil's input container is id 0 and a bare
         // number says nothing about which screen it belongs to: the open window does.
         const workstation = workstationSlotOf(open, info.container.containerId);
         if (workstation !== null) return [WORKSTATION, workstation];
+
+        // Before the rest for the same reason: a furnace numbers its fuel slot 24, which is no
+        // container of the player's, and only the open screen says what 24 means.
+        if (open !== undefined && screenStoresSlots(open.screen)) {
+            const held = container();
+            const slot =
+                held === null ? null : blockSlotOf(open.screen, info.container.containerId, info.slotId, held.size);
+            if (slot !== null) return [BLOCK_CONTAINER, slot];
+        }
 
         const crafting = this.craftingSlotOf(info, craftingInput);
         if (crafting !== null) return [ContainerUiId.CRAFTING_INPUT, crafting];
