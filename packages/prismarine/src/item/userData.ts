@@ -104,8 +104,21 @@ const enchantmentEntry = (id: number, level: number): NBTTagCompound => {
  *
  * Null rather than an empty compound: an empty compound costs five bytes in every slot of
  * every inventory the server sends, and a client reads the absent marker as the same thing.
+ *
+ * The plain stack returns before anything is allocated, which is the case that runs most:
+ * 36 inventory slots on every join and 1980 creative entries behind them, almost none of
+ * them enchanted, named or damaged.
  */
 export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
+    if (
+        stack.enchantments.size === 0 &&
+        stack.customName === undefined &&
+        stack.lore.length === 0 &&
+        stack.damage <= 0
+    ) {
+        return null;
+    }
+
     const projection = projectToBedrock(stack.enchantmentRegistry, stack.enchantments, bedrockName, {
         lore: enchantmentLore
     });
