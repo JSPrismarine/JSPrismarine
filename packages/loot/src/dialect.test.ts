@@ -36,7 +36,7 @@ describe('a key nothing reads', () => {
             {
                 severity: 'error',
                 path: 'pools[0].conditions',
-                message: 'the loot pool grammar has no conditions member, so nothing reads it'
+                message: 'the java loot pool grammar has no conditions member, so nothing reads it'
             }
         ]);
     });

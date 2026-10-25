@@ -26,7 +26,8 @@ import {
     rootContext
 } from '@jsprismarine/predicates';
 
-import { gateAt, reportEntryKeys, reportPoolKeys, reportTableKeys } from './dialect';
+import type { LootDialect, LootDifficultyView, LootTiers } from './dialect';
+import { DEFAULT_DIFFICULTY, gateAt, reportEntryKeys, reportPoolKeys, reportTableKeys, tiersAt } from './dialect';
 import type {
     DynamicDropSource,
     LootEntry,
@@ -42,6 +43,9 @@ import type {
  * The loot table grammar of Java 26.3: a table of pools, a pool of entry
  * containers, and a container of candidates. Parsing turns the JSON into
  * closures once; rolling walks the closures.
+ *
+ * Bedrock's older spelling of the same grammar is parsed too, behind
+ * {@link LootParseOptions.dialect}. See `./dialect.ts` for what differs.
  */
 
 /** The nine `loot_pool_entry_type` members Java 26.3 registers. */
@@ -73,6 +77,17 @@ export interface RollOptions {
     readonly slots?: SlotSourceView;
 }
 
+/** What the table grammar carries down the parse beside the {@link ParseContext}. */
+export interface LootGrammar {
+    /** Which edition's spelling the file uses. */
+    readonly dialect: LootDialect;
+    /** What Bedrock's two difficulty-scaled conditions read. */
+    readonly difficulty: LootDifficultyView;
+}
+
+/** The grammar a parse uses when the caller names none: Java, as every call did before. */
+const JAVA_GRAMMAR: LootGrammar = { dialect: 'java', difficulty: DEFAULT_DIFFICULTY };
+
 /** Everything {@link parseLootTable} can be told, plus the id the table is registered under. */
 export interface LootParseOptions extends ParseOptions {
     /**
@@ -82,6 +97,13 @@ export interface LootParseOptions extends ParseOptions {
      */
     id?: string;
     /**
+     * Which edition's spelling the file uses. Defaults to `java`, which is the
+     * grammar the 1447 vanilla datapack tables are written in.
+     */
+    dialect?: LootDialect;
+    /** What Bedrock's two difficulty-scaled conditions read. Defaults to {@link DEFAULT_DIFFICULTY}. */
+    difficulty?: LootDifficultyView;
+    /**
      * Throw instead of returning a table that reported an error. This is the
      * one exception to the package's rule that parsing never throws, and it
      * exists so a host can refuse to run on a table it cannot evaluate rather
@@ -89,6 +111,12 @@ export interface LootParseOptions extends ParseOptions {
      */
     strict?: boolean;
 }
+
+/** Reads the grammar out of parse options, defaulting every member to Java's. */
+const grammarOf = (options: Pick<LootParseOptions, 'dialect' | 'difficulty'>): LootGrammar => ({
+    dialect: options.dialect ?? JAVA_GRAMMAR.dialect,
+    difficulty: options.difficulty ?? JAVA_GRAMMAR.difficulty
+});
 
 /**
  * Thrown by a strict parse, naming every error the table reported.
@@ -162,7 +190,7 @@ const unbound = (context: PredicateContext, path: string, what: string): void =>
     context.diagnostics.warn(path, `no ${what} is bound to this roll`);
 };
 
-type EntryParser = (value: JsonObject, context: ParseContext) => LootEntryContainer;
+type EntryParser = (value: JsonObject, context: ParseContext, grammar: LootGrammar) => LootEntryContainer;
 
 const ENTRIES: Readonly<Record<LootEntryType, EntryParser>> = {
     empty: (value) => single({ weight: uniformWeight(value), produce: () => undefined }),
@@ -210,7 +238,9 @@ const ENTRIES: Readonly<Record<LootEntryType, EntryParser>> = {
         });
     },
 
-    loot_table: (value, context) => {
+    loot_table: (value, context, grammar) => {
+        if (grammar.dialect === 'bedrock') return bedrockTableEntry(value, context, grammar);
+
         if (value['value'] === undefined) {
             context.at('value').error('a loot_table entry needs a value');
             return NOTHING;
@@ -218,7 +248,7 @@ const ENTRIES: Readonly<Record<LootEntryType, EntryParser>> = {
 
         // A composition that resolves to nothing has already reported why.
         const tables = parseComposed(value['value'], 'loot_table', context.at('value'), (inline, inner) =>
-            tableAt(inline, inner)
+            tableAt(inline, inner, grammar)
         );
         if (tables.length === 0) return NOTHING;
 
@@ -283,36 +313,105 @@ const ENTRIES: Readonly<Record<LootEntryType, EntryParser>> = {
         });
     },
 
-    group: (value, context) => {
-        const children = childrenAt(value, context, 'group');
+    group: (value, context, grammar) => {
+        const children = childrenAt(value, context, 'group', grammar);
         return (emit, evaluation) => {
             for (const child of children) child(emit, evaluation);
             return true;
         };
     },
 
-    alternatives: (value, context) => {
-        const children = childrenAt(value, context, 'alternatives');
+    alternatives: (value, context, grammar) => {
+        const children = childrenAt(value, context, 'alternatives', grammar);
         return (emit, evaluation) => children.some((child) => child(emit, evaluation));
     },
 
-    sequence: (value, context) => {
-        const children = childrenAt(value, context, 'sequence');
+    sequence: (value, context, grammar) => {
+        const children = childrenAt(value, context, 'sequence', grammar);
         return (emit, evaluation) => children.every((child) => child(emit, evaluation));
     }
 };
 
-const childrenAt = (value: JsonObject, context: ParseContext, type: LootEntryType): readonly LootEntryContainer[] => {
+/**
+ * A Bedrock `loot_table` entry, which names its target by the pack-relative
+ * path the behavior pack registry keys tables under: `armor_set_leather.json`
+ * rather than `minecraft:armor_set_leather`. Java's composition rule does not
+ * apply, because a Bedrock entry names exactly one table and never inlines it.
+ */
+const bedrockTableEntry = (value: JsonObject, context: ParseContext, grammar: LootGrammar): LootEntryContainer => {
+    const at = context.at('name');
+    const name = asString(value['name']);
+    if (name === undefined) {
+        at.error('a bedrock loot_table entry needs a name');
+        return NOTHING;
+    }
+
+    const key = `loot_table/${name}`;
+    if (context.visiting.has(key)) {
+        at.error(`loot_table reference ${name} is cyclic`);
+        return NOTHING;
+    }
+
+    const resolve = context.resolver?.element;
+    if (resolve === undefined) {
+        at.error(`cannot resolve ${name}: the parse options carry no element resolver`);
+        return NOTHING;
+    }
+
+    const element = resolve('loot_table', name);
+    if (element === undefined) {
+        at.error(`unknown loot_table ${name}`);
+        return NOTHING;
+    }
+
+    context.visiting.add(key);
+    let table: LootTable;
+    try {
+        table = tableAt(element, context.atReference(name), grammar);
+    } finally {
+        context.visiting.delete(key);
+    }
+
+    return single({
+        weight: uniformWeight(value),
+        produce: (emit, evaluation) => rollInto(table, evaluation, emit)
+    });
+};
+
+const childrenAt = (
+    value: JsonObject,
+    context: ParseContext,
+    type: LootEntryType,
+    grammar: LootGrammar
+): readonly LootEntryContainer[] => {
     const at = context.at('children');
-    const children = asList(value['children']).map((child, index) => containerAt(child, at.at(index)));
+    const children = asList(value['children']).map((child, index) => containerAt(child, at.at(index), grammar));
     if (children.length === 0) context.error(`a ${type} entry needs at least one child`);
     return children;
 };
 
 const isEntryType = (name: string): name is LootEntryType => LOOT_ENTRY_TYPES.some((known) => known === name);
 
+/**
+ * Adds the pools a Bedrock entry nests under itself, which roll once the entry
+ * is drawn.
+ *
+ * This is how the armor sets cascade: `armor_set_leather.json` rolls a helmet,
+ * and the helmet entry's own pool rolls the chestplate at the difficulty's
+ * chance, and that one's rolls the leggings. The nested pools sit outside the
+ * entry's modifier, because they produce separate items carrying modifiers of
+ * their own.
+ */
+const withNestedPools = (entry: LootEntry, pools: readonly LootPool[]): LootEntry => ({
+    weight: (luck) => entry.weight(luck),
+    produce: (emit, evaluation) => {
+        entry.produce(emit, evaluation);
+        for (const pool of pools) rollPool(pool, evaluation, emit);
+    }
+});
+
 /** Compiles one entry container: its condition gate, its modifier, and its type-specific body. */
-const containerAt = (value: unknown, context: ParseContext): LootEntryContainer => {
+const containerAt = (value: unknown, context: ParseContext, grammar: LootGrammar): LootEntryContainer => {
     if (!isJsonObject(value)) {
         context.error('a loot pool entry must be an object');
         return NOTHING;
@@ -331,17 +430,26 @@ const containerAt = (value: unknown, context: ParseContext): LootEntryContainer 
         return NOTHING;
     }
 
-    reportEntryKeys(value, context, name);
+    reportEntryKeys(value, context, grammar.dialect, name);
 
-    const condition = gateAt(value['condition'], context.at('condition'));
+    const gateKey = grammar.dialect === 'bedrock' ? 'conditions' : 'condition';
+    const condition = gateAt(value[gateKey], context.at(gateKey), grammar.dialect, grammar.difficulty);
     const modifier =
         value['modifier'] === undefined ? undefined : modifierAt(value['modifier'], context.at('modifier'));
-    const body = ENTRIES[name](value, context);
+    const body = ENTRIES[name](value, context, grammar);
+
+    const at = context.at('pools');
+    const nested =
+        grammar.dialect === 'bedrock'
+            ? asList(value['pools']).flatMap((pool, index) => poolAt(pool, at.at(index), grammar) ?? [])
+            : [];
 
     return (emit, evaluation) => {
         if (!condition(evaluation.context)) return false;
-        if (modifier === undefined) return body(emit, evaluation);
-        return body((entry) => emit(withModifier(entry, modifier)), evaluation);
+
+        const offer = (entry: LootEntry): void => emit(nested.length === 0 ? entry : withNestedPools(entry, nested));
+        if (modifier === undefined) return body(offer, evaluation);
+        return body((entry) => offer(withModifier(entry, modifier)), evaluation);
     };
 };
 
@@ -352,10 +460,11 @@ const containerAt = (value: unknown, context: ParseContext): LootEntryContainer 
  */
 export const parseLootEntries = (
     value: unknown,
-    options: ParseOptions = {}
+    options: ParseOptions & Pick<LootParseOptions, 'dialect' | 'difficulty'> = {}
 ): ParseResult<readonly LootEntryContainer[]> => {
     const context = rootContext(options);
-    const containers = asList(value).map((entry, index) => containerAt(entry, context.at(index)));
+    const grammar = grammarOf(options);
+    const containers = asList(value).map((entry, index) => containerAt(entry, context.at(index), grammar));
     return { value: containers, diagnostics: context.diagnostics.entries };
 };
 
@@ -374,27 +483,35 @@ export const produceEntries = (
     return drawn;
 };
 
-const poolAt = (value: unknown, context: ParseContext): LootPool | undefined => {
+const poolAt = (value: unknown, context: ParseContext, grammar: LootGrammar): LootPool | undefined => {
     if (!isJsonObject(value)) {
         context.error('a loot pool must be an object');
         return undefined;
     }
 
-    reportPoolKeys(value, context);
+    reportPoolKeys(value, context, grammar.dialect);
 
-    if (value['rolls'] === undefined) context.error('a loot pool needs rolls');
+    // A tiered pool draws one rung once and states no `rolls`, which is how
+    // all ten of Bedrock's are written.
+    const tiers = grammar.dialect === 'bedrock' ? tiersAt(value['tiers'], context.at('tiers')) : undefined;
+    if (value['rolls'] === undefined && tiers === undefined) context.error('a loot pool needs rolls');
     if (value['entries'] === undefined) context.error('a loot pool needs entries');
 
+    const gateKey = grammar.dialect === 'bedrock' ? 'conditions' : 'condition';
     const at = context.at('entries');
 
     return {
-        condition: gateAt(value['condition'], context.at('condition')),
+        condition: gateAt(value[gateKey], context.at(gateKey), grammar.dialect, grammar.difficulty),
         modifier: modifierAt(value['modifier'], context.at('modifier')),
-        rolls: intProviderAt(value['rolls'], context.at('rolls')),
+        rolls: tiers === undefined ? intProviderAt(value['rolls'], context.at('rolls')) : ONE_ROLL,
         bonusRolls: floatProviderAt(value['bonus_rolls'], context.at('bonus_rolls')),
-        entries: asList(value['entries']).map((entry, index) => containerAt(entry, at.at(index)))
+        entries: asList(value['entries']).map((entry, index) => containerAt(entry, at.at(index), grammar)),
+        tiers
     };
 };
+
+/** The single draw a tiered pool makes, standing in for the `rolls` it does not state. */
+const ONE_ROLL = (): number => 1;
 
 /**
  * Collects the loot tables a table names by id, walking the raw JSON rather
@@ -402,36 +519,46 @@ const poolAt = (value: unknown, context: ParseContext): LootPool | undefined => 
  * reference graph, which is how it reports a cycle without compiling
  * anything.
  */
-export const lootTableReferences = (value: unknown): readonly string[] => {
+export const lootTableReferences = (value: unknown, dialect: LootDialect = 'java'): readonly string[] => {
     const found: string[] = [];
 
     const visitEntry = (entry: unknown): void => {
         if (!isJsonObject(entry)) return;
         if (namespaced(asString(entry['type']) ?? '') === 'minecraft:loot_table') {
-            for (const target of asArray(entry['value'])) {
-                const id = asString(target);
-                if (id !== undefined && !id.startsWith('#')) found.push(namespaced(id));
+            if (dialect === 'bedrock') {
+                // A Bedrock entry names one table by its pack-relative path,
+                // which is already the key the registry holds it under.
+                const path = asString(entry['name']);
+                if (path !== undefined) found.push(path);
+            } else {
+                for (const target of asArray(entry['value'])) {
+                    const id = asString(target);
+                    if (id !== undefined && !id.startsWith('#')) found.push(namespaced(id));
+                }
             }
         }
         for (const child of asList(entry['children'])) visitEntry(child);
+        for (const pool of asList(entry['pools'])) visitPool(pool);
     };
 
-    for (const pool of asList(isJsonObject(value) ? value['pools'] : undefined)) {
-        if (!isJsonObject(pool)) continue;
+    const visitPool = (pool: unknown): void => {
+        if (!isJsonObject(pool)) return;
         for (const entry of asList(pool['entries'])) visitEntry(entry);
-    }
+    };
+
+    for (const pool of asList(isJsonObject(value) ? value['pools'] : undefined)) visitPool(pool);
 
     return [...new Set(found)];
 };
 
 /** Compiles a loot table from parsed JSON at a point in an enclosing parse. */
-export const tableAt = (value: unknown, context: ParseContext): LootTable => {
+export const tableAt = (value: unknown, context: ParseContext, grammar: LootGrammar = JAVA_GRAMMAR): LootTable => {
     if (!isJsonObject(value)) {
         context.error('a loot table must be an object');
         return EMPTY_TABLE;
     }
 
-    reportTableKeys(value, context);
+    reportTableKeys(value, context, grammar.dialect);
 
     let parameterSet: ContextParameterSetName = 'generic';
     const declared = asString(value['type']);
@@ -448,9 +575,9 @@ export const tableAt = (value: unknown, context: ParseContext): LootTable => {
     return {
         parameterSet,
         randomSequence: sequence === undefined ? undefined : namespaced(sequence),
-        pools: asList(value['pools']).flatMap((pool, index) => poolAt(pool, at.at(index)) ?? []),
+        pools: asList(value['pools']).flatMap((pool, index) => poolAt(pool, at.at(index), grammar) ?? []),
         modifier: modifierAt(value['modifier'], context.at('modifier')),
-        references: lootTableReferences(value)
+        references: lootTableReferences(value, grammar.dialect)
     };
 };
 
@@ -463,10 +590,16 @@ export const tableAt = (value: unknown, context: ParseContext): LootTable => {
  */
 export const parseLootTable = (value: unknown, options: LootParseOptions = {}): ParseResult<LootTable> => {
     const context = rootContext(options);
-    if (options.id !== undefined) context.visiting.add(`loot_table/${namespaced(options.id)}`);
+    const grammar = grammarOf(options);
+
+    if (options.id !== undefined) {
+        // Bedrock keys a table by its pack-relative path, which carries no
+        // namespace and must not be given one.
+        context.visiting.add(`loot_table/${grammar.dialect === 'bedrock' ? options.id : namespaced(options.id)}`);
+    }
 
     const before = context.diagnostics.entries.length;
-    const table = tableAt(value, context);
+    const table = tableAt(value, context, grammar);
 
     if (options.strict) {
         const raised = context.diagnostics.entries.slice(before).filter((entry) => entry.severity === 'error');
@@ -507,13 +640,37 @@ const drawOnce = (pool: LootPool, evaluation: LootEvaluation, emit: StackSink): 
     }
 };
 
+/**
+ * Bedrock's tiered draw, which is Java's `Mob.populateArmor` written as data:
+ * land somewhere in the opening range, then climb one rung per bonus roll that
+ * hits. Weight plays no part, because the ladder is the order the entries are
+ * written in.
+ */
+const drawTier = (pool: LootPool, tiers: LootTiers, evaluation: LootEvaluation, emit: StackSink): void => {
+    const candidates: LootEntry[] = [];
+    for (const container of pool.entries) container((entry) => candidates.push(entry), evaluation);
+    if (candidates.length === 0) return;
+
+    const random = evaluation.context.random;
+    let rung = random.nextInt(Math.min(tiers.initialRange, candidates.length));
+    for (let bonus = 0; bonus < tiers.bonusRolls; bonus += 1) {
+        if (random.nextFloat() < tiers.bonusChance) rung += 1;
+    }
+
+    candidates[Math.min(rung, candidates.length - 1)]?.produce(emit, evaluation);
+};
+
 const rollPool = (pool: LootPool, evaluation: LootEvaluation, emit: StackSink): void => {
     if (!pool.condition(evaluation.context)) return;
 
     const sink = applyModifier(emit, pool.modifier, evaluation);
     const bonus = Math.floor(Math.fround(pool.bonusRolls(evaluation.context) * evaluation.luck));
     const rolls = pool.rolls(evaluation.context) + bonus;
-    for (let roll = 0; roll < rolls; roll += 1) drawOnce(pool, evaluation, sink);
+    const tiers = pool.tiers;
+    for (let roll = 0; roll < rolls; roll += 1) {
+        if (tiers === undefined) drawOnce(pool, evaluation, sink);
+        else drawTier(pool, tiers, evaluation, sink);
+    }
 };
 
 /** Java's `LootTable.getRandomItemsRaw`: every pool, through the table modifier, unsplit. */

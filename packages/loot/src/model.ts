@@ -7,6 +7,8 @@ import type {
     PredicateContext
 } from '@jsprismarine/predicates';
 
+import type { LootTiers } from './dialect';
+
 /**
  * The compiled shape of a Java loot table. Parsing happens once; rolling
  * walks closures and never touches JSON again.
@@ -68,6 +70,11 @@ export interface LootPool {
     /** Extra rolls per point of luck, floored after the multiplication as Java does. */
     readonly bonusRolls: NumberProvider;
     readonly entries: readonly LootEntryContainer[];
+    /**
+     * Bedrock's ladder draw, which replaces the weighted one. Absent on every
+     * Java pool, because Java has no such member.
+     */
+    readonly tiers?: LootTiers;
 }
 
 /** A compiled loot table, ready to roll. */

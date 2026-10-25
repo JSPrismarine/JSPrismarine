@@ -11,6 +11,7 @@ import { DiagnosticCollector } from '@jsprismarine/predicates';
 
 import type { LootContentOptions, LootContextOptions } from './content';
 import { createLootContext } from './content';
+import type { LootDialect, LootDifficultyView } from './dialect';
 import type { DynamicDropSource, LootTable, SlotSourceView } from './model';
 import type { LootPackDefinitions } from './packs';
 import { createPackResolver, packJson } from './packs';
@@ -50,6 +51,16 @@ export interface LootRegistryOptions {
     readonly items?: ItemStackOps;
     /** Entity sub-predicate and data component predicate types this host adds to the grammar. */
     readonly extensions?: GrammarExtensions;
+    /**
+     * Which edition's spelling the registered tables are written in. Defaults
+     * to `java`, which is the grammar a datapack uses. A behavior pack's own
+     * tables need `bedrock`, and the two cannot be mixed in one registry,
+     * because the dialect decides what a key means rather than being guessed
+     * per file.
+     */
+    readonly dialect?: LootDialect;
+    /** What Bedrock's two difficulty-scaled conditions read. */
+    readonly difficulty?: LootDifficultyView;
     /**
      * Refuse a table that reported an error instead of rolling what is left of
      * it. {@link LootRegistry.table} and {@link LootRegistry.validate} throw a
@@ -185,6 +196,8 @@ export class LootRegistry {
             diagnostics: this.diagnostics,
             resolver: this.resolver,
             extensions: this.options.extensions,
+            dialect: this.options.dialect,
+            difficulty: this.options.difficulty,
             strict: this.options.strict
         });
         this.compiled.set(id, value);
@@ -229,7 +242,7 @@ export class LootRegistry {
 
         const edges = new Map<string, readonly string[]>();
         for (const [id, entry] of this.definitions.lootTablesJava) {
-            edges.set(id, lootTableReferences(packJson(entry)));
+            edges.set(id, lootTableReferences(packJson(entry), this.options.dialect));
         }
         this.cycleCache = findCycles(edges);
         return this.cycleCache;
