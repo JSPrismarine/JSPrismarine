@@ -81,3 +81,20 @@ export class CompletionState {
         this.replaced = '';
     }
 }
+
+/**
+ * Lays out candidates on one row with the selected one in brackets.
+ *
+ * Candidates are separated by two spaces. When the row overflows the width, leading
+ * candidates are dropped until the selected one fits, and the result is cut at the width.
+ *
+ * @param width - Columns available for the row.
+ */
+export function formatCompletionStrip(candidates: readonly string[], selectedIndex: number, width: number): string {
+    const cells = candidates.map((candidate, index) => (index === selectedIndex ? `[${candidate}]` : ` ${candidate} `));
+    let first = 0;
+    const rowFrom = (start: number) => cells.slice(start).join(' ');
+    const selectedEnd = (start: number) => cells.slice(start, selectedIndex + 1).join(' ').length;
+    while (first < selectedIndex && selectedEnd(first) > width) first += 1;
+    return rowFrom(first).slice(0, Math.max(width, 0));
+}

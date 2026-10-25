@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { CompletionState } from './completion';
+import { CompletionState, formatCompletionStrip } from './completion';
 
 describe('CompletionState', () => {
     it('starts closed', () => {
@@ -63,5 +63,19 @@ describe('CompletionState', () => {
         expect(state.isOpen).toBe(false);
         expect(state.candidates).toEqual([]);
         expect(state.replace).toBe('');
+    });
+});
+
+describe('formatCompletionStrip', () => {
+    it('brackets the selected candidate and pads the others', () => {
+        expect(formatCompletionStrip(['list', 'stop', 'help'], 1, 80)).toBe(' list  [stop]  help ');
+    });
+
+    it('drops leading candidates until the selected one fits', () => {
+        expect(formatCompletionStrip(['alpha', 'beta', 'gamma'], 2, 16)).toBe(' beta  [gamma]');
+    });
+
+    it('cuts the row at the width', () => {
+        expect(formatCompletionStrip(['alpha', 'beta', 'gamma'], 0, 10)).toBe('[alpha]  b');
     });
 });
