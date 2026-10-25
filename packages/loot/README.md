@@ -94,7 +94,7 @@ meaning and not the roll, and a condition list sitting unread beside a pool is i
 from a pool with no gate at all. The report names the key and the level it sat at:
 
 ```
-pools[0].conditions: the loot pool grammar has no conditions member, so nothing reads it
+pools[0].conditions: the java loot pool grammar has no conditions member, so nothing reads it
 ```
 
 The table still rolls everything it could read, so one stray key does not empty a chest. The 1447
@@ -107,6 +107,45 @@ holding one unimplemented condition folds to an empty and and passes. That is th
 for loot to fail in. Any error raised while compiling a `condition` field closes that gate for
 good, at the pool and at the entry alike, and the error that closed it is already in the
 diagnostics.
+
+## The Bedrock dialect
+
+Bedrock's behavior packs carry loot tables of their own, in the spelling Java used before 26.3
+renamed four fields. `dialect: 'bedrock'` reads that spelling. Java's path is untouched and stays
+the default, because the 1447 datapack tables are this project's gameplay source.
+
+```typescript
+const equipment = new LootRegistry(
+    { ...definitions, lootTablesJava: definitions.lootTables },
+    { dialect: 'bedrock', worldSeed }
+);
+
+equipment.roll('loot_tables/entities/zombie_equipment.json');
+```
+
+What the two dialects spell differently:
+
+| | Java 26.3 | Bedrock |
+| --- | --- | --- |
+| A pool's or entry's gate | `condition` | `conditions`, an array, each member naming its type in a `condition` key |
+| A pool's draw | `rolls` and candidate weights | `tiers`, a ladder, for ten of the 309 tables |
+| A `loot_table` entry's target | `value`, composable | `name`, the pack-relative path the registry keys it under |
+| An entry's nested rolls | none | `pools`, rolled once the entry is drawn |
+| An entry's modifiers | `modifier` | `functions`, reported and not applied |
+
+Three conditions are implemented, the three the equipment tables gate on: `random_chance`,
+`random_difficulty_chance` and `random_regional_difficulty_chance`. The other twelve Bedrock
+condition types report and close their gate. Nothing is read silently either way, which is the
+point of the previous section.
+
+`tiers` reproduces Java's `Mob.populateArmor`. The draw lands in `initial_range` counted from the
+first entry, then climbs one rung per `bonus_rolls` that beats `bonus_chance`, stopping at the last
+entry. `zombie_equipment.json` states a range of 3 over six armor sets with three bonus rolls at
+0.1087, so leather, copper and gold are common and diamond needs all three bonuses.
+
+The two difficulty-scaled conditions read a `LootDifficultyView`. Without one they see normal
+difficulty in a fully ramped region, which makes a table's stated `max_chance` its actual chance:
+`zombie_equipment.json` arms one zombie in twenty from its `0.05`, measured at 99 of 2000.
 
 ## Evaluation order
 
@@ -261,6 +300,13 @@ mobs), and the shearing tables that want a sheep color.
 
 The test needs the cache that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` populates,
 so it only runs with `JSP_VANILLA_DATAPACK` set and CI without the cache skips it.
+
+`bedrockCorpus.test.ts` is the same measurement for the Bedrock half, over the 309 tables of the
+composed BDS vanilla layers, behind `JSP_VANILLA_BEHAVIOR_PACK`. It pins the defect and its fix as
+numbers: the Java grammar arms 2000 zombies of 2000 from `zombie_equipment.json`, the Bedrock
+dialect arms 99. All 18 tables a `minecraft:equipment` component names parse with no error and roll
+something. The whole 309 report 1106 unapplied `functions`, 71 untyped `{ min, max }` providers and
+12 unimplemented condition types, counted so the gap cannot grow unnoticed.
 
 ## Decisions worth knowing
 
