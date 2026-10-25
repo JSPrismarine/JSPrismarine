@@ -32,6 +32,7 @@ import {
     positionArgument,
     relativeValueArgument,
     resourceArgument,
+    scoreHolderArgument,
     softEnumArgument,
     stringArgument
 } from '../argumentTypes';
@@ -46,6 +47,8 @@ import {
     lit,
     resolvePosition,
     resolveRotation,
+    scoreHolderOne,
+    scoreHolders,
     select,
     selectOne,
     source,
@@ -431,14 +434,14 @@ const buildConditions = (root: ReturnType<CommandRegistry<CommandSource>['regist
     const scoreOf = (context: Context, targetKey: string, objectiveKey: string): number | undefined => {
         const current = source(context);
         return current.host.scoreboard.getScore(
-            selectOne(current, value(context, targetKey)).name,
+            scoreHolderOne(current, value(context, targetKey)),
             value<string>(context, objectiveKey)
         );
     };
 
     node.then(
         lit('score').then(
-            arg('target', entityArgument()).then(
+            arg('target', scoreHolderArgument()).then(
                 arg('targetObjective', softEnumArgument('ScoreboardObjectives'))
                     .then(
                         lit('matches').then(
@@ -455,7 +458,7 @@ const buildConditions = (root: ReturnType<CommandRegistry<CommandSource>['regist
                     )
                     .then(
                         arg('operation', compareOperatorArgument()).then(
-                            arg('source', entityArgument()).then(
+                            arg('source', scoreHolderArgument()).then(
                                 attach(arg('sourceObjective', softEnumArgument('ScoreboardObjectives')), (context) => {
                                     const left = scoreOf(context, 'target', 'targetObjective');
                                     const right = scoreOf(context, 'source', 'sourceObjective');
@@ -617,11 +620,11 @@ const buildStore = (root: ReturnType<CommandRegistry<CommandSource>['register']>
 
         kind.then(
             lit('score').then(
-                arg('targets', entityArgument()).then(
+                arg('targets', scoreHolderArgument()).then(
                     arg('objective', softEnumArgument('ScoreboardObjectives')).redirect(root, {
                         apply: (context) => {
                             const current = source(context);
-                            const holders = select(current, value(context, 'targets')).map((entity) => entity.name);
+                            const holders = scoreHolders(current, value(context, 'targets'));
                             const objective = value<string>(context, 'objective');
                             return current.withStore((outcome) => {
                                 for (const holder of holders) {

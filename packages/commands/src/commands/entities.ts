@@ -355,13 +355,24 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                     arg('targets', entityArgument()).then(
                         arg('amount', integerArgument()).then(
                             arg('unit', enumArgument('ExperienceUnit', ['levels', 'points'] as const)).executes(
-                                command((context) => changeExperience(context))
+                                command((context) => changeExperience(context, 'add'))
+                            )
+                        )
+                    )
+                )
+            )
+            .then(
+                lit('set').then(
+                    arg('targets', entityArgument()).then(
+                        arg('amount', integerArgument({ min: 0 })).then(
+                            arg('unit', enumArgument('ExperienceUnit', ['levels', 'points'] as const)).executes(
+                                command((context) => changeExperience(context, 'set'))
                             )
                         )
                     )
                 )
             ),
-        { description: 'Adds or queries experience.', aliases: ['experience'], ...CHEATS }
+        { description: 'Adds, sets or queries experience.', aliases: ['experience'], ...CHEATS }
     );
 
     registry.register(
@@ -617,13 +628,14 @@ const clear = (context: Context, item: string | undefined, maxCount: number): nu
     return report(current, removed, `Removed ${removed} items`);
 };
 
-const changeExperience = (context: Context): number => {
+const changeExperience = (context: Context, mode: 'add' | 'set'): number => {
     const current = source(context);
     const amount = value<number>(context, 'amount');
     const unit = value<'levels' | 'points'>(context, 'unit');
     const players = select(current, value(context, 'targets'));
-    for (const player of players) current.host.entities.changeExperience(player, amount, unit);
-    return report(current, players.length, `Gave ${amount} ${unit} to ${players.length} players`);
+    for (const player of players) current.host.entities.changeExperience(player, amount, unit, mode);
+    const verb = mode === 'add' ? 'Gave' : 'Set';
+    return report(current, players.length, `${verb} ${amount} ${unit} for ${players.length} players`);
 };
 
 const tag = (context: Context, action: 'add' | 'remove'): number => {

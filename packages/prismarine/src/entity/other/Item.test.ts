@@ -7,6 +7,7 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { Item as ItemStack } from '../../item/Item';
 import TakeItemActorPacket from '../../network/packet/TakeItemActorPacket';
 import MoveActorAbsolutePacket from '../../network/packet/MoveActorAbsolutePacket';
+import { testEntityServer } from '../../testing/entityServer';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';
 import { Item } from './Item';
@@ -31,7 +32,7 @@ const fakeWorld = (groundY: number) => {
         // Only ever reached when a failing expectation prints an entity.
         getName: () => 'test',
         // An entity takes its server from the world its position names.
-        getServer: () => ({}),
+        getServer: () => testEntityServer(),
         getBlock: async (_x: number, y: number) => ({ isSolid: () => y <= groundY }),
         getPlayers: () => players,
         removeEntity: async (entity: any) => void removed.push(entity),
@@ -67,7 +68,7 @@ const fakePlayer = (x: number, y: number, z: number) => {
         getInventory: () => ({ addItem: (entry: ContainerEntry) => void held.push(entry) }),
         // A pickup raises `inventory_changed`, which asks whether any content
         // is loaded. This double loads none.
-        getServer: () => ({ getContent: () => undefined }),
+        getServer: () => testEntityServer(),
         viewDistance: 10,
         getNetworkSession: () => ({
             send: async (packet: any) => void sent.push(packet),

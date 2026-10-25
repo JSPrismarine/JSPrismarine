@@ -53,10 +53,16 @@ describe('the vanilla command set this server runs', () => {
         expect(registry.getAliasOwner('msg')).toBe('tell');
     });
 
-    it('registers no alias belonging to an unwired command', () => {
-        // `/experience` is `/xp`'s alias and `/xp` is unwired, so neither
-        // spelling may reach the client.
-        expect(registry.getAliasOwner('experience')).toBeUndefined();
+    it('registers an alias exactly when its owner is wired', () => {
+        // `/experience` is `/xp`'s alias, so the two spellings stand or fall
+        // together: an alias reaching the client for a command nothing can
+        // dispatch is the gap this filter exists to close.
+        expect(registry.getAliasOwner('experience')).toBe('xp');
+
+        const unwired = Object.keys(UNWIRED_COMMANDS);
+        for (const name of registry.getNames()) {
+            expect(unwired).not.toContain(name);
+        }
     });
 
     it('leaves the package itself holding everything', () => {

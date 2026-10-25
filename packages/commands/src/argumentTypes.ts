@@ -153,6 +153,44 @@ export const entityArgument = (
     describeBedrock: () => ({ kind: 'basic', type: options.wildcard === true ? 'WILDCARDSELECTION' : 'SELECTION' })
 });
 
+/**
+ * Who a score belongs to, which is Java's `ScoreHolderArgument`.
+ *
+ * Not an entity. A scoreboard scores a *name*, and a name no entity has - a
+ * "fake player" - is the normal way a datapack keeps a counter that is not
+ * about anybody. So the three forms are a selector, a bare name, and `*`,
+ * which means every holder the scoreboard already tracks.
+ */
+export type ScoreHolderModel =
+    | { readonly kind: 'selector'; readonly selector: SelectorModel }
+    | { readonly kind: 'name'; readonly name: string }
+    | { readonly kind: 'all' };
+
+/**
+ * One score holder.
+ *
+ * @param options - `dialect` picks the grammar a selector is read in.
+ */
+export const scoreHolderArgument = (
+    options: { dialect?: SelectorDialect } = {}
+): BedrockDescribedType<ScoreHolderModel> => ({
+    parse: (reader) => {
+        const start = reader.getCursor();
+        const token = readToken(reader);
+        if (token.length === 0) fail(reader, 'Expected a score holder');
+        if (token === '*') return { kind: 'all' };
+        if (!token.startsWith('@')) return { kind: 'name', name: token };
+
+        reader.setCursor(start);
+        const { selector } = parseSelector(token, options.dialect ?? 'java');
+        reader.setCursor(start + token.length);
+        return { kind: 'selector', selector };
+    },
+    // Bedrock's own `/scoreboard players` parameter is the wildcard selection,
+    // which is the type that lets `*` through.
+    describeBedrock: () => ({ kind: 'basic', type: 'WILDCARDSELECTION' })
+});
+
 /** A block position, three integer-or-relative coordinates. */
 export const blockPositionArgument = (): BedrockDescribedType<CoordinateTriple> => basic('POSITION', readTriple);
 
