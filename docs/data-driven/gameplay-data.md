@@ -112,13 +112,29 @@ an ordinary break, an explosion, and `Block.getDrops`. The tool in hand goes int
 the `tool` parameter, which is what makes Silk Touch, Fortune and the shears branches work. They
 are `match_tool` conditions and `apply_bonus` and `table_bonus` functions inside the table, reading
 the `minecraft:enchantments` component off the stack. An explosion also supplies
-`explosion_radius`, which every vanilla block table reads through `minecraft:explosion_decay`, so
-stone blown up by TNT yields cobblestone three times in four.
+`explosion_radius`, which every vanilla block table reads through `minecraft:explosion_decay`. That
+rule keeps each item with probability `1 / radius`, so stone blown up by a radius-4 TNT blast yields
+cobblestone one time in four.
 
-The index from a Bedrock block to its Java table is built forward, once per content build: the
-server walks every `minecraft:blocks/...` table the stack registered and resolves each one through
-`javaBlockStateToBedrock` to find out which Bedrock block it belongs to. A block with no table
-drops nothing from loot, which is the right answer for bedrock, air and every Bedrock-only block.
+The index from a Bedrock block to its Java table resolves backwards, from the block being broken.
+The server reads the block's own state, turns it back into a Java block state through
+`bedrockBlockStateToJava`, and asks the stack for that block's table; when the exact Java block has
+none, it falls back to the other Java blocks the Bedrock identifier stands for, which is how a
+Bedrock wall torch still drops a torch. The Java properties go into the roll as `block_state`, so
+vanilla's `match_block` conditions work — that is what makes a double slab drop two and a shelf
+mushroom at `growth=1` drop two rather than one.
+
+Resolving from the state matters because the two editions split blocks differently. Bedrock gives
+`minecraft:black_concrete_double_slab` and `minecraft:lit_furnace` identifiers of their own where
+Java states them as `type=double` and `lit=true`, and an index built forward from Java's default
+state never reaches them. 113 identifiers used to drop nothing for this reason, all 59 double slabs
+among them.
+
+243 of the 1477 palette identifiers still resolve no table. 182 are Bedrock-only blocks Java has no
+counterpart for, and 37 correctly drop nothing in both editions — air, bedrock, barriers, the
+command blocks, the light blocks. The remaining 24 are a known gap: 13 wall signs, 10 coral wall
+fans and `wall_banner` reuse another block's table through `dropsLike` in Java's code rather than in
+any data file, so nothing the loot path can read says what they drop.
 
 **Mob drops.** `rollMobDrops` in `packages/prismarine/src/entity/mobLoot.ts` builds the same kind of
 index over the `minecraft:entities/...` tables. The killer goes in as `attacking_entity` and, when
