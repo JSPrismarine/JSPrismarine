@@ -6,5 +6,6 @@ export * from './hooks';
 export * from './ItemStack';
 export * from './itemTypes';
 export * from './numberProvider';
+export * from './projection';
 export * from './schema';
 export * from './tables';
