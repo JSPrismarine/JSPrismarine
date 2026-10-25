@@ -44,8 +44,8 @@ drawn, so the project does not claim it.
 ## The parity package
 
 `packages/parity` is the test suite behind the claim: Vitest comparisons between what the server
-ships and the reference data the repository commits, so the suite needs no network and no running
-server. It is private and never published.
+ships and reference data the repository either commits or fetches. It is private and never
+published.
 
 ```sh
 pnpm --filter @jsprismarine/parity run test
@@ -55,30 +55,67 @@ pnpm --filter @jsprismarine/parity run test
 
 Every comparison belongs to a behavior family, one row of the dashboard. A family id is
 dot-separated lowercase segments, a group followed by a domain, declared in
-[`packages/parity/src/families.ts`](../../packages/parity/src/families.ts). The current families
-are `registry.blocks`, `registry.items`, `registry.entities`, `registry.biomes` and
-`conformance.claim`; the groups `mapping`, `blocks`, `items`, `recipes`, `loot`, `entities`,
-`worldgen` and `commands` are reserved for later slices.
+[`packages/parity/src/families.ts`](../../packages/parity/src/families.ts).
+
+| Group | Rows | What it measures |
+| --- | --- | --- |
+| `registry` | blocks, items, entities, biomes | The catalogs the server ships against the Bedrock captures |
+| `mapping` | blocks, items, entities, registries | Chunker's totality property per mapping domain |
+| `blocks` | properties | Every Bedrock block state's property row against the Java 26.3 jar dump |
+| `items` | components | Java's items and data component types against the Bedrock item capture |
+| `recipes` | registry | Java's vanilla recipe files, parsed and compiled through the mapping |
+| `loot` | tables | Java's vanilla loot tables, parsed with their references resolved |
+| `entities` | stats, addactor | Mob health against Java's attribute dump; a packet row per actor type |
+| `worldgen` | biomes, terrain, features | Java's biome lookups and dumped columns; feature counts |
+| `commands` | tree | The published command tree against Mojang's Bedrock command metadata |
+| `conformance` | claim, classification, exclusions | The claim, the table it counts, and the exclusions |
 
 Each test file covers one family and wraps its tests in a top-level `describe` whose title is the
 family id. That title is the whole wiring: the dashboard groups tests by splitting the test's full
 name, so there is no mapping file to keep in step.
 
+### Reference data, and rows that are not measured
+
+A comparison with nothing on the other side of it is not a pass. Every body of reference data a
+family stands on is declared in
+[`packages/parity/src/references.ts`](../../packages/parity/src/references.ts), with how this
+checkout gets it: committed to the repository, fetched into `node_modules/.cache/jsprismarine/`
+by `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`, or built by nothing yet.
+
+`describeFamily` takes the sources a family needs and skips the family when one is missing,
+naming what is absent in the skipped test's title. The dashboard shows that row as
+`not measured`, which is visually distinct from `green` and does not count toward a pass.
+
+Two sources are in the third state today. No committed golden holds a generated reference
+region, and nothing samples Java's ore and feature counts, so `worldgen.features` reports
+`not measured` and the terrain row's reference region is the nine Java columns the worldgen
+oracle dumped rather than a whole world.
+
 ### The allow list
 
 Some gaps are expected. Each one is a typed entry in
 [`packages/parity/src/allowlist.ts`](../../packages/parity/src/allowlist.ts) carrying the family,
-the gap id the comparison reports, the reason the gap is accepted, and a reference to where that
-reason is written down. A real entry:
+the gap id the comparison reports, its kind, the reason, and a reference to where that reason is
+written down. A real entry:
 
 ```ts
 {
     family: 'registry.entities',
     id: 'spawn-egg:minecraft:evocation_illager',
+    kind: 'accepted',
     reason: 'The actor keeps the legacy id; the egg item is minecraft:evoker_spawn_egg.',
     reference: 'docs/research/java-to-bedrock-translation.md section 4'
 }
 ```
+
+The kind separates correct behavior from an unfixed problem. An `accepted` gap is right: Bedrock
+has no concept for the Java value, or the project chose Bedrock's rule for a recorded reason. A
+`defect` is a gap this suite found that nobody has fixed, counted in its own dashboard column, so
+a family carrying one reads `defects` rather than `green`.
+
+The reviewed losses and merges of `@jsprismarine/mapping` become allow-list rows derived from
+that package's own loss list, which is what the plan (section 5) requires: every loss counted on
+the dashboard with its reason.
 
 The list fails in both directions. A gap the comparison reports with no entry fails the family's
 test, so a new regression cannot hide behind the known ones. An entry whose gap the comparison no
@@ -87,13 +124,14 @@ the same change.
 
 ### The goldens
 
-Comparisons read committed reference data through the loaders in
+Comparisons read reference data through the loaders in
 [`packages/parity/src/goldens.ts`](../../packages/parity/src/goldens.ts): the block palette
 snapshot under `packages/minecraft/datagen/snapshot/`, the captures under
 `packages/bedrock-data/src/jsp/` (the item list from `ItemRegistryPacket`, the
-`BiomeDefinitionListPacket` payload), and the dumps in the resources submodule
-(`entity_identifiers.dat`, `biome_definitions.json`, `runtime_item_states.json`). Tests never read
-files directly; a new comparison that needs reference data gets a loader beside the existing ones.
+`BiomeDefinitionListPacket` payload, the Java 26.3 block property and attribute dumps), the
+worldgen oracle vectors under `packages/worldgen/vectors/`, and the dumps in the resources
+submodule. Tests never read files directly; a new comparison that needs reference data gets a
+loader beside the existing ones.
 
 ### The dashboard
 
@@ -102,28 +140,46 @@ pnpm --filter @jsprismarine/parity run dashboard
 ```
 
 This runs the suite with the Vitest JSON reporter and renders one Markdown table with a row per
-family, counting passed and failed tests plus allow-listed gaps. It prints the table to stdout,
-writes it to `packages/parity/dist/dashboard.md`, and appends it to `$GITHUB_STEP_SUMMARY` when CI
-provides one. The script exits 0 even when tests fail, because its job is to report the failures;
-the test run gates CI separately.
+declared family: its status, and its passed, failed, not-measured, accepted-gap and defect
+counts. A family nobody has written a comparison for still gets a row, reading `no tests`. The
+script prints the table to stdout, writes it to `packages/parity/dist/dashboard.md`, and appends
+it to `$GITHUB_STEP_SUMMARY` when CI provides one. It exits 0 even when tests fail, because its
+job is to report the failures; the test run gates CI separately. The real-data job in
+`.github/workflows/test.yml` is where CI publishes it, because that job has the fetched sources
+the measured rows need.
 
 ### Keeping the claim honest
 
-Two tests in `conformance.claim` pin the claim itself. One asserts that every published location
-of the claim carries the adopted wording verbatim and links to the research note that enumerates
-the exclusions; the other asserts the cited note still contains that wording. A wording change has
-to arrive everywhere in the same review.
+Three families pin the claim itself.
+
+`conformance.claim` asserts that every published location of the claim carries the adopted
+wording verbatim and links to the research note that enumerates the exclusions, and that the
+cited note still contains that wording. A wording change has to arrive everywhere in the same
+review.
+
+`conformance.classification` parses the classification table out of the research note and checks
+every total the published documents state against the rows themselves: the row count, both axis
+splits, the area counts and the number of rows the claim covers. A row moving from server-decided
+to client-decided changes those totals, so it cannot land without the documents that count it.
+
+`conformance.exclusions` is one negative check per excluded category. Each asserts the exclusion
+is still written down wherever the claim is published, since deleting one is how a project starts
+claiming something. Four categories leave a mark in the code and get a second check against that
+mark rather than against the prose.
 
 ## Adding a comparison
 
 1. Pick the family. For a new one, add a constant to `FAMILIES` in
    [`packages/parity/src/families.ts`](../../packages/parity/src/families.ts), following the
    `group.domain` id scheme.
-2. If the comparison needs reference data no loader provides, add a loader to
-   [`packages/parity/src/goldens.ts`](../../packages/parity/src/goldens.ts) that reads a committed
-   file.
+2. Name the reference data the comparison stands on in
+   [`packages/parity/src/references.ts`](../../packages/parity/src/references.ts), and add a
+   loader for it in [`packages/parity/src/goldens.ts`](../../packages/parity/src/goldens.ts) if
+   none reads it yet.
 3. Create `packages/parity/src/<family>.test.ts`. Write a compare function that returns gap ids,
    run it through `checkAllowList`, and assert both the `unexpected` and `stale` halves are empty
-   inside `describe(FAMILIES.<family>)`.
-4. For each gap the project accepts, add an allow-list entry with a reason and a reference.
+   inside `describeFamily(FAMILIES.<family>, [<references>], ...)`.
+4. For each gap the project accepts, add an allow-list entry of kind `accepted` with a reason and
+   a reference. For each gap the comparison found that nobody has fixed, add one of kind
+   `defect`.
 5. Run the suite and the dashboard; the new family appears as its own row.

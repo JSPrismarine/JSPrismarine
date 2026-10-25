@@ -1,0 +1,9 @@
+---
+'@jsprismarine/parity': minor
+---
+
+Measure the phase exit criteria the plan names, and report honestly when nothing stands behind a row.
+
+Seventeen new dashboard rows join the five that existed. `mapping.blocks`, `mapping.items`, `mapping.entities` and `mapping.registries` run Chunker's totality property per domain against independent references and carry the mapping package's reviewed losses as allow-list rows, derived from its own loss list. `blocks.properties` compares all 15952 Bedrock block states against the Java 26.3 jar dump, ten property fields each. `items.components` checks Java's 1658 items and 122 component types against the Bedrock item capture. `recipes.registry` and `loot.tables` parse Java's 2042 recipe files and 1447 loot tables and compile the recipes through the mapping. `entities.stats` compares mob health against Java's attribute dump and `entities.addactor` checks a packet row per advertised actor type. `worldgen.biomes` replays Java's own biome lookups and `worldgen.terrain` generates the nine Java columns the oracle dumped. `commands.tree` checks the published command tree against Mojang's Bedrock command metadata. `conformance.classification` and `conformance.exclusions` are the two honesty tests plan section 8 requires.
+
+A row is now green only when its comparison had reference data to stand on. `src/references.ts` declares where each body of reference data comes from, and a family whose sources this checkout lacks registers one skipped test naming what is missing, which the dashboard renders as `not measured`. `worldgen.features` reports that permanently: no reference world and no sampled ore and feature distribution exist. Allow-list entries gain a `kind`, so a defect the suite found cannot pass for an accepted gap, and the dashboard counts the two in separate columns.
