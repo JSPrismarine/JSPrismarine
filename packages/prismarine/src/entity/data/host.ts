@@ -52,19 +52,23 @@ export interface EntityHostFacts {
     /** Drops an item stack as an entity at a position. */
     drop(at: ContentPosition, item: ContentItemDrop): void;
     /**
-     * Takes a block out of the world through the server's own destruction path.
+     * Raises a block's `onBreak` and puts what it yields on the ground.
      *
-     * The runtime cannot do this itself: raising the block's `onBreak` is what spills a
-     * chest a creeper blew up, and the drops a family makes while that hook runs have to
-     * be told apart from the loot table's own roll, which needs the world the drops go to.
-     * `src/world/blockDestroy.ts` is the one place that knows how.
+     * The write is still the caller's: this is the half of a destruction the runtime cannot
+     * do itself. Raising the hook is what spills a chest a creeper blew up, and the drops a
+     * family makes while it runs have to be told apart from the loot table's own roll,
+     * which needs the world those drops go to. `src/world/blockDestroy.ts` is the one place
+     * that knows how.
+     *
+     * Call it before writing over the block, because a family reads the block entity it is
+     * about to lose.
      *
      * Left out by a host with no live world behind it, which makes the caller roll the
      * table itself and leave the hook unraised, the way it did before this existed.
      *
      * @param dropsBlock - Whether the block yields anything of itself, which is the
      *   `doTileDrops` game rule. It still spills what it was holding either way.
-     * @returns True when the host took the block out.
+     * @returns True when the host took the drops, so the caller owes nothing more for them.
      */
     destroyBlock?(at: ContentPosition, options: { explosionRadius?: number; dropsBlock?: boolean }): boolean;
     /**
