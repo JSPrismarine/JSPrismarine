@@ -13,7 +13,7 @@
  * that is why [the plan](../../../../../docs/plans/data-driven-vanilla.md)
  * schedules it in phase 5 rather than early.
  */
-import type { CommandSource } from '@jsprismarine/commands';
+import type { CommandSource, FunctionOutcome } from '@jsprismarine/commands';
 import type { CommandOutcome, Diagnostic, ExecutionLimits, ExecutionReport } from '@jsprismarine/mcfunction';
 import { FunctionExecutor, LOAD_FUNCTION_TAG, TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 
@@ -36,6 +36,22 @@ import { readMacroArguments } from './snbt';
  * operation limit can stop it.
  */
 export const MAX_NESTED_FUNCTION_DISPATCH = 64;
+
+/** What a call that never reached a function reports. */
+const NOTHING_RAN = { commands: 0, result: 0, matched: false } as const;
+
+/**
+ * What one call did, which is what `/function` and `execute if function`
+ * read, plus the line count a tick reports.
+ */
+export interface FunctionRunOutcome extends FunctionOutcome {
+    /**
+     * How many command lines reached the dispatcher. The same as `result`
+     * for a function that never reached a `/return`, and the honest number
+     * for one that did.
+     */
+    readonly commands: number;
+}
 
 /** How to build a {@link FunctionRuntime}. */
 export interface FunctionRuntimeOptions {
@@ -71,6 +87,18 @@ export class FunctionRuntime {
     /** How many `/function` calls are on the JavaScript stack right now. */
     private depth = 0;
 
+    /**
+     * What a `/return` on the line being dispatched asked for, waiting to be
+     * reported back to the executor.
+     *
+     * A field rather than a return value because `/return` reaches this
+     * runtime through the command host, several frames below the dispatch
+     * that is running the line. One field serves every nesting level: the
+     * innermost dispatch is the one that clears it, so a `/return` always
+     * ends the function whose line it was on.
+     */
+    private pendingReturn: { readonly value?: number } | undefined;
+
     public constructor(private readonly options: FunctionRuntimeOptions) {
         this.report = options.report;
         this.executor = new FunctionExecutor<CommandSource>({
@@ -80,13 +108,18 @@ export class FunctionRuntime {
             ...(options.limits === undefined ? {} : { limits: options.limits }),
             runner: {
                 run: (commandLine, context) => {
+                    this.pendingReturn = undefined;
                     try {
-                        return options.dispatch(commandLine, context.source);
+                        const outcome = options.dispatch(commandLine, context.source);
+                        const returned = this.pendingReturn;
+                        return returned === undefined ? outcome : { ...outcome, returned };
                     } catch (error: unknown) {
                         // Rethrown rather than swallowed: the executor records
                         // the failure against the function and line it came
                         // from, which is more than this frame knows.
                         throw error instanceof Error ? error : new Error(String(error));
+                    } finally {
+                        this.pendingReturn = undefined;
                     }
                 }
             }
@@ -123,18 +156,18 @@ export class FunctionRuntime {
      * @param source - What `/function` was typed with. Every line runs with it
      *   made silent, as Java runs a function's output.
      * @param argumentText - The macro argument compound, as SNBT.
-     * @returns How many command lines ran, which is what `/function` reports
-     *   and what `execute store result` captures. Zero means nothing ran,
-     *   including when the function does not exist.
+     * @returns What `/function` reports and whether `execute if function`
+     *   matches. A function that does not exist ran nothing and matched
+     *   nothing.
      */
-    public run(reference: string, source: CommandSource, argumentText?: string): number {
+    public run(reference: string, source: CommandSource, argumentText?: string): FunctionRunOutcome {
         if (this.depth >= MAX_NESTED_FUNCTION_DISPATCH) {
             this.report({
                 severity: 'error',
                 code: 'limit.command-sequence-length',
                 message: `${reference} nested more than ${MAX_NESTED_FUNCTION_DISPATCH} functions deep through /execute and was stopped`
             });
-            return 0;
+            return NOTHING_RAN;
         }
 
         let macroArguments: Record<string, unknown> | undefined;
@@ -146,7 +179,7 @@ export class FunctionRuntime {
                     code: 'call.invalid-arguments',
                     message: `the arguments of /function ${reference} are not a compound this runtime can read`
                 });
-                return 0;
+                return NOTHING_RAN;
             }
         }
 
@@ -189,10 +222,32 @@ export class FunctionRuntime {
         return this.schedule.size;
     }
 
-    /** Runs `#minecraft:load`, which a server does once after its packs load. */
+    /**
+     * Records a `/return`, which ends the function the running line belongs
+     * to.
+     *
+     * @param value - What the function returns, or undefined for the two
+     *   forms that end it without a value.
+     * @returns What the `/return` line itself reports.
+     * @throws {Error} When no function is running. Java refuses a `/return`
+     *   typed at a console the same way, and the dispatcher turns this into
+     *   the message the sender sees.
+     */
+    public requestReturn(value: number | undefined): number {
+        if (this.depth === 0) throw new Error('/return can only be used inside a function');
+
+        this.pendingReturn = value === undefined ? {} : { value };
+        return value ?? 0;
+    }
+
+    /**
+     * Runs `#minecraft:load`, which a server does once after its packs load.
+     *
+     * @returns How many command lines ran.
+     */
     public runLoad(source: CommandSource): number {
         if (this.options.loaded.tags.get(LOAD_FUNCTION_TAG) === undefined) return 0;
-        return this.run(`#${LOAD_FUNCTION_TAG}`, source);
+        return this.run(`#${LOAD_FUNCTION_TAG}`, source).commands;
     }
 
     /**
@@ -207,16 +262,30 @@ export class FunctionRuntime {
      */
     public tick(source: CommandSource): number {
         let commands = 0;
-        for (const reference of this.schedule.advance()) commands += this.run(reference, source);
+        for (const reference of this.schedule.advance()) commands += this.run(reference, source).commands;
         if (this.options.loaded.tags.get(TICK_FUNCTION_TAG) !== undefined) {
-            commands += this.run(`#${TICK_FUNCTION_TAG}`, source);
+            commands += this.run(`#${TICK_FUNCTION_TAG}`, source).commands;
         }
         return commands;
     }
 
-    /** Reports what a run found and answers with the count a command returns. */
-    private finish(report: ExecutionReport): number {
+    /**
+     * Reports what a run found and reads the two answers a command wants out
+     * of it.
+     *
+     * `result` follows Java 1.20.3: the `/return` value when a function
+     * reached one, and the number of command lines run when none did. A tag
+     * whose members each returned contributes their sum, and matches when
+     * any of them returned something other than zero.
+     */
+    private finish(report: ExecutionReport): FunctionRunOutcome {
         for (const diagnostic of report.diagnostics) this.report(diagnostic);
-        return report.commands;
+
+        const returned = report.returnValues;
+        return {
+            commands: report.commands,
+            result: returned.length === 0 ? report.commands : returned.reduce((sum, value) => sum + value, 0),
+            matched: returned.some((value) => value !== 0)
+        };
     }
 }

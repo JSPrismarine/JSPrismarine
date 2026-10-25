@@ -71,7 +71,7 @@ describe('the function runtime over a datapack', () => {
             })
         );
 
-        expect(runtime.run('fixture:greet', source())).toBe(2);
+        expect(runtime.run('fixture:greet', source())).toEqual({ commands: 2, result: 2, matched: false });
         expect(lines).toEqual(['say hello', 'say again']);
     });
 
@@ -82,7 +82,7 @@ describe('the function runtime over a datapack', () => {
             })
         );
 
-        expect(runtime.run('fixture:place', source(), '{x:4,z:-7}')).toBe(1);
+        expect(runtime.run('fixture:place', source(), '{x:4,z:-7}').commands).toBe(1);
         expect(lines).toEqual(['setblock 4 70 -7 minecraft:stone']);
     });
 
@@ -91,7 +91,7 @@ describe('the function runtime over a datapack', () => {
             datapack({ 'data/fixture/function/place.mcfunction': '$say $(who)\n' })
         );
 
-        expect(runtime.run('fixture:place', source(), '{other:1}')).toBe(0);
+        expect(runtime.run('fixture:place', source(), '{other:1}').commands).toBe(0);
         expect(lines).toEqual([]);
         expect(diagnostics.map((entry) => entry.message)).toContainEqual(expect.stringContaining("no entry for 'who'"));
     });
@@ -107,7 +107,7 @@ describe('the function runtime over a datapack', () => {
             })
         );
 
-        expect(runtime.run('#fixture:all', source())).toBe(2);
+        expect(runtime.run('#fixture:all', source()).commands).toBe(2);
         expect(lines).toEqual(['say first', 'say second']);
     });
 
@@ -160,7 +160,7 @@ describe('the function runtime over a datapack', () => {
     it('reports a function nobody declared rather than failing silently', () => {
         const { runtime, diagnostics } = runtimeOver(datapack({}));
 
-        expect(runtime.run('fixture:nothing', source())).toBe(0);
+        expect(runtime.run('fixture:nothing', source())).toEqual({ commands: 0, result: 0, matched: false });
         expect(diagnostics.map((entry) => entry.message)).toContainEqual(
             expect.stringContaining('fixture:nothing does not exist')
         );
@@ -207,6 +207,50 @@ describe('the function runtime over a datapack', () => {
 
         expect(lines.length).toBeLessThan(50);
         expect(diagnostics.map((entry) => entry.code)).toContain('limit.command-sequence-length');
+    });
+
+    it('reports a /return the dispatcher routed back through requestReturn', () => {
+        // The real path: `/return` reaches the runtime through the command
+        // host, several frames below the dispatch running the line, so the
+        // dispatcher here calls `requestReturn` the way the host does.
+        const content = datapack({
+            'data/fixture/function/early.mcfunction': 'say before\nreturn 5\nsay after\n'
+        });
+        const lines: string[] = [];
+        const runtime: FunctionRuntime = new FunctionRuntime({
+            loaded: loadServerFunctions(content),
+            dispatch: (commandLine) => {
+                lines.push(commandLine);
+                if (commandLine === 'return 5') return { result: runtime.requestReturn(5) };
+                return { result: 1 };
+            },
+            report: () => {}
+        });
+
+        expect(runtime.run('fixture:early', source())).toEqual({ commands: 2, result: 5, matched: true });
+        expect(lines).toEqual(['say before', 'return 5']);
+    });
+
+    it('does not match a function that returned zero, or one that never returned', () => {
+        const content = datapack({
+            'data/fixture/function/zero.mcfunction': 'return 0\n',
+            'data/fixture/function/plain.mcfunction': 'say nothing special\n'
+        });
+        const runtime: FunctionRuntime = new FunctionRuntime({
+            loaded: loadServerFunctions(content),
+            dispatch: (commandLine) =>
+                commandLine === 'return 0' ? { result: runtime.requestReturn(0) } : { result: 1 },
+            report: () => {}
+        });
+
+        expect(runtime.run('fixture:zero', source())).toEqual({ commands: 1, result: 0, matched: false });
+        expect(runtime.run('fixture:plain', source()).matched).toBe(false);
+    });
+
+    it('refuses a /return with no function running', () => {
+        const { runtime } = runtimeOver(datapack({}));
+
+        expect(() => runtime.requestReturn(1)).toThrow('inside a function');
     });
 
     it('stops a run whose forks exceed the fork limit', () => {

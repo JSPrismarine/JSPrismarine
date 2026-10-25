@@ -44,6 +44,7 @@ const dataCommandHost = (server: Server, sequences: RandomSequences): DataComman
         runLoot: (loot, commandSource, destination) => runLootCommand(server, loot, commandSource, destination),
         testPredicate: () => unsupported('datapack predicate evaluator'),
         runFunction: (name, source, nbt) => functions().run(name, source, nbt),
+        returnFromFunction: (value) => functions().requestReturn(value),
         schedule: (name, delayTicks, mode) => functions().queue(name, delayTicks, mode),
         clearSchedule: (name) => functions().clearQueue(name),
         randomValue: (min, max, sequence) => sequences.draw(min, max, sequence),
