@@ -23,7 +23,7 @@ import { applyBlockEntityRecord, blockEntityCompound, blockEntityRecord } from '
 import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
 import { parseBiomeTags } from '../content/biomeTags';
 import type { BiomeTagIndex } from '../content/biomeTags';
-import { gameRuleSpellings } from '../content/world/gameRules';
+import { gameRuleValue } from '../content/world/gameRules';
 import type {
     ContentBlockAccess,
     ContentLevelFacts,
@@ -174,14 +174,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             if (spawn === null) throw new Error(`the ${dimension} world has not found its spawn point yet`);
             return { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() };
         },
-        gameRule: (name) => {
-            const rules = live().getGameRuleManager();
-            for (const spelling of gameRuleSpellings(name)) {
-                const found = rules.findGameRule(spelling);
-                if (found !== undefined) return found[0];
-            }
-            return undefined;
-        }
+        gameRule: (name) => gameRuleValue(live().getGameRuleManager(), name)
     };
 
     const blocks: WorldBlockGroup = {

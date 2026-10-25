@@ -21,7 +21,7 @@ import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
-import { createEngineWorld } from './EngineWorld';
+import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -133,10 +133,23 @@ const overlayBlock = (identifier: string) => {
 const fixturePalette = (): BlockPalette =>
     new BlockPalette(BLOCKS.map((identifier) => [identifier, vanillaBlockPalette().entry(identifier)!.model]));
 
+/** Where the fixture's one player stands, which is what keeps fire ticking around it. */
+const WATCHER = { getPosition: () => ({ getX: () => 8, getY: () => 64, getZ: () => 8 }), gamemode: 0 };
+
+/** What the fixture's world gives a test back. */
+interface Fixture {
+    world: World;
+    chunk: Chunk;
+    spawned: Entity[];
+    /** The world's game rules, by the name they were set under. A test writes into it. */
+    rules: Map<string, readonly [boolean | number, boolean]>;
+}
+
 /** A `World` reduced to what a destruction touches: no disk, no network, everything else real. */
-const liveWorld = (content: () => ServerContent | undefined): { world: World; chunk: Chunk; spawned: Entity[] } => {
+const liveWorld = (content: () => ServerContent | undefined): Fixture => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
+    const rules = new Map<string, readonly [boolean | number, boolean]>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -148,9 +161,15 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
         entityChunkIndices: new Map(),
         players: new Map(),
         entityGrid: { near: () => [] },
-        gameRuleManager: { getGameRule: () => [true, true] as const },
+        gameRuleManager: {
+            getGameRule: () => [true, true] as const,
+            findGameRule: (name: string) => rules.get(name.toLowerCase())
+        },
         getChunkAt: async () => chunk,
-        getPlayers: () => [],
+        // One player standing in the middle of the fixture. Fire reads the player list
+        // through `minecraft:fire_spread_radius_around_player`, and an empty world is
+        // outside every radius.
+        getPlayers: () => [WATCHER],
         sendWorldEvent: async () => {},
         sendActorSound: async () => {},
         removeEntity: async () => {},
@@ -179,11 +198,12 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
                 blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
                 loadedChunks: () => [{ x: 0, z: 0 }]
             },
-            world: createEngineWorld(world)
+            world: createEngineWorld(world),
+            canSpreadFireAround: (at) => canSpreadFireAround(world, at)
         })
     });
 
-    return { world, chunk, spawned };
+    return { world, chunk, spawned, rules };
 };
 
 /** Runs the world's scheduled ticks, which is what carries a fluid and fires a circuit. */
@@ -205,11 +225,12 @@ describe('a block the world destroyed', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: Entity[];
+    let rules: Map<string, readonly [boolean | number, boolean]>;
     let content: ServerContent;
 
     beforeEach(() => {
         let built: ServerContent | undefined;
-        ({ world, chunk, spawned } = liveWorld(() => built));
+        ({ world, chunk, spawned, rules } = liveWorld(() => built));
 
         content = buildServerContent({
             load: () => ({
@@ -326,21 +347,41 @@ describe('a block the world destroyed', () => {
     });
 
     describe('by fire', () => {
-        it('leaves nothing of the plank it burned and tells the torch standing on it', () => {
+        beforeEach(() => {
             // Every draw returns its lowest value, so each roll that can succeed does and
-            // the fire burns on its first tick rather than on an average of fifteen.
+            // the fire burns on its first tick rather than on an average of fifteen. The
+            // tick delay is then its minimum of 30 rather than a draw from 30 to 40.
             vi.spyOn(Math, 'random').mockReturnValue(0);
+        });
 
+        /**
+         * Two planks side by side with nothing under them.
+         *
+         * Nothing under them on purpose: fire whose floor is gone and whose neighbors are
+         * gone goes out, where fire on stone with every draw at its lowest never ages past
+         * 0 and so stands there forever, which is Java's own answer and not what this is
+         * trying to show.
+         */
+        const woodenRoof = (): void => {
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:oak_planks');
+            place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:oak_planks');
+        };
+
+        /** Every position the roof's fire can reach. */
+        const ROOF_POSITIONS = [
+            { x: 8, y: 64, z: 8 },
+            { x: 8, y: 65, z: 8 },
+            { x: 9, y: 64, z: 8 },
+            { x: 9, y: 65, z: 8 }
+        ];
+
+        it('leaves nothing of the plank it burned and tells the torch standing on it', () => {
             place(chunk, { x: 7, y: 63, z: 8 }, 'minecraft:stone');
             place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
             place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:oak_planks');
             place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:torch', { torch_facing_direction: 'top' });
 
             world.setLoadedBlockState(7, 64, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
-            // `FireBlock.onPlace` schedules the first fire tick in Java and the engine's
-            // `runPlacementUpdates` does not, so the test schedules it rather than waiting
-            // for a tick that never comes. That gap is the engine's, not this path's.
-            world.getSystems().ticks.list('block').schedule({ x: 7, y: 64, z: 8 }, 'minecraft:fire', 1);
             runTicks(world, 60);
 
             // Java's `removeBlock(pos, false)`: a burned plank yields nothing of itself.
@@ -349,6 +390,44 @@ describe('a block the world destroyed', () => {
             // The torch heard that what it stood on went, and popped.
             expect(world.loadedBlockAt(8, 65, 8)?.name).not.toBe('minecraft:torch');
             expect(drops()).toContainEqual({ identifier: 'minecraft:torch', count: 1 });
+        });
+
+        it('spreads to the plank beside it and goes out once both are gone', () => {
+            woodenRoof();
+
+            // Lit and then left alone. Nothing else books a fire tick, so every tick below
+            // comes from `FireBlock.onPlace` and from the fire rescheduling itself.
+            world.setLoadedBlockState(8, 65, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
+            runTicks(world, 30);
+
+            // One fire tick in: the plank it stood on has burned, and the fire has jumped
+            // to the position above the plank next door.
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:fire');
+            expect(world.loadedBlockAt(9, 65, 8)?.name).toBe('minecraft:fire');
+
+            runTicks(world, 300);
+
+            for (const at of ROOF_POSITIONS) {
+                expect(world.loadedBlockAt(at.x, at.y, at.z)?.name).toBe('minecraft:air');
+            }
+        });
+
+        it('does nothing at all with the fire spread radius at zero', () => {
+            // `doFireTick` off is the radius at 0 by Mojang's own `GameRuleRegistryFix`, and
+            // no player is ever within 0 blocks of anything.
+            rules.set('dofiretick', [false, true]);
+            woodenRoof();
+
+            world.setLoadedBlockState(8, 65, 8, { name: 'minecraft:fire', states: { age: 0 } }, true);
+            runTicks(world, 300);
+
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:oak_planks');
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:oak_planks');
+            // The fire is still there and still booked, so turning the rule back on resumes it.
+            expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:fire');
+            expect(
+                world.getSystems().ticks.list('block').hasScheduledTick({ x: 8, y: 65, z: 8 }, 'minecraft:fire')
+            ).toBe(true);
         });
     });
 

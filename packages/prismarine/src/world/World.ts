@@ -46,7 +46,7 @@ import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
-import { createEngineWorld } from './EngineWorld';
+import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
@@ -282,6 +282,9 @@ export class World implements Service {
                 randomTickChunks: () => this.randomTickChunks()
             },
             world: createEngineWorld(this),
+            // `minecraft:fire_spread_radius_around_player`, read per fire tick. Fire is the
+            // one engine system whose rule needs the player list, and the engine has none.
+            canSpreadFireAround: (at) => canSpreadFireAround(this, at),
             // The blocks that answer a random tick are the behavior families in
             // `@jsprismarine/block-behaviors`, reached through the content world adapter, so
             // `WorldManager` builds these from the content registries and leaves them out when
