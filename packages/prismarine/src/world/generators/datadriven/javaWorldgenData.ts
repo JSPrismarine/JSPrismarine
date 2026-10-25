@@ -50,6 +50,8 @@ export interface JavaWorldgenRegistries {
     readonly features: JavaRegistry;
     readonly placedFeatures: JavaRegistry;
     readonly blockStateProviders: JavaRegistry;
+    /** `worldgen/processor_list`, which a structure template is run through as it is placed. */
+    readonly processorLists: JavaRegistry;
     /** `tags/block`, each value the raw document with its `values` list and `#` references. */
     readonly blockTags: JavaRegistry;
     /** `reports/biome_parameters`, keyed by dimension identifier such as `minecraft:overworld`. */
@@ -57,7 +59,7 @@ export interface JavaWorldgenRegistries {
 }
 
 /** The nearest existing `node_modules/.cache/jsprismarine` at or above the working directory. */
-const cacheRoot = (): string => {
+export const cacheRoot = (): string => {
     let directory = process.cwd();
     for (;;) {
         const candidate = join(directory, 'node_modules', '.cache', 'jsprismarine');
@@ -175,6 +177,7 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
         features: worldgen('feature'),
         placedFeatures: worldgen('placed_feature'),
         blockStateProviders: worldgen('block_state_provider'),
+        processorLists: worldgen('processor_list'),
         blockTags: readAcrossNamespaces(data, 'tags', 'block'),
         biomeParameters: normalizeBiomeParameters(
             readRegistry(join(sources.reports, 'reports', 'biome_parameters', 'minecraft'), 'minecraft')

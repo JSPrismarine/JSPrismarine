@@ -69,6 +69,13 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
         reason: loss.reason,
         reference: loss.reference
     })),
+    ...ITEM_LOSSES.map((loss) => ({
+        family: 'items.components' as const,
+        id: `loss:${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: `${loss.reason} The item type table carries no row for it, so it has no Java components.`,
+        reference: loss.reference
+    })),
     ...ITEM_MERGES.map((merge) => ({
         family: 'mapping.items' as const,
         id: `merge:${merge.bedrockId}`,
@@ -135,6 +142,27 @@ export const allowList: readonly AllowListEntry[] = [
         kind: 'accepted',
         reason: 'The actor keeps the legacy _v2 id; the egg item is minecraft:zombie_villager_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
+    },
+
+    // Bedrock has one piston block where Java has a retracted and an extended one, so the
+    // property table's generator had to keep one of the two light dampening values and kept
+    // the extended piston's 0. A Bedrock piston is retracted unless it is firing, and Java
+    // gives the retracted piston 15, so every piston in a world lets light through that should
+    // not. The fix belongs in the generator, which should keep the value of the Java state
+    // whose dropped properties are at their defaults.
+    {
+        family: 'blocks.properties',
+        id: 'minecraft:piston#lightDampening',
+        kind: 'defect',
+        reason: "The table keeps the extended piston's 0; Java gives the retracted piston 15.",
+        reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
+    },
+    {
+        family: 'blocks.properties',
+        id: 'minecraft:sticky_piston#lightDampening',
+        kind: 'defect',
+        reason: "The table keeps the extended piston's 0; Java gives the retracted piston 15.",
+        reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
     },
 
     ...mappingLossEntries()
