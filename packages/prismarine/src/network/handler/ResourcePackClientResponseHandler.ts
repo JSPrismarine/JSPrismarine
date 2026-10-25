@@ -21,6 +21,7 @@ import type ResourcePackClientResponsePacket from '../packet/ResourcePackClientR
 import ResourcePackStackPacket from '../packet/ResourcePackStackPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
+import { joinContentPayloads } from '../contentPayloads';
 import type PacketHandler from './PacketHandler';
 
 /**
@@ -190,6 +191,11 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         const world = player.getWorld();
         const connection = session.getConnection();
 
+        // Built at startup and cached, so this is a lookup. Undefined while
+        // `content-packs` is off, and each packet below then writes what it
+        // wrote before the content build existed.
+        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+
         await connection.sendDataPacket(new JigsawStructureDataPacket());
 
         const startGame = new StartGamePacket();
@@ -222,6 +228,10 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         startGame.worldName = world.getName();
         startGame.seed = world.getSeed();
         startGame.gameRules = world.getGameRuleManager();
+        // Every block the content build holds that the client's own palette
+        // does not, which with hashed runtime ids is the only way a block
+        // this server invented resolves to anything on the client.
+        startGame.blockProperties = payloads?.blockProperties ?? null;
         await connection.sendDataPacket(startGame);
 
         await connection.sendDataPacket(new ItemRegistryPacket());

@@ -38,6 +38,7 @@ import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
+import { createEngineWorld } from './EngineWorld';
 import type { SystemBlock } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
@@ -201,8 +202,8 @@ export class World implements Service {
         this.dimension = dimension ?? Dimensions.Overworld;
         this.mobSpawner = new MobSpawner(this);
         this.physics = new BlockPhysics(this);
-        this.systems = new WorldSystems(
-            {
+        this.systems = new WorldSystems({
+            view: {
                 dimension: this.dimension,
                 blockAt: (x, y, z) => this.loadedBlockAt(x, y, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
@@ -211,14 +212,13 @@ export class World implements Service {
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
                 }
             },
-            {
-                // A scheduled block or fluid tick is the position coming due, which is the same
-                // thing `runBlockUpdates` hands to physics.
-                scheduledTick: (_kind, at) => {
-                    void this.physics.update(at.x, at.y, at.z, this.currentTick);
-                }
-            }
-        );
+            world: createEngineWorld(this)
+            // No `randomTickHandlers` yet: the blocks that answer a random tick are the
+            // behavior families in `@jsprismarine/block-behaviors`, and reaching them needs
+            // the content world adapter this world does not supply yet. The positions are
+            // drawn either way, so the draw sequence - which decides where crops grow - does
+            // not shift when they are wired.
+        });
 
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
 
@@ -719,6 +719,49 @@ export class World implements Service {
         this.spawn = pos;
     }
 
+    /**
+     * The spawn point if it has already been found, and null while it has not.
+     *
+     * {@link World.getSpawnPosition} searches for dry land the first time it is asked, which
+     * is why it is asynchronous. A caller inside the tick cannot wait for that search, so it
+     * gets what the world knows now.
+     * @returns {Vector3 | null} The spawn point, or null before it has been resolved.
+     */
+    public getKnownSpawnPosition(): Vector3 | null {
+        return this.spawn;
+    }
+
+    /**
+     * Plays a sound at a block, named the way a resource pack spells it.
+     *
+     * The engine systems and the block behaviors name their sounds - `open.door`,
+     * `random.chestopen`, `random.fizz` where lava meets water - and the level sound events
+     * the rest of this world sends are numbers out of a fixed client enum with no entry for
+     * most of them.
+     * @param {number} x - Block x.
+     * @param {number} y - Block y.
+     * @param {number} z - Block z.
+     * @param {string} sound - The sound definition's name.
+     */
+    public playNamedSound(x: number, y: number, z: number, sound: string): void {
+        this.changes.namedSound(new Vector3(x + 0.5, y + 0.5, z + 0.5), sound);
+    }
+
+    /**
+     * Emits a named particle effect at a block, such as `minecraft:crop_growth_emitter`.
+     *
+     * The counterpart of {@link World.playNamedSound}: the hardcoded effects
+     * {@link World.sendWorldEvent} carries are numbered, and the ones a behavior pack can
+     * name are not.
+     * @param {number} x - Block x.
+     * @param {number} y - Block y.
+     * @param {number} z - Block z.
+     * @param {string} particle - The effect's identifier.
+     */
+    public spawnNamedParticle(x: number, y: number, z: number, particle: string): void {
+        this.changes.namedParticle(new Vector3(x + 0.5, y + 0.5, z + 0.5), particle);
+    }
+
     // TODO: move this?
     public async useItemOn(
         itemInHand: Item | Block | null,
@@ -901,6 +944,70 @@ export class World implements Service {
         delay = 1
     ): Promise<boolean> {
         const chunk = this.getLoadedChunk(x >> 4, z >> 4) ?? (await this.getChunkAt(x, z));
+
+        return this.writeBlockRuntimeId(chunk, x, y, z, runtimeId, now, delay, true);
+    }
+
+    /**
+     * The same write, for a chunk that is already in memory.
+     *
+     * {@link World.setBlockRuntimeId} is this method with a chunk load in front of it. The
+     * split exists because the content behaviors write blocks from inside the tick and cannot
+     * await: a door has to see its own other half the moment it writes it, and generating
+     * terrain because a behavior looked at a position would be worse than declining to write.
+     * @param {number} x - World x.
+     * @param {number} y - World y.
+     * @param {number} z - World z.
+     * @param {number} runtimeId - The block state to put there.
+     * @param {number} [now] - The tick to schedule the resulting updates from.
+     * @param {number} [delay=1] - Ticks before the neighbors are looked at.
+     * @param {boolean} [notifyNeighbors=true] - Whether to run the engine updates the change
+     * causes. Java's flag 1 in `setBlockAndUpdate`, against the bare write a diode uses for
+     * its own state.
+     * @returns {boolean} `false` if nothing changed, including when the chunk is not in memory.
+     */
+    public setLoadedBlockRuntimeId(
+        x: number,
+        y: number,
+        z: number,
+        runtimeId: number,
+        now: number = this.currentTick,
+        delay = 1,
+        notifyNeighbors = true
+    ): boolean {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk) return false;
+
+        return this.writeBlockRuntimeId(chunk, x, y, z, runtimeId, now, delay, notifyNeighbors);
+    }
+
+    /**
+     * The same write, naming the block by its state rather than by its runtime id.
+     *
+     * What the engine systems write through - see {@link import('./EngineWorld')}. They
+     * carry a Bedrock identifier and a state record and know nothing of runtime ids, and a
+     * state this server's palette does not hold is declined rather than guessed at.
+     * @param {boolean} notifyNeighbors - Whether to run the engine updates the change causes.
+     * @returns {boolean} `false` if nothing changed.
+     */
+    public setLoadedBlockState(x: number, y: number, z: number, block: SystemBlock, notifyNeighbors: boolean): boolean {
+        const runtimeId = BlockRuntimeIds.tryGetByState(block.name, block.states);
+        if (runtimeId === null) return false;
+
+        return this.setLoadedBlockRuntimeId(x, y, z, runtimeId, this.currentTick, 1, notifyNeighbors);
+    }
+
+    /** The write itself, once a chunk to write into is in hand. */
+    private writeBlockRuntimeId(
+        chunk: Chunk,
+        x: number,
+        y: number,
+        z: number,
+        runtimeId: number,
+        now: number,
+        delay: number,
+        notifyNeighbors: boolean
+    ): boolean {
         if (y < chunk.getMinY() || y > chunk.getMaxY()) return false;
 
         // Idempotent, which matters more than it looks: physics re-examines positions constantly,
@@ -911,16 +1018,17 @@ export class World implements Service {
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
-        const next = chunk.getBlock(x, y, z);
-        this.systems.onBlockChanged(
-            { x, y, z },
-            { name: previous.name, states: previous.properties },
-            { name: next.name, states: next.properties }
-        );
+        const state = chunk.getBlock(x, y, z);
+        const next: SystemBlock = { name: state.name, states: state.properties };
+        this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
 
         this.changes.blockChanged(new Vector3(x, y, z), runtimeId);
 
         this.blockUpdates.scheduleAround(x, y, z, now, delay);
+
+        // Last, so that everything the change has to report has been reported before a
+        // circuit, a fluid or a fire reacts to it and writes the next block.
+        if (notifyNeighbors) this.systems.updateAround({ x, y, z }, next);
         return true;
     }
 
