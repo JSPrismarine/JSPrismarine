@@ -14,11 +14,95 @@ export {
     type PushReaction
 } from './blockRules';
 export {
+    ATTACHMENT_STATE,
+    BUTTON_PRESSED_STATE,
+    COMPARATOR,
+    COMPARATOR_SUBTRACT_STATE,
+    FACING_STATE,
+    LEVER,
+    LEVER_OPEN_STATE,
+    MOVING_BLOCK,
+    OBSERVER,
+    OBSERVER_POWERED_STATE,
+    PISTON,
+    PISTON_ARM,
+    PISTON_EXTENDED_STATE,
+    REDSTONE_BLOCK,
+    REDSTONE_TORCH,
+    REDSTONE_WIRE,
+    REPEATER,
+    REPEATER_DELAY_STATE,
+    SIGNAL_STATE,
+    STICKY_BLOCKS,
+    attachmentOf,
+    booleanState,
+    connectedDirectionOf,
+    facingOf,
+    isButton,
+    isComparator,
+    isDaylightDetector,
+    isDiode,
+    isPiston,
+    isPoweredIdentifier,
+    isPressurePlate,
+    isRepeater,
+    numberState
+} from './components';
+export {
+    COMPARATOR_DELAY_TICKS,
+    OBSERVER_PULSE_TICKS,
+    comparatorInputSignal,
+    comparatorModeOf,
+    comparatorOutputSignal,
+    comparatorTick,
+    diodeDelayTicks,
+    diodeInputSignal,
+    diodeIsPowered,
+    diodeNeighborChanged,
+    diodeOutputSignal,
+    diodeShouldPrioritize,
+    diodeShouldTurnOn,
+    diodeSideSignal,
+    observerShapeUpdate,
+    observerTick,
+    repeaterDelayTicks,
+    repeaterIsLocked,
+    repeaterTick,
+    updateDiodeNeighborsInFront,
+    updateObserverNeighborsInFront,
+    type ComparatorMode
+} from './diodes';
+export { SCHEDULED_TICK_BLOCKS, createEngine, type Engine, type EngineOptions } from './engine';
+export {
     MAX_CHAINED_NEIGHBOR_UPDATES,
     createNeighborUpdates,
     type NeighborUpdateTarget,
     type NeighborUpdates
 } from './neighborUpdates';
+export {
+    MAX_PUSH_DEPTH,
+    applyPistonMove,
+    canStickToEachOther,
+    isPushable,
+    isStickyBlock,
+    isStickyPiston,
+    pistonArmFor,
+    pistonIsPowered,
+    pistonNeighborChanged,
+    resolvePistonStructure,
+    type PistonStructure
+} from './pistons';
+export {
+    TORCH_MAX_RECENT_TOGGLES,
+    TORCH_RESTART_DELAY,
+    TORCH_TOGGLE_DELAY,
+    TORCH_TOGGLE_WINDOW,
+    incomingWireSignal,
+    isRedstoneTorch,
+    torchIsSuppressed,
+    updateWirePower,
+    wireTargetPower
+} from './redstone';
 export {
     MAX_SCHEDULED_TICKS_PER_TICK,
     TICK_PRIORITIES,
@@ -28,6 +112,25 @@ export {
     type TickHandler,
     type TickPriority
 } from './scheduler';
+export {
+    SIGNAL_MAX,
+    SIGNAL_NONE,
+    bestNeighborSignal,
+    connectsToWire,
+    controlInputSignal,
+    directSignalTo,
+    hasNeighborSignal,
+    hasSignal,
+    isSignalSource,
+    ownSignalOf,
+    signalAt,
+    strongSignalOf,
+    weakSignalOf,
+    wireConnectsOnSide,
+    wirePowerOf,
+    type SignalOptions
+} from './signal';
+export { createTestEngine, type TestEngine } from './testing';
 export {
     createTestWorld,
     type BlockUpdate,
