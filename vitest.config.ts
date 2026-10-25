@@ -61,6 +61,7 @@ export default defineConfig({
         passWithNoTests: true,
         silent: false,
         globals: true,
+        isolate: false,
         reporters: [...reporters, ...extraReporters],
         outputFile: {
             junit: './junit.xml'
