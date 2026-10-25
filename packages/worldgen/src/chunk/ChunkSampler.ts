@@ -49,8 +49,21 @@ export class ChunkSampler {
     /** The per-chunk mutable state the compiled samplers read. */
     public readonly context: SampleContext;
 
+    /**
+     * How many interpolation cells {@link ChunkSampler.forEachCellBlock} splits the chunk into.
+     *
+     * One for a dimension whose density functions interpolate nothing, in which case that
+     * method walks the chunk column by column exactly as {@link ChunkSampler.fill} does.
+     */
+    public readonly cellCount: number;
+
     private readonly finalDensity: DensitySampler;
     private readonly defaultBlock: string;
+    private readonly cellSizeXz: number;
+    private readonly cellSizeY: number;
+    private readonly cellsX: number;
+    private readonly cellsY: number;
+    private readonly cellsZ: number;
 
     public constructor(
         private readonly randomState: RandomState,
@@ -83,6 +96,16 @@ export class ChunkSampler {
                   fluidPicker
               )
             : createDisabledAquifer(fluidPicker);
+
+        // Read after the samplers are compiled, because compiling is what registers the
+        // `interpolated` nodes the cell size is taken from.
+        const cell = randomState.interpolationCellSize;
+        this.cellSizeXz = cell?.xz ?? CHUNK_SIZE;
+        this.cellSizeY = cell?.y ?? settings.noiseSettings.height;
+        this.cellsX = this.cellSpan(this.volume.minBlockX, this.volume.maxBlockX, this.cellSizeXz);
+        this.cellsY = this.cellSpan(this.volume.minBlockY, this.volume.maxBlockY, this.cellSizeY);
+        this.cellsZ = this.cellSpan(this.volume.minBlockZ, this.volume.maxBlockZ, this.cellSizeXz);
+        this.cellCount = this.cellsX * this.cellsY * this.cellsZ;
     }
 
     /** The final density at one block position. */
@@ -126,6 +149,54 @@ export class ChunkSampler {
     }
 
     /**
+     * Visits every block of one interpolation cell, top slab first.
+     *
+     * A block is the same whichever order it is asked in, so this exists only to keep one
+     * interpolation cell current for 128 consecutive samples instead of eight. Walking the
+     * chunk column by column crosses a cell boundary every eight blocks and makes the density
+     * stack refetch eight cell corners each time; walking it cell by cell crosses one per cell.
+     *
+     * @param cell - A cell index below {@link ChunkSampler.cellCount}. Indices run from the top
+     *   of the dimension down, so a caller that stops early has filled the sky and not the
+     *   bedrock.
+     */
+    public forEachCellBlock(
+        cell: number,
+        visit: (x: number, y: number, z: number, state: string, scheduleFluidUpdate: boolean) => void
+    ): void {
+        const cellZ = cell % this.cellsZ;
+        const remainder = (cell - cellZ) / this.cellsZ;
+        const cellX = remainder % this.cellsX;
+        const cellY = this.cellsY - 1 - (remainder - cellX) / this.cellsX;
+
+        const volume = this.volume;
+        const originX = Math.floor(volume.minBlockX / this.cellSizeXz) + cellX;
+        const originY = Math.floor(volume.minBlockY / this.cellSizeY) + cellY;
+        const originZ = Math.floor(volume.minBlockZ / this.cellSizeXz) + cellZ;
+        const firstX = Math.max(volume.minBlockX, originX * this.cellSizeXz);
+        const lastX = Math.min(volume.maxBlockX, originX * this.cellSizeXz + this.cellSizeXz - 1);
+        const firstY = Math.max(volume.minBlockY, originY * this.cellSizeY);
+        const lastY = Math.min(volume.maxBlockY, originY * this.cellSizeY + this.cellSizeY - 1);
+        const firstZ = Math.max(volume.minBlockZ, originZ * this.cellSizeXz);
+        const lastZ = Math.min(volume.maxBlockZ, originZ * this.cellSizeXz + this.cellSizeXz - 1);
+
+        for (let x = firstX; x <= lastX; x++) {
+            for (let z = firstZ; z <= lastZ; z++) {
+                for (let y = lastY; y >= firstY; y--) {
+                    const substance = this.aquifer.computeSubstance(x, y, z, this.density(x, y, z));
+                    visit(
+                        x,
+                        y,
+                        z,
+                        substance ?? this.defaultBlock,
+                        substance !== undefined && substance !== AIR && this.aquifer.shouldScheduleFluidUpdate()
+                    );
+                }
+            }
+        }
+    }
+
+    /**
      * Generates one column from the top of the dimension down to its floor.
      *
      * @returns One entry per y level, ordered from `minBlockY` upward.
@@ -156,5 +227,10 @@ export class ChunkSampler {
             grid.push(row);
         }
         return grid;
+    }
+
+    /** How many cells of one size the extent `[min, max]` touches. */
+    private cellSpan(min: number, max: number, size: number): number {
+        return Math.floor(max / size) - Math.floor(min / size) + 1;
     }
 }

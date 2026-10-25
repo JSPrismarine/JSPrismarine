@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import registryVectors from '../../vectors/surface-registries.json' with { type: 'json' };
 import { RandomState } from '../RandomState';
 import { WorldgenData } from '../WorldgenData';
-import { ChunkSampler } from './ChunkSampler';
+import { CHUNK_SIZE, ChunkSampler } from './ChunkSampler';
 
 /**
  * Golden-output regression coverage for performance work.
@@ -59,6 +59,38 @@ describe('the overworld golden chunks', () => {
         { timeout: 120_000 },
         ({ chunkX, chunkZ, sha256 }) => {
             expect(hashChunk(new ChunkSampler(state, { chunkX, chunkZ }))).toBe(sha256);
+        }
+    );
+
+    it.each(GOLDEN_CHUNKS.slice(0, 2))(
+        'walks chunk $chunkX,$chunkZ cell by cell to the same blocks',
+        { timeout: 120_000 },
+        ({ chunkX, chunkZ }) => {
+            // The cell walk exists only to keep an interpolation cell current for longer, so
+            // it has to answer with the same block and the same fluid update flag at every one
+            // of the 98304 positions the column walk reaches, and reach no other position.
+            const columns = new Map<string, string>();
+            const byColumn = new ChunkSampler(state, { chunkX, chunkZ });
+            for (let localZ = 0; localZ < CHUNK_SIZE; localZ++) {
+                for (let localX = 0; localX < CHUNK_SIZE; localX++) {
+                    const x = chunkX * CHUNK_SIZE + localX;
+                    const z = chunkZ * CHUNK_SIZE + localZ;
+                    byColumn.forEachColumnBlock(x, z, (y, block, scheduleFluidUpdate) => {
+                        columns.set(`${x},${y},${z}`, `${block}|${scheduleFluidUpdate ? 1 : 0}`);
+                    });
+                }
+            }
+
+            const cells = new Map<string, string>();
+            const byCell = new ChunkSampler(state, { chunkX, chunkZ });
+            for (let cell = 0; cell < byCell.cellCount; cell++) {
+                byCell.forEachCellBlock(cell, (x, y, z, block, scheduleFluidUpdate) => {
+                    cells.set(`${x},${y},${z}`, `${block}|${scheduleFluidUpdate ? 1 : 0}`);
+                });
+            }
+
+            expect(columns.size).toBe(CHUNK_SIZE * CHUNK_SIZE * 384);
+            expect([...cells].sort()).toEqual([...columns].sort());
         }
     );
 });
