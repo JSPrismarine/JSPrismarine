@@ -12,7 +12,7 @@ describe('computeLayout', () => {
             sidePaneWidth: SIDE_PANE_WIDTH,
             logWidth: 120 - SIDE_PANE_WIDTH,
             logHeight: 37,
-            levelWidth: 'full',
+            levelStyle: 'full',
             showNamespace: true,
             compactStatus: false
         });
@@ -25,7 +25,7 @@ describe('computeLayout', () => {
         expect(layout.sidePane).toBe('hidden');
         expect(layout.logWidth).toBe(80);
         expect(layout.logHeight).toBe(22);
-        expect(layout.levelWidth).toBe('short');
+        expect(layout.levelStyle).toBe('short');
         expect(layout.showNamespace).toBe(false);
         expect(layout.compactStatus).toBe(false);
     });

@@ -43,7 +43,8 @@ export class LogStore {
 
     private visibleCache: StoredRecord[] = [];
     private visibleFrozen: readonly StoredRecord[] | undefined;
-    private matchCache: number[] | undefined;
+    /** Indices into `visibleCache` that match the search; kept in step by `push`, rebuilt otherwise. */
+    private matchCache: number[] = [];
     private hidden = 0;
     private readonly listeners = new Set<(change: LogStoreChange) => void>();
 
@@ -74,9 +75,6 @@ export class LogStore {
 
     /** Indices into {@link visible} whose message contains the search query. Empty without a query. */
     public get matches(): readonly number[] {
-        if (this.matchCache === undefined) {
-            this.matchCache = this.searchNeedle === undefined ? [] : this.collectMatches(this.searchNeedle);
-        }
         return this.matchCache;
     }
 
@@ -139,7 +137,7 @@ export class LogStore {
     /** Sets the search query, matched case-insensitively against visible messages. */
     public setSearch(query: string | undefined): void {
         this.searchNeedle = query === undefined || query === '' ? undefined : query.toLowerCase();
-        this.matchCache = undefined;
+        this.matchCache = this.collectMatches();
         this.notify({ type: 'reset' });
     }
 
@@ -197,6 +195,8 @@ export class LogStore {
             if (this.passes(oldest)) {
                 this.visibleCache.shift();
                 evicted = 1;
+                if (this.matchCache[0] === 0) this.matchCache.shift();
+                for (let i = 0; i < this.matchCache.length; i += 1) this.matchCache[i]! -= 1;
             } else {
                 this.hidden -= 1;
             }
@@ -205,9 +205,9 @@ export class LogStore {
         this.count += 1;
 
         this.visibleFrozen = undefined;
-        this.matchCache = undefined;
         if (this.passes(record)) {
             this.visibleCache.push(record);
+            if (this.matchesSearch(record)) this.matchCache.push(this.visibleCache.length - 1);
             this.notify({ type: 'append', count: 1, evicted });
         } else {
             this.hidden += 1;
@@ -235,14 +235,19 @@ export class LogStore {
             }
         }
         this.visibleFrozen = undefined;
-        this.matchCache = undefined;
+        this.matchCache = this.collectMatches();
         this.notify({ type: 'reset' });
     }
 
-    private collectMatches(needle: string): number[] {
+    private matchesSearch(record: StoredRecord): boolean {
+        return this.searchNeedle !== undefined && record.message.toLowerCase().includes(this.searchNeedle);
+    }
+
+    private collectMatches(): number[] {
+        if (this.searchNeedle === undefined) return [];
         const matches: number[] = [];
         this.visibleCache.forEach((record, index) => {
-            if (record.message.toLowerCase().includes(needle)) matches.push(index);
+            if (this.matchesSearch(record)) matches.push(index);
         });
         return matches;
     }

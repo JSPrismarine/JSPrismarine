@@ -1,3 +1,4 @@
+import { columns, sliceColumns } from '../text';
 import type { ThemeRole } from '../theme/theme';
 
 /**
@@ -24,8 +25,6 @@ export type ServerState = 'starting' | 'running' | 'stopping' | 'stopped' | 'cra
 
 const ELLIPSIS = '…';
 
-const columns = (text: string) => [...text].length;
-
 /**
  * Picks the segments that fit in `width` columns, dropping the lowest priority ones first.
  *
@@ -49,7 +48,7 @@ export function layoutSegments(segments: readonly Segment[], width: number, sepa
     if (first === undefined) return [];
     const firstWidth = columns(first.segment.text);
     if (firstWidth > width) {
-        const cut = [...first.segment.text].slice(0, width - 1).join('');
+        const cut = sliceColumns(first.segment.text, 0, width - 1);
         return [{ ...first.segment, text: `${cut}${ELLIPSIS}` }];
     }
 

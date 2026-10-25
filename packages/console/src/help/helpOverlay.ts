@@ -4,6 +4,7 @@ import type { TextChunk } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { COMMAND_GROUPS, formatBinding } from '../keymap/catalog';
 import type { CommandCatalog, CommandSpec } from '../keymap/catalog';
+import { columns } from '../text';
 
 /** Inputs for {@link createHelpOverlay}. */
 export interface HelpOverlayProps {
@@ -49,8 +50,6 @@ const BORDER = 2;
 const FOOTER_ROWS = 2;
 const Z_INDEX = 100;
 
-const columnsOf = (text: string) => [...text].length;
-
 const keysOf = (command: CommandSpec): string =>
     command.bindings.length > 0 ? command.bindings.map(formatBinding).join(', ') : (command.hint ?? '');
 
@@ -80,8 +79,8 @@ const splitBlocks = (blocks: HelpLine[][]): [HelpLine[], HelpLine[]] => {
 function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeight: number): HelpLayout {
     const blocks = linesFor(catalog);
     const commands = blocks.flat().filter((line) => line.kind === 'command');
-    const keyWidth = Math.max(0, ...commands.map((line) => columnsOf(line.keys)));
-    const titleWidth = Math.max(0, ...commands.map((line) => columnsOf(line.title)));
+    const keyWidth = Math.max(0, ...commands.map((line) => columns(line.keys)));
+    const titleWidth = Math.max(0, ...commands.map((line) => columns(line.title)));
     const columnWidth = keyWidth + KEY_GAP + titleWidth;
 
     const maxInnerWidth = Math.max(1, terminalWidth - BORDER - PADDING_X * 2);
@@ -89,16 +88,16 @@ function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeig
 
     const single = joinBlocks(blocks);
     const twoColumnsFit = columnWidth * 2 + COLUMN_GAP <= maxInnerWidth && blocks.length > 1;
-    const columns = single.length > maxBodyRows && twoColumnsFit ? splitBlocks(blocks) : [single];
+    const laidOut = single.length > maxBodyRows && twoColumnsFit ? splitBlocks(blocks) : [single];
 
-    const height = Math.max(...columns.map((column) => column.length));
+    const height = Math.max(...laidOut.map((column) => column.length));
     const truncated = height > maxBodyRows;
     const rows = truncated ? maxBodyRows : height;
-    const width = Math.min(maxInnerWidth, columns.length * columnWidth + (columns.length - 1) * COLUMN_GAP);
+    const width = Math.min(maxInnerWidth, laidOut.length * columnWidth + (laidOut.length - 1) * COLUMN_GAP);
 
     const visibleRows = truncated ? rows - 1 : rows;
     return {
-        columns: columns.map((column) => column.slice(0, visibleRows)),
+        columns: laidOut.map((column) => column.slice(0, visibleRows)),
         width,
         rows,
         truncated
@@ -154,7 +153,7 @@ export function createHelpOverlay(
         const result = layoutHelp(catalog, renderer.terminalWidth, renderer.terminalHeight);
         const keyWidth = Math.max(
             0,
-            ...result.columns.flat().map((line) => (line.kind === 'command' ? columnsOf(line.keys) : 0))
+            ...result.columns.flat().map((line) => (line.kind === 'command' ? columns(line.keys) : 0))
         );
         const columnWidth = Math.floor(
             (result.width - COLUMN_GAP * (result.columns.length - 1)) / result.columns.length

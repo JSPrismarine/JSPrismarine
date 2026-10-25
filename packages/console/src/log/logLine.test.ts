@@ -1,4 +1,6 @@
 import type { LogEntry } from '@jsprismarine/console-protocol';
+import { LOG_LEVELS } from '@jsprismarine/logger';
+import type { LogLevel } from '@jsprismarine/logger';
 import type { StyledText } from '@opentui/core';
 import { parseColor } from '@opentui/core';
 import { describe, expect, it } from 'vitest';
@@ -30,7 +32,7 @@ const options = (overrides: Partial<LogLineOptions> = {}): LogLineOptions => ({
     width: 80,
     wrap: false,
     showNamespace: true,
-    levelWidth: 'full',
+    levelStyle: 'full',
     theme: defaultTheme,
     ...overrides
 });
@@ -50,10 +52,11 @@ describe('formatLogLine', () => {
         expect(message?.fg?.equals(parseColor(defaultTheme.text))).toBe(true);
     });
 
-    it('uses short level tokens and can hide the namespace column', () => {
-        expect(
-            text(formatLogLine(record({ level: 'warn' }), options({ levelWidth: 'short', showNamespace: false })))
-        ).toEqual(['12:05:33 WRN Server started']);
+    it('uses one-letter level tokens in the short style and can hide the namespace column', () => {
+        const short = (level: LogLevel) =>
+            text(formatLogLine(record({ level }), options({ levelStyle: 'short', showNamespace: false })))[0];
+        expect(short('warn')).toBe('12:05:33 W Server started');
+        expect(LOG_LEVELS.map((level) => short(level)?.charAt(9))).toEqual(['E', 'W', 'I', 'V', 'D', 'S']);
     });
 
     it('truncates long namespaces to the column width', () => {
@@ -73,6 +76,22 @@ describe('formatLogLine', () => {
         expect(rows).toHaveLength(1);
         expect(rows[0]).toHaveLength(50);
         expect(rows[0]!.endsWith('aaa…')).toBe(true);
+    });
+
+    it('measures and cuts by code points so astral characters fill one column each', () => {
+        const [row] = text(
+            formatLogLine(record({ message: '😀'.repeat(30) }), options({ width: 40, showNamespace: false }))
+        );
+        expect([...row!]).toHaveLength(40);
+        expect(row!.endsWith('😀…')).toBe(true);
+        const [wrapped, rest] = text(
+            formatLogLine(
+                record({ message: '😀'.repeat(30) }),
+                options({ width: 40, wrap: true, showNamespace: false })
+            )
+        );
+        expect([...wrapped!]).toHaveLength(40);
+        expect([...rest!.trim()]).toHaveLength(7);
     });
 
     it('wraps on word boundaries and indents continuation rows under the message column', () => {
@@ -105,8 +124,11 @@ describe('formatLogLine', () => {
         expect(row!.chunks.every((chunk) => chunk.fg?.equals(parseColor(defaultTheme.textMuted)))).toBe(true);
     });
 
-    it('renders a dropped notice with the count', () => {
-        const [row] = formatLogLine({ ...base(), kind: 'dropped', count: 42 }, options());
+    it('renders a dropped notice from the message the store wrote', () => {
+        const [row] = formatLogLine(
+            { ...base({ message: '42 log lines were dropped' }), kind: 'dropped', count: 42 },
+            options()
+        );
         expect(text([row!])[0]).toBe('12:05:33 42 log lines were dropped');
         expect(row!.chunks.at(-1)?.fg?.equals(parseColor(defaultTheme.warning))).toBe(true);
     });
