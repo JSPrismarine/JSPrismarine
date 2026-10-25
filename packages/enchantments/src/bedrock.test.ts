@@ -103,4 +103,13 @@ describe('projecting onto a Bedrock client', () => {
 
         expect(entries[0]?.lore).toBe('Sweeping Edge 1 (minecraft:sweeping_edge)');
     });
+
+    it('projects without a registry, which is what a host with no enchantment data has', () => {
+        const { entries, forceGlint } = projectToBedrock(undefined, new Map([[SWEEPING_EDGE, 2]]), mapper, {
+            lore: (definition, id, level) => `${definition === undefined ? 'unknown' : 'known'} ${id} ${level}`
+        });
+
+        expect(entries[0]?.lore).toBe('unknown minecraft:sweeping_edge 2');
+        expect(forceGlint).toBe(true);
+    });
 });
