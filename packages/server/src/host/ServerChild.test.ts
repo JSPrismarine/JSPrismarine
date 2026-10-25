@@ -89,6 +89,20 @@ describe('spawnServerChild', () => {
         await expect(exited(child)).resolves.toEqual({ code: null, signal: 'SIGKILL' });
     });
 
+    it('reports a spawn that fails as an exit with code 1 and a closed link', async () => {
+        const child = await spawnServerChild({
+            userArgs: [],
+            launch: { execPath: '/nonexistent/node', execArgv: [], scriptArgs: [fixture] }
+        });
+        children.push(child);
+        const closed = new Promise<void>((done) => child.link.onClose(done));
+
+        await expect(exited(child)).resolves.toEqual({ code: 1, signal: null });
+        await closed;
+        expect(child.pid).toBeUndefined();
+        expect(child.link.send({ type: 'shutdown', v: 1 })).toBe(false);
+    });
+
     it('closes the link when the child exits', async () => {
         const child = await spawnFixture();
         await nextMessage(child);

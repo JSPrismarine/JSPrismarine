@@ -7,7 +7,10 @@ import type { Readable } from 'node:stream';
 /** A line of the child's stdout or stderr, without its line terminator. */
 export type OutputListener = (stream: 'stdout' | 'stderr', text: string) => void;
 
-/** How the child ended, straight from the process `exit` event. */
+/**
+ * How the child ended. `code` is 1 and `signal` null when the process could not be spawned at
+ * all, so a failed spawn reads like a crash.
+ */
 export type ExitListener = (code: number | null, signal: NodeJS.Signals | null) => void;
 
 /**
@@ -15,6 +18,8 @@ export type ExitListener = (code: number | null, signal: NodeJS.Signals | null) 
  * that go before the user's own arguments.
  */
 export interface Launch {
+    /** The executable to run; defaults to `process.execPath`. */
+    execPath?: string;
     /** Node flags, such as `--import tsx` in development. */
     execArgv: readonly string[];
     /** The script to run, or nothing when the executable is the program itself. */
@@ -102,7 +107,7 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
     const killGraceMs = options.killGraceMs ?? 10_000;
 
     const child: ChildProcess = spawn(
-        process.execPath,
+        launch.execPath ?? process.execPath,
         [...launch.execArgv, ...launch.scriptArgs, ...options.userArgs, '--role', 'server'],
         {
             cwd: options.cwd,
@@ -126,14 +131,18 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
         for (const listener of outputListeners) listener('stderr', text);
     });
 
-    child.on('exit', (code, signal) => {
+    // 'close' rather than 'exit': a process that ran emits both, but one that could not be
+    // spawned (ENOENT, EAGAIN, EMFILE) emits only 'error' and 'close'. Node reports a failed
+    // spawn with a negative errno as the code, which becomes 1 here so it reads as a crash.
+    child.on('close', (code, signal) => {
         alive = false;
         timers.clearTimeout(termTimer);
         timers.clearTimeout(killTimer);
-        for (const listener of exitListeners) listener(code, signal);
+        const exitCode = code === null || code >= 0 ? code : 1;
+        for (const listener of exitListeners) listener(exitCode, signal);
     });
     // Without a listener a failed spawn or a failed IPC write would be thrown asynchronously;
-    // both end in an 'exit' event, which is where the supervisor learns about them.
+    // 'close' is where the supervisor learns about both.
     child.on('error', () => {});
 
     const kill = (): void => {
