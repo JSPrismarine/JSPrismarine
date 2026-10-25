@@ -1,3 +1,4 @@
+export * from './families';
 export * from './family';
 export * from './geometry';
 export * from './harness';

@@ -23,6 +23,7 @@ import { familyBehavior } from './family';
 import { offset } from './geometry';
 import type { VoxelDimension, VoxelWorld } from './voxelWorld';
 import { createVoxelWorld, OVERWORLD } from './voxelWorld';
+import type { BlockStates } from './world';
 
 /** How a harness builds the definition and picks the world and dimension. */
 export interface HarnessOptions {
@@ -36,6 +37,14 @@ export interface HarnessOptions {
 
 /** The player a harness uses when a test names none. */
 export const TEST_PLAYER: HookActor = { identifier: 'minecraft:player', position: { x: 0, y: 0, z: 0 } };
+
+/** What a test says about a placement beyond the block that is now there. */
+export interface PlaceOptions {
+    /** Who placed it. Absent means {@link TEST_PLAYER}; undefined means the world did. */
+    readonly placedBy?: HookActor | undefined;
+    /** What the placement overwrote, which the merging families read. */
+    readonly previous?: { readonly identifier: string; readonly states?: BlockStates };
+}
 
 /** Builds the definition a block type would resolve from, for one identifier. */
 export const testDefinition = (identifier: string, components: Readonly<Record<string, unknown>> = {}): Definition => ({
@@ -81,9 +90,28 @@ export class FamilyHarness {
         return this.dimension.block(position);
     }
 
-    /** Dispatches `onPlace` for the block now at the position. */
-    public place(position: BlockPosition, placedBy: HookActor | undefined = TEST_PLAYER): void {
-        this.handlers.onPlace?.({ block: this.block(position), previous: undefined, placedBy });
+    /**
+     * Dispatches `onPlace` for the block now at the position.
+     *
+     * @param options - `previous` is what the placement overwrote, which a
+     *   slab merge and a candle stack read. Leaving `placedBy` out uses
+     *   {@link TEST_PLAYER}; passing it as undefined is a world placement.
+     */
+    public place(position: BlockPosition, options: PlaceOptions = {}): void {
+        const placedBy = 'placedBy' in options ? options.placedBy : TEST_PLAYER;
+        this.handlers.onPlace?.({
+            block: this.block(position),
+            previous:
+                options.previous === undefined
+                    ? undefined
+                    : {
+                          identifier: options.previous.identifier,
+                          position,
+                          dimension: this.dimension.name,
+                          states: options.previous.states ?? {}
+                      },
+            placedBy
+        });
     }
 
     /** Dispatches `onBreak`, with the block as it was before the break. */

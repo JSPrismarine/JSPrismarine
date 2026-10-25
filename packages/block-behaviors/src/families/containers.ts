@@ -1,0 +1,268 @@
+/**
+ * The families that hold something: chests and the other inventories,
+ * furnaces, the cauldron, the composter, the flower pot, and the utility
+ * blocks that open a screen.
+ */
+import type { BlockPosition } from '@jsprismarine/blocks';
+
+import { defineFamily } from '../family';
+import { facingFrom, HORIZONTAL_FACES, offset } from '../geometry';
+import { isWater } from '../identifiers';
+import { emptyContainer, slotsOf, spillContainer } from '../rules/container';
+import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
+import { bareName, hasState, setStates, stateNumber } from '../state';
+import type { BlockEntityData, WorldActions } from '../world';
+import { dropSelf } from './shared';
+
+/**
+ * The position a chest's block entity records as its pair, or undefined when
+ * it has none. The value comes back out of an open record, so it is checked
+ * rather than assumed.
+ */
+export const pairedPosition = (data: BlockEntityData | undefined): BlockPosition | undefined => {
+    const paired = data?.['pairedWith'];
+    if (typeof paired !== 'object' || paired === null) return undefined;
+    if (!('x' in paired) || !('y' in paired) || !('z' in paired)) return undefined;
+    const { x, y, z } = paired;
+    if (typeof x !== 'number' || typeof y !== 'number' || typeof z !== 'number') return undefined;
+    return { x, y, z };
+};
+
+/** The blocks that keep their contents when they are broken. */
+const KEEPS_CONTENTS = (identifier: string): boolean => bareName(identifier).endsWith('shulker_box');
+
+/** How many layers a composter takes before it makes bone meal. */
+export const COMPOSTER_FULL = 7;
+
+/** The levels a cauldron fills to. */
+export const CAULDRON_FULL = 6;
+
+/**
+ * Chests, barrels, shulker boxes and decorated pots.
+ *
+ * Pairing is the one rule a chest decides for itself: a chest placed beside
+ * another chest of the same kind and facing joins it into one inventory,
+ * which this family records in the block entity of both.
+ */
+export const containerFamily = defineFamily(
+    'jsprismarine:container',
+    'Gives a container its block entity, pairs a chest with the chest beside it, spills its contents on break unless it is a shulker box, and marks a barrel open while a player uses it.',
+    {
+        onPlace: (event, world) => {
+            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
+            if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
+                setStates(world, event.block, {
+                    'minecraft:cardinal_direction': facingFrom(event.placedBy.position, event.block.position)
+                });
+            }
+            if (!bareName(event.block.identifier).endsWith('chest')) return;
+
+            for (const face of HORIZONTAL_FACES) {
+                const partnerPosition = offset(event.block.position, face);
+                const partner = world.getBlock(partnerPosition);
+                if (partner === undefined || partner.identifier !== event.block.identifier) continue;
+                const partnerData = world.getBlockData(partnerPosition);
+                if (partnerData?.['pairedWith'] !== undefined) continue;
+
+                world.setBlockData(partnerPosition, { ...partnerData, pairedWith: event.block.position });
+                world.setBlockData(event.block.position, {
+                    ...emptyContainer(event.block.identifier),
+                    pairedWith: partnerPosition
+                });
+                return;
+            }
+        },
+        onPlayerInteract: (event, world) => {
+            if (hasState(event.block, 'open_bit')) {
+                setStates(world, event.block, { open_bit: true });
+                world.playSound(event.block.position, 'random.barrelopen');
+                return true;
+            }
+            world.playSound(event.block.position, 'random.chestopen');
+            return undefined;
+        },
+        onBreak: (event, world, context) => {
+            const partner = pairedPosition(world.getBlockData(event.brokenBlock.position));
+            if (partner !== undefined) {
+                const partnerData = world.getBlockData(partner);
+                if (partnerData !== undefined) {
+                    world.setBlockData(partner, { ...partnerData, pairedWith: undefined });
+                }
+            }
+            if (!KEEPS_CONTENTS(event.brokenBlock.identifier)) spillContainer(world, event.brokenBlock);
+            dropSelf(world, context, event.brokenBlock);
+        }
+    }
+);
+
+/** Furnaces, smokers, blast furnaces, campfires and the brewing stand. */
+export const furnaceFamily = defineFamily(
+    'jsprismarine:furnace',
+    'Gives the block its slots, faces the placer, drops its contents on break, and extinguishes a campfire that water reaches.',
+    {
+        onPlace: (event, world) => {
+            world.setBlockData(event.block.position, emptyContainer(event.block.identifier));
+            if (event.placedBy !== undefined && hasState(event.block, 'minecraft:cardinal_direction')) {
+                setStates(world, event.block, {
+                    'minecraft:cardinal_direction': facingFrom(event.placedBy.position, event.block.position)
+                });
+            }
+        },
+        onNeighborChanged: (event, world) => {
+            if (!hasState(event.block, 'extinguished')) return;
+            const above = world.getBlock(offset(event.block.position, 'up'));
+            if (above === undefined || !isWater(above.identifier)) return;
+            setStates(world, event.block, { extinguished: true });
+            world.playSound(event.block.position, 'random.fizz');
+        },
+        onStepOn: (event, world) => {
+            if (!hasState(event.block, 'extinguished')) return;
+            if (event.block.states['extinguished'] === true) return;
+            world.spawnParticle(event.entity.position, 'minecraft:campfire_smoke_particle');
+        },
+        onBreak: (event, world, context) => {
+            spillContainer(world, event.brokenBlock);
+            dropSelf(world, context, event.brokenBlock);
+        }
+    }
+);
+
+/** The cauldron, which holds one of three liquids. */
+export const cauldronFamily = defineFamily(
+    'jsprismarine:cauldron',
+    'Fills a level at a time and empties at zero; which bucket or bottle did it is the item runtime decision.',
+    {
+        onPlayerInteract: (event, world) => {
+            const level = stateNumber(event.block, 'fill_level');
+            if (level >= CAULDRON_FULL) return undefined;
+            setStates(world, event.block, { fill_level: level + 2, cauldron_liquid: 'water' });
+            world.playSound(event.block.position, 'bucket.empty_water');
+            return true;
+        },
+        onBreak: (event, world, context) => {
+            dropSelf(world, context, event.brokenBlock);
+        }
+    }
+);
+
+/** The composter, which turns a stack of plant matter into bone meal. */
+export const composterFamily = defineFamily(
+    'jsprismarine:composter',
+    'Adds a layer per use and gives back bone meal at the eighth, which is the level Java calls full.',
+    {
+        onPlayerInteract: (event, world) => {
+            const level = stateNumber(event.block, 'composter_fill_level');
+            if (level > COMPOSTER_FULL) {
+                setStates(world, event.block, { composter_fill_level: 0 });
+                world.dropItem(event.block.position, { identifier: 'minecraft:bone_meal', count: 1 });
+                world.playSound(event.block.position, 'block.composter.empty');
+                return true;
+            }
+            setStates(world, event.block, { composter_fill_level: level + 1 });
+            world.playSound(event.block.position, 'block.composter.fill');
+            return true;
+        }
+    }
+);
+
+/** The flower pot, which holds one plant. */
+export const flowerPotFamily = defineFamily(
+    'jsprismarine:flower_pot',
+    'Swaps the plant it holds on use and drops it on break; which plants fit is the item runtime decision.',
+    {
+        onPlayerInteract: (event, world) => {
+            const data = world.getBlockData(event.block.position);
+            const held = data?.items?.[0];
+            if (held !== undefined) {
+                world.dropItem(event.block.position, held);
+                world.setBlockData(event.block.position, { items: [undefined], capacity: 1 });
+                setStates(world, event.block, { update_bit: true });
+                return true;
+            }
+            return undefined;
+        },
+        onBreak: (event, world, context) => {
+            spillContainer(world, event.brokenBlock);
+            dropSelf(world, context, event.brokenBlock);
+        }
+    }
+);
+
+/** The blocks a beacon pyramid is built from. */
+export const BEACON_BASE_NAMES: ReadonlySet<string> = new Set([
+    'iron_block',
+    'gold_block',
+    'emerald_block',
+    'diamond_block',
+    'netherite_block'
+]);
+
+/** How many levels of pyramid sit under a beacon. */
+export const beaconLevels = (world: WorldActions, position: BlockPosition): number => {
+    let levels = 0;
+    for (let level = 1; level <= 4; level += 1) {
+        let complete = true;
+        for (let x = -level; x <= level && complete; x += 1) {
+            for (let z = -level; z <= level && complete; z += 1) {
+                const block = world.getBlock({ x: position.x + x, y: position.y - level, z: position.z + z });
+                if (block === undefined || !BEACON_BASE_NAMES.has(bareName(block.identifier))) complete = false;
+            }
+        }
+        if (!complete) break;
+        levels = level;
+    }
+    return levels;
+};
+
+/**
+ * The workstations, the beacon, the conduit, the spawners and the sticky and
+ * damaging blocks.
+ *
+ * Forty-seven blocks with little in common, so the family answers the ones
+ * whose rule is a block rule: the beacon's pyramid, the anvil's fall, the
+ * spawner's timer and the blocks that hurt what stands on them.
+ */
+export const utilityFamily = defineFamily(
+    'jsprismarine:utility',
+    'Counts a beacon pyramid, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime.',
+    {
+        onPlace: (event, world) => {
+            if (isFallingBlock(event.block.identifier)) scheduleFall(world, event.block);
+            if (bareName(event.block.identifier) === 'beacon') {
+                world.setBlockData(event.block.position, { levels: beaconLevels(world, event.block.position) });
+            }
+        },
+        onNeighborChanged: (event, world) => {
+            if (isFallingBlock(event.block.identifier)) {
+                scheduleFall(world, event.block);
+                return;
+            }
+            if (bareName(event.block.identifier) !== 'beacon') return;
+            world.setBlockData(event.block.position, { levels: beaconLevels(world, event.block.position) });
+        },
+        onTick: (event, world) => {
+            if (isFallingBlock(event.block.identifier)) {
+                fallOneStep(world, event.block);
+                return;
+            }
+            if (bareName(event.block.identifier) !== 'mob_spawner') return;
+            const data = world.getBlockData(event.block.position);
+            const entity = typeof data?.['entity'] === 'string' ? data['entity'] : 'minecraft:pig';
+            world.spawnEntity(offset(event.block.position, 'up'), entity);
+            world.scheduleTick(event.block.position, 200 + Math.floor(world.random() * 600));
+        },
+        onStepOn: (event, world) => {
+            if (bareName(event.block.identifier) !== 'magma') return;
+            world.spawnParticle(event.entity.position, 'minecraft:basic_flame_particle');
+        },
+        onEntityFallOn: (event, world) => {
+            if (!isFallingBlock(event.block.identifier)) return;
+            if (event.fallDistance < 1) return;
+            world.playSound(event.block.position, 'random.anvil_land');
+        },
+        onBreak: (event, world, context) => {
+            if (slotsOf(event.brokenBlock.identifier) > 0) spillContainer(world, event.brokenBlock);
+            dropSelf(world, context, event.brokenBlock);
+        }
+    }
+);
