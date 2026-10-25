@@ -139,10 +139,10 @@ describe('the vanilla command set this server runs', () => {
         );
     });
 
-    it('offers 52 commands with the pack stack on and 50 with it off', () => {
+    it('offers 53 commands with the pack stack on and 51 with it off', () => {
         // The number a player sees in their client. Stated outright because
         // it is what a release note reports and what a regression moves.
-        expect(registry.getNames()).toHaveLength(52);
-        expect(buildVanillaCommands().getNames()).toHaveLength(50);
+        expect(registry.getNames()).toHaveLength(53);
+        expect(buildVanillaCommands().getNames()).toHaveLength(51);
     });
 });

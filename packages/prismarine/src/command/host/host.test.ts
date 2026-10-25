@@ -79,6 +79,7 @@ const buildFixture = (): Fixture => {
     const entities: Entity[] = [];
     const players: Player[] = [];
     const dropped: { position: Vector3; contents: unknown[] }[] = [];
+    let weather: 'clear' | 'rain' | 'thunder' = 'clear';
     const sent: unknown[] = [];
     const feedback: string[] = [];
     const errors: string[] = [];
@@ -120,6 +121,10 @@ const buildFixture = (): Fixture => {
             return true;
         },
         setSpawnPosition: vi.fn(),
+        getWeather: () => weather,
+        setWeather: vi.fn((kind: 'clear' | 'rain' | 'thunder') => {
+            weather = kind;
+        }),
         dropContents: async (position: Vector3, contents: unknown[]) => {
             dropped.push({ position, contents });
         },
@@ -545,13 +550,24 @@ describe('the server command host', () => {
         });
     });
 
-    describe('what has no subsystem behind it', () => {
-        it('refuses a weather change rather than reporting one', async () => {
-            // `/weather` is not registered, so this reaches the host only
-            // through a direct call - which is what `execute` would do.
-            expect(() => serverCommandHost(fixture.server).world.setWeather('rain')).toThrow('weather');
+    describe('the weather', () => {
+        it('sets what it is asked for and reads it back', () => {
+            const host = serverCommandHost(fixture.server).world;
+
+            host.setWeather('rain');
+
+            expect(fixture.world.setWeather).toHaveBeenCalledWith('rain', undefined);
+            expect(host.getWeather()).toBe('rain');
         });
 
+        it('passes a duration through when one is given', () => {
+            serverCommandHost(fixture.server).world.setWeather('thunder', 600);
+
+            expect(fixture.world.setWeather).toHaveBeenCalledWith('thunder', 600);
+        });
+    });
+
+    describe('what has no subsystem behind it', () => {
         it('refuses an NBT read', () => {
             expect(() => serverCommandHost(fixture.server).data.getData({ kind: 'storage', id: 'test' })).toThrow(
                 'NBT'
