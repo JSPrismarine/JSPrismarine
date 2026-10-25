@@ -9,7 +9,10 @@ applied, every anvil rename and every lore line was invisible in the inventory. 
 pickaxe, the mining speed went up, and the item looked exactly as it had before.
 
 The user data compound now carries the durability spent as `Damage`, the name and lore under
-`display`, and the enchantments as `ench` with the numbers a Bedrock client knows. An enchantment
+`display`, the enchantments as `ench` with the numbers a Bedrock client knows, and what a container
+item holds as `Items`, which is the preview drawn under a shulker box. The `Items` list is written
+by the storage codec's own `itemSlotsToNbt`, so the preview and the world record cannot drift
+apart. An enchantment
 Bedrock has no number for, which is Sweeping Edge and every datapack enchantment, goes through
 `projectToBedrock`: a lore line above the stack's own lore, and an `ench` entry under an id no
 `EnchantType` has, which makes the client shine the item without printing anything about it. That
