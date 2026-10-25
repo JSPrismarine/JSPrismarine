@@ -82,7 +82,10 @@ const componentOf = (stack: ItemStack, type: string): Record<string, unknown> =>
 /**
  * Compiles Java's `ListOperation`, whose `MapCodec` dispatches on a `mode` key
  * that sits flat beside the rest of the owner's members, so `value` is the
- * owning object rather than the mode alone.
+ * owning object rather than the mode alone. `insert` and `replace_section`
+ * leave the list alone when the offset is past its end, and `replace_section`
+ * without a `size` takes out as many entries as it puts in, both the way
+ * Java's `apply` does.
  */
 const listOperation = (
     value: unknown,
@@ -90,14 +93,22 @@ const listOperation = (
 ): ((current: readonly unknown[], additions: readonly unknown[]) => unknown[]) => {
     const mode = asString(member(value, 'mode')) ?? 'replace_all';
     const offset = Math.max(0, asNumber(member(value, 'offset')) ?? 0);
-    const size = Math.max(0, asNumber(member(value, 'size')) ?? 0);
+    const declaredSize = asNumber(member(value, 'size'));
+    const size = declaredSize === undefined ? undefined : Math.max(0, declaredSize);
 
     if (mode === 'replace_all') return (_current, additions) => [...additions];
     if (mode === 'append') return (current, additions) => [...current, ...additions];
-    if (mode === 'insert')
-        return (current, additions) => [...current.slice(0, offset), ...additions, ...current.slice(offset)];
+    if (mode === 'insert') {
+        return (current, additions) =>
+            offset > current.length
+                ? [...current]
+                : [...current.slice(0, offset), ...additions, ...current.slice(offset)];
+    }
     if (mode === 'replace_section') {
-        return (current, additions) => [...current.slice(0, offset), ...additions, ...current.slice(offset + size)];
+        return (current, additions) =>
+            offset > current.length
+                ? [...current]
+                : [...current.slice(0, offset), ...additions, ...current.slice(offset + (size ?? additions.length))];
     }
 
     context.at('mode').error(`unknown list operation mode ${mode}`);

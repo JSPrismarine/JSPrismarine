@@ -338,6 +338,24 @@ describe('component modifiers', () => {
         expect(componentOf(result, 'minecraft:writable_book_content')).toEqual(expected);
     });
 
+    it('replaces as many entries as it adds when replace_section carries no size', () => {
+        const result = apply(
+            { type: 'minecraft:set_lore', lore: ['x', 'y'], mode: 'replace_section', offset: 1 },
+            stack('minecraft:stone', 1, [['minecraft:lore', ['one', 'two', 'three']]])
+        );
+
+        expect(componentOf(result, 'minecraft:lore')).toEqual(['one', 'x', 'y']);
+    });
+
+    it.each(['insert', 'replace_section'])('leaves the list alone when the %s offset is past its end', (mode) => {
+        const result = apply(
+            { type: 'minecraft:set_lore', lore: ['x'], mode, offset: 4 },
+            stack('minecraft:stone', 1, [['minecraft:lore', ['one', 'two', 'three']]])
+        );
+
+        expect(componentOf(result, 'minecraft:lore')).toEqual(['one', 'two', 'three']);
+    });
+
     it('writes book covers and pages', () => {
         const covered = apply({ type: 'minecraft:set_book_cover', title: 'Guide', author: 'Steve' });
         const paged = apply({ type: 'minecraft:set_written_book_pages', pages: [{ raw: 'page' }] }, covered);
