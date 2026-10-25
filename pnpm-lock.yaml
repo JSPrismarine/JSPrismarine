@@ -421,6 +421,12 @@ importers:
 
   packages/console:
     dependencies:
+      '@jsprismarine/console-protocol':
+        specifier: workspace:*
+        version: link:../console-protocol
+      '@jsprismarine/logger':
+        specifier: workspace:*
+        version: link:../logger
       '@opentui/core':
         specifier: 0.6.8
         version: 0.6.8(typescript@7.0.2)(web-tree-sitter@0.25.10)
@@ -631,6 +637,9 @@ importers:
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser
+      '@jsprismarine/console-protocol':
+        specifier: workspace:*
+        version: link:../console-protocol
       '@jsprismarine/errors':
         specifier: workspace:*
         version: link:../errors
