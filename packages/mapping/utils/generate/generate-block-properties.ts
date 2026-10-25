@@ -10,9 +10,9 @@
  * (base values plus the golden's `stateOverrides`) and assigns it to the
  * Bedrock state `javaBlockStateToBedrock` resolves. Where several Java states
  * collapse onto one Bedrock state their rows must agree; a field two sources
- * disagree on keeps the first source's value and lands in `conflicts` for
- * review. Bedrock palette blocks no Java state reaches land in `bedrockOnly`
- * and keep their engine values.
+ * disagree on keeps the value of the source nearest the block's default state
+ * and lands in `conflicts` for review. Bedrock palette blocks no Java state
+ * reaches land in `bedrockOnly` and keep their engine values.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
