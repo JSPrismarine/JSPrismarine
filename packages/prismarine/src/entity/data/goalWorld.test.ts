@@ -429,6 +429,15 @@ describe('the goal world over the entity runtime', () => {
             expect(fixture.runtime.poi('buried_treasure', groundAt(0, 0), 64)).toEqual(groundAt(20, 0));
             expect(fixture.runtime.poi('buried_treasure', groundAt(0, 0), 4)).toBeUndefined();
         });
+
+        it('says once that a kind nothing indexes is a kind nothing finds', () => {
+            const fixture = fixtureOf();
+
+            fixture.runtime.poi('suspicious_location', groundAt(0, 0), 32);
+            fixture.runtime.poi('suspicious_location', groundAt(0, 0), 32);
+
+            expect(fixture.reports.filter((line) => line.includes('suspicious_location'))).toHaveLength(1);
+        });
     });
 
     describe('sitting and sleeping', () => {

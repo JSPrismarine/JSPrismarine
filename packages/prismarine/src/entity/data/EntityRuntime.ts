@@ -88,6 +88,8 @@ export class EntityRuntime implements EntityScene {
     private readonly rides = new RideIndex();
     /** The points of interest of the dimension, which eleven goals search. */
     private readonly interest = new PointsOfInterest({ navigation: () => this.navigation() });
+    /** The point-of-interest kinds already reported as unindexed, so each is said once. */
+    private readonly unindexedPoi = new Set<string>();
     private readonly lookupContent: () => ServerContent;
     private readonly onReport: (message: string) => void;
     private facts: EntityFactsLookup | undefined;
@@ -342,6 +344,11 @@ export class EntityRuntime implements EntityScene {
 
     /** The nearest point of interest of a kind, for the eleven goals that ask. */
     public poi(kind: string, center: EntityPosition, radius: number): EntityPosition | undefined {
+        // Once per kind, because a goal asks every tick and the gap is worth naming once.
+        if (!this.interest.knows(kind) && !this.unindexedPoi.has(kind)) {
+            this.unindexedPoi.add(kind);
+            this.report(`nothing indexes the ${kind} points of interest, so the goals that want one wait`);
+        }
         return this.interest.nearest(kind, center, radius);
     }
 
