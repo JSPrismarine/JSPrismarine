@@ -1,0 +1,147 @@
+/**
+ * The world interface every behavior family is written against.
+ *
+ * A block behavior reads and writes blocks, drops items, moves entities,
+ * plays sounds, schedules ticks and asks about redstone power. Those are the
+ * only ways a block touches the world, so they are the whole of this
+ * interface. The server implements it over its own chunk storage and entity
+ * manager; the tests implement it over a map of positions. Neither side is
+ * visible from the other, which is how this package stays free of the
+ * server's classes.
+ */
+import type { BlockPosition, BlockStateValue, HookActor, HookBlock } from '@jsprismarine/blocks';
+import { blockProperties } from '@jsprismarine/blocks';
+
+/** The state values a behavior writes when it places or rewrites a block. */
+export type BlockStates = Readonly<Record<string, BlockStateValue>>;
+
+/** An item stack leaving a block, as a drop, an ejection or a container's contents. */
+export interface ItemDrop {
+    /** The namespaced item identifier, such as `minecraft:wheat_seeds`. */
+    readonly identifier: string;
+    readonly count: number;
+}
+
+/**
+ * What a block entity stores.
+ *
+ * Bedrock block entities have no shared schema, so the fields the behaviors
+ * agree on are named here and anything else travels under the index
+ * signature. A container's `items` is sparse on purpose: an empty slot is
+ * `undefined`, which is what the comparator fill-level formula counts.
+ */
+export interface BlockEntityData {
+    /** One entry per slot, `undefined` for an empty one. */
+    readonly items?: readonly (ItemDrop | undefined)[];
+    /** How many slots the container has, which the comparator divides by. */
+    readonly capacity?: number;
+    /** A sign's lines, a lectern's book title, a jukebox's record. */
+    readonly text?: readonly string[];
+    /** True once wax or a similar seal makes the block entity read-only. */
+    readonly sealed?: boolean;
+    readonly [field: string]: unknown;
+}
+
+/**
+ * An entity a behavior found in the world.
+ *
+ * {@link HookActor} is what a hook event carries and has no identity, so this
+ * adds the id {@link WorldActions.removeEntity} takes.
+ */
+export interface WorldEntity extends HookActor {
+    readonly id: number;
+}
+
+/**
+ * The per-state facts the overlay's `jsprismarine:block_properties`
+ * component carries, derived from the component factory that declares them so
+ * the field names and the `push_reaction` domain have one source.
+ */
+export type BlockProperties = Parameters<typeof blockProperties.create>[0];
+
+/** One of the four values `jsprismarine:block_properties.push_reaction` takes. */
+export type PushReaction = BlockProperties['pushReaction'];
+
+/** The values a block with no `jsprismarine:block_properties` component reads as. */
+export const DEFAULT_BLOCK_PROPERTIES: BlockProperties = (() => {
+    const parsed = blockProperties.schema({});
+    if (!parsed.ok) throw new Error(`the block properties schema rejected its own defaults: ${parsed.message}`);
+    return parsed.value;
+})();
+
+/**
+ * Everything a block does to the world, for one dimension.
+ *
+ * Every position is in world coordinates and in this instance's dimension.
+ * A behavior never crosses dimensions through one instance; it asks
+ * {@link BlockWorld.at} for the other one.
+ */
+export interface WorldActions {
+    /** The block at a position, or undefined when the position is not loaded. */
+    getBlock(position: BlockPosition): HookBlock | undefined;
+    /**
+     * Replaces the block at a position.
+     *
+     * @param states - The whole state record, not a patch. Absent means the
+     *   block's default state.
+     */
+    setBlock(position: BlockPosition, identifier: string, states?: BlockStates): void;
+    /** The `jsprismarine:block_properties` of a block type, defaults included. */
+    propertiesOf(identifier: string): BlockProperties;
+    /** Drops an item stack as an entity at a position. */
+    dropItem(position: BlockPosition, drop: ItemDrop): void;
+    /**
+     * Spawns an entity.
+     *
+     * @param data - The entity's own data, such as the block a falling block
+     *   entity carries.
+     * @returns The id {@link WorldActions.removeEntity} takes.
+     */
+    spawnEntity(position: BlockPosition, identifier: string, data?: BlockEntityData): number;
+    /** Removes an entity by the id {@link WorldActions.spawnEntity} returned. */
+    removeEntity(entity: number): void;
+    /** Every entity whose position is inside the block at a position. */
+    entitiesAt(position: BlockPosition): readonly WorldEntity[];
+    /** Plays a sound event, such as `block.door.open`. */
+    playSound(position: BlockPosition, sound: string): void;
+    /** Emits a particle effect, such as `minecraft:crop_growth_emitter`. */
+    spawnParticle(position: BlockPosition, particle: string): void;
+    /**
+     * Asks for `onTick` at a position after a delay.
+     *
+     * @param delay - Game ticks from now, at least 1.
+     */
+    scheduleTick(position: BlockPosition, delay: number): void;
+    /** A block entity's data, or undefined when the position has none. */
+    getBlockData(position: BlockPosition): BlockEntityData | undefined;
+    /** Replaces a block entity's data whole. */
+    setBlockData(position: BlockPosition, data: BlockEntityData): void;
+    /** Tells the six neighbors of a position that it changed. */
+    notifyNeighbors(position: BlockPosition): void;
+    /** The redstone power reaching a position, 0 to 15. */
+    redstonePower(position: BlockPosition): number;
+    /** The light level at a position, 0 to 15, as the growth and melt rules read it. */
+    lightLevel(position: BlockPosition): number;
+    /**
+     * A number in [0, 1).
+     *
+     * Chance lives on the interface rather than in the families so a test can
+     * drive a probabilistic rule to either outcome without patching globals.
+     */
+    random(): number;
+}
+
+/**
+ * The dimensions a behavior can reach.
+ *
+ * A behavior resolves the event block's dimension once per event, so a
+ * portal can look at the other side without every other family paying for a
+ * dimension argument.
+ */
+export interface BlockWorld {
+    /** The actions for one dimension, such as `minecraft:overworld`. */
+    at(dimension: string): WorldActions;
+}
+
+/** Presents one {@link WorldActions} as a {@link BlockWorld} with a single dimension. */
+export const singleDimensionWorld = (actions: WorldActions): BlockWorld => ({ at: () => actions });
