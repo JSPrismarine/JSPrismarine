@@ -242,7 +242,16 @@ export const composterFamily = defineFamily(
     }
 );
 
-/** The flower pot, which holds one plant. */
+/**
+ * The flower pot, which holds one plant.
+ *
+ * `update_bit` says whether the pot has contents: `false` is an empty pot. Taking the
+ * plant out therefore clears it. It used to set it, which left an emptied pot claiming
+ * to be full and put a `minecraft:flower_pot[update_bit=1]` on the wire, a state the
+ * Java-to-Bedrock table never emits. All 40 Java `potted_*` blocks and the empty
+ * `minecraft:flower_pot` collapse onto `update_bit=0`, because the plant travels in the
+ * block entity rather than in the state.
+ */
 export const flowerPotFamily = defineFamily(
     'jsprismarine:flower_pot',
     'Swaps the plant it holds on use and drops it on break; which plants fit is the item runtime decision.',
@@ -253,7 +262,7 @@ export const flowerPotFamily = defineFamily(
             if (held !== undefined) {
                 world.dropItem(event.block.position, held);
                 world.setBlockData(event.block.position, { items: [undefined], capacity: 1 });
-                setStates(world, event.block, { update_bit: true });
+                setStates(world, event.block, { update_bit: false });
                 return true;
             }
             return undefined;
