@@ -146,6 +146,22 @@ describe('an item stack on the wire', () => {
         expect(enchantmentsIn(tag)).toEqual([{ id: 9, level: 1 }]);
     });
 
+    it('lists what a shulker box holds, which is what the client previews', () => {
+        const held = new Item({ name: 'minecraft:diamond_sword', count: 1 }).withEnchantments({
+            'minecraft:sharpness': 1
+        });
+        const box = new Item({ name: 'minecraft:shulker_box', count: 1 }).withContents([null, held]);
+
+        const items = [...(userDataOf(box).userDataTag?.getList('Items', false) ?? [])];
+
+        expect(items).toHaveLength(1);
+        expect(items[0]?.getString('Name', '')).toBe('minecraft:diamond_sword');
+        expect(items[0]?.getByte('Count', 0)).toBe(1);
+        // The slot it sat in, not its position in the list: only filled slots go out.
+        expect(items[0]?.getByte('Slot', -1)).toBe(1);
+        expect(enchantmentsIn(items[0]?.getCompound('tag', false) ?? null)).toEqual([{ id: 9, level: 1 }]);
+    });
+
     it('keeps a shield blocking tick after the compound', () => {
         const item = new Item({ name: 'minecraft:shield', count: 1, customName: 'Wall' });
 

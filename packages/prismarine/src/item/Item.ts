@@ -9,6 +9,7 @@ import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protoco
 import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
+import { storedItem } from '../inventory/persistence';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
 import { itemUserDataTag } from './userData';
@@ -593,6 +594,9 @@ export class Item {
             // Spent rather than remaining, which is what both editions store and what the
             // client draws the damage bar from.
             damage: Math.max(0, this.getMaxDurability() - this.durability),
+            // Through the stored form, so the `Items` list the client previews a shulker box
+            // from is the same list the world record keeps.
+            contents: this.heldContents.map((held) => (held === null ? null : storedItem(held))),
             enchantmentRegistry: this.content?.enchantments
         });
     }
