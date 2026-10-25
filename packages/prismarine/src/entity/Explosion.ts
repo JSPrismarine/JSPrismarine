@@ -1,68 +1,46 @@
-import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
+/**
+ * A blast, over the server's world and its entities.
+ *
+ * The algorithm is not here. `@jsprismarine/engine-systems` holds Java's `ServerExplosion`, with
+ * the 16 by 16 by 16 ray cast, the exposure grid and the damage curve, because an explosion is
+ * one of the engine systems neither edition publishes as data. This translates: it hands that
+ * package the world and the entities standing near, applies the hits it gets back, and rolls the
+ * loot of each block it is told is going.
+ *
+ * Written once and given a power rather than being a creeper's method, because everything that
+ * explodes explodes the same way and differs only in how hard. TNT is 4, a creeper 3, a charged
+ * one 6. The one thing a caller supplies beyond the power is who is answerable for it, so a
+ * player killed by a creeper is told it was a creeper.
+ * @see https://minecraft.wiki/w/Explosion
+ */
+import { explode as castBlast } from '@jsprismarine/engine-systems';
+import type { BlockPosition, BlockRef, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
-import type { Vector3 } from '@jsprismarine/math';
-import { liquidOf } from '../world/physics/BlockRules';
+import { Vector3 } from '@jsprismarine/math';
+
+import { rollBlockDrops } from '../block/blockLoot';
+import { Item } from '../item/Item';
+import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
+import { lootLevelOf } from '../world/lootLevel';
 import type { World } from '../world/World';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
 import { sizeOf } from './EntitySize';
-import { Mob } from './Mob';
 
 /**
- * A blast: what it hurts, how hard, and what it takes out of the world.
+ * Where an entity's eyes are, as a fraction of its height.
  *
- * Written once and given a power rather than being a creeper's method, because everything that
- * explodes explodes the same way and differs only in how hard - TNT is 4, a creeper 3, a charged
- * one 6. The one thing a caller supplies beyond the power is who is answerable for it, so a
- * player killed by a creeper is told it was a creeper.
- * @see https://minecraft.wiki/w/Explosion
+ * Java's `EntityDimensions.eyeHeight` default. A player's own is 1.62 rather than this, which
+ * is 0.09 higher than the default puts it; it moves the knockback direction by a fraction of a
+ * degree and nothing else, because the damage reads the whole collision box instead.
  */
-
-/** How far past its own power a blast reaches, and the divisor the damage curve is built on. */
-const REACH_MULTIPLIER = 2;
-
-/**
- * The curve, straight from vanilla.
- *
- * `((impact² + impact) / 2) * 7 * diameter + 1`, where impact runs from one at the center to zero
- * at the edge. It is steep on purpose: a creeper at point blank does forty-three half-hearts and
- * kills an unarmored player outright, and one at four blocks does a couple.
- */
-const DAMAGE_CURVE = 7;
-
-/** How hard a blast shoves, at the center. */
-const KNOCKBACK = 1.6;
-
-/** How far apart the samples are when checking whether something is behind cover. */
-const SIGHT_STEP = 0.5;
-
-/**
- * Whether a block withstands a blast of this power, read from the Java-sourced property table.
- *
- * By state name rather than through the block registry, for the reason `world/physics/BlockRules`
- * sets out: the registry knows a fifth of the blocks the client does and `getBlock` returns *air*
- * for the rest, so a blast-resistance check through it would quietly decide that most of the world
- * was air and blow up the lot. The table knows every state with a Java source; a Bedrock-only
- * block falls back to no resistance, which is what the old name set said about it too.
- *
- * The rule is the center-ray bound of vanilla's curve. Vanilla fires rays whose intensity starts
- * at `power * (0.7..1.3)` and loses `(resistance / 5 + 0.3) * 0.3` per block it crosses, breaking
- * a block while any intensity remains. This model has no rays, so a block survives when its own
- * absorption stops the strongest possible ray: obsidian at 1200 shrugs off any vanilla blast,
- * stone at 6 none of them, and water's 100 is exactly why a one-block moat tames TNT.
- */
-const survivesBlast = (name: string, power: number): boolean => {
-    // Liquids absorb a blast rather than being thrown by it, whatever their listed resistance.
-    if (liquidOf(name) !== null) return true;
-    const resistance = bedrockBlockPropertiesOf(name)?.blastResistance ?? 0;
-    return (resistance / 5 + 0.3) * 0.3 >= power * 1.3;
-};
+const EYE_HEIGHT_FRACTION = 0.85;
 
 /** What a blast is. */
 export interface ExplosionOptions {
-    /** Vanilla's power: TNT is 4, a creeper 3, a charged creeper 6. */
+    /** Java's radius: TNT is 4, a creeper 3, a charged creeper 6. */
     power: number;
     /** Whoever set it off, so a death can be reported as their doing. */
     source?: Entity | null;
@@ -70,12 +48,18 @@ export interface ExplosionOptions {
     breaksBlocks?: boolean;
 }
 
+/** An entity paired with the geometry the ray math reads off it. */
+interface CaughtEntity extends ExplosionEntity {
+    readonly entity: Entity;
+}
+
 /**
  * Sets a blast off at a point.
- * @param {World} world - Where.
- * @param {Vector3} at - The center.
- * @param {ExplosionOptions} options - How hard, and whose fault.
- * @returns {Promise<void>} Resolves once everything has been hurt and the blocks are gone.
+ *
+ * @param world - Where.
+ * @param at - The center, in world coordinates rather than block coordinates.
+ * @param options - How hard, and whose fault.
+ * @returns Resolves once everything has been hurt and the blocks are gone.
  * @example
  * ```typescript
  * await explode(world, creeper.getPosition(), { power: 3, source: creeper });
@@ -83,17 +67,49 @@ export interface ExplosionOptions {
  */
 export const explode = async (world: World, at: Vector3, options: ExplosionOptions): Promise<void> => {
     const { power, source = null, breaksBlocks = true } = options;
-    const reach = power * REACH_MULTIPLIER;
 
     await world.sendWorldEvent(at, LevelEvent.PARTICLES_EXPLOSION, 0);
     if (source) await world.sendActorSound(source, LevelSoundEvent.EXPLODE);
 
-    if (breaksBlocks && griefingAllowed(world)) await breakBlocks(world, at, power);
+    const center = { x: at.getX(), y: at.getY(), z: at.getZ() };
+    const caught = entitiesNear(world, at);
+    const drops: Array<{ at: BlockPosition; item: Item }> = [];
 
-    // After the blocks, so anything thrown by the blast is thrown through the hole it made rather
-    // than into the wall that is about to stop existing.
-    await hurtEverythingNear(world, at, reach, source);
+    const blast = castBlast<CaughtEntity>(explosionWorldOf(world), {
+        center,
+        radius: power,
+        entities: caught,
+        breaksBlocks: breaksBlocks && griefingAllowed(world),
+        onBlockDestroyed: (position, block) => collectDrops(world, position, block, power, drops)
+    });
+
+    // After the rays, so an entity is measured against the world as it still stands and a wall
+    // shields what is behind it even though the wall is about to stop existing. Java's order.
+    await Promise.all(
+        blast.hits.map(async (hit) => {
+            const entity = hit.entity.entity;
+            if (!entity.isAlive()) return;
+
+            await entity.damage(hit.damage, new DamageSource({ cause: DamageCause.Explosion, attacker: source }));
+            shove(entity, hit.knockback);
+        })
+    );
+
+    await Promise.all(
+        drops.map(async (drop) =>
+            world.dropContents(new Vector3(drop.at.x + 0.5, drop.at.y + 0.5, drop.at.z + 0.5), [drop.item])
+        )
+    );
 };
+
+/**
+ * The world the ray cast reads and writes.
+ *
+ * The engine's own view of this server's chunks, so a blast writes blocks through the same path
+ * a fluid or a piston does: light, the client packets and the neighbor updates all follow, and a
+ * write into a chunk that is not in memory is declined rather than generating terrain.
+ */
+const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(world);
 
 /** Whether the world lets explosions rearrange it. */
 const griefingAllowed = (world: World): boolean => {
@@ -102,124 +118,73 @@ const griefingAllowed = (world: World): boolean => {
 };
 
 /**
- * Hurts and shoves everything within reach, less the further out it is.
+ * Everything that might be caught, with its box, its feet and its eyes.
  *
- * The grid rather than every entity in the world: it is rebuilt once a tick and covers the three
- * by three chunks around a point, which is wider than any blast this server can produce.
+ * The entity grid rather than every entity in the world: it is rebuilt once a tick and covers
+ * the three by three chunks around a point, which is wider than any blast this server produces.
+ * The blast does the range test itself, so nothing is filtered here.
  */
-const hurtEverythingNear = async (world: World, at: Vector3, reach: number, source: Entity | null): Promise<void> => {
-    const caught = world.getEntityGrid().near(at.getX(), at.getZ());
+const entitiesNear = (world: World, at: Vector3): readonly CaughtEntity[] =>
+    world
+        .getEntityGrid()
+        .near(at.getX(), at.getZ())
+        .map((entity) => {
+            const position = entity.getPosition();
+            const { width, height } = sizeOf(entity.getType());
+            const feet = { x: position.getX(), y: entity.getFeetY(), z: position.getZ() };
 
-    await Promise.all(
-        caught.map(async (entity) => {
-            if (!entity.isAlive()) return;
+            return {
+                entity,
+                position: feet,
+                eye: { x: feet.x, y: feet.y + height * EYE_HEIGHT_FRACTION, z: feet.z },
+                box: {
+                    minX: feet.x - width / 2,
+                    minY: feet.y,
+                    minZ: feet.z - width / 2,
+                    maxX: feet.x + width / 2,
+                    maxY: feet.y + height,
+                    maxZ: feet.z + width / 2
+                }
+            };
+        });
 
-            const distance = distanceFrom(at, entity);
-            if (distance >= reach) return;
+/**
+ * Rolls one destroyed block's loot through its Java table.
+ *
+ * The same `rollBlockDrops` an ordinary break goes through, with one parameter added:
+ * `explosion_radius` is what every vanilla table's `minecraft:explosion_decay` function reads,
+ * and it keeps each item of a rolled stack with a chance of `1 / radius`. So a stone wall taken
+ * out by TNT yields cobblestone three times in four, which is the loss players see.
+ */
+const collectDrops = (
+    world: World,
+    at: BlockPosition,
+    block: BlockRef,
+    radius: number,
+    into: Array<{ at: BlockPosition; item: Item }>
+): void => {
+    const content = world.getServer().getContent();
+    if (content === undefined) return;
 
-            const impact = (1 - distance / reach) * exposure(at, entity);
-            if (impact <= 0) return;
-
-            const damage = Math.floor(((impact * impact + impact) / 2) * DAMAGE_CURVE * reach + 1);
-
-            await entity.damage(damage, new DamageSource({ cause: DamageCause.Explosion, attacker: source }));
-
-            shove(at, entity, impact);
-        })
-    );
-};
-
-/** Distance from the blast to the middle of an entity's body, rather than to its feet. */
-const distanceFrom = (at: Vector3, entity: Entity): number => {
-    const position = entity.getPosition();
-    const middle = entity.getFeetY() + sizeOf(entity.getType()).height / 2;
-
-    return Math.hypot(position.getX() - at.getX(), middle - at.getY(), position.getZ() - at.getZ());
+    for (const drop of rollBlockDrops(
+        content,
+        { identifier: block.name, states: block.states },
+        { position: at, explosionRadius: radius, level: lootLevelOf(world) }
+    )) {
+        into.push({ at, item: new Item({ name: drop.identifier, count: drop.count, content }) });
+    }
 };
 
 /**
- * How much of the blast reaches something, between nothing and all of it.
+ * Throws an entity away from the blast.
  *
- * Vanilla samples a grid of rays through the entity's box and takes the fraction that get through.
- * This walks one ray to its middle and answers all-or-nothing, which is cheaper and gets the case
- * that matters right: a wall between you and a creeper protects you, and open ground does not.
- * The cost is that a corner is either full cover or none, where vanilla would grade it.
- *
- * Read through the entity's *own* `BlockView` rather than the world's, which is why anything
- * that is not a mob - a dropped item, an arrow - is simply counted as exposed. Nothing that lacks
- * a view has cover worth modeling.
+ * Java adds the whole impulse to the entity's motion. This server's knockback takes a
+ * horizontal direction and a strength and works out its own lift, so the horizontal part
+ * carries over exactly and the vertical part is the server's rather than Java's.
  */
-const exposure = (at: Vector3, entity: Entity): number => {
-    if (!(entity instanceof Mob)) return 1;
-    const view = entity.getBlockView();
-
-    const position = entity.getPosition();
-    const middle = entity.getFeetY() + sizeOf(entity.getType()).height / 2;
-
-    const dx = position.getX() - at.getX();
-    const dy = middle - at.getY();
-    const dz = position.getZ() - at.getZ();
-    const length = Math.hypot(dx, dy, dz);
-    if (length < SIGHT_STEP) return 1;
-
-    for (let traveled = SIGHT_STEP; traveled < length; traveled += SIGHT_STEP) {
-        const t = traveled / length;
-        const x = Math.floor(at.getX() + dx * t);
-        const y = Math.floor(at.getY() + dy * t);
-        const z = Math.floor(at.getZ() + dz * t);
-
-        // `isSolid` answers "yes" for anything not in memory, which is the right conservative
-        // answer for a pathfinder - a mob should not walk into the unknown - and exactly the wrong
-        // one here: it would make a blast at the edge of the loaded world silently harmless. An
-        // unloaded cell is "no idea", not "a wall".
-        if (view.isLoaded(x, z) && view.isSolid(x, y, z)) return 0;
-    }
-
-    return 1;
-};
-
-/** Throws an entity away from the blast, harder the closer it was. */
-const shove = (at: Vector3, entity: Entity, impact: number): void => {
-    const position = entity.getPosition();
-    const dx = position.getX() - at.getX();
-    const dz = position.getZ() - at.getZ();
-    const flat = Math.hypot(dx, dz);
-
+const shove = (entity: Entity, knockback: { x: number; y: number; z: number }): void => {
+    const flat = Math.hypot(knockback.x, knockback.z);
     if (flat < Number.EPSILON) return;
 
-    entity.applyKnockback(dx / flat, dz / flat, impact * KNOCKBACK);
-};
-
-/**
- * Takes out everything soft within the blast's own power, as a sphere.
- *
- * A sphere rather than vanilla's rays, which is the visible simplification here: vanilla fires
- * rays out from the center and lets each one spend itself against what it passes through, so a
- * blast is stopped by a wall and leaves the room behind it intact. This does not, so a creeper
- * against a one-block wall takes out a little more than it should.
- */
-const breakBlocks = async (world: World, at: Vector3, power: number): Promise<void> => {
-    const radius = Math.floor(power);
-    const centerX = Math.floor(at.getX());
-    const centerY = Math.floor(at.getY());
-    const centerZ = Math.floor(at.getZ());
-
-    for (let x = -radius; x <= radius; x++) {
-        for (let y = -radius; y <= radius; y++) {
-            for (let z = -radius; z <= radius; z++) {
-                if (Math.hypot(x, y, z) > radius) continue;
-
-                const bx = centerX + x;
-                const by = centerY + y;
-                const bz = centerZ + z;
-
-                const state = await world.getBlockState(bx, by, bz);
-                if (state.name === 'minecraft:air' || survivesBlast(state.name, power)) continue;
-
-                // Delay zero: a blast is instantaneous, and letting the block updates queue would
-                // spread one explosion across several ticks of visible collapse.
-                await world.setBlockByName(bx, by, bz, 'minecraft:air', undefined, 0);
-            }
-        }
-    }
+    entity.applyKnockback(knockback.x / flat, knockback.z / flat, flat);
 };
