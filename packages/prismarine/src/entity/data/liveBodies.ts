@@ -305,6 +305,11 @@ export class LiveBodies {
 
     /** Moves the body to where the runtime put the entity, when that is anywhere new. */
     private showPosition(entity: DataEntity, body: Entity): Promise<void> | undefined {
+        // Before the early return, because a mob that landed this tick without moving far
+        // enough to be worth a packet is still a mob that is now on the ground, and the next
+        // move packet is the one that has to say so.
+        body.setGrounded(!entity.body.airborne);
+
         const at = entity.position;
         const here = body.getPosition();
         const still =

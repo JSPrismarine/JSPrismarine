@@ -1764,11 +1764,12 @@ export default class PlayerSession {
         packet.yaw = entity.yaw;
         packet.headYaw = entity.headYaw;
 
-        // Never the on-ground flag. The data-driven runtime drives every mob and models no
-        // grounded state to read, and the written classes that are left are all in flight or
-        // lying on the floor as items. The client falls back to its own guess, which is what it
-        // already did for every entity that was not a mob.
-        packet.flags = 0;
+        // The on-ground flag, which was hardcoded clear because nothing tracked the state. The
+        // data runtime does: a mob is carried through the air only while an impulse is still
+        // spending itself, and `coast` ends that by landing it on the first cell it cannot fall
+        // into. Everything else reports false and is drawn from the client's own guess, which is
+        // what every entity got while the flag was never set.
+        packet.flags = entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0;
 
         return packet;
     }
