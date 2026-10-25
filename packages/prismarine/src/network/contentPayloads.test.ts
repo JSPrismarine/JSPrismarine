@@ -1,9 +1,9 @@
-import { block_definitions } from '@jsprismarine/bedrock-data';
-import { BlockPalette, BlockStateModel } from '@jsprismarine/blocks';
+import { block_definitions, item_components, item_table } from '@jsprismarine/bedrock-data';
+import { BlockPalette, BlockStateModel, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { blockRuntimeId } from '@jsprismarine/protocol';
-import { nbtToPlain, readNetworkNbt } from '@jsprismarine/wire';
+import { nbtToPlain, readNetworkNbt, writeNetworkNbt } from '@jsprismarine/wire';
 import { describe, expect, it, vi } from 'vitest';
 
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
@@ -330,6 +330,98 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
 
         console.debug(`block definitions: ${declared.length - differing.length}/${declared.length} byte identical`);
         expect(differing.map((entry) => entry.name)).toEqual([]);
+    }, 180_000);
+
+    /**
+     * The seven items Mojang's own behavior pack still files under the names
+     * Bedrock used before it flattened them.
+     *
+     * A Bedrock Dedicated Server resolves each to its modern name before it
+     * writes the table, so the capture has `minecraft:cod` where the pack has
+     * `minecraft:fish`. This build takes the pack's identifier at face value
+     * and gives it an id of its own. Every one of the seven modern names is
+     * also in the registry, from Java's side of the item set, so the cost is
+     * seven entries the client cannot draw rather than seven items a player
+     * cannot be handed.
+     */
+    const LEGACY_PACK_ITEMS = [
+        'minecraft:appleEnchanted',
+        'minecraft:clownfish',
+        'minecraft:cooked_fish',
+        'minecraft:fish',
+        'minecraft:melon',
+        'minecraft:muttonCooked',
+        'minecraft:muttonRaw'
+    ];
+
+    it('gives every item the number, flag and version the capture gives it', () => {
+        const items = vanilla().items;
+        const captured = new Map(Object.entries(item_table));
+
+        const unnamed: string[] = [];
+        const disagreements = items.flatMap((entry) => {
+            const row = captured.get(entry.name);
+            if (row === undefined) {
+                unnamed.push(entry.name);
+                return [];
+            }
+            if (row.runtime_id !== entry.runtimeId) {
+                return [`${entry.name}: id ${entry.runtimeId}, captured ${row.runtime_id}`];
+            }
+            if (row.component_based !== entry.componentBased) return [`${entry.name}: component flag differs`];
+            if (row.version !== entry.version)
+                return [`${entry.name}: version ${entry.version}, captured ${row.version}`];
+
+            return [];
+        });
+
+        console.debug(
+            `item table: ${items.length - unnamed.length}/${items.length} sent items are in the capture of ` +
+                `${captured.size}, ${disagreements.length} disagree`
+        );
+
+        expect(disagreements).toEqual([]);
+        expect(unnamed.sort()).toEqual(LEGACY_PACK_ITEMS);
+        expect(vanilla().report.allocatedItemIds.toSorted()).toEqual(LEGACY_PACK_ITEMS);
+    }, 180_000);
+
+    it('leaves out only block names and the variants Bedrock flattened away', () => {
+        const sent = new Set(vanilla().items.map((entry) => entry.name));
+        const palette = vanillaBlockPalette();
+        const missing = Object.keys(item_table).filter((name) => !sent.has(name));
+        const blocks = missing.filter((name) => palette.entry(name) !== undefined);
+
+        // The rest are the pre-flattening aggregates a modern client no
+        // longer hands a player (`minecraft:wool`, `minecraft:log`, the
+        // `minecraft:item.*` block forms) and Education Edition's items.
+        console.debug(`item table: ${missing.length} captured names left out, ${blocks.length} of them blocks`);
+
+        for (const name of ['minecraft:white_wool', 'minecraft:oak_log', 'minecraft:oak_planks', 'minecraft:cod'])
+            expect(sent.has(name)).toBe(true);
+
+        expect(missing.length - blocks.length).toBeLessThan(100);
+    }, 180_000);
+
+    it('reports how far the item component compounds are from the capture', () => {
+        const shared = vanilla().items.filter((entry) => item_components[entry.name] !== undefined);
+        const withCompound = shared.filter((entry) => entry.componentData !== undefined);
+        const identical = withCompound.filter((entry) =>
+            writeNetworkNbt(entry.componentData!).equals(item_components[entry.name]!)
+        );
+
+        // None are expected to match. Java's components decide this build's
+        // compound and Mojang's own tables decide the capture's, the capture
+        // writes `minecraft:food` alone for the 47 foods it does not mark
+        // component based, and `minecraft:icon` is a resource pack fact this
+        // build leaves empty. `@jsprismarine/wire` measures the gap field by
+        // field; this records the whole-compound number so a change to the
+        // projection shows up as a change to it.
+        console.debug(
+            `item components: a compound for ${withCompound.length} of the ${shared.length} captured items, ` +
+                `${identical.length} of them byte identical`
+        );
+
+        expect(shared).not.toHaveLength(0);
     }, 180_000);
 
     it('writes the same StartGamePacket the captured path writes', () => {

@@ -28,6 +28,7 @@ import RespawnPacket, { PlayerRespawnState } from '../packet/RespawnPacket';
 import ResourcePackClientResponsePacket from '../packet/ResourcePackClientResponsePacket';
 import SetSpawnPositionPacket from '../packet/SetSpawnPositionPacket';
 import ResourcePackStatusType from '../type/ResourcePackStatusType';
+import ItemRegistryPacket from '../packet/ItemRegistryPacket';
 import StartGamePacket from '../packet/StartGamePacket';
 import ResourcePackClientResponseHandler from './ResourcePackClientResponseHandler';
 
@@ -293,6 +294,33 @@ describe('ResourcePackClientResponseHandler', () => {
         // empty list where the captured path would have sent all 98.
         const startGame = packets.find((packet) => packet instanceof StartGamePacket);
         expect(startGame?.blockProperties).toEqual([]);
+    });
+
+    it('leaves the item registry on the captured table when no content was built', async () => {
+        const { packets, server, session } = harness();
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
+        expect(items?.entries).toBeNull();
+    });
+
+    it('sends the content build item registry', async () => {
+        const { content, payloads } = fixtureJoinPayloads();
+        const { packets, server, session } = harness({ content });
+
+        await new ResourcePackClientResponseHandler().handle(
+            response(ResourcePackStatusType.Completed),
+            server,
+            session
+        );
+
+        const items = packets.find((packet) => packet instanceof ItemRegistryPacket);
+        expect(items?.entries).toBe(payloads.items);
     });
 
     it('sends nothing game-related before StartGame', async () => {
