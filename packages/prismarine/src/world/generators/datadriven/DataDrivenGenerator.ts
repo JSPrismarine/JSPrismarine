@@ -54,9 +54,11 @@ import {
     parseCarver
 } from '@jsprismarine/worldgen';
 
-import { UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
+import BlockStorage from '../../chunk/BlockStorage';
 import Chunk from '../../chunk/Chunk';
-import { Dimensions, subChunkCount } from '../../Dimension';
+import SubChunk from '../../chunk/SubChunk';
+import { Dimensions, minSubChunk, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator, SurfaceProbe } from '../../Generator';
 import { GenerationStopped } from '../../Generator';
@@ -183,6 +185,12 @@ const CAVE_AIR = 'minecraft:cave_air';
 
 /** How many chunk holders the generator keeps alive past the run that built them. */
 const GENERATION_CACHE_SIZE = 128;
+
+/** How many blocks one sub chunk holds. */
+const BLOCKS_PER_SUBCHUNK = 4096;
+
+/** How many 4 by 4 by 4 biome cells one sub chunk holds. */
+const BIOME_CELLS_PER_SUBCHUNK = 64;
 
 /**
  * How far around a requested chunk the generator keeps holders, in chunks.
@@ -736,25 +744,96 @@ export class DataDrivenGenerator implements Generator {
         return biomes;
     }
 
-    /** Translates the region's Java states into the Bedrock chunk, and records the biomes. */
+    /**
+     * Translates the region's Java states into the Bedrock chunk, and records the biomes.
+     *
+     * By the palette, not block by block. The region holds its blocks as indices into a palette
+     * of a few hundred materials, and a sub chunk holds its own the same way, so the whole
+     * translation is one mapping lookup per material and then a reindexing of the buffer. The
+     * per-block form it replaces cost a mapping lookup and a sub chunk lookup for each of the
+     * column's blocks, which is the work that has to happen on the main thread after a worker
+     * hands a chunk back and therefore the work that caps the pool.
+     */
     private toChunk(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): Chunk {
-        const chunk = new Chunk(cx, cz, new Map(), this.dimension);
-
-        region.forEachCenterBlock((localX, y, localZ, block) => {
-            // A template block arrives as a Bedrock state already, so it skips the mapping.
-            const runtimeId =
-                block.bedrock === undefined
-                    ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
-                    : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
-            if (runtimeId === UNKNOWN_RUNTIME_ID) return;
-
-            chunk.setBlockRuntimeId(localX, y, localZ, runtimeId);
-        });
+        const chunk = new Chunk(cx, cz, this.buildSubChunks(region, pipeline), this.dimension);
+        // The constructor is a load rather than a write, so nothing has told the chunk it is
+        // unsaved. A generated chunk is exactly the thing that has never been written to disk.
+        chunk.markChanged();
 
         this.recordBlockEntities(region, chunk, pipeline);
         this.recordEntitySpawns(region, chunk);
         this.recordBiomes(cx, cz, chunk, pipeline);
         return chunk;
+    }
+
+    /**
+     * The region's center chunk as Bedrock sub chunks, one per 16 block slab that holds anything.
+     *
+     * A slab whose palette never grows past air is left out, the same way a per-block fill never
+     * created a sub chunk nothing was written into. An unmapped Java state becomes air for the
+     * same reason: the per-block fill skipped the write, and skipping a write leaves air.
+     */
+    private buildSubChunks(region: GenerationRegion, pipeline: SeededPipeline): Map<number, SubChunk> {
+        const { palette, slots, columnTops } = region.centerBlockSlots();
+        const air = BlockRuntimeIds.getByName('minecraft:air');
+        const runtimeIds = new Int32Array(palette.length);
+        for (let slot = 0; slot < palette.length; slot++) {
+            const block = palette[slot]!;
+            // A template block arrives as a Bedrock state already, so it skips the mapping.
+            const runtimeId =
+                block.bedrock === undefined
+                    ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
+                    : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
+            runtimeIds[slot] = runtimeId === UNKNOWN_RUNTIME_ID ? air : runtimeId;
+        }
+
+        const minY = this.dimension.minY;
+        const height = this.dimension.height;
+        let top = minY - 1;
+        for (let column = 0; column < 256; column++) {
+            if (columnTops[column]! > top) top = columnTops[column]!;
+        }
+
+        const subChunks = new Map<number, SubChunk>();
+        const localSlots = new Int32Array(palette.length);
+        for (let section = minY >> 4; section <= top >> 4; section++) {
+            const sectionMinY = section * 16;
+            const blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            const sectionPalette = [air];
+            // Two lookups rather than one. The array answers for a slot already seen in this
+            // section, which is almost every block; the map is what keeps two region slots that
+            // translate to the same runtime id from taking two palette entries, the way
+            // `BlockStorage.setBlock` does.
+            const byRuntimeId = new Map<number, number>([[air, 0]]);
+            localSlots.fill(-1);
+
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const column = localX * 16 + localZ;
+                    const columnBase = column * height - minY;
+                    const target = (localX << 8) | (localZ << 4);
+                    const columnTop = Math.min(columnTops[column]!, sectionMinY + 15);
+
+                    for (let y = sectionMinY; y <= columnTop; y++) {
+                        const slot = slots[columnBase + y]!;
+                        let local = localSlots[slot]!;
+                        if (local < 0) {
+                            const runtimeId = runtimeIds[slot]!;
+                            local = byRuntimeId.get(runtimeId) ?? sectionPalette.push(runtimeId) - 1;
+                            byRuntimeId.set(runtimeId, local);
+                            localSlots[slot] = local;
+                        }
+
+                        blocks[target | (y & 0xf)] = local;
+                    }
+                }
+            }
+
+            if (sectionPalette.length === 1) continue;
+            subChunks.set(section, new SubChunk(new Map([[0, new BlockStorage({ blocks, palette: sectionPalette })]])));
+        }
+
+        return subChunks;
     }
 
     /**
@@ -790,34 +869,53 @@ export class DataDrivenGenerator implements Generator {
      * The source answers per 4 by 4 by 4 cell, which is how Java stores biomes; Bedrock stores
      * one per block, so each cell fills its 64 blocks. That is the same expansion Geyser does
      * when it translates a Java chunk.
+     *
+     * A section is resolved as its sixty-four cells and handed over whole, so a section whose
+     * cells all agree costs one number rather than the 4096 writes that would expand it to 8 KiB
+     * and then collapse it again.
      */
     private recordBiomes(cx: number, cz: number, chunk: Chunk, pipeline: SeededPipeline): void {
         const biomes = chunk.getBiomes();
         const sections = subChunkCount(this.dimension);
+        const floor = minSubChunk(this.dimension);
         const resolver = pipeline.biomeCells;
+        const cells = new Uint16Array(BIOME_CELLS_PER_SUBCHUNK);
 
         for (let section = 0; section < sections; section++) {
             const sectionMinY = this.dimension.minY + section * 16;
-            for (let cellY = 0; cellY < 4; cellY++) {
-                for (let cellX = 0; cellX < 4; cellX++) {
-                    for (let cellZ = 0; cellZ < 4; cellZ++) {
-                        const javaBiome = resolver(
-                            (cx * 16 + cellX * 4) >> 2,
-                            (sectionMinY + cellY * 4) >> 2,
-                            (cz * 16 + cellZ * 4) >> 2
+            let uniform = true;
+            for (let cellX = 0; cellX < 4; cellX++) {
+                for (let cellZ = 0; cellZ < 4; cellZ++) {
+                    for (let cellY = 0; cellY < 4; cellY++) {
+                        const id = bedrockBiomeIdOf(
+                            resolver(
+                                (cx * 16 + cellX * 4) >> 2,
+                                (sectionMinY + cellY * 4) >> 2,
+                                (cz * 16 + cellZ * 4) >> 2
+                            )
                         );
-                        const id = bedrockBiomeIdOf(javaBiome);
-
-                        for (let dx = 0; dx < 4; dx++) {
-                            for (let dz = 0; dz < 4; dz++) {
-                                for (let dy = 0; dy < 4; dy++) {
-                                    biomes.set(cellX * 4 + dx, sectionMinY + cellY * 4 + dy, cellZ * 4 + dz, id);
-                                }
-                            }
-                        }
+                        cells[(cellX * 4 + cellZ) * 4 + cellY] = id;
+                        if (id !== cells[0]) uniform = false;
                     }
                 }
             }
+
+            if (uniform) {
+                biomes.setSection(floor + section, cells[0]!);
+                continue;
+            }
+
+            const packed = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const cell = ((localX >> 2) * 4 + (localZ >> 2)) * 4;
+                    const target = (localX << 8) | (localZ << 4);
+                    for (let localY = 0; localY < 16; localY++) {
+                        packed[target | localY] = cells[cell + (localY >> 2)]!;
+                    }
+                }
+            }
+            biomes.setSection(floor + section, packed);
         }
     }
 

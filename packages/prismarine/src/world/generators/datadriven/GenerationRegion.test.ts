@@ -219,3 +219,46 @@ describe('neighbor chunk data', () => {
         expect(destination.centerBlockEntities()).toHaveLength(0);
     });
 });
+
+describe('centerBlockSlots', () => {
+    it('hands over the same blocks the per-block walk visits, whatever the radius', () => {
+        const featureView = new GenerationRegion({
+            chunkX: 1,
+            chunkZ: -2,
+            minY: -64,
+            height: 384,
+            radius: 1,
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        });
+
+        for (const built of [terrainTile(1, -2), featureView]) {
+            built.write(16, 64, -32, STONE);
+            built.write(31, -64, -17, { name: 'minecraft:bedrock', properties: {} });
+            built.writeBedrock(20, 70, -20, { name: 'minecraft:bone_block', states: { pillar_axis: 'y' } });
+
+            const walked = new Map<string, string>();
+            built.forEachCenterBlock((localX, y, localZ, block) => {
+                walked.set(`${localX},${y},${localZ}`, block.bedrock?.name ?? block.java.name);
+            });
+
+            const { palette, slots, columnTops } = built.centerBlockSlots();
+            const handed = new Map<string, string>();
+            for (let localX = 0; localX < 16; localX++) {
+                for (let localZ = 0; localZ < 16; localZ++) {
+                    const column = localX * 16 + localZ;
+                    for (let y = built.minY; y <= columnTops[column]!; y++) {
+                        const entry = palette[slots[column * 384 + (y - built.minY)]!]!;
+                        if (entry.java.name === AIR.name) continue;
+                        handed.set(`${localX},${y},${localZ}`, entry.bedrock?.name ?? entry.java.name);
+                    }
+                }
+            }
+
+            expect(handed.size).toBeGreaterThan(0);
+            expect([...handed].sort()).toEqual([...walked].sort());
+        }
+    });
+});

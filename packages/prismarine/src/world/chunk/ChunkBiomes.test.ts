@@ -68,6 +68,45 @@ describe('world', () => {
             expect(mixed).toHaveLength(4096);
         });
 
+        it('takes a whole section as one id', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            biomes.setSection(4, DESERT);
+
+            expect(biomes.get(0, 64, 0)).toBe(DESERT);
+            expect(biomes.get(15, 79, 15)).toBe(DESERT);
+            expect(biomes.get(0, 80, 0)).toBe(PLAINS_BIOME);
+            expect(biomes.toSectionIds()[4 + 4]).toBe(DESERT);
+        });
+
+        it('takes a whole section spelled out, and reads back what each block was given', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            const ids = new Uint16Array(4096);
+            // The same XZY order with y fastest the packed form uses.
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    for (let y = 0; y < 16; y++) ids[(x << 8) | (z << 4) | y] = x < 8 ? DESERT : JUNGLE;
+                }
+            }
+            biomes.setSection(4, ids);
+
+            expect(biomes.get(7, 70, 3)).toBe(DESERT);
+            expect(biomes.get(8, 70, 3)).toBe(JUNGLE);
+            expect(biomes.toSectionIds()[4 + 4]).toBeInstanceOf(Int32Array);
+        });
+
+        it('collapses a spelled-out section that turns out to be uniform', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            biomes.setSection(4, new Uint16Array(4096).fill(JUNGLE));
+
+            expect(biomes.toSectionIds()[4 + 4]).toBe(JUNGLE);
+        });
+
+        it('refuses a section of the wrong length', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+
+            expect(() => biomes.setSection(4, new Uint16Array(64))).toThrow(RangeError);
+        });
+
         it('refuses a biome id that cannot be stored', () => {
             const biomes = new ChunkBiomes(Dimensions.Overworld);
 

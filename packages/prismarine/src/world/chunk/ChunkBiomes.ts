@@ -115,6 +115,39 @@ export class ChunkBiomes {
         this.sections[index] = biome;
     }
 
+    /**
+     * Replaces one sub chunk's biomes outright, collapsing a uniform section back to one id.
+     *
+     * The write path a generator uses. Going through {@link set} costs 4096 calls a section and
+     * expands the section to 8 KiB on the first id that disagrees, even when the section is about
+     * to be filled with two biomes and would pack back down to a palette of two.
+     *
+     * @param sectionIndex - The sub chunk index, signed, the way {@link fillSection} takes it.
+     * @param ids - One biome id per block in XZY order with y fastest, or a single id for a
+     * section that is all one biome.
+     * @throws RangeError when `ids` is a single id outside the range a section can carry, or an
+     * array of the wrong length.
+     */
+    public setSection(sectionIndex: number, ids: number | Uint16Array): void {
+        const index = sectionIndex - minSubChunk(this.dimension);
+        if (index < 0 || index >= this.sections.length) return;
+
+        if (typeof ids === 'number') {
+            this.requireBiomeId(ids);
+            this.sections[index] = ids;
+            return;
+        }
+
+        if (ids.length !== BLOCKS_PER_SUBCHUNK) {
+            throw new RangeError(`A sub chunk holds ${BLOCKS_PER_SUBCHUNK} biomes, got ${ids.length}`);
+        }
+
+        const first = ids[0]!;
+        let at = 1;
+        while (at < BLOCKS_PER_SUBCHUNK && ids[at] === first) at++;
+        this.sections[index] = at === BLOCKS_PER_SUBCHUNK ? first : ids;
+    }
+
     /** Puts one biome through a whole column of the chunk, floor to ceiling. */
     public fillColumn(x: number, z: number, biome: number): void {
         this.requireBiomeId(biome);
