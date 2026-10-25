@@ -100,41 +100,54 @@ export class BlockStateSchema {
 }
 
 /**
- * The block schemas JSPrismarine ships with.
+ * The 1477 schemas JSPrismarine ships with, built once at import.
  *
- * Bootstrapped once from the vanilla state dump by
+ * Bootstrapped from the vanilla state dump by
  * `packages/bedrock-data/utils/generate-block-schemas.js` and owned here from that point
  * on: it is committed, diffable and editable, and the generator only runs again when
  * somebody deliberately runs it.
+ *
+ * Constant rather than loaded on the first read behind a `loaded` flag. The generated
+ * catalog cannot change, so the flag only bought a branch on every lookup and a way for
+ * {@link BlockStateSchemas.reset} to throw away 1477 schema objects and the default states
+ * memoized on them.
+ */
+const SHIPPED: ReadonlyMap<string, BlockStateSchema> = new Map(
+    Object.entries(vanillaSchemas.blocks).map(([name, data]) => [name, new BlockStateSchema(name, data.properties)])
+);
+
+/**
+ * Every block schema this process knows: the shipped catalog, plus whatever was registered
+ * over it.
+ *
+ * Reading a block is not per-server state and is deliberately not owned by one. A runtime
+ * id is the FNV-1a hash of a block's own name and state, so the id a chunk holds names one
+ * state and one state only, whichever server wrote it. A second server in the process can
+ * add names, and that cannot change what the first one's blocks mean.
+ *
+ * {@link BlockStateSchemas.register} replacing a shipped name is the exception, and the
+ * only reason {@link BlockStateSchemas.reset} still exists. Packs are where overriding a
+ * vanilla block belongs, and the override path goes when `content-packs` stops being
+ * optional; see section 10 of [the plan](../../../../../docs/plans/data-driven-vanilla.md).
  */
 export class BlockStateSchemas {
-    private static readonly schemas = new Map<string, BlockStateSchema>();
-    private static loaded = false;
+    /** Schemas registered over {@link SHIPPED}, which are the only ones anybody can change. */
+    private static readonly registered = new Map<string, BlockStateSchema>();
 
     /**
-     * Bumped whenever the catalog changes. Lets caches keyed on it - the reverse index in
-     * `BlockRuntimeIds` - notice a plugin registration without this module having to know
-     * they exist.
+     * Bumped whenever a registration changes the catalog. Lets caches keyed on it - the
+     * reverse index in `BlockRuntimeIds` - notice a plugin registration without this module
+     * having to know they exist.
      */
     private static revisionCounter = 0;
 
+    /** The number to key a derived index on, so it rebuilds when the catalog changes. */
     public static getRevision(): number {
-        this.load();
         return this.revisionCounter;
     }
 
-    private static load(): void {
-        if (this.loaded) return;
-
-        for (const [name, data] of Object.entries(vanillaSchemas.blocks)) {
-            this.schemas.set(name, new BlockStateSchema(name, data.properties));
-        }
-        this.loaded = true;
-    }
-
     public static get(name: string): BlockStateSchema | null {
-        this.load();
-        return this.schemas.get(name) ?? null;
+        return this.registered.get(name) ?? SHIPPED.get(name) ?? null;
     }
 
     /**
@@ -143,26 +156,31 @@ export class BlockStateSchemas {
      * what a vanilla block accepts.
      */
     public static register(schema: BlockStateSchema): void {
-        this.load();
-        this.schemas.set(schema.name, schema);
+        this.registered.set(schema.name, schema);
         this.revisionCounter++;
     }
 
     /** Blocks outside the `minecraft:` namespace, which have to be declared to the client. */
     public static getCustomSchemas(): BlockStateSchema[] {
-        this.load();
-        return [...this.schemas.values()].filter((schema) => !schema.name.startsWith('minecraft:'));
+        return [...this.registered.values()].filter((schema) => !schema.name.startsWith('minecraft:'));
     }
 
+    /**
+     * Every block name this process knows.
+     *
+     * The dedupe is skipped when nothing has registered, which is every server that has no
+     * plugin blocks: building a 1477-entry `Set` costs four times what listing the keys
+     * does, and `BlockManager` asks for this list on every `getBlocks()`.
+     */
     public static names(): string[] {
-        this.load();
-        return [...this.schemas.keys()];
+        if (this.registered.size === 0) return [...SHIPPED.keys()];
+
+        return [...new Set([...SHIPPED.keys(), ...this.registered.keys()])];
     }
 
-    /** Drops plugin registrations and reloads the shipped catalog. Used by tests. */
+    /** Drops every registration, leaving the shipped catalog. Used by tests. */
     public static reset(): void {
-        this.schemas.clear();
-        this.loaded = false;
+        this.registered.clear();
         this.revisionCounter++;
     }
 }
