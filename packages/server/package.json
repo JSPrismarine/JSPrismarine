@@ -68,12 +68,14 @@
     },
     "dependencies": {
         "@jsprismarine/color-parser": "workspace:*",
-        "@jsprismarine/console": "workspace:*",
         "@jsprismarine/console-protocol": "workspace:*",
         "@jsprismarine/logger": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*",
         "@jsprismarine/prismarine": "workspace:*",
         "@jsprismarine/raknet": "workspace:*",
         "yargs": "18.2.0"
+    },
+    "optionalDependencies": {
+        "@jsprismarine/console": "workspace:*"
     }
 }
