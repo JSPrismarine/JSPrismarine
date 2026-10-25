@@ -14,6 +14,8 @@ const BYTES = Buffer.from([
 ]);
 
 /** An id outside the enum, to pin that the field is a signed four-byte int32 and not a varint. */
+// @ts-expect-error - -1 names no achievement, which is the point: the field is read back as
+// whatever the four bytes held.
 const UNKNOWN: AwardAchievement = { achievementId: -1 };
 
 const UNKNOWN_BYTES = Buffer.from([

@@ -104,7 +104,7 @@ describe('protocol', () => {
         it('rejects a batch whose checksum does not match', () => {
             const { client, server } = pair();
             const tampered = client.encrypt(batch('hello'));
-            tampered[3] ^= 0xff;
+            tampered.writeUInt8(tampered.readUInt8(3) ^ 0xff, 3);
 
             expect(() => server.decrypt(tampered)).toThrow('Checksum mismatch');
         });
