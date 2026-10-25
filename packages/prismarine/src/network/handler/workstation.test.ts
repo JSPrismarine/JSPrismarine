@@ -23,6 +23,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { enchantingRows, enchantmentSeedOf } from '../../enchantment/enchantingTable';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type { Logger } from '@jsprismarine/logger';
@@ -159,6 +160,10 @@ const scene = (open: OpenBlockContainer, withContent = true) => {
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);
 
+    // Pinned, because an unseeded player draws one at random and which of the three rows has
+    // anything in it is a function of the seed.
+    const seed = enchantmentSeedOf(player, 1234);
+
     const run = async (requests: ItemStackRequest[]) => {
         await new ItemStackRequestHandler().handle(
             Object.assign(new ItemStackRequestPacket(), { requests }),
@@ -173,7 +178,18 @@ const scene = (open: OpenBlockContainer, withContent = true) => {
         return response;
     };
 
-    return { player, inventory, attributes, sent, run, open };
+    /** The one-based net id of the first row with something in it at this seed and power. */
+    const filledRow = (stack: Item): number => {
+        if (built === undefined) throw new Error('no content to draw rows from');
+
+        const rows = enchantingRows(built.enchantments, stack, seed, open.bookshelfPower);
+        const index = rows.findIndex((row) => row.picks.length > 0);
+        if (index === -1) throw new Error('no row has anything in it');
+
+        return index + 1;
+    };
+
+    return { player, inventory, attributes, sent, run, open, filledRow };
 };
 
 /** One request moving the stack in slot 0 into the workstation's item slot. */
@@ -214,17 +230,20 @@ describe('a workstation screen', () => {
         });
 
         it('enchants the stack and charges the levels when a row is taken', async () => {
-            const { inventory, attributes, run, open } = scene(openScreen(WindowTypes.ENCHANTMENT));
+            const { inventory, attributes, run, open, filledRow } = scene(openScreen(WindowTypes.ENCHANTMENT));
             inventory.setItem(0, new ContainerEntry({ item: pickaxe(), count: 1 }));
 
             await run([placeInWorkstation(ContainerUiId.ENCHANTING_INPUT_CONTAINER)]);
 
-            // The third row, which is the one with something in it at this power.
             const response = await run([
                 {
                     requestId: -3,
                     actions: [
-                        { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 3, repetitions: 1 },
+                        {
+                            type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                            recipeNetId: filledRow(pickaxe()),
+                            repetitions: 1
+                        },
                         {
                             type: ItemStackRequestActionType.PLACE,
                             count: 1,
