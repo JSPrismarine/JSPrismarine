@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { World } from '../World';
 import Chunk from './Chunk';
 
 /** The world border is 30000000 blocks from origin, which is this many chunks. */
@@ -58,6 +59,50 @@ describe('world', () => {
             expect(Chunk.packXZ(1, 0)).not.toBe(Chunk.packXZ(0, 1));
             expect(Chunk.unpackXZ(Chunk.packXZ(5, -3))).toEqual([5, -3]);
             expect(Chunk.unpackXZ(Chunk.packXZ(-3, 5))).toEqual([-3, 5]);
+        });
+    });
+
+    /**
+     * The key a world stores a chunk under has to be the key it looks one up by.
+     *
+     * Nothing else checks that. `pnpm typecheck` skips `*.test.*`, and a double assembled
+     * with `Object.assign(Object.create(World.prototype), { chunks })` never has its
+     * `chunks` field compared against the class either. A map keyed the other way answers
+     * null to every question instead of throwing, so the spawner's loaded check, the surface
+     * scan and the path finder all read an empty world and report nothing wrong. A fixture
+     * that kept a bigint key after this one became a number is what stopped mobs spawning in
+     * `entity/data/live.test.ts`.
+     */
+    describe('World.getLoadedChunk', () => {
+        const worldOver = (chunks: Map<number, Chunk>): World =>
+            Object.assign(Object.create(World.prototype), { chunks });
+
+        it('finds a chunk stored under the key packXZ returns', () => {
+            const chunk = new Chunk(-3, 5);
+            const world = worldOver(new Map([[Chunk.packXZ(-3, 5), chunk]]));
+
+            expect(world.getLoadedChunk(-3, 5)).toBe(chunk);
+            // The mirrored coordinate, which a key that dropped an axis would also answer.
+            expect(world.getLoadedChunk(5, -3)).toBeNull();
+        });
+
+        it('answers for a coordinate it has already answered for another', () => {
+            // The one-entry cache keyed on the last index: asking twice around a third
+            // coordinate is what catches a cache that answers the wrong chunk.
+            const here = new Chunk(0, 0);
+            const there = new Chunk(-3, 5);
+            const world = worldOver(
+                new Map([
+                    [Chunk.packXZ(0, 0), here],
+                    [Chunk.packXZ(-3, 5), there]
+                ])
+            );
+
+            expect(world.getLoadedChunk(0, 0)).toBe(here);
+            expect(world.getLoadedChunk(-3, 5)).toBe(there);
+            expect(world.getLoadedChunk(0, 0)).toBe(here);
+            expect(world.getLoadedChunk(9, 9)).toBeNull();
+            expect(world.getLoadedChunk(0, 0)).toBe(here);
         });
     });
 });
