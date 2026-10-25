@@ -1,9 +1,13 @@
 export {
     BEDROCK_TARGET_STATE_COUNT,
     MAPPING_VERSIONS,
+    bedrockBlockStateToJava,
+    bedrockBlockToJava,
     javaBlockStateToBedrock,
     type BedrockBlockState,
-    type BlockMappingResult
+    type BlockMappingResult,
+    type JavaBlockState,
+    type JavaMappingResult
 } from './blockMapping';
 export { bedrockBlockStates, javaBlockStates, type BlockStateValue } from './blockStates';
 export {
