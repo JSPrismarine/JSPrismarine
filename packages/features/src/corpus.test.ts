@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, relative, sep } from 'node:path';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { dirname, join, relative, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import type { ConfiguredFeature, FeatureTypeName } from './features/Feature';
@@ -22,20 +23,49 @@ import type { PlacementModifierTypeName } from './placement/modifiers';
  * data and therefore untrusted: it is parsed with `JSON.parse` and never executed.
  */
 
+/** The `worldgen` directory of a datapack root, or undefined when the root holds no features. */
+const worldgenIn = (datapack: string): string | undefined => {
+    const worldgen = join(datapack, 'data', 'minecraft', 'worldgen');
+    return existsSync(join(worldgen, 'feature')) ? worldgen : undefined;
+};
+
+/**
+ * The nearest existing `node_modules/.cache/jsprismarine` at or above this file.
+ *
+ * Walked from the file rather than the working directory so the test finds the cache whether
+ * Vitest was started in this package or at the repository root.
+ */
+const cacheRoot = (): string | undefined => {
+    let directory = fileURLToPath(new URL('.', import.meta.url));
+    for (;;) {
+        const candidate = join(directory, 'node_modules', '.cache', 'jsprismarine');
+        if (existsSync(candidate)) return candidate;
+
+        const parent = dirname(directory);
+        if (parent === directory) return undefined;
+        directory = parent;
+    }
+};
+
+/**
+ * The fetched datapack's `worldgen` directory.
+ *
+ * The version directory is whichever one the fetch wrote, newest first, rather than a number
+ * written down here that goes stale the next time `sources.json` moves.
+ */
 const datapackRoot = (): string | undefined => {
     const override = process.env['JSP_VANILLA_DATAPACK'];
-    const candidates = [
-        ...(override === undefined ? [] : [override]),
-        join(process.cwd(), '../../node_modules/.cache/jsprismarine/vanilla-datapack/26.3')
-    ];
-    for (const candidate of candidates) {
-        try {
-            const worldgen = join(candidate, 'data/minecraft/worldgen');
-            if (statSync(worldgen).isDirectory()) return worldgen;
-        } catch {
-            // Not this one; try the next candidate.
-        }
+    if (override !== undefined && override !== '') return worldgenIn(override);
+
+    const cache = cacheRoot();
+    const datapacks = cache === undefined ? undefined : join(cache, 'vanilla-datapack');
+    if (datapacks === undefined || !existsSync(datapacks)) return undefined;
+
+    for (const version of readdirSync(datapacks).sort().reverse()) {
+        const worldgen = worldgenIn(join(datapacks, version));
+        if (worldgen !== undefined) return worldgen;
     }
+
     return undefined;
 };
 
@@ -54,35 +84,59 @@ const identifierFor = (root: string, path: string): string =>
         .replaceAll(sep, '/')
         .replace(/\.json$/, '')}`;
 
+/** The documents the tests below share. */
+interface Corpus {
+    readonly featureSources: ReadonlyMap<string, unknown>;
+    readonly placedSources: ReadonlyMap<string, unknown>;
+    readonly providerSources: ReadonlyMap<string, unknown>;
+    readonly loader: FeatureLoader;
+}
+
 const root = datapackRoot();
 const enabled = process.env['JSP_FEATURE_CORPUS'] === '1';
 
-describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', () => {
-    const worldgen = root ?? '';
-    const featureFiles = listJson(join(worldgen, 'feature'));
-    const placedFiles = listJson(join(worldgen, 'placed_feature'));
+let loaded: Corpus | undefined;
 
+/**
+ * Reads the corpus once, on first use.
+ *
+ * Lazily rather than in the suite body because `describe.skipIf` skips the tests it collects and
+ * still runs the callback that declares them. Reading there would make a checkout with no
+ * datapack fail at collection instead of skipping.
+ */
+const corpus = (): Corpus => {
+    if (loaded !== undefined) return loaded;
+    if (root === undefined) throw new Error('the vanilla datapack is not on disk');
+
+    const worldgen = root;
     // Extracted game files are untrusted data: parsed, never executed.
     const read = (path: string): unknown => JSON.parse(readFileSync(path, 'utf8'));
-    const featureSources = new Map(
-        featureFiles.map((path) => [identifierFor(join(worldgen, 'feature'), path), read(path)])
-    );
-    const placedSources = new Map(
-        placedFiles.map((path) => [identifierFor(join(worldgen, 'placed_feature'), path), read(path)])
-    );
+    const registry = (name: string): Map<string, unknown> => {
+        const directory = join(worldgen, name);
+        return new Map(listJson(directory).map((path) => [identifierFor(directory, path), read(path)]));
+    };
 
-    const providerFiles = listJson(join(worldgen, 'block_state_provider'));
-    const providerSources = new Map(
-        providerFiles.map((path) => [identifierFor(join(worldgen, 'block_state_provider'), path), read(path)])
-    );
+    const featureSources = registry('feature');
+    const placedSources = registry('placed_feature');
+    const providerSources = registry('block_state_provider');
 
-    const loader = new FeatureLoader({
-        feature: (id) => featureSources.get(id),
-        placedFeature: (id) => placedSources.get(id),
-        blockStateProvider: (id) => providerSources.get(id)
-    });
+    loaded = {
+        featureSources,
+        placedSources,
+        providerSources,
+        loader: new FeatureLoader({
+            feature: (id) => featureSources.get(id),
+            placedFeature: (id) => placedSources.get(id),
+            blockStateProvider: (id) => providerSources.get(id)
+        })
+    };
 
+    return loaded;
+};
+
+describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', () => {
     it('reads all 240 configured features with no errors', () => {
+        const { featureSources, loader } = corpus();
         const failures: string[] = [];
         for (const id of featureSources.keys()) {
             try {
@@ -96,6 +150,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
     });
 
     it('reads all 273 placed features with no errors', () => {
+        const { placedSources, loader } = corpus();
         const failures: string[] = [];
         for (const id of placedSources.keys()) {
             try {
@@ -109,6 +164,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
     });
 
     it('reports which of the 58 feature types the corpus uses', () => {
+        const { featureSources, loader } = corpus();
         const usage = new Map<FeatureTypeName, number>();
         const roots: ConfiguredFeature[] = [];
         for (const id of featureSources.keys()) roots.push(loader.feature(id));
@@ -129,6 +185,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
     });
 
     it('reports which of the nested registries the corpus uses', () => {
+        const { featureSources, placedSources, providerSources } = corpus();
         const registries: Record<string, readonly string[]> = {
             block_state_provider_type: [
                 'copy_properties',
@@ -249,6 +306,7 @@ describe.skipIf(!enabled || root === undefined)('the vanilla feature corpus', ()
     });
 
     it('reports which of the 18 placement modifier types the corpus uses', () => {
+        const { placedSources, loader } = corpus();
         const usage = new Map<PlacementModifierTypeName, number>();
         for (const id of placedSources.keys()) {
             for (const modifier of loader.placedFeatureById(id).placement) {
