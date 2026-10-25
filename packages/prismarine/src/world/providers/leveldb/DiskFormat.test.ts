@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds, UNKNOWN_RUNTIME_ID } from '../../../block/state/BlockRuntimeIds';
 import BlockStorage from '../../chunk/BlockStorage';
+import { ChunkBiomes, PLAINS_BIOME } from '../../chunk/ChunkBiomes';
 import SubChunk from '../../chunk/SubChunk';
 import { BLOCK_STATE_VERSION, decodePaletteEntry, encodePaletteEntry } from './PersistentPalette';
 import {
@@ -436,6 +437,42 @@ describe('world', () => {
             );
 
             expect(nether.palettes).toHaveLength(8);
+        });
+
+        /**
+         * The whole chain a chunk read takes, rather than either end of it.
+         *
+         * `blocks.biome`, `blocks.biomeTags` and `/locate` all answer from
+         * `ChunkBiomes.get` on a column that came off disk, and a uniform section travels that
+         * chain as a single number from end to end. The tests above stop at the palettes the
+         * codec hands over, so a section that decoded to the right palette and still read back
+         * the wrong biome would pass every one of them.
+         */
+        it('reads back the biome of a position through the disk form', () => {
+            const written = new ChunkBiomes(Dimensions.Overworld);
+            // Three shapes in one column: the plains it starts as, a section filled with one
+            // id, and a section holding two.
+            written.fillSection(2, 21);
+            written.fillSection(6, 2);
+            written.set(5, 100, 9, 35);
+
+            const bytes = encodeData3D(
+                { heightmap: new Uint16Array(256), palettes: written.toSectionIds() },
+                Dimensions.Overworld
+            );
+            const read = ChunkBiomes.fromSectionIds(
+                decodeData3D(bytes, Dimensions.Overworld).palettes,
+                Dimensions.Overworld
+            );
+
+            expect(read.get(5, 100, 9)).toBe(35);
+            // Its neighbours in the same mixed section, which keep what the fill put there.
+            expect(read.get(5, 101, 9)).toBe(2);
+            expect(read.get(6, 100, 9)).toBe(2);
+            // The uniform sections either side of it.
+            expect(read.get(0, 32, 0)).toBe(21);
+            expect(read.get(15, 47, 15)).toBe(21);
+            expect(read.get(0, 0, 0)).toBe(PLAINS_BIOME);
         });
     });
 
