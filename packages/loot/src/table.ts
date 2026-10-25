@@ -27,7 +27,16 @@ import {
 } from '@jsprismarine/predicates';
 
 import type { LootDialect, LootDifficultyView, LootTiers } from './dialect';
-import { DEFAULT_DIFFICULTY, gateAt, reportEntryKeys, reportPoolKeys, reportTableKeys, tiersAt } from './dialect';
+import {
+    DEFAULT_DIFFICULTY,
+    bedrockRange,
+    gateAt,
+    reportBedrockFunctions,
+    reportEntryKeys,
+    reportPoolKeys,
+    reportTableKeys,
+    tiersAt
+} from './dialect';
 import type {
     DynamicDropSource,
     LootEntry,
@@ -195,16 +204,37 @@ type EntryParser = (value: JsonObject, context: ParseContext, grammar: LootGramm
 const ENTRIES: Readonly<Record<LootEntryType, EntryParser>> = {
     empty: (value) => single({ weight: uniformWeight(value), produce: () => undefined }),
 
-    item: (value, context) => {
+    item: (value, context, grammar) => {
         const name = asString(value['name']);
         if (name === undefined) {
             context.at('name').error('an item entry needs an item id');
             return NOTHING;
         }
         const id = namespaced(name);
+
+        // Java states a stack count with a `set_count` function, so an item
+        // entry on its own always produces one. Bedrock states it on the entry.
+        const count =
+            grammar.dialect === 'bedrock' && value['count'] !== undefined
+                ? rangeAt(value['count'], context.at('count'), grammar)
+                : undefined;
+
+        if (count === undefined) {
+            return single({
+                weight: uniformWeight(value),
+                produce: (emit, evaluation) => emit(evaluation.context.items.create(id, 1))
+            });
+        }
+
         return single({
             weight: uniformWeight(value),
-            produce: (emit, evaluation) => emit(evaluation.context.items.create(id, 1))
+            produce: (emit, evaluation) => {
+                // `{ "min": 0, "max": 1 }` is how 181 Bedrock entries say the
+                // item is sometimes not there at all, so a count that rolls
+                // nothing produces nothing rather than a stack of zero.
+                const rolled = Math.trunc(count(evaluation.context));
+                if (rolled > 0) emit(evaluation.context.items.create(id, rolled));
+            }
         });
     },
 
@@ -358,7 +388,12 @@ const bedrockTableEntry = (value: JsonObject, context: ParseContext, grammar: Lo
         return NOTHING;
     }
 
-    const element = resolve('loot_table', name);
+    // The registry keys a behavior pack's tables by their pack-relative path,
+    // extension included, and vanilla writes the reference both ways: the
+    // equipment tables name `armor_set_leather.json` where `guardian.json`
+    // names `loot_tables/gameplay/fishing/fish`. The engine reads both.
+    const element =
+        resolve('loot_table', name) ?? (name.endsWith('.json') ? undefined : resolve('loot_table', `${name}.json`));
     if (element === undefined) {
         at.error(`unknown loot_table ${name}`);
         return NOTHING;
@@ -431,6 +466,7 @@ const containerAt = (value: unknown, context: ParseContext, grammar: LootGrammar
     }
 
     reportEntryKeys(value, context, grammar.dialect, name);
+    if (grammar.dialect === 'bedrock') reportBedrockFunctions(value['functions'], context.at('functions'));
 
     const gateKey = grammar.dialect === 'bedrock' ? 'conditions' : 'condition';
     const condition = gateAt(value[gateKey], context.at(gateKey), grammar.dialect, grammar.difficulty);
@@ -491,6 +527,13 @@ const poolAt = (value: unknown, context: ParseContext, grammar: LootGrammar): Lo
 
     reportPoolKeys(value, context, grammar.dialect);
 
+    // `armor_stand.json` and `boat.json` each hold one pool written `{}`,
+    // which is a table that deliberately produces nothing: both entities drop
+    // themselves through engine code rather than through loot. A pool with no
+    // members at all says exactly that, so it is read as empty rather than
+    // reported twice as a pool missing its rolls and its entries.
+    if (grammar.dialect === 'bedrock' && Object.keys(value).length === 0) return EMPTY_POOL;
+
     // A tiered pool draws one rung once and states no `rolls`, which is how
     // all ten of Bedrock's are written.
     const tiers = grammar.dialect === 'bedrock' ? tiersAt(value['tiers'], context.at('tiers')) : undefined;
@@ -503,8 +546,8 @@ const poolAt = (value: unknown, context: ParseContext, grammar: LootGrammar): Lo
     return {
         condition: gateAt(value[gateKey], context.at(gateKey), grammar.dialect, grammar.difficulty),
         modifier: modifierAt(value['modifier'], context.at('modifier')),
-        rolls: tiers === undefined ? intProviderAt(value['rolls'], context.at('rolls')) : ONE_ROLL,
-        bonusRolls: floatProviderAt(value['bonus_rolls'], context.at('bonus_rolls')),
+        rolls: tiers === undefined ? rangeAt(value['rolls'], context.at('rolls'), grammar) : ONE_ROLL,
+        bonusRolls: floatProviderAt(dialectRange(value['bonus_rolls'], grammar), context.at('bonus_rolls')),
         entries: asList(value['entries']).map((entry, index) => containerAt(entry, at.at(index), grammar)),
         tiers
     };
@@ -512,6 +555,28 @@ const poolAt = (value: unknown, context: ParseContext, grammar: LootGrammar): Lo
 
 /** The single draw a tiered pool makes, standing in for the `rolls` it does not state. */
 const ONE_ROLL = (): number => 1;
+
+/** A pool with nothing to draw from, which is what a Bedrock `{}` pool states. */
+const EMPTY_POOL: LootPool = {
+    condition: () => true,
+    modifier: EMPTY_MODIFIER,
+    rolls: () => 0,
+    bonusRolls: () => 0,
+    entries: [],
+    tiers: undefined
+};
+
+/**
+ * A range member as the shared provider grammar wants it. Java's spelling is
+ * already that; Bedrock's untyped `{ min, max }` goes through
+ * {@link bedrockRange} first.
+ */
+const dialectRange = (value: unknown, grammar: LootGrammar): unknown =>
+    grammar.dialect === 'bedrock' ? bedrockRange(value) : value;
+
+/** Parses a whole-number range in the dialect's own spelling. */
+const rangeAt = (value: unknown, context: ParseContext, grammar: LootGrammar) =>
+    intProviderAt(dialectRange(value, grammar), context);
 
 /**
  * Collects the loot tables a table names by id, walking the raw JSON rather

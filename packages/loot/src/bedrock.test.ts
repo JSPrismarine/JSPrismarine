@@ -77,15 +77,32 @@ describe('the plural conditions array', () => {
         expect(rollIds(table, { random: scriptedRandom([0.9]) })).toEqual([]);
     });
 
-    it('closes the gate on a condition this package does not implement', () => {
+    it('closes the gate on a reviewed condition, and says what it would have read', () => {
         const table = gated([{ condition: 'has_mark_variant', value: 1 }]);
+        const { value, diagnostics } = parseLootTable(table, { dialect: 'bedrock' });
+
+        // A warning rather than an error because the gap is written down: the
+        // condition reads a mob this roll has no handle on, so the gate shuts.
+        expect(diagnostics).toEqual([
+            {
+                severity: 'warning',
+                path: 'pools[0].conditions[0]',
+                message:
+                    "this package does not evaluate the bedrock loot condition has_mark_variant, which reads the entity's minecraft:mark_variant, so its gate never opens"
+            }
+        ]);
+        expect(rollLootTable(value, contextFor())).toEqual([]);
+    });
+
+    it('errors on a condition nobody has reviewed, because its effect is unknown', () => {
+        const table = gated([{ condition: 'phase_of_the_moon' }]);
         const { value, diagnostics } = parseLootTable(table, { dialect: 'bedrock' });
 
         expect(diagnostics).toEqual([
             {
                 severity: 'error',
                 path: 'pools[0].conditions[0]',
-                message: 'this package does not implement the bedrock loot condition has_mark_variant'
+                message: 'this package does not implement the bedrock loot condition phase_of_the_moon'
             }
         ]);
         expect(rollLootTable(value, contextFor())).toEqual([]);
@@ -336,13 +353,21 @@ describe('a loot_table entry that names a path', () => {
 });
 
 describe('what the bedrock dialect reports and does not apply', () => {
-    it('warns about the item functions rather than passing them over in silence', () => {
+    it('names each function it does not apply, and what the result comes out as', () => {
         const { diagnostics } = parseLootTable(
             {
                 pools: [
                     {
                         rolls: 1,
-                        entries: [{ ...sword, functions: [{ function: 'enchant_random_gear', chance: 0.25 }] }]
+                        entries: [
+                            {
+                                ...sword,
+                                functions: [
+                                    { function: 'enchant_random_gear', chance: 0.25 },
+                                    { function: 'minecraft:set_damage', damage: { min: 0.1, max: 0.5 } }
+                                ]
+                            }
+                        ]
                     }
                 ]
             },
@@ -352,8 +377,31 @@ describe('what the bedrock dialect reports and does not apply', () => {
         expect(diagnostics).toEqual([
             {
                 severity: 'warning',
-                path: 'pools[0].entries[0].functions',
-                message: 'this package reads no functions on a bedrock loot item entry, so the item functions is lost'
+                path: 'pools[0].entries[0].functions[0]',
+                message:
+                    "this package does not apply the bedrock loot function enchant_random_gear, so a mob's gear arrives unenchanted"
+            },
+            {
+                severity: 'warning',
+                path: 'pools[0].entries[0].functions[1]',
+                message:
+                    'this package does not apply the bedrock loot function set_damage, so a rolled tool arrives undamaged'
+            }
+        ]);
+    });
+
+    it('errors on a function nobody has reviewed, because what it changes is unknown', () => {
+        const { diagnostics } = parseLootTable(
+            { pools: [{ rolls: 1, entries: [{ ...sword, functions: [{ function: 'set_mood' }] }] }] },
+            { dialect: 'bedrock' }
+        );
+
+        expect(diagnostics).toEqual([
+            {
+                severity: 'error',
+                path: 'pools[0].entries[0].functions[0]',
+                message:
+                    'this package has no entry for the bedrock loot function set_mood, so what it changes about a result is unknown'
             }
         ]);
     });

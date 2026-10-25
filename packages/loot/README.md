@@ -138,14 +138,33 @@ What the two dialects spell differently:
 | --- | --- | --- |
 | A pool's or entry's gate | `condition` | `conditions`, an array, each member naming its type in a `condition` key |
 | A pool's draw | `rolls` and candidate weights | `tiers`, a ladder, for ten of the 309 tables |
-| A `loot_table` entry's target | `value`, composable | `name`, the pack-relative path the registry keys it under |
+| A range | `{ "type": "minecraft:uniform", "min": 2, "max": 4 }` | `{ "min": 2, "max": 4 }`, read as that same uniform provider |
+| An item entry's stack count | a `set_count` function | `count` on the entry, a number or a range |
+| A `loot_table` entry's target | `value`, composable | `name`, the pack-relative path, with or without the `.json` |
 | An entry's nested rolls | none | `pools`, rolled once the entry is drawn |
 | An entry's modifiers | `modifier` | `functions`, reported and not applied |
 
 Three conditions are implemented, the three the equipment tables gate on: `random_chance`,
-`random_difficulty_chance` and `random_regional_difficulty_chance`. The other twelve Bedrock
-condition types report and close their gate. Nothing is read silently either way, which is the
-point of the previous section.
+`random_difficulty_chance` and `random_regional_difficulty_chance`. Nothing else is read silently,
+which is the point of the previous section.
+
+### Reviewed gaps
+
+Two lists carry what the dialect reads and does not act on: `BEDROCK_REVIEWED_CONDITIONS`, the
+twelve condition types that read an entity or a biome a roll here has no handle on, and
+`BEDROCK_REVIEWED_FUNCTIONS`, the nineteen item functions. Each entry names what a result comes out
+as without it. A listed condition closes its gate and warns; a listed function is skipped and warns;
+anything unlisted is an error, because a reviewed gap has a bounded effect and an unreviewed one
+does not. That is the same rule the unread-key report applies, and it is what lets `strict` refuse a
+pack carrying something new without refusing a stock Bedrock server: over all 309 vanilla tables the
+registry reports 1484 warnings and no errors.
+
+Of the nineteen functions, three reach anything this server rolls today, because the equipment
+tables are the only Bedrock tables it draws from: `enchant_random_gear` and `looting_enchant` on mob
+gear, and `set_banner_details` on the raid captains. So a skeleton's bow arrives unenchanted and a
+captain's banner is a plain one. The other sixteen sit on chest, fishing and death-drop tables,
+which the server rolls from the Java registry, where `@jsprismarine/predicates` already does the
+same work.
 
 `tiers` reproduces Java's `Mob.populateArmor`. The draw lands in `initial_range` counted from the
 first entry, then climbs one rung per `bonus_rolls` that beats `bonus_chance`, stopping at the last
