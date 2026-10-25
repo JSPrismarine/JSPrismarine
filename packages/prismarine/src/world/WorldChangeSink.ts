@@ -143,6 +143,24 @@ export interface WorldChangeSink {
     entityMetadataChanged(entity: Entity): Promise<void>;
 
     /**
+     * An entity is holding or wearing something other than what it was.
+     *
+     * Only for an entity a client already has: `AddActorPacket` has no room for equipment, so
+     * the spawn path sends it itself and this covers everything afterwards. Before it existed,
+     * nothing did - a mob's equipment was written once, at the spawn, and a villager's trade
+     * offer and an enderman's carried block reached no client at all.
+     *
+     * Sent rather than recorded, which is the opposite of {@link blockEntityChanged} and right
+     * for the opposite reason. A batched flush earns its keep where many changes share a tick,
+     * and equipment changes a handful of times in a mob's life: the guard that matters is the
+     * one in `entity/data/liveBodies.ts`, which drops a write whose bytes match what the body
+     * already carries, so an unchanged mob produces nothing to batch in the first place.
+     * @param {Entity} entity - Whose equipment changed.
+     * @returns {Promise<void>} Resolves once it is on its way.
+     */
+    entityEquipmentChanged(entity: Entity): Promise<void>;
+
+    /**
      * An entity is now in this world.
      * @param {Entity} entity - The arrival. Already in the world's maps when this is called.
      * @returns {Promise<void>} Resolves once everyone who should see it has been told.
@@ -234,6 +252,7 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     actorSound: () => {},
     entityAttributesChanged: async () => {},
     entityMetadataChanged: async () => {},
+    entityEquipmentChanged: async () => {},
     entityAdded: async () => {},
     entityRemoved: async () => {},
     entityMoved: () => {},

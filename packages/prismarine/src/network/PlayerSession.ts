@@ -1596,11 +1596,13 @@ export default class PlayerSession {
         packet.attributes = entity.attributes.getAttributes();
         await this.send(packet);
 
-        // What it is holding, if anything. `AddActorPacket` has no room for equipment, so a mob's
+        // What it is holding and wearing. `AddActorPacket` has no room for equipment, so a mob's
         // weapon has to follow it as a packet of its own - and without this a skeleton fires
-        // arrows from an empty fist.
-        const held = entity.getHeldItem();
-        if (held) await this.sendHeldItemFor(entity, held);
+        // arrows from an empty fist. Nothing is sent for an entity with empty slots throughout,
+        // which every entity that is not a dressed mob is.
+        if (Object.values(entity.getEquipment()).some((item) => item !== undefined)) {
+            await this.sendEquipmentFor(entity);
+        }
     }
 
     /**
@@ -1637,6 +1639,47 @@ export default class PlayerSession {
         offhand.hotbarSlot = 0;
         offhand.windowId = WindowIds.OFFHAND;
 
+        await this.send(offhand);
+    }
+
+    /**
+     * Tells this client everything one entity is holding and wearing.
+     *
+     * The mob counterpart of {@link PlayerSession.sendArmorFor}, which reads a `Human`'s armor
+     * container and so cannot serve anything that has no inventory. A data-driven mob keeps its
+     * equipment on the body itself, rolled from `minecraft:equipment`.
+     *
+     * Both packets go out whatever the entity is wearing, rather than only the occupied slots.
+     * `MobArmorEquipmentPacket` is positional, so a client sent three pieces reads the next
+     * packet's bytes as the fourth, and an empty slot has to travel as air. The main hand is a
+     * separate packet because that is the one the client reads a held item from; the off hand
+     * follows only when something is in it, the way vanilla sends it.
+     * @param {Entity} entity - Whose equipment it is.
+     */
+    public async sendEquipmentFor(entity: Entity): Promise<void> {
+        const worn = entity.getEquipment();
+
+        const armor = new MobArmorEquipmentPacket();
+        armor.runtimeEntityId = entity.getRuntimeId();
+        armor.head = worn.head ?? Item.air();
+        armor.chest = worn.chest ?? Item.air();
+        armor.legs = worn.legs ?? Item.air();
+        armor.feet = worn.feet ?? Item.air();
+        // Horse armor, llama carpet and wolf armor, none of which a mob equipment table rolls.
+        armor.body = Item.air();
+        await this.send(armor);
+
+        await this.sendHeldItemFor(entity, worn.mainhand ?? Item.air());
+
+        if (worn.offhand === undefined) return;
+
+        const offhand = new MobEquipmentPacket();
+        offhand.runtimeEntityId = entity.getRuntimeId();
+        offhand.item = worn.offhand;
+        // The offhand container has a single slot, so both slot fields are zero.
+        offhand.inventorySlot = 0;
+        offhand.hotbarSlot = 0;
+        offhand.windowId = WindowIds.OFFHAND;
         await this.send(offhand);
     }
 

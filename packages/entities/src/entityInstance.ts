@@ -3,6 +3,7 @@ import { HookTable, Instance } from '@jsprismarine/content';
 import type { MolangValue } from '@jsprismarine/molang';
 
 import { Attributes } from './attributes';
+import type { EquipmentParams, SlotDropChance } from './components/vanilla';
 import type { EntityType } from './entityType';
 import type { EventEffects, OutgoingTrigger, SpawnCause } from './eventEngine';
 import { determineEvent, noEffects, spawnEventFor } from './eventEngine';
@@ -52,6 +53,15 @@ interface ActiveComponent {
     /** The group that contributed the component, or undefined for a base component. */
     readonly group?: string;
 }
+
+/** Whether one entry of a parsed `minecraft:equipment.slot_drop_chance` is the pair it should be. */
+const isSlotDropChance = (entry: unknown): entry is SlotDropChance =>
+    entry !== null &&
+    typeof entry === 'object' &&
+    'slot' in entry &&
+    typeof entry.slot === 'string' &&
+    'dropChance' in entry &&
+    typeof entry.dropChance === 'number';
 
 /** What `minecraft:transformation` asks the world to do. */
 export interface TransformRequest {
@@ -531,6 +541,29 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         const params = this.componentParams('minecraft:loot');
         if (params === null || typeof params !== 'object' || !('table' in params)) return undefined;
         return typeof params.table === 'string' ? params.table : undefined;
+    }
+
+    /**
+     * What the active `minecraft:equipment` component declares: the loot table the entity
+     * equips from, and the chance each slot's contents survive its death.
+     *
+     * Read off the active set for the same reason {@link EntityInstance.lootTable} is. Of the
+     * 28 vanilla instances of the component, 15 sit in a component group rather than in base
+     * components: a piglin's weapon depends on whether `melee_unit` or `ranged_unit` was added,
+     * and a type-level read would find neither.
+     *
+     * @returns {EquipmentParams | undefined} The component's parameters, or undefined when no
+     *   active component is `minecraft:equipment`.
+     */
+    public equipment(): EquipmentParams | undefined {
+        const params = this.componentParams('minecraft:equipment');
+        if (params === null || typeof params !== 'object' || !('slotDropChance' in params)) return undefined;
+        if (!Array.isArray(params.slotDropChance)) return undefined;
+
+        return {
+            table: 'table' in params && typeof params.table === 'string' ? params.table : undefined,
+            slotDropChance: params.slotDropChance.filter(isSlotDropChance)
+        };
     }
 
     /** The type families of the active `minecraft:type_family` component. */

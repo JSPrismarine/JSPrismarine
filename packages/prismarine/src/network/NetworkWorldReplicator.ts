@@ -397,6 +397,20 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
+    public async entityEquipmentChanged(entity: Entity): Promise<void> {
+        const runtimeId = entity.getRuntimeId();
+
+        // Gated on tracking for the reason `entityMetadataChanged` is: both packets name a
+        // runtime id, and a client that was never sent a spawn for it has nothing to dress.
+        await Promise.all(
+            this.world
+                .getPlayers()
+                .filter((player) => player.getNetworkSession().tracks(runtimeId))
+                .map(async (player) => player.getNetworkSession().sendEquipmentFor(entity))
+        );
+    }
+
+    /** @inheritdoc */
     public async entityAdded(entity: Entity): Promise<void> {
         if (entity instanceof Player) {
             // Everything already here, shown to the arriving player. Itself excluded by the
