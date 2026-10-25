@@ -656,11 +656,20 @@ describe('the server command host', () => {
             expect(player.getInventory().getEntry(0)?.getCount()).toBe(1);
         });
 
+        it('writes the ender chest, which is a container a player carries', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('replaceitem entity @a slot.enderchest 3 minecraft:stone 2')).resolves.toBe(2);
+            expect(player.getInventory().getEnderChest().getEntry(3)?.getItem().getName()).toBe('minecraft:stone');
+        });
+
         it('refuses a slot group this server has no container for', async () => {
             playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
 
-            await expect(fixture.run('replaceitem entity @a slot.enderchest 0 minecraft:stone')).rejects.toThrow(
-                'slot.enderchest'
+            // A saddle is a slot Bedrock names and no entity here holds, so a
+            // write would land nowhere.
+            await expect(fixture.run('replaceitem entity @a slot.saddle 0 minecraft:stone')).rejects.toThrow(
+                'slot.saddle'
             );
         });
 
@@ -1027,12 +1036,10 @@ describe('the server command host', () => {
             await expect(fixture.run('loot spawn 3 70 3 mine 2 70 2')).resolves.toBe(1);
         });
 
-        it('says there is nothing to insert into, because this server has no containers', async () => {
+        it('names the position when nothing standing there stores anything', async () => {
             fixture.useContent(lootContent());
 
-            await expect(fixture.run('loot insert 0 70 0 loot mypack:prize')).rejects.toThrow(
-                /no container block entities/
-            );
+            await expect(fixture.run('loot insert 0 70 0 loot mypack:prize')).rejects.toThrow(/no container at 0 70 0/);
         });
     });
 

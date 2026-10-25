@@ -13,7 +13,14 @@
  * rather than reporting an empty roll: an empty roll is a real answer for
  * bedrock and for a mob Java gives no table, and the two must not read alike.
  */
-import type { CommandSource, EntityRef, ItemSlot, LootDestination, LootSource } from '@jsprismarine/commands';
+import type {
+    CommandSource,
+    DataTarget,
+    EntityRef,
+    ItemSlot,
+    LootDestination,
+    LootSource
+} from '@jsprismarine/commands';
 import { Vector3 } from '@jsprismarine/math';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 
@@ -28,7 +35,8 @@ import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemOfDrop } from '../../inventory/persistence';
 import type { Item } from '../../item/Item';
 import { lootLevelOf } from '../../world/lootLevel';
-import { setItemSlot } from './inventory';
+import { blockContainerAt, insertIntoContainer } from './containers';
+import { BLOCK_CONTAINER_SLOT, setItemSlot } from './inventory';
 import { blockPositionOf, carryOut, refuse, resolveEntity, resolvePlayer, worldOf } from './support';
 
 /**
@@ -57,16 +65,26 @@ const JAVA_SLOT_GROUPS: Readonly<Record<string, string>> = {
  * address.
  *
  * `container.N` counts the whole 36-slot container from zero, which is what
- * `slot.inventory` is here; `hotbar.N` is the nine at the front.
+ * `slot.inventory` is here; `hotbar.N` is the nine at the front. A block has
+ * one group of slots and Java spells it with that same word, so which of the
+ * two `container` means is the target's question rather than the name's.
  */
-const slotOf = (slot: ItemSlot, offset: number): ItemSlot => {
+const slotOf = (target: DataTarget, slot: ItemSlot, offset: number): ItemSlot => {
     const dot = slot.name.lastIndexOf('.');
     const tail = dot < 0 ? '' : slot.name.slice(dot + 1);
     const indexed = tail.length > 0 && /^\d+$/.test(tail);
-    const group = JAVA_SLOT_GROUPS[indexed ? slot.name.slice(0, dot) : slot.name];
+    const name = indexed ? slot.name.slice(0, dot) : slot.name;
+    const index = (indexed ? Number(tail) : 0) + offset;
+
+    if (target.kind === 'block') {
+        if (name !== 'container') refuse(`${slot.name} is not a slot a container block has`);
+        return { name: BLOCK_CONTAINER_SLOT, index };
+    }
+
+    const group = JAVA_SLOT_GROUPS[name];
     if (group === undefined) refuse(`${slot.name} is not a slot this server can write`);
 
-    return { name: group, index: (indexed ? Number(tail) : 0) + offset };
+    return { name: group, index };
 };
 
 /** What the predicates read of a tool, for a `mine` or `fish` source. */
@@ -201,7 +219,7 @@ export const runLootCommand = (
             placed += setItemSlot(
                 server,
                 destination.target,
-                slotOf(destination.slot, offset),
+                slotOf(destination.target, destination.slot, offset),
                 drop.identifier,
                 drop.count
             );
@@ -210,7 +228,16 @@ export const runLootCommand = (
     }
 
     if (destination.kind === 'insert') {
-        refuse('This server has no container block entities, so there is nothing to insert into');
+        const world = worldOf(server, destination.dimension);
+        const at = blockPositionOf(destination.position);
+        const container = blockContainerAt(server, world, at);
+        if (container === undefined) refuse(`There is no container at ${at.getX()} ${at.getY()} ${at.getZ()}`);
+
+        const inserted = insertIntoContainer(container, content, drops);
+        if (inserted === 0) refuse('That container has no room for what the table rolled');
+
+        container.commit();
+        return inserted;
     }
 
     const world = worldOf(server, destination.dimension);
