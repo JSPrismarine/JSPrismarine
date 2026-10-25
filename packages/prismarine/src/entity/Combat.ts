@@ -6,7 +6,6 @@ import { AttributeIds } from './Attribute';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
-import { sizeOf } from './EntitySize';
 import Human from './Human';
 
 /**
@@ -77,7 +76,7 @@ export interface MeleeOptions {
  */
 export const distanceToBody = (from: Vector3, target: Entity): number => {
     const at = target.getPosition();
-    const { width, height } = sizeOf(target.getType());
+    const { width, height } = target.getBox();
     const half = width / 2;
     const feet = target.getFeetY();
 

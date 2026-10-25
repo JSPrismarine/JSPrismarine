@@ -1,7 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Server from '../Server';
+import { testEntityServer } from '../testing/entityServer';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
@@ -11,7 +11,7 @@ const entityAt = (x: number, y: number, z: number) => {
     const broadcastMove = vi.fn<World['broadcastMove']>(async () => {});
     const world = stub<World>({
         getName: () => 'test',
-        getServer: () => stub<Server>(),
+        getServer: () => testEntityServer(),
         broadcastMove
     });
     return { entity: new Entity({ position: new Position(x, y, z, world) }), broadcastMove };

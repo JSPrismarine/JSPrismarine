@@ -63,7 +63,7 @@ const worldLoading = (
         systems: { onChunkLoaded: () => {} },
         addEntity: async (entity: Entity) => void added.push(entity),
         dataEntities: () => live,
-        server: { getLogger: () => ({ debug: () => {}, warn: () => {} }) }
+        server: { getLogger: () => ({ debug: () => {}, warn: () => {} }), getContent: () => content }
     });
 
     return { world, added, asked };

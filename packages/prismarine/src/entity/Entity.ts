@@ -16,7 +16,8 @@ import EntityDamageEvent from '../events/entity/EntityDamageEvent';
 import EntityDeathEvent from '../events/entity/EntityDeathEvent';
 import { advancementDamage, advancementKill } from '../advancement/triggers';
 import { enchantmentProtection } from '../enchantment/mitigation';
-import { sizeOf } from './EntitySize';
+import type { EntityBox } from './data/facts';
+import { boxOf } from './data/facts';
 import { Metadata, MetadataFlag } from './Metadata';
 import type { ViewableEquipment } from './predicateView';
 
@@ -221,6 +222,17 @@ export class Entity {
     }
 
     /**
+     * How big this entity is, in blocks.
+     *
+     * Read from the `minecraft:collision_box` of its type in the running content build rather
+     * than from a table in this repository, so the one number is whatever the pack stack says.
+     * @returns {EntityBox} The box, centered on the position and extending up from the feet.
+     */
+    public getBox(): EntityBox {
+        return boxOf(this.server.getContent().entities.registry, this.getType());
+    }
+
+    /**
      * Tells the client how big this entity is.
      *
      * Safe to call from the constructor because {@link Entity.getType} reads a static, and statics
@@ -228,7 +240,7 @@ export class Entity {
      * exception and calls this again for itself - see there.
      */
     protected applySize(): void {
-        const { width, height } = sizeOf(this.getType());
+        const { width, height } = this.getBox();
         this.metadata.setBoundingBox(width, height);
     }
 
