@@ -529,11 +529,14 @@ describe('host-backed modifiers', () => {
     it('multiplies the input count by the count the recipe yields', () => {
         const content = { smeltingResult: () => stack('minecraft:charcoal', 3) };
 
-        expect(apply({ type: 'minecraft:furnace_smelt' }, stack('minecraft:log', 2), { content })?.count).toBe(3);
+        // Java's codec defaults `use_input_count` to true, so a table that
+        // leaves it out keeps the input count. Three raw beef off a burning
+        // cow are three cooked ones, not one.
+        expect(apply({ type: 'minecraft:furnace_smelt' }, stack('minecraft:log', 2), { content })?.count).toBe(6);
         expect(
-            apply({ type: 'minecraft:furnace_smelt', use_input_count: true }, stack('minecraft:log', 2), { content })
+            apply({ type: 'minecraft:furnace_smelt', use_input_count: false }, stack('minecraft:log', 2), { content })
                 ?.count
-        ).toBe(6);
+        ).toBe(3);
     });
 
     it('clamps a smelted count to the stack size', () => {
