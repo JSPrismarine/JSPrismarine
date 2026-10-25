@@ -86,6 +86,20 @@ describe('Supervisor', () => {
         expect(supervisor.serverLink).toBe(children[0]?.link);
     });
 
+    it('tells listeners whether a watching host can restart the child', () => {
+        const restartable = setup({ canRestart: true });
+        restartable.supervisor.emit({ type: 'supervisor.watching', root: '/repo/packages' });
+        expect(restartable.events.at(-1)).toEqual({
+            type: 'supervisor.watching',
+            root: '/repo/packages',
+            canRestart: true
+        });
+
+        const fixed = setup({ canRestart: false });
+        fixed.supervisor.emit({ type: 'supervisor.watching', root: '/repo/packages' });
+        expect(fixed.events.at(-1)).toEqual({ type: 'supervisor.watching', root: '/repo/packages', canRestart: false });
+    });
+
     it('forwards the child output as supervisor output', async () => {
         const { supervisor, children, events } = setup();
         await supervisor.start();

@@ -42,6 +42,7 @@ export interface CommandOutcome {
 
 /** Supervisor controls the app triggers from the keyboard. */
 export interface AppActions {
+    /** Only called after a `supervisor.watching` event with `canRestart: true`. */
     restart(): void;
     stop(): void;
     forceStop(): void;
@@ -112,6 +113,8 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let search: string | undefined;
     let wrap = false;
     let sidePanePreference: boolean | undefined;
+    /** Whether the host said a restart request will be acted on; only a watching host does. */
+    let canRestart = false;
     /** Names the server completes an empty line with; `/name` lines go to the server when `name` is one. */
     let commandNames: ReadonlySet<string> = new Set();
     let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, {});
@@ -452,6 +455,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'view.palette':
                 toasts.push(NOT_AVAILABLE('the command palette'));
                 return;
+            case 'server.restart':
+                if (canRestart) props.actions.restart();
+                else toasts.push({ tone: 'muted', text: 'restart is only available with --watch' });
+                return;
             case 'server.stop':
                 props.actions.stop();
                 return;
@@ -539,6 +546,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             for (const line of lines) store.appendRaw(event.stream, line, store.generation);
             return;
         }
+        if (event.type === 'supervisor.watching') canRestart = event.canRestart === true;
         if (event.type === 'supervisor.state') {
             if (event.state === 'starting' && event.generation > 1) {
                 store.startGeneration('server restarted', now());

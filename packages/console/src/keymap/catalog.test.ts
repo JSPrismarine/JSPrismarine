@@ -42,6 +42,7 @@ describe('formatBinding', () => {
         expect(formatBinding({ name: 'home' })).toBe('Home');
         expect(formatBinding({ name: 'u', ctrl: true })).toBe('Ctrl+U');
         expect(formatBinding({ name: 'n', shift: true })).toBe('N');
+        expect(formatBinding({ name: 'r', ctrl: true, shift: true })).toBe('Ctrl+Shift+R');
         expect(formatBinding({ name: '?' })).toBe('?');
     });
 });
@@ -81,6 +82,11 @@ describe('resolveCommand', () => {
     ] as const)('resolves %o only while the input line is empty', (press, expected) => {
         expect(resolveCommand(press, empty)).toBe(expected);
         expect(resolveCommand(press, typing)).toBeUndefined();
+    });
+
+    it('restarts on Ctrl+Shift+R and searches history on Ctrl+R', () => {
+        expect(resolveCommand(key('r', { ctrl: true, shift: true }), typing)).toBe('server.restart');
+        expect(resolveCommand(ctrl('r'), typing)).toBe('input.historySearch');
     });
 
     it('does not bind a key to stop the server', () => {
