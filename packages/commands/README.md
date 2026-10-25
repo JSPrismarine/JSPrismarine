@@ -43,6 +43,64 @@ Read the table through `src/bedrockTable.ts`, which casts the parsed JSON once a
 `bedrockCommandTable`, `bedrockCommand`, `bedrockCommandEnum`, `isBedrockSoftEnum` and
 `isBedrockBasicType`.
 
+## The command tree, and what flattening it costs
+
+`CommandRegistry` holds the Brigadier port's own tree, unchanged: literals, arguments, redirects
+and forks, dispatched by `CommandDispatcher.execute`. Java semantics run server-side. What the
+registry adds is the per-command data `AvailableCommandsPacket` carries and Brigadier has no place
+for, a description, an alias list, a permission level and a flags word. An alias is registered as a
+literal that redirects to the real root and shares its executor, so `/tp` and `/teleport` parse the
+same arguments and run the same code.
+
+`buildAvailableCommands(registry, options)` returns the packet's eight fields as values plus the
+flattener's report. Pass `source` to filter by `CommandNode.canUse` the way Java does, so a player
+is only told about the commands they may run.
+
+Bedrock's tree is a flat overload list per command with no redirects, so Java's graph becomes a
+cartesian expansion. Three shapes do not survive, and each produces a note instead of a silent
+drop:
+
+| Shape | What the client gets | Note |
+| --- | --- | --- |
+| A redirect back onto the current path, which is a cycle | One trailing chained-subcommand parameter, and the overload marked `isChaining` | `redirect-cycle` |
+| A redirect to the dispatcher root | One `CODEBUILDERARGS` parameter, which the client will not autocomplete | `redirect-to-root` |
+| An argument whose type Bedrock has no parameter type for | An `ID` string, unvalidated | `no-bedrock-type` |
+| An argument type from outside this package | An `ID` string | `untyped-argument` |
+| A node that is its own child | Nothing; the branch is cut | `self-child` |
+| An expansion past the overload cap | Nothing past the cap | `overload-limit` |
+
+A fork flattens normally and is noted anyway. A Bedrock client can be shown
+`/execute as @e run say hi`; what it cannot do is run the fan-out, which happens in
+`CommandDispatcher.execute`. The note tells a caller that the overload it is about to send has
+semantics the client does not share. Nothing else about Java's fork reaches the wire, which is why
+`execute store result score ...` cannot be shown at all: no chained subcommand, no parameter type
+and no redirect express it.
+
+Sibling literals whose continuations are identical collapse into one enum, which is how `if` and
+`unless` become `OPTION_IF_UNLESS`. That is Mojang's own encoding: in `mojang-commands.json` every
+`/execute` subcommand keyword is a one-value hard enum (`OPTION_AS`, `OPTION_AT`) and the tail is
+`EXECUTECHAINEDOPTION_0`. Flattening a Java `/execute` built with redirects produces the same
+shape.
+
+Two details of the packet are worth stating because Mojang's schema does not settle them:
+
+- `Chained Subcommand Data` entries carry value pairs Mojang names `first` and `second` and defines
+  neither. The only datum a chained table has per entry is the keyword, so this package writes its
+  index into `Chained Subcommand Values` in both members.
+- `CommandData.Flags` is a `uint16` Mojang documents as "the command flags" without enumerating the
+  bits, so the default here is 0, as it is everywhere else in this repository.
+
+The parameter type ids are version-pinned. `PoiTag` and `PoiType` were inserted at 87 and 88 in
+1.26.50, which moved everything above them; the table in `src/parameterTypes.ts` is the one for
+protocol 2193, keyed by Mojang's own metadata name so the numbers and the data join on a published
+key.
+
+This package does not depend on `@jsprismarine/protocol` or `@jsprismarine/prismarine`. It produces
+the payload and the network layer writes it, so the command layer stays free of the server. The
+round trip in `src/packet.test.ts` asserts every field fits the width the packet encodes it at
+(uint16 flags, uint8 permission level and options, int32 alias index, uint32 parse symbols and
+indices) and that every parse symbol decodes back to the table it points at.
+
 ## Selectors
 
 `parseSelector(input, dialect)` reads one target selector and returns one model whichever edition
