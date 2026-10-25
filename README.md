@@ -23,7 +23,7 @@ JSPrismarine is a dedicated Minecraft Bedrock Edition server written in TypeScri
 
 Prebuilt binaries will be provided once a stable release is available. For now, you can follow the steps below or download the [latest nightly](https://github.com/JSPrismarine/JSPrismarine/actions/workflows/nightly.yml?query=branch%3Amaster) (which may or may not work before reaching `v1.0.0`).
 
-Requirements: Linux/MacOS/Unix-based OS or a modern Windows (WSL2 is recommended), [Node.js](https://nodejs.org) v21+ and [pnpm](https://pnpm.io).
+JSPrismarine runs on Linux, macOS, other Unix-based systems, and modern Windows (WSL2 recommended). It requires [Node.js](https://nodejs.org) 26.4.0 or newer and [pnpm](https://pnpm.io) 12 or newer.
 
 
 ### Enable (or install) corepack.
@@ -48,7 +48,7 @@ pnpm run build
 pnpm run start
 ```
 
-In a terminal on Node 26.9 or newer this opens the console UI; elsewhere (Docker, panels, pipes, older Node) the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/running.md#4-console).
+In an interactive terminal on Node 26.9 or newer, the console UI opens by default; Node versions 26.4 through 26.8 also support it with `--experimental-ffi`. In other environments, the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/running.md#4-console).
 
 > [!NOTE]
 > Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive`. The `bedrock-data` resources submodule is required to build.

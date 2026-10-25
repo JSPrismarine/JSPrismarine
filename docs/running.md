@@ -8,8 +8,9 @@ category: Guides
 
 ## 1. Prerequisites
 
-*   1.1 node `>=22.18` and pnpm `>=12`. The terminal UI needs a Node that loads `node:ffi` (26.9 or newer, or 26.4 with `--experimental-ffi`); older versions
-    get the plain line console (see [Console](#4-console)).
+*   1.1 Node.js `>=26.4.0` and pnpm `>=12`. The terminal UI loads `node:ffi` by default on
+    Node 26.9 or newer. Node versions 26.4 through 26.8 require `--experimental-ffi`. If Node cannot
+    load `node:ffi`, the server uses the plain line console (see [Console](#4-console)).
 
 pnpm is the only supported package manager. Installs with npm or yarn fail
 with a message pointing back to pnpm, and repository tooling runs one-off
@@ -47,19 +48,19 @@ the plain line console otherwise.
 The `prismarine` entry point picks one of two console modes at startup.
 
 The terminal UI (TUI) is used when stdin and stdout are a terminal, `TERM` is not `dumb`,
-neither `CI` nor `JSP_NO_TUI` is set, `--no-tui` was not passed, and Node can load `node:ffi` (26.9 or newer, or 26.4 and later with `--experimental-ffi`). The
+neither `CI` nor `JSP_NO_TUI` is set, `--no-tui` was not passed, and Node can load `node:ffi` (by
+default on 26.9 or newer, or with `--experimental-ffi` on 26.4 through 26.8). The
 UI draws the log, a status bar with TPS, player count, memory, and uptime, and an input line with
 history and command completion. In this mode the process you started is a host: it owns the
 terminal and runs the server as a child process, so a crash or a `--watch` restart of the server
 never leaves your terminal in a broken state. A Node with `node:ffi` is required because the renderer is
 loaded through `node:ffi`, which arrived in that release.
 
-The plain line console is used everywhere else: in Docker, under systemd, in hosting panels that
-feed stdin, over a pipe, in CI, and on older Node versions. The server then runs in-process and
-behaves like a classic console program. Each line you write to stdin is run as a command, and each
-log record is one plain line on stdout, so `docker logs` and panel log viewers show exactly what
-the log file does. When the TUI was possible but Node is too old, the server prints one line
-naming the reason before it starts.
+The plain line console is used elsewhere, including in Docker, under systemd, in hosting panels
+that feed stdin, over pipes, and in CI. In that mode, the server runs in-process and behaves like
+a classic console program. Each line you write to stdin runs as a command, and each log record is
+one plain line on stdout, so `docker logs` and panel log viewers show exactly what the log file
+does. If Node cannot load `node:ffi`, the server prints one line naming the reason before startup.
 
 You can force plain mode with the `--no-tui` flag or by setting `JSP_NO_TUI=1` in the
 environment. The environment variable is the right choice for container images and service
