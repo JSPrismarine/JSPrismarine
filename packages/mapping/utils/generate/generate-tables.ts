@@ -85,8 +85,10 @@ const findJava = (): string => {
     for (const home of candidates) {
         const java = join(home, 'bin/java');
         if (!existsSync(java)) continue;
-        const banner = execFileSync(java, ['-version'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
-        const major = Number(/version "(\d+)/.exec(banner)?.[1]);
+        // `java --version` prints `openjdk 27 2026-09-15` on stdout; the older `-version`
+        // prints its banner to stderr and leaves stdout empty, so every JDK looked too old.
+        const banner = execFileSync(java, ['--version'], { encoding: 'utf8' });
+        const major = Number(/\b(\d+)/.exec(banner.split('\n')[0] ?? '')?.[1]);
         if (major >= 25) return java;
     }
     throw new Error('No JDK >= 25 found. Point JAVA_HOME or JSP_JAVA_HOME at one.');
