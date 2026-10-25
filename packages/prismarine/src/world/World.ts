@@ -182,6 +182,12 @@ export class World implements Service {
      */
     private readonly players: Map<bigint, Player> = new Map();
     private readonly chunks: Map<number, Chunk> = new Map();
+
+    /** The last chunk {@link getLoadedChunk} answered with. A packed key is never negative. */
+    private lastChunkIndex = -1;
+    private lastChunk: Chunk | null = null;
+    private lastChunkSource: Map<number, Chunk> | null = null;
+
     private readonly gameRuleManager: GameRuleManager;
     private currentTick = 0;
 
@@ -534,12 +540,25 @@ export class World implements Service {
      * The synchronous counterpart to {@link getChunk}, which mob AI needs: pathfinding reads a few
      * hundred blocks to plan one route and has to answer inside the tick, and `getChunk` would both
      * make that asynchronous and quietly generate terrain as a mob walked towards it.
+     * The last answer is remembered, because the callers ask in runs: the light engine scans a
+     * column of 384 blocks, and a path finder reads a few hundred around one position, each
+     * through this. The cache is one entry and is dropped whenever {@link chunks} gains one, so
+     * the only way to make it lie is to remove a chunk from the map without going through
+     * {@link loadChunk} - which nothing does, since chunks are never unloaded.
      * @param {number} cx - Chunk x.
      * @param {number} cz - Chunk z.
      * @returns {Chunk | null} The loaded chunk, or null - never a generated one.
      */
     public getLoadedChunk(cx: number, cz: number): Chunk | null {
-        return this.chunks.get(Chunk.packXZ(cx, cz)) ?? null;
+        const index = Chunk.packXZ(cx, cz);
+        // The map identity too: a test swaps `chunks` wholesale on a live world.
+        if (index === this.lastChunkIndex && this.chunks === this.lastChunkSource) return this.lastChunk;
+
+        const chunk = this.chunks.get(index) ?? null;
+        this.lastChunkIndex = index;
+        this.lastChunkSource = this.chunks;
+        this.lastChunk = chunk;
+        return chunk;
     }
 
     /** How many chunks are in memory, which is what the mob spawner budgets against. */
@@ -620,6 +639,8 @@ export class World implements Service {
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
+        // The only thing that changes what `getLoadedChunk` should answer.
+        this.lastChunkIndex = -1;
         this.markEntitiesInChunkChanged(chunk);
 
         // After the chunk is in the map: the engine reads the blocks back through the world.
