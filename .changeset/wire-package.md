@@ -16,6 +16,6 @@ twelve Java serializers with no Bedrock form rather than dropping them. `blockRu
 that would disagree with it.
 
 Measured against the Bedrock Dedicated Server 1.26.51.1 captures in `@jsprismarine/bedrock-data`:
-all 2250 fields of the 98 data-driven vanilla block definitions match and 97 of the 98 are byte
+all 2250 fields of the 98 data-driven vanilla block definitions match and all 98 are byte
 identical, 326 of 341 derived `item_properties` values match over the 31 items both sides describe,
 and all 1065 captured block `network_id` values are reproduced.
