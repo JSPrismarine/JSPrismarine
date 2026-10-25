@@ -67,6 +67,28 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         return names;
     };
 
+    /** Asserts a structure starts where the seeded placement puts it, and names its blocks. */
+    const landsIn = async (
+        chunkX: number,
+        chunkZ: number,
+        structure: string,
+        set: string,
+        blocks: readonly string[],
+        from: number
+    ): Promise<void> => {
+        const start = generator
+            .structureStartsAt(chunkX, chunkZ, SEED)
+            .find((candidate) => candidate.structure === structure);
+
+        expect(start, structure).toBeDefined();
+        expect(start!.set).toBe(set);
+        expect(start!.chunkX).toBe(chunkX);
+        expect(start!.chunkZ).toBe(chunkZ);
+
+        const names = identifiersAbove(await chunkAt(chunkX, chunkZ), from);
+        for (const block of blocks) expect(names, `${structure} is missing ${block}`).toContain(block);
+    };
+
     describe('a jigsaw structure', () => {
         // Java's random spread placement puts this seed's plains village here. The chunk is far
         // from the origin because the seed's own neighborhood is ocean.
@@ -120,6 +142,53 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     });
 
     it(
+        'sinks a shipwreck onto the sea floor where the placement puts it',
+        async () => {
+            // The hull this seed draws is a mixed oak and spruce one; the planks and the stairs
+            // are the parts no feature places in an ocean.
+            await landsIn(
+                8,
+                -30,
+                'minecraft:shipwreck',
+                'minecraft:shipwrecks',
+                ['minecraft:oak_planks', 'minecraft:oak_stairs', 'minecraft:spruce_planks'],
+                25
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'builds an ocean ruin on the sea floor where the placement puts it',
+        async () => {
+            await landsIn(
+                -12,
+                0,
+                'minecraft:ocean_ruin_cold',
+                'minecraft:ocean_ruins',
+                ['minecraft:stone_bricks', 'minecraft:chiseled_stone_bricks', 'minecraft:sea_lantern'],
+                30
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'ruins a portal and spreads netherrack under it',
+        async () => {
+            await landsIn(
+                14,
+                -23,
+                'minecraft:ruined_portal_ocean',
+                'minecraft:ruined_portals',
+                ['minecraft:obsidian', 'minecraft:netherrack', 'minecraft:gold_block'],
+                25
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'names the structure types that still have no builder',
         () => {
             const registries = loadJavaWorldgenRegistries(sources!);
@@ -135,14 +204,9 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
                 'minecraft:desert_pyramid',
                 'minecraft:end_city',
                 'minecraft:fortress',
-                'minecraft:igloo',
                 'minecraft:jungle_temple',
                 'minecraft:mineshaft',
-                'minecraft:nether_fossil',
                 'minecraft:ocean_monument',
-                'minecraft:ocean_ruin',
-                'minecraft:ruined_portal',
-                'minecraft:shipwreck',
                 'minecraft:stronghold',
                 'minecraft:swamp_hut',
                 'minecraft:woodland_mansion'
