@@ -97,6 +97,24 @@ export interface RegionEntitySpawn {
     readonly yaw: number;
 }
 
+/**
+ * The center chunk handed over as palette slots rather than as 98304 block states.
+ *
+ * What the Bedrock chunk is filled from. Translating per block costs one mapping lookup for each
+ * of the column's blocks; translating the palette costs one for each of its few hundred entries,
+ * and the index buffer is then copied section by section. That is the difference between work
+ * proportional to the chunk and work proportional to the materials in it, and it is what makes
+ * the handover cheap enough to sit on the main thread behind a worker pool.
+ */
+export interface CenterBlockSlots {
+    /** The palette the slots index into. Slot 0 is air. */
+    readonly palette: readonly RegionBlock[];
+    /** One slot per block, indexed `(localX * 16 + localZ) * height + (y - minY)`. */
+    readonly slots: Uint16Array;
+    /** The highest y holding a non-air block per column, indexed `localX * 16 + localZ`. */
+    readonly columnTops: Int32Array;
+}
+
 /** A block state written during decoration, in world coordinates. */
 export interface RegionBlockWrite {
     readonly x: number;
@@ -436,6 +454,32 @@ export class GenerationRegion {
     /** The entities asked for inside the center chunk, in the order the features asked. */
     public centerEntitySpawns(): readonly RegionEntitySpawn[] {
         return this.entitySpawns.filter((spawn) => this.isInCenterChunk(Math.floor(spawn.x), Math.floor(spawn.z)));
+    }
+
+    /**
+     * The center chunk's blocks as palette slots, for the translation pass.
+     *
+     * A radius-0 region is already exactly the center chunk in exactly this layout, so it hands
+     * its own buffers over rather than copying them. They stay the region's, so a caller reads
+     * them and does not keep them.
+     */
+    public centerBlockSlots(): CenterBlockSlots {
+        if (this.radius === 0) return { palette: this.palette, slots: this.states, columnTops: this.highest };
+
+        const slots = new Uint16Array(256 * this.height);
+        const columnTops = new Int32Array(256).fill(this.minY - 1);
+        for (let localX = 0; localX < 16; localX++) {
+            for (let localZ = 0; localZ < 16; localZ++) {
+                const source = this.columnIndex(this.chunkX * 16 + localX, this.chunkZ * 16 + localZ);
+                if (source === -1) continue;
+
+                const target = localX * 16 + localZ;
+                columnTops[target] = this.highest[source]!;
+                slots.set(this.states.subarray(source * this.height, (source + 1) * this.height), target * this.height);
+            }
+        }
+
+        return { palette: this.palette, slots, columnTops };
     }
 
     /** Every non-air block the center chunk holds, for the translation pass. */
