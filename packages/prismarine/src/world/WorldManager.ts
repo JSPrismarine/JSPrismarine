@@ -176,8 +176,8 @@ export default class WorldManager implements Service {
         }
 
         // The behavior families answer the random ticks, and they are reachable only through the
-        // content registries - so a world started with `content-packs` off gets no handlers and
-        // the engine draws its positions and discards them, exactly as it did before.
+        // content registries. Read here rather than inside the world, because a world is built
+        // from a config entry and the registries are the server's.
         const content = this.server.getContent();
 
         // Closed over rather than passed, because a world's handlers are built while the world
@@ -192,18 +192,16 @@ export default class WorldManager implements Service {
             seed: worldData.seed,
             generator,
             config: { ...worldData },
-            randomTickHandlers: content
-                ? contentRandomTickHandlers({
-                      content,
-                      world: () => built,
-                      report: (identifier, error) => {
-                          this.server.getLogger().error(error);
-                          this.server
-                              .getLogger()
-                              .error(`§c${identifier}§r threw on a random tick; it will not be reported again`);
-                      }
-                  })
-                : undefined
+            randomTickHandlers: contentRandomTickHandlers({
+                content,
+                world: () => built,
+                report: (identifier, error) => {
+                    this.server.getLogger().error(error);
+                    this.server
+                        .getLogger()
+                        .error(`§c${identifier}§r threw on a random tick; it will not be reported again`);
+                }
+            })
         });
         built = world;
         this.worlds.set(world.getUUID(), world);
