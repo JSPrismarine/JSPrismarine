@@ -78,6 +78,14 @@ export default class ItemManager {
 
     /**
      * Register an item, which is how a plugin contributes one.
+     *
+     * @deprecated Ship a Bedrock behavior pack that defines the item and register the behavior
+     * families its components name. Items come from the pack stack, so an `Item` registered here
+     * has no component list, no hooks and no entry in the item fact tables, and the one thing it
+     * can still do is answer for its own identifier ahead of the stack's. This method is removed
+     * in a later release; see
+     * [the migration plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md)
+     * section 10.
      * @param item - The item, which answers for its name ahead of the registry's own.
      */
     public registerItem = async (item: Item): Promise<void> => {
