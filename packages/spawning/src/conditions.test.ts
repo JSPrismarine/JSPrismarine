@@ -12,6 +12,8 @@ import type { SpawnPosition, SpawnSiteFlag, SpawnWorld } from './world';
 const baseWorld = {
     site: (flag: SpawnSiteFlag) => flag === 'surface',
     block: () => 'minecraft:stone',
+    surfaceY: () => 64,
+    minY: () => -64,
     light: () => 15,
     biomeTags: () => ['plains', 'overworld'],
     biome: () => 'minecraft:plains',

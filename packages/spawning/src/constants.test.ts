@@ -9,7 +9,7 @@ describe('the constants table', () => {
     });
 
     it('states where every number came from', () => {
-        for (const pool of POPULATION_POOLS) expect(SPAWN_CONSTANTS.pools[pool].source.length).toBeGreaterThan(20);
+        for (const pool of POPULATION_POOLS) expect(SPAWN_CONSTANTS.pools[pool]?.source.length).toBeGreaterThan(20);
         expect(SPAWN_CONSTANTS.provenance).toContain('Mojang publishes no spawn attempt rate');
     });
 
