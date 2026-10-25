@@ -113,6 +113,36 @@ describe('load', () => {
         expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
     });
 
+    it('keeps brarchives whose names collide apart, one per folder under __brarchive', () => {
+        // The vanilla layers ship `__brarchive/entities.brarchive` beside
+        // `__brarchive/loot_tables/entities.brarchive`; an archive stands for
+        // its whole path under `__brarchive/`, not just its name.
+        const layer = temporaryDir();
+        mkdirSync(join(layer, '__brarchive', 'loot_tables'), { recursive: true });
+        writeFileSync(join(layer, 'manifest.json'), readFileSync(join(basePack, 'manifest.json')));
+        writeFileSync(
+            join(layer, '__brarchive', 'entities.brarchive'),
+            writeBrarchive(
+                textFiles({
+                    'nested.json': JSON.stringify({
+                        format_version: '1.26.0',
+                        'minecraft:entity': { description: { identifier: 'fixture:nested' }, components: {} }
+                    })
+                })
+            )
+        );
+        writeFileSync(
+            join(layer, '__brarchive', 'loot_tables', 'entities.brarchive'),
+            writeBrarchive(textFiles({ 'nested.json': JSON.stringify({ pools: [] }) }))
+        );
+
+        const { definitions, diagnostics } = load([{ kind: 'directory', path: layer }]);
+
+        expect(definitions.entities.get('fixture:nested')?.path).toBe('entities/nested.json');
+        expect(definitions.lootTables.get('loot_tables/entities/nested.json')).toBeDefined();
+        expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
+    });
+
     it('reports a bad manifest and skips the pack, keeping the rest of the stack', () => {
         const { definitions, diagnostics } = load([
             { kind: 'directory', path: badManifestPack },

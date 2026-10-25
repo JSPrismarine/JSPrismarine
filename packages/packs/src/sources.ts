@@ -1,5 +1,5 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
-import { basename, join, relative, sep } from 'node:path';
+import { join, relative, sep } from 'node:path';
 
 import { readBrarchive } from './brarchive';
 import type { Diagnostic } from './diagnostics';
@@ -46,6 +46,7 @@ export interface PackFiles {
 }
 
 const BRARCHIVE_FOLDER = '__brarchive/';
+const BRARCHIVE_EXTENSION = '.brarchive';
 
 /**
  * Expands one stack member into the packs it holds, in apply order.
@@ -85,14 +86,21 @@ const readDirectoryPack = (path: string): PackFiles => {
     return { origin: path, files };
 };
 
-/** Adds one file, expanding a brarchive container into its folder's members. */
+/**
+ * Adds one file, expanding a brarchive container into its folder's members.
+ * An archive stands for its whole path under `__brarchive/` minus the
+ * extension, not just its name: the vanilla layers ship
+ * `__brarchive/loot_tables/entities.brarchive` beside
+ * `__brarchive/entities.brarchive`, so the name alone collides and one
+ * archive's members overwrite the other's.
+ */
 const addPackFile = (files: Map<string, Uint8Array>, packPath: string, bytes: Uint8Array): void => {
-    if (!packPath.startsWith(BRARCHIVE_FOLDER) || !packPath.endsWith('.brarchive')) {
+    if (!packPath.startsWith(BRARCHIVE_FOLDER) || !packPath.endsWith(BRARCHIVE_EXTENSION)) {
         files.set(packPath, bytes);
         return;
     }
 
-    const folder = basename(packPath, '.brarchive');
+    const folder = packPath.slice(BRARCHIVE_FOLDER.length, -BRARCHIVE_EXTENSION.length);
     for (const [member, memberBytes] of readBrarchive(bytes)) {
         const memberPath = member.startsWith(`${folder}/`) ? member : `${folder}/${member}`;
         files.set(memberPath, memberBytes);
