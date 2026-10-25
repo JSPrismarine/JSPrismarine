@@ -21,7 +21,7 @@ export interface Diagnostic {
     code: string;
     /** The name of the pack the finding belongs to. */
     pack: string;
-    /** The file within the pack, when the finding concerns one file. */
+    /** The file within the pack, when the finding concerns one file; the first file when several share the finding. */
     path?: string;
     message: string;
 }

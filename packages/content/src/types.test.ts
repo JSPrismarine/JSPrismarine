@@ -96,7 +96,14 @@ describe('resolveTypes', () => {
         expect(types.get('jsp:a')!.components.map((component) => component.name)).toEqual(['jsp:first']);
         expect(diagnostics).toHaveLength(2);
         expect(diagnostics.map((diagnostic) => diagnostic.pack)).toEqual(['base', 'overlay']);
-        expect(diagnostics[0]).toMatchObject({ code: 'component.unknown', severity: 'warning' });
+        // The path is the first file the pack declared it in, so the one
+        // line the report carries still leads somewhere.
+        expect(diagnostics[0]).toMatchObject({
+            code: 'component.unknown',
+            severity: 'warning',
+            path: 'blocks/a.json'
+        });
+        expect(diagnostics[1]?.path).toBe('blocks/c.json');
         expect(diagnostics[0]?.message).toContain('jsp:mystery');
     });
 
