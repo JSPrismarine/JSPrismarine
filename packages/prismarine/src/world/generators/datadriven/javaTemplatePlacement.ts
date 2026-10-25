@@ -7,13 +7,26 @@
  * because the transform table is keyed that way and the processor rules compare against it, so a
  * template block is the one thing that reaches the region already translated.
  *
- * Only `template` and `fossil` place one. Java 26.3 ships no `minecraft:template` feature and two
- * `minecraft:fossil` features, so what this covers today is the fossil buried under a desert or a
- * swamp.
+ * Only `template` and `fossil` place one. Java 26.3 writes nine of them: two `minecraft:fossil`
+ * features, and seven `minecraft:template` features nested inside the desert well and the sulfur
+ * spring, which is why neither shows up as a feature document of that type.
  */
-import type { BlockState, HeightmapType, TemplateRequest } from '@jsprismarine/features';
+import type {
+    BlockEntityRequest,
+    BlockState,
+    HeightmapType,
+    TemplateProcessors,
+    TemplateRequest
+} from '@jsprismarine/features';
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
-import type { BedrockBlockState, JavaStructureTemplate, Placement, Rotation } from '@jsprismarine/structures';
+import { NBTTagCompound } from '@jsprismarine/nbt';
+import type {
+    BedrockBlockState,
+    BedrockStructureTemplate,
+    JavaStructureTemplate,
+    Placement,
+    Rotation
+} from '@jsprismarine/structures';
 import {
     NO_BLOCK,
     applyProcessors,
@@ -22,6 +35,8 @@ import {
     transformTemplate,
     translateJavaTemplate
 } from '@jsprismarine/structures';
+
+import { blockEntityOf } from './javaStructureTemplatePiece';
 
 /** Where the templates and their processor lists are read from. */
 export interface TemplateSource {
@@ -46,6 +61,13 @@ export interface TemplateTarget {
     hasTag(identifier: string, tag: string): boolean;
     /** Writes one resolved block. Returns whether it landed inside the region. */
     write(x: number, y: number, z: number, state: BedrockBlockState): boolean;
+    /**
+     * Records the block entity a template block carries, on a block that landed.
+     *
+     * Optional, because a target that cannot store one still gets the block. What it costs is
+     * the block's contents: a desert well's suspicious sand with nothing to brush out of it.
+     */
+    setBlockEntity?(x: number, y: number, z: number, request: BlockEntityRequest): void;
 }
 
 /** Java's quarter turns, in the order `rotation` numbers them. */
@@ -87,10 +109,11 @@ export const placeJavaTemplate = (
     const transformed = transformTemplate(translateJavaTemplate(template).template, placement);
     const origin = originOf(request, target);
     const processors = processorsOf(request.processors, source);
+    const javaBlocks = javaBlocksOf(template);
     const processed =
         processors.length === 0
             ? transformed.template
-            : applyProcessors(transformed.template, processors, {
+            : applyProcessors(ownCompounds(transformed.template, javaBlocks), processors, {
                   origin: [origin.x, origin.y, origin.z],
                   random: createLegacyRandom(seedOf(seed, origin)),
                   blockAt: ([x, y, z]) => bedrockStateOf(target.blockAt(x, y, z)),
@@ -110,12 +133,77 @@ export const placeJavaTemplate = (
         if (state === undefined || state.name === STRUCTURE_VOID) continue;
         if (!overwrite && state.name === AIR) continue;
 
-        const landed = target.write(origin.x + block.pos[0], origin.y + block.pos[1], origin.z + block.pos[2], state);
+        const x = origin.x + block.pos[0];
+        const y = origin.y + block.pos[1];
+        const z = origin.z + block.pos[2];
+        const landed = target.write(x, y, z, state);
         placed ||= landed;
+        if (!landed || block.nbt === undefined) continue;
+
+        const blockEntity = blockEntityOf(block.nbt, state.name, javaBlocks.get(block.nbt));
+        if (blockEntity !== undefined) target.setBlockEntity?.(x, y, z, blockEntity);
     }
 
     return placed;
 };
+
+/**
+ * The Java block each saved compound sat in, keyed by the compound itself.
+ *
+ * The translation to Bedrock drops the Java palette, and a banner's color lives there and
+ * nowhere else. The saved compounds travel by reference through the translation and the
+ * transforms, so indexing them before either runs is what carries the name across.
+ */
+const javaBlocksOf = (template: JavaStructureTemplate): Map<NBTTagCompound, string> => {
+    const blocks = new Map<NBTTagCompound, string>();
+    for (const block of template.blocks) {
+        const name = template.palette[block.state]?.name;
+        if (block.nbt !== undefined && name !== undefined) blocks.set(block.nbt, name);
+    }
+
+    return blocks;
+};
+
+/**
+ * The same template with its saved block entities copied, for a chain that is about to run.
+ *
+ * A rule's `append_loot` adds the loot table to the compound it is handed, and that compound is
+ * the one the source decoded and kept for the life of the world. Copying first is what keeps one
+ * placement's table out of every later placement of the same template. Each copy is indexed
+ * under the Java block the original sat in, because the block entity request reads a banner's
+ * color from it.
+ *
+ * Compounds and lists are copied and the values inside them are shared, which is the line a
+ * block entity modifier writes at: it returns the compound the block carries and adds to it.
+ */
+const ownCompounds = (
+    template: BedrockStructureTemplate,
+    javaBlocks: Map<NBTTagCompound, string>
+): BedrockStructureTemplate => ({
+    ...template,
+    blocks: template.blocks.map((block) => {
+        if (block.nbt === undefined) return block;
+
+        const nbt = copyCompound(block.nbt);
+        const javaBlock = javaBlocks.get(block.nbt);
+        if (javaBlock !== undefined) javaBlocks.set(nbt, javaBlock);
+        return { ...block, nbt };
+    })
+});
+
+const copyCompound = (nbt: NBTTagCompound): NBTTagCompound => {
+    const copy = new NBTTagCompound(nbt.getName());
+    for (const [key, value] of nbt.children) copy.addValue(key, copyTag(value));
+
+    return copy;
+};
+
+const copyTag = (value: unknown): unknown =>
+    value instanceof NBTTagCompound
+        ? copyCompound(value)
+        : value instanceof Set
+          ? new Set([...value].map(copyTag))
+          : value;
 
 /** The corner the template's own block zero lands on. */
 const originOf = (request: TemplateRequest, target: TemplateTarget): { x: number; y: number; z: number } => {
@@ -128,11 +216,16 @@ const originOf = (request: TemplateRequest, target: TemplateTarget): { x: number
     return { x, y: base + (offset?.y ?? 0), z };
 };
 
-/** Reads the processor list a feature named, treating an unreadable one as no processors. */
-const processorsOf = (identifier: string | undefined, source: TemplateSource) => {
-    if (identifier === undefined) return [];
+/**
+ * Reads the chain a feature carries, treating an unreadable one as no processors.
+ *
+ * A reference is looked up in the `worldgen/processor_list` registry and an inline list is
+ * already the document, which is the form the desert well's archaeology rule arrives in.
+ */
+const processorsOf = (reference: TemplateProcessors | undefined, source: TemplateSource) => {
+    if (reference === undefined) return [];
 
-    const document = source.processorList(identifier);
+    const document = typeof reference === 'string' ? source.processorList(reference) : reference;
     if (document === undefined) return [];
 
     try {
