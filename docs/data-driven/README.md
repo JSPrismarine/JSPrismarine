@@ -59,6 +59,9 @@ categories; [parity.md](parity.md) explains how the claim is tested.
   Java 26.3 jar and how the server reads it.
 - [structures.md](structures.md): which of Java's 52 structures the overworld generates, how
   placement and piece writing are split, and where the generation differs from Java.
+- [engine-systems.md](engine-systems.md): the systems with no data form in either edition, which
+  are redstone, fluids, fire, explosions, light and random ticking, with what each one simulates,
+  what a tick of it costs, and where it stops.
 - [commands.md](commands.md): which commands the server registers and which it deliberately leaves
   out, what Bedrock's flat command tree costs `/execute`, the scoreboard, and running
   `.mcfunction` files from a datapack.
