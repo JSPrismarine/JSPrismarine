@@ -387,6 +387,25 @@ describe('CommandDispatcherTest', () => {
         assert.fail();
     });
 
+    it('tells the consumer a thrown command finished with the result 0', () => {
+        const completions: { success: boolean; result: number }[] = [];
+        subject.setConsumer({
+            onCommandComplete(_context, success, result) {
+                completions.push({ success, result });
+            }
+        });
+        subject.register(
+            literal('boom').executes(() => {
+                throw new Error('the command threw');
+            })
+        );
+
+        expect(() => subject.execute('boom', source)).toThrow('the command threw');
+        // Upstream passes 0 here, the same value a command that did nothing returns, so an
+        // `execute store result` sink reading the third argument always reads a number.
+        expect(completions).toEqual([{ success: false, result: 0 }]);
+    });
+
     it('testGetPath', () => {
         const bar = literal('bar').build();
         subject.register(literal('foo').then(bar));
