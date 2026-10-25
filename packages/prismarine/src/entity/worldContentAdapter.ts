@@ -21,8 +21,8 @@ import type { ContentLookup } from '../content/world/views';
 import { itemOfDrop } from '../inventory/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import { spawnableEntities } from './Entities';
-import type { Entity, SpawnableEntityClass } from './Entity';
+import { writtenEntities } from './Entities';
+import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import FallingBlock from './other/FallingBlock';
 import Tnt from './other/Tnt';
@@ -45,15 +45,6 @@ export interface WorldEntityAccessOptions {
      */
     readonly content: ContentLookup;
 }
-
-/** The spawnable classes by the identifier each one carries, built once. */
-let classIndex: Map<string, SpawnableEntityClass> | null = null;
-
-/** The class for an identifier, or undefined when no written class covers it. */
-const classFor = (identifier: string): SpawnableEntityClass | undefined => {
-    classIndex ??= new Map(spawnableEntities().map((candidate) => [candidate.MOB_ID, candidate]));
-    return classIndex.get(identifier);
-};
 
 /**
  * The block a falling block is made of, which its own data carries under `block`.
@@ -95,7 +86,7 @@ const bodyFor = (
     // entity counts it down from the next tick and the serializer only writes it back out.
     if (identifier === Tnt.MOB_ID) return new Tnt({ position, fuse: tntFuse(data) });
 
-    const written = classFor(identifier);
+    const written = writtenEntities().get(identifier);
     if (written !== undefined) return new written({ position });
 
     if (!content().entities.registry.has(identifier)) {

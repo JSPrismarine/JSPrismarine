@@ -18,7 +18,7 @@ import { AttributeIds } from '../../entity/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import type { Entity } from '../../entity/Entity';
-import { spawnableEntities } from '../../entity/Entities';
+import { writtenEntities } from '../../entity/Entities';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -219,10 +219,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const dataEntity = summonDataEntity(world, identifier, position, rotation, options.name);
             if (dataEntity !== undefined) return dataEntity;
 
-            const Spawnable = spawnableEntities().find((candidate) => candidate.MOB_ID === identifier);
-            if (Spawnable === undefined) return undefined;
+            const Written = writtenEntities().get(identifier);
+            if (Written === undefined) return undefined;
 
-            const entity = new Spawnable({
+            const entity = new Written({
                 position: Position.fromVector3(vectorOf(position), world),
                 yaw: rotation.yaw,
                 pitch: rotation.pitch,

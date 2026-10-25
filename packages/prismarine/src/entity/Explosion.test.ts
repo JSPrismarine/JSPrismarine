@@ -12,9 +12,8 @@ import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
 import type { Entity } from './Entity';
 import { explode } from './Explosion';
-import Cow from './passive/Cow';
-import Creeper from './hostile/Creeper';
-import IronGolem from './neutral/IronGolem';
+import { Attribute, AttributeIds } from './Attribute';
+import { GenericEntity } from './GenericEntity';
 
 /**
  * Blasts, over a world of one block repeated.
@@ -69,8 +68,16 @@ const scene = ({
         getLoadedChunk: () => null
     };
 
-    const spawn = <T extends Entity>(Species: new (options: any) => T, x = 0, z = 0): T => {
-        const entity = new Species({ position: new Position(x, 64, z, world) });
+    /**
+     * A body in the blast, with the health the caller wants to watch come off it.
+     *
+     * `GenericEntity` is what the data-driven runtime gives every mob, so it is what a blast
+     * actually catches. The shove is recorded rather than applied: the base entity has no
+     * velocity to spend, and what this scene checks is that the blast asked for one.
+     */
+    const spawn = (identifier: string, x = 0, z = 0, health = 10): Shoved => {
+        const entity = new Shoved({ identifier, position: new Position(x, 64, z, world) });
+        entity.attributes.setAttribute(new Attribute({ name: AttributeIds.Health, min: 0, max: health, def: health }));
         nearby.push(entity);
         return entity;
     };
@@ -97,16 +104,25 @@ const blastContentOptions = () =>
         }
     });
 
+/** A body that remembers the shove it was given instead of spending it. */
+class Shoved extends GenericEntity {
+    public shove: { x: number; z: number; strength: number } | undefined;
+
+    public override applyKnockback(directionX: number, directionZ: number, strength: number): void {
+        this.shove = { x: directionX, z: directionZ, strength };
+    }
+}
+
 /**
  * How much health something this far from a power-3 blast loses.
  *
- * An iron golem rather than a cow, because a cow has ten half-hearts and a creeper is lethal to it
- * out to three blocks. Every reading inside that range would come back as "all of it" and the
- * curve would be invisible. A hundred health leaves room to see the shape.
+ * A hundred health rather than a cow's ten, because a power-3 blast is lethal to ten out to
+ * three blocks. Every reading inside that range would come back as "all of it" and the curve
+ * would be invisible.
  */
 const blastAt = async (distance: number): Promise<number> => {
     const stage = scene();
-    const golem = stage.spawn(IronGolem, distance, 0);
+    const golem = stage.spawn('minecraft:iron_golem', distance, 0, 100);
 
     await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
@@ -121,7 +137,7 @@ describe('explosions', () => {
     });
 
     it('kills anything standing on top of it', async () => {
-        const cow = stage.spawn(Cow, 0, 0);
+        const cow = stage.spawn('minecraft:cow', 0, 0);
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
         expect(cow.isAlive()).toBe(false);
@@ -145,7 +161,7 @@ describe('explosions', () => {
         // A solid world, so every exposure ray is stopped and the seen fraction is zero. Java
         // adds a flat one at the end of the curve all the same.
         const walled = scene({ solid: true, griefing: false });
-        const golem = walled.spawn(IronGolem, 4, 0);
+        const golem = walled.spawn('minecraft:iron_golem', 4, 0, 100);
 
         await explode(walled.world, new Vector3(0, 64, 0), { power: 3 });
 
@@ -153,8 +169,8 @@ describe('explosions', () => {
     });
 
     it('reports itself as an explosion, and names who set it off', async () => {
-        const creeper = stage.spawn(Creeper, 0, 0);
-        const cow = stage.spawn(Cow, 4, 0);
+        const creeper = stage.spawn('minecraft:creeper', 0, 0);
+        const cow = stage.spawn('minecraft:cow', 4, 0);
 
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, source: creeper, breaksBlocks: false });
 
@@ -163,11 +179,11 @@ describe('explosions', () => {
     });
 
     it('throws what it hurts away from the center', async () => {
-        const cow = stage.spawn(Cow, 3, 0);
+        const cow = stage.spawn('minecraft:cow', 3, 0);
         await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
-        // Queued rather than applied: a mob spends its knockback in the next `applyPhysics`.
-        expect(cow['pendingKnockback']?.impulse.getX()).toBeGreaterThan(0);
+        expect(cow.shove?.x).toBeGreaterThan(0);
+        expect(cow.shove?.strength).toBeGreaterThan(0);
     });
 
     it('throws up particles', async () => {
@@ -228,7 +244,7 @@ describe('explosions', () => {
 
         it('still hurts things with mobGriefing off', async () => {
             const polite = scene({ solid: true, griefing: false });
-            const cow = polite.spawn(Cow, 1, 0);
+            const cow = polite.spawn('minecraft:cow', 1, 0);
 
             await explode(polite.world, new Vector3(0, 64, 0), { power: 3 });
 

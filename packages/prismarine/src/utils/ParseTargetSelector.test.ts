@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import Player from '../Player';
 import type Server from '../Server';
 import { Entity } from '../entity/Entity';
-import Sheep from '../entity/passive/Sheep';
+import { GenericEntity } from '../entity/GenericEntity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world';
 import { Position } from '../world/Position';
@@ -21,6 +21,9 @@ const fakeWorld = () =>
 
 /** An entity somewhere, since where exactly does not matter to a selector. */
 const somewhere = () => new Position(0, 0, 0, fakeWorld());
+
+/** A mob-shaped body, which is what the runtime gives every mob and what a selector meets. */
+const sheep = () => new GenericEntity({ identifier: 'minecraft:sheep', position: somewhere() });
 
 /**
  * A stand-in that answers `instanceof Player` without a connection behind it.
@@ -60,13 +63,8 @@ describe('utils', () => {
         });
 
         it('returns all entities upon "@e"', () => {
-            const source = new Sheep({ position: somewhere() });
-            const entities = [
-                source,
-                new Sheep({ position: somewhere() }),
-                new Sheep({ position: somewhere() }),
-                new Sheep({ position: somewhere() })
-            ];
+            const source = sheep();
+            const entities = [source, sheep(), sheep(), sheep()];
 
             expect(
                 ParseTargetSelector({
@@ -78,9 +76,9 @@ describe('utils', () => {
         });
 
         it('returns all non player entities upon "@e[type=!player]"', () => {
-            const source = new Sheep({ position: somewhere() });
+            const source = sheep();
             const player = fakePlayer();
-            const entities = [source, new Sheep({ position: somewhere() }), new Sheep({ position: somewhere() })];
+            const entities = [source, sheep(), sheep()];
 
             expect(
                 ParseTargetSelector({
@@ -100,9 +98,9 @@ describe('utils', () => {
         });
 
         it('returns only player entities upon "@e[type=player]"', () => {
-            const source = new Sheep({ position: somewhere() });
+            const source = sheep();
             const player = fakePlayer();
-            const entities = [source, new Sheep({ position: somewhere() }), new Sheep({ position: somewhere() })];
+            const entities = [source, sheep(), sheep()];
 
             expect(
                 ParseTargetSelector({

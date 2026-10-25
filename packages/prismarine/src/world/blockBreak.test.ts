@@ -188,6 +188,21 @@ const fixturePalette = (): BlockPalette =>
  * block entity and the drops are the server's own. Only the disk, the network and the server
  * around it are replaced.
  */
+/**
+ * The experience orb, as the vanilla behavior pack declares it.
+ *
+ * Declared because the server spawns one itself: an ore's family owes experience that no loot
+ * table carries, and a spawn of an identifier no loaded pack declares is refused rather than
+ * putting an unexplained body in the world.
+ */
+const XP_ORB = {
+    format_version: '1.21.0',
+    'minecraft:entity': {
+        description: { identifier: 'minecraft:xp_orb', is_spawnable: false, is_summonable: false },
+        components: { 'minecraft:collision_box': { width: 0.25, height: 0.25 } }
+    }
+};
+
 const liveWorld = (content: () => ServerContent | undefined): { world: World; chunk: Chunk; spawned: Entity[] } => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
@@ -258,6 +273,7 @@ describe('breakBlockWithContent', () => {
             load: () => ({
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
+                    entities: new Map([['minecraft:xp_orb', definitionOf('entities', 'minecraft:xp_orb', XP_ORB)]]),
                     lootTablesJava: new Map(
                         Object.entries(LOOT_TABLES).map(([id, table]) => [
                             id,

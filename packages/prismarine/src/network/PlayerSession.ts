@@ -27,7 +27,6 @@ import type { Attribute, Attributes } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
 import type Human from '../entity/Human';
-import { Mob } from '../entity/Mob';
 import type { Item as ItemEntity } from '../entity/other/Item';
 import { Projectile } from '../entity/other/Projectile';
 import type ContainerEntry from '../inventory/ContainerEntry';
@@ -1600,7 +1599,7 @@ export default class PlayerSession {
         // What it is holding, if anything. `AddActorPacket` has no room for equipment, so a mob's
         // weapon has to follow it as a packet of its own - and without this a skeleton fires
         // arrows from an empty fist.
-        const held = entity instanceof Mob ? entity.getHeldItem() : null;
+        const held = entity.getHeldItem();
         if (held) await this.sendHeldItemFor(entity, held);
     }
 
@@ -1722,7 +1721,11 @@ export default class PlayerSession {
         packet.yaw = entity.yaw;
         packet.headYaw = entity.headYaw;
 
-        packet.flags = entity instanceof Mob && entity.isOnGround() ? MoveActorAbsolutePacket.FLAG_ON_GROUND : 0;
+        // Never the on-ground flag. The data-driven runtime drives every mob and models no
+        // grounded state to read, and the written classes that are left are all in flight or
+        // lying on the floor as items. The client falls back to its own guess, which is what it
+        // already did for every entity that was not a mob.
+        packet.flags = 0;
 
         return packet;
     }
