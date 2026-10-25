@@ -1,15 +1,29 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import type BinaryStream from '@jsprismarine/binaryutils';
+import { attributeModifiers, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
+import type { ItemType } from '@jsprismarine/items';
+import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
+
+import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import { BlockToolType } from '../block/BlockToolType';
+import { holderSetIncludes } from './holderSets';
+import type { TagLookup } from './holderSets';
 import type { ItemEnchantmentType } from './ItemEnchantmentType';
+import { vanillaItemTypes } from './vanillaItemTypes';
 
 export interface ItemProps {
-    id: number;
+    /**
+     * The item's numeric id.
+     *
+     * @deprecated Items have no numeric id any more; the name is the
+     *   identity and the wire id is resolved from it. Still accepted so the
+     *   handlers that pass one keep compiling.
+     */
+    id?: number;
     name: string;
     meta?: number;
-    nbt?: any;
+    nbt?: unknown;
     count?: number;
     durability?: number;
     /**
@@ -18,113 +32,203 @@ export interface ItemProps {
      * all, so a creative entry passes its own number rather than resolving its default state.
      */
     blockRuntimeId?: number;
+    /** The content the item's components are read from, when the server built one. */
+    content?: ServerContent;
 }
 
+/** A player's own base attack damage, which an item modifies rather than replaces. */
+const PLAYER_BASE_ATTACK_DAMAGE = 1;
+
+/** The default stack size for an item no table names. */
+const DEFAULT_MAX_STACK_SIZE = 64;
+
+/** The wire id to name index, which is the item table read backwards; built on first use. */
+let namesByWireId: ReadonlyMap<number, string> | undefined;
+
+/**
+ * The item a wire id names.
+ *
+ * The item table is name to id, and a stack arrives as an id, so the index
+ * has to go the other way. Without it every stack the client sent came back
+ * as `minecraft:unknown` and nothing a player held could be identified.
+ */
+const nameOfWireId = (id: number): string | undefined => {
+    namesByWireId ??= new Map(Object.entries(ItemIdMap).map(([name, value]) => [value, name]));
+    return namesByWireId.get(id);
+};
+
+/**
+ * One item stack, as the rest of the server holds one.
+ *
+ * Everything it answers about itself - how hard it hits, how much armor it
+ * is worth, how much durability it has, what it harvests - is read off Java's
+ * data components rather than declared by a subclass. The 65 item classes
+ * this replaced each restated one or two of those numbers; the table has all
+ * of them, for all 1613 items.
+ */
 export class Item {
-    private id: number;
-    private networkId: number | undefined;
-    private name: string;
+    private readonly name: string;
+    private readonly legacyId: number;
+    private readonly networkId: number | undefined;
     private readonly placedBlockRuntimeId: number | undefined;
+    private readonly content: ServerContent | undefined;
     public meta = 0;
-    public durability: number = this.getMaxDurability();
+    public durability: number;
 
     // TODO
     public nbt = null;
     public count = 1;
 
-    public constructor({ id, name, meta, count, blockRuntimeId }: ItemProps) {
-        this.id = id;
+    public constructor({ id, name, meta, count, blockRuntimeId, content }: ItemProps) {
         this.name = name;
+        this.legacyId = id ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
+        this.content = content;
         if (meta) this.meta = meta;
-        // Declared by `ItemProps` but silently dropped until now, so a stack read off the
+        // Declared by `ItemProps` but silently dropped until 2168, so a stack read off the
         // wire came back as one item however many the client said it held.
         if (count) this.count = count;
 
         this.networkId = ItemIdMap[name];
+        this.durability = this.getMaxDurability();
     }
 
     public getName(): string {
         return this.name;
     }
 
-    public getId() {
-        return this.id;
+    /**
+     * Whatever numeric id the caller built this stack with, or zero.
+     *
+     * @deprecated Items have no numeric id of their own any more; the name
+     *   is the identity. Still carried because it is the fallback
+     *   {@link Item.getNetworkId} uses for a name the item table does not
+     *   have, which is how a plugin's item reaches the wire.
+     */
+    public getId(): number {
+        return this.legacyId;
     }
 
-    /**
-     * Get the Block's network numeric id
-     */
-    public getNetworkId() {
+    /** The id the client resolves this stack by. */
+    public getNetworkId(): number {
         return this.networkId || this.getId();
     }
 
-    public isTool() {
-        return false;
+    public getMeta(): number {
+        return this.meta;
     }
 
-    public isArmorPiece() {
-        return false;
+    /**
+     * The item's resolved type, or undefined for a name no table knows.
+     *
+     * The content build when the server has one, so a pack that redefines an
+     * item is what answers, and Java's committed table otherwise.
+     */
+    private type(): ItemType | undefined {
+        return (this.content?.items.types ?? vanillaItemTypes()).get(this.name);
     }
 
-    public getBurnTime() {
+    /** Reads one `add_value` attribute modifier off `minecraft:attribute_modifiers`. */
+    private baseModifier(attribute: string, id: string): number {
+        const modifiers = this.type()?.params(attributeModifiers);
+        if (modifiers === undefined) return 0;
+
+        for (const modifier of modifiers) {
+            if (modifier.type !== attribute || modifier.id !== id) continue;
+            if (modifier.operation !== 'add_value') continue;
+            return modifier.amount;
+        }
         return 0;
     }
 
-    public getToolType() {
-        return BlockToolType.None;
+    /** Whether the item's components make it a tool. */
+    public isTool(): boolean {
+        return this.type()?.params(tool) !== undefined;
     }
 
-    public getToolHarvestLevel() {
-        return 0;
+    /** Whether the item's components give it an armor value. */
+    public isArmorPiece(): boolean {
+        return this.getArmorDefensePoints() > 0;
+    }
+
+    /** How long the item burns in a furnace, in ticks. */
+    public getBurnTime(): number {
+        const id = this.content?.items.registry.idOf(this.name);
+        return id === undefined ? 0 : (this.content?.items.facts.burnTimeTicks[id] ?? 0);
     }
 
     /**
      * Half-hearts a swing with this in hand is worth.
      *
-     * One for everything that is not a weapon, which is deliberate and is vanilla's rule rather
-     * than a placeholder: a bare fist does one, and so does hitting somebody with a torch. Only
-     * the tiered tools override it - see `TieredTool`, where the whole table lives.
-     * @returns {number} The damage, before criticals and enchantments.
+     * The player's own base of one, plus the item's
+     * `minecraft:base_attack_damage` modifier. A bare fist and a torch are
+     * both worth one, which is vanilla's rule rather than a placeholder.
      */
-    public getAttackDamage() {
-        return 1;
+    public getAttackDamage(): number {
+        return PLAYER_BASE_ATTACK_DAMAGE + this.baseModifier('minecraft:attack_damage', 'minecraft:base_attack_damage');
     }
 
-    public getArmorDefensePoints() {
-        return 0;
+    /** The armor points the item is worth while worn. */
+    public getArmorDefensePoints(): number {
+        return this.baseModifier('minecraft:armor', 'minecraft:base_armor');
     }
 
-    public getArmorToughness() {
-        return 0;
+    /** The armor toughness the item is worth while worn. */
+    public getArmorToughness(): number {
+        return this.baseModifier('minecraft:armor_toughness', 'minecraft:base_armor_toughness');
     }
 
-    public hasEnchantment(_enchantment: ItemEnchantmentType) {
+    public hasEnchantment(_enchantment: ItemEnchantmentType): boolean {
         return false;
     }
 
-    public getEnchantability() {
-        return 0;
+    public getMaxDurability(): number {
+        return this.type()?.params(maxDamage) ?? 0;
     }
 
-    public getMaxDurability() {
-        return 0;
-    }
-
-    public getDurability() {
+    public getDurability(): number {
         return this.durability;
     }
 
-    public getMaxAmount() {
-        return 64;
+    public getMaxAmount(): number {
+        return this.type()?.params(maxStackSize) ?? DEFAULT_MAX_STACK_SIZE;
     }
 
-    public getAmount() {
+    public getAmount(): number {
         return this.count;
     }
 
-    public isPartOfCreativeInventory() {
+    public isPartOfCreativeInventory(): boolean {
         return true;
+    }
+
+    /**
+     * Whether swinging this harvests a block rather than destroying it for
+     * nothing.
+     *
+     * Java's `minecraft:tool` rules in one pass: the first rule whose block
+     * set matches and whose `correct_for_drops` is stated decides, which is
+     * how `#minecraft:incorrect_for_stone_tool` stops a stone pickaxe mining
+     * diamond while `#minecraft:mineable/pickaxe` lets it mine stone.
+     *
+     * @param block - The block identifier being mined.
+     * @returns False for a bare name no rule covers, which is Java's answer too.
+     */
+    public harvests(block: string): boolean {
+        const rules = this.type()?.params(tool)?.rules;
+        if (!rules) return false;
+
+        const tags: TagLookup | undefined = this.content?.tags;
+        for (const rule of rules) {
+            if (rule.correct_for_drops === undefined) continue;
+            if (holderSetIncludes(tags, rule.blocks, block)) return rule.correct_for_drops;
+        }
+        return false;
+    }
+
+    /** This stack as the loot grammar reads one, for a `tool` loot context parameter. */
+    public asPredicateStack(): PredicateItemStack {
+        return { id: this.name, count: this.count, components: new Map() };
     }
 
     /**
@@ -134,7 +238,7 @@ export class Item {
      * count - so an "empty" stack holding one of something says the slot has one air in it.
      */
     public static air(): Item {
-        return new Item({ id: 0, name: 'minecraft:air', meta: 0, count: 0 });
+        return new Item({ name: 'minecraft:air', meta: 0, count: 0 });
     }
 
     /**
@@ -289,10 +393,11 @@ export class Item {
         // Read to the end whatever the id, because an empty stack is no longer a bare zero -
         // it is a full stack of zeroes, and stopping at the id leaves the rest of it to be
         // read as the next field.
-        if (id === 0) return new Item({ id: 0, name: 'minecraft:air' });
+        if (id === 0) return new Item({ name: 'minecraft:air' });
 
-        // TODO: resolve the id to a registered item rather than handing back an unknown one.
-        // TODO: https://github.com/JSPrismarine/JSPrismarine/issues/106new
-        return new Item({ id, name: 'minecraft:unknown', meta, count });
+        // The id is carried as well as resolved, so a stack whose id the item
+        // table does not name still goes back out under the number it came in
+        // under.
+        return new Item({ id, name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
     }
 }

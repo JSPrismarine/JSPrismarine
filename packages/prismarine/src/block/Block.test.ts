@@ -1,112 +1,42 @@
-/// <reference types="vite/client" />
-import { describe, it, expect, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { Block } from './Block';
+import { buildServerContent } from '../content/ServerContent';
+import type { ServerContent } from '../content/ServerContent';
+import { fixtureContentOptions } from '../content/testing';
 import { Item } from '../item/Item';
-import type Server from '../Server';
-import { BlockToolType } from './BlockToolType';
-import { Solid } from './Solid';
-import Air from './blocks/Air';
-import Stone from './blocks/Stone';
+import { Block, javaBlockFactsOf } from './Block';
 
-const blockModules = import.meta.glob<{ default: new () => Block }>('./blocks/*.ts', { eager: true });
+/** A block in its default state, with no content build behind it. */
+const named = (name: string) => new Block({ name });
+
+/**
+ * The same block with `requires_correct_tool` forced on.
+ *
+ * Stone carries it in vanilla, but the fixture content's two blocks do not,
+ * so the flag is set here rather than relying on which block happens to have
+ * it in whichever table answered.
+ */
+const needsATool = (name: string, content?: ServerContent) =>
+    new Block({ name, facts: { ...javaBlockFactsOf(name), requiresCorrectTool: true }, content });
 
 describe('block', () => {
     describe('Block', () => {
-        const server: Server = vi.fn().mockImplementation(() => ({
-            getLogger: () => ({
-                debug: () => {},
-                verbose: () => {}
-            }),
-            getSessionManager: () => ({
-                getAllPlayers: () => []
-            }),
-            on: vi.fn(),
-            emit: vi.fn().mockResolvedValue({})
-        }))();
-
-        it('every block show have unique namespace id', () => {
-            const IDs: Set<string> = new Set();
-
-            for (const module of Object.values(blockModules)) {
-                const block = new module.default();
-
-                expect(IDs.has(block.getName())).toBe(false);
-                IDs.add(block.getName());
-            }
+        it('is its name', () => {
+            expect(named('minecraft:stone').getName()).toBe('minecraft:stone');
+            expect(`${named('minecraft:stone')}`).toBe('minecraft:stone');
         });
 
-        it('should return the correct name', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 0.5
-            });
-
-            expect(block.getName()).toBe('block1');
+        it('places the vanilla state it is given, which is its own name unless told otherwise', () => {
+            expect(named('minecraft:stone').getStateName()).toBe('minecraft:stone');
+            expect(new Block({ name: 'minecraft:black_bed', stateName: 'minecraft:bed' }).getStateName()).toBe(
+                'minecraft:bed'
+            );
         });
 
-        it('should return the correct block ID', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 0.5
-            });
-
-            expect(block.getId()).toBe(1);
-        });
-
-        it('should return the correct network ID', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 0.5
-            });
-
-            expect(block.getNetworkId()).toBe(1);
-        });
-
-        it('should return the correct hardness value', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 0.5
-            });
-
-            expect(block.getHardness()).toBe(0.5);
-        });
-
-        it('should return the correct blast resistance', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 1
-            });
-
-            expect(block.getBlastResistance()).toBe(5);
-        });
-
-        it('should return the correct silk touch drops', () => {
-            const block = new Block({
-                id: 1,
-                name: 'block1',
-                hardness: 0.5
-            });
-            const item = new Item({
-                id: 1,
-                name: 'item1'
-            });
-
-            const silkTouchDrops = block.getSilkTouchDrops(item, server);
-
-            expect(silkTouchDrops).toEqual([block]);
-        });
-
-        // The getters read the Java-sourced property table through the block's state name, so a
-        // class's registered value only matters for names the pinned palette does not know.
+        // Every number here used to be restated in one of 260 block files, where
+        // only the blocks somebody had written a class for had one at all. They
+        // now come from the Java 26.3 property dump, which covers the whole palette.
         describe('the Java-sourced property table', () => {
-            const named = (name: string) => new Block({ id: 1, name });
-
             it('answers hardness and blast resistance from the table', () => {
                 expect(named('minecraft:stone').getHardness()).toBe(1.5);
                 expect(named('minecraft:stone').getBlastResistance()).toBe(6);
@@ -115,10 +45,6 @@ describe('block', () => {
                 expect(named('minecraft:bedrock').getBlastResistance()).toBe(3600000);
                 // The registered class used to read 0 through `Flowable`; Java says 4.
                 expect(named('minecraft:web').getHardness()).toBe(4);
-            });
-
-            it('never finishes breaking the unbreakable', () => {
-                expect(named('minecraft:bedrock').getBreakTime(null, server)).toBe(Number.POSITIVE_INFINITY);
             });
 
             it('answers light, light filtering and flammability from the table', () => {
@@ -130,73 +56,79 @@ describe('block', () => {
                 expect(named('minecraft:stone').getFlammability()).toBe(0);
             });
 
-            it('falls back to the class values for a name outside the table', () => {
-                const outside = new Block({ id: 1, name: 'minecraft:element_1', hardness: 2.25 });
+            it('answers friction, which is the one column Mojang truncates', () => {
+                // `minecraft:friction` caps at 0.9, so blue ice would read wrong
+                // through the Bedrock component; the Java value is 0.989.
+                expect(named('minecraft:blue_ice').getFriction()).toBeCloseTo(0.989, 10);
+                expect(named('minecraft:stone').getFriction()).toBeCloseTo(0.6, 10);
+            });
 
-                expect(outside.getHardness()).toBe(2.25);
-                expect(outside.getBlastResistance()).toBe(11.25);
+            it('knows what can be stood on', () => {
+                expect(named('minecraft:stone').isSolid()).toBe(true);
+                expect(named('minecraft:air').isSolid()).toBe(false);
+            });
+
+            it('leaves a Bedrock-only block at its defaults rather than guessing', () => {
+                // The chemistry blocks have no Java source, so the table has no row.
+                const outside = named('minecraft:element_1');
+
+                expect(outside.getHardness()).toBe(0);
+                expect(outside.getBlastResistance()).toBe(0);
                 expect(outside.getLightLevel()).toBe(0);
                 expect(outside.getLightFilter()).toBe(15);
             });
         });
 
-        // The break time drives the speed of the client's cracking animation. Returning the
-        // hardness on its own, as this used to, made every block appear to break well before
-        // it did.
+        // The break time drives the speed of the client's cracking animation.
+        // Returning the hardness on its own, as this once did, made every block
+        // appear to break well before it did.
         describe('break time', () => {
             it('scales hardness by 1.5 for a block that needs no tool', () => {
                 // Dirt: 0.5 hardness, 0.75s in vanilla.
-                const block = new Block({ id: 1, name: 'block1', hardness: 0.5 });
-
-                expect(block.getBreakTime(null, server)).toBeCloseTo(0.75, 10);
+                expect(named('minecraft:dirt').getBreakTime(null)).toBeCloseTo(0.75, 10);
             });
 
-            it('scales hardness by 5 when the tool cannot harvest the block', () => {
-                // Stone by hand: 1.5 hardness, 7.5s in vanilla.
-                const block = new Block({ id: 1, name: 'block1', hardness: 1.5 });
-                vi.spyOn(block, 'isCompatibleWithTool').mockReturnValue(false);
+            it('scales hardness by 5 when the hand cannot harvest the block', () => {
+                // Stone needs a pickaxe: 1.5 hardness, 7.5s bare-handed in vanilla.
+                const stone = needsATool('minecraft:stone', buildServerContent(fixtureContentOptions()));
 
-                expect(block.getBreakTime(null, server)).toBeCloseTo(7.5, 10);
+                expect(stone.getBreakTime(null)).toBeCloseTo(7.5, 10);
+            });
+
+            it('never finishes breaking the unbreakable', () => {
+                expect(named('minecraft:bedrock').getBreakTime(null)).toBe(Number.POSITIVE_INFINITY);
+                expect(named('minecraft:bedrock').isBreakable()).toBe(false);
             });
         });
-    });
-});
 
-/**
- * That a block is the class it was built from.
- *
- * `Block`'s constructor used to call `Object.setPrototypeOf(this, Block.prototype)`. A
- * subclass constructor calls `super` before anything else, so this ran on a half-built
- * subclass and flattened it: every instance in the package was a plain `Block`, and every
- * override in every one of the two hundred and sixty block files was dead code.
- *
- * It cost three unrelated-looking things at once - none of which pointed here.
- */
-describe('block subclasses survive construction', () => {
-    it('keeps the subclass, so overrides run', () => {
-        const stone = new Stone();
+        describe('harvesting', () => {
+            it('lets anything harvest a block that needs no particular tool', () => {
+                expect(named('minecraft:dirt').isCompatibleWithTool(null)).toBe(true);
+                expect(named('minecraft:dirt').isCompatibleWithTool(new Item({ name: 'minecraft:stick' }))).toBe(true);
+            });
 
-        expect(stone).toBeInstanceOf(Stone);
-        expect(stone).toBeInstanceOf(Solid);
-        expect(stone).toBeInstanceOf(Block);
-    });
+            it('refuses a bare hand on a block that needs a tool', () => {
+                expect(
+                    needsATool('minecraft:stone', buildServerContent(fixtureContentOptions())).isCompatibleWithTool(
+                        null
+                    )
+                ).toBe(false);
+            });
 
-    it('is solid, which is what an item falls onto', () => {
-        // Every block answered `false`, so a dropped stack fell through the ground for ever.
-        expect(new Stone().isSolid()).toBe(true);
-        expect(new Air().isSolid()).toBe(false);
-    });
+            // The rules name their blocks by tag, and the merged tag set only
+            // exists once a pack stack is loaded. Refusing every tool offline
+            // would mean nothing that needs one ever dropped.
+            it('lets anything harvest when the server loaded no tags to check against', () => {
+                expect(needsATool('minecraft:stone').isCompatibleWithTool(null)).toBe(true);
+            });
+        });
 
-    it('drops what it is supposed to drop', () => {
-        // Stone has said `cobblestone` since it was written; the base `[this]` was answering.
-        const server: any = { getBlockManager: () => ({ getBlock: (name: string) => ({ getName: () => name }) }) };
+        describe('drops', () => {
+            it('yields itself when the server has no loot tables to roll', () => {
+                const stone = named('minecraft:stone');
 
-        const drops = new Stone().getDropsForCompatibleTool(null, server);
-
-        expect(drops.map((drop: any) => drop.getName())).toEqual(['minecraft:cobblestone']);
-    });
-
-    it('asks for the tool it is supposed to ask for', () => {
-        expect(new Stone().getToolType()).toContain(BlockToolType.Pickaxe);
+                expect(stone.getDrops(null)).toEqual([stone]);
+            });
+        });
     });
 });

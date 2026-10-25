@@ -1,10 +1,8 @@
-export * from './Armor';
+export * from './contentAdapter';
+export * from './holderSets';
 export * from './Item';
 export * from './ItemEnchantmentType';
-export * from './ItemIdsType';
-export * from './ItemTieredToolType';
-export * from './TieredTool';
-export * from './Tool';
+export * from './vanillaItemTypes';
 
 import * as Items from './Items';
 

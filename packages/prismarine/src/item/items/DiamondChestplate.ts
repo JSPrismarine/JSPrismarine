@@ -1,23 +1,15 @@
-import { Armor } from '../Armor';
-import { ItemIdsType } from '../ItemIdsType';
+import { Item } from '../Item';
 
-export default class DiamondChestplate extends Armor {
+/**
+ * `minecraft:diamond_chestplate`.
+ *
+ * @deprecated There are no item classes any more; every number this answers
+ *   comes from Java's data components through {@link Item}. Kept only so the
+ *   entity tests that still construct one keep compiling - build
+ *   `new Item({ name: 'minecraft:diamond_chestplate' })` instead.
+ */
+export default class DiamondChestplate extends Item {
     public constructor() {
-        super({
-            name: 'minecraft:diamond_chestplate',
-            id: ItemIdsType.DiamondChestplate
-        });
-    }
-
-    public getMaxDurability() {
-        return 528;
-    }
-
-    public getArmorDefensePoints() {
-        return 8;
-    }
-
-    public getArmorToughness() {
-        return 2;
+        super({ name: 'minecraft:diamond_chestplate' });
     }
 }

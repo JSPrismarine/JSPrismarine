@@ -1,20 +1,29 @@
-import { allItems } from './Items';
-
+/**
+ * Items by name, over whichever registry the server has.
+ *
+ * The counterpart to `BlockManager`, and thin for the same reason: the names
+ * come from `ServerContent`'s item registry when the server built its content
+ * from packs, and from Java's committed item table otherwise. Both carry the
+ * 122 data components, so there is nothing for a class to add.
+ */
 import type Server from '../Server';
+import type { ServerContent } from '../content/ServerContent';
 import ItemRegisterEvent from '../events/items/ItemRegisterEvent';
 import Timer from '../utils/Timer';
-import type { Item } from './Item';
+import { Item } from './Item';
+import { vanillaItemTypes } from './vanillaItemTypes';
+
+/** The part of the server the item manager uses. */
+export type ItemManagerServer = Pick<Server, 'getLogger' | 'emit'> & {
+    getContent?(): ServerContent | undefined;
+};
 
 export default class ItemManager {
-    private readonly server: Server;
-    private readonly items = new Map<string, Item>();
+    private readonly server: ItemManagerServer;
+    /** Items a plugin registered, which win over the registry's own. */
+    private readonly registered = new Map<string, Item>();
 
-    /**
-     * Construct an ItemManager.
-     * @param {Server} server - The server instance.
-     * @returns {ItemManager} The item manager instance.
-     */
-    public constructor(server: Server) {
+    public constructor(server: ItemManagerServer) {
         this.server = server;
     }
 
@@ -23,66 +32,60 @@ export default class ItemManager {
      * @group Lifecycle
      */
     public async enable(): Promise<void> {
-        await this.importItems();
+        const timer = new Timer();
+        this.server.getLogger().verbose(`Serving §b${this.names().length}§r item(s) (took §e${timer.stop()} ms§r)!`);
     }
 
     /**
      * On disable hook.
      * @group Lifecycle
      */
-    public async disable() {
-        this.items.clear();
+    public async disable(): Promise<void> {
+        this.registered.clear();
+    }
+
+    /** The content build, or undefined while `content-packs` is off. */
+    private content(): ServerContent | undefined {
+        return this.server.getContent?.();
+    }
+
+    /** Every item name the server can hand out. */
+    private names(): readonly string[] {
+        const content = this.content();
+        const names = content ? [...content.items.types.keys()] : [...vanillaItemTypes().keys()];
+        return [...new Set([...names, ...this.registered.keys()])];
     }
 
     /**
-     * Get an item from it's name.
-     * @param {string} name - tha item's name.
-     * @returns {Item | null} the item.
+     * An item by its name.
+     * @returns The item, or null when no registry names it.
      */
     public getItem(name: string): Item | null {
-        return this.items.get(name) ?? null;
+        const plugin = this.registered.get(name);
+        if (plugin) return plugin;
+
+        const content = this.content();
+        if (content) return content.items.types.has(name) ? new Item({ name, content }) : null;
+
+        return vanillaItemTypes().has(name) ? new Item({ name }) : null;
     }
 
-    /**
-     * Get item by numeric id
-     * @param {number} id - tha item's ID.
-     * @returns {Item | null} the item.
-     */
-    public getItemById(id: number): Item | null {
-        return this.getItems().find((a) => a.getId() === id) ?? null;
-    }
-
-    /**
-     * Get all items.
-     * @returns {Item[]} all registered items.
-     */
+    /** Every item the server can hand out, one stack each. */
     public getItems(): Item[] {
-        return Array.from(this.items.values());
+        const content = this.content();
+        return this.names().map((name) => this.registered.get(name) ?? new Item({ name, content }));
     }
 
     /**
-     * Register an item.
-     * @param {Item} item - The item to be registered
-     * @returns {Promise<void>} The promise.
+     * Register an item, which is how a plugin contributes one.
+     * @param item - The item, which answers for its name ahead of the registry's own.
      */
-    public registerItem = async (item: Item) => {
+    public registerItem = async (item: Item): Promise<void> => {
         const event = new ItemRegisterEvent(item);
         await this.server.emit('itemRegister', event);
         if (event.isCanceled()) return;
 
-        this.server.getLogger().debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerClassItem');
-        this.items.set(item.getName(), item);
+        this.server.getLogger().debug(`Item with id §b${item.getName()}§r registered`, 'ItemManager/registerItem');
+        this.registered.set(item.getName(), item);
     };
-
-    /**
-     * Register items exported by './Items'.
-     */
-    private async importItems() {
-        const timer = new Timer();
-
-        // Dynamically register blocks
-        await Promise.all(allItems().map(async (item) => this.registerItem(new item())));
-
-        this.server.getLogger().verbose(`Registered §b${this.items.size}§r item(s) (took §e${timer.stop()} ms§r)!`);
-    }
 }

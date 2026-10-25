@@ -54,7 +54,7 @@ describe('HumanInventory.getItemInHand', () => {
         expect(held.getName()).toBe('minecraft:air');
         expect(() => held.hasEnchantment(ItemEnchantmentType.SilkTouch)).not.toThrow();
         expect(held.hasEnchantment(ItemEnchantmentType.SilkTouch)).toBe(false);
-        expect(typeof held.getToolType()).toBe('number');
+        expect(held.isTool()).toBe(false);
     });
 
     it('gives back the very item that was put in the hand', () => {
