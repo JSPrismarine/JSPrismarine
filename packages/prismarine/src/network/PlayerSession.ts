@@ -38,6 +38,7 @@ import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
+import { joinContentPayloads } from './contentPayloads';
 import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import AddActorPacket from './packet/AddActorPacket';
@@ -814,10 +815,16 @@ export default class PlayerSession {
         }
 
         // The same list a creative pick is resolved through, so that the position the client
-        // sends back names the entry it was shown.
+        // sends back names the entry it was shown. `creativePick` reads the same two sources
+        // in the same order.
         const server = this.player.getServer();
-        pk.groups = CreativeInventory.getGroups(server);
-        pk.entries = CreativeInventory.getEntries(server);
+        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+        if (payloads === undefined) {
+            pk.groups = CreativeInventory.getGroups(server);
+            pk.entries = CreativeInventory.getEntries(server);
+        } else {
+            pk.payload = payloads.creative;
+        }
 
         await this.connection.sendDataPacket(pk);
     }

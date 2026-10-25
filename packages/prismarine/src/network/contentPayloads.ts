@@ -74,6 +74,14 @@ export interface NetworkContentPayloads {
     /** `ItemRegistryPacket.Item Data`. */
     readonly items: readonly ItemRegistryEntry[];
     readonly creative: CreativeContent;
+    /**
+     * The item behind each entry of {@link creative}, in the same order.
+     *
+     * A creative pick comes back as the entry's one-based position, and the
+     * payload carries numbers rather than names, so this is what turns that
+     * position back into the item the player clicked.
+     */
+    readonly creativeItems: readonly WireItemInstance[];
     readonly crafting: CraftingData;
     readonly report: ContentPayloadReport;
 }
@@ -230,6 +238,7 @@ export const buildNetworkContentPayloads = (
             // the order is the whole of the agreement and nothing renumbers.
             entries: creative.entries.map((entry) => ({ item: creativeStack(entry.item), group: entry.group }))
         },
+        creativeItems: creative.entries.map((entry) => entry.item),
         crafting: {
             shaped: crafting.shaped.map((recipe) => ({
                 id: recipe.id,

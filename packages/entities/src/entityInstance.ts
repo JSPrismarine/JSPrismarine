@@ -19,7 +19,7 @@ import type {
 import { damagerSubjects, defaultRandom, isPlayerView } from './filterContext';
 import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
-import type { EntityAction } from './events';
+import type { EntityAction, EventTarget } from './events';
 import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
 import type { PropertyDefinition, PropertyValue } from './properties';
@@ -407,16 +407,42 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         if (params.filters !== undefined && !evaluateFilter(params.filters, { ...this.filterContext(), ...subjects }))
             return undefined;
 
-        if (params.target === 'self') {
-            this.fire(params.event);
-            return params.event;
+        return this.raise(params.event, params.target, component);
+    }
+
+    /**
+     * Fires an event on one of the entity's subjects, which is what a
+     * component's `{event, target}` pair names.
+     *
+     * A `self` target queues the event for the entity's next tick. Any other
+     * target leaves as an outgoing trigger for the environment to route.
+     *
+     * @param source - What asked for the event, which names the report when
+     *   nothing routes it.
+     * @returns The event when it was raised, or undefined when nothing routed it.
+     */
+    public raise(event: string, target: EventTarget, source: string): string | undefined {
+        if (target === 'self') {
+            this.fire(event);
+            return event;
         }
         if (this.environment.route === undefined) {
-            this.report(`${component} fires ${params.event} on ${params.target}, which nothing routes`);
+            this.report(`${source} fires ${event} on ${target}, which nothing routes`);
             return undefined;
         }
-        this.environment.route({ event: params.event, target: params.target }, this);
-        return params.event;
+        this.environment.route({ event, target }, this);
+        return event;
+    }
+
+    /**
+     * Evaluates a Molang expression a component body carries against this
+     * entity, such as `minecraft:ambient_sound_interval`'s `condition`.
+     *
+     * @returns The value, or undefined when the environment supplies no
+     *   evaluator or the expression does not evaluate.
+     */
+    public evaluate(source: string): PropertyValue | undefined {
+        return this.environment.molang?.(source, this);
     }
 
     /** What the entity is attacking now, which the `is_target` filter test reads. */
@@ -557,7 +583,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         }
     }
 
-    private report(message: string): void {
+    /**
+     * Passes one line to the environment's report, which is where everything
+     * the runtime met and did not carry out goes.
+     */
+    public report(message: string): void {
         this.environment.report?.(message, this);
     }
 

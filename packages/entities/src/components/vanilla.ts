@@ -946,6 +946,223 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
     })
 };
 
+/** What `minecraft:ageable` declares. */
+export interface AgeableParams {
+    /** How long the baby takes to grow up, in seconds; vanilla writes 1200 in all but one body. */
+    readonly duration: number;
+    /** The event fired when the entity finishes growing. */
+    readonly growUp?: SensorTrigger;
+    /** Items that feed the baby, which shorten the wait by ten percent each. */
+    readonly feedItems: readonly unknown[];
+    /** Items that hold the countdown where it is while the entity carries one. */
+    readonly pauseGrowthItems: readonly unknown[];
+    /** Items that put the countdown back to the full duration. */
+    readonly resetGrowthItems: readonly unknown[];
+    /** Items dropped when the entity grows up. */
+    readonly dropItems: readonly unknown[];
+    /** Gates the feeding interaction. */
+    readonly interactFilters?: Filter;
+}
+
+/**
+ * `minecraft:ageable`, carried by the baby group of 35 vanilla entities.
+ *
+ * The countdown runs while the component is active and fires `grow_up` when it
+ * runs out, which is the event that swaps the baby group for the adult one.
+ * Feeding is an interaction this package does not own, so `feed_items`,
+ * `pause_growth_items` and `reset_growth_items` parse and stay readable
+ * through `componentParams` for whatever carries the interaction out.
+ */
+export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
+    name: 'minecraft:ageable',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        let interactFilters: Filter | undefined;
+        if (value.interact_filters !== undefined) {
+            const parsed = parseFilterValue(value.interact_filters, 'minecraft:ageable interact_filters');
+            if (!parsed.ok) return parsed;
+            interactFilters = parsed.value;
+        }
+        return accepted({
+            duration: numberAt(value, 'duration', 1200),
+            growUp: parseComponentTrigger(value.grow_up),
+            feedItems: asList(value.feed_items),
+            pauseGrowthItems: asList(value.pause_growth_items),
+            resetGrowthItems: asList(value.reset_growth_items),
+            dropItems: asList(value.drop_items),
+            interactFilters
+        });
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, IntervalState>();
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, { remaining: Math.round(params.duration * TICKS_PER_SECOND) });
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+                state.remaining -= 1;
+                if (state.remaining > 0) return;
+                states.delete(entity);
+                if (params.growUp?.event !== undefined)
+                    entity.raise(params.growUp.event, params.growUp.target, 'minecraft:ageable');
+            }
+        };
+    }
+};
+
+/** What `minecraft:angry` declares. */
+export interface AngryParams {
+    /** How long the anger lasts, in seconds. */
+    readonly duration: number;
+    /** How far either side of `duration` the engine draws the real length. */
+    readonly durationDelta: number;
+    /** The event fired when the anger runs out. */
+    readonly calm?: SensorTrigger;
+    /** Whether anger spreads to nearby entities, which needs a world this package has not got. */
+    readonly broadcastAnger: boolean;
+    readonly broadcastRange: number;
+    readonly broadcastFilters?: Filter;
+}
+
+/**
+ * `minecraft:angry`, carried by 20 vanilla entities.
+ *
+ * The component counts the anger down and fires `calm_event` when it runs out,
+ * which is the event that takes the angry group back off. Spreading anger to
+ * nearby entities needs a world query no seam here answers, so
+ * `broadcast_anger` parses and is reported once when the anger starts.
+ *
+ * The bee and the dolphin write the pre-rename `broadcastAnger` and
+ * `broadcastRange`, so both spellings read.
+ */
+export const angry: ComponentFactory<EntityHooks, AngryParams> = {
+    name: 'minecraft:angry',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        let broadcastFilters: Filter | undefined;
+        if (value.broadcast_filters !== undefined) {
+            const parsed = parseFilterValue(value.broadcast_filters, 'minecraft:angry broadcast_filters');
+            if (!parsed.ok) return parsed;
+            broadcastFilters = parsed.value;
+        }
+        return accepted({
+            duration: numberAt(value, 'duration', 25),
+            durationDelta: numberAt(value, 'duration_delta', 0),
+            calm: parseComponentTrigger(value.calm_event),
+            broadcastAnger: booleanAt(value, 'broadcast_anger', booleanAt(value, 'broadcastAnger', false)),
+            broadcastRange: numberAt(value, 'broadcast_range', numberAt(value, 'broadcastRange', 20)),
+            broadcastFilters
+        });
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, IntervalState>();
+        return {
+            onInitialize: (entity) => {
+                const delta = params.durationDelta * (entity.random.next() * 2 - 1);
+                states.set(entity, { remaining: Math.round((params.duration + delta) * TICKS_PER_SECOND) });
+                if (params.broadcastAnger)
+                    entity.report(
+                        `minecraft:angry broadcasts anger ${params.broadcastRange} blocks, which nothing carries out`
+                    );
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+                state.remaining -= 1;
+                if (state.remaining > 0) return;
+                states.delete(entity);
+                if (params.calm?.event !== undefined)
+                    entity.raise(params.calm.event, params.calm.target, 'minecraft:angry');
+            }
+        };
+    }
+};
+
+/** One `{condition, event_name}` entry of `minecraft:ambient_sound_interval.event_names`. */
+export interface AmbientSoundChoice {
+    /** A Molang expression; the first entry whose condition holds wins. */
+    readonly condition?: string;
+    readonly eventName: string;
+}
+
+/** What `minecraft:ambient_sound_interval` declares. */
+export interface AmbientSoundIntervalParams {
+    /** The shortest wait between sounds, in seconds. */
+    readonly value: number;
+    /** How many more seconds the engine may add to the wait. */
+    readonly range: number;
+    /** The sound played when no conditional entry holds. */
+    readonly eventName: string;
+    readonly choices: readonly AmbientSoundChoice[];
+}
+
+/**
+ * `minecraft:ambient_sound_interval`, carried by 32 vanilla entities.
+ *
+ * The component waits `value` seconds plus up to `range` more, plays its sound
+ * through the world, and draws the next wait. A body whose `value` and `range`
+ * are both zero, which the bee writes, names no interval and plays nothing.
+ *
+ * `event_names` entries win over `event_name`, in file order, and their
+ * `condition` goes to the entity's Molang evaluator. An entry whose condition
+ * does not evaluate is skipped rather than taken.
+ */
+export const ambientSoundInterval: ComponentFactory<EntityHooks, AmbientSoundIntervalParams> = {
+    name: 'minecraft:ambient_sound_interval',
+    hooks: ['onInitialize', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const choices: AmbientSoundChoice[] = [];
+        for (const entry of asList(value.event_names)) {
+            if (!isRecord(entry)) continue;
+            const eventName = stringAt(entry, 'event_name');
+            if (eventName === undefined) continue;
+            choices.push({ condition: stringAt(entry, 'condition'), eventName });
+        }
+        return accepted({
+            value: numberAt(value, 'value', 8),
+            range: numberAt(value, 'range', 16),
+            eventName: stringAt(value, 'event_name') ?? 'ambient',
+            choices
+        });
+    },
+    create: (params) => {
+        const silent = params.value <= 0 && params.range <= 0;
+        const states = new WeakMap<EntityInstance, IntervalState>();
+        const draw = (entity: EntityInstance): number =>
+            Math.round((params.value + entity.random.next() * params.range) * TICKS_PER_SECOND);
+
+        /** The first conditional entry whose Molang holds, or the plain `event_name`. */
+        const pick = (entity: EntityInstance): string => {
+            for (const choice of params.choices) {
+                if (choice.condition === undefined) return choice.eventName;
+                const held = entity.evaluate(choice.condition);
+                if (held === true || (typeof held === 'number' && held !== 0)) return choice.eventName;
+            }
+            return params.eventName;
+        };
+
+        return {
+            onInitialize: (entity) => {
+                if (!silent) states.set(entity, { remaining: draw(entity) });
+            },
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+                state.remaining -= 1;
+                if (state.remaining > 0) return;
+                state.remaining = draw(entity);
+                if (!entity.perform({ name: 'play_sound', sound: pick(entity) }))
+                    entity.report('minecraft:ambient_sound_interval has no world to play its sound through');
+            }
+        };
+    }
+};
+
 /** What `minecraft:transformation` declares. */
 export interface TransformationParams {
     /** The entity to become, in the `identifier<event>` form when it names an event. */
