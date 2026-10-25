@@ -615,10 +615,10 @@ export class Entity {
      * Shove this entity away from whatever hit it.
      *
      * A no-op here, because the base entity has no velocity to shove. The two things that do
-     * override it, and they could hardly differ more: a `Mob` writes its own velocity and lets
-     * the physics carry it, while a `Player` has to be *asked* - a player's position comes from
-     * their own client, so a server that moved them would be overruled on the next movement
-     * packet and read as rubber-banding.
+     * override it, and they could hardly differ more: the body of a data-driven entity hands
+     * the impulse to the entity behind it and lets the runtime carry it, while a `Player` has
+     * to be *asked* - a player's position comes from their own client, so a server that moved
+     * them would be overruled on the next movement packet and read as rubber-banding.
      * @param {number} _directionX - Unit vector away from the blow, x.
      * @param {number} _directionZ - Unit vector away from the blow, z.
      * @param {number} _strength - How hard, with knockback resistance already taken off.
