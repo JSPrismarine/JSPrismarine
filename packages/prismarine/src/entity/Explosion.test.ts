@@ -2,6 +2,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
+import { buildServerContent } from '../content/ServerContent';
+import type { ServerContent } from '../content/ServerContent';
+import { fixtureContentOptions } from '../content/testing';
+import { Dimensions } from '../world/Dimension';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { DamageCause } from './DamageCause';
@@ -12,36 +16,55 @@ import Creeper from './hostile/Creeper';
 import IronGolem from './neutral/IronGolem';
 
 /**
- * Blasts.
+ * Blasts, over a world of one block repeated.
  *
- * The curve is vanilla's: a creeper at point blank kills an unarmored player outright and one at
- * four blocks costs a couple of half-hearts. That steepness is the mob, so it is what is checked.
+ * The ray cast itself is `@jsprismarine/engine-systems`' and is proved there against Java's own
+ * numbers. What is checked here is the translation: that the blast reads this server's chunks,
+ * writes through them, hurts the entities in the grid, and rolls each broken block's loot table.
  */
-const scene = ({ griefing = true, solid = false, block = '' } = {}) => {
+const scene = ({
+    griefing = true,
+    solid = false,
+    block = '',
+    content = undefined as ServerContent | undefined
+} = {}) => {
     const blockName = block !== '' ? block : solid ? 'minecraft:stone' : 'minecraft:air';
     const nearby: Entity[] = [];
     const effects: LevelEvent[] = [];
     const cleared: string[] = [];
+    const dropped: Array<{ at: Vector3; names: string[] }> = [];
 
     const world: any = {
         getName: () => 'test',
+        getTicks: () => 0,
+        getDimension: () => Dimensions.Overworld,
         getServer: () => ({
             post: () => {},
             getTick: () => 0,
             getRandom: () => () => 0.5,
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
+            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
+            getLogger: () => ({ error: () => {}, debug: () => {} }),
+            getBlockManager: () => ({ findBlock: () => null }),
+            // No pack stack by default, so there are no loot tables and nothing drops.
+            getContent: () => content
         }),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},
         sendActorMetadata: async () => {},
         sendWorldEvent: async (_at: unknown, event: LevelEvent) => void effects.push(event),
         broadcastMove: async () => {},
+        playNamedSound: () => {},
         getGameRuleManager: () => ({
             getGameRule: (name: string) => [name === GameRules.MobGriefing ? griefing : true, true]
         }),
         getEntityGrid: () => ({ near: () => nearby }),
-        getBlockState: async () => ({ name: blockName }),
-        setBlockByName: async (x: number, y: number, z: number) => void cleared.push(`${x},${y},${z}`),
+        loadedBlockAt: () => ({ name: blockName, states: {} }),
+        setLoadedBlockState: (x: number, y: number, z: number) => {
+            cleared.push(`${x},${y},${z}`);
+            return true;
+        },
+        dropContents: async (at: Vector3, contents: Array<{ getName(): string }>) =>
+            void dropped.push({ at, names: contents.map((item) => item.getName()) }),
         getLoadedChunk: () => null
     };
 
@@ -51,21 +74,20 @@ const scene = ({ griefing = true, solid = false, block = '' } = {}) => {
         return entity;
     };
 
-    return { world, spawn, effects, cleared };
+    return { world, spawn, effects, cleared, dropped };
 };
 
 /**
  * How much health something this far from a power-3 blast loses.
  *
  * An iron golem rather than a cow, because a cow has ten half-hearts and a creeper is lethal to it
- * out to three blocks - every reading inside that range would come back as "all of it" and the
+ * out to three blocks. Every reading inside that range would come back as "all of it" and the
  * curve would be invisible. A hundred health leaves room to see the shape.
  */
 const blastAt = async (distance: number): Promise<number> => {
     const stage = scene();
     const golem = stage.spawn(IronGolem, distance, 0);
 
-    // Nothing in the way: the world's `getLoadedChunk` is null, so the sight check finds no walls.
     await explode(stage.world, new Vector3(0, 64, 0), { power: 3, breaksBlocks: false });
 
     return 100 - golem.getHealth();
@@ -97,6 +119,17 @@ describe('explosions', () => {
 
     it('does nothing at all past twice its power', async () => {
         expect(await blastAt(7)).toBe(0);
+    });
+
+    it('still costs half a heart to something in range with no line of sight', async () => {
+        // A solid world, so every exposure ray is stopped and the seen fraction is zero. Java
+        // adds a flat one at the end of the curve all the same.
+        const walled = scene({ solid: true, griefing: false });
+        const golem = walled.spawn(IronGolem, 4, 0);
+
+        await explode(walled.world, new Vector3(0, 64, 0), { power: 3 });
+
+        expect(100 - golem.getHealth()).toBe(1);
     });
 
     it('reports itself as an explosion, and names who set it off', async () => {
@@ -132,8 +165,8 @@ describe('explosions', () => {
         });
 
         // Blast resistance comes from the Java-sourced property table, keyed by block state
-        // name, rather than from a hand-kept name set: whether a block gives way is whether
-        // its own absorption, `(resistance / 5 + 0.3) * 0.3`, stops the strongest vanilla ray.
+        // name. A ray loses `(resistance + 0.3) * 0.3` to every block it crosses, so what gives
+        // way is whatever a ray of `power * (0.7 to 1.3)` can still spend itself through.
         it.each([
             ['minecraft:dirt', 0.5],
             ['minecraft:stone', 6],
@@ -180,6 +213,24 @@ describe('explosions', () => {
             await explode(polite.world, new Vector3(0, 64, 0), { power: 3 });
 
             expect(cow.getHealth()).toBeLessThan(10);
+        });
+
+        it('drops nothing on a server with no pack stack to roll a table from', async () => {
+            const bare = scene({ solid: true });
+            await explode(bare.world, new Vector3(0, 64, 0), { power: 3 });
+
+            expect(bare.dropped).toEqual([]);
+        });
+
+        it("yields what the block's Java loot table says, not the block", async () => {
+            // The fixture's `minecraft:blocks/stone` drops cobblestone, which is the point:
+            // an explosion rolls the same table a pickaxe does rather than a path of its own.
+            const quarry = scene({ solid: true, content: buildServerContent(fixtureContentOptions()) });
+
+            await explode(quarry.world, new Vector3(0, 64, 0), { power: 3 });
+
+            expect(quarry.dropped.length).toBeGreaterThan(0);
+            expect(new Set(quarry.dropped.flatMap((drop) => drop.names))).toEqual(new Set(['minecraft:cobblestone']));
         });
     });
 });

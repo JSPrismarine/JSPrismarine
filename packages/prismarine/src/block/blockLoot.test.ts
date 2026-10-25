@@ -107,11 +107,8 @@ describe('block', () => {
             expect(stone.getDrops(null, serverIn('minecraft:the_nether'))).toEqual([]);
         });
 
-        /**
-         * Vanilla's own stone table, whose single pool ends in the
-         * `minecraft:explosion_decay` function every block table carries.
-         */
-        const decaying = () =>
+        /** A stone table carrying one of the two rules a blast reaches. */
+        const explosionTable = (rule: 'survives_explosion' | 'explosion_decay') =>
             buildServerContent(
                 fixtureContentOptions({
                     load: () => ({
@@ -122,11 +119,21 @@ describe('block', () => {
                                     'minecraft:blocks/stone',
                                     definitionOf('lootTablesJava', 'minecraft:blocks/stone', {
                                         type: 'minecraft:block',
+                                        ...(rule === 'explosion_decay'
+                                            ? { modifier: { type: 'minecraft:explosion_decay' } }
+                                            : {}),
                                         pools: [
                                             {
                                                 rolls: 1,
-                                                entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }],
-                                                functions: [{ type: 'minecraft:explosion_decay' }]
+                                                entries: [
+                                                    {
+                                                        type: 'minecraft:item',
+                                                        name: 'minecraft:cobblestone',
+                                                        ...(rule === 'survives_explosion'
+                                                            ? { condition: { type: 'minecraft:survives_explosion' } }
+                                                            : {})
+                                                    }
+                                                ]
                                             }
                                         ]
                                     })
@@ -138,39 +145,53 @@ describe('block', () => {
                 })
             );
 
+        /** A draw that always answers the same number, which is enough for a one-item stack. */
+        const draws = (value: number) => ({ nextFloat: () => value, nextInt: () => 0 });
+
         describe('a block an explosion took out', () => {
-            // `ApplyExplosionDecay` keeps each item of a stack with a chance
-            // of 1 / radius, so a TNT blast of radius 4 keeps a quarter of
-            // what the table rolled.
-            it('keeps the drop when the draw is under one over the radius', () => {
-                const drops = rollBlockDrops(
-                    decaying(),
-                    { identifier: 'minecraft:stone', states: {} },
-                    { explosionRadius: 4, random: { nextFloat: () => 0.2, nextInt: () => 0 } }
-                );
+            // Both of Java's explosion rules roll against 1 / radius, which for
+            // TNT's radius of 4 keeps a quarter. `survives_explosion` is the
+            // condition vanilla's stone table carries and `explosion_decay` the
+            // modifier the crop tables carry; neither can be reached without the
+            // `explosion_radius` parameter.
+            it.each(['survives_explosion', 'explosion_decay'] as const)(
+                'keeps the drop through %s when the draw is under one over the radius',
+                (rule) => {
+                    const drops = rollBlockDrops(
+                        explosionTable(rule),
+                        { identifier: 'minecraft:stone', states: {} },
+                        { explosionRadius: 4, random: draws(0.2) }
+                    );
 
-                expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
-            });
+                    expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+                }
+            );
 
-            it('loses it when the draw is over', () => {
-                const drops = rollBlockDrops(
-                    decaying(),
-                    { identifier: 'minecraft:stone', states: {} },
-                    { explosionRadius: 4, random: { nextFloat: () => 0.3, nextInt: () => 0 } }
-                );
+            it.each(['survives_explosion', 'explosion_decay'] as const)(
+                'loses the drop through %s when the draw is over',
+                (rule) => {
+                    const drops = rollBlockDrops(
+                        explosionTable(rule),
+                        { identifier: 'minecraft:stone', states: {} },
+                        { explosionRadius: 4, random: draws(0.3) }
+                    );
 
-                expect(drops).toEqual([]);
-            });
+                    expect(drops).toEqual([]);
+                }
+            );
 
-            it('keeps everything for an ordinary break, which reports no radius', () => {
-                const drops = rollBlockDrops(
-                    decaying(),
-                    { identifier: 'minecraft:stone', states: {} },
-                    { random: { nextFloat: () => 0.99, nextInt: () => 0 } }
-                );
+            it.each(['survives_explosion', 'explosion_decay'] as const)(
+                'keeps everything through %s for an ordinary break, which reports no radius',
+                (rule) => {
+                    const drops = rollBlockDrops(
+                        explosionTable(rule),
+                        { identifier: 'minecraft:stone', states: {} },
+                        { random: draws(0.99) }
+                    );
 
-                expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
-            });
+                    expect(drops).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+                }
+            );
         });
     });
 });

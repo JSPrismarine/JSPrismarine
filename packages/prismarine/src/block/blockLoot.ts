@@ -73,6 +73,16 @@ export interface BlockDropContext {
     readonly tool?: PredicateItemStack;
     /** The world the clock and location conditions read. */
     readonly level?: LevelView;
+    /**
+     * The radius of the blast that broke it, for a block an explosion took out.
+     *
+     * Java's `LootContextParams.EXPLOSION_RADIUS`, which every vanilla block
+     * table reads through its `minecraft:explosion_decay` function: each item
+     * in a rolled stack survives with a chance of `1 / radius`, so a stone
+     * blown up by TNT yields cobblestone three times in four and nothing the
+     * fourth. Left out for an ordinary break, which keeps every item.
+     */
+    readonly explosionRadius?: number;
     /** Replaces the table's own sequenced stream, for a test that wants a scripted draw. */
     readonly random?: RandomSource;
 }
@@ -106,11 +116,15 @@ export const rollBlockDrops = (
             // Java name, so the state goes in under that rather than under
             // the Bedrock identifier the server holds.
             block_state: { name: `minecraft:${table.slice(BLOCK_TABLE_PREFIX.length)}` },
-            tool: context.tool ?? BARE_HAND
+            tool: context.tool ?? BARE_HAND,
+            explosion_radius: context.explosionRadius
         },
         level: context.level,
         random: context.random
     });
 
-    return rolled.map((stack) => ({ identifier: stack.id, count: stack.count }));
+    // A stack whose count a modifier took to nothing is not a drop. Java's
+    // `LootTable.getRandomItems` filters the empty stacks out the same way,
+    // and `minecraft:explosion_decay` is the modifier that produces them.
+    return rolled.filter((stack) => stack.count > 0).map((stack) => ({ identifier: stack.id, count: stack.count }));
 };
