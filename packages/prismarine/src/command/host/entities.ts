@@ -22,6 +22,7 @@ import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Position } from '../../world/Position';
+import type { World } from '../../world/World';
 import PositionMode from '../../network/type/PositionMode';
 import type { Scoreboard } from './scoreboard';
 import { scoreFactOf } from './scoreboard';
@@ -105,6 +106,46 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
 });
 
 /**
+ * Summons an entity through the data-driven runtime, when the world has one.
+ *
+ * The runtime is the only thing that can build a mob a behavior pack defines,
+ * and it is what drives every mob's components, goals and brain once
+ * `content-packs` is on. The written classes the caller falls back to cover
+ * `minecraft:falling_block`, the projectiles and everything else the runtime
+ * declares no type for.
+ *
+ * @returns The summoned entity, or undefined when this world runs the legacy
+ *   entity classes or no loaded pack declares the identifier.
+ */
+const summonDataEntity = (
+    world: World,
+    identifier: string,
+    position: Vector3,
+    rotation: Rotation,
+    name: string | undefined
+): EntityRef | undefined => {
+    const live = world.dataEntities();
+    // Asked before spawning rather than after, so falling back to a written class for an
+    // identifier no pack declares does not also write a report nobody wanted.
+    if (live === undefined || !live.runtime.content().entities.registry.has(identifier)) return undefined;
+
+    const spawned = live.runtime.spawn(
+        identifier,
+        { x: position.x, y: position.y, z: position.z },
+        { yaw: rotation.yaw, pitch: rotation.pitch }
+    );
+    if (spawned === undefined) return undefined;
+
+    // The runtime announced the spawn while it was still inside `spawn`, so the
+    // body is already in the world by the time this reads it back.
+    const body = live.bodies.bodyOf(spawned.id);
+    if (body === undefined) return undefined;
+
+    if (name !== undefined) body.setName(name);
+    return entityRefOf(body);
+};
+
+/**
  * Builds the `entities` group.
  *
  * @param server - The live server every verb reads and writes through.
@@ -150,10 +191,14 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             if (options.nbt !== undefined) unsupported('entity NBT');
 
             const identifier = type.includes(':') ? type : `minecraft:${type}`;
+            const world = worldOf(server, 'minecraft:overworld');
+
+            const dataEntity = summonDataEntity(world, identifier, position, rotation, options.name);
+            if (dataEntity !== undefined) return dataEntity;
+
             const Spawnable = spawnableEntities().find((candidate) => candidate.MOB_ID === identifier);
             if (Spawnable === undefined) return undefined;
 
-            const world = worldOf(server, 'minecraft:overworld');
             const entity = new Spawnable({
                 position: Position.fromVector3(vectorOf(position), world),
                 yaw: rotation.yaw,

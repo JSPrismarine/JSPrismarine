@@ -20,6 +20,9 @@ import { Item } from '../../item/Item';
 import type ItemManager from '../../item/ItemManager';
 import { testEntityServer } from '../../testing/entityServer';
 import { stub } from '../../testing/stub.test.helper';
+import { entityCommandHost } from '../../command/host/entities';
+import { Scoreboard } from '../../command/host/scoreboard';
+import type WorldManager from '../../world/WorldManager';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/Dimension';
@@ -152,6 +155,27 @@ const ENTITIES = new Map([
                 },
                 'minecraft:behavior.trade_with_player': { priority: 1 }
             }
+        })
+    ],
+    [
+        // A mob no written class answers to and no vanilla pack declares, which is the whole
+        // point of the data path: the only thing that can build one is the content registry.
+        'jsprismarine:dustling',
+        entityFile('jsprismarine:dustling', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:health': { value: 6, max: 6 },
+                'minecraft:type_family': { family: ['dustling', 'mob'] },
+                'minecraft:behavior.random_stroll': {
+                    priority: 6,
+                    speed_multiplier: 1,
+                    interval: 120,
+                    xz_dist: 6,
+                    y_dist: 1
+                }
+            },
+            component_groups: { settled: { 'minecraft:type_family': { family: ['dustling', 'settled'] } } },
+            events: { 'minecraft:entity_spawned': { add: { component_groups: ['settled'] } } }
         })
     ]
 ]);
@@ -302,8 +326,13 @@ const liveWorld = (): {
     for (let x = -LOADED_RADIUS; x <= LOADED_RADIUS; x += 1)
         for (let z = -LOADED_RADIUS; z <= LOADED_RADIUS; z += 1) chunks.set(Chunk.packXZ(x, z), flatChunk(x, z));
 
+    const runtimes = new EntityRuntimes();
     const server: Server = Object.assign(testEntityServer(), {
         getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
+        // What `World.dataEntities` reads, and therefore what tells `/summon` that this
+        // world runs its mobs through the data path rather than the written classes.
+        getEntityRuntime: (dimension: string) => runtimes.at(dimension),
+        getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] }),
         // Every identifier is an item here, because the point of the loot test is which
         // identifier the table rolled rather than what this server has registered.
         getItemManager: () =>
@@ -346,7 +375,7 @@ const liveWorld = (): {
     return {
         world,
         broadcasts,
-        runtimes: new EntityRuntimes(),
+        runtimes,
         hold: (built) => {
             content = built;
         }
@@ -489,7 +518,12 @@ describe('the data-driven entity runtime over a live world', () => {
         it('walks a zombie to a player and hurts them', async () => {
             const player = addPlayer(8, 0);
             const hits: number[] = [];
-            Object.assign(player, { damage: async (amount: number) => void hits.push(amount) || true });
+            Object.assign(player, {
+                damage: async (amount: number) => {
+                    hits.push(amount);
+                    return true;
+                }
+            });
 
             const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
@@ -601,6 +635,55 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(villager.body.tradingPlayer).toBe(id);
             expect(villager.instance.goals.runningGoals()).toContain('minecraft:behavior.trade_with_player');
+        });
+    });
+
+    describe('summoning', () => {
+        /** The `/summon` verb, over the same server the runtime is wired into. */
+        const summon = (type: string, at: { x: number; y: number; z: number }, yaw = 0) =>
+            entityCommandHost(world.getServer(), new Scoreboard()).summon(type, at, { yaw, pitch: 0 }, {});
+
+        it('summons a mob only a pack declares, with its components running', () => {
+            const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 });
+
+            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            expect(ref?.type).toBe('jsprismarine:dustling');
+            expect(dustling).toBeDefined();
+            // The spawn event ran, so this is a live component set rather than a bare body.
+            expect(dustling?.instance.activeComponentGroups()).toEqual(['settled']);
+            expect(dustling?.instance.attributes.get('health')?.max).toBe(6);
+            expect(dustling?.instance.goals.names()).toContain('minecraft:behavior.random_stroll');
+        });
+
+        it('gives the summoned mob a body the clients are sent, facing where it was told', () => {
+            const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 }, 90);
+
+            const body = world.getEntities().find((entity) => entity.getType() === 'jsprismarine:dustling');
+            expect(body).toBeDefined();
+            expect(ref?.id).toBe(body?.getRuntimeId().toString());
+            expect(body?.getPosition().getX()).toBe(2.5);
+            expect(body?.yaw).toBe(90);
+        });
+
+        it('summons a vanilla mob through the data path rather than a written class', () => {
+            summon('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 4.5 });
+
+            expect(live.runtime.all().map((entity) => entity.identifier)).toEqual(['minecraft:cow']);
+            expect(live.bodies.size).toBe(1);
+        });
+
+        it('summons nothing for an identifier no pack and no class declares', () => {
+            expect(summon('jsprismarine:nothing', { x: 0.5, y: GROUND_Y, z: 0.5 })).toBeUndefined();
+            expect(live.runtime.all()).toEqual([]);
+        });
+
+        it('still builds the written class for an identifier the content has no type for', () => {
+            // The wither has a class and no entity file here, which is the legacy path the
+            // data path must not take away: `/summon` falls through to it rather than refusing.
+            const ref = summon('minecraft:wither', { x: 0.5, y: GROUND_Y, z: 0.5 });
+
+            expect(ref?.type).toBe('minecraft:wither');
+            expect(live.runtime.all()).toEqual([]);
         });
     });
 });
