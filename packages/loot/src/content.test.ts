@@ -76,6 +76,29 @@ describe('smelting results', () => {
         expect(stacks.map((stack) => stack.id)).toEqual(['minecraft:charcoal']);
     });
 
+    it('indexes the recipes once per content options object, not once per roll', () => {
+        // Indexing walks every recipe a datapack registered, which over the vanilla
+        // corpus costs far more than the roll that might consult it, and a roll builds
+        // a content view of its own. The tag expander runs once per index build, so
+        // counting its calls counts the builds.
+        let expansions = 0;
+        const content: LootContentOptions = {
+            recipes: RECIPES,
+            itemTag: (tag) => {
+                expansions += 1;
+                return tag === 'minecraft:logs' ? ['minecraft:oak_log'] : undefined;
+            }
+        };
+
+        for (let roll = 0; roll < 5; roll += 1) {
+            expect(rollModified('minecraft:oak_log', { type: 'minecraft:furnace_smelt' }, content).stacks).toEqual([
+                expect.objectContaining({ id: 'minecraft:charcoal' })
+            ]);
+        }
+
+        expect(expansions).toBe(1);
+    });
+
     it('reports furnace_smelt and keeps the stack when no recipes are bound', () => {
         const { stacks, diagnostics } = rollModified('minecraft:beef', { type: 'minecraft:furnace_smelt' });
 

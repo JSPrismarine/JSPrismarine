@@ -120,6 +120,35 @@ describe('rolling through the registry', () => {
         expect(registry.diagnostics.entries).toEqual([]);
     });
 
+    it('indexes the host recipes once however often it rolls', () => {
+        // A roll builds a loot context, and building one used to re-index every recipe
+        // the host registered. Over a vanilla datapack that walk dwarfs the roll itself,
+        // and block drops, mob drops and `/loot` all come through here.
+        let expansions = 0;
+        const registry = new LootRegistry(stackOf({ 'minecraft:chests/igloo': chestOf('minecraft:oak_log') }), {
+            content: {
+                recipes: new Map<string, unknown>([
+                    [
+                        'minecraft:charcoal',
+                        {
+                            type: 'minecraft:smelting',
+                            ingredient: '#minecraft:logs',
+                            result: { id: 'minecraft:charcoal' }
+                        }
+                    ]
+                ]),
+                itemTag: () => {
+                    expansions += 1;
+                    return ['minecraft:oak_log'];
+                }
+            }
+        });
+
+        for (let roll = 0; roll < 10; roll += 1) registry.roll('minecraft:chests/igloo', { parameters: ORIGIN });
+
+        expect(expansions).toBe(1);
+    });
+
     it('lets a caller script the draw instead of the sequence', () => {
         const registry = new LootRegistry(
             stackOf({

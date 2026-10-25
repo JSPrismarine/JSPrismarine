@@ -26,13 +26,26 @@ import {
     nbtTagArgument,
     operationArgument,
     resourceArgument,
+    scoreHolderArgument,
     softEnumArgument,
     stringArgument
 } from '../argumentTypes';
 import type { CommandSource, DataModifyOperation, DataTarget, ItemSlot } from '../host';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
-import { arg, command, lit, report, resolvePosition, select, selectOne, source, value } from './support';
+import {
+    arg,
+    command,
+    lit,
+    report,
+    resolvePosition,
+    scoreHolderOne,
+    scoreHolders,
+    select,
+    selectOne,
+    source,
+    value
+} from './support';
 
 const CHEATS = {
     permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
@@ -517,7 +530,7 @@ const buildScoreboard = () => {
     for (const action of ['set', 'add', 'remove'] as const) {
         players.then(
             lit(action).then(
-                arg('targets', entityArgument()).then(
+                arg('targets', scoreHolderArgument()).then(
                     arg('objective', softEnumArgument('ScoreboardObjectives')).then(
                         arg('score', integerArgument()).executes(command((context) => changeScore(context, action)))
                     )
@@ -527,11 +540,11 @@ const buildScoreboard = () => {
     }
     players.then(
         lit('get').then(
-            arg('target', entityArgument()).then(
+            arg('target', scoreHolderArgument()).then(
                 arg('objective', softEnumArgument('ScoreboardObjectives')).executes(
                     command((context) => {
                         const current = source(context);
-                        const holder = selectOne(current, value(context, 'target')).name;
+                        const holder = scoreHolderOne(current, value(context, 'target'));
                         const score = current.host.scoreboard.getScore(holder, value(context, 'objective'));
                         if (score === undefined) return report(current, 0, 'There is no such score');
                         current.sendFeedback(`${holder} has ${score}`);
@@ -543,7 +556,7 @@ const buildScoreboard = () => {
     );
     players.then(
         lit('reset').then(
-            arg('targets', entityArgument())
+            arg('targets', scoreHolderArgument())
                 .executes(command((context) => resetScore(context, undefined)))
                 .then(
                     arg('objective', softEnumArgument('ScoreboardObjectives')).executes(
@@ -554,10 +567,10 @@ const buildScoreboard = () => {
     );
     players.then(
         lit('list').then(
-            arg('target', entityArgument()).executes(
+            arg('target', scoreHolderArgument()).executes(
                 command((context) => {
                     const current = source(context);
-                    const holder = selectOne(current, value(context, 'target')).name;
+                    const holder = scoreHolderOne(current, value(context, 'target'));
                     const scores = current.host.scoreboard.listScores(holder);
                     const count = Object.keys(scores).length;
                     return report(current, count, `${holder} has ${count} scores`);
@@ -567,13 +580,13 @@ const buildScoreboard = () => {
     );
     players.then(
         lit('enable').then(
-            arg('targets', entityArgument()).then(
+            arg('targets', scoreHolderArgument()).then(
                 arg('objective', softEnumArgument('ScoreboardObjectives')).executes(
                     command((context) => {
                         const current = source(context);
                         const objective = value<string>(context, 'objective');
-                        const enabled = select(current, value(context, 'targets')).filter((entity) =>
-                            current.host.scoreboard.enableTrigger(entity.name, objective)
+                        const enabled = scoreHolders(current, value(context, 'targets')).filter((holder) =>
+                            current.host.scoreboard.enableTrigger(holder, objective)
                         ).length;
                         return report(current, enabled, `Enabled the trigger for ${enabled} players`);
                     })
@@ -583,18 +596,18 @@ const buildScoreboard = () => {
     );
     players.then(
         lit('operation').then(
-            arg('target', entityArgument()).then(
+            arg('target', scoreHolderArgument()).then(
                 arg('targetObjective', softEnumArgument('ScoreboardObjectives')).then(
                     arg('operation', operationArgument()).then(
-                        arg('source', entityArgument()).then(
+                        arg('source', scoreHolderArgument()).then(
                             arg('sourceObjective', softEnumArgument('ScoreboardObjectives')).executes(
                                 command((context) => {
                                     const current = source(context);
                                     const result = current.host.scoreboard.operation(
-                                        selectOne(current, value(context, 'target')).name,
+                                        scoreHolderOne(current, value(context, 'target')),
                                         value(context, 'targetObjective'),
                                         value(context, 'operation'),
-                                        selectOne(current, value(context, 'source')).name,
+                                        scoreHolderOne(current, value(context, 'source')),
                                         value(context, 'sourceObjective')
                                     );
                                     if (result === undefined) return report(current, 0, 'The operation did not apply');
@@ -628,11 +641,11 @@ const changeScore = (context: Context, action: 'set' | 'add' | 'remove'): number
     const objective = value<string>(context, 'objective');
     const score = value<number>(context, 'score');
     let last = 0;
-    for (const entity of select(current, value(context, 'targets'))) {
+    for (const holder of scoreHolders(current, value(context, 'targets'))) {
         last =
             action === 'set'
-                ? current.host.scoreboard.setScore(entity.name, objective, score)
-                : current.host.scoreboard.addScore(entity.name, objective, action === 'add' ? score : -score);
+                ? current.host.scoreboard.setScore(holder, objective, score)
+                : current.host.scoreboard.addScore(holder, objective, action === 'add' ? score : -score);
     }
     current.sendFeedback(`The score is now ${last}`);
     return last;
@@ -640,8 +653,8 @@ const changeScore = (context: Context, action: 'set' | 'add' | 'remove'): number
 
 const resetScore = (context: Context, objective: string | undefined): number => {
     const current = source(context);
-    const reset = select(current, value(context, 'targets')).filter((entity) =>
-        current.host.scoreboard.resetScore(entity.name, objective)
+    const reset = scoreHolders(current, value(context, 'targets')).filter((holder) =>
+        current.host.scoreboard.resetScore(holder, objective)
     ).length;
     return report(current, reset, `Reset ${reset} scores`);
 };
