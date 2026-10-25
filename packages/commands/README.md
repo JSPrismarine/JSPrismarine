@@ -207,6 +207,12 @@ between branches would make the result depend on evaluation order.
 A command's return value is the count `execute store result` captures, so `/fill` returns the
 number of blocks it changed rather than a success flag.
 
+`/scoreboard players`, `execute if score` and `execute store ... score` take a score holder rather
+than an entity, which is Java's `ScoreHolderArgument`: a selector, a bare name, or `*`. The bare
+name is the point. A scoreboard scores a name, and a name no entity has - a "fake player" - is how
+a datapack keeps a counter that is not about anybody, so reading those three arguments as entity
+selectors would have made the normal idiom unparseable.
+
 ## Gamerules
 
 1.21.11 moved gamerules into a registry and renamed every one of them from camelCase to a

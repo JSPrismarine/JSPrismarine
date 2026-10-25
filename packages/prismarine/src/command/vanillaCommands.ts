@@ -28,18 +28,14 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     attribute: 'attribute modifiers; this server stores base values only',
     data: 'reading and writing NBT by path',
     effect: 'a status effect system',
-    enchant: 'enchantments on an item stack',
     item: 'item modifiers and addressable inventory slots',
     locate: 'a structure, biome and point-of-interest index',
     loot: 'the loot table runtime',
     place: 'runtime feature, jigsaw and structure placement',
-    random: 'named random sequences',
     recipe: 'per-player recipe unlocking',
     ride: 'entity riding',
-    scoreboard: 'objectives and scores',
     spawnpoint: 'per-player spawn points',
-    weather: 'a weather cycle',
-    xp: 'an experience model; the two bar attributes are not one'
+    weather: 'a weather cycle'
 };
 
 /**

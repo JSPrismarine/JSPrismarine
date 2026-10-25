@@ -124,8 +124,15 @@ export interface EntityCommandHost {
     /** @returns How many effects were cleared. */
     clearEffect(entity: EntityRef, effect?: string): number;
     enchant(entity: EntityRef, enchantment: string, level: number): boolean;
-    /** @returns The entity's experience after the change. */
-    changeExperience(player: EntityRef, amount: number, unit: 'points' | 'levels'): number;
+    /**
+     * Adds to, or replaces, a player's experience.
+     *
+     * @param mode - `add` is `/xp add` and `set` is `/xp set`. The two differ
+     *   by more than arithmetic: Java's `set ... points` writes the bar
+     *   fraction rather than adding points that carry into a level.
+     * @returns The player's experience after the change, in `unit`.
+     */
+    changeExperience(player: EntityRef, amount: number, unit: 'points' | 'levels', mode: 'add' | 'set'): number;
     queryExperience(player: EntityRef, unit: 'points' | 'levels'): number;
     addTag(entity: EntityRef, tag: string): boolean;
     removeTag(entity: EntityRef, tag: string): boolean;
@@ -212,6 +219,12 @@ export interface ScoreboardCommandHost {
     removeObjective(name: string): boolean;
     listObjectives(): readonly string[];
     setDisplay(slot: string, objective?: string, sortOrder?: 'ascending' | 'descending'): boolean;
+    /**
+     * Every holder the board tracks, which is what a `*` score holder names.
+     *
+     * @param objective - Narrows it to the holders with a score in that one.
+     */
+    holders(objective?: string): readonly string[];
     getScore(holder: string, objective: string): number | undefined;
     setScore(holder: string, objective: string, value: number): number;
     addScore(holder: string, objective: string, value: number): number;

@@ -14,13 +14,19 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Player from '../../Player';
 import type { Server } from '../../';
 import type { Config } from '../../config/Config';
+import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
 import type { ItemManager } from '../../item/ItemManager';
 import type { Item } from '../../item/Item';
+import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
+import { Item as ItemStack } from '../../item/Item';
 import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
 import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
 import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
+import RemoveObjectivePacket from '../../network/packet/RemoveObjectivePacket';
+import SetDisplayObjectivePacket from '../../network/packet/SetDisplayObjectivePacket';
+import SetScorePacket from '../../network/packet/SetScorePacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
@@ -111,6 +117,7 @@ const buildFixture = (): Fixture => {
             return true;
         },
         getLoadedChunk: () => null,
+        getSeed: () => 1,
         // Late-bound: an entity class reads the server off the world it is
         // built in, and the server double is built from this one.
         getServer: () => server
@@ -148,6 +155,9 @@ const buildFixture = (): Fixture => {
                     })
             }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival' }),
+        // No content build behind this fixture, which is the shape of a
+        // server running with `content-packs` off.
+        getContent: () => undefined,
         broadcastPacket: async (packet: unknown) => {
             sent.push(packet);
         }
@@ -240,12 +250,14 @@ const playerAt = (fixture: Fixture, id: bigint, name: string, position: Vector3)
         kick: vi.fn().mockResolvedValue(undefined),
         sendMessage: vi.fn().mockResolvedValue(undefined),
         getInventory: () => inventory,
+        attributes: new Attributes(Attributes.getPlayerDefaults()),
         getNetworkSession: () =>
             stub({
                 send: async (packet: unknown) => {
                     fixture.sent.push(packet);
                 },
-                sendInventory: async () => {}
+                sendInventory: async () => {},
+                sendAttributes: async () => {}
             }),
         yaw: 0,
         pitch: 0,
@@ -658,6 +670,213 @@ describe('the server command host', () => {
             if (!(packet instanceof AnimateEntityPacket)) return;
             expect(packet.animation).toBe('animation.pig.baby_transform');
             expect(packet.runtimeIds).toEqual([1n, 2n]);
+        });
+    });
+
+    describe('the scoreboard', () => {
+        it('tracks a score through add, get and reset', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('scoreboard objectives add kills dummy Kills')).resolves.toBe(1);
+            await expect(fixture.run('scoreboard players set Steve kills 3')).resolves.toBe(3);
+            await expect(fixture.run('scoreboard players add Steve kills 4')).resolves.toBe(7);
+            await expect(fixture.run('scoreboard players get @s kills', fixture.players[0])).resolves.toBe(7);
+
+            await expect(fixture.run('scoreboard players reset Steve kills')).resolves.toBe(1);
+            await fixture.run('scoreboard players get Steve kills');
+            expect(fixture.errors.at(-1)).toContain('no such score');
+        });
+
+        it('refuses a second objective of the same name, as Java does', async () => {
+            await expect(fixture.run('scoreboard objectives add kills dummy')).resolves.toBe(1);
+            await expect(fixture.run('scoreboard objectives add kills dummy')).resolves.toBe(0);
+        });
+
+        it('names the objective nobody created rather than failing quietly', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('scoreboard players set @a nothing 1')).rejects.toThrow(
+                /no scoreboard objective called nothing/
+            );
+        });
+
+        it('applies every operation Java defines', async () => {
+            await fixture.run('scoreboard objectives add a dummy');
+            await fixture.run('scoreboard players set left a 7');
+            await fixture.run('scoreboard players set right a 2');
+
+            await expect(fixture.run('scoreboard players operation left a %= right a')).resolves.toBe(1);
+            await fixture.run('scoreboard players set left a 7');
+            await expect(fixture.run('scoreboard players operation left a *= right a')).resolves.toBe(14);
+            await expect(fixture.run('scoreboard players operation left a >< right a')).resolves.toBe(2);
+            await fixture.run('scoreboard players get right a');
+            expect(fixture.feedback.at(-1)).toContain('right has 14');
+        });
+
+        it('leaves the target alone when a division has nothing to divide by', async () => {
+            await fixture.run('scoreboard objectives add a dummy');
+            await fixture.run('scoreboard players set left a 7');
+            await fixture.run('scoreboard players set right a 0');
+
+            await expect(fixture.run('scoreboard players operation left a /= right a')).resolves.toBe(0);
+            await fixture.run('scoreboard players get left a');
+            expect(fixture.feedback.at(-1)).toContain('left has 7');
+        });
+
+        it('draws a slot and tells the clients about every line in it', async () => {
+            await fixture.run('scoreboard objectives add kills dummy Kills');
+            await fixture.run('scoreboard players set Steve kills 3');
+
+            await expect(fixture.run('scoreboard objectives setdisplay sidebar kills')).resolves.toBe(1);
+
+            const display = fixture.sent.filter((packet) => packet instanceof SetDisplayObjectivePacket).at(-1);
+            expect(display?.objectiveName).toBe('kills');
+            expect(display?.objectiveDisplayName).toBe('Kills');
+            const scores = fixture.sent.filter((packet) => packet instanceof SetScorePacket).at(-1);
+            expect(scores?.entries).toHaveLength(1);
+        });
+
+        it('clears the slot and drops the scores when the objective goes', async () => {
+            await fixture.run('scoreboard objectives add kills dummy');
+            await fixture.run('scoreboard players set Steve kills 3');
+            await fixture.run('scoreboard objectives setdisplay sidebar kills');
+
+            await expect(fixture.run('scoreboard objectives remove kills')).resolves.toBe(1);
+
+            expect(fixture.sent.some((packet) => packet instanceof RemoveObjectivePacket)).toBe(true);
+            await expect(fixture.run('scoreboard objectives list')).resolves.toBe(0);
+        });
+
+        it('answers execute if score off the same board', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            await fixture.run('scoreboard objectives add kills dummy');
+            await fixture.run('scoreboard players set Steve kills 5');
+
+            await expect(fixture.run('execute if score Steve kills matches 5 run say yes')).resolves.toBe(1);
+            await expect(fixture.run('execute if score Steve kills matches 6 run say yes')).resolves.toBe(0);
+            await expect(fixture.run('execute if score @a kills matches 5 run say yes')).resolves.toBe(1);
+        });
+
+        it('captures a command result into a score through execute store', async () => {
+            await fixture.run('scoreboard objectives add blocks dummy');
+
+            await fixture.run('execute store result score counter blocks run fill 0 0 0 1 1 1 minecraft:stone');
+
+            await fixture.run('scoreboard players get counter blocks');
+            expect(fixture.feedback.at(-1)).toContain('counter has 8');
+        });
+
+        it('matches a selector on a score it holds', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            playerAt(fixture, 2n, 'Alex', new Vector3(1, 64, 0));
+            await fixture.run('scoreboard objectives add kills dummy');
+            await fixture.run('scoreboard players set Steve kills 9');
+
+            await expect(fixture.run('tag @a[scores={kills=5..}] add veteran')).resolves.toBe(1);
+            expect([...fixture.players[0]!.getTags()]).toEqual(['veteran']);
+            expect([...fixture.players[1]!.getTags()]).toEqual([]);
+        });
+    });
+
+    describe('random sequences', () => {
+        it('draws inside the range it was given', async () => {
+            for (let roll = 0; roll < 20; roll += 1) {
+                const drawn = await fixture.run('random value 1..6 test:dice');
+                expect(drawn).toBeGreaterThanOrEqual(1);
+                expect(drawn).toBeLessThanOrEqual(6);
+            }
+        });
+
+        it('advances, so two draws are not forced to agree', async () => {
+            const draws = [];
+            for (let roll = 0; roll < 32; roll += 1) draws.push(await fixture.run('random value 1..1000 test:wide'));
+
+            expect(new Set(draws).size).toBeGreaterThan(1);
+        });
+
+        it('replays a sequence that was reset to a seed', async () => {
+            await fixture.run('random reset test:seeded 42');
+            const first = [await fixture.run('random value 1..1000 test:seeded')];
+            first.push(await fixture.run('random value 1..1000 test:seeded'));
+
+            await fixture.run('random reset test:seeded 42');
+            const second = [await fixture.run('random value 1..1000 test:seeded')];
+            second.push(await fixture.run('random value 1..1000 test:seeded'));
+
+            expect(second).toEqual(first);
+        });
+
+        it('keys two sequences apart', async () => {
+            await fixture.run('random reset test:one 7');
+            await fixture.run('random reset test:two 7');
+
+            const one = await fixture.run('random value 1..1000000 test:one');
+            const two = await fixture.run('random value 1..1000000 test:two');
+            expect(one).not.toBe(two);
+        });
+    });
+
+    describe('experience', () => {
+        it('adds points that carry into a level', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('xp add @a 10 points');
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(1);
+
+            await fixture.run('xp query @a levels');
+            expect(fixture.feedback.at(-1)).toContain('Steve has 1 levels');
+        });
+
+        it('adds and sets levels', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('xp add @a 5 levels');
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(5);
+
+            await fixture.run('xp set @a 2 levels');
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(2);
+        });
+
+        it('never drops below level zero', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await fixture.run('xp add @a 2 levels');
+            await fixture.run('xp add @a -9 levels');
+
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
+            expect(player.attributes.getValue(AttributeIds.PlayerExperience)).toBe(0);
+        });
+
+        it('sets the bar just short of full rather than promoting the player', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            // Level 0 costs 7 points, and setting exactly 7 must not reach level 1.
+            await fixture.run('xp set @a 7 points');
+
+            expect(player.attributes.getValue(AttributeIds.PlayerLevel)).toBe(0);
+            await fixture.run('xp query @a points');
+            expect(fixture.feedback.at(-1)).toContain('Steve has 6 points');
+        });
+    });
+
+    describe('enchanting', () => {
+        it('puts the enchantment on the held stack', async () => {
+            const player = playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new ItemStack({ name: 'minecraft:diamond_sword' }), count: 1 })
+                );
+
+            await expect(fixture.run('enchant @a sharpness 3')).resolves.toBe(1);
+
+            expect(player.getInventory().getItemInHand().getEnchantmentLevel('minecraft:sharpness')).toBe(3);
+        });
+
+        it('refuses an empty hand by name', async () => {
+            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
+
+            await expect(fixture.run('enchant @a sharpness')).rejects.toThrow(/not holding anything/);
         });
     });
 });

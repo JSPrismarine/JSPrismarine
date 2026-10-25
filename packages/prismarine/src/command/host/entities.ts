@@ -18,10 +18,14 @@ import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import type { Entity } from '../../entity/Entity';
 import { spawnableEntities } from '../../entity/Entities';
+import type { ExperienceHolder } from '../../entity/Experience';
+import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { Position } from '../../world/Position';
 import PositionMode from '../../network/type/PositionMode';
-import { carryOut, entityRefOf, resolveEntity, resolvePlayer, unsupported, vectorOf, worldOf } from './support';
+import type { Scoreboard } from './scoreboard';
+import { scoreFactOf } from './scoreboard';
+import { carryOut, entityRefOf, refuse, resolveEntity, resolvePlayer, unsupported, vectorOf, worldOf } from './support';
 
 /**
  * The Java attribute names `/attribute` and `execute store` use, mapped onto
@@ -49,18 +53,54 @@ const attributeIdOf = (name: string): string | undefined =>
 const gameModeNameOf = (player: Player): string => getGametypeName(player.gamemode).toLowerCase();
 
 /**
+ * A player's experience as the two attributes Bedrock carries it in.
+ *
+ * `minecraft:player.level` is a whole number and `minecraft:player.experience`
+ * is the bar from 0 to 1, while every rule that grants or spends experience
+ * counts points. {@link import('../../entity/Experience')} holds the curve
+ * that converts between them.
+ */
+const experienceOf = (player: Player): ExperienceHolder => ({
+    getLevel: () => player.attributes.getValue(AttributeIds.PlayerLevel),
+    getProgress: () => player.attributes.getValue(AttributeIds.PlayerExperience),
+    setLevel: (level) => player.attributes.setValue(AttributeIds.PlayerLevel, level),
+    setProgress: (progress) => player.attributes.setValue(AttributeIds.PlayerExperience, progress)
+});
+
+/** What `/xp query` answers, in the unit it was asked in. */
+const readExperience = (holder: ExperienceHolder, unit: 'points' | 'levels'): number => {
+    const level = Math.max(0, Math.trunc(holder.getLevel()));
+    if (unit === 'levels') return level;
+    return Math.round(holder.getProgress() * pointsForNextLevel(level));
+};
+
+/**
+ * The bar fraction `/xp set <n> points` leaves behind.
+ *
+ * Java clamps it just below full rather than to 1, so setting the points to
+ * exactly what the level costs does not promote the player - which is what
+ * `Player.setExperiencePoints` does with its `(f - 1) / f` ceiling.
+ */
+const barFractionOf = (level: number, points: number): number => {
+    const needed = pointsForNextLevel(Math.max(0, Math.trunc(level)));
+    return Math.max(0, Math.min(points / needed, (needed - 1) / needed));
+};
+
+/**
  * The facts an `EntityRef` does not carry, as far as this server can answer
  * them.
  *
- * `level`, `score` and `families` are left out rather than faked: a selector
- * argument this server cannot evaluate must not silently match everything, and
+ * `families` is left out rather than faked: a selector argument this server
+ * cannot evaluate must not silently match everything, and
  * {@link matchSelector} fails a test whose fact is absent.
  */
-const selectorFacts = (server: Server): Partial<SelectorFacts> => ({
+const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<SelectorFacts> => ({
     gameMode: (ref) => {
         const player = resolvePlayer(server, ref);
         return player === undefined ? undefined : gameModeNameOf(player);
     },
+    level: (ref) => resolvePlayer(server, ref)?.attributes.getValue(AttributeIds.PlayerLevel),
+    score: scoreFactOf(scoreboard),
     tags: (ref) => resolveEntity(server, ref)?.getTags() ?? []
 });
 
@@ -68,8 +108,9 @@ const selectorFacts = (server: Server): Partial<SelectorFacts> => ({
  * Builds the `entities` group.
  *
  * @param server - The live server every verb reads and writes through.
+ * @param scoreboard - The scoreboard a selector's `scores=` reads.
  */
-export const entityCommandHost = (server: Server): EntityCommandHost => {
+export const entityCommandHost = (server: Server, scoreboard: Scoreboard): EntityCommandHost => {
     const refsOf = (entities: readonly Entity[]): EntityRef[] => entities.map(entityRefOf);
 
     /**
@@ -99,7 +140,7 @@ export const entityCommandHost = (server: Server): EntityCommandHost => {
         select: (selector, source) =>
             matchSelector(selector, source, {
                 candidates: refsOf(candidatesFor(selector.base, source.dimension)),
-                facts: selectorFacts(server),
+                facts: selectorFacts(server, scoreboard),
                 random: () => server.getRandom()()
             }),
 
@@ -239,9 +280,61 @@ export const entityCommandHost = (server: Server): EntityCommandHost => {
 
         addEffect: () => unsupported('status effect system'),
         clearEffect: () => unsupported('status effect system'),
-        enchant: () => unsupported('enchanting'),
-        changeExperience: () => unsupported('experience system'),
-        queryExperience: () => unsupported('experience system'),
+
+        enchant: (ref, enchantment, level) => {
+            const player = resolvePlayer(server, ref);
+            if (player === undefined) return false;
+
+            const inventory = player.getInventory();
+            const held = inventory.getItemInHand();
+            if (held.getName() === 'minecraft:air') refuse(`${ref.name} is not holding anything`);
+
+            const id = enchantment.includes(':') ? enchantment : `minecraft:${enchantment}`;
+            // Java's three checks, made only when the enchantment definitions
+            // are loaded. Without them the level still lands on the stack and
+            // the combat and mining code reads it; what is missing is the
+            // refusal, not the effect.
+            const registry = server.getContent()?.enchantments;
+            if (registry?.get(id) !== undefined) {
+                if (!registry.supports(held.asPredicateStack(), id)) {
+                    refuse(`${held.getName()} cannot carry ${id}`);
+                }
+                const limit = registry.maxLevelOf(id) ?? level;
+                if (level > limit) refuse(`${id} goes up to level ${limit}`);
+                for (const carried of held.getEnchantments().keys()) {
+                    if (!registry.areCompatible(carried, id)) refuse(`${id} conflicts with ${carried}`);
+                }
+            }
+
+            const enchanted = held.withEnchantments(new Map([...held.getEnchantments(), [id, level]]));
+            inventory.setItemInHand(new ContainerEntry({ item: enchanted, count: held.getAmount() }));
+            return carryOut(player.getNetworkSession().sendInventory(), true);
+        },
+
+        changeExperience: (ref, amount, unit, mode) => {
+            const player = resolvePlayer(server, ref);
+            if (player === undefined) return 0;
+
+            const holder = experienceOf(player);
+            if (unit === 'levels') {
+                const level = Math.max(0, mode === 'set' ? amount : holder.getLevel() + amount);
+                holder.setLevel(level);
+                // Java zeroes the bar only when the change took the player to
+                // or below level zero; adding a level keeps the bar it had.
+                if (level === 0) holder.setProgress(0);
+            } else if (mode === 'set') {
+                holder.setProgress(barFractionOf(holder.getLevel(), amount));
+            } else {
+                addExperiencePoints(holder, amount);
+            }
+
+            return carryOut(player.getNetworkSession().sendAttributes(), readExperience(holder, unit));
+        },
+
+        queryExperience: (ref, unit) => {
+            const player = resolvePlayer(server, ref);
+            return player === undefined ? 0 : readExperience(experienceOf(player), unit);
+        },
 
         addTag: (ref, tag) => resolveEntity(server, ref)?.addTag(tag) ?? false,
         removeTag: (ref, tag) => resolveEntity(server, ref)?.removeTag(tag) ?? false,

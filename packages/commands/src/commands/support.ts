@@ -11,7 +11,7 @@ import type {
 } from '@jsprismarine/brigadier';
 import { CommandSyntaxException, argument, literal } from '@jsprismarine/brigadier';
 
-import type { Coordinate, CoordinateTriple } from '../argumentTypes';
+import type { Coordinate, CoordinateTriple, ScoreHolderModel } from '../argumentTypes';
 import { enumArgument } from '../argumentTypes';
 import type { CommandSource, EntityRef, Rotation, Vector3 } from '../host';
 import type { SelectorModel } from '../selector';
@@ -101,6 +101,32 @@ export const selectOne = (source: CommandSource, selector: SelectorModel): Entit
     if (matches.length === 0) refuse('No entity was found');
     if (matches.length > 1) refuse('Only one entity is allowed, but the selector found more than one');
     return matches[0]!;
+};
+
+/**
+ * Resolves a score holder to the names the scoreboard keys on.
+ *
+ * A selector resolves to the names of the entities it matched, a bare name is
+ * itself, and `*` is every holder the scoreboard already tracks - which is
+ * what makes `/scoreboard players reset *` the command that clears the board.
+ */
+export const scoreHolders = (source: CommandSource, holder: ScoreHolderModel): readonly string[] => {
+    if (holder.kind === 'name') return [holder.name];
+    if (holder.kind === 'all') return source.host.scoreboard.holders();
+    return select(source, holder.selector).map((entity) => entity.name);
+};
+
+/**
+ * Resolves a score holder that must name exactly one.
+ *
+ * @throws {CommandSyntaxException} When it named none or several, which is
+ *   what Java's single-holder form does.
+ */
+export const scoreHolderOne = (source: CommandSource, holder: ScoreHolderModel): string => {
+    const names = scoreHolders(source, holder);
+    if (names.length === 0) refuse('No score holder was found');
+    if (names.length > 1) refuse('Only one score holder is allowed, but more than one was named');
+    return names[0]!;
 };
 
 /** A Brigadier context over this package's source type. */

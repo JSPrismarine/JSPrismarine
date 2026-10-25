@@ -39,10 +39,22 @@ import { deferCommandWork } from '../Command';
  * @param subsystem - What the server would need, named so the message is useful.
  * @throws {CommandSyntaxException} Always; the caller never returns.
  */
-export const unsupported: (subsystem: string) => never = (subsystem) => {
-    throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException().create(
-        `This server has no ${subsystem} yet, so that command cannot run`
-    );
+export const unsupported: (subsystem: string) => never = (subsystem) =>
+    refuse(`This server has no ${subsystem} yet, so that command cannot run`);
+
+/**
+ * Refuses a command that cannot do what it was asked.
+ *
+ * The seam's verbs answer counts and booleans, which say "nothing matched".
+ * Some failures are not that: naming a scoreboard objective nobody created is
+ * a mistake rather than an empty result, and Java reports it by name. This is
+ * how a verb says so.
+ *
+ * @param message - What went wrong, written for the player who typed the line.
+ * @throws {CommandSyntaxException} Always; the caller never returns.
+ */
+export const refuse: (message: string) => never = (message) => {
+    throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherParseException().create(message);
 };
 
 /**
