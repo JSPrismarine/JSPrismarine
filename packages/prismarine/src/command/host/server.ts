@@ -7,14 +7,17 @@
  * `/title`, `/transfer` and `/stopsound` were unreachable before the command
  * layer landed rather than unimplementable.
  */
-import type { EntityRef, ServerCommandHost } from '@jsprismarine/commands';
+import type { EntityRef, ServerCommandHost, TitleInstruction } from '@jsprismarine/commands';
 import { TitleType } from '@jsprismarine/minecraft';
 
 import type Server from '../../Server';
+import AnimateEntityPacket from '../../network/packet/AnimateEntityPacket';
+import CameraShakePacket, { CameraShakeAction, CameraShakeType } from '../../network/packet/CameraShakePacket';
+import PlayerFogPacket from '../../network/packet/PlayerFogPacket';
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import TransferPacket from '../../network/packet/TransferPacket';
 import TextPacketType from '../../network/type/TextPacketType';
-import { carryOut, entityRefOf, playersOf, resolvePlayer, unsupported } from './support';
+import { carryOut, entityRefOf, playersOf, resolveEntity, resolvePlayer, unsupported } from './support';
 
 /**
  * How the client renders each of the four message kinds a command sends.
@@ -31,13 +34,67 @@ const MESSAGE_TYPES: Readonly<Record<'chat' | 'whisper' | 'emote' | 'raw', TextP
     raw: TextPacketType.TextObject
 };
 
-/** The title slot each of `/title`'s five forms writes. */
-const TITLE_TYPES: Readonly<Record<'title' | 'subtitle' | 'actionbar' | 'clear' | 'reset', TitleType>> = {
-    title: TitleType.TITLE,
-    subtitle: TitleType.SUBTITLE,
-    actionbar: TitleType.ACTIONBAR,
-    clear: TitleType.CLEAR,
-    reset: TitleType.RESET
+/**
+ * The title slot each form writes.
+ *
+ * Two of them per slot: `/titleraw` sends a `rawtext` object, and the client
+ * only parses one in the `*_TEXT_OBJECT` types, so the raw flag picks the
+ * second column rather than being written into the text.
+ */
+const TITLE_TYPES: Readonly<Record<'title' | 'subtitle' | 'actionbar', readonly [plain: TitleType, raw: TitleType]>> = {
+    title: [TitleType.TITLE, TitleType.TITLE_TEXT_OBJECT],
+    subtitle: [TitleType.SUBTITLE, TitleType.SUBTITLE_TEXT_OBJECT],
+    actionbar: [TitleType.ACTIONBAR, TitleType.ACTIONBAR_TEXT_OBJECT]
+};
+
+/** The shake type and action numbers the packet writes, by the name a command spells. */
+const SHAKE_TYPES: Readonly<Record<'positional' | 'rotational', CameraShakeType>> = {
+    positional: CameraShakeType.Positional,
+    rotational: CameraShakeType.Rotational
+};
+
+/**
+ * One title instruction as the packet carries it.
+ *
+ * `clear`, `reset` and `times` write no text, which is why the instruction is
+ * a union rather than a kind plus a string: a `times` form sent as text is a
+ * title reading "20".
+ */
+const titlePacketOf = (title: TitleInstruction): SetTitlePacket => {
+    const packet = new SetTitlePacket();
+    switch (title.kind) {
+        case 'clear':
+            packet.titleType = TitleType.CLEAR;
+            return packet;
+
+        case 'reset':
+            packet.titleType = TitleType.RESET;
+            return packet;
+
+        case 'times':
+            packet.titleType = TitleType.TIMES;
+            packet.fadeInTime = title.fadeIn;
+            packet.stayTime = title.stay;
+            packet.fadeOutTime = title.fadeOut;
+            return packet;
+
+        default:
+            packet.titleType = TITLE_TYPES[title.kind][title.raw === true ? 1 : 0];
+            packet.titleText = title.text;
+            return packet;
+    }
+};
+
+/** One layer of a player's fog stack: what to render, and what `/fog pop` calls it. */
+interface FogLayer {
+    readonly fogId: string;
+    readonly userId: string;
+}
+
+/** Drops the topmost layer with one user id, which is what `/fog pop` does. */
+const dropLast = (stack: readonly FogLayer[], userId: string): FogLayer[] => {
+    const index = stack.findLastIndex((layer) => layer.userId === userId);
+    return index < 0 ? [...stack] : [...stack.slice(0, index), ...stack.slice(index + 1)];
 };
 
 /**
@@ -46,6 +103,17 @@ const TITLE_TYPES: Readonly<Record<'title' | 'subtitle' | 'actionbar' | 'clear' 
  * @param server - The live server every verb reads and writes through.
  */
 export const serverSideCommandHost = (server: Server): ServerCommandHost => {
+    /**
+     * Each player's fog stack, keyed by runtime id.
+     *
+     * `PlayerFogPacket` carries the whole stack every time, so the server is
+     * the thing that remembers it; a client has no way to be asked what it is
+     * rendering. A player who leaves takes their runtime id with them and the
+     * entry is dead weight, which is why the key is the id rather than the
+     * player.
+     */
+    const fogStacks = new Map<bigint, readonly FogLayer[]>();
+
     const operator = (ref: EntityRef, op: boolean): boolean => {
         const player = resolvePlayer(server, ref);
         if (player === undefined) return false;
@@ -90,13 +158,69 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
             }
         },
 
-        sendTitle: (targets, kind, text) => {
+        sendTitle: (targets, title) => {
             for (const player of playersOf(server, targets)) {
-                const packet = new SetTitlePacket();
-                packet.titleType = TITLE_TYPES[kind];
-                packet.titleText = text;
+                carryOut(player.getNetworkSession().send(titlePacketOf(title)), undefined);
+            }
+        },
+
+        shakeCamera: (targets, shake) => {
+            const players = playersOf(server, targets);
+            for (const player of players) {
+                const packet = new CameraShakePacket();
+                packet.intensity = shake.intensity;
+                packet.seconds = shake.seconds;
+                packet.shakeType = SHAKE_TYPES[shake.shakeType];
+                packet.shakeAction = shake.action === 'stop' ? CameraShakeAction.Stop : CameraShakeAction.Add;
                 carryOut(player.getNetworkSession().send(packet), undefined);
             }
+            return players.length;
+        },
+
+        setFog: (targets, change) => {
+            let changed = 0;
+            for (const player of playersOf(server, targets)) {
+                const stack = fogStacks.get(player.getRuntimeId()) ?? [];
+                const next =
+                    change.mode === 'push'
+                        ? [...stack, { fogId: change.fogId, userId: change.userId }]
+                        : change.mode === 'remove'
+                          ? stack.filter((layer) => layer.userId !== change.userId)
+                          : // `pop` takes the topmost layer with that id; `remove`
+                            // takes every one of them. Java has neither.
+                            dropLast(stack, change.userId);
+                if (next.length === stack.length && change.mode !== 'push') continue;
+
+                fogStacks.set(player.getRuntimeId(), next);
+                const packet = new PlayerFogPacket();
+                packet.fogStack = next.map((layer) => layer.fogId);
+                carryOut(player.getNetworkSession().send(packet), undefined);
+                changed += 1;
+            }
+            return changed;
+        },
+
+        playAnimation: (targets, request) => {
+            const entities = targets.flatMap((ref) => {
+                const entity = resolveEntity(server, ref);
+                return entity === undefined ? [] : [entity];
+            });
+            if (entities.length === 0) return 0;
+
+            const packet = new AnimateEntityPacket();
+            packet.animation = request.animation;
+            packet.nextState = request.nextState ?? '';
+            packet.stopExpression = request.stopExpression ?? '';
+            packet.controller = request.controller ?? '';
+            packet.blendOutTime = request.blendOutTime ?? 0;
+            packet.runtimeIds = entities.map((entity) => entity.getRuntimeId());
+
+            // One packet naming every actor, which is what the field is for.
+            // Sent to everyone who can see them, because an animation is drawn
+            // by the watching client rather than by the one that owns the mob.
+            const world = entities[0]!.getWorld();
+            carryOut(Promise.resolve(server.getWorldReplicators().for(world).send(packet)), undefined);
+            return entities.length;
         },
 
         usage: (command) => server.getCommandManager().usageLines(command)
