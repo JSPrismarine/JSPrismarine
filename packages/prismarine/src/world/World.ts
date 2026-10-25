@@ -170,19 +170,22 @@ export class World implements Service {
     private spawn: Vector3 | null = null;
 
     /**
-     * Set the moment a shutdown begins, and read wherever a lazy chunk load would otherwise
-     * reach for a provider that is about to be closed.
+     * How far through its own shutdown the world is.
+     *
+     * `closing` is set the moment a shutdown begins; it stops the preload and the tick, so
+     * that nothing new is started while the final save runs. `closed` is set once the
+     * provider has gone, after which there is nothing left to read or write at all.
      *
      * A world is torn down while its start region is still generating on every dev restart,
-     * so this is the ordinary case rather than a defensive one.
+     * so these are the ordinary cases rather than defensive ones.
      */
-    private closing = false;
+    private lifecycle: 'running' | 'closing' | 'closed' = 'running';
 
     /**
-     * The start region preload while it is running, so a shutdown can wait for it rather than
+     * The start region work while it is running, so a shutdown can wait for it rather than
      * race it. Null the rest of the time.
      */
-    private preload: Promise<void> | null = null;
+    private starting: Promise<void> | null = null;
 
     /** Puts wildlife into the world near players and takes it away behind them. */
     private readonly mobSpawner: MobSpawner;
@@ -312,38 +315,50 @@ export class World implements Service {
         this.provider.setWorld(this);
         await this.provider.enable();
 
-        // Resolved once, here, while the provider is open and nothing is tearing it down.
-        // Finding a spawn means generating the terrain to look at, so the alternative is a
-        // save that generates chunks - which is what `saveLevelData` used to do, from inside
-        // a tick and from the middle of a shutdown.
-        await this.getSpawnPosition();
-
-        this.preload = this.preloadSpawnRegion();
+        this.starting = this.prepareStartRegion();
         try {
-            await this.preload;
+            await this.starting;
         } finally {
-            this.preload = null;
+            this.starting = null;
         }
+    }
+
+    /**
+     * Settles where the world starts and generates the chunks around it.
+     *
+     * Held as one promise so {@link World.disable} can wait for all of it. Both halves
+     * generate terrain, and a shutdown that closed the provider partway through either would
+     * throw out of {@link World.enable} - which is a rejection nothing on the startup path
+     * catches.
+     *
+     * Resolving the spawn here, once, is also what keeps it out of the save. Finding one
+     * means searching for dry land, and searching means generating the terrain to look at,
+     * so {@link World.saveLevelData} used to generate chunks from inside a tick.
+     */
+    private async prepareStartRegion(): Promise<void> {
+        await this.getSpawnPosition();
+        await this.preloadSpawnRegion();
     }
 
     /**
      * On disable hook.
      *
-     * The order is the whole of it. Marking the world closed stops the preload asking for
-     * more chunks and stops the tick running; waiting for the preload means every chunk that
-     * was generated is in `this.chunks` before the save walks it; and the provider is closed
-     * last, once nothing can ask it for anything.
+     * The order is the whole of it. Marking the world closing stops the preload asking for
+     * more chunks and stops the tick; waiting for the start region means every chunk that was
+     * generated is in `this.chunks` before the save walks it; and the provider is closed last,
+     * once nothing is left that could ask it for anything.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
-        this.closing = true;
+        this.lifecycle = 'closing';
 
-        // A preload that failed has already been reported to whoever awaited `enable`; the
-        // save still has to happen, so its failure must not take this path down with it.
-        await this.preload?.catch(() => {});
+        // A start region that failed has already been reported to whoever awaited `enable`;
+        // the save still has to happen, so its failure must not take this path down with it.
+        await this.starting?.catch(() => {});
 
         await this.save();
         await this.provider.disable();
+        this.lifecycle = 'closed';
     }
 
     public getGenerator(): Generator {
@@ -359,7 +374,7 @@ export class World implements Service {
         // A tick already in flight when the shutdown starts would otherwise run on through
         // the save and past the provider's close, and plenty of what a tick does - a block
         // update, a mob looking at the ground ahead of it - loads a chunk.
-        if (this.closing) return;
+        if (this.isClosing()) return;
 
         // TODO: tick chunks
 
@@ -514,8 +529,8 @@ export class World implements Service {
 
         let prepared = 0;
         for (let i = 0; i < coordinates.length; i += PRELOAD_BATCH_SIZE) {
-            if (this.closing) {
-                progress.finish(`stopped at ${prepared} of ${coordinates.length}, the world is closing`);
+            if (this.isClosing()) {
+                progress.finish(`the world is closing, stopped at ${prepared} of ${coordinates.length}`);
                 return;
             }
 
@@ -542,7 +557,7 @@ export class World implements Service {
         // Refused here rather than left to the provider, which answers with "The world
         // provider is not enabled" - the symptom, not the reason. The caller asked a world
         // that is shutting down for a chunk, and that is what it should be told.
-        if (this.closing) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} is closing`);
+        if (this.isClosing()) throw new Error(`Cannot load chunk ${x},${z}: world ${this.name} is closing`);
 
         const index = Chunk.packXZ(x, z);
         // Try - catch for provider errors
@@ -1478,10 +1493,28 @@ export class World implements Service {
 
         return {};
     }
+    /**
+     * Writes `level.json` and whatever level metadata the provider keeps of its own.
+     *
+     * The spawn point written is the one the world already knows. Resolving it is a search
+     * for dry land, and that generates terrain - which this used to do from inside the
+     * autosave's tick, and from the middle of a shutdown where it reached a provider that had
+     * already closed. {@link World.enable} resolves it once instead, so there is one to write
+     * by the time anything saves.
+     *
+     * A world whose spawn is still unknown writes everything else and leaves the stored spawn
+     * where it is. Overwriting a real spawn point with a guess would be worse than the gap.
+     */
     public async saveLevelData(): Promise<void> {
-        const spawn = await this.getSpawnPosition();
+        const spawn = this.getKnownSpawnPosition();
+        if (!spawn) {
+            this.server
+                .getLogger()
+                .debug(`No spawn point to save for ${this.getFormattedName()}`, 'World/saveLevelData');
+        }
+
         const data = {
-            spawn,
+            ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
             gameRules: Array.from(this.getGameRuleManager().getGameRules()),
             entities: this.getEntities()
                 .filter((entity) => !(entity instanceof Player))
@@ -1508,6 +1541,8 @@ export class World implements Service {
             this.server.getLogger().error(`Failed to save level data`);
             this.server.getLogger().error(error);
         }
+
+        if (!spawn) return;
 
         try {
             this.provider.saveLevelData({ x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() });
@@ -1569,6 +1604,17 @@ export class World implements Service {
     }
 
     public async savePlayerData(player: Player): Promise<void> {
+        // A shutdown kicks everyone, and each client's connection closes some time after the
+        // world has already saved and closed its provider - so this arrives once more, per
+        // player, with nothing left to write to. The shutdown's own `save` wrote them while
+        // they were still online, so there is nothing lost in declining.
+        if (this.lifecycle === 'closed') {
+            this.server
+                .getLogger()
+                .debug(`${player.getName()} left after ${this.getFormattedName()} closed`, 'World/savePlayerData');
+            return;
+        }
+
         const data = {
             // Serialised explicitly: the uuid is a parsed object now, and letting JSON have
             // its way with it would write out the four raw parts instead of the identity.
