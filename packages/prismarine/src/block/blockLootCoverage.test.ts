@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
-import { blockLootTableOf } from './blockLoot';
+import { blockLootTableOf, rollBlockDrops } from './blockLoot';
 
 /**
  * Walks the whole Bedrock palette against the real Java 26.3 block tables and
@@ -157,5 +157,39 @@ describe.skipIf(!datapack)('every block of the Bedrock palette, against the Java
         expect(blockLootTableOf(content, 'minecraft:lit_furnace')).toBe('minecraft:blocks/furnace');
         expect(blockLootTableOf(content, 'minecraft:powered_repeater')).toBe('minecraft:blocks/repeater');
         expect(blockLootTableOf(content, 'minecraft:cave_vines_head_with_berries')).toBe('minecraft:blocks/cave_vines');
+    });
+
+    it('rolls the real tables of the two blocks the state decides the count of', () => {
+        const content = vanillaBlockTables();
+
+        // `minecraft:blocks/black_concrete_slab` sets the count to 2 behind a
+        // match_block on `type=double`, and `minecraft:blocks/shelf_mushroom`
+        // behind one on `age=1`. Neither branch can be taken without the Java
+        // state, and the double slab could not reach its table at all.
+        expect(
+            rollBlockDrops(content, {
+                identifier: 'minecraft:black_concrete_double_slab',
+                states: { 'minecraft:vertical_half': 'bottom' }
+            })
+        ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 2 }]);
+        expect(
+            rollBlockDrops(content, {
+                identifier: 'minecraft:black_concrete_slab',
+                states: { 'minecraft:vertical_half': 'top' }
+            })
+        ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 1 }]);
+
+        expect(
+            rollBlockDrops(content, {
+                identifier: 'minecraft:shelf_mushroom',
+                states: { growth: 1, 'minecraft:cardinal_direction': 'west' }
+            })
+        ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 2 }]);
+        expect(
+            rollBlockDrops(content, {
+                identifier: 'minecraft:shelf_mushroom',
+                states: { growth: 0, 'minecraft:cardinal_direction': 'west' }
+            })
+        ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 1 }]);
     });
 });
