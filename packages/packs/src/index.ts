@@ -1,3 +1,5 @@
+export * from './bedrockSchemas';
+export * from './bedrockSchemaValidator';
 export * from './brarchive';
 export * from './datapack';
 export * from './diagnostics';

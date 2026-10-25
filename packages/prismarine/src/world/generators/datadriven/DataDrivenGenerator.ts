@@ -37,6 +37,7 @@ import type { Generator } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
+import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 
@@ -54,6 +55,13 @@ export interface DataDrivenGeneratorOptions {
     readonly decorate?: boolean;
     /** Whether to run the carvers. On by default. */
     readonly carve?: boolean;
+    /**
+     * Where the structure templates `template` and `fossil` stamp come from.
+     *
+     * Absent by default: the templates are `.nbt` inside Mojang's server jar rather than in the
+     * datapack the rest of the registries are read from, so a caller that wants them says so.
+     */
+    readonly templates?: TemplateSource;
 }
 
 /** What the generator built for one seed, which every chunk of that world shares. */
@@ -118,7 +126,7 @@ export class DataDrivenGenerator implements Generator {
         if (parameters === undefined) {
             throw new RangeError(
                 `No biome parameter list is registered as ${options.biomeParameters ?? 'minecraft:overworld'}. ` +
-                    'Run `pnpm --filter @jsprismarine/bedrock-data run dump:java` to write the data generator reports.'
+                    'Run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to write the data generator reports.'
             );
         }
 
@@ -149,7 +157,8 @@ export class DataDrivenGenerator implements Generator {
             seaLevel: pipeline.settings.seaLevel,
             seed: pipeline.randomState.seed,
             blocks: pipeline.oracle,
-            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z)
+            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
         });
 
         const sampler = new ChunkSampler(pipeline.randomState, { chunkX: cx, chunkZ: cz });
@@ -233,8 +242,12 @@ export class DataDrivenGenerator implements Generator {
     private toChunk(cx: number, cz: number, region: GenerationRegion, pipeline: SeededPipeline): Chunk {
         const chunk = new Chunk(cx, cz, new Map(), this.dimension);
 
-        region.forEachCenterBlock((localX, y, localZ, state) => {
-            const runtimeId = pipeline.translator.runtimeIdOf(state.name, state.properties);
+        region.forEachCenterBlock((localX, y, localZ, block) => {
+            // A template block arrives as a Bedrock state already, so it skips the mapping.
+            const runtimeId =
+                block.bedrock === undefined
+                    ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
+                    : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
             if (runtimeId === UNKNOWN_RUNTIME_ID) return;
 
             chunk.setBlockRuntimeId(localX, y, localZ, runtimeId);

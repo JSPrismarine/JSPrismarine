@@ -176,12 +176,12 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
         const path = join(samplesCheckout(), 'behavior_pack', 'entities', 'creeper.json');
         const creeper = parseLenientJson(readFileSync(path, 'utf8'));
         const wrapper = (creeper as Record<string, Record<string, Record<string, unknown>>>)['minecraft:entity']!;
-        wrapper.components = { ...wrapper.components, 'minecraft:explode': 'soon' };
+        wrapper.components = { ...wrapper.components, 'minecraft:behavior.melee_attack': { priority: 'highest' } };
 
         expect(validator()({ registry: 'entities', path: 'entities/creeper.json', data: creeper })).toContainEqual({
             severity: 'error',
             code: 'definition.schema',
-            message: '/minecraft:entity/components/minecraft:explode must be object'
+            message: '/minecraft:entity/components/minecraft:behavior.melee_attack/priority must be integer'
         });
     });
 });
