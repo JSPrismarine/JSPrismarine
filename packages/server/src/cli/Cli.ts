@@ -9,7 +9,7 @@ export const parseServerArgs = (argv: readonly string[]) =>
         .option('port', {
             alias: 'p',
             type: 'number',
-            describe: 'Server port (overrides port in config.yaml)'
+            describe: 'Server port (overrides port in config.json)'
         })
         .help('help', 'Show this help message')
         .version('version', 'Show the server version', pkg.version)

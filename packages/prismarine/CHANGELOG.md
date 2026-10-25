@@ -360,7 +360,7 @@
 
 - [#2577](https://github.com/JSPrismarine/JSPrismarine/pull/2577) [`1b825f1`](https://github.com/JSPrismarine/JSPrismarine/commit/1b825f10efeeb776ff859a1d10eea15f43d306f6) Thanks [@filiphsps](https://github.com/filiphsps)! - Make `LevelDB` the default world provider, so a new install stores its world in the format Minecraft: Bedrock Edition uses rather than in one only this server understands.
   
-  Existing installs are untouched. `ConfigBuilder` writes resolved defaults back into `config.yaml` the first time it reads them, so any world that has already run carries an explicit `provider:` line and keeps whatever it had. To move one over, change that line — and note that the two formats do not share a directory layout, so the old `chunks` folder is left alone rather than converted.
+  Existing installs are untouched. `ConfigBuilder` writes resolved defaults back into the config file the first time it reads them, so any world that has already run carries an explicit `provider:` line and keeps whatever it had. To move a world to the other provider, change that line. The data formats do not share a directory layout, so the old `chunks` folder is left alone rather than converted.
 
 - [#2577](https://github.com/JSPrismarine/JSPrismarine/pull/2577) [`1b825f1`](https://github.com/JSPrismarine/JSPrismarine/commit/1b825f10efeeb776ff859a1d10eea15f43d306f6) Thanks [@filiphsps](https://github.com/filiphsps)! - Add the `LevelDB` world provider, which stores a world the way Minecraft: Bedrock Edition does — a `db` directory of LevelDB files, a `level.dat` and a `levelname.txt` beside it. A world written by the server opens in the game, and a world made in the game opens on the server.
   
