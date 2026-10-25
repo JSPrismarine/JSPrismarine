@@ -30,16 +30,24 @@ jobs:
               continue-on-error: true
               run: pnpm run build
 
-            - name: 🗃️ Package Executable
-              id: package
-              run: pnpm run package
+            # Keep installation and the lockfile on pnpm; Bun only compiles the executable.
+            - name: 🐰 Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: canary
+
+            - name: 🗃️ Compile Executable
+              id: compile
+              shell: bash
+              run: |
+                  mkdir -p dist
+                  bun build ./packages/server/src/Server.ts --compile --outfile=./dist/prismarine
 
             - name: 🚚 Publish Artifact
-              if: ${{ steps.build.outcome == 'success' }}
+              if: ${{ steps.build.outcome == 'success' && steps.compile.outcome == 'success' }}
               uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
               with:
                   name: prismarine-${{ matrix.os }}
                   path: |
-                      ./dist/prismarine
-                      ./dist/prismarine.exe
+                      ./dist/prismarine*
 
