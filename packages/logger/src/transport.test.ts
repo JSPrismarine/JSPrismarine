@@ -48,4 +48,75 @@ describe('transport', () => {
         expect(write).toHaveBeenCalledTimes(4);
         expect(write).toHaveBeenLastCalledWith('Test message 4');
     });
+
+    describe('replay buffer', () => {
+        it('keeps at most `capacity` records, dropping the oldest first', () => {
+            const write = vi.fn();
+            const bounded = new PrismarineTransport({ capacity: 2 });
+            bounded.log(record('one'));
+            bounded.log(record('two'));
+            bounded.log(record('three'));
+            expect(bounded.dropped).toBe(1);
+
+            bounded.console = { write };
+            bounded.log(record('four'));
+
+            expect(write.mock.calls.map(([line]) => line)).toEqual([
+                '... 1 earlier log lines were not retained',
+                'two',
+                'three',
+                'four'
+            ]);
+        });
+
+        it('writes the gap line once and resets the dropped count after replay', () => {
+            const write = vi.fn();
+            const bounded = new PrismarineTransport({ capacity: 1 });
+            bounded.log(record('one'));
+            bounded.log(record('two'));
+            bounded.log(record('three'));
+            expect(bounded.dropped).toBe(2);
+
+            bounded.console = { write };
+            bounded.log(record('four'));
+            bounded.log(record('five'));
+
+            expect(bounded.dropped).toBe(0);
+            expect(write.mock.calls.map(([line]) => line)).toEqual([
+                '... 2 earlier log lines were not retained',
+                'three',
+                'four',
+                'five'
+            ]);
+        });
+
+        it('writes no gap line when nothing was dropped', () => {
+            const write = vi.fn();
+            const bounded = new PrismarineTransport({ capacity: 2 });
+            bounded.log(record('one'));
+            bounded.log(record('two'));
+            bounded.console = { write };
+            bounded.log(record('three'));
+
+            expect(bounded.dropped).toBe(0);
+            expect(write.mock.calls.map(([line]) => line)).toEqual(['one', 'two', 'three']);
+        });
+
+        it('retains 1000 records by default', () => {
+            const write = vi.fn();
+            for (let index = 0; index < 1001; index++) {
+                transport.log(record(`line ${index}`));
+            }
+            expect(transport.dropped).toBe(1);
+
+            transport.console = { write };
+            transport.log(record('last'));
+
+            expect(write).toHaveBeenCalledTimes(1002);
+            expect(write).toHaveBeenNthCalledWith(1, '... 1 earlier log lines were not retained');
+            expect(write).toHaveBeenNthCalledWith(2, 'line 1');
+            expect(write).toHaveBeenNthCalledWith(1001, 'line 1000');
+            expect(write).toHaveBeenLastCalledWith('last');
+        });
+    });
 });

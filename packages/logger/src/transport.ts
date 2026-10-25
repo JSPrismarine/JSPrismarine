@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { LogLevel } from './logger';
 
+/** The part of a console the transport needs: a sink for one formatted line. */
 export type ConsoleLike = {
     write: (input: string) => void;
 };
@@ -26,22 +27,63 @@ export interface LogTransport {
     close?(): void;
 }
 
+/** Options for {@link PrismarineTransport}. */
+export interface PrismarineTransportOptions {
+    /**
+     * Most records kept for replay while no console is attached; defaults to
+     * 1000. When the buffer is full, the oldest record is dropped first.
+     */
+    capacity?: number;
+}
+
 /**
  * Transport for the interactive JSPrismarine console. Records are buffered
- * until a console attaches, then replayed in order, so nothing logged during
- * boot is lost.
+ * until a console attaches, then replayed in order, so lines logged during
+ * boot still reach the console. The buffer holds at most `capacity` records;
+ * once a console attaches, a dropped backlog is announced with one plain line
+ * before the retained records are replayed.
  */
 export class PrismarineTransport implements LogTransport {
     public console: ConsoleLike | undefined;
+    private readonly capacity: number;
     private buffer: LogRecord[] = [];
+    private droppedCount = 0;
 
+    /**
+     * @param options.capacity - Most records kept for replay; defaults to 1000.
+     */
+    public constructor(options: PrismarineTransportOptions = {}) {
+        this.capacity = options.capacity ?? 1000;
+    }
+
+    /**
+     * Records dropped from the replay buffer since the last replay. Resets to
+     * zero once the retained records are written to the console.
+     */
+    public get dropped(): number {
+        return this.droppedCount;
+    }
+
+    /**
+     * Writes the record to the console, replaying any buffered records first.
+     * Without a console the record is buffered, dropping the oldest when the
+     * buffer is full.
+     */
     public log(record: LogRecord): void {
         if (!this.console) {
+            if (this.buffer.length >= this.capacity) {
+                this.buffer.shift();
+                this.droppedCount++;
+            }
             this.buffer.push(record);
             return;
         }
 
         try {
+            if (this.droppedCount > 0) {
+                this.console.write(`... ${this.droppedCount} earlier log lines were not retained`);
+                this.droppedCount = 0;
+            }
             if (this.buffer.length > 0) {
                 for (const buffered of this.buffer) {
                     this.console.write(buffered.formatted);
