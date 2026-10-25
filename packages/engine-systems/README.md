@@ -1,8 +1,8 @@
 # @jsprismarine/engine-systems
 
 The engine systems neither edition publishes as data: the tick scheduler, redstone, flowing fluids,
-fire spread with the random tick driver, and explosions. Every other package in this repository is
-built from Mojang's own data. These are not, because Mojang keeps them in code in both editions, so
+fire spread with the random tick driver, explosions and the weather cycle. Every other package in
+this repository is built from Mojang's own data. These are not, because Mojang keeps them in code in both editions, so
 this package is written against the code instead.
 
 The code it is written against is the pinned Java 26.3 server jar in
@@ -13,7 +13,8 @@ read out of it rather than from a wiki page. The classes are named in the source
 `DiodeBlock`, `RepeaterBlock`, `ComparatorBlock`, `ObserverBlock`, `PistonBaseBlock`,
 `PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `FlowingFluid`,
 `WaterFluid`, `LavaFluid`, `LiquidBlock`, `FireBlock`, `ServerExplosion`,
-`ExplosionDamageCalculator`, `ApplyExplosionDecay` and `ServerLevel`.
+`ExplosionDamageCalculator`, `ApplyExplosionDecay`, `WeatherData`, `WeatherCommand` and
+`ServerLevel`.
 
 ## The `WorldAccess` seam
 
@@ -265,6 +266,50 @@ That is where a host rolls the block's loot table with Java's `explosion_radius`
   stacks merge both come from the host's random source, which is not Java's `LegacyRandomSource`.
   Two blasts therefore carve different holes of the same shape and size. Everything that does not
   depend on a draw matches.
+
+## 6. Weather
+
+`ServerLevel.advanceWeatherCycle` over `WeatherData`. Three counters and two flags, stepped
+once a game tick, and that is the whole of why it rains: nothing samples a climate, a counter
+runs out and the flag it was holding flips.
+
+Rain and thunder are two cycles running beside each other, not one inside the other. Each
+counter either runs down, flipping its flag and booking the opposite stretch when it hits zero,
+or books its first stretch if it was already at zero. The durations are the jar's
+`UniformInt`s, inclusive at both ends.
+
+| Counter | Waiting | Running |
+| --- | --- | --- |
+| Rain | 12000 to 180000 ticks | 12000 to 24000 |
+| Thunder | 12000 to 180000 | 3600 to 15600 |
+
+The third counter, `clearWeatherTime`, is what `/weather clear` sets. While it runs it pins the
+other two to one tick and holds both flags false, so the cycle restarts on the tick after it
+ends. `weatherCommandState` is the whole of `WeatherCommand` that belongs here: which counters
+each of the three forms sets and what duration it uses when the command names none.
+
+Because the two cycles are independent, the thundering flag does come up with no rain under it.
+Java's `getThunderLevel` multiplies by the rain level, so that state is clear everywhere it
+matters, and `weatherOf` answers `clear` for it. A thunderstorm is always rain.
+
+`advanceWeatherCycle` is a function from one state to the next rather than something that owns
+a world, because the state is five numbers the host already has to save and send. The host
+steps it, keeps what comes back, and tells its clients when `weatherOf` changed. Whether to
+step it at all is the host's: Java gates it on `doWeatherCycle` and on whether the dimension can
+have weather.
+
+### What is not reproduced
+
+- **`Level.isRainingAt`'s biome test.** Java asks whether the biome's precipitation at that
+  position is rain rather than snow, which is a temperature curve over the height. Neither
+  edition publishes the curve in a form this repository holds, so a host answers the first three
+  conditions - it is raining, the sky is visible, and nothing stands above - and treats every
+  biome as rainy. Fire in a snowy biome is therefore put out where Java would leave it burning.
+- **The rain and thunder levels.** Java carries a float per level that rises and falls by 0.01 a
+  tick, which is what fades the sky rather than switching it. Nothing here reads a partial
+  level, so the flags are the whole state.
+- **Lightning.** `ServerLevel.tickChunk` strikes during a thunderstorm, which needs the player
+  list and a lightning entity; neither is this package's.
 
 ## What has no published source
 
