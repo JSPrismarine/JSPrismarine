@@ -463,17 +463,15 @@ const blockEntityOf = (nbt: NBTTagCompound, javaBlock: string | undefined): Bloc
  * The table a saved container rolls when it is first opened.
  *
  * A chest, a barrel, a decorated pot and a suspicious sand all carry it at the top level under
- * one of the two spellings Java has used. A vault keeps it a level down, inside the `config`
- * that also names the key it wants, which is why reading only the top level left every trial
- * chamber vault with nothing to give.
+ * one of the two spellings Java has used.
+ *
+ * A vault's is not read here, though it keeps one a level down inside `config`. Bedrock's vault
+ * reads `config.loot_table` and the content translation writes it there; a vault is not a
+ * container, so `fillContainerLoot` never rolls it, and a top-level `LootTable` beside the real
+ * one would be a tag nothing reads.
  */
-const lootTableOf = (nbt: NBTTagCompound): string | undefined => {
-    const direct = stringField(nbt, 'LootTable') ?? stringField(nbt, 'loot_table');
-    if (direct !== undefined) return direct;
-
-    const config = compoundField(nbt, 'config');
-    return config === undefined ? undefined : stringField(config, 'loot_table');
-};
+const lootTableOf = (nbt: NBTTagCompound): string | undefined =>
+    stringField(nbt, 'LootTable') ?? stringField(nbt, 'loot_table');
 
 /** The entity a saved spawner produces, which both NBT spellings bury a level or two down. */
 const spawnerEntityOf = (nbt: NBTTagCompound): string | undefined => {

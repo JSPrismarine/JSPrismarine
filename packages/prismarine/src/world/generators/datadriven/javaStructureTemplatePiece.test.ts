@@ -130,13 +130,12 @@ describe('a template piece', () => {
         expect(blockEntities[0]).toMatchObject({ x: 11, y: 64, z: 20 });
     });
 
-    it('reads a container loot table from the top level and a vault one from its config', () => {
+    it('reads a container loot table from the top level, and leaves a vault its own', () => {
         const tables = place({}).blockEntities.map((entry) => entry.request.lootTable);
 
-        expect(tables).toEqual([
-            'minecraft:chests/village/village_plains_house',
-            'minecraft:chests/trial_chambers/reward'
-        ]);
+        // The vault's table stays in the `config` the saved compound carries, which is where
+        // Bedrock reads it. A top-level one beside it would be a tag nothing reads.
+        expect(tables).toEqual(['minecraft:chests/village/village_plains_house', undefined]);
     });
 
     it('hands the whole saved compound on, so the chunk can translate the rest of it', () => {
