@@ -110,13 +110,12 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
  * Summons an entity through the data-driven runtime, when the world has one.
  *
  * The runtime is the only thing that can build a mob a behavior pack defines,
- * and it is what drives every mob's components, goals and brain once
- * `content-packs` is on. The written classes the caller falls back to cover
- * `minecraft:falling_block`, the projectiles and everything else the runtime
- * declares no type for.
+ * and it is what drives every mob's components, goals and brain. The written
+ * classes the caller falls back to cover `minecraft:falling_block`, the
+ * projectiles and everything else the runtime declares no type for.
  *
- * @returns The summoned entity, or undefined when this world runs the legacy
- *   entity classes or no loaded pack declares the identifier.
+ * @returns The summoned entity, or undefined when the world has no runtime
+ *   yet or no loaded pack declares the identifier.
  */
 const summonDataEntity = (
     world: World,
@@ -152,9 +151,10 @@ const summonDataEntity = (
  * Five Bedrock entities kept a legacy identifier when Mojang rewrote their
  * file, and Mojang's own `EntityType` command enum still lists the old
  * spelling: it has `villager` and no `villager_v2`. Typed as-is, `/summon
- * villager` reaches this server's `OldVillager`, the pre-1.11 entity kept
- * for world compatibility, rather than the villager with the brain, the
- * professions and the trades. Bedrock itself spawns the current one.
+ * villager` would reach `minecraft:villager`, the pre-1.11 entity the vanilla
+ * behavior pack still ships for world compatibility, rather than the villager
+ * with the brain, the professions and the trades. The rename sends it to
+ * `minecraft:villager_v2`, which is what Bedrock itself spawns.
  *
  * The rename comes from `@jsprismarine/mapping`, which owns the Java to
  * Bedrock identifier seam, rather than from an alias table written here.

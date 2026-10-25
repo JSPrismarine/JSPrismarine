@@ -67,9 +67,10 @@ const COMPOUND_DAMPING = 0.25;
  * takes an extra required argument, as a falling block takes the block it is, makes every by-name
  * spawn fail to compile even though none of them wants that entity.
  *
- * `spawnableEntities()` in `Entities.ts` is the list of classes with this shape. Spawning by name
- * - villagers, animals, mobs restored from a save - looks there, and an entity that cannot exist
- * without more than a place to be is created directly by whatever knows the rest.
+ * `writtenEntities()` in `Entities.ts` is the list of classes with this shape. Spawning by name
+ * - a thrown egg, a dropped stack, anything restored from a save - looks there, and an entity
+ * that cannot exist without more than a place to be is created directly by whatever knows the
+ * rest.
  */
 export type SpawnableEntityClass = (new (options: {
     position: Position;
@@ -398,8 +399,8 @@ export class Entity {
      *
      * False for nearly everything, and deliberately: an arrow in flight, an item on the floor and
      * a painting on the wall are all things you walk through, and shoving a mob aside for them
-     * would be both wrong and expensive. Living things override it - see `Mob` and `Human` - which
-     * is what stops a herd from standing inside itself.
+     * would be both wrong and expensive. `Human` overrides it, which is what shoves a mob out of
+     * a player's way.
      * @returns {boolean} Whether this entity displaces others.
      */
     public occupiesSpace(): boolean {
@@ -600,8 +601,8 @@ export class Entity {
 
         if (distance < Number.EPSILON) {
             // Standing exactly inside whatever hit it. Any direction will do so long as it is
-            // the same one each time, or the shove would jitter - the runtime id gives that for
-            // free, which is the trick `Mob.pushFromNeighbors` already uses.
+            // the same one each time, or the shove would jitter - the runtime id gives that
+            // for free.
             const angle = (Number(this.runtimeId % 8n) / 8) * Math.PI * 2;
             dx = Math.cos(angle);
             dz = Math.sin(angle);

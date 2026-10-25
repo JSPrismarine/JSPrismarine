@@ -27,7 +27,7 @@ import { lootDamageSource, mobLootTableOf, rollMobDrops } from './mobLoot';
 
 const ORIGIN = { x: 0, y: 64, z: 0 } as const;
 
-/** What every mob on this server reports about itself; see `Mob.lootState`. */
+/** What every mob on this server reports about itself; see `MobLootState`. */
 const ALIVE_AND_GROWN = { flags: { is_on_fire: false, is_baby: false } } as const;
 
 /** Builds one content over the fixture stack with the given loot tables, tags and recipes in it. */
