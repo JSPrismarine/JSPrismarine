@@ -96,6 +96,15 @@ export const isEffectComponentType = (name: string): name is EffectComponentType
 export const EFFECT_COMPONENT_TYPES: readonly EffectComponentType[] =
     Object.keys(EFFECT_COMPONENTS).filter(isEffectComponentType);
 
+/**
+ * One component's declaration, widened to {@link EffectComponentDeclaration}.
+ * Reading {@link EFFECT_COMPONENTS} directly keeps each entry's literal type,
+ * which means a component with no key set has no `parameterSet` property at
+ * all; this returns the common shape instead.
+ */
+export const declarationOf = (component: EffectComponentType): EffectComponentDeclaration =>
+    EFFECT_COMPONENTS[component];
+
 /** One entry of a value effect component: the arithmetic and the condition that gates it. */
 export interface ConditionalValueEntry {
     readonly effect: ValueEffect;
