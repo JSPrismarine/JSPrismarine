@@ -9,6 +9,7 @@
  */
 import type { EntityCommandHost, EntityRef, Rotation, SelectorFacts, Vector3 } from '@jsprismarine/commands';
 import { matchSelector } from '@jsprismarine/commands';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import Player from '../../Player';
@@ -146,6 +147,28 @@ const summonDataEntity = (
 };
 
 /**
+ * The identifier a typed entity name actually spawns under.
+ *
+ * Five Bedrock entities kept a legacy identifier when Mojang rewrote their
+ * file, and Mojang's own `EntityType` command enum still lists the old
+ * spelling: it has `villager` and no `villager_v2`. Typed as-is, `/summon
+ * villager` reaches this server's `OldVillager`, the pre-1.11 entity kept
+ * for world compatibility, rather than the villager with the brain, the
+ * professions and the trades. Bedrock itself spawns the current one.
+ *
+ * The rename comes from `@jsprismarine/mapping`, which owns the Java to
+ * Bedrock identifier seam, rather than from an alias table written here.
+ * That is the same source `brainMobFor` reads for the same five renames, so
+ * the command and the runtime cannot disagree about which villager they
+ * mean. A Bedrock-only identifier such as `minecraft:villager_v2` is not a
+ * Java type, so it resolves to `unknown` and is used as typed.
+ */
+const spawnIdentifierOf = (identifier: string): string => {
+    const mapped = javaEntityTypeToBedrock(identifier);
+    return mapped.kind === 'mapped' ? mapped.bedrock : identifier;
+};
+
+/**
  * Builds the `entities` group.
  *
  * @param server - The live server every verb reads and writes through.
@@ -190,7 +213,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
         summon: (type: string, position: Vector3, rotation: Rotation, options): EntityRef | undefined => {
             if (options.nbt !== undefined) unsupported('entity NBT');
 
-            const identifier = type.includes(':') ? type : `minecraft:${type}`;
+            const identifier = spawnIdentifierOf(type.includes(':') ? type : `minecraft:${type}`);
             const world = worldOf(server, 'minecraft:overworld');
 
             const dataEntity = summonDataEntity(world, identifier, position, rotation, options.name);

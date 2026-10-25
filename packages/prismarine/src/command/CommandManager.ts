@@ -31,7 +31,7 @@ import type { FunctionContent } from './function';
 import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
 import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
-import { buildVanillaCommands, unwiredCommands } from './vanillaCommands';
+import { buildVanillaCommands, contentRegistryIds, unwiredCommands } from './vanillaCommands';
 
 /**
  * A node of the registered command tree. Brigadier does not export `CommandNode`, so the type
@@ -234,8 +234,11 @@ export class CommandManager implements Service {
         // Rebuilt here rather than in the constructor, because the content
         // build runs between the two and decides whether the commands whose
         // whole subsystem is the pack stack can be offered at all.
-        const unwired = unwiredCommands(this.server.getContent() !== undefined);
-        this.vanilla = buildVanillaCommands(this.server.getContent() !== undefined);
+        // The registry arguments validate against what this build loaded, so
+        // a pack's own entity, block, item or enchantment is spellable.
+        const content = this.server.getContent();
+        const unwired = unwiredCommands(content !== undefined);
+        this.vanilla = buildVanillaCommands(content === undefined ? undefined : contentRegistryIds(content));
 
         this.server
             .getLogger()

@@ -18,6 +18,7 @@ import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
+import { spawnableEntities } from '../../entity/Entities';
 import type ItemManager from '../../item/ItemManager';
 import type { Item } from '../../item/Item';
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -189,7 +190,11 @@ const buildFixture = (): Fixture => {
 
     let content: ServerContent | undefined;
 
-    const registry = buildVanillaCommands(true);
+    // The entity ids a real build would thread in are the ones this server
+    // can actually spawn, which with no data-driven runtime is the written
+    // classes. Taken from them rather than listed, so a new class does not
+    // quietly become unsummonable here.
+    const registry = buildVanillaCommands({ entityTypes: spawnableEntities().map((entity) => entity.MOB_ID) });
     const host = serverCommandHost(server);
 
     const sourceFor = (as?: Player): CommandSource =>
@@ -467,6 +472,25 @@ describe('the server command host', () => {
             // class for it, so the line parses and the summon reports that it did nothing.
             await expect(fixture.run('summon minecraft:allay')).resolves.toBe(0);
             expect(fixture.entities).toHaveLength(0);
+        });
+
+        it('summons the villager with the brain, not the legacy one', async () => {
+            // Mojang's `EntityType` enum still lists `villager` and has no
+            // `villager_v2`, and this server keeps both classes, so the typed
+            // name alone reached `OldVillager`. Bedrock spawns the current
+            // one, and so does the runtime the brain registry resolves
+            // through.
+            await expect(fixture.run('summon minecraft:villager 1 2 3')).resolves.toBe(1);
+
+            expect(fixture.entities.at(-1)?.getType()).toBe('minecraft:villager_v2');
+        });
+
+        it('leaves a Bedrock-only identifier as typed', async () => {
+            // `villager_v2` is not a Java entity type, so the rename table
+            // does not touch it and the spelling a pack would use still works.
+            await expect(fixture.run('summon minecraft:villager_v2 1 2 3')).resolves.toBe(1);
+
+            expect(fixture.entities.at(-1)?.getType()).toBe('minecraft:villager_v2');
         });
 
         it('damages an entity', async () => {
