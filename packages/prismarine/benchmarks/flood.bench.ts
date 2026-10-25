@@ -2,8 +2,13 @@
  * Benchmark: an ocean draining into a large cave.
  *
  * Reproduces the case that takes the tick down: a player mines through the floor of a lake and the
- * water finds a cavern under it. Everything below is the real physics, the real scheduler and the
+ * water finds a cavern under it. Everything below is the real engine, the real scheduler and the
  * real chunk storage - only the server and the socket are stubbed.
+ *
+ * The flow itself is `@jsprismarine/engine-systems` now, drained from the scheduled fluid tick
+ * list the way `World.update` drains it, with the support and gravity rules still running off the
+ * block update queue beside it. Light runs too, because every write queues some and a tick has to
+ * pay for it. Random ticking is off, so the numbers are the flood and nothing else.
  *
  * Run: npx tsx packages/prismarine/benchmarks/flood.bench.ts [physics|network|all]
  */
@@ -12,6 +17,10 @@ import Zlib from 'zlib';
 import { BlockRuntimeIds } from '../src/block/state/BlockRuntimeIds';
 import BlockUpdateScheduler from '../src/world/BlockUpdateScheduler';
 import Chunk from '../src/world/chunk/Chunk';
+import { Dimensions } from '../src/world/Dimension';
+import { createEngineWorld } from '../src/world/EngineWorld';
+import type { SystemBlock } from '../src/world/WorldSystems';
+import { WorldSystems } from '../src/world/WorldSystems';
 import type { World } from '../src/world/World';
 import BlockPhysics from '../src/world/physics/BlockPhysics';
 
@@ -67,8 +76,21 @@ class BenchWorld {
         }
     }
 
+    /**
+     * The engine, the scheduler and the light, built the way `World` builds them.
+     *
+     * Assigned after construction rather than in it, because the engine's world reads this
+     * one back and the object has to exist first.
+     */
+    public systems!: WorldSystems;
+
     public getLoadedChunk(cx: number, cz: number): Chunk | null {
         return this.chunks.get(Chunk.packXZ(cx, cz)) ?? null;
+    }
+
+    /** Every chunk in the region, which is what the random tick pass would visit. */
+    public loadedChunks(): Array<{ x: number; z: number }> {
+        return [...this.chunks.values()].map((chunk) => ({ x: chunk.getX(), z: chunk.getZ() }));
     }
 
     public getBlockUpdates(): BlockUpdateScheduler {
@@ -79,12 +101,42 @@ class BenchWorld {
         return [];
     }
 
+    public getTicks(): number {
+        return this.currentTick;
+    }
+
+    public getDimension() {
+        return Dimensions.Overworld;
+    }
+
+    public playNamedSound(): void {}
+
     public getServer(): any {
         return {
+            getLogger: () => ({ error: (error: unknown) => console.error(error) }),
+            getConfig: () => ({ getDifficulty: () => 2 }),
             getBlockManager: () => ({
-                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name })
+                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name }),
+                findBlock: () => null
             })
         };
+    }
+
+    /** `World.loadedBlockAt`: the block at a position, or undefined outside the loaded world. */
+    public loadedBlockAt(x: number, y: number, z: number): SystemBlock | undefined {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return undefined;
+
+        const state = chunk.getBlock(x, y, z);
+        return { name: state.name, states: state.properties };
+    }
+
+    /** `World.setLoadedBlockState`: the synchronous write the engine goes through. */
+    public setLoadedBlockState(x: number, y: number, z: number, block: SystemBlock, notifyNeighbors: boolean): boolean {
+        const runtimeId = BlockRuntimeIds.tryGetByState(block.name, block.states);
+        if (runtimeId === null) return false;
+
+        return this.writeBlock(x, y, z, runtimeId, this.currentTick, 1, notifyNeighbors);
     }
 
     public async dropContents(): Promise<void> {}
@@ -99,11 +151,28 @@ class BenchWorld {
         now: number = this.currentTick,
         delay = 1
     ): Promise<boolean> {
+        return this.writeBlock(x, y, z, runtimeId, now, delay, true);
+    }
+
+    /** `World.writeBlockRuntimeId`: the write, the light, the packet and the two update queues. */
+    private writeBlock(
+        x: number,
+        y: number,
+        z: number,
+        runtimeId: number,
+        now: number,
+        delay: number,
+        notifyNeighbors: boolean
+    ): boolean {
         const chunk = this.getLoadedChunk(x >> 4, z >> 4);
         if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return false;
         if (chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf) === runtimeId) return false;
 
+        const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
+        const state = chunk.getBlock(x, y, z);
+        const next: SystemBlock = { name: state.name, states: state.properties };
+        this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
 
         void new Vector3(x, y, z);
         this.writes++;
@@ -117,6 +186,7 @@ class BenchWorld {
         }
 
         this.updates.scheduleAround(x, y, z, now, delay);
+        if (notifyNeighbors) this.systems.updateAround({ x, y, z }, next);
         return true;
     }
 
@@ -203,8 +273,27 @@ interface Result {
     peakQueue: number;
 }
 
-const once = async (radiusChunks: number, breachRadius: number, ticks: number, options: Options): Promise<Result> => {
+/** A world with its systems attached, as `World`'s constructor leaves one. */
+const benchWorld = (radiusChunks: number, options: Options): BenchWorld => {
     const world = new BenchWorld(radiusChunks, options);
+
+    world.systems = new WorldSystems({
+        view: {
+            dimension: Dimensions.Overworld,
+            blockAt: (x, y, z) => world.loadedBlockAt(x, y, z),
+            loadedChunks: () => world.loadedChunks(),
+            // The flood is what this measures; a random tick pass over the whole region would
+            // be a second, unrelated number inside the same total.
+            randomTickSpeed: () => 0
+        },
+        world: createEngineWorld(world as unknown as World)
+    });
+
+    return world;
+};
+
+const once = async (radiusChunks: number, breachRadius: number, ticks: number, options: Options): Promise<Result> => {
+    const world = benchWorld(radiusChunks, options);
     const physics = new BlockPhysics(world as unknown as World);
 
     await breachCeiling(world, breachRadius);
@@ -230,6 +319,7 @@ const once = async (radiusChunks: number, breachRadius: number, ticks: number, o
         const before = performance.now();
         const due = world.updates.due(tick);
         for (const { x, y, z } of due) await physics.update(x, y, z, tick);
+        world.systems.tick(tick);
         world.flushBlockChanges();
         const ms = performance.now() - before;
 

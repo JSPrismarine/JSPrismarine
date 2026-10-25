@@ -131,21 +131,12 @@ class TestWorld {
         return this.getLoadedChunk(x >> 4, z >> 4)!.getBlock(x & 0xf, y, z & 0xf).name;
     }
 
-    public depthAt(x: number, y: number, z: number): number {
-        const state = this.getLoadedChunk(x >> 4, z >> 4)!.getBlock(x & 0xf, y, z & 0xf);
-        return Number(state.properties['liquid_depth'] ?? 0);
-    }
-
     public asWorld(): World {
         return this.world;
     }
 }
 
 const GROUND = 64;
-
-/** A cavern hollowed out of the stone, for the water tests that need somewhere to fall into. */
-const CAVE_TOP = GROUND - 1;
-const CAVE_BOTTOM = GROUND - 8;
 
 /**
  * Runs the world until nothing is left to do, or the cascade proves it will not settle.
@@ -343,172 +334,6 @@ describe('falling blocks', () => {
         await settle(world, physics);
 
         expect(world.nameAt(7, GROUND + 2, 7)).toBe('minecraft:stone');
-    });
-});
-
-describe('water', () => {
-    let world: TestWorld;
-    let physics: BlockPhysics;
-
-    beforeEach(() => {
-        world = new TestWorld();
-        physics = new BlockPhysics(world.asWorld());
-    });
-
-    it('runs into a hole dug under it', async () => {
-        // The complaint, in the order it actually happens: water is already lying there, a player
-        // digs into the floor under it, and the water goes down the hole instead of staying put.
-        world.place(8, GROUND + 1, 8, 'minecraft:water', { liquid_depth: 0 });
-        world.updates.scheduleAround(8, GROUND + 1, 8, 0);
-        await settle(world, physics, 400);
-
-        // Water has spread over the flat ground by now, including to here.
-        expect(world.nameAt(9, GROUND + 1, 8)).toBe('minecraft:flowing_water');
-
-        // Dig a shaft down through the floor beneath it.
-        for (let y = GROUND; y > GROUND - 3; y--) await world.setBlockByName(9, y, 8, 'minecraft:air');
-        await settle(world, physics, 400);
-
-        expect(world.nameAt(9, GROUND - 2, 8)).toBe('minecraft:flowing_water');
-    });
-
-    it('falls at full strength, so a waterfall does not thin out on the way down', async () => {
-        world.place(8, GROUND + 1, 8, 'minecraft:water', { liquid_depth: 0 });
-        world.updates.scheduleAround(8, GROUND + 1, 8, 0);
-        await settle(world, physics, 400);
-
-        for (let y = GROUND; y > GROUND - 6; y--) await world.setBlockByName(9, y, 8, 'minecraft:air');
-        await settle(world, physics, 400);
-
-        // Every block of the fall carries the falling flag rather than thinning by depth, which is
-        // what stops a tall drop from running out halfway.
-        for (let y = GROUND; y > GROUND - 5; y--) {
-            expect(`${y}: ${world.nameAt(9, y, 8)}`).toBe(`${y}: minecraft:flowing_water`);
-        }
-    });
-
-    /**
-     * A cavern under the ground with a source above its roof, which is the shape of the complaint:
-     * water gets in at one point and has open air on every side all the way down.
-     */
-    const cavern = (): void => {
-        for (let x = 4; x <= 12; x++) {
-            for (let z = 4; z <= 12; z++) {
-                for (let y = CAVE_TOP; y >= CAVE_BOTTOM; y--) world.place(x, y, z, 'minecraft:air');
-            }
-        }
-
-        world.place(8, GROUND + 1, 8, 'minecraft:water', { liquid_depth: 0 });
-        world.place(8, GROUND, 8, 'minecraft:air');
-    };
-
-    it('does not spread sideways partway down a fall', async () => {
-        // The expensive mistake, and the one that flooded a cavern floor to ceiling: a block
-        // partway down a waterfall cannot flow down - the shaft below it is already full - and
-        // would take that as leave to spread sideways. Every level of the fall then became a sheet
-        // reaching seven blocks out, each block of which fell and started a sheet of its own.
-        cavern();
-
-        world.updates.scheduleAround(8, GROUND + 1, 8, 0);
-        await settle(world, physics, 400);
-
-        // The shaft is wet all the way down...
-        expect(world.nameAt(8, CAVE_BOTTOM, 8)).toBe('minecraft:flowing_water');
-
-        // ...and beside it, at the levels it passes, the cavern is still dry.
-        for (let y = CAVE_TOP; y > CAVE_BOTTOM; y--) {
-            expect(`${y}: ${world.nameAt(9, y, 8)}`).toBe(`${y}: minecraft:air`);
-        }
-    });
-
-    it('pools at the foot of a fall rather than filling the cavern outwards', async () => {
-        cavern();
-
-        world.updates.scheduleAround(8, GROUND + 1, 8, 0);
-        await settle(world, physics, 400);
-
-        // Where it lands it spreads, which is the half of the behavior that must survive.
-        expect(world.nameAt(9, CAVE_BOTTOM, 8)).toBe('minecraft:flowing_water');
-        expect(world.nameAt(10, CAVE_BOTTOM, 8)).toBe('minecraft:flowing_water');
-    });
-
-    it('lets a source in mid air flow down and then out to its sides', async () => {
-        // The exemption that keeps a placed source behaving: it falls first, and once the column
-        // below it is full it still spreads, which a block of flowing water would not.
-        for (let y = GROUND; y > GROUND - 4; y--) world.place(4, y, 4, 'minecraft:air');
-        world.place(4, GROUND + 1, 4, 'minecraft:water', { liquid_depth: 0 });
-
-        world.updates.scheduleAround(4, GROUND + 1, 4, 0);
-        await settle(world, physics, 400);
-
-        expect(world.nameAt(5, GROUND + 1, 4)).toBe('minecraft:flowing_water');
-    });
-
-    it('thins out as it travels and stops at seven blocks', async () => {
-        world.place(0, GROUND + 1, 0, 'minecraft:water', { liquid_depth: 0 });
-        world.updates.scheduleAround(0, GROUND + 1, 0, 0);
-        await settle(world, physics, 400);
-
-        // Right beside the source it is at its strongest, and it has run out well before ten.
-        expect(world.nameAt(1, GROUND + 1, 0)).toBe('minecraft:flowing_water');
-        expect(world.depthAt(1, GROUND + 1, 0)).toBe(1);
-        expect(world.nameAt(10, GROUND + 1, 0)).toBe('minecraft:air');
-    });
-
-    it('dries up when its source is taken away', async () => {
-        world.place(0, GROUND + 1, 0, 'minecraft:water', { liquid_depth: 0 });
-        world.updates.scheduleAround(0, GROUND + 1, 0, 0);
-        await settle(world, physics, 400);
-
-        expect(world.nameAt(3, GROUND + 1, 0)).toBe('minecraft:flowing_water');
-
-        await world.setBlockByName(0, GROUND + 1, 0, 'minecraft:air');
-        await settle(world, physics, 400);
-
-        // The whole stream behind it goes, not just the block that was removed.
-        for (let x = 1; x <= 7; x++) expect(`${x}: ${world.nameAt(x, GROUND + 1, 0)}`).toBe(`${x}: minecraft:air`);
-    });
-
-    it('settles instead of spreading and drying for ever', async () => {
-        // Liquid that rewrites itself every tick would keep the update queue permanently busy and
-        // send a block update to every player for ever.
-        world.place(0, GROUND + 1, 0, 'minecraft:water', { liquid_depth: 0 });
-        world.updates.scheduleAround(0, GROUND + 1, 0, 0);
-
-        const ticks = await settle(world, physics, 500);
-        expect(ticks).toBeLessThan(500);
-        expect(world.updates.size()).toBe(0);
-    });
-
-    it('washes a plant away instead of damming behind it', async () => {
-        world.place(0, GROUND + 1, 0, 'minecraft:water', { liquid_depth: 0 });
-        world.place(1, GROUND + 1, 0, 'minecraft:short_grass');
-
-        world.updates.scheduleAround(0, GROUND + 1, 0, 0);
-        await settle(world, physics, 400);
-
-        expect(world.nameAt(1, GROUND + 1, 0)).toBe('minecraft:flowing_water');
-    });
-
-    it('stays inside a wall built around it', async () => {
-        // Going *around* a single block is correct - water does that. Being held by an enclosure
-        // is the claim worth making, and it is what a player builds a wall for.
-        world.place(0, GROUND + 1, 0, 'minecraft:water', { liquid_depth: 0 });
-
-        for (let x = -2; x <= 2; x++) {
-            for (let z = -2; z <= 2; z++) {
-                if (Math.max(Math.abs(x), Math.abs(z)) !== 2) continue;
-                world.place(x, GROUND + 1, z, 'minecraft:stone');
-            }
-        }
-
-        world.updates.scheduleAround(0, GROUND + 1, 0, 0);
-        await settle(world, physics, 400);
-
-        // Inside is wet, the wall is still a wall, and outside is dry.
-        expect(world.nameAt(1, GROUND + 1, 0)).toBe('minecraft:flowing_water');
-        expect(world.nameAt(2, GROUND + 1, 0)).toBe('minecraft:stone');
-        expect(world.nameAt(3, GROUND + 1, 0)).toBe('minecraft:air');
     });
 });
 
