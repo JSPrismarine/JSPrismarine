@@ -319,8 +319,37 @@ export const networkContentPayloads = (
     return built;
 };
 
+/**
+ * The first `limit` recipes of a crafting payload.
+ *
+ * This is the `crafting-recipe-limit` setting, which exists so a client that
+ * rejects the packet can be answered with a short one. The lists are drawn
+ * down in wire order against one budget, so a limit of one leaves a single
+ * shaped recipe and nothing else. Net ids are a recipe's place in the full
+ * list and are kept, so trimming never renumbers what a client refers to.
+ *
+ * @param limit - How many recipes to keep. Zero keeps none.
+ */
+export const limitCraftingData = (crafting: CraftingData, limit: number): CraftingData => {
+    let left = Math.max(limit, 0);
+    const take = <T>(list: readonly T[]): readonly T[] => {
+        const taken = list.slice(0, left);
+        left -= taken.length;
+
+        return taken;
+    };
+
+    return {
+        shaped: take(crafting.shaped),
+        shapeless: take(crafting.shapeless),
+        smithingTransform: take(crafting.smithingTransform),
+        potionMixes: take(crafting.potionMixes),
+        cleanRecipes: crafting.cleanRecipes
+    };
+};
+
 /** The recipes of every kind the crafting payload carries. */
-const recipeCount = (crafting: CraftingData): number =>
+export const craftingRecipeCount = (crafting: CraftingData): number =>
     crafting.shaped.length +
     crafting.shapeless.length +
     crafting.smithingTransform.length +
@@ -330,7 +359,7 @@ const recipeCount = (crafting: CraftingData): number =>
 export const contentPayloadSummary = (payloads: NetworkContentPayloads): string =>
     `Join payloads from the content: §e${payloads.blockProperties.length}§r block definitions, ` +
     `§e${payloads.items.length}§r items, §e${payloads.creative.entries.length}§r creative entries ` +
-    `under §e${payloads.creative.groups.length}§r headings, §e${recipeCount(payloads.crafting)}§r recipes`;
+    `under §e${payloads.creative.groups.length}§r headings, §e${craftingRecipeCount(payloads.crafting)}§r recipes`;
 
 /**
  * What the build had to invent or could not say, or undefined when it said
