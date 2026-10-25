@@ -14,6 +14,7 @@ import Player from '../Player';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { BlockState } from '../block/state/BlockState';
 import { spawnableEntities } from '../entity/Entities';
+import type { LiveEntityRuntime } from '../entity/data/live';
 import EntitySerializer from '../entity/EntitySerializer';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { Entity } from '../entity/Entity';
@@ -192,7 +193,12 @@ export class World implements Service {
      */
     private starting: Promise<void> | null = null;
 
-    /** Puts wildlife into the world near players and takes it away behind them. */
+    /**
+     * Puts wildlife into the world near players and takes it away behind them.
+     *
+     * The fallback for a server with `content-packs` off. With it on, the data-driven runtime
+     * of {@link World.dataEntities} does both halves from the loaded spawn rules instead.
+     */
     private readonly mobSpawner: MobSpawner;
 
     /** Positions waiting to react to a nearby change, and what they do about it. */
@@ -413,11 +419,21 @@ export class World implements Service {
 
         await Promise.all(entities.map((entity) => entity.update(tick)));
 
-        // Straight after the updates that changed them, and before the spawner can add anything
-        // whose attributes have not been touched yet.
-        await this.flushEntityAttributes(entities);
+        // The data-driven entities, after the written ones: a data entity's body is a
+        // `GenericEntity` whose own update does nothing, so the loop above has already run the
+        // half of it that the class hierarchy owns and this runs the half the components do.
+        const live = this.dataEntities();
+        await live?.tick(tick);
 
-        await this.mobSpawner.tick(tick);
+        // Straight after the updates that changed them, and before the spawner can add anything
+        // whose attributes have not been touched yet. Read again rather than reused: the data
+        // runtime's spawn cycle has put bodies in the world since the list above was taken.
+        await this.flushEntityAttributes(live === undefined ? entities : this.getEntities());
+
+        // `@jsprismarine/spawning` runs the six-step cycle inside the data runtime above, with
+        // Bedrock's caps and cadences and the sixty vanilla spawn rules. `MobSpawner` is the
+        // fallback for a server with `content-packs` off, which has no spawn rules to run.
+        if (live === undefined) await this.mobSpawner.tick(tick);
 
         // After everything has moved but before the movement goes out, so an entity that came
         // into range this tick is spawned before the first packet that says it moved.
@@ -1377,6 +1393,18 @@ export class World implements Service {
     /** Sends every player the movement that happened this tick, as one batch each. */
     private async flushMovement(): Promise<void> {
         await this.changes.flushMovement();
+    }
+
+    /**
+     * The data-driven entities of this world's dimension, or undefined when it has none.
+     *
+     * Undefined while `content-packs` is off, which is what keeps the written entity classes
+     * and {@link MobSpawner} in charge. With it on, this is what drives every mob's behavior:
+     * its components, its goals, its brain, the spawn cycle and the despawn pass.
+     * @returns {LiveEntityRuntime | undefined} The runtime, or undefined on the legacy path.
+     */
+    public dataEntities(): LiveEntityRuntime | undefined {
+        return this.server.getEntityRuntime(this.dimension.name);
     }
 
     /**

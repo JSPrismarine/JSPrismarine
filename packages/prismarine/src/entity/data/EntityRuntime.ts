@@ -72,6 +72,15 @@ export interface EntityRuntimeOptions {
     onSpawn?(entity: DataEntity): void;
     /** Called once per entity, after it has left the index. */
     onRemove?(entity: DataEntity, reason: string): void;
+    /**
+     * Draws the next runtime id, so a host can keep one pool of them.
+     *
+     * A goal names a target by runtime id and does not care which index
+     * answers, so the ids of this runtime's entities and of the host's players
+     * have to be drawn from the same counter. A host that keeps its own
+     * entities supplies this; one that does not gets a counter from 1.
+     */
+    nextId?(): number;
 }
 
 /** The live entities of one dimension, and the AI that drives them. */
@@ -105,6 +114,7 @@ export class EntityRuntime implements EntityScene {
     private readonly onReport: (message: string) => void;
     private readonly onSpawn: (entity: DataEntity) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
+    private readonly drawId: () => number;
     private facts: EntityFactsLookup | undefined;
     private factsGeneration = -1;
     private spawner: Spawner | undefined;
@@ -119,6 +129,13 @@ export class EntityRuntime implements EntityScene {
         this.onReport = options.report ?? (() => undefined);
         this.onSpawn = options.onSpawn ?? (() => undefined);
         this.onRemove = options.onRemove ?? (() => undefined);
+        this.drawId =
+            options.nextId ??
+            (() => {
+                const id = this.nextId;
+                this.nextId += 1;
+                return id;
+            });
     }
 
     /** The built content. */
@@ -185,8 +202,7 @@ export class EntityRuntime implements EntityScene {
         const facts = this.typeFacts().get(reference);
         if (facts === undefined) return undefined;
 
-        const id = this.nextId;
-        this.nextId += 1;
+        const id = this.drawId();
 
         // The body comes first: a goal component builds its support while the instance is being
         // constructed, and that reads the actuator straight away.
