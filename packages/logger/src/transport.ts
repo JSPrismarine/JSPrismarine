@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import type { LogLevel } from './logger';
+import type { LogLevel } from './levels';
+import { isAtLeastLevel } from './levels';
 
 /** The part of a console the transport needs: a sink for one formatted line. */
 export type ConsoleLike = {
@@ -96,8 +97,6 @@ export class PrismarineTransport implements LogTransport {
     }
 }
 
-const LEVEL_WEIGHT: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 };
-
 // biome-ignore lint/suspicious/noControlCharactersInRegex: the escapes are what gets stripped
 const ANSI_PATTERN = /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g;
 
@@ -121,7 +120,7 @@ export class FileTransport implements LogTransport {
     }
 
     public log(record: LogRecord): void {
-        if (LEVEL_WEIGHT[record.level] > LEVEL_WEIGHT[this.level]) return;
+        if (!isAtLeastLevel(record.level, this.level)) return;
 
         const namespace = record.namespace ? ` [${record.namespace}]` : '';
         const line = `[${record.timestamp}] [${record.level.toUpperCase()}]${namespace}: ${record.message}`;
