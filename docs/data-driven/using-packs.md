@@ -32,10 +32,10 @@ A `PackStack` is an ordered list of pack sources. `load(stack)` reads every pack
 definitions, and returns them together with a diagnostics report:
 
 ```typescript
-import { load, reportIdentifiers } from '@jsprismarine/packs';
+import { load, reportIdentifiers, VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 const { definitions, diagnostics } = load([
-    { kind: 'brarchiveLayers', path: 'bds/behavior_packs' },
+    { kind: 'brarchiveLayers', path: 'bds/behavior_packs', uuids: [VANILLA_BEHAVIOR_PACK_UUID] },
     { kind: 'archive', path: 'my-addon.mcaddon' },
     { kind: 'directory', path: 'worlds/world/behavior_packs/overrides' },
     { kind: 'datapack', path: 'worlds/world/datapacks/gameplay-tweaks' }
@@ -52,6 +52,13 @@ Each stack member is one of four source kinds:
 | `directory`       | A loose Bedrock pack folder with `manifest.json` at its root                   |
 | `archive`         | A `.mcpack` (one pack) or `.mcaddon` (several nested `.mcpack` members)        |
 | `brarchiveLayers` | A folder of layered pack folders (`vanilla`, `vanilla_1.14`, ...) as BDS ships |
+
+`brarchiveLayers` takes an optional `uuids`, the header UUIDs to keep. BDS ships chemistry, editor
+and experimental packs in the same folder as the 68 vanilla layers, and all 68 vanilla folders
+declare one header UUID, so `[VANILLA_BEHAVIOR_PACK_UUID]` selects vanilla and nothing else. That
+is what the server loads by default. Omit `uuids` to compose every folder, which also pulls in
+chemistry — whose `reducer_*` recipes override eight vanilla ones, since every versioned layer
+sorts after every unversioned one.
 | `datapack`        | A Java datapack folder or zip with `pack.mcmeta` and `data/`                   |
 
 `definitions` is a `Definitions` object: one map per registry, from identifier to the winning
