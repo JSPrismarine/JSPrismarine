@@ -5,7 +5,6 @@ import { keyToAction } from './keys';
 
 const key = (name: string, overrides: Partial<InputKey> = {}): InputKey => ({
     name,
-    sequence: name.length === 1 ? name : '',
     ctrl: false,
     shift: false,
     meta: false,
@@ -76,7 +75,7 @@ describe('keyToAction', () => {
     });
 
     describe('Ctrl+C', () => {
-        const ctrlC = key('c', { ctrl: true, sequence: '\u0003' });
+        const ctrlC = key('c', { ctrl: true });
 
         it('clears a line with text', () => {
             expect(keyToAction(ctrlC, state({ value: 'say hi' }))).toEqual({ type: 'interrupt', kind: 'clear' });
@@ -100,31 +99,11 @@ describe('keyToAction', () => {
         });
     });
 
-    describe('empty-line hotkeys', () => {
-        it.each([
-            ['?', 'help'],
-            ['w', 'wrap'],
-            ['g', 'top'],
-            ['G', 'bottom'],
-            ['/', 'search']
-        ] as const)('maps %s to %s', (sequence, action) => {
-            expect(keyToAction(key(sequence, { shift: sequence === 'G' }), state())).toEqual({
-                type: 'toggle',
-                action
-            });
-        });
-
-        it('types the character when the line has text', () => {
-            expect(keyToAction(key('w'), state({ value: 'sa' }))).toEqual({ type: 'edit' });
-        });
-
-        it('leaves control chords to the editor', () => {
-            expect(keyToAction(key('w', { ctrl: true, sequence: '\u0017' }), state())).toEqual({ type: 'edit' });
-        });
-    });
-
-    it('passes everything else to the editor', () => {
+    it('passes everything else to the editor, catalog hotkeys included', () => {
         expect(keyToAction(key('a'), state())).toEqual({ type: 'edit' });
         expect(keyToAction(key('backspace'), state({ value: 'ab' }))).toEqual({ type: 'edit' });
+        expect(keyToAction(key('?'), state())).toEqual({ type: 'edit' });
+        expect(keyToAction(key('g', { shift: true }), state())).toEqual({ type: 'edit' });
+        expect(keyToAction(key('w', { ctrl: true }), state())).toEqual({ type: 'edit' });
     });
 });

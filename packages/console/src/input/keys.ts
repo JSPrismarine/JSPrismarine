@@ -3,15 +3,10 @@ import type { CycleDirection } from './completion';
 /** What a Ctrl+C press asks the application to do. */
 export type InterruptKind = 'clear' | 'stop' | 'force';
 
-/** View actions bound to single keys while the input line is empty. */
-export type ToggleAction = 'help' | 'wrap' | 'top' | 'bottom' | 'search';
-
 /** The parts of a key event the decoder reads; a subset of OpenTUI's `KeyEvent`. */
 export interface InputKey {
     /** Key name as OpenTUI parses it, such as `return`, `up`, `tab`, or a letter. */
     name: string;
-    /** Raw character sequence; used for printable hotkeys such as `?` and `G`. */
-    sequence: string;
     ctrl: boolean;
     shift: boolean;
     meta: boolean;
@@ -38,19 +33,10 @@ export type InputAction =
     | { type: 'close' }
     | { type: 'interrupt'; kind: InterruptKind }
     | { type: 'hint' }
-    | { type: 'toggle'; action: ToggleAction }
     | { type: 'ignore' }
     | { type: 'edit' };
 
 const ENTER_KEYS = new Set(['return', 'kpenter', 'linefeed']);
-
-const TOGGLE_KEYS: Readonly<Record<string, ToggleAction>> = {
-    '?': 'help',
-    w: 'wrap',
-    g: 'top',
-    G: 'bottom',
-    '/': 'search'
-};
 
 const hasModifier = (key: InputKey): boolean => key.ctrl || key.shift || key.meta;
 
@@ -60,9 +46,9 @@ const hasModifier = (key: InputKey): boolean => key.ctrl || key.shift || key.met
  * Ctrl+C clears a line with text. On an empty line the first press asks for a hint, the
  * second press within the window stops the server, and any later press forces it. Enter
  * submits a non-blank line unless the bar is disabled. Tab requests completion or cycles the
- * open strip, Shift+Tab cycles backward, and Escape closes the strip. On an empty line the
- * characters `?`, `w`, `g`, `G`, and `/` become view toggles. Everything else is `edit`, which
- * the caller hands to the text editor.
+ * open strip, Shift+Tab cycles backward, and Escape closes the strip. Everything else is `edit`,
+ * which the caller hands to the text editor. View hotkeys such as `?` and `g` are not decoded
+ * here: the app resolves them against the command catalog before the key reaches the bar.
  */
 export function keyToAction(key: InputKey, state: KeyState): InputAction {
     if (key.ctrl && key.name === 'c') {
@@ -86,11 +72,6 @@ export function keyToAction(key: InputKey, state: KeyState): InputAction {
 
     if ((key.name === 'up' || key.name === 'down') && !hasModifier(key)) {
         return { type: 'history', direction: key.name === 'up' ? 'previous' : 'next' };
-    }
-
-    if (state.value.length === 0 && !key.ctrl && !key.meta) {
-        const toggle = TOGGLE_KEYS[key.sequence];
-        if (toggle) return { type: 'toggle', action: toggle };
     }
 
     return { type: 'edit' };

@@ -40,18 +40,19 @@ const ctrl = (name: string): KeyBinding => ({ name, ctrl: true });
 const empty = (name: string, shift = false): KeyBinding => ({ name, shift, emptyLineOnly: true });
 
 /**
- * Every console command with its default bindings from the UX design's shortcut table.
+ * Every console command with its default bindings from the UX design's shortcut table. This is
+ * the only key table: the app resolves a key here before the input bar sees it.
  *
- * Enter, history, Tab, Ctrl+C, and the empty-line `g`/`G` jumps are decoded by the input bar and
- * are not listed here. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line
- * reach it through the input bar.
+ * Enter, history, Tab, and Ctrl+C are line editing and are decoded by the input bar, so they are
+ * not listed. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line reach it
+ * through the input bar.
  */
 export const COMMAND_CATALOG = [
     { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [ctrl('r')] },
     { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup'), ctrl('u')] },
     { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown'), ctrl('d')] },
-    { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [empty('home')] },
-    { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [empty('end')] },
+    { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [empty('home'), empty('g')] },
+    { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [empty('end'), empty('g', true)] },
     { id: 'log.search', title: 'Search', group: 'Log', bindings: [empty('/')] },
     { id: 'log.searchNext', title: 'Next match', group: 'Log', bindings: [empty('n')] },
     { id: 'log.searchPrev', title: 'Previous match', group: 'Log', bindings: [empty('n', true)] },

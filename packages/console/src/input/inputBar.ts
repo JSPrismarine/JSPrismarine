@@ -4,7 +4,7 @@ import { BoxRenderable, InputRenderable, TextRenderable } from '@opentui/core';
 import type { ConsoleContext } from '../context';
 import { CompletionState, formatCompletionStrip } from './completion';
 import type { CommandHistory } from './history';
-import type { InterruptKind, ToggleAction } from './keys';
+import type { InterruptKind } from './keys';
 import { keyToAction } from './keys';
 
 /** Candidates for the text before the cursor, as returned by `onComplete`. */
@@ -28,8 +28,6 @@ export interface InputBarProps {
     onInterrupt(kind: InterruptKind): void;
     /** Receives a short status hint, or undefined when the hint no longer applies. */
     onHint?(text: string | undefined): void;
-    /** Receives the empty-line view hotkeys. When absent, the key is typed instead. */
-    onToggle?(action: ToggleAction): void;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
     now?(): number;
 }
@@ -66,7 +64,8 @@ export const INTERRUPT_WINDOW_MS = 2000;
  * Builds the command input bar. The prompt takes the theme's `prompt` color, the line its `text`
  * color, and the placeholder, the completion strip, and the disabled prompt its `textMuted` color.
  *
- * Keys reach the bar only while its line is focused. `keyToAction` decides what each key
+ * Keys reach the bar only while its line is focused and after the app has had its turn: a key
+ * the command catalog binds never arrives here. `keyToAction` decides what each remaining key
  * means; this function applies the action to the line, the history, and the completion strip
  * and calls the matching prop. Keys decoded as `edit` fall through to the line editor.
  *
@@ -193,11 +192,6 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         switch (action.type) {
             case 'edit':
                 closeCompletion();
-                return;
-            case 'toggle':
-                if (!props.onToggle) return;
-                key.preventDefault();
-                props.onToggle(action.action);
                 return;
             case 'ignore':
                 key.preventDefault();

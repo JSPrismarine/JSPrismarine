@@ -7,7 +7,7 @@ import { createHelpOverlay } from '../help/helpOverlay';
 import { createInputBar } from '../input/inputBar';
 import type { CompletionResult } from '../input/inputBar';
 import type { CommandHistory } from '../input/history';
-import type { InterruptKind, ToggleAction } from '../input/keys';
+import type { InterruptKind } from '../input/keys';
 import { COMMAND_CATALOG, resolveCommand } from '../keymap/catalog';
 import type { CommandId } from '../keymap/catalog';
 import type { LogStore } from '../log/logStore';
@@ -77,9 +77,6 @@ const LEVEL_CYCLE: readonly (LogLevel | undefined)[] = ['error', 'warn', 'info',
 
 /** The level filter the console starts with, as the UX note recommends. */
 const DEFAULT_LEVEL: LogLevel = 'info';
-
-/** Commands the input bar decodes itself on an empty line and reports through `onToggle`. */
-const INPUT_BAR_COMMANDS: ReadonlySet<CommandId> = new Set<CommandId>(['view.help', 'log.toggleWrap', 'log.search']);
 
 const NOT_AVAILABLE = (what: string): ToastInput => ({ tone: 'muted', text: `${what} is not yet available` });
 
@@ -191,8 +188,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onSubmit: guard(submit),
         onComplete: props.onComplete,
         onInterrupt: guard(interrupt),
-        onHint: guard((text: string | undefined) => statusBar.setHint(text)),
-        onToggle: guard(toggle)
+        onHint: guard((text: string | undefined) => statusBar.setHint(text))
     });
 
     logColumn.add(toasts.renderable);
@@ -388,26 +384,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
     }
 
-    function toggle(action: ToggleAction): void {
-        switch (action) {
-            case 'help':
-                help.toggle();
-                return;
-            case 'wrap':
-                wrap = !wrap;
-                view.setWrap(wrap);
-                toasts.push({ tone: 'muted', text: wrap ? 'wrapping long lines' : 'truncating long lines' });
-                return;
-            case 'top':
-                view.toTop();
-                return;
-            case 'bottom':
-                view.toBottom();
-                return;
-            case 'search':
-                input.setValue('/');
-                return;
-        }
+    function toggleWrap(): void {
+        wrap = !wrap;
+        view.setWrap(wrap);
+        toasts.push({ tone: 'muted', text: wrap ? 'wrapping long lines' : 'truncating long lines' });
     }
 
     function run(id: CommandId): void {
@@ -431,7 +411,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 view.toBottom();
                 return;
             case 'log.search':
-                toggle('search');
+                input.setValue('/');
                 return;
             case 'log.searchNext':
                 jumpToMatch(1);
@@ -446,7 +426,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 jumpToLevel('warn');
                 return;
             case 'log.toggleWrap':
-                toggle('wrap');
+                toggleWrap();
                 return;
             case 'log.clearView':
                 toasts.push(NOT_AVAILABLE('clearing the view'));
@@ -486,13 +466,17 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         return false;
     }
 
+    /**
+     * Runs before the input bar's handler: the catalog is the only key table, so a bound key is
+     * consumed here and never typed into the line.
+     */
     const onKey = guard((key: KeyEvent) => {
         if (key.name === 'escape' && !key.ctrl && !key.meta && !key.shift) {
             if (escape()) key.preventDefault();
             return;
         }
         const id = resolveCommand(key, { inputEmpty: input.getValue().length === 0 });
-        if (id === undefined || INPUT_BAR_COMMANDS.has(id)) return;
+        if (id === undefined) return;
         key.preventDefault();
         run(id);
     });

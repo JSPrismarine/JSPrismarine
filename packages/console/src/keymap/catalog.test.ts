@@ -70,7 +70,9 @@ describe('resolveCommand', () => {
 
     it.each([
         [key('home'), 'log.top'],
+        [key('g'), 'log.top'],
         [key('end'), 'log.bottom'],
+        [key('g', { shift: true }), 'log.bottom'],
         [key('/'), 'log.search'],
         [key('n'), 'log.searchNext'],
         [key('n', { shift: true }), 'log.searchPrev'],

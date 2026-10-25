@@ -3,6 +3,8 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { CommandHistory } from '../input/history';
+import { COMMAND_CATALOG } from '../keymap/catalog';
+import type { CommandId, KeyBinding } from '../keymap/catalog';
 import { LogStore } from '../log/logStore';
 import { defaultTheme } from '../theme';
 import { createApp } from './createApp';
@@ -228,11 +230,11 @@ describe('createApp', () => {
         expect(t.captureCharFrame()).toContain('error · all · ? help');
     });
 
-    it('opens the help overlay with ? and closes it with Esc', async () => {
+    it('closes the help overlay with Esc', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
-        await t.mockInput.typeText('?');
+        t.mockInput.pressKey('?');
         await t.renderOnce();
         expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
 
@@ -242,7 +244,7 @@ describe('createApp', () => {
         await t.waitForFrame((frame) => !frame.includes('Keyboard shortcuts'));
     });
 
-    it('toggles the side pane with Ctrl+B', async () => {
+    it('toggles the side pane back with a second Ctrl+B', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
 
@@ -279,5 +281,144 @@ describe('createApp', () => {
         const frame = t.captureCharFrame();
         expect(frame).not.toContain('Players');
         expect(frame).not.toContain('JSPrismarine 0.15.2');
+    });
+
+    describe('command catalog', () => {
+        type Harness = Awaited<ReturnType<typeof setup>>;
+        const NAMED_KEYS: Readonly<Record<string, string>> = {
+            pageup: '\u001B[5~',
+            pagedown: '\u001B[6~',
+            home: 'HOME',
+            end: 'END'
+        };
+
+        const press = (t: Harness, binding: KeyBinding): void => {
+            const named = NAMED_KEYS[binding.name];
+            if (named !== undefined) {
+                t.mockInput.pressKey(named, { shift: binding.shift, ctrl: binding.ctrl, meta: binding.meta });
+                return;
+            }
+            t.mockInput.pressKey(binding.shift ? binding.name.toUpperCase() : binding.name, {
+                ctrl: binding.ctrl,
+                meta: binding.meta
+            });
+        };
+
+        const fill = (t: Harness, count: number): void => {
+            for (let i = 1; i <= count; i += 1) t.app.applyServerMessage(logMessage(`line ${i}`));
+        };
+
+        /** Top row of the log pane; the title bar is row 0 at 120x40. */
+        const topLogRow = (t: Harness) => t.captureCharFrame().split('\n')[1] ?? '';
+        const count = (frame: string, text: string) => frame.split(text).length - 1;
+
+        /** One press per binding; each check also fails when the command ran twice. */
+        const effects: Record<CommandId, (t: Harness) => Promise<void>> = {
+            'input.historySearch': async (t) => {
+                expect(count(t.captureCharFrame(), 'no history entry matches')).toBe(1);
+            },
+            'log.pageUp': async (t) => {
+                expect(topLogRow(t)).toContain('line 28');
+            },
+            'log.pageDown': async (t) => {
+                expect(topLogRow(t)).toContain('line 37');
+            },
+            'log.top': async (t) => {
+                expect(topLogRow(t)).toContain('line 1 ');
+            },
+            'log.bottom': async (t) => {
+                const frame = t.captureCharFrame();
+                expect(frame).toContain('line 100');
+                expect(frame).not.toContain('new lines');
+            },
+            'log.search': async (t) => {
+                expect(t.captureCharFrame()).toContain('> /');
+            },
+            'log.searchNext': async (t) => {
+                expect(count(t.captureCharFrame(), 'no search; type /text to search')).toBe(1);
+            },
+            'log.searchPrev': async (t) => {
+                expect(count(t.captureCharFrame(), 'no search; type /text to search')).toBe(1);
+            },
+            'log.nextError': async (t) => {
+                expect(count(t.captureCharFrame(), 'no earlier errors')).toBe(1);
+            },
+            'log.nextWarning': async (t) => {
+                expect(count(t.captureCharFrame(), 'no earlier warnings')).toBe(1);
+            },
+            'log.toggleWrap': async (t) => {
+                const frame = t.captureCharFrame();
+                expect(frame).toContain('wrapping long lines');
+                expect(frame).not.toContain('truncating long lines');
+            },
+            'log.clearView': async (t) => {
+                expect(count(t.captureCharFrame(), 'clearing the view is not yet available')).toBe(1);
+            },
+            'log.filter': async (t) => {
+                expect(t.captureCharFrame()).toContain('all · all · ? help');
+            },
+            'view.toggleSidePane': async (t) => {
+                expect(t.captureCharFrame()).not.toContain('Players');
+            },
+            'view.help': async (t) => {
+                expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
+            },
+            'view.palette': async (t) => {
+                expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);
+            },
+            'server.stop': async () => {
+                // Bound to no key; two Ctrl+C presses reach it through the input bar.
+            }
+        };
+
+        /** Commands whose effect needs a scrolled pane: fill it and leave the bottom first. */
+        const prepare: Partial<Record<CommandId, (t: Harness) => Promise<void>>> = {
+            'log.pageUp': async (t) => fill(t, 100),
+            'log.pageDown': async (t) => {
+                fill(t, 100);
+                await t.renderOnce();
+                t.mockInput.pressKey('HOME');
+            },
+            'log.top': async (t) => fill(t, 100),
+            'log.bottom': async (t) => {
+                fill(t, 100);
+                await t.renderOnce();
+                t.mockInput.pressKey('HOME');
+            }
+        };
+
+        const cases = COMMAND_CATALOG.flatMap((command) =>
+            command.bindings.map((binding) => [command.id, binding] as const)
+        );
+
+        it.each(cases)('runs %s once from %o and does not type the key', async (id, binding) => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            await prepare[id]?.(t);
+            await t.renderOnce();
+            press(t, binding);
+            await t.renderOnce();
+            await t.renderOnce();
+
+            await effects[id](t);
+            const promptRow = t.captureCharFrame().split('\n')[38] ?? '';
+            expect(promptRow.trimEnd()).toBe(id === 'log.search' ? '> /' : '> type a command, ? for help');
+        });
+
+        it('types a bound letter once the line has text', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            await t.mockInput.typeText('sa');
+            t.mockInput.pressKey('w');
+            t.mockInput.pressKey('?');
+            await t.renderOnce();
+
+            const frame = t.captureCharFrame();
+            expect(frame).toContain('> saw?');
+            expect(frame).not.toContain('Keyboard shortcuts');
+            expect(frame).not.toContain('wrapping long lines');
+        });
     });
 });
