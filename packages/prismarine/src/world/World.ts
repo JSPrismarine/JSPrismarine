@@ -38,7 +38,6 @@ import type { WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 import { Dimensions, maxY } from './Dimension';
 import { placePlayerSpawn } from './SpawnPlacement';
-import type { StoredSpawnPoint } from './RespawnPoint';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
 import type { LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
@@ -47,7 +46,7 @@ import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
-import type { Generator } from './Generator';
+import type { Generator, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
 import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
@@ -97,6 +96,43 @@ const UNSUITABLE_SPAWN_SURFACES = new Set([
     'minecraft:poppy',
     'minecraft:deadbush'
 ]);
+
+/**
+ * How far `/locate` looks when nothing says otherwise, in chunks.
+ *
+ * Java's `LocateCommand` searches 100 chunks for a structure, which is 1600 blocks. Far enough
+ * to find the common structures from anywhere and small enough that a miss answers quickly.
+ */
+const DEFAULT_LOCATE_RADIUS_CHUNKS = 100;
+
+/**
+ * Whether a structure identifier is what a player meant by a name.
+ *
+ * Bedrock's `/locate structure` names a family - `village`, `ruinedportal` - where Java has one
+ * identifier per variant, so an exact comparison would find none of them. Three spellings are
+ * accepted, from most to least specific: the full identifier, the path on its own, and the path
+ * with a variant suffix, which is what makes `village` find `minecraft:village_plains`.
+ *
+ * Underscores are dropped from the comparison so Bedrock's `ruinedportal` reaches Java's
+ * `ruined_portal`.
+ *
+ * @param name - What the player typed.
+ * @param structure - A structure identifier the generator knows.
+ */
+export const structureNameMatches = (name: string, structure: string): boolean => {
+    const squash = (value: string): string => value.toLowerCase().replaceAll('_', '');
+    const wanted = squash(name.startsWith('#') ? name.slice(1) : name);
+    const path = structure.includes(':') ? structure.slice(structure.indexOf(':') + 1) : structure;
+
+    if (squash(structure) === wanted || squash(path) === wanted) return true;
+
+    // A family name, which only counts at a variant boundary: `village` is `village_plains`,
+    // but `ruin` must not be `ruined_portal`.
+    return path
+        .toLowerCase()
+        .split('_')
+        .some((_part, index, parts) => index > 0 && squash(parts.slice(0, index).join('_')) === wanted);
+};
 
 /** Chunks generated between yields to the event loop while preloading. */
 const PRELOAD_BATCH_SIZE = 32;
@@ -1012,6 +1048,37 @@ export class World implements Service {
         if (y === null) return undefined;
 
         return UNSUITABLE_SPAWN_SURFACES.has(chunk.getBlock(x & 0xf, y, z & 0xf).name) ? undefined : y;
+    }
+
+    /**
+     * The nearest structure whose name matches, or undefined when there is none in range.
+     *
+     * What `/locate structure` answers. Nothing is generated: the generator lays candidate
+     * structures out against the bare noise terrain and reports where the nearest one starts,
+     * so the search costs no chunks however far it reaches.
+     *
+     * @param name - What the player typed. See {@link structureNameMatches} for how loosely it
+     * is read.
+     * @param origin - Where to search from, in blocks.
+     * @param radiusInChunks - How far out to look.
+     * @returns The generation point, or undefined when the generator places no structures, has
+     * no search of its own, or found nothing inside the radius.
+     */
+    public locateStructure(
+        name: string,
+        origin: { readonly x: number; readonly z: number },
+        radiusInChunks: number = DEFAULT_LOCATE_RADIUS_CHUNKS
+    ): StructureSearchResult | undefined {
+        const search = this.generator.locate;
+        if (search === undefined) return undefined;
+
+        return search.call(this.generator, {
+            x: Math.trunc(origin.x),
+            z: Math.trunc(origin.z),
+            radiusInChunks,
+            wanted: (structure) => structureNameMatches(name, structure),
+            seed: this.seed
+        });
     }
 
     /**

@@ -31,7 +31,6 @@ export const UNWIRED_COMMANDS: Readonly<Record<string, string>> = {
     data: 'reading and writing NBT by path',
     effect: 'a status effect system; `MobEffectPacket` is a wire type with nothing behind it',
     item: 'item modifiers and Java-addressable inventory slots',
-    locate: 'a radial search; the generator places structures and never looks one up by position',
     place: 'feature, jigsaw and structure placement outside the generator, which places them as it writes a chunk',
     ride: 'entity riding outside the data-driven entity runtime'
 };
