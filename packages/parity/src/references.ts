@@ -23,6 +23,9 @@ const repoRoot = join(import.meta.dirname, '..', '..', '..');
 /** The fetch cache `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` writes into. */
 export const FETCH_CACHE = join(repoRoot, 'node_modules/.cache/jsprismarine');
 
+/** Where `dump:bedrock` writes the reference world golden, relative to the repository root. */
+export const REFERENCE_WORLD_PATH = 'packages/bedrock-data/src/jsp/reference_world.json';
+
 /** How a reference source reaches this checkout. */
 export type ReferenceKind =
     /** Committed to the repository, so every checkout has it. */
@@ -178,32 +181,30 @@ export const REFERENCES = {
     },
 
     /**
-     * The generated reference world of plan section 6 step 4: a whole region with its
-     * heightmaps, biome arrays and terrain classes. `dump:bedrock` generates one, and no run
-     * has committed the golden yet, so the reference region the worldgen rows reach today is
-     * the nine Java columns the oracle dumped.
+     * The generated reference world of plan section 6 step 4, as `dump:bedrock` reduces it: a
+     * digest of the heightmap, biome arrays, surface and block states per chunk of a 400 chunk
+     * region, sixteen chunks kept whole, and one block histogram over the whole region. The
+     * histogram is what an ore and feature count row compares against, so this one source
+     * carries both halves of what phase 4 needs.
+     *
+     * No run has committed the golden. Mojang publishes the Bedrock Dedicated Server as a Linux
+     * x86-64 binary and the capture job runs it, so the golden comes from CI rather than from a
+     * developer's machine. Until it lands, the reference the worldgen rows reach is the nine
+     * Java columns the oracle dumped.
+     *
+     * `packages/bedrock-data/README.md` under "The reference world" and
+     * `docs/data-driven/data-pipeline.md` document what the job writes;
+     * `loadReferenceWorld` in `goldens.ts` reads it and checks the format version.
      */
     referenceWorld: {
         id: 'reference-world',
         kind: 'unbuilt',
-        holds: 'a generated reference region with heightmaps, biomes and terrain classes',
+        holds: 'per-chunk digests, whole sample chunks and a region block histogram for 400 generated chunks',
         howToGet: 'no run of `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` has committed its golden',
         locate: () => {
-            const golden = join(repoRoot, 'packages/bedrock-data/src/jsp/reference_world.json');
+            const golden = join(repoRoot, REFERENCE_WORLD_PATH);
             return existsSync(golden) ? golden : undefined;
         }
-    },
-
-    /**
-     * The measured ore and feature count distribution phase 4 exits against. Nothing in the
-     * repository counts ores or features over a sampled region, in either edition.
-     */
-    featureDistribution: {
-        id: 'feature-distribution',
-        kind: 'unbuilt',
-        holds: 'ore and feature counts per chunk with the spread Java produces',
-        howToGet: 'no capture job samples Java feature placement yet',
-        locate: () => undefined
     }
 } as const satisfies Record<string, ReferenceSource>;
 

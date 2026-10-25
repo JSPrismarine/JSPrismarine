@@ -19,7 +19,7 @@ export const NOT_MEASURED_PREFIX = 'not measured:';
  * @param body - The tests, run only when all sources are present.
  * @example
  * ```typescript
- * describeFamily(FAMILIES.worldgenFeatures, [REFERENCES.featureDistribution], () => {
+ * describeFamily(FAMILIES.worldgenFeatures, [REFERENCES.referenceWorld], () => {
  *     it('places ores within the measured spread', () => {
  *         // ...
  *     });
