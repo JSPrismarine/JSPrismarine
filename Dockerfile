@@ -17,6 +17,8 @@ RUN pnpm install --frozen-lockfile \
 
 ENV NODE_ENV=production
 ENV JSP_DIR=/data
+# Containers never get the terminal UI, even when run with -it; stdin lines are commands.
+ENV JSP_NO_TUI=1
 
 USER node
 WORKDIR /app/packages/server

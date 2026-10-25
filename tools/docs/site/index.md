@@ -15,7 +15,7 @@ hero:
 
 features:
     - title: One command to develop
-      details: pnpm run dev starts the server from source and restarts it when any package changes, with a working interactive console.
+      details: pnpm run dev starts the server from source, restarts it when any package changes, and keeps the console UI open across restarts.
     - title: Published packages
       details: The protocol, RakNet transport, NBT codec and world storage ship as independent npm packages under @jsprismarine.
     - title: Single executable

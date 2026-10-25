@@ -48,6 +48,8 @@ pnpm run build
 pnpm run start
 ```
 
+On Node 26.4 or newer in a terminal this opens the console UI; elsewhere (Docker, panels, pipes, older Node) the server reads commands from stdin and writes log lines to stdout. Pass `--no-tui` or set `JSP_NO_TUI=1` to force the plain console. See [Running JSPrismarine](docs/running.md#4-console).
+
 > [!NOTE]
 > Already cloned without `--recurse-submodules`? Run `git submodule update --init --recursive`. The `bedrock-data` resources submodule is required to build.
 
