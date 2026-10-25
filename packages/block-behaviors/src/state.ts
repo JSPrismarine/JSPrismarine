@@ -58,14 +58,44 @@ export const patchStates = (
 };
 
 /**
+ * A state value with a boolean written as the 0 or 1 the wire carries, so the
+ * `false` a family computes compares equal to the `0` a chunk hands back.
+ */
+const normalized = (value: BlockStateValue | undefined): BlockStateValue | undefined =>
+    typeof value === 'boolean' ? (value ? 1 : 0) : value;
+
+/**
+ * Whether a patch would move any of the block's state values.
+ *
+ * {@link patchStates} only adds and overwrites, so a patch whose every value is already
+ * there produces the record the block has.
+ */
+const movesAnyState = (block: HookBlock, patch: Readonly<Record<string, BlockStateValue | undefined>>): boolean =>
+    Object.entries(patch).some(
+        ([name, value]) => value !== undefined && normalized(block.states[name]) !== normalized(value)
+    );
+
+/**
  * Rewrites a block in place with some of its states changed, keeping its
  * identifier and every state the patch leaves out.
+ *
+ * A patch that moves nothing writes nothing. The write is not free: it notifies the six
+ * neighbors, so the five families that recompute a derived state on a neighbor change
+ * without comparing first - the wall, fence and pane connections, scaffolding's
+ * `stability`, the campfire's `extinguished` - each rewrote their unchanged value and
+ * notified back, and a settled run never reached a fixed point. One notification on a
+ * settled four-block scaffolding run spent 9.5 seconds inside a single tick before the
+ * chained-update cap of one million stopped it.
+ *
+ * The stairs corner, the fence gate's `in_wall_bit` and the redstone diodes already
+ * compared before writing; this is that check in the one place they all go through.
  */
 export const setStates = (
     world: WorldActions,
     block: HookBlock,
     patch: Readonly<Record<string, BlockStateValue | undefined>>
 ): void => {
+    if (!movesAnyState(block, patch)) return;
     world.setBlock(block.position, block.identifier, patchStates(block, patch));
 };
 
