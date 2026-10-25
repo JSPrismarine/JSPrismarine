@@ -91,6 +91,23 @@ export interface WorldActions {
     /** Drops an item stack as an entity at a position. */
     dropItem(position: BlockPosition, drop: ItemDrop): void;
     /**
+     * Takes a block out of the world the way the world itself does: its own `onBreak` runs
+     * and Java's loot table decides what falls.
+     *
+     * A family calls this rather than dropping one of the block, because one of the block
+     * is a guess. Deepslate yields cobbled deepslate, a lapis block yields lapis, and a
+     * block the table gives nothing for yields nothing.
+     *
+     * The write is still the caller's, and it has to come afterwards: a family reads the
+     * block entity it is about to lose, which is what spills a chest a piston popped.
+     *
+     * Left out by a world with no loot behind it, such as the test voxel world, which
+     * sends the caller back to the drop it would have made on its own.
+     *
+     * @returns True when the world took the drops, so the caller owes nothing more for them.
+     */
+    destroyBlock?(position: BlockPosition): boolean;
+    /**
      * Spawns an entity.
      *
      * @param data - The entity's own data, such as the block a falling block

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { popBlock } from '@jsprismarine/block-behaviors';
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty } from '@jsprismarine/minecraft';
@@ -109,6 +110,19 @@ const LOOT_TABLES: Readonly<Record<string, unknown>> = {
             }
         ],
         random_sequence: 'minecraft:blocks/poppy'
+    },
+    // Java's stone table: without silk touch it yields cobblestone, which is the case a
+    // family's "drop one of itself" gets wrong.
+    'minecraft:blocks/stone': {
+        type: 'minecraft:block',
+        pools: [
+            {
+                condition: { type: 'minecraft:survives_explosion' },
+                entries: [{ type: 'minecraft:item', name: 'minecraft:cobblestone' }],
+                rolls: 1
+            }
+        ],
+        random_sequence: 'minecraft:blocks/stone'
     },
     'minecraft:blocks/oak_planks': {
         type: 'minecraft:block',
@@ -474,6 +488,33 @@ describe('a block the world destroyed', () => {
             expect(carried.filter((slot) => slot !== undefined)).toEqual([{ identifier: 'minecraft:stick', count: 3 }]);
             expect(content.world.blockWorld.at(DIMENSION).getBlockData({ x: 9, y: 64, z: 8 })).toBeUndefined();
             expect(drops()).toEqual([]);
+        });
+
+        it('rolls the popped block through Java’s table rather than dropping one of it', () => {
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:piston', { facing_direction: 4 });
+            place(chunk, { x: 9, y: 64, z: 8 }, 'minecraft:stone');
+
+            const blocks = content.world.blockWorld.at(DIMENSION);
+            // The family's own piston, which is the one that calls `popBlock`. The push is
+            // run directly because the overlay gives stone the `normal` push reaction, so no
+            // circuit in this palette pops a block whose table is not one of itself.
+            popBlock(blocks, blocks.getBlock({ x: 9, y: 64, z: 8 })!);
+
+            expect(world.loadedBlockAt(9, 64, 8)?.name).toBe('minecraft:air');
+            // Java's stone table, so cobblestone. The self-drop this replaced said stone.
+            expect(drops()).toEqual([{ identifier: 'minecraft:cobblestone', count: 1 }]);
+        });
+
+        it('spills what a popped chest held and rolls the chest itself', () => {
+            chestHolding({ x: 9, y: 64, z: 8 }, [{ identifier: 'minecraft:stick', count: 3 }]);
+
+            const blocks = content.world.blockWorld.at(DIMENSION);
+            popBlock(blocks, blocks.getBlock({ x: 9, y: 64, z: 8 })!);
+
+            // The hook ran before the write, which is the half a self-drop never had.
+            expect(drops()).toContainEqual({ identifier: 'minecraft:stick', count: 3 });
+            expect(drops()).toContainEqual({ identifier: 'minecraft:chest', count: 1 });
+            expect(blocks.getBlockData({ x: 9, y: 64, z: 8 })).toBeUndefined();
         });
     });
 });

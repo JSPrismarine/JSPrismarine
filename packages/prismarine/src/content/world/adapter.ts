@@ -84,6 +84,21 @@ export interface ContentBlockAccess {
      *   state, and both callers exist, so it has no default.
      */
     set(at: ContentPosition, block: ContentBlock, notifyNeighbors: boolean): void;
+    /**
+     * Takes a block out: raises its `onBreak` and puts what Java's table rolls on the ground.
+     *
+     * The write is still the caller's and has to come afterwards, because a family reads the
+     * block entity it is about to lose. `src/world/blockDestroy.ts` is the one place that
+     * knows how, and this is how a content package reaches it: a piston popping a torch and
+     * a falling anvil clearing a flower both go through here rather than guessing that a
+     * block drops one of itself.
+     *
+     * Left out by an adapter with no live world behind it, which sends the caller back to
+     * the drop it would have made on its own.
+     *
+     * @returns True when the world took the drops, so the caller owes nothing more for them.
+     */
+    destroy?(at: ContentPosition): boolean;
     /** Tells the six neighbors of a position that it changed. */
     notifyNeighbors(at: ContentPosition): void;
     /** A block entity's stored data, or undefined when the position has none. */
