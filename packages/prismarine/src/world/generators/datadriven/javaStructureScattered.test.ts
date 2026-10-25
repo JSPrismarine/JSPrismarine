@@ -70,7 +70,8 @@ const emptyTemplates = (): StructureTemplateStore => ({
     template: () => undefined,
     prepared: () => undefined,
     size: (): TemplatePosition | undefined => undefined,
-    processors: () => []
+    processors: () => [],
+    javaBlockOf: () => undefined
 });
 
 /** What a recording writer collected. */

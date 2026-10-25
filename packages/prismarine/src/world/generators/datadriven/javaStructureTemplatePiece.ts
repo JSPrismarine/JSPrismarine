@@ -82,6 +82,16 @@ export interface StructureTemplateStore {
     size(identifier: string, placement: Placement): TemplatePosition | undefined;
     /** The processor chain a reference names, parsed once and kept. */
     processors(reference: ProcessorsReference): readonly StructureProcessor[];
+    /**
+     * The Java block a saved block entity sat in, for a compound of this template.
+     *
+     * The translation to Bedrock drops the Java palette, and a banner's color lives there and
+     * nowhere else. The saved compounds travel by reference through the translation, the
+     * transforms and the processors, so they index this directly.
+     *
+     * @returns The Java block name, or undefined for a compound this template never saved.
+     */
+    javaBlockOf(identifier: string, nbt: NBTTagCompound): string | undefined;
 }
 
 const placementKey = (placement: Placement): string => `${placement.rotation ?? 'none'}|${placement.mirror ?? 'none'}`;
@@ -96,11 +106,23 @@ export const createStructureTemplateStore = (source: TemplateSource): StructureT
     const translated = new Map<string, BedrockStructureTemplate | undefined>();
     const prepares = new Map<string, PreparedTemplate | undefined>();
     const chains = new Map<string, readonly StructureProcessor[]>();
+    const javaBlocks = new Map<string, Map<NBTTagCompound, string>>();
 
     const template = (identifier: string): BedrockStructureTemplate | undefined => {
         if (translated.has(identifier)) return translated.get(identifier);
 
         const raw = source.template(identifier);
+        if (raw !== undefined) {
+            // Indexed before the translation drops the Java palette. `translateJavaTemplate`
+            // reads the same `palette` this does, so the names line up with the blocks it keeps.
+            const blocks = new Map<NBTTagCompound, string>();
+            for (const block of raw.blocks) {
+                const name = raw.palette[block.state]?.name;
+                if (block.nbt !== undefined && name !== undefined) blocks.set(block.nbt, name);
+            }
+            javaBlocks.set(identifier, blocks);
+        }
+
         const result = raw === undefined ? undefined : translateJavaTemplate(raw).template;
         translated.set(identifier, result);
         return result;
@@ -108,6 +130,10 @@ export const createStructureTemplateStore = (source: TemplateSource): StructureT
 
     return {
         template,
+        javaBlockOf: (identifier, nbt) => {
+            template(identifier);
+            return javaBlocks.get(identifier)?.get(nbt);
+        },
         prepared: (identifier, placement) => {
             const key = `${identifier}|${placementKey(placement)}`;
             if (prepares.has(key)) return prepares.get(key);
@@ -304,7 +330,10 @@ export class TemplatePiece implements StructurePiece {
             const z = originZ + block.pos[2];
             if (!writer.setBedrockBlock(x, y, z, state)) continue;
 
-            const request = block.nbt === undefined ? undefined : blockEntityOf(block.nbt);
+            const request =
+                block.nbt === undefined
+                    ? undefined
+                    : blockEntityOf(block.nbt, this.options.store.javaBlockOf(this.options.template, block.nbt));
             if (request !== undefined) writer.setBlockEntity(x, y, z, request);
         }
 
@@ -408,13 +437,14 @@ const dataMarkerOf = (nbt: NBTTagCompound): string | undefined => {
 };
 
 /**
- * The block entity a template block carries, reduced to the fields the chunk can store.
+ * The block entity a template block carries.
  *
- * A template's NBT holds the whole saved block entity. Only the type, the loot table and a
- * spawner's entity survive into a generated chunk, because an unopened container is what the
- * game saves too.
+ * The type, the loot table and a spawner's entity are read out here because the pieces that
+ * build a legacy structure from code set the same three fields. The saved compound rides along
+ * whole, and `javaGeneratedContent` translates the rest of it when the chunk stores the block
+ * entity.
  */
-const blockEntityOf = (nbt: NBTTagCompound): BlockEntityRequest | undefined => {
+const blockEntityOf = (nbt: NBTTagCompound, javaBlock: string | undefined): BlockEntityRequest | undefined => {
     const id = stringField(nbt, 'id');
     if (id === undefined) return undefined;
 
@@ -422,6 +452,8 @@ const blockEntityOf = (nbt: NBTTagCompound): BlockEntityRequest | undefined => {
     const spawnEntity = spawnerEntityOf(nbt);
     return {
         id,
+        saved: nbt,
+        ...(javaBlock === undefined ? {} : { javaBlock }),
         ...(lootTable === undefined ? {} : { lootTable }),
         ...(spawnEntity === undefined ? {} : { spawnEntity })
     };

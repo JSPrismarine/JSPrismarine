@@ -13,6 +13,7 @@ import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import type { BlockEntity } from '../../../blockentity/BlockEntity';
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { bedrockBlockEntityIdForJavaType } from '../../../blockentity/bedrockBlockEntityIds';
+import { applyJavaBlockEntityContent } from '../../../blockentity/javaBlockEntityContent';
 import { bedrockLootPathOf } from '../../../content/lootTablePaths';
 import type { EntitySpawn } from '../../EntitySpawn';
 import type { RegionBlockEntity, RegionEntitySpawn } from './GenerationRegion';
@@ -79,6 +80,14 @@ const addRequestedFields = (nbt: NBTTagCompound, placed: RegionBlockEntity, seed
         exit.addValue('Z', new Types.NumberVal(request.exitPortal.z));
         nbt.addChild(exit);
         nbt.addValue('Age', new Types.LongVal(0n));
+    }
+
+    // Everything a structure template saved beyond the fields above: a banner's color and
+    // layers, a sign's text, a pot's sherds, a vault's key, a container's stacks.
+    if (request.saved instanceof NBTTagCompound) {
+        applyJavaBlockEntityContent(nbt, request.saved, {
+            ...(request.javaBlock === undefined ? {} : { javaBlock: request.javaBlock })
+        });
     }
 
     if (request.exactTeleport !== undefined) {

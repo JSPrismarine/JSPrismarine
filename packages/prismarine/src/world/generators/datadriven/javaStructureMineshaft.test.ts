@@ -37,7 +37,8 @@ const noTemplates = {
     template: () => undefined,
     prepared: () => undefined,
     size: () => undefined,
-    processors: () => []
+    processors: () => [],
+    javaBlockOf: () => undefined
 };
 
 const contextFor = (seed: bigint, variant: 'normal' | 'mesa'): StructureBuildContext => ({

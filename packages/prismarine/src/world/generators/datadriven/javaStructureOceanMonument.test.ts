@@ -79,7 +79,8 @@ const contextOf = (seed: number, chunkX = 2, chunkZ = -3): StructureBuildContext
         template: () => undefined,
         prepared: () => undefined,
         size: () => undefined,
-        processors: () => []
+        processors: () => [],
+        javaBlockOf: () => undefined
     },
     pool: () => undefined
 });
