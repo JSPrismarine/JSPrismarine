@@ -16,6 +16,7 @@
 import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 
+import { DamageLog } from './damageLog';
 import type { EntityFacts } from './facts';
 import { blocksPerTick } from './facts';
 
@@ -24,6 +25,9 @@ const ARRIVAL_RADIUS = 0.25;
 
 /** How many ticks of no progress make a walk stuck, which is what a brain reads. */
 const STUCK_TICKS = 100;
+
+/** Below this many blocks per tick an impulse has spent itself, so the body stops. */
+const IMPULSE_FLOOR = 0.003;
 
 /**
  * Everything about a live entity that exists before its components do.
@@ -58,6 +62,44 @@ export class MobBody {
     /** What the entity holds in its main hand. */
     public carried: string | undefined;
 
+    /** What the entity carries that is not in its hand, as item identifiers. */
+    public readonly inventory: string[] = [];
+
+    /** Who has hurt the entity, with the running total each has dealt. */
+    public readonly damage = new DamageLog();
+
+    /** Who last knocked the entity about, which `target_when_pushed` reads. */
+    public lastPusher: number | undefined;
+
+    /** Who tamed the entity, by runtime id, or undefined while it is nobody's. */
+    public owner: number | undefined;
+
+    /** The player with the entity's trade screen open, by runtime id. */
+    public tradingPlayer: number | undefined;
+
+    /** Whether the entity is sat down, which the sit goals hold while they run. */
+    public sitting = false;
+
+    /** Whether the entity is asleep, which the sleep and nap goals hold while they run. */
+    public sleeping = false;
+
+    /**
+     * How many ticks the entity stays in love, which is what feeding it a
+     * breeding item sets and what `minecraft:behavior.breed` spends.
+     */
+    public loveTicks = 0;
+
+    /** How many ticks before the entity may breed again, from Java's `Animal.ageUp`. */
+    public breedCooldown = 0;
+
+    /**
+     * The impulse the leap, charge and ram goals add, in blocks per tick.
+     *
+     * The runtime spends it rather than {@link MobBody.step}, because landing
+     * is a question about blocks and the body has no view of them.
+     */
+    public velocity: EntityPosition = { x: 0, y: 0, z: 0 };
+
     private destination: EntityPosition | undefined;
     private speedMultiplier = 1;
     /** Ticks since the destination was set without the entity getting any closer. */
@@ -87,6 +129,26 @@ export class MobBody {
     /** Whether the entity has stopped making progress towards its destination. */
     public get stuck(): boolean {
         return this.destination !== undefined && this.idleTicks >= STUCK_TICKS;
+    }
+
+    /** Whether an impulse is still carrying the entity, which suspends its walk. */
+    public get airborne(): boolean {
+        const { x, y, z } = this.velocity;
+        return Math.abs(x) > IMPULSE_FLOOR || Math.abs(y) > IMPULSE_FLOOR || Math.abs(z) > IMPULSE_FLOOR;
+    }
+
+    /** Adds to the entity's own velocity, which is what a leap or a charge is. */
+    public push(velocity: EntityPosition): void {
+        this.velocity = {
+            x: this.velocity.x + velocity.x,
+            y: this.velocity.y + velocity.y,
+            z: this.velocity.z + velocity.z
+        };
+    }
+
+    /** Drops the impulse, which is what landing does. */
+    public land(): void {
+        this.velocity = { x: 0, y: 0, z: 0 };
     }
 
     /** Starts walking towards a position at a multiple of the entity's own speed. */
@@ -119,6 +181,10 @@ export class MobBody {
      * as it does in the behavior pack.
      */
     public step(): void {
+        // A leaping entity goes where the leap sends it, which is Java's rule too: the path
+        // resumes once the mob is back on the ground.
+        if (this.airborne) return;
+
         const destination = this.destination;
         if (destination === undefined) return;
 
