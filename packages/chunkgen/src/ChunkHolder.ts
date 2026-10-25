@@ -2,6 +2,7 @@ import type { ChunkStatus } from './ChunkStatus';
 import { isOrAfter, parentOfStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
 import type { ProtoChunk } from './ProtoChunk';
+import type { StagedChunk } from './StagedChunk';
 
 /**
  * Runs one status over a chunk and hands back the chunk at that status.
@@ -10,7 +11,7 @@ import type { ProtoChunk } from './ProtoChunk';
  * that ran in a worker may return a chunk adopted from a transferred payload rather than the one
  * it was given.
  */
-export type ChunkStepBody = (chunk: ProtoChunk) => ProtoChunk | Promise<ProtoChunk>;
+export type ChunkStepBody<TChunk extends StagedChunk = ProtoChunk> = (chunk: TChunk) => TChunk | Promise<TChunk>;
 
 /**
  * Raised when a holder is asked for a status whose parent it has never started.
@@ -77,14 +78,14 @@ export class ChunkNotReadyError extends Error {
  * finishes, and `ChunkHolderMap` drops the holder at zero. An LRU would evict a chunk a running
  * feature pass is still writing into.
  */
-export class ChunkHolder {
+export class ChunkHolder<TChunk extends StagedChunk = ProtoChunk> {
     /** The status whose body has been started, which is Java's `startedWork`. */
     private started: ChunkStatus | undefined;
     /** The status whose body has finished. Reads below `reached` are the ones that are safe. */
     private reached: ChunkStatus | undefined;
-    private readonly futures = new Map<ChunkStatus, Promise<ProtoChunk>>();
+    private readonly futures = new Map<ChunkStatus, Promise<TChunk>>();
     private references = 0;
-    private chunk: ProtoChunk | undefined;
+    private chunk: TChunk | undefined;
 
     /**
      * @param chunkX - Chunk x coordinate.
@@ -96,7 +97,7 @@ export class ChunkHolder {
     public constructor(
         public readonly chunkX: number,
         public readonly chunkZ: number,
-        private readonly newChunk: (chunkX: number, chunkZ: number) => ProtoChunk
+        private readonly newChunk: (chunkX: number, chunkZ: number) => TChunk
     ) {}
 
     /** The highest status whose body has finished, or undefined before `empty` has run. */
@@ -141,7 +142,7 @@ export class ChunkHolder {
     }
 
     /** The promise a status resolved or will resolve to, or undefined when it has not been asked for. */
-    public futureFor(status: ChunkStatus): Promise<ProtoChunk> | undefined {
+    public futureFor(status: ChunkStatus): Promise<TChunk> | undefined {
         return this.futures.get(status);
     }
 
@@ -155,7 +156,7 @@ export class ChunkHolder {
      *
      * @throws ChunkNotReadyError when the chunk has not reached that status.
      */
-    public chunkAt(status: ChunkStatus): ProtoChunk {
+    public chunkAt(status: ChunkStatus): TChunk {
         if (this.chunk === undefined || !this.hasReached(status)) {
             throw new ChunkNotReadyError(this.chunkX, this.chunkZ, status, this.reached);
         }
@@ -176,7 +177,7 @@ export class ChunkHolder {
      * @returns The chunk at `step.targetStatus`.
      * @throws ChunkStepOutOfOrderError when the holder has not started the parent status.
      */
-    public applyStep(step: ChunkStep, body: ChunkStepBody): Promise<ProtoChunk> {
+    public applyStep(step: ChunkStep, body: ChunkStepBody<TChunk>): Promise<TChunk> {
         const shared = this.futures.get(step.targetStatus);
         if (shared !== undefined) return shared;
 
@@ -202,7 +203,7 @@ export class ChunkHolder {
         this.started = status;
     }
 
-    private async runStep(step: ChunkStep, body: ChunkStepBody): Promise<ProtoChunk> {
+    private async runStep(step: ChunkStep, body: ChunkStepBody<TChunk>): Promise<TChunk> {
         const parent = parentOfStatus(step.targetStatus);
         if (parent !== undefined) await this.waitFor(parent);
 
@@ -217,7 +218,7 @@ export class ChunkHolder {
         return produced;
     }
 
-    private waitFor(status: ChunkStatus): Promise<ProtoChunk> {
+    private waitFor(status: ChunkStatus): Promise<TChunk> {
         const future = this.futures.get(status);
         // Unreachable while `claim` guards every entry: the parent was claimed before this status
         // could be, and claiming a status stores its promise in the same turn.

@@ -7,15 +7,16 @@ import type { ChunkStatus } from './ChunkStatus';
 import { CHUNK_STATUSES, indexOfStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
 import type { ProtoChunk } from './ProtoChunk';
+import type { StagedChunk } from './StagedChunk';
 import type { StepTask, StepTasks } from './StepTasks';
 import { StepRegion } from './StepTasks';
 
 /** What a scheduler is built over. */
-export interface GenerationSchedulerOptions {
+export interface GenerationSchedulerOptions<TChunk extends StagedChunk = ProtoChunk> {
     /** Where holders live and how long they live, shared by every run on this scheduler. */
-    readonly holders: ChunkHolderMap;
+    readonly holders: ChunkHolderMap<TChunk>;
     /** The status bodies. A status with no entry passes its chunk through. */
-    readonly tasks: StepTasks;
+    readonly tasks: StepTasks<TChunk>;
     /** Defaults to {@link GENERATION_PYRAMID}, the table a chunk climbs when it must be generated. */
     readonly pyramid?: ChunkPyramid;
 }
@@ -62,13 +63,13 @@ export class MissingGenerationLayerError extends Error {
  * its own reference on the holder first; otherwise the holders are dropped and the returned
  * {@link ProtoChunk} is all that survives.
  */
-export class GenerationScheduler {
-    private readonly holders: ChunkHolderMap;
-    private readonly tasks: StepTasks;
+export class GenerationScheduler<TChunk extends StagedChunk = ProtoChunk> {
+    private readonly holders: ChunkHolderMap<TChunk>;
+    private readonly tasks: StepTasks<TChunk>;
     private readonly pyramid: ChunkPyramid;
 
     /** @param options - The holder map, the status bodies, and optionally a pyramid to replace the generation one. */
-    public constructor(options: GenerationSchedulerOptions) {
+    public constructor(options: GenerationSchedulerOptions<TChunk>) {
         this.holders = options.holders;
         this.tasks = options.tasks;
         this.pyramid = options.pyramid ?? GENERATION_PYRAMID;
@@ -95,7 +96,7 @@ export class GenerationScheduler {
      * @throws MissingGenerationLayerError when the step table leaves a layer below the target
      * without a radius.
      */
-    public async generate(chunkX: number, chunkZ: number, target: ChunkStatus): Promise<ProtoChunk> {
+    public async generate(chunkX: number, chunkZ: number, target: ChunkStatus): Promise<TChunk> {
         const targetStep = this.pyramid.stepTo(target);
         const held = this.holders.acquireSquare(chunkX, chunkZ, targetStep.accumulatedRadiusOf('empty'));
         try {
@@ -116,7 +117,7 @@ export class GenerationScheduler {
     private runLayer(centerX: number, centerZ: number, status: ChunkStatus, radius: number): Promise<unknown> {
         const step = this.pyramid.stepTo(status);
         const task = this.tasks[status];
-        const layer: Promise<ProtoChunk>[] = [];
+        const layer: Promise<TChunk>[] = [];
 
         for (let dz = -radius; dz <= radius; dz++) {
             for (let dx = -radius; dx <= radius; dx++) {
@@ -131,16 +132,16 @@ export class GenerationScheduler {
      * Wraps a status body so it sees a window-checked region, or passes the chunk through when the
      * status has no body yet.
      */
-    private bodyFor(step: ChunkStep, task: StepTask | undefined): ChunkStepBody {
+    private bodyFor(step: ChunkStep, task: StepTask<TChunk> | undefined): ChunkStepBody<TChunk> {
         if (task === undefined) return (chunk) => chunk;
         return (chunk) => task(new StepRegion(step, chunk, this.readNeighbor));
     }
 
     /** Reads a neighbor the step table has already allowed. An arrow so the region can carry it. */
-    private readonly readNeighbor = (chunkX: number, chunkZ: number, status: ChunkStatus): ProtoChunk =>
+    private readonly readNeighbor = (chunkX: number, chunkZ: number, status: ChunkStatus): TChunk =>
         this.holderAt(chunkX, chunkZ, status).chunkAt(status);
 
-    private holderAt(chunkX: number, chunkZ: number, status: ChunkStatus): ChunkHolder {
+    private holderAt(chunkX: number, chunkZ: number, status: ChunkStatus): ChunkHolder<TChunk> {
         const holder = this.holders.get(chunkX, chunkZ);
         // Every chunk a run touches is inside the square it acquired up front, so a miss means
         // either a body read past its window or a task released a reference it did not own.

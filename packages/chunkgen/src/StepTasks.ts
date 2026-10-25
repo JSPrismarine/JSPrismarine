@@ -1,6 +1,7 @@
 import type { ChunkStatus } from './ChunkStatus';
 import type { ChunkStep } from './ChunkStep';
 import type { ProtoChunk } from './ProtoChunk';
+import type { StagedChunk } from './StagedChunk';
 
 /**
  * Reads a neighbor's chunk, having already been told the read is inside the step's window.
@@ -8,7 +9,11 @@ import type { ProtoChunk } from './ProtoChunk';
  * The scheduler supplies this over its holder map. It raises `ChunkNotReadyError` when the chunk
  * has not reached the status, which means a layer ran before the layer below it finished.
  */
-export type NeighborReader = (chunkX: number, chunkZ: number, status: ChunkStatus) => ProtoChunk;
+export type NeighborReader<TChunk extends StagedChunk = ProtoChunk> = (
+    chunkX: number,
+    chunkZ: number,
+    status: ChunkStatus
+) => TChunk;
 
 /**
  * What one status body is handed: its own chunk, and the neighbors its step declared.
@@ -19,7 +24,7 @@ export type NeighborReader = (chunkX: number, chunkZ: number, status: ChunkStatu
  * the step did not declare is therefore a crash on the first chunk instead of a block that differs
  * on the thousandth.
  */
-export class StepRegion {
+export class StepRegion<TChunk extends StagedChunk = ProtoChunk> {
     /**
      * @param step - The rung being climbed, which carries the read window and the write radius.
      * @param center - The chunk the body is advancing, at the status below.
@@ -27,8 +32,8 @@ export class StepRegion {
      */
     public constructor(
         public readonly step: ChunkStep,
-        public readonly center: ProtoChunk,
-        private readonly read: NeighborReader
+        public readonly center: TChunk,
+        private readonly read: NeighborReader<TChunk>
     ) {}
 
     /** Chunk x coordinate of the chunk being advanced. */
@@ -49,7 +54,7 @@ export class StepRegion {
      * @param status - The status the body needs that neighbor to have reached.
      * @throws ChunkReadOutOfWindowError when the step did not declare that status at that distance.
      */
-    public neighbor(dx: number, dz: number, status: ChunkStatus): ProtoChunk {
+    public neighbor(dx: number, dz: number, status: ChunkStatus): TChunk {
         this.step.requireReadable(dx, dz, status);
         if (dx === 0 && dz === 0) return this.center;
         return this.read(this.chunkX + dx, this.chunkZ + dz, status);
@@ -69,7 +74,9 @@ export class StepRegion {
  * the return value is used rather than ignored. The holder records the new status, so a body
  * should not call `advanceTo` itself.
  */
-export type StepTask = (region: StepRegion) => ProtoChunk | Promise<ProtoChunk>;
+export type StepTask<TChunk extends StagedChunk = ProtoChunk> = (
+    region: StepRegion<TChunk>
+) => TChunk | Promise<TChunk>;
 
 /**
  * The bodies, by status. This is the seam the server's generation code plugs into.
@@ -78,4 +85,6 @@ export type StepTask = (region: StepRegion) => ProtoChunk | Promise<ProtoChunk>;
  * `light` and `spawn` do today and what every status above `terrain` does until slice 7. A
  * pass-through still climbs the rung, so the accumulated radii and the retention stay Java's.
  */
-export type StepTasks = Partial<Readonly<Record<ChunkStatus, StepTask>>>;
+export type StepTasks<TChunk extends StagedChunk = ProtoChunk> = Partial<
+    Readonly<Record<ChunkStatus, StepTask<TChunk>>>
+>;

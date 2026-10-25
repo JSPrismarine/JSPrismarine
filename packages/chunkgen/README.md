@@ -145,11 +145,48 @@ for at once at a `full` target build terrain over the union of their windows, 49
 sixteen chunks of a 4 by 4 area come out identical whether they are asked for row major, reversed,
 shuffled, one at a time or all sixteen at once.
 
+## The feature patch
+
+`features` is the one status that writes outside its own chunk, and the one place two bodies
+running at once could land on the same block. Nothing writes through. A feature's writes into its
+own chunk apply as they happen, so features inside a chunk still see each other the way Java's do;
+a write that lands in a neighbor is recorded and handed to that neighbor's `InboundFeaturePatches`.
+The neighbor applies its own post-`features` state first and the patches after it, in
+`FEATURE_PATCH_ORDER`.
+
+```ts
+inbound.receive(-1, 0, patchFromTheWest);
+inbound.inMergeOrder(); // ordered by position, not by when each arrived
+```
+
+The order is `(dx, dz)` ascending with `dx` fastest, and storing by source offset rather than
+appending to a list is the mechanism rather than a detail: a list would record arrival order, and
+arrival order is what the scheduler chooses. `receive` refuses the chunk's own offset and anything
+past radius 1, and refuses a second patch from the same neighbor, which would mean a `features`
+body ran twice.
+
+This is ADR 0002's one deliberate deviation from Java. Java writes through a live `WorldGenRegion`
+into the neighbor's proto chunk, so which of two overlapping features wins depends on which chunk
+reached `features` first, which depends on scheduling; Java's border output is therefore not a
+function of the seed alone, and ours is. The price is one case: a feature whose placement decision
+reads a block sees the neighbor's terrain and not the neighbor's features, so two features can end
+up in the same space where Java would have refused the second.
+
+## Driving something other than a proto chunk
+
+The holder, the map and the scheduler take the chunk type as a parameter, defaulting to
+`ProtoChunk`. All they need of it is `StagedChunk`: where it is, which rung it is on, and an
+`advanceTo` that refuses to go backward.
+
+The seam is there because a server that already has a chunk buffer should climb the ladder with
+that buffer. `@jsprismarine/prismarine` does: its generation stages speak Java block states with
+properties, which a flat string palette would have to encode on the way in and decode on the way
+out, twice per status. `ProtoChunk` stays the representation a worker transfers.
+
 ## What is not here yet
 
-The feature patch and the worker pool. They land in later slices of
-[the plan](../../docs/plans/chunk-generation-rewrite.md), and until they do, nothing in the server
-imports this package.
+The worker pool. It lands in a later slice of
+[the plan](../../docs/plans/chunk-generation-rewrite.md).
 
 ## Installation
 

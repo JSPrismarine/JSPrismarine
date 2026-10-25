@@ -1,5 +1,6 @@
 import { ChunkHolder } from './ChunkHolder';
 import type { ProtoChunk } from './ProtoChunk';
+import type { StagedChunk } from './StagedChunk';
 
 /**
  * The holders a generation run is working on, kept alive by reference count.
@@ -15,15 +16,15 @@ import type { ProtoChunk } from './ProtoChunk';
  * releases them all when it finishes, so nothing it depends on can be dropped while it is in
  * flight. A caller that wants a chunk to stay resident past a run acquires its own reference.
  */
-export class ChunkHolderMap {
-    private readonly holders = new Map<string, ChunkHolder>();
+export class ChunkHolderMap<TChunk extends StagedChunk = ProtoChunk> {
+    private readonly holders = new Map<string, ChunkHolder<TChunk>>();
 
     /**
      * @param newChunk - Allocates the chunk a new holder starts from, called once per holder on
      * its first step. The server passes the dimension's build height through here, and a test
      * passes a short column.
      */
-    public constructor(private readonly newChunk: (chunkX: number, chunkZ: number) => ProtoChunk) {}
+    public constructor(private readonly newChunk: (chunkX: number, chunkZ: number) => TChunk) {}
 
     /** How many holders are retained. Zero after every task has released what it took. */
     public get size(): number {
@@ -31,12 +32,12 @@ export class ChunkHolderMap {
     }
 
     /** The holder for a chunk, or undefined when nothing retains it. */
-    public get(chunkX: number, chunkZ: number): ChunkHolder | undefined {
+    public get(chunkX: number, chunkZ: number): ChunkHolder<TChunk> | undefined {
         return this.holders.get(keyOf(chunkX, chunkZ));
     }
 
     /** Every retained holder, in the order the holders were created. */
-    public values(): IterableIterator<ChunkHolder> {
+    public values(): IterableIterator<ChunkHolder<TChunk>> {
         return this.holders.values();
     }
 
@@ -45,12 +46,12 @@ export class ChunkHolderMap {
      *
      * @returns The holder, which the caller must release exactly once.
      */
-    public acquire(chunkX: number, chunkZ: number): ChunkHolder {
+    public acquire(chunkX: number, chunkZ: number): ChunkHolder<TChunk> {
         const key = keyOf(chunkX, chunkZ);
         const existing = this.holders.get(key);
         if (existing !== undefined) return existing.acquire();
 
-        const holder = new ChunkHolder(chunkX, chunkZ, this.newChunk);
+        const holder = new ChunkHolder<TChunk>(chunkX, chunkZ, this.newChunk);
         this.holders.set(key, holder);
         return holder.acquire();
     }
@@ -83,8 +84,8 @@ export class ChunkHolderMap {
      *
      * @returns The holders, row major with x ascending fastest, each owing one release.
      */
-    public acquireSquare(centerX: number, centerZ: number, radius: number): readonly ChunkHolder[] {
-        const acquired: ChunkHolder[] = [];
+    public acquireSquare(centerX: number, centerZ: number, radius: number): readonly ChunkHolder<TChunk>[] {
+        const acquired: ChunkHolder<TChunk>[] = [];
         for (let dz = -radius; dz <= radius; dz++) {
             for (let dx = -radius; dx <= radius; dx++) acquired.push(this.acquire(centerX + dx, centerZ + dz));
         }
@@ -92,7 +93,7 @@ export class ChunkHolderMap {
     }
 
     /** Gives back one reference on each of the holders, dropping those that reach zero. */
-    public releaseAll(holders: Iterable<ChunkHolder>): void {
+    public releaseAll(holders: Iterable<ChunkHolder<TChunk>>): void {
         for (const holder of holders) this.release(holder.chunkX, holder.chunkZ);
     }
 }
