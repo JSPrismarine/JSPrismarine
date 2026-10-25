@@ -136,13 +136,29 @@ export default class GameRuleManager {
      * logged as an error.
      */
     public getGameRule(name: string): GameRuleEntry | null {
-        const key = this.names.get(name.toLowerCase());
-        if (key === undefined) {
+        const found = this.findGameRule(name);
+        if (found === undefined) {
             this.server.getLogger().error(`Unknown GameRule with name ${name}`);
             return null;
         }
 
-        return this.rules.get(key) ?? null;
+        return found;
+    }
+
+    /**
+     * Returns a rule's value and editability without logging a miss.
+     *
+     * {@link GameRuleManager.getGameRule} treats an unknown name as a mistake, because a caller
+     * that spells a rule out has one in mind. A caller that is trying several spellings of the
+     * same rule, as the content world adapter does, would fill the log with the ones that did
+     * not match.
+     *
+     * @param name - The rule's name, in any casing.
+     * @returns The entry, or undefined for a rule nobody registered.
+     */
+    public findGameRule(name: string): GameRuleEntry | undefined {
+        const key = this.names.get(name.toLowerCase());
+        return key === undefined ? undefined : this.rules.get(key);
     }
 
     /** Every rule, keyed by the name the wire uses. */

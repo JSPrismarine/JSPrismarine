@@ -35,7 +35,8 @@ const stubWorld = (): { adapter: ServerWorldAdapter; writes: ContentPosition[]; 
             difficulty: () => 'hard',
             weather: () => 'rain',
             isRainingAt: () => false,
-            spawnPosition: () => ({ x: 0, y: 64, z: 0 })
+            spawnPosition: () => ({ x: 0, y: 64, z: 0 }),
+            gameRule: () => undefined
         },
         blocks: {
             get: () => LIT_LAMP,

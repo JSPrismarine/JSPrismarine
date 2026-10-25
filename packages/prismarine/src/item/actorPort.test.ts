@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import Player from '../Player';
 import { createItemActorPort } from './actorPort';
 import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
+import { unwiredWorld } from '../content/world/unwired';
 import type { Entity } from '../entity/Entity';
 import type { World } from '../world/World';
 
@@ -38,9 +39,15 @@ const worldDouble = (player: Player, recorded: Recorded): World =>
         })
     }) as unknown as World;
 
-/** The clock the cooldowns are measured against, which a test moves by hand. */
+/**
+ * The clock the cooldowns are measured against, which a test moves by hand.
+ *
+ * Built over {@link unwiredWorld}'s level rather than over a cast, so the port can only ever
+ * reach the one member this names: everything else throws and says which subsystem owes it,
+ * and a member added to `ContentLevelFacts` arrives here without the test being touched.
+ */
 const clock = (): ContentLevelFacts & { tick: number } => {
-    const level = { tick: 0, gameTime: () => level.tick } as ContentLevelFacts & { tick: number };
+    const level = { ...unwiredWorld().level, tick: 0, gameTime: () => level.tick };
     return level;
 };
 
