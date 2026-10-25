@@ -82,6 +82,14 @@ const UNSUITABLE_SPAWN_SURFACES = new Set([
 const PRELOAD_BATCH_SIZE = 32;
 
 /**
+ * Chunks written between yields to the event loop while saving.
+ *
+ * Smaller than the preload's batch because a save happens while players are connected: eight
+ * chunks is a couple of milliseconds, so a tick that lands mid-save is late rather than lost.
+ */
+const SAVE_BATCH_SIZE = 8;
+
+/**
  * How far from a player the world simulates, in chunks.
  *
  * Java Edition's `simulation-distance` default, and a separate thing from how far a client is
@@ -1549,16 +1557,24 @@ export class World implements Service {
 
     /**
      * Saves changed chunks into disk.
+     *
+     * In batches with a yield between them, for the same reason the preload runs in batches:
+     * writing a chunk is synchronous, so `Promise.all` over every changed chunk was one
+     * uninterrupted run of work. The first autosave after a start region preload has all 441
+     * chunks to write and held the event loop for ten seconds - the server froze solid, and
+     * the tick loop came back announcing it had skipped two hundred ticks.
      */
     public async saveChunks(): Promise<void> {
         const timer = new Timer();
         this.server.getLogger().info(`Saving chunks for level ${this.getFormattedName()}`);
 
-        await Promise.all(
-            Array.from(this.chunks.values())
-                .filter((c) => c.getHasChanged())
-                .map(async (chunk) => this.provider.writeChunk(chunk))
-        );
+        const changed = Array.from(this.chunks.values()).filter((chunk) => chunk.getHasChanged());
+        for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
+            for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) await this.provider.writeChunk(chunk);
+
+            if (i + SAVE_BATCH_SIZE < changed.length) await new Promise((resolve) => setImmediate(resolve));
+        }
+
         this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`);
     }
 
