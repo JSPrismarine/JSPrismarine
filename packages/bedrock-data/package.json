@@ -39,6 +39,7 @@
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "datagen:java": "node utils/java/datagen.ts",
+        "dump:bedrock": "node utils/bedrock-dump/run.ts",
         "dump:java": "node utils/java-dump/run.mjs",
         "fetch:sources": "node utils/fetch/fetch-sources.ts",
         "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
@@ -58,6 +59,9 @@
     "license": "MIT",
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/bedrock-data",
     "devDependencies": {
+        "@jsprismarine/binaryutils": "workspace:*",
+        "@jsprismarine/leveldb": "workspace:*",
+        "@jsprismarine/nbt": "workspace:*",
         "@types/node": "24.19.2",
         "glob": "13.0.6",
         "rimraf": "6.1.3",

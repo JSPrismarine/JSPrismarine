@@ -27,6 +27,12 @@
  * node packages/client/tools/capture-server-data.mjs --host 127.0.0.1 --port 19132
  * ```
  *
+ * `--extended <dir>` additionally writes the raw payload of the engine tables this repository
+ * has no decoder for yet - the recipe list, the creative menu, the command tree, the actor
+ * identifiers, the collision shapes, the armor trims and the camera presets. Those files are
+ * the fixtures a decoder is written against, in the way `StartGamePacket.test.ts` is written
+ * against a captured `StartGamePacket`, so the capture does not have to wait for the decoder.
+ *
  * BDS needs `online-mode=false` and `allow-list=false` to accept an offline identity, and
  * `transport=raknet` from 1.26.50 on - it defaults to NetherNet now, which this client does
  * not speak. Nothing else is required, and the world it generates is thrown away: all three
@@ -49,10 +55,29 @@ const { values } = parseArgs({
         host: { type: 'string', default: '127.0.0.1' },
         port: { type: 'string', default: '19132' },
         out: { type: 'string', default: JSP },
+        /** Where the raw engine table payloads go. Empty means do not record them. */
+        extended: { type: 'string', default: '' },
         /** What the captured files say they came from, e.g. `bedrock-server-1.26.51.1`. */
         server: { type: 'string', default: '' }
     }
 });
+
+/**
+ * The engine tables the extended capture keeps as raw payloads, by packet identifier.
+ *
+ * Each is something only a running server produces: the recipe registry with its net ids, the
+ * creative menu, the command grammar, the numeric entity ids, the collision shapes. Keeping
+ * the bytes rather than a decode means a later decoder has a fixture to be tested against.
+ */
+const EXTENDED_PACKETS = new Map([
+    [PacketIdentifier.CRAFTING_DATA, 'crafting_data'],
+    [PacketIdentifier.CREATIVE_CONTENT, 'creative_content'],
+    [PacketIdentifier.AVAILABLE_COMMANDS, 'available_commands'],
+    [PacketIdentifier.AVAILABLE_ACTOR_IDENTIFIERS, 'available_actor_identifiers'],
+    [PacketIdentifier.VOXEL_SHAPES, 'voxel_shapes'],
+    [PacketIdentifier.TRIM_DATA, 'trim_data'],
+    [PacketIdentifier.CAMERA_PRESETS, 'camera_presets']
+]);
 
 const client = new Client({
     host: values.host,
@@ -85,9 +110,15 @@ const payloadOf = (buffer) => {
     return Buffer.from(buffer.subarray(cursor));
 };
 
+/** First payload seen per extended packet, keyed by file name. A server sends each once. */
+const extended = new Map();
+
 client.getSession().on('raw', ({ id, buffer }) => {
     if (id === PacketIdentifier.JIGSAW_STRUCTURE_DATA) jigsaw = payloadOf(buffer);
     if (id === PacketIdentifier.BIOME_DEFINITION_LIST) biomes = payloadOf(buffer);
+
+    const name = EXTENDED_PACKETS.get(id);
+    if (values.extended !== '' && name !== undefined && !extended.has(name)) extended.set(name, payloadOf(buffer));
 });
 
 const relative = (file) => path.relative(process.cwd(), file);
@@ -147,6 +178,17 @@ try {
     fs.writeFileSync(biomesFile, biomes);
     console.log(`Wrote ${relative(biomesFile)}`);
     console.log(`  ${biomes.byteLength} bytes of biome definitions`);
+
+    if (values.extended !== '') {
+        fs.mkdirSync(values.extended, { recursive: true });
+        for (const [name, payload] of [...extended].sort(([a], [b]) => a.localeCompare(b))) {
+            const file = path.join(values.extended, `${name}.bin`);
+            fs.writeFileSync(file, payload);
+            console.log(`Wrote ${relative(file)} (${payload.byteLength} bytes)`);
+        }
+        const missing = [...EXTENDED_PACKETS.values()].filter((name) => !extended.has(name));
+        if (missing.length > 0) console.warn(`  The server sent no ${missing.join(', ')}`);
+    }
 } catch (error) {
     console.error(`Could not capture: ${error instanceof Error ? error.message : String(error)}`);
     process.exitCode = 1;

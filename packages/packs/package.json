@@ -69,6 +69,10 @@
         "vitest": "5.0.5"
     },
     "dependencies": {
+        "@spyglassmc/core": "0.4.57",
+        "@spyglassmc/java-edition": "0.3.70",
+        "@spyglassmc/json": "0.3.61",
+        "@spyglassmc/mcdoc": "0.3.61",
         "ajv": "8.20.0"
     }
 }
