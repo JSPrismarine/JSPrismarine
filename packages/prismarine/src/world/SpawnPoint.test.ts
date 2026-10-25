@@ -288,6 +288,22 @@ describe('a player with a spawn point of their own', () => {
         await scene.provider.disable();
     }, 120_000);
 
+    it('moves the world spawn through /setworldspawn, which is where a player with no point goes', async () => {
+        const scene = await buildScene('worldspawn');
+        const player = buildPlayer(scene.world, scene.server, UUID.fromRandom());
+
+        const host = worldCommandHost(scene.server);
+        expect(host.setWorldSpawn('minecraft:overworld', { x: -8, y: 72, z: 44 }, 0)).toBe(true);
+        expect(await scene.world.getSpawnPosition()).toEqual(new Vector3(-8, 72, 44));
+
+        // A player with no point of their own comes back at it.
+        expect(player.getSpawnPoint()).toBeUndefined();
+        const point = await player.getRespawnPoint();
+        expect([point.block.getX(), point.block.getY(), point.block.getZ()]).toEqual([-8, 72, 44]);
+
+        await scene.provider.disable();
+    }, 120_000);
+
     it('keeps the point across a logout, through the player record', async () => {
         const uuid = UUID.fromRandom();
 
