@@ -55,6 +55,24 @@ export const planPush = (world: WorldActions, origin: BlockPosition, face: Block
 };
 
 /**
+ * Moves one block and everything attached to it by one position.
+ *
+ * A push is a move rather than a break and a place. A block write clears the
+ * block entity at the position, so writing the two blocks separately leaves
+ * the chest's contents behind and the chest arrives empty; the record is read
+ * before the write that would clear it and written again at the new position.
+ */
+const carry = (world: WorldActions, from: BlockPosition, to: BlockPosition): void => {
+    const block = world.getBlock(from);
+    if (block === undefined) return;
+
+    const carried = world.getBlockData(from);
+    world.setBlock(to, block.identifier, block.states);
+    if (carried !== undefined) world.setBlockData(to, carried);
+    world.setBlock(from, AIR);
+};
+
+/**
  * Runs a planned push: the far block moves first, so each one lands in a
  * position the previous move emptied.
  *
@@ -70,11 +88,7 @@ export const performPush = (world: WorldActions, origin: BlockPosition, face: Bl
     }
 
     for (let index = plan.moved.length - 1; index >= 0; index -= 1) {
-        const from = plan.moved[index]!;
-        const block = world.getBlock(from);
-        if (block === undefined) continue;
-        world.setBlock(offset(from, face), block.identifier, block.states);
-        world.setBlock(from, AIR);
+        carry(world, plan.moved[index]!, offset(plan.moved[index]!, face));
     }
 
     world.notifyNeighbors(offset(origin, face));
@@ -95,8 +109,7 @@ export const performPull = (world: WorldActions, origin: BlockPosition, face: Bl
     if (block === undefined || isReplaceable(block.identifier) || isLiquid(block.identifier)) return false;
     if (world.propertiesOf(block.identifier).pushReaction !== 'push_pull') return false;
 
-    world.setBlock(offset(source, opposite(face)), block.identifier, block.states);
-    world.setBlock(source, AIR);
+    carry(world, source, offset(source, opposite(face)));
     world.notifyNeighbors(source);
     return true;
 };
