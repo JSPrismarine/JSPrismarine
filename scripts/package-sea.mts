@@ -12,6 +12,7 @@ import { mkdirSync, statSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
+import { yargsCjsImportMetaPlugin } from './yargs-cjs-import-meta.ts';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -28,7 +29,8 @@ mkdirSync(seaDir, { recursive: true });
 console.log('Bundling the server...');
 const bundle = await rolldown({
     input: path.join(repoRoot, 'packages', 'server', 'src', 'Server.ts'),
-    platform: 'node'
+    platform: 'node',
+    plugins: [yargsCjsImportMetaPlugin]
 });
 await bundle.write({
     file: path.join(seaDir, 'server.cjs'),
