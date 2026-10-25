@@ -15,6 +15,7 @@ const state = (overrides: Partial<KeyState> = {}): KeyState => ({
     value: '',
     completing: false,
     disabled: false,
+    serverStopping: false,
     interruptPresses: 0,
     ...overrides
 });
@@ -89,6 +90,14 @@ describe('keyToAction', () => {
             expect(keyToAction(ctrlC, state({ interruptPresses: 1 }))).toEqual({ type: 'interrupt', kind: 'stop' });
             expect(keyToAction(ctrlC, state({ interruptPresses: 2 }))).toEqual({ type: 'interrupt', kind: 'force' });
             expect(keyToAction(ctrlC, state({ interruptPresses: 5 }))).toEqual({ type: 'interrupt', kind: 'force' });
+        });
+
+        it('forces on the first empty-line press while the server is stopping', () => {
+            expect(keyToAction(ctrlC, state({ serverStopping: true }))).toEqual({ type: 'interrupt', kind: 'force' });
+            expect(keyToAction(ctrlC, state({ serverStopping: true, value: 'say hi' }))).toEqual({
+                type: 'interrupt',
+                kind: 'clear'
+            });
         });
 
         it('still works while disabled', () => {

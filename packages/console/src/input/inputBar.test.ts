@@ -275,6 +275,15 @@ describe('createInputBar', () => {
             expect(t.hints).toEqual(['press Ctrl+C again to stop the server', 'press Ctrl+C again to stop the server']);
         });
 
+        it('forces on the first press while the server is stopping', async () => {
+            const t = await setup({ serverStopping: () => true });
+            dispose = t.dispose;
+
+            t.mockInput.pressCtrlC();
+            expect(t.interrupts).toEqual(['force']);
+            expect(t.hints).toEqual([]);
+        });
+
         it('forgets the first press when the user types instead', async () => {
             const t = await setup();
             dispose = t.dispose;

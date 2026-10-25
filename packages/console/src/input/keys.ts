@@ -20,6 +20,8 @@ export interface KeyState {
     completing: boolean;
     /** Whether the bar refuses commands, for example while the server is down. */
     disabled: boolean;
+    /** Whether the server is already stopping, so an empty-line Ctrl+C forces at once. */
+    serverStopping: boolean;
     /** Empty-line Ctrl+C presses already counted inside the two second window. */
     interruptPresses: number;
 }
@@ -44,7 +46,8 @@ const hasModifier = (key: InputKey): boolean => key.ctrl || key.shift || key.met
  * Decodes one key press into an input bar action.
  *
  * Ctrl+C clears a line with text. On an empty line the first press asks for a hint, the
- * second press within the window stops the server, and any later press forces it. Enter
+ * second press within the window stops the server, and any later press forces it; while the
+ * server is already stopping the first empty-line press forces. Enter
  * submits a non-blank line unless the bar is disabled. Tab requests completion or cycles the
  * open strip, Shift+Tab cycles backward, and Escape closes the strip. Everything else is `edit`,
  * which the caller hands to the text editor. View hotkeys such as `?` and `g` are not decoded
@@ -53,6 +56,7 @@ const hasModifier = (key: InputKey): boolean => key.ctrl || key.shift || key.met
 export function keyToAction(key: InputKey, state: KeyState): InputAction {
     if (key.ctrl && key.name === 'c') {
         if (state.value.length > 0) return { type: 'interrupt', kind: 'clear' };
+        if (state.serverStopping) return { type: 'interrupt', kind: 'force' };
         if (state.interruptPresses === 0) return { type: 'hint' };
         return { type: 'interrupt', kind: state.interruptPresses === 1 ? 'stop' : 'force' };
     }

@@ -26,6 +26,8 @@ export interface InputBarProps {
     onComplete(line: string, cursor: number): Promise<CompletionResult>;
     /** Called for Ctrl+C: `clear` with text, then `stop` and `force` on an empty line. */
     onInterrupt(kind: InterruptKind): void;
+    /** Whether the server is already stopping; an empty-line Ctrl+C then forces at once. Defaults to false. */
+    serverStopping?(): boolean;
     /** Receives a short status hint, or undefined when the hint no longer applies. */
     onHint?(text: string | undefined): void;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
@@ -187,6 +189,7 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
             value: input.value,
             completing: completion.isOpen,
             disabled,
+            serverStopping: props.serverStopping?.() ?? false,
             interruptPresses: countedInterruptPresses()
         });
 
