@@ -224,14 +224,18 @@ describe('property 3: the mapping composed with the reverse index is identity ex
         );
         for (const declared of DROPPED_BLOCK_PROPERTIES) {
             const blocks = computed.get(declared.property) ?? [];
-            if (Array.isArray(declared.blocks)) expect(blocks.sort(), declared.property).toEqual([...declared.blocks]);
-            else expect(blocks, declared.property).toHaveLength(declared.blocks.count);
+            // `Array.isArray` widens a readonly tuple to `any[]` without taking it out of the
+            // other branch, so the count form is the one asked for by name.
+            if ('count' in declared.blocks) expect(blocks, declared.property).toHaveLength(declared.blocks.count);
+            else expect(blocks.sort(), declared.property).toEqual([...declared.blocks]);
         }
     });
 
     it('round-trips every state to itself or a reviewed loss', () => {
         const mergeTargets = new Set(BLOCK_MERGES.map((merge) => merge.bedrockId));
-        const partialByBlock = new Map(PARTIAL_BLOCK_PROPERTY_COLLAPSES.map((entry) => [entry.block, entry]));
+        const partialByBlock = new Map<string, (typeof PARTIAL_BLOCK_PROPERTY_COLLAPSES)[number]>(
+            PARTIAL_BLOCK_PROPERTY_COLLAPSES.map((entry) => [entry.block, entry])
+        );
 
         // Merges are an identifier-level fact: a Bedrock identifier receiving
         // more than one Java block, whether or not their states collide.
@@ -269,11 +273,12 @@ describe('property 3: the mapping composed with the reverse index is identity ex
                 }
                 const mine = javaStateAt(axes, index);
                 const theirs = javaStateAt(axes, back.index);
-                const dropped = droppedByBlock.get(javaId) ?? new Set();
+                const dropped: ReadonlySet<string> = droppedByBlock.get(javaId) ?? new Set();
                 const partial = partialByBlock.get(javaId);
                 for (const property of Object.keys(mine)) {
                     if (mine[property] === theirs[property]) continue;
-                    const allowed = dropped.has(property) || partial?.properties.includes(property) === true;
+                    const allowed =
+                        dropped.has(property) || partial?.properties.some((declared) => declared === property) === true;
                     expect(allowed, `${javaId}: undeclared collapse of ${property}`).toBe(true);
                     if (!dropped.has(property)) partialHits.add(javaId);
                 }
@@ -357,6 +362,9 @@ describe('property 3: the mapping composed with the reverse index is identity ex
         const merged: string[] = [];
         for (const javaId of Object.keys(registriesTable.biome)) {
             const forward = javaIdentifierToBedrock('biome', javaId);
+            // The ids come out of the table itself, so `unknown` would be it disagreeing with
+            // itself rather than anything this test is about.
+            if (forward.kind === 'unknown') throw new Error(`the biome table does not map ${javaId}`);
             const bedrockId = forward.kind === 'loss' ? forward.loss.bedrockFallback : forward.bedrock;
             expect(bedrockId, javaId).toBeDefined();
             const back = bedrockBiomeToJava(bedrockId ?? '');
