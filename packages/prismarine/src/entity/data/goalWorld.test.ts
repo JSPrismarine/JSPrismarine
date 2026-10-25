@@ -105,7 +105,16 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
         'minecraft:behavior.trade_with_player': { priority: 1 },
         'minecraft:behavior.look_at_trading_player': { priority: 2 }
     }),
-    'jsprismarine:bomber': mob({ 'minecraft:explode': { power: 3 } })
+    'jsprismarine:bomber': mob({ 'minecraft:explode': { power: 3 } }),
+    'jsprismarine:stalker': mob({
+        'minecraft:behavior.nearest_attackable_target': {
+            priority: 1,
+            within_radius: 24,
+            reselect_targets: true,
+            entity_types: [{ filters: { test: 'is_family', subject: 'other', value: 'player' }, max_dist: 24 }]
+        },
+        'minecraft:behavior.melee_box_attack': { priority: 2, speed_multiplier: 1, track_target: true }
+    })
 };
 
 /** A fixture carrying the goal world's entity types. */
@@ -238,6 +247,36 @@ describe('the goal world over the entity runtime', () => {
             );
 
             expect(fixture.reports.join('\n')).toContain('no projectile to shoot');
+        });
+    });
+
+    describe('targeting a player', () => {
+        it('finds the player among the mobs it searches, walks to them and swings', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 700, identifier: 'minecraft:player', position: groundAt(8, 0) }]
+            });
+            const fixture = fixtureOf(world);
+            const stalker = spawned(fixture, 'jsprismarine:stalker', groundAt(0, 0));
+
+            run(fixture, 60);
+
+            expect(stalker.target).toBe(700);
+            expect(stalker.position.x).toBeGreaterThan(4);
+            expect(world.hits.map((hit) => hit.id)).toContain(700);
+        });
+
+        it('leaves a player alone when no entry of its table accepts one', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 700, identifier: 'minecraft:player', position: groundAt(8, 0) }]
+            });
+            const fixture = fixtureOf(world);
+            // `avenger` targets only what its owner is fighting, and it has no owner.
+            const bystander = spawned(fixture, 'jsprismarine:avenger', groundAt(0, 0));
+
+            run(fixture, 60);
+
+            expect(bystander.target).toBeUndefined();
+            expect(world.hits).toEqual([]);
         });
     });
 
