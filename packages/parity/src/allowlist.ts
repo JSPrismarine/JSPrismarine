@@ -294,27 +294,6 @@ export const allowList: readonly AllowListEntry[] = [
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
 
-    // Bedrock has one piston block where Java has a retracted and an extended one, so the
-    // property table's generator had to keep one of the two light dampening values and kept
-    // the extended piston's 0. A Bedrock piston is retracted unless it is firing, and Java
-    // gives the retracted piston 15, so every piston in a world lets light through that should
-    // not. The fix belongs in the generator, which should keep the value of the Java state
-    // whose dropped properties are at their defaults.
-    {
-        family: 'blocks.properties',
-        id: 'minecraft:piston#lightDampening',
-        kind: 'defect',
-        reason: "The table keeps the extended piston's 0; Java gives the retracted piston 15.",
-        reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
-    },
-    {
-        family: 'blocks.properties',
-        id: 'minecraft:sticky_piston#lightDampening',
-        kind: 'defect',
-        reason: "The table keeps the extended piston's 0; Java gives the retracted piston 15.",
-        reference: 'docs/research/java-to-bedrock-translation.md section 2, the `extended` row'
-    },
-
     // Two vanilla recipes make an item Bedrock has no identifier for, so the recipe compiles
     // onto the fallback item the reviewed item loss names. The loss is in `ITEM_LOSSES`; these
     // rows record that a recipe carries it, which is what a player would see in the book.

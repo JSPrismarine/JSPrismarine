@@ -1,5 +1,6 @@
 import type { PlayerSession } from '../../';
 import type Server from '../../Server';
+import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CreativeInventory from '../../inventory/CreativeInventory';
@@ -361,7 +362,15 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         // either taking the output for nothing, or, once that was guarded against,
                         // refusing every craft. The server matched the grid, so the server knows
                         // exactly what the craft costs and takes it.
+                        // Read before the grid is spent, because the ingredients
+                        // a `recipe_crafted` criterion matches are the stacks
+                        // that went in rather than what is left of them.
+                        const ingredients = Array.from({ length: CraftingInput.SLOTS }, (_, slot) =>
+                            craftingInput.get(slot)
+                        ).filter((stack): stack is Item => stack !== null && stack.getName() !== 'minecraft:air');
+
                         for (const slot of this.spendGrid(craftingInput)) craftingTouched.add(slot);
+                        advancementItemCrafted(player, recipe.id, ingredients, created);
                         break;
                     }
 
