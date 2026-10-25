@@ -31,7 +31,9 @@ rollLootTable(table, context);
 ```
 
 Parsing never throws. Every fault lands in the returned diagnostics and the table rolls to whatever
-is still well formed, which is the same contract `@jsprismarine/predicates` has.
+is still well formed, which is the same contract `@jsprismarine/predicates` has. Pass
+`strict: true` to get a `LootGrammarError` instead, listing every error, for a host that would
+rather refuse a table than roll it half-read.
 
 Most servers will use the registry instead, because it already knows the world seed, the pack stack
 and each table's own context key set:
@@ -81,6 +83,30 @@ the 26.3 jar rather than the wiki:
 
 A table with no `type` falls back to the `generic` context key set, which is what
 `LootContextParamSets.ALL_PARAMS` is registered as.
+
+## What an unread key does
+
+A loot table is gated data, so the two ways a gate goes missing both matter here, and both used to
+go unreported.
+
+**A key the grammar has no case for is an error.** Nothing reads it, so it changes the file's
+meaning and not the roll, and a condition list sitting unread beside a pool is indistinguishable
+from a pool with no gate at all. The report names the key and the level it sat at:
+
+```
+pools[0].conditions: the loot pool grammar has no conditions member, so nothing reads it
+```
+
+The table still rolls everything it could read, so one stray key does not empty a chest. The 1447
+vanilla tables report nothing, which is what keeps the rule honest: every key they use is a key
+this package acts on.
+
+**A condition the grammar cannot compile closes its gate.** 26.3's composition rule folds a
+condition field with and, and a term that fails to compile drops out of the fold, so a field
+holding one unimplemented condition folds to an empty and and passes. That is the wrong direction
+for loot to fail in. Any error raised while compiling a `condition` field closes that gate for
+good, at the pool and at the entry alike, and the error that closed it is already in the
+diagnostics.
 
 ## Evaluation order
 

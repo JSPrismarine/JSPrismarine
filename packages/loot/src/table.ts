@@ -1,5 +1,6 @@
 import type {
     ContextParameterSetName,
+    Diagnostic,
     ItemModifier,
     ItemStack,
     JsonObject,
@@ -21,11 +22,11 @@ import {
     modifierAt,
     namespaced,
     parseComposed,
-    predicateAt,
     resolveMembers,
     rootContext
 } from '@jsprismarine/predicates';
 
+import { gateAt, reportEntryKeys, reportPoolKeys, reportTableKeys } from './dialect';
 import type {
     DynamicDropSource,
     LootEntry,
@@ -80,6 +81,30 @@ export interface LootParseOptions extends ParseOptions {
      * table one more time.
      */
     id?: string;
+    /**
+     * Throw instead of returning a table that reported an error. This is the
+     * one exception to the package's rule that parsing never throws, and it
+     * exists so a host can refuse to run on a table it cannot evaluate rather
+     * than roll a gate it failed to read.
+     */
+    strict?: boolean;
+}
+
+/**
+ * Thrown by a strict parse, naming every error the table reported.
+ *
+ * @see {@link LootParseOptions.strict}
+ */
+export class LootGrammarError extends Error {
+    /** The errors that stopped the parse, in the order they were reported. */
+    public readonly diagnostics: readonly Diagnostic[];
+
+    public constructor(diagnostics: readonly Diagnostic[]) {
+        const listed = diagnostics.map((entry) => `${entry.path || '<root>'}: ${entry.message}`).join('; ');
+        super(`the loot table reported ${diagnostics.length} grammar error(s): ${listed}`);
+        this.name = 'LootGrammarError';
+        this.diagnostics = diagnostics;
+    }
 }
 
 const EMPTY_MODIFIER: ItemModifier = (stack) => stack;
@@ -306,7 +331,9 @@ const containerAt = (value: unknown, context: ParseContext): LootEntryContainer 
         return NOTHING;
     }
 
-    const condition = predicateAt(value['condition'], context.at('condition'));
+    reportEntryKeys(value, context, name);
+
+    const condition = gateAt(value['condition'], context.at('condition'));
     const modifier =
         value['modifier'] === undefined ? undefined : modifierAt(value['modifier'], context.at('modifier'));
     const body = ENTRIES[name](value, context);
@@ -352,12 +379,16 @@ const poolAt = (value: unknown, context: ParseContext): LootPool | undefined => 
         context.error('a loot pool must be an object');
         return undefined;
     }
+
+    reportPoolKeys(value, context);
+
     if (value['rolls'] === undefined) context.error('a loot pool needs rolls');
     if (value['entries'] === undefined) context.error('a loot pool needs entries');
 
     const at = context.at('entries');
+
     return {
-        condition: predicateAt(value['condition'], context.at('condition')),
+        condition: gateAt(value['condition'], context.at('condition')),
         modifier: modifierAt(value['modifier'], context.at('modifier')),
         rolls: intProviderAt(value['rolls'], context.at('rolls')),
         bonusRolls: floatProviderAt(value['bonus_rolls'], context.at('bonus_rolls')),
@@ -400,6 +431,8 @@ export const tableAt = (value: unknown, context: ParseContext): LootTable => {
         return EMPTY_TABLE;
     }
 
+    reportTableKeys(value, context);
+
     let parameterSet: ContextParameterSetName = 'generic';
     const declared = asString(value['type']);
     if (declared !== undefined) {
@@ -422,13 +455,25 @@ export const tableAt = (value: unknown, context: ParseContext): LootTable => {
 };
 
 /**
- * Compiles one loot table file. Parsing never throws: every fault lands in the
- * returned diagnostics and the table rolls to whatever is still well formed.
+ * Compiles one loot table file. Parsing never throws unless
+ * {@link LootParseOptions.strict} says so: every fault lands in the returned
+ * diagnostics and the table rolls to whatever is still well formed.
+ *
+ * @throws {LootGrammarError} In strict mode, when the table reported an error.
  */
 export const parseLootTable = (value: unknown, options: LootParseOptions = {}): ParseResult<LootTable> => {
     const context = rootContext(options);
     if (options.id !== undefined) context.visiting.add(`loot_table/${namespaced(options.id)}`);
-    return { value: tableAt(value, context), diagnostics: context.diagnostics.entries };
+
+    const before = context.diagnostics.entries.length;
+    const table = tableAt(value, context);
+
+    if (options.strict) {
+        const raised = context.diagnostics.entries.slice(before).filter((entry) => entry.severity === 'error');
+        if (raised.length > 0) throw new LootGrammarError(raised);
+    }
+
+    return { value: table, diagnostics: context.diagnostics.entries };
 };
 
 /** Java's `LootPool.addRandomItem`: weigh the candidates, then draw one. */

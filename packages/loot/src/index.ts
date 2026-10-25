@@ -1,4 +1,5 @@
 export * from './content';
+export * from './dialect';
 export * from './mapping';
 export * from './model';
 export * from './packs';
