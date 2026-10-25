@@ -62,10 +62,23 @@ export interface ConsoleHandle {
 export const REQUEST_TIMEOUT_MS = 10_000;
 
 /**
- * Escape sequence that undoes everything the renderer turns on: leaves the alternate screen,
- * turns mouse reporting and bracketed paste off, and shows the cursor.
+ * Escape sequence that undoes everything the renderer turns on: pops the kitty keyboard flags,
+ * turns focus reporting, synchronized output, mouse reporting, and bracketed paste off, resets
+ * text attributes, leaves the alternate screen, and shows the cursor.
  */
-export const TERMINAL_RESET = '\x1b[?1049l\x1b[?1000l\x1b[?1002l\x1b[?1003l\x1b[?1006l\x1b[?2004l\x1b[?25h';
+export const TERMINAL_RESET = [
+    '\x1b[<u',
+    '\x1b[?1004l',
+    '\x1b[?2026l',
+    '\x1b[?1000l',
+    '\x1b[?1002l',
+    '\x1b[?1003l',
+    '\x1b[?1006l',
+    '\x1b[?2004l',
+    '\x1b[0m',
+    '\x1b[?1049l',
+    '\x1b[?25h'
+].join('');
 
 type ResultType = 'command.result' | 'complete.result';
 type ResultMessage<T extends ResultType> = Extract<ServerMessage, { type: T }>;
@@ -87,8 +100,9 @@ const errorText = (error: unknown): string => (error instanceof Error ? error.me
  * The renderer never exits on Ctrl+C or signals; the app decides what Ctrl+C means and the host
  * owns signals. Each new server link gets a `subscribe` for every level, and commands and
  * completions travel over it with request ids that the matching result resolves. A fallback on
- * `process` `exit` and `uncaughtException` writes the terminal reset sequence and leaves raw
- * mode when `renderer.destroy()` never ran.
+ * `process` `exit`, `uncaughtException`, and `unhandledRejection` writes the terminal reset
+ * sequence and leaves raw mode when `renderer.destroy()` never ran; the two error paths then
+ * exit with code 1 the way Node does without OpenTUI's own handlers in the way.
  *
  * @throws Error when the renderer cannot start, for example because OpenTUI's native library
  * is missing. The message names the cause so the host can print it and fall back.
@@ -144,8 +158,12 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
         process.stderr.write(`${error.stack ?? error.message}\n`);
         process.exit(1);
     };
+    const onUnhandledRejection = (reason: unknown): void => {
+        onUncaught(reason instanceof Error ? reason : new Error(`Unhandled rejection: ${String(reason)}`));
+    };
     process.on('exit', restoreTerminal);
     process.on('uncaughtException', onUncaught);
+    process.on('unhandledRejection', onUnhandledRejection);
 
     const pending = new Map<string, PendingRequest>();
     let link: ServerLink | undefined;
@@ -274,6 +292,7 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             closed = true;
             process.off('exit', restoreTerminal);
             process.off('uncaughtException', onUncaught);
+            process.off('unhandledRejection', onUnhandledRejection);
         }
     };
 }

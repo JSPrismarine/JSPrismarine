@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { startConsole } from './startConsole';
+import { startConsole, TERMINAL_RESET } from './startConsole';
 import type { ConsoleHandle, ServerLink } from './startConsole';
 
 function fakeSupervisor() {
@@ -135,8 +135,17 @@ describe('startConsole', () => {
         await t.test.waitForFrame((frame) => frame.includes('server is not running'));
     });
 
+    it('undoes every terminal mode the renderer turns on in the reset sequence', () => {
+        expect(TERMINAL_RESET).toContain('\x1b[<u');
+        expect(TERMINAL_RESET).toContain('\x1b[?1004l');
+        expect(TERMINAL_RESET).toContain('\x1b[?2026l');
+        expect(TERMINAL_RESET).toContain('\x1b[0m');
+        expect(TERMINAL_RESET).toContain('\x1b[?1049l');
+        expect(TERMINAL_RESET.endsWith('\x1b[?25h')).toBe(true);
+    });
+
     it('saves history and removes its process handlers on close', async () => {
-        const hasHandler = (event: 'exit' | 'uncaughtException', name: string) =>
+        const hasHandler = (event: 'exit' | 'uncaughtException' | 'unhandledRejection', name: string) =>
             process.listeners(event).some((listener) => listener.name === name);
         const t = await setup();
         handle = t.handle;
@@ -145,6 +154,7 @@ describe('startConsole', () => {
 
         expect(hasHandler('exit', 'restoreTerminal')).toBe(true);
         expect(hasHandler('uncaughtException', 'onUncaught')).toBe(true);
+        expect(hasHandler('unhandledRejection', 'onUnhandledRejection')).toBe(true);
         await t.test.mockInput.typeText('list');
         t.test.mockInput.pressEnter();
         await nextTick();
@@ -154,6 +164,7 @@ describe('startConsole', () => {
         expect(await readFile(t.historyFile, 'utf8')).toBe('list\n');
         expect(hasHandler('exit', 'restoreTerminal')).toBe(false);
         expect(hasHandler('uncaughtException', 'onUncaught')).toBe(false);
+        expect(hasHandler('unhandledRejection', 'onUnhandledRejection')).toBe(false);
         expect(t.supervisor.listenerCount).toBe(0);
         expect(t.test.renderer.isDestroyed).toBe(true);
     });
