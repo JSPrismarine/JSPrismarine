@@ -141,6 +141,7 @@ describe('parseFilter', () => {
         expect(() => parseFilter({ test: 'is_baby', operator: 7 })).toThrow(FilterParseError);
         expect(() => parseFilter({ test: 'is_baby', operator: '~' })).toThrow(FilterParseError);
         expect(() => parseFilter({ all_of: [], extra: 1 })).toThrow(/extra/);
+        expect(() => parseFilter({ all_of: 'nope' })).toThrow(/all_of must hold a filter/);
         expect(() => parseFilter({ all_of: {} })).toThrow(FilterParseError);
         expect(() => parseFilter({ value: 1 })).toThrow(FilterParseError);
         expect(() => parseFilter({ unknown_shorthand: 'x', also: 'y' })).toThrow(FilterParseError);

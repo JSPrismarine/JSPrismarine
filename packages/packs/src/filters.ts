@@ -137,11 +137,15 @@ export const parseFilter = (value: unknown): Filter => {
 };
 
 /** Parses one clause of a group map; its value is a whole filter group. */
-const parseGroup = (key: string, members: unknown): FilterGroup => ({
-    kind: 'group',
-    combinator: GROUP_ALIASES[key]!,
-    filters: Array.isArray(members) ? members.map(parseFilter) : [parseFilter(members)]
-});
+const parseGroup = (key: string, members: unknown): FilterGroup => {
+    if (!Array.isArray(members) && !isRecord(members))
+        throw new FilterParseError(`${key} must hold a filter or an array of filters, got ${JSON.stringify(members)}`);
+    return {
+        kind: 'group',
+        combinator: GROUP_ALIASES[key]!,
+        filters: Array.isArray(members) ? members.map(parseFilter) : [parseFilter(members)]
+    };
+};
 
 /** Expands one legacy shorthand; a list of values reads as any of them. */
 const parseShorthand = (spec: { readonly test: string; readonly subject: FilterSubject }, value: unknown): Filter => {
