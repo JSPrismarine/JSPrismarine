@@ -14,9 +14,9 @@
  * `Mob.populateDefaultEquipmentSlots`, so the component's `table` is the reference for what a
  * mob spawns holding. Those tables are the behavior pack's own, and Java has no counterpart:
  * Java's registry carries `entities/skeleton` but no `entities/skeleton_gear`, and its only
- * three `equipment/` tables are trial chamber ones. So the roll reads
- * `definitions.lootTables`, the Bedrock registry, through the evaluator in
- * `@jsprismarine/loot` rather than through a second evaluator written for it.
+ * three `equipment/` tables are trial chamber ones. So the roll reads `content.equipmentLoot`,
+ * the evaluator in `@jsprismarine/loot` over the Bedrock registry, rather than a second
+ * evaluator written for it.
  *
  * ## Which pools it rolls
  *
@@ -43,7 +43,6 @@
  * component is a weapon, which is why a bow and the fox's emerald both land in the main hand.
  */
 import BinaryStream from '@jsprismarine/binaryutils';
-import { LootRegistry } from '@jsprismarine/loot';
 
 import type { ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
@@ -121,30 +120,6 @@ export const slotForItem = (item: Pick<Item, 'getEquipmentSlot'>): MobEquipmentS
     return mobEquipmentSlotOf(declared) ?? 'mainhand';
 };
 
-/**
- * The evaluator for one content build's equipment tables, built on first use.
- *
- * Keyed by the content rather than rebuilt per roll because compiling a table is the expensive
- * half and `ServerContent` is built once and kept. `LootPackDefinitions` asks for its tables
- * under `lootTablesJava`, so handing it the Bedrock map there is what points the evaluator at
- * the Bedrock registry; `dialect` is what tells it which grammar that map is written in.
- */
-const registries = new WeakMap<ServerContent, LootRegistry>();
-
-/** The equipment loot registry for one content build. */
-export const equipmentRegistry = (content: ServerContent): LootRegistry => {
-    const existing = registries.get(content);
-    if (existing !== undefined) return existing;
-
-    const registry = new LootRegistry(
-        { ...content.definitions, lootTablesJava: content.definitions.lootTables },
-        { dialect: 'bedrock', worldSeed: content.loot.worldSeed }
-    );
-    registries.set(content, registry);
-
-    return registry;
-};
-
 /** What {@link rollMobEquipment} reads. */
 export interface MobEquipmentRollOptions {
     /** The running content: the tables to roll and the items to resolve against. */
@@ -170,7 +145,7 @@ export const rollMobEquipment = (options: MobEquipmentRollOptions): MobEquipment
     const { content, table, itemOf, report } = options;
 
     const equipment: Partial<Record<MobEquipmentSlot, ContentItemDrop>> = {};
-    for (const stack of equipmentRegistry(content).roll(table)) {
+    for (const stack of content.equipmentLoot.roll(table)) {
         if (stack.count <= 0) continue;
 
         const drop = { identifier: stack.id, count: stack.count };

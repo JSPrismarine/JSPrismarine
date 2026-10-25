@@ -34,7 +34,7 @@ import UnlockedRecipesPacket, { UnlockedRecipesType } from '../../network/packet
 import SetTitlePacket from '../../network/packet/SetTitlePacket';
 import type { PermissionManager } from '../../permission/PermissionManager';
 import { stub, stubOf } from '../../testing/stub.test.helper';
-import { LootRegistry } from '@jsprismarine/loot';
+import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { loadRecipes } from '@jsprismarine/recipes';
 import { Dimensions } from '../../world/Dimension';
 import type GameRuleManager from '../../world/GameRuleManager';
@@ -1005,7 +1005,12 @@ describe('the server command host', () => {
                     ]
                 ])
             });
-            return stub<ServerContent>({ loot: new LootRegistry(definitions, { worldSeed: 1n }) });
+            return stub<ServerContent>({
+                loot: new LootRegistry(
+                    { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+                    { worldSeed: 1n }
+                )
+            });
         };
 
         it('names a table nobody registered rather than reporting an empty roll', async () => {

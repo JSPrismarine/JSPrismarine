@@ -6,7 +6,6 @@ import { itemOfDrop } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import {
     MOB_EQUIPMENT_SLOTS,
-    equipmentRegistry,
     mobEquipmentSlotOf,
     rollMobEquipment,
     sameEquipment,
@@ -215,7 +214,9 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the equipment the vanilla pac
         // The `tiers` ladder over six sets, reached through nested entry `pools`, which is the
         // part of the grammar nothing here could read before.
         const worn = new Set(
-            [...over('loot_tables/entities/skeleton_gear.json', 500).keys()].filter((key) => !key.startsWith('mainhand:'))
+            [...over('loot_tables/entities/skeleton_gear.json', 500).keys()].filter(
+                (key) => !key.startsWith('mainhand:')
+            )
         );
 
         expect(worn.size).toBeGreaterThan(0);
@@ -224,7 +225,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the equipment the vanilla pac
 
     it('holds an item on every vanilla type whose component names a table', () => {
         const content = vanilla();
-        const registry = equipmentRegistry(content);
+        const registry = content.equipmentLoot;
 
         // Every `minecraft:equipment.table` a type names, base definition and
         // component groups alike, because a zombie names one table as itself

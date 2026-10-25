@@ -51,14 +51,6 @@ export interface LootRegistryOptions {
     readonly items?: ItemStackOps;
     /** Entity sub-predicate and data component predicate types this host adds to the grammar. */
     readonly extensions?: GrammarExtensions;
-    /**
-     * Which edition's spelling the registered tables are written in. Defaults
-     * to `java`, which is the grammar a datapack uses. A behavior pack's own
-     * tables need `bedrock`, and the two cannot be mixed in one registry,
-     * because the dialect decides what a key means rather than being guessed
-     * per file.
-     */
-    readonly dialect?: LootDialect;
     /** What Bedrock's two difficulty-scaled conditions read. */
     readonly difficulty?: LootDifficultyView;
     /**
@@ -169,7 +161,12 @@ export class LootRegistry {
 
     /** The namespaced ids the pack stack registered, in load order. */
     public get ids(): readonly string[] {
-        return [...this.definitions.lootTablesJava.keys()];
+        return [...this.definitions.lootTables.tables.keys()];
+    }
+
+    /** Which edition's spelling the registered tables are written in, as the source stated it. */
+    public get dialect(): LootDialect {
+        return this.definitions.lootTables.dialect;
     }
 
     /** The world seed every sequenced stream is keyed from. */
@@ -187,7 +184,7 @@ export class LootRegistry {
         const cached = this.compiled.get(id);
         if (cached !== undefined) return cached;
 
-        const json = packJson(this.definitions.lootTablesJava.get(id));
+        const json = packJson(this.definitions.lootTables.tables.get(id));
         if (json === undefined) return undefined;
 
         const { value } = parseLootTable(json, {
@@ -196,7 +193,7 @@ export class LootRegistry {
             diagnostics: this.diagnostics,
             resolver: this.resolver,
             extensions: this.options.extensions,
-            dialect: this.options.dialect,
+            dialect: this.dialect,
             difficulty: this.options.difficulty,
             strict: this.options.strict
         });
@@ -241,8 +238,8 @@ export class LootRegistry {
         if (this.cycleCache !== undefined) return this.cycleCache;
 
         const edges = new Map<string, readonly string[]>();
-        for (const [id, entry] of this.definitions.lootTablesJava) {
-            edges.set(id, lootTableReferences(packJson(entry), this.options.dialect));
+        for (const [id, entry] of this.definitions.lootTables.tables) {
+            edges.set(id, lootTableReferences(packJson(entry), this.dialect));
         }
         this.cycleCache = findCycles(edges);
         return this.cycleCache;

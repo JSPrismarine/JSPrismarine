@@ -15,6 +15,7 @@ import type {
 import { asList, asString, enchantmentLevelFromComponent, isJsonObject, namespaced } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
+import { javaLootTables } from './packs';
 import { LootRegistry } from './registry';
 
 /**
@@ -187,19 +188,22 @@ const loadCorpus = (): Corpus => {
     let nextMapId = 0;
     corpus = {
         definitions,
-        registry: new LootRegistry(definitions, {
-            worldSeed: 1234n,
-            content: {
-                recipes: definitions.recipesJava,
-                itemTag: (tag) => {
-                    const file = definitions.tags.get(`item/${tag}`)?.data;
-                    const values = isJsonObject(file) ? file['values'] : undefined;
-                    return Array.isArray(values) ? values.filter((value) => typeof value === 'string') : undefined;
-                },
-                structures: () => ({ x: 512, y: 64, z: -512 }),
-                mapIds: () => nextMapId++
+        registry: new LootRegistry(
+            { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+            {
+                worldSeed: 1234n,
+                content: {
+                    recipes: definitions.recipesJava,
+                    itemTag: (tag) => {
+                        const file = definitions.tags.get(`item/${tag}`)?.data;
+                        const values = isJsonObject(file) ? file['values'] : undefined;
+                        return Array.isArray(values) ? values.filter((value) => typeof value === 'string') : undefined;
+                    },
+                    structures: () => ({ x: 512, y: 64, z: -512 }),
+                    mapIds: () => nextMapId++
+                }
             }
-        }),
+        ),
         tableCount: definitions.lootTablesJava.size
     };
     return corpus;

@@ -1,5 +1,5 @@
 import type { LootContentOptions } from '@jsprismarine/loot';
-import { LootRegistry, packJson } from '@jsprismarine/loot';
+import { LootRegistry, javaLootTables, packJson } from '@jsprismarine/loot';
 import { load, readZip } from '@jsprismarine/packs';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -99,4 +99,7 @@ export const vanillaLootContent = (definitions: VanillaDatapack['definitions']):
  * @param definitions - The loaded datapack, so a caller that already has one does not reload it.
  */
 export const vanillaLootRegistry = (definitions: VanillaDatapack['definitions']): LootRegistry =>
-    new LootRegistry(definitions, { worldSeed: VANILLA_LOOT_SEED, content: vanillaLootContent(definitions) });
+    new LootRegistry(
+        { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+        { worldSeed: VANILLA_LOOT_SEED, content: vanillaLootContent(definitions) }
+    );
