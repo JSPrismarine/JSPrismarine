@@ -27,10 +27,19 @@ import {
  * whether that item is the right tool needs the per-item mining tiers, which
  * live in `@jsprismarine/items`, so the tool check stays with whoever has
  * them.
+ *
+ * @param carried - What the dropped stack keeps of the block it came from,
+ *   which is how a shulker box leaves with the items it was holding.
  */
-export const dropSelf = (world: WorldActions, context: FamilyContext, block: HookBlock, count = 1): void => {
+export const dropSelf = (
+    world: WorldActions,
+    context: FamilyContext,
+    block: HookBlock,
+    count = 1,
+    carried: Omit<ItemDrop, 'identifier' | 'count'> = {}
+): void => {
     if (context.properties.requiresCorrectTool) return;
-    world.dropItem(block.position, { identifier: block.identifier, count });
+    world.dropItem(block.position, { ...carried, identifier: block.identifier, count });
 };
 
 /** Drops a list of items at a block, leaving out the empty ones. */

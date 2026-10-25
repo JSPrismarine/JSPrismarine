@@ -104,7 +104,15 @@ export const containerFamily = defineFamily(
                     world.setBlockData(partner, { ...partnerData, pairedWith: undefined });
                 }
             }
-            if (!KEEPS_CONTENTS(event.brokenBlock.identifier)) spillContainer(world, event.brokenBlock);
+            if (KEEPS_CONTENTS(event.brokenBlock.identifier)) {
+                // Not spilled and not lost either: the box goes on the ground still holding
+                // what was in it, and putting it back down puts the items back in it.
+                const held = world.getBlockData(event.brokenBlock.position)?.items ?? [];
+                dropSelf(world, context, event.brokenBlock, 1, held.length === 0 ? {} : { contents: held });
+                return;
+            }
+
+            spillContainer(world, event.brokenBlock);
             dropSelf(world, context, event.brokenBlock);
         }
     }
