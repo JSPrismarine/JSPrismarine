@@ -103,6 +103,20 @@ export const REFERENCES = {
         'the item list a Bedrock Dedicated Server advertises'
     ),
 
+    /** The `AvailableActorIdentifiersPacket` golden: every actor type a 1.26.51 server advertises. */
+    bedrockActorIdentifiers: committed(
+        'bedrock-actor-identifiers',
+        'packages/bedrock-data/src/resources/entity_identifiers.dat',
+        'the 136 actor types a Bedrock Dedicated Server advertises'
+    ),
+
+    /** The `BiomeDefinitionListPacket` capture: the biomes a 1.26.51 client is told about. */
+    bedrockBiomeDefinitions: committed(
+        'bedrock-biome-definitions',
+        'packages/bedrock-data/src/jsp/biome_definitions_network.nbt',
+        'the biome list a Bedrock Dedicated Server sends a joining client'
+    ),
+
     /** Mojang's published Bedrock command metadata, generated into this repository's own table. */
     bedrockCommandMetadata: committed(
         'bedrock-command-metadata',

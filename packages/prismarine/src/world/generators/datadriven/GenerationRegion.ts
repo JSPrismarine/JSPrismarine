@@ -19,7 +19,11 @@ import type {
     FeatureWorld,
     HeightmapType
 } from '@jsprismarine/features';
+import type { BedrockBlockState } from '@jsprismarine/structures';
 import type { SurfaceChunk } from '@jsprismarine/worldgen';
+
+import type { TemplateSource, TemplateTarget } from './javaTemplatePlacement';
+import { placeJavaTemplate } from './javaTemplatePlacement';
 
 /** The chunk radius a feature may write into, which is Java's `WorldGenRegion` size. */
 const REGION_RADIUS = 1;
@@ -45,6 +49,25 @@ export interface GenerationRegionOptions {
     readonly biomeAt: (x: number, y: number, z: number) => string;
     /** Java's `Biome.getTemperature(pos) < 0.15`, which is what `freeze_top_layer` acts on. */
     readonly isColdEnoughToSnow?: (x: number, y: number, z: number) => boolean;
+    /**
+     * Where the structure templates come from. Absent on a server that carries none, which
+     * makes `template` and `fossil` report that they placed nothing.
+     */
+    readonly templates?: TemplateSource;
+}
+
+/**
+ * One entry of the region's palette.
+ *
+ * Almost every block is a Java state, which is what the terrain, surface and feature stages
+ * write. A block a structure template placed arrives already translated, because
+ * `@jsprismarine/structures` answers in Bedrock states, so it carries both: the Bedrock state
+ * the chunk gets, and the Java view the rest of generation reads it back through.
+ */
+export interface RegionBlock {
+    readonly java: BlockState;
+    /** Set only for a block a structure template placed. */
+    readonly bedrock?: BedrockBlockState;
 }
 
 /** A block entity a feature attached to a block it placed, in world coordinates. */
@@ -87,7 +110,7 @@ export class GenerationRegion {
     private readonly originX: number;
     private readonly originZ: number;
     private readonly states: Uint16Array;
-    private readonly palette: BlockState[] = [AIR_STATE];
+    private readonly palette: RegionBlock[] = [{ java: AIR_STATE }];
     private readonly paletteIndex = new Map<string, number>([[AIR, 0]]);
 
     /** The highest y holding anything other than air, per region column. */
