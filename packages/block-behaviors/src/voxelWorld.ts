@@ -159,31 +159,38 @@ export class VoxelDimension implements WorldActions {
         this.randoms.push(...values);
     }
 
+    /** The block at a position, with air for an unwritten one. */
     public getBlock(position: BlockPosition): HookBlock | undefined {
         return this.block(position);
     }
 
+    /** Writes a block, which is what a behavior does to the world. */
     public setBlock(position: BlockPosition, identifier: string, states: BlockStates = {}): void {
         this.set(position, identifier, states);
     }
 
+    /** The properties a test gave a block type, or the component defaults. */
     public propertiesOf(identifier: string): BlockProperties {
         return this.properties.get(identifier) ?? DEFAULT_BLOCK_PROPERTIES;
     }
 
+    /** Records a drop. */
     public dropItem(position: BlockPosition, drop: ItemDrop): void {
         this.drops.push({ position, drop });
     }
 
+    /** Records a spawn and returns the id it can be removed by. */
     public spawnEntity(position: BlockPosition, identifier: string, data?: BlockEntityData): number {
         return this.addEntity(identifier, position, data);
     }
 
+    /** Marks an entity gone, keeping it in the recorded list. */
     public removeEntity(entity: number): void {
         const found = this.entities.find((candidate) => candidate.id === entity);
         if (found !== undefined) found.removed = true;
     }
 
+    /** Every entity still in the world whose position floors to this block. */
     public entitiesAt(position: BlockPosition): readonly WorldEntity[] {
         return this.entities
             .filter(
@@ -196,38 +203,47 @@ export class VoxelDimension implements WorldActions {
             .map((entity) => ({ id: entity.id, identifier: entity.identifier, position: entity.position }));
     }
 
+    /** Records a sound. */
     public playSound(position: BlockPosition, sound: string): void {
         this.sounds.push({ position, name: sound });
     }
 
+    /** Records a particle. */
     public spawnParticle(position: BlockPosition, particle: string): void {
         this.particles.push({ position, name: particle });
     }
 
+    /** Records a tick request. */
     public scheduleTick(position: BlockPosition, delay: number): void {
         this.scheduled.push({ position, delay });
     }
 
+    /** The block entity data at a position. */
     public getBlockData(position: BlockPosition): BlockEntityData | undefined {
         return this.blockData.get(keyOf(position));
     }
 
+    /** Replaces the block entity data at a position. */
     public setBlockData(position: BlockPosition, data: BlockEntityData): void {
         this.blockData.set(keyOf(position), data);
     }
 
+    /** Records a neighbor notice. */
     public notifyNeighbors(position: BlockPosition): void {
         this.notified.push(position);
     }
 
+    /** The power a test set at a position, or none. */
     public redstonePower(position: BlockPosition): number {
         return this.power.get(keyOf(position)) ?? 0;
     }
 
+    /** The light a test set at a position, or full daylight. */
     public lightLevel(position: BlockPosition): number {
         return this.light.get(keyOf(position)) ?? 15;
     }
 
+    /** The next queued chance value, then a repeatable sequence. */
     public random(): number {
         const queued = this.randoms.shift();
         if (queued !== undefined) return queued;

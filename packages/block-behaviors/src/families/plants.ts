@@ -211,7 +211,7 @@ export const leavesFamily = defineFamily(
 /** The one-block plants that need ground under them. */
 export const floraFamily = defineFamily(
     'jsprismarine:flora',
-    'Pops without soil below, keeps the two halves of a tall plant together, and poisons an entity that steps on a wither rose.',
+    'Pops without soil below, keeps the two halves of a tall plant together, and marks an entity that walks into a wither rose. The effect itself is the entity runtime.',
     {
         onNeighborChanged: (event, world) => {
             if (stateBoolean(event.block, 'upper_block_bit')) {
