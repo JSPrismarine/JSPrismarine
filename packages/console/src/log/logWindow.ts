@@ -70,12 +70,16 @@ export class LogWindow {
         this.moveTo(this.maxOffset);
     }
 
-    /** Records `count` new rows at the end of the list. */
-    public onAppended(count: number): void {
-        this.total += count;
+    /**
+     * Records `count` new rows at the end of the list and `evicted` rows removed from its front.
+     * A paused window shifts its offset so the same rows stay in view until it reaches the top.
+     */
+    public onAppended(count: number, evicted = 0): void {
+        this.total += count - evicted;
         if (this.following) {
             this.first = this.maxOffset;
         } else {
+            this.first = this.clamp(this.first - evicted);
             this.unreadCount += count;
         }
     }

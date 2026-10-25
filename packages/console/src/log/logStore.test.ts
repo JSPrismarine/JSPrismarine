@@ -175,7 +175,7 @@ describe('LogStore', () => {
 
         store.append(entry({ level: 'debug' }));
         store.append(entry({ level: 'info' }));
-        expect(listener).toHaveBeenLastCalledWith({ type: 'append', count: 1 });
+        expect(listener).toHaveBeenLastCalledWith({ type: 'append', count: 1, evicted: 0 });
 
         store.setLevelFilter('warn');
         expect(listener).toHaveBeenLastCalledWith({ type: 'reset' });
@@ -183,6 +183,20 @@ describe('LogStore', () => {
         unsubscribe();
         store.append(entry({ level: 'error' }));
         expect(listener).toHaveBeenCalledTimes(3);
+    });
+
+    it('reports a visible record evicted by the ring buffer', () => {
+        const store = new LogStore({ capacity: 2 });
+        store.setLevelFilter('info');
+        store.append(entry({ level: 'debug' }));
+        store.append(entry());
+        const listener = vi.fn();
+        store.onChange(listener);
+
+        store.append(entry());
+        expect(listener).toHaveBeenLastCalledWith({ type: 'append', count: 1, evicted: 0 });
+        store.append(entry());
+        expect(listener).toHaveBeenLastCalledWith({ type: 'append', count: 1, evicted: 1 });
     });
 
     it('returns the same visible array until something changes', () => {
