@@ -49,15 +49,32 @@ bedrockBiomeToJava('minecraft:taiga_hills');
 
 `createPackIdentifierResolver()` wraps these lookups in the `IdentifierResolver` shape that
 `reportIdentifiers` in `@jsprismarine/packs` injects, so a datapack's referenced identifiers can be
-checked against the tables without that package knowing two editions exist. It resolves items,
-blocks, entity types, biomes (`worldgen/biome`) and enchantments: `mapped` and `passthrough`
-results report as `known`, reviewed losses as `loss`. Tag references and registries the tables do
-not cover report as `unknown`.
+checked against the tables without that package knowing two editions exist. This is what lets the
+server refuse to start on an identifier nothing accounts for, and it covers every registry a Java
+datapack can reference:
+
+- Items, blocks, entity types, biomes (`worldgen/biome`), enchantments, mob effects and potions go
+  through their lookup. `mapped` and `passthrough` report as `known`, reviewed losses as `loss`.
+- The registries with no Bedrock side go to the generated Java 26.3 census in
+  `src/tables/javaIdentifiers.json`, which says only that the identifier is a real entry of that
+  registry. That reports as `known` for the nine registries the server evaluates in Java's own
+  shape, which `src/packRegistries.ts` lists with a reason each, and as `loss` for the three in
+  `UNTRANSLATED_REGISTRIES`: banner patterns, goat horn instruments and painting variants reach a
+  Bedrock client as a short code, a data value and a texture name, and no pinned source publishes
+  the pairing. There is no passthrough here, so a custom structure or game event is `unknown`.
+- A tag reference is `unknown`. Resolving one means knowing which tags the stack loaded, which only
+  `reportIdentifiers` can see, so it answers those itself.
+
+Run against the real 26.3 datapack this resolves all 4088 referenced identifiers: 3977 known, 111
+on the allow list, none left over. `src/vanillaIdentifiers.test.ts` is that measurement.
 
 The reviewed loss list is exported alongside the functions (`BLOCK_LOSSES`, `ITEM_LOSSES`,
-`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES`, `BLOCK_STATE_LOSSES`, the merge lists
-and the dropped-property lists). Every known loss carries a reason and a reference, and the
-property tests fail both when an unlisted loss appears and when a listed one stops occurring.
+`ENTITY_LOSSES`, `REGISTRY_LOSSES`, `BEDROCK_BIOME_LOSSES`, `BLOCK_STATE_LOSSES`,
+`UNTRANSLATED_REGISTRIES`, the merge lists and the dropped-property lists). Every known loss
+carries a reason and a reference, and the property tests fail both when an unlisted loss appears
+and when a listed one stops occurring. `UNTRANSLATED_REGISTRIES` is the one registry-wide row
+shape; it pins how many entries the registry has, so a version that adds one fails the property
+test rather than widening the row in silence.
 
 ## The tables
 

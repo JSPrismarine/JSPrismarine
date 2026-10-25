@@ -54,9 +54,17 @@ pack sets `replace`, and `assign` merges key by key. `MERGE_MODES` holds the mod
 Java gives its language files, which live in a resource pack.
 
 Datapack definitions reference Java identifiers (items in loot entries, blocks in predicates, tag
-members); `reportIdentifiers` walks the loaded definitions and resolves each reference through an
-injectable `IdentifierResolver`, whose default marks everything `unknown` until a mapping
-implementation takes the seam.
+members); `reportIdentifiers` walks the loaded definitions and resolves each reference. Two things
+answer. An injectable `IdentifierResolver` takes the Bedrock side, and its default marks everything
+`unknown`; `@jsprismarine/mapping` is the implementation that fills it. What the resolver does not
+know falls back to the loaded stack itself, which closes a `#tag` whose tag file it carries and a
+reference into a registry a datapack fills, such as one loot table calling another. Those stay
+Java-shaped inside the server, so there is nothing to translate. Each entry says which answered,
+and names the pack and the file the reference came from.
+
+The one field name 26.3 reuses is `id`, which spells an item stack, a damage type tag entry, a mob
+effect instance, a block state and an attribute modifier's own name. Which registry it points into
+is read from the keys beside it rather than from the name.
 
 Behind the interface: manifest validation against the documented schema, a lenient JSON parser
 (comments and trailing commas, which vanilla trade tables use), `format_version` dispatch, a

@@ -43,24 +43,29 @@ which is why the code looks the way it does.
    fallback to the cache.
 2. **Load it.** `@jsprismarine/packs` composes the stack into one `Definitions` object, with
    Bedrock definitions replaced whole by a later pack and Java tags merged across packs.
-3. **Build the world views.** `contentWorldViews` projects the nine content world interfaces out of
+3. **Check the Java identifiers.** `checkIdentifiers` resolves every Java identifier the stack
+   references through `@jsprismarine/mapping`. A strict build throws `UnmappedIdentifierError`,
+   naming the identifier and the pack; a normal build writes one `identifier.unmapped` error per
+   identifier and carries on, so an operator sees exactly what will be missing. It runs here, ahead
+   of every resolve, so a strict build stops before any domain builds around the hole.
+4. **Build the world views.** `contentWorldViews` projects the nine content world interfaces out of
    the one `ServerWorldAdapter`. It is built before the content, because the behavior families take
    a world at registration time, and it reads the content back through a lookup closure, because a
    behavior reads a block's properties at hook time. That is the first backwards dependency.
-4. **Register the block behavior families, then resolve the blocks.** `resolveBlocks` attaches the
+5. **Register the block behavior families, then resolve the blocks.** `resolveBlocks` attaches the
    49 families as it resolves, so they have to exist first.
-5. **Register the item behavior families, then resolve the items.** The 47 families build item
+6. **Register the item behavior families, then resolve the items.** The 47 families build item
    stacks through an `ItemFactory` over a registry that does not exist until they are registered,
    so the factory is `deferredItemFactory()` and is bound afterwards. Second backwards dependency.
-6. **Build the entity component registry, then load the entities.** `createGoalEntityRegistry`
+7. **Build the entity component registry, then load the entities.** `createGoalEntityRegistry`
    registers all 170 goals before `@jsprismarine/entities`'s reference components, because that
    registration skips names already taken and the goals are the implementations the server wants.
    Third backwards dependency.
-7. **Merge the tags, then load the recipes.** A `#tag` ingredient parses as accepting nothing
+8. **Merge the tags, then load the recipes.** A `#tag` ingredient parses as accepting nothing
    without a tag lookup.
-8. **Parse the rest**: loot, advancements, enchantments, spawn rules, trade tables, biomes,
+9. **Parse the rest**: loot, advancements, enchantments, spawn rules, trade tables, biomes,
    features.
-9. **Flatten.** `flattenBlockStates` and `flattenItemFacts` precompute the hot columns into typed
+10. **Flatten.** `flattenBlockStates` and `flattenItemFacts` precompute the hot columns into typed
    arrays indexed by runtime id, which is what the tick loop, the light engine and the explosion
    code read instead of calling through a type.
 
