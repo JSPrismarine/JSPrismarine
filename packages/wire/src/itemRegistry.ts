@@ -20,9 +20,7 @@
 import { projectItemToBedrock } from '@jsprismarine/items';
 import type { BEDROCK_ONLY_ITEM_PROPERTIES } from '@jsprismarine/items';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
-// A deep import because `@jsprismarine/protocol` re-exports the packet class
-// and its `ItemRegistry` payload but not this member type.
-import type { ItemRegistryEntry } from '@jsprismarine/protocol/packet/ItemRegistryPacket';
+import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtFloat, nbtInt, nbtList, nbtString } from './nbt';
