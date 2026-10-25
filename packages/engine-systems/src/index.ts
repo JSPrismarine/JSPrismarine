@@ -240,3 +240,18 @@ export {
     type Weather,
     type WorldAccess
 } from './world';
+export {
+    CLEAR_WEATHER,
+    RAIN_DELAY,
+    RAIN_DURATION,
+    THUNDER_DELAY,
+    THUNDER_DURATION,
+    advanceWeatherCycle,
+    resetWeatherCycle,
+    sampleTicks,
+    setWeatherParameters,
+    weatherCommandState,
+    weatherOf,
+    type TickRange,
+    type WeatherState
+} from './weather';
