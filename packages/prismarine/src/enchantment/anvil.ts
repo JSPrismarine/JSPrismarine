@@ -47,7 +47,12 @@ export interface AnvilAttempt {
 const stackOf = (base: Item, output: PredicateItemStack | undefined): Item | undefined => {
     if (output === undefined) return undefined;
 
-    const result = base.withEnchantments(enchantmentsOf(output));
+    // The name the player typed, which the rule writes as `minecraft:custom_name`. An absent
+    // component is a name the anvil removed, which is what clearing the field does.
+    const named = output.components.get('minecraft:custom_name');
+    const result = base
+        .withEnchantments(enchantmentsOf(output))
+        .withDisplay(typeof named === 'string' ? named : undefined);
     result.count = output.count;
 
     const limit = result.getMaxDurability();

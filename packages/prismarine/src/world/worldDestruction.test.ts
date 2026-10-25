@@ -15,6 +15,7 @@ import { serverWorldSource } from '../content/world/serverSource';
 import type { ContentPosition } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import { explode } from '../entity/Explosion';
+import FallingBlock from '../entity/other/FallingBlock';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
@@ -24,6 +25,7 @@ import { createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
+import { Position } from './Position';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
@@ -49,7 +51,8 @@ const BLOCKS = [
     'minecraft:flowing_water',
     'minecraft:piston',
     'minecraft:piston_arm_collision',
-    'minecraft:lever'
+    'minecraft:lever',
+    'minecraft:anvil'
 ] as const;
 
 /** The items the destructions below yield. */
@@ -61,7 +64,8 @@ const ITEMS = [
     'minecraft:torch',
     'minecraft:poppy',
     'minecraft:oak_planks',
-    'minecraft:stick'
+    'minecraft:stick',
+    'minecraft:anvil'
 ];
 
 const DIMENSION = 'minecraft:overworld';
@@ -149,6 +153,7 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
         getPlayers: () => [],
         sendWorldEvent: async () => {},
         sendActorSound: async () => {},
+        removeEntity: async () => {},
         playNamedSound: () => {},
         spawnNamedParticle: () => {},
         addEntity: async (entity: Entity) => void spawned.push(entity),
@@ -344,6 +349,26 @@ describe('a block the world destroyed', () => {
             // The torch heard that what it stood on went, and popped.
             expect(world.loadedBlockAt(8, 65, 8)?.name).not.toBe('minecraft:torch');
             expect(drops()).toContainEqual({ identifier: 'minecraft:torch', count: 1 });
+        });
+    });
+
+    describe('by a falling block', () => {
+        it('drops the flower the anvil flattened', async () => {
+            place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
+            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:poppy');
+
+            const anvil = new FallingBlock({
+                position: new Position(8.5, 67, 8.5, world),
+                blockName: 'minecraft:anvil'
+            });
+            for (let tick = 1; tick <= 40 && world.loadedBlockAt(8, 64, 8)?.name !== 'minecraft:anvil'; tick += 1) {
+                await anvil.update(tick);
+            }
+
+            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:anvil');
+            // Java's `destroyBlock(pos, true)` before the write: the flower is dropped rather
+            // than overwritten out of existence.
+            expect(drops()).toEqual([{ identifier: 'minecraft:poppy', count: 1 }]);
         });
     });
 
