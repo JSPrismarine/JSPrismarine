@@ -212,7 +212,10 @@ export class World implements Service {
     private static readonly AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
 
     /**
-     * The autosave that is still running, or null when none is.
+     * The save that is still running, or null when none is.
+     *
+     * It settles when that pass is done and never rejects, so a pass queued behind it cannot
+     * fail on its predecessor's behalf. See {@link World.enqueueSave}.
      *
      * A tick starts a save and does not wait for it. Writing 441 freshly generated chunks
      * takes about a second and a half, and `Server.tick` installs the next tick's timer only
@@ -1802,49 +1805,68 @@ export class World implements Service {
     /**
      * Writes this world to disk: every player in it, every changed chunk, the level data.
      *
-     * Whatever autosave a tick already started goes first. Two passes over the same chunks at
-     * once would race on `Chunk.markSaved`: the one that finished second would clear the flag
-     * for a write the other had not made yet, and that change would never reach disk.
+     * Queued behind whatever save is already running rather than run beside it. A caller that
+     * asks for a save gets one, so this waits its turn instead of declining like the autosave
+     * does, but it never writes at the same time as another pass.
      */
     public async save(): Promise<void> {
-        // Null unless a tick started one, which is the ordinary case. It never rejects -
-        // `beginAutoSave` reports its own failures - so this cannot throw on its behalf.
-        await this.saving;
-        await this.write();
+        await this.enqueueSave();
     }
 
     /**
-     * Starts an autosave unless one is already running.
+     * Starts an autosave unless a save is already running.
      *
-     * Skipped rather than queued. A save still going when the next falls due has more to write
-     * than two minutes of ticks allowed, and queueing would answer that with an ever-growing
-     * backlog of passes over the same chunks. Nothing is lost by skipping: a chunk this pass
-     * does not reach is still dirty, so the next one picks it up.
+     * Skipped rather than queued, which is the one way this differs from {@link World.save}. A
+     * pass still going when the next falls due has more to write than two minutes of ticks
+     * allowed, and queueing would answer that with an ever-growing backlog of passes over the
+     * same chunks. Nothing is lost by skipping, because a chunk this pass does not reach is
+     * still dirty and the next one picks it up.
      */
     private beginAutoSave(): void {
         if (this.saving !== null) return;
 
-        // Assigned in the same turn the save is started, before anything can await it, so a
-        // shutdown arriving on the next turn finds the promise to wait for.
-        this.saving = this.runAutoSave();
+        // Nothing awaits this - the tick that started it is over by the time it finishes - so
+        // a rejection escaping would be an unhandled one, and the server runs with
+        // `--unhandled-rejections=strict`. A save that fails is worth a log line and the next
+        // pass; it is not worth the process.
+        this.enqueueSave().catch((error: unknown) => {
+            this.server.getLogger().error(`Failed to save level ${this.getFormattedName()}`);
+            this.server.getLogger().error(error);
+        });
     }
 
     /**
-     * One autosave pass, which owns its own failures.
+     * Runs one pass once the pass before it has finished.
      *
-     * Nothing awaits this - the tick that started it has long since finished - so a rejection
-     * escaping would be an unhandled one, and the server runs with
-     * `--unhandled-rejections=strict`. A save that fails is worth a log line and the next
-     * pass; it is not worth the process.
+     * Two passes over the same chunks at once would race on `Chunk.markSaved`. The one that
+     * finished second would clear the flag for a write the other had not made yet, and that
+     * change would never reach disk. Serializing them here rather than at each call site is
+     * what makes that impossible rather than merely unlikely, and it is what lets
+     * {@link World.disable} close the provider knowing no write is outstanding.
+     *
+     * {@link World.saving} holds a promise that settles when the running pass is done and
+     * never rejects, so waiting for a predecessor cannot fail on its behalf. The pass's own
+     * failure still reaches whoever awaited this.
      */
-    private async runAutoSave(): Promise<void> {
+    private async enqueueSave(): Promise<void> {
+        const previous = this.saving;
+
+        let finished!: () => void;
+        const slot = new Promise<void>((resolve) => {
+            finished = resolve;
+        });
+        // Taken in the same turn this was called, before any await, so a shutdown arriving on
+        // the next turn finds the promise to wait for.
+        this.saving = slot;
+
         try {
+            await previous;
             await this.write();
-        } catch (error: unknown) {
-            this.server.getLogger().error(`Failed to save level ${this.getFormattedName()}`);
-            this.server.getLogger().error(error);
         } finally {
-            this.saving = null;
+            // Only when nothing has queued behind this, so the last pass in a chain is the one
+            // that clears the slot.
+            if (this.saving === slot) this.saving = null;
+            finished();
         }
     }
 
