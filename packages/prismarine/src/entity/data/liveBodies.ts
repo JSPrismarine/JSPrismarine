@@ -7,12 +7,12 @@
  * per data entity, added to the live world when the runtime announces a spawn
  * and taken out again when it announces a removal.
  *
- * `GenericEntity` and not one of the 111 written classes, and the distinction
- * is the whole point. A `Zombie` runs `Mob.update`, which runs the legacy goal
- * set and the legacy physics, and two systems steering one body fight each
- * other every tick. `GenericEntity` inherits `Entity.update`, which only runs
- * the invulnerability timer down, so the data runtime is the only thing
- * driving it. The client draws a Bedrock mob from its identifier either way.
+ * `GenericEntity` and not a class per species, and the distinction is the
+ * whole point. A `Zombie` ran `Mob.update`, which ran the legacy goal set and
+ * the legacy physics, and two systems steering one body fought each other
+ * every tick. `GenericEntity` inherits `Entity.update`, which only runs the
+ * invulnerability timer down, so the data runtime is the only thing driving
+ * it. The client draws a Bedrock mob from its identifier either way.
  *
  * Health crosses in both directions, because both sides can change it. The
  * runtime's `minecraft:health` attribute is the truth; a blow that arrived
@@ -35,6 +35,44 @@ import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
 const MOVEMENT_EPSILON = 1e-4;
+
+/**
+ * How far up a shove lifts, in blocks per tick.
+ *
+ * Vanilla's cap, which is what a hit from a standing start produces. The runtime's gravity is
+ * what brings the entity back down, so this is only the first tick of the arc.
+ */
+const KNOCKBACK_LIFT = 0.4;
+
+/**
+ * The body of one data-driven entity.
+ *
+ * A plain {@link GenericEntity} in every respect but the shove. A blow that arrives through the
+ * legacy damage pipeline - a player's sword, a blast - calls `applyKnockback`, and the base
+ * entity ignores it because it has nothing to spend the impulse on. The entity behind the body
+ * does: `MobBody.velocity` is the same field the leap and charge goals write, and the runtime
+ * integrates it against the blocks. Without this a sword took a mob's health away and left it
+ * standing exactly where it was.
+ */
+class DataEntityBody extends GenericEntity {
+    public constructor(
+        private readonly driver: DataEntity,
+        options: { identifier: string; position: Position; pitch?: number; yaw?: number; headYaw?: number }
+    ) {
+        super(options);
+    }
+
+    /** @inheritdoc */
+    public override applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
+        // The damping first, because vanilla's rule is that each shove halves whatever motion
+        // the last one left before adding its own - which is what makes a sprint hit both throw
+        // harder and cancel more of the run the target was making.
+        const moving = this.driver.body;
+        const carried = moving.velocity;
+        moving.velocity = { x: carried.x * damping, y: carried.y, z: carried.z * damping };
+        moving.push({ x: directionX * strength, y: KNOCKBACK_LIFT, z: directionZ * strength });
+    }
+}
 
 /** What {@link LiveBodies} is built over. */
 export interface LiveBodiesOptions {
@@ -77,7 +115,7 @@ export class LiveBodies {
         if (world === undefined) return;
 
         const at = entity.position;
-        const body = new GenericEntity({
+        const body = new DataEntityBody(entity, {
             identifier: entity.identifier,
             position: Position.fromVector3(new Vector3(at.x, at.y, at.z), world),
             yaw: entity.body.yaw,

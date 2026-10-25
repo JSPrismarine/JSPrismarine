@@ -35,6 +35,7 @@ import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
+import { DamageSource } from '../DamageSource';
 import { GenericEntity } from '../GenericEntity';
 import { Item as ItemEntity } from '../other/Item';
 import { EntityRuntimes } from './live';
@@ -552,6 +553,24 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(dropped).toEqual(['minecraft:leather']);
             expect(live.bodies.bodyOf(cow.id)).toBeUndefined();
             expect(typesIn(world)).not.toContain('minecraft:cow');
+        });
+
+        it('shoves the mob away from whoever hit it', async () => {
+            // The body is a `GenericEntity`, which has no velocity of its own, so a sword used
+            // to take a cow's health away and leave it standing exactly where it was.
+            const cow = live.runtime.spawn('minecraft:cow', { x: 4.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            await run(1);
+
+            const puncher = playerAt(world, 0, 0.5);
+            await live.bodies.bodyOf(cow.id)!.damage(1, DamageSource.entity(puncher));
+
+            expect(cow.body.velocity.x).toBeGreaterThan(0);
+            expect(cow.body.velocity.y).toBeGreaterThan(0);
+
+            const before = cow.position.x;
+            await run(1);
+            expect(cow.position.x).toBeGreaterThan(before);
         });
 
         it('carries a blow dealt to the body back into the runtime', async () => {
