@@ -28,6 +28,18 @@ const apply = (
 
 const componentOf = (result: ItemStack | undefined, type: string): unknown => result?.components.get(type);
 
+/**
+ * Each `ListOperation` mode applied to the current list `['one', 'two',
+ * 'three']` with `['x']` as the addition, with the mode members flat beside
+ * the modifier's own members the way `ListOperation.codec` dispatches them.
+ */
+const listOperationCases = [
+    ['replace_all', { mode: 'replace_all' }, ['x']],
+    ['append', { mode: 'append' }, ['one', 'two', 'three', 'x']],
+    ['insert', { mode: 'insert', offset: 1 }, ['one', 'x', 'two', 'three']],
+    ['replace_section', { mode: 'replace_section', offset: 1, size: 1 }, ['one', 'x', 'three']]
+] as const;
+
 describe('LOOT_FUNCTION_TYPES', () => {
     it('lists the 42 types Java 26.3 registers', () => {
         expect(LOOT_FUNCTION_TYPES).toHaveLength(42);
@@ -292,9 +304,38 @@ describe('component modifiers', () => {
 
     it('appends lore with a list operation', () => {
         const once = apply({ type: 'minecraft:set_lore', lore: [{ text: 'one' }] });
-        const twice = apply({ type: 'minecraft:set_lore', lore: [{ text: 'two' }], mode: { mode: 'append' } }, once);
+        const twice = apply({ type: 'minecraft:set_lore', lore: [{ text: 'two' }], mode: 'append' }, once);
 
         expect(componentOf(twice, 'minecraft:lore')).toEqual([{ text: 'one' }, { text: 'two' }]);
+    });
+
+    it.each(listOperationCases)('runs the %s list operation on lore', (_mode, operation, expected) => {
+        const result = apply(
+            { type: 'minecraft:set_lore', lore: ['x'], ...operation },
+            stack('minecraft:stone', 1, [['minecraft:lore', ['one', 'two', 'three']]])
+        );
+
+        expect(componentOf(result, 'minecraft:lore')).toEqual(expected);
+    });
+
+    it.each(listOperationCases)('runs the %s list operation on written book pages', (_mode, operation, expected) => {
+        const result = apply(
+            { type: 'minecraft:set_written_book_pages', pages: ['x'], ...operation },
+            stack('minecraft:written_book', 1, [
+                ['minecraft:written_book_content', { title: 'Guide', pages: ['one', 'two', 'three'] }]
+            ])
+        );
+
+        expect(componentOf(result, 'minecraft:written_book_content')).toEqual({ title: 'Guide', pages: expected });
+    });
+
+    it.each(listOperationCases)('runs the %s list operation on writable book pages', (_mode, operation, expected) => {
+        const result = apply(
+            { type: 'minecraft:set_writable_book_pages', pages: ['x'], ...operation },
+            stack('minecraft:writable_book', 1, [['minecraft:writable_book_content', ['one', 'two', 'three']]])
+        );
+
+        expect(componentOf(result, 'minecraft:writable_book_content')).toEqual(expected);
     });
 
     it('writes book covers and pages', () => {

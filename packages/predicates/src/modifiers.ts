@@ -79,6 +79,11 @@ const componentOf = (stack: ItemStack, type: string): Record<string, unknown> =>
     return typeof held === 'object' && held !== null && !Array.isArray(held) ? { ...held } : {};
 };
 
+/**
+ * Compiles Java's `ListOperation`, whose `MapCodec` dispatches on a `mode` key
+ * that sits flat beside the rest of the owner's members, so `value` is the
+ * owning object rather than the mode alone.
+ */
 const listOperation = (
     value: unknown,
     context: ParseContext
@@ -464,7 +469,7 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
     },
     set_lore: (value, context) => {
         const lore = textComponents(member(value, 'lore'));
-        const operation = listOperation(member(value, 'mode'), context.at('mode'));
+        const operation = listOperation(value, context);
         return (stack, evaluation) =>
             evaluation.items.withComponent(
                 stack,
@@ -695,7 +700,7 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
     },
     set_written_book_pages: (value, context) => {
         const pages = asList(member(value, 'pages'));
-        const operation = listOperation(member(value, 'mode'), context.at('mode'));
+        const operation = listOperation(value, context);
         return (stack, evaluation) => {
             const current = componentOf(stack, 'minecraft:written_book_content');
             const held = Array.isArray(current['pages']) ? current['pages'] : [];
@@ -705,7 +710,7 @@ const MODIFIERS: Readonly<Record<LootFunctionType, ModifierParser>> = {
     },
     set_writable_book_pages: (value, context) => {
         const pages = asList(member(value, 'pages'));
-        const operation = listOperation(member(value, 'mode'), context.at('mode'));
+        const operation = listOperation(value, context);
         return (stack, evaluation) =>
             evaluation.items.withComponent(
                 stack,
