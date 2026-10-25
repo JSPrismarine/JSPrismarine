@@ -1,3 +1,5 @@
+import type { Vector3 } from '@jsprismarine/math';
+
 import { NetworkUtil } from '../../network/NetworkUtil';
 import BlockPosition from '../../world/BlockPosition';
 import Identifiers from '../Identifiers';
@@ -80,7 +82,15 @@ export default class PlaySoundPacket extends DataPacket {
     public static NetID = Identifiers.PlaySoundPacket;
 
     public name: SoundName | string = '';
-    public position: BlockPosition | null = null;
+    /**
+     * Where the sound plays.
+     *
+     * A `Vector3` rather than a `BlockPosition` because the wire carries
+     * eighths of a block, so a sound can be placed in the middle of a block
+     * instead of on its corner. A reader still gets a {@link BlockPosition},
+     * since the eighths are gone by then.
+     */
+    public position: Vector3 | null = null;
     public volume = 1;
     public pitch = 1;
     /** How many times to loop; -1 plays once. */
