@@ -234,7 +234,13 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         startGame.blockProperties = payloads?.blockProperties ?? null;
         await connection.sendDataPacket(startGame);
 
-        await connection.sendDataPacket(new ItemRegistryPacket());
+        // Every item the content build resolved, with the numbers the
+        // captured table gives them. Without it a pack's own item has no row
+        // the client could resolve it through.
+        const itemRegistry = new ItemRegistryPacket();
+        itemRegistry.entries = payloads?.items ?? null;
+        await connection.sendDataPacket(itemRegistry);
+
         await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
         await connection.sendDataPacket(new BiomeDefinitionListPacket());
         await connection.sendDataPacket(new FeatureRegistryPacket());
