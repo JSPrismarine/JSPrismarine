@@ -104,6 +104,23 @@ describe('createToastStack', () => {
         }
     });
 
+    it('does nothing when the timer fires after the renderer is destroyed', async () => {
+        const test = await setup();
+        const clock = manualTimers();
+        const stack = createToastStack({ renderer: test.renderer, theme: defaultTheme }, { timers: clock.timers });
+        test.parent.add(stack.renderable);
+        stack.push({ tone: 'ok', text: 'one', ttlMs: 1000 });
+        stack.push({ tone: 'ok', text: 'two', ttlMs: 4000 });
+        expect(clock.pendingCount()).toBe(1);
+
+        await test.dispose();
+        expect(test.renderer.isDestroyed).toBe(true);
+
+        // The first expiry would redraw the surviving toast on a renderer that is gone.
+        expect(() => clock.advance(1000)).not.toThrow();
+        expect(clock.pendingCount()).toBe(0);
+    });
+
     it('clears every toast and cancels the timer on dispose', async () => {
         const test = await setup();
         const clock = manualTimers();
