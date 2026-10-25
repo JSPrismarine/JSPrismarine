@@ -32,6 +32,7 @@ const args = [
     'build',
     './packages/server/src/Server.ts',
     '--compile',
+    '--sourcemap',
     `--target=${target}`,
     `--outfile=${outputPath}`,
     '--no-compile-autoload-dotenv',
