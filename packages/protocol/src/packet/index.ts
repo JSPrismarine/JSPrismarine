@@ -40,6 +40,7 @@ export {
     TextPacket
 };
 
+export { GameRuleType } from './StartGamePacket';
 export { PositionMode } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
@@ -63,7 +64,19 @@ export type { SetLocalPlayerAsInitialized } from './SetLocalPlayerAsInitializedP
 export type { ClientToServerHandshake } from './ClientToServerHandshakePacket';
 export type { ItemRegistry, ItemRegistryEntry } from './ItemRegistryPacket';
 export type { ServerToClientHandshake } from './ServerToClientHandshakePacket';
-export type { StartGame } from './StartGamePacket';
+// Every member type of `StartGame`, not just the payload itself: a caller that builds one has to
+// name a block property or a game rule to do it, and reaching for them through a deep import ties
+// that caller to this package's file layout.
+export type {
+    BlockProperty,
+    ExperimentToggle,
+    GameRule,
+    GatheringJoinInfo,
+    ServerJoinInformation,
+    StartGame,
+    Vec3Like,
+    WireUUID
+} from './StartGamePacket';
 export type { Text } from './TextPacket';
 
 // Packets added for protocol 2193 coverage; each file exports its data interface and enums.
