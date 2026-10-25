@@ -5,6 +5,7 @@ import type { Entity } from '../entity/Entity';
 import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+import MoveActorAbsolutePacket from './packet/MoveActorAbsolutePacket';
 import PlayerSession from './PlayerSession';
 
 /**
@@ -38,10 +39,11 @@ const sessionWithCountedSends = () => {
 const someWorld = () => stub<World>({ getName: () => 'test', getServer: () => stub<Server>() });
 
 /** An entity with just the parts a movement packet reads. */
-const entityAt = (id: bigint, x: number): Entity =>
+const entityAt = (id: bigint, x: number, grounded = false): Entity =>
     stub<Entity>({
         getRuntimeId: () => id,
         getPosition: () => new Position(x, 65, 0, someWorld()),
+        isOnGround: () => grounded,
         pitch: 0,
         yaw: 0,
         headYaw: 0
@@ -131,5 +133,34 @@ describe('entity movement on the wire', () => {
         // a byte. Non-zero is the whole claim - the exact encoding is the packet's own test.
         const rotation = encoded.subarray(encoded.length - 3);
         expect([...rotation]).not.toEqual([0, 0, 0]);
+    });
+
+    describe('the on-ground flag', () => {
+        /** The header byte of the one queued move, which is where the flags are written. */
+        const headerOf = async (entity: Entity): Promise<number> => {
+            const { session, batches } = sessionWithCountedSends();
+            session.queueMoveActor(entity);
+            await session.flushQueuedMoves();
+
+            const [encoded] = batches[0].getPackets();
+            // Packet id, then the runtime id as an unsigned varlong, then the header byte. Both
+            // ids here are small enough to be one byte each.
+            return encoded[2]!;
+        };
+
+        it('is set for an entity standing on something', async () => {
+            // This was hardcoded clear for every entity, because nothing tracked the state.
+            expect(await headerOf(entityAt(1n, 1, true))).toBe(MoveActorAbsolutePacket.FLAG_ON_GROUND);
+        });
+
+        it('is clear for an entity being carried through the air', async () => {
+            expect(await headerOf(entityAt(1n, 1, false))).toBe(0);
+        });
+
+        it('never carries the teleport flag, which would stutter a walking mob', async () => {
+            const header = await headerOf(entityAt(1n, 1, true));
+
+            expect(header & MoveActorAbsolutePacket.FLAG_TELEPORT).toBe(0);
+        });
     });
 });
