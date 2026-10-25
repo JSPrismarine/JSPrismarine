@@ -1,7 +1,6 @@
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { afterAll, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
 import { readBedrockSchemas } from './bedrockSchemas';
 import { bedrockSchemaValidator } from './bedrockSchemaValidator';
@@ -9,6 +8,8 @@ import type { Diagnostic } from './diagnostics';
 import { parseLenientJson } from './lenientJson';
 import { load } from './load';
 import type { Definitions } from './load';
+import { parseManifest } from './manifest';
+import { VANILLA_BEHAVIOR_PACK_UUID } from './sources';
 import type { DefinitionValidator } from './validation';
 import { composeValidators, structuralValidator } from './validation';
 
@@ -57,29 +58,18 @@ const validator = (): DefinitionValidator =>
         bedrockSchemaValidator(readBedrockSchemas(samplesCheckout()))
     ));
 
-const temporaryDirs: string[] = [];
-afterAll(() => {
-    for (const dir of temporaryDirs) rmSync(dir, { recursive: true, force: true });
-});
-
 /**
- * The BDS vanilla layers, linked into a directory of their own. BDS keeps
- * them in `behavior_packs` beside chemistry, the editor and the experimental
- * packs, which a world only loads when it turns them on, so the composed
- * vanilla pack is the `vanilla` and `vanilla_<version>` folders alone.
+ * The BDS `behavior_packs` folder. It holds chemistry, the editor and the
+ * experimental packs beside the vanilla layers, which a world only composes
+ * when it turns them on, so the source below names the vanilla pack's header
+ * UUID and the loader keeps that pack's layers alone.
  */
-const bdsVanillaLayers = (): string => {
+const bdsBehaviorPacks = (): string => {
     const root = join(cacheRoot, 'bds');
     const version = readdirSync(root).find((name) => existsSync(join(root, name, 'unpacked', 'behavior_packs')));
     if (!version) throw new Error(`no unpacked BDS under ${root}; run the bedrock-data fetch:sources script`);
 
-    const source = join(root, version, 'unpacked', 'behavior_packs');
-    const layers = mkdtempSync(join(tmpdir(), 'jsp-vanilla-layers-'));
-    temporaryDirs.push(layers);
-    for (const name of readdirSync(source)) {
-        if (name === 'vanilla' || name.startsWith('vanilla_')) symlinkSync(join(source, name), join(layers, name));
-    }
-    return layers;
+    return join(root, version, 'unpacked', 'behavior_packs');
 };
 
 const errorsOf = (diagnostics: readonly Diagnostic[]): readonly Diagnostic[] =>
@@ -100,6 +90,26 @@ const sizes = (corpus: string, definitions: Definitions): Record<string, number>
 };
 
 describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
+    it('is the one pack in the BDS folder that declares the vanilla header UUID', () => {
+        // The criterion the default stack selects by, checked against the
+        // shipped folder: if a release ever renames the vanilla pack's
+        // identity, or gives a second pack the same one, this fails here
+        // rather than silently composing the wrong content.
+        const root = bdsBehaviorPacks();
+        const byUuid = new Map<string, string[]>();
+        for (const folder of readdirSync(root)) {
+            const manifest = join(root, folder, 'manifest.json');
+            if (!existsSync(manifest)) continue;
+            const uuid = parseManifest(parseLenientJson(readFileSync(manifest, 'utf8')), folder).manifest?.header.uuid;
+            if (uuid !== undefined) byUuid.set(uuid, [...(byUuid.get(uuid) ?? []), folder]);
+        }
+
+        const vanilla = byUuid.get(VANILLA_BEHAVIOR_PACK_UUID);
+        expect(vanilla?.every((folder) => folder === 'vanilla' || folder.startsWith('vanilla_'))).toBe(true);
+        expect(vanilla?.length).toBeGreaterThan(1);
+        expect(readdirSync(root).filter((folder) => folder.startsWith('vanilla'))).toEqual(vanilla);
+    });
+
     it('loads every bedrock-samples registry with no error', { timeout: 60_000 }, () => {
         const { definitions, diagnostics } = load(
             [{ kind: 'directory', path: join(samplesCheckout(), 'behavior_pack') }],
@@ -125,10 +135,10 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
     it('loads every registry of the composed BDS vanilla layers', { timeout: 60_000 }, () => {
         // A strict load of the shipped vanilla stack has to succeed: this is
         // the headline stack the package exists to read.
-        const { definitions, diagnostics } = load([{ kind: 'brarchiveLayers', path: bdsVanillaLayers() }], {
-            strict: true,
-            validator: validator()
-        });
+        const { definitions, diagnostics } = load(
+            [{ kind: 'brarchiveLayers', path: bdsBehaviorPacks(), uuids: [VANILLA_BEHAVIOR_PACK_UUID] }],
+            { strict: true, validator: validator() }
+        );
 
         expect(errorsOf(diagnostics)).toEqual([]);
         // The only two files in the whole of BDS that carry a wrapper with no
