@@ -69,6 +69,20 @@ describe('performPush', () => {
         expect(world.identifierAt({ x: 2, y: 0, z: 0 })).toBe('minecraft:stone');
     });
 
+    it('carries what a pushed block was holding to the new position', () => {
+        const world = createVoxelWorld().overworld;
+        world.set({ x: 1, y: 0, z: 0 }, 'minecraft:chest');
+        world.setBlockData({ x: 1, y: 0, z: 0 }, { items: [{ identifier: 'minecraft:stick', count: 3 }] });
+
+        expect(performPush(world, piston, 'east')).toBe(true);
+
+        // A block write clears the block entity at the position, so a chest written at its
+        // new position rather than carried there would arrive empty.
+        expect(world.getBlockData({ x: 2, y: 0, z: 0 })).toEqual({
+            items: [{ identifier: 'minecraft:stick', count: 3 }]
+        });
+    });
+
     it('moves nothing when the run is blocked', () => {
         const world = createVoxelWorld().overworld;
         world.defineProperties('minecraft:bedrock', { pushReaction: 'immovable' });
@@ -87,6 +101,17 @@ describe('performPull', () => {
         expect(performPull(world, piston, 'east')).toBe(true);
         expect(world.identifierAt({ x: 1, y: 0, z: 0 })).toBe('minecraft:stone');
         expect(world.identifierAt({ x: 2, y: 0, z: 0 })).toBe(AIR);
+    });
+
+    it('brings back what the block it pulled was holding', () => {
+        const world = createVoxelWorld().overworld;
+        world.set({ x: 2, y: 0, z: 0 }, 'minecraft:chest');
+        world.setBlockData({ x: 2, y: 0, z: 0 }, { items: [{ identifier: 'minecraft:stick', count: 3 }] });
+
+        expect(performPull(world, piston, 'east')).toBe(true);
+        expect(world.getBlockData({ x: 1, y: 0, z: 0 })).toEqual({
+            items: [{ identifier: 'minecraft:stick', count: 3 }]
+        });
     });
 
     it('leaves behind a block that only pushes', () => {
