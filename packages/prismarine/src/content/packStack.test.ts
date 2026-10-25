@@ -1,10 +1,19 @@
-import { existsSync } from 'node:fs';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
+
+import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 import { buildServerContent } from './ServerContent';
 import { PACK_STACK_ENV, overlayPackPath, resolvePackStack } from './packStack';
 
 afterEach(() => vi.unstubAllEnvs());
+
+const temporaryDirs: string[] = [];
+afterAll(() => {
+    for (const dir of temporaryDirs) rmSync(dir, { recursive: true, force: true });
+});
 
 describe('resolvePackStack', () => {
     it('puts the overlay after the vanilla Bedrock pack and before the world packs', () => {
@@ -38,6 +47,60 @@ describe('resolvePackStack', () => {
 
     it('always finds the overlay, which ships with @jsprismarine/blocks', () => {
         expect(existsSync(overlayPackPath())).toBe(true);
+    });
+
+    it('reads a path with a manifest at its root as one composed pack', () => {
+        // The overlay is a loose pack folder, which is also the shape
+        // `bedrock-samples` publishes and the shape somebody unpacking a pack
+        // by hand points the override at.
+        vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, overlayPackPath());
+
+        const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+
+        expect(stack).toEqual([{ kind: 'directory', path: overlayPackPath() }]);
+    });
+
+    describe('over a folder of BDS layers', () => {
+        /** A folder of layer folders, which is what a path with no root manifest is. */
+        const layers = (): string => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-pack-stack-'));
+            temporaryDirs.push(folder);
+            return folder;
+        };
+
+        it('composes the vanilla behavior pack alone', () => {
+            const folder = layers();
+            vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+
+            const { stack } = resolvePackStack({ overlay: false, javaVanilla: false });
+
+            expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID] }]);
+        });
+
+        it('composes the packs a caller names instead', () => {
+            const folder = layers();
+            const chemistry = '6baf8b62-8948-4c99-bb1e-a0cb35dc4579';
+            vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+
+            const { stack } = resolvePackStack({
+                overlay: false,
+                javaVanilla: false,
+                bedrockPacks: [VANILLA_BEHAVIOR_PACK_UUID, chemistry]
+            });
+
+            expect(stack).toEqual([
+                { kind: 'brarchiveLayers', path: folder, uuids: [VANILLA_BEHAVIOR_PACK_UUID, chemistry] }
+            ]);
+        });
+
+        it("composes every pack in the folder for a caller that asks for 'all'", () => {
+            const folder = layers();
+            vi.stubEnv(PACK_STACK_ENV.vanillaBedrockPack, folder);
+
+            const { stack } = resolvePackStack({ overlay: false, javaVanilla: false, bedrockPacks: 'all' });
+
+            expect(stack).toEqual([{ kind: 'brarchiveLayers', path: folder, uuids: undefined }]);
+        });
     });
 });
 

@@ -11,13 +11,19 @@
  * Mojang's two halves are fetched rather than published with this server, so
  * a member whose directory is not on disk is left out and reported. The
  * server still starts; its content is whatever the stack did hold.
+ *
+ * The Bedrock half arrives as a BDS `behavior_packs` folder holding several
+ * packs, and the default composes one of them: the vanilla behavior pack.
+ * See {@link PackStackRequest.bedrockPacks} for why, and for how to ask for
+ * the rest.
  */
 import { existsSync, readdirSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 import type { Diagnostic } from '@jsprismarine/content';
-import type { PackSource, PackStack } from '@jsprismarine/packs';
+import type { BedrockPackSource, PackSource, PackStack } from '@jsprismarine/packs';
+import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 /** Points the resolver at a local copy of one fetched source. */
 export const PACK_STACK_ENV = {
@@ -31,6 +37,23 @@ export const PACK_STACK_ENV = {
 export interface PackStackRequest {
     /** Whether to include the composed vanilla Bedrock pack. Defaults to true. */
     readonly vanilla?: boolean;
+    /**
+     * Which packs to compose out of a BDS `behavior_packs` folder, by header
+     * UUID, or `'all'` for every pack the folder holds.
+     *
+     * Defaults to the vanilla behavior pack alone. BDS ships chemistry, the
+     * editor, the server script libraries and four experimental toggles in
+     * that folder, and a world composes those only when it turns them on; a
+     * server aiming at vanilla parity turns none of them on. Education
+     * Edition content is out of scope by
+     * [plan](../../../../docs/plans/data-driven-vanilla.md) section 12
+     * decision 8, and the editor's five `editor:` entities are tools for a
+     * world author rather than content a server serves.
+     *
+     * The packs are on disk either way, so naming one here is how a server
+     * that does want it opts in.
+     */
+    readonly bedrockPacks?: readonly string[] | 'all';
     /** Whether to include this project's `jsprismarine_vanilla` overlay. Defaults to true. */
     readonly overlay?: boolean;
     /** Whether to include the Java vanilla datapack. Defaults to true. */
@@ -110,10 +133,10 @@ const sourcePath = (override: string | undefined, found: () => string | undefine
 
 /**
  * The BDS `behavior_packs` directory, whose `vanilla` and `vanilla_<version>`
- * folders are the composed vanilla pack. BDS keeps chemistry, the editor and
- * the experimental packs in the same place, and a world only loads those when
- * it turns them on, so the caller gets the whole folder and the loader's
- * layer ordering picks the `vanilla` ones out by name.
+ * folders are the layers of the composed vanilla pack. BDS keeps chemistry,
+ * the editor, the script libraries and the experimental packs in the same
+ * place, so the caller gets the whole folder and names the packs it wants
+ * out of it.
  */
 const bdsBehaviorPacks = (root: string): string | undefined => {
     if (!existsSync(root)) return undefined;
@@ -147,6 +170,20 @@ const vanillaDatapack = (root: string): string | undefined => {
     }
     return undefined;
 };
+
+/**
+ * Reads one Bedrock path as the pack or packs it holds.
+ *
+ * A `manifest.json` at the root makes it one composed pack, the form
+ * `bedrock-samples` publishes and the form somebody points
+ * {@link PACK_STACK_ENV.vanillaBedrockPack} at when they have unpacked one.
+ * Without it the path is a folder of layer folders the way BDS ships them,
+ * and `packs` says which of the packs in it to compose.
+ */
+const bedrockSource = (path: string, packs: readonly string[] | 'all'): BedrockPackSource =>
+    existsSync(join(path, 'manifest.json'))
+        ? { kind: 'directory', path }
+        : { kind: 'brarchiveLayers', path, uuids: packs === 'all' ? undefined : packs };
 
 /** The overlay's path inside whichever `node_modules` holds `@jsprismarine/blocks`. */
 const OVERLAY_SEGMENTS = ['@jsprismarine', 'blocks', 'vanilla_overlay'] as const;
@@ -184,7 +221,7 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const layers = sourcePath(override, () => bdsBehaviorPacks(join(root, 'bds')));
         const loose = layers || override ? undefined : samplesBehaviorPack(join(root, 'bedrock-samples'));
 
-        if (layers) stack.push({ kind: 'brarchiveLayers', path: layers });
+        if (layers) stack.push(bedrockSource(layers, request.bedrockPacks ?? [VANILLA_BEHAVIOR_PACK_UUID]));
         else if (loose) stack.push({ kind: 'directory', path: loose });
         else {
             missing(
