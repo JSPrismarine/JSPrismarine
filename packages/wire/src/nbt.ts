@@ -120,7 +120,12 @@ export const nbtToPlain = (value: unknown): PlainNbt => {
         // `getValue` is the one member every tag wrapper in `@jsprismarine/nbt`
         // shares, and the classes do not share a base type to narrow against.
         const scalar = (value as { getValue(): number | bigint | string }).getValue();
-        return `${typeName}:${typeof scalar === 'bigint' ? scalar.toString() : scalar}`;
+        if (typeof scalar === 'bigint') return `${typeName}:${scalar.toString()}`;
+        // A float that has not been through the writer still holds all 53
+        // bits of the double it came from, so rounding here is what makes a
+        // built tag and a read-back one compare equal.
+        if (typeName === 'float' && typeof scalar === 'number') return `float:${Math.fround(scalar)}`;
+        return `${typeName}:${scalar}`;
     }
 
     throw new TypeError(`not an NBT tag: ${String(value)}`);
