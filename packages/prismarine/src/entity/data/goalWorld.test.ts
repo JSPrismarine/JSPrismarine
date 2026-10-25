@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { DataEntity } from './DataEntity';
+import { goalWorldOf } from './goalWorld';
 import type { EntityFixture, ExtraEntities } from './testing';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
@@ -600,6 +601,87 @@ describe('the goal world over the entity runtime', () => {
             fixture.runtime.explode(creeper.body);
 
             expect(bystander.body.velocity.x).toBeGreaterThan(0);
+        });
+    });
+
+    /**
+     * The order the neighbor search hands its candidates back in.
+     *
+     * Most goals that search take the first candidate the list accepts, so the
+     * order decides which mob a zombie attacks and which cow a cow breeds
+     * with. It is a contract rather than an accident, and these pin it: the
+     * search is a hot path and has been made faster twice.
+     */
+    describe('the neighbor search', () => {
+        /** The ids `mobs` hands back for one entity's search. */
+        const neighborsOf = (fixture: EntityFixture, entity: DataEntity, radius: number) =>
+            goalWorldOf(entity.body, fixture.runtime)
+                .mobs(radius)
+                .map((mob) => mob.id);
+
+        it('hands the nearest mob back first', () => {
+            const fixture = fixtureOf();
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const far = spawned(fixture, 'jsprismarine:pet', groundAt(8, 0));
+            const near = spawned(fixture, 'jsprismarine:pet', groundAt(2, 0));
+
+            expect(neighborsOf(fixture, searcher, 16)).toEqual([near.id, far.id]);
+        });
+
+        it('keeps two mobs the same distance away in spawn order', () => {
+            const fixture = fixtureOf();
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const first = spawned(fixture, 'jsprismarine:pet', groundAt(0, 5));
+            const second = spawned(fixture, 'jsprismarine:pet', groundAt(5, 0));
+            const third = spawned(fixture, 'jsprismarine:pet', groundAt(-5, 0));
+
+            expect(neighborsOf(fixture, searcher, 16)).toEqual([first.id, second.id, third.id]);
+        });
+
+        it('puts a player behind a mob that is the same distance away', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 900, identifier: 'player', position: groundAt(5, 0) }]
+            });
+            const fixture = fixtureOf(world);
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const mate = spawned(fixture, 'jsprismarine:pet', groundAt(0, 5));
+
+            expect(neighborsOf(fixture, searcher, 16)).toEqual([mate.id, 900]);
+        });
+
+        it('takes a mob standing exactly on the radius and leaves the one past it', () => {
+            const fixture = fixtureOf();
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+            const onEdge = spawned(fixture, 'jsprismarine:pet', groundAt(8, 0));
+            spawned(fixture, 'jsprismarine:pet', groundAt(8.000_01, 0));
+
+            expect(neighborsOf(fixture, searcher, 8)).toEqual([onEdge.id]);
+        });
+
+        it('leaves the searching entity out of its own search', () => {
+            const fixture = fixtureOf();
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+
+            expect(neighborsOf(fixture, searcher, 16)).toEqual([]);
+        });
+
+        it('hands players back nearest first, in host order among ties', () => {
+            const world = new TestEntityWorld({
+                players: [
+                    { id: 900, identifier: 'player', position: groundAt(6, 0) },
+                    { id: 901, identifier: 'player', position: groundAt(0, 2) },
+                    { id: 902, identifier: 'player', position: groundAt(0, 6) },
+                    { id: 903, identifier: 'player', position: groundAt(40, 0) }
+                ]
+            });
+            const fixture = fixtureOf(world);
+            const searcher = spawned(fixture, 'jsprismarine:pet', groundAt(0, 0));
+
+            const found = goalWorldOf(searcher.body, fixture.runtime)
+                .players(16)
+                .map((player) => player.id);
+
+            expect(found).toEqual([901, 900, 902]);
         });
     });
 });

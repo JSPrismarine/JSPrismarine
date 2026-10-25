@@ -38,7 +38,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { canBreed, offspringOf, spendLove } from './breeding';
-import { DataEntity, MobBody, distance } from './DataEntity';
+import { DataEntity, MobBody, distance, squaredDistance } from './DataEntity';
 import { detonate } from './explosion';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
@@ -173,9 +173,22 @@ export class EntityRuntime implements EntityScene {
         return this.entities.get(id);
     }
 
-    /** Every live entity within a radius of a position. */
+    /**
+     * Every live entity within a radius of a position, in spawn order.
+     *
+     * The hot read of the whole runtime: `goalWorld.mobs` calls it once per
+     * goal that searches for a neighbor, which at a hundred mobs is tens of
+     * calls a tick, each crossing every entity. So it walks the index itself
+     * rather than through {@link EntityRuntime.all}, which would copy the
+     * whole map into a fresh array first, and it compares squared distances,
+     * which orders the same way without a `Math.hypot` per entity.
+     */
     public near(center: EntityPosition, radius: number): readonly DataEntity[] {
-        return this.all().filter((entity) => distance(center, entity.position) <= radius);
+        const within = radius * radius;
+        const found: DataEntity[] = [];
+        for (const entity of this.entities.values())
+            if (squaredDistance(center, entity.position) <= within) found.push(entity);
+        return found;
     }
 
     /** How many live entities of one type stand within a radius of a position. */

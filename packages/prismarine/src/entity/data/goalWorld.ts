@@ -16,7 +16,7 @@ import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprisma
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
 import type { DataEntity, MobBody } from './DataEntity';
-import { distance } from './DataEntity';
+import { distance, squaredDistance } from './DataEntity';
 import type { EntityScene } from './scene';
 
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
@@ -101,31 +101,26 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
  * `EntityInstance` is still being constructed.
  */
 export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalWorld> => {
-    const sorted = (candidates: readonly DataEntity[]) =>
-        [...candidates].sort((a, b) => distance(entity.position, a.position) - distance(entity.position, b.position));
-
     return {
         navigation: () => scene.navigation(),
         // Players among them, because `nearest_attackable_target` searches this list and 49
         // vanilla entities use it with an `is_family: player` entry. Java's
         // `NearestAttackableTargetGoal` searches `LivingEntity`, which is players included;
         // `players` stays as the player-only list the tempt and follow goals ask for.
-        mobs: (radius) =>
-            [
-                ...sorted(scene.near(entity.position, radius).filter((other) => other.id !== entity.id)).map((other) =>
-                    goalMobOf(other, scene)
-                ),
-                ...scene.host
-                    .players()
-                    .filter((player) => distance(entity.position, player.position) <= radius)
-                    .map((player) => playerGoalMob(player.id, player.identifier, player.position))
-            ].sort((a, b) => distance(entity.position, a.position()) - distance(entity.position, b.position())),
-        players: (radius) =>
-            scene.host
-                .players()
-                .filter((player) => distance(entity.position, player.position) <= radius)
-                .sort((a, b) => distance(entity.position, a.position) - distance(entity.position, b.position))
-                .map((player) => playerGoalMob(player.id, player.identifier, player.position)),
+        mobs: (radius) => {
+            const here = entity.position;
+            const found: Ranked[] = [];
+            for (const other of scene.near(here, radius))
+                if (other.id !== entity.id)
+                    found.push({ mob: goalMobOf(other, scene), away: squaredDistance(here, other.position) });
+            appendPlayers(found, here, radius, scene);
+            return nearestFirst(found);
+        },
+        players: (radius) => {
+            const found: Ranked[] = [];
+            appendPlayers(found, entity.position, radius, scene);
+            return nearestFirst(found);
+        },
         items: (radius) => scene.items(entity.position, radius),
         blocks: (query) => scene.blocks(entity.position, query),
         poi: (kind, radius) => scene.poi(kind, entity.position, radius),
@@ -189,6 +184,42 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         trigger: (event, target) => scene.trigger(entity, event, target),
         report: (message) => scene.report(`${entity.identifier}: ${message}`)
     };
+};
+
+/** One candidate of a neighbor search, with the key the search orders it by. */
+interface Ranked {
+    readonly mob: GoalMob;
+    /** The squared distance from the searching entity, which {@link nearestFirst} sorts on. */
+    readonly away: number;
+}
+
+/**
+ * Puts every player within a radius of a position on the end of a search.
+ *
+ * Players are the host's rather than the runtime's, so both neighbor searches
+ * have to merge them in, and both have to rank them the same way the mobs are
+ * ranked for the one sort to be right.
+ */
+const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, scene: EntityScene): void => {
+    const within = radius * radius;
+    for (const player of scene.host.players()) {
+        const away = squaredDistance(here, player.position);
+        if (away <= within) found.push({ mob: playerGoalMob(player.id, player.identifier, player.position), away });
+    }
+};
+
+/**
+ * Orders a neighbor search nearest first.
+ *
+ * One sort over a key worked out once per candidate. The comparator used to
+ * recompute the distance for both sides of every comparison, which is a
+ * `Math.hypot` per comparison rather than one per candidate, and the mobs were
+ * sorted a second time before the players were merged in, which a stable sort
+ * over the same key makes no difference at all.
+ */
+const nearestFirst = (found: Ranked[]): readonly GoalMob[] => {
+    found.sort((a, b) => a.away - b.away);
+    return found.map((candidate) => candidate.mob);
 };
 
 /** Whether a mob is close enough for the entity's melee swing to land. */
