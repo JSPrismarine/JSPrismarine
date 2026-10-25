@@ -108,12 +108,74 @@ export const plainFrontend = (options: PlainFrontendOptions = {}): ConsoleFronte
     };
 };
 
+/** The part of `@jsprismarine/console` the host uses, loaded on demand. */
+export type ConsoleModule = Pick<typeof import('@jsprismarine/console'), 'startConsole'>;
+
+/** Options for {@link loadTuiFrontend}. */
+export interface TuiFrontendOptions {
+    /** Shown in the title bar. */
+    serverName: string;
+    /** Shown in the title bar. */
+    version: string;
+    /** Where the console reads and writes command history. */
+    historyFile: string;
+    /**
+     * Imports the console package; defaults to `import('@jsprismarine/console')`. Injected so
+     * tests run without the native renderer.
+     */
+    load?: () => Promise<ConsoleModule>;
+    /** Prints the one line that explains a fallback; defaults to `console.warn`. */
+    warn?: (line: string) => void;
+    /** Builds the frontend used when the console starts but its renderer fails; defaults to {@link plainFrontend}. */
+    fallback?: () => ConsoleFrontend;
+}
+
+const errorText = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+
+const importConsole = (): Promise<ConsoleModule> => import('@jsprismarine/console');
+
 /**
- * Loads the terminal UI frontend when the console package is available.
+ * Loads the terminal UI frontend.
  *
- * Returns `undefined` until the app slice replaces this with a lazy
- * `import('@jsprismarine/console')` that wraps `startConsole` in a {@link ConsoleFrontend}.
- * The import must stay lazy and behind the TUI gate: `@opentui/core` loads a native library
- * on import, and the plain path must never touch it.
+ * The console package is imported here and nowhere else in the host, after the TUI gate has
+ * passed, because `@opentui/core` loads a native library on import and the plain and
+ * `--role server` paths must never touch it. When the import fails this prints one line
+ * naming the cause and returns `undefined` so the entry runs the plain frontend. When the
+ * import works but the renderer cannot start on `attach`, the returned frontend prints the
+ * cause and hands the supervisor to the fallback instead, so the server still gets a console.
  */
-export const loadTuiFrontend = async (): Promise<ConsoleFrontend | undefined> => undefined;
+export const loadTuiFrontend = async (options: TuiFrontendOptions): Promise<ConsoleFrontend | undefined> => {
+    const warn = options.warn ?? ((line: string) => console.warn(line));
+    let startConsole: ConsoleModule['startConsole'];
+    try {
+        ({ startConsole } = await (options.load ?? importConsole)());
+    } catch (error) {
+        warn(`prismarine: the terminal UI is unavailable (${errorText(error)}); using the line console.`);
+        return undefined;
+    }
+
+    let handle: Awaited<ReturnType<typeof startConsole>> | undefined;
+    let fallback: ConsoleFrontend | undefined;
+    return {
+        async attach(supervisor) {
+            try {
+                handle = await startConsole({
+                    supervisor,
+                    serverName: options.serverName,
+                    version: options.version,
+                    historyFile: options.historyFile
+                });
+            } catch (error) {
+                warn(`prismarine: the terminal UI could not start (${errorText(error)}); using the line console.`);
+                fallback = (options.fallback ?? plainFrontend)();
+                await fallback.attach(supervisor);
+            }
+        },
+        async close() {
+            await handle?.close();
+            await fallback?.close();
+            handle = undefined;
+            fallback = undefined;
+        }
+    };
+};
