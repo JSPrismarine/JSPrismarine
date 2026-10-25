@@ -4,12 +4,31 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type BinaryStream from '@jsprismarine/binaryutils';
 
 interface BlockStorageData {
-    blocks?: number[];
+    /** One palette index per block, in XZY order. Copied, so the caller may reuse its buffer. */
+    blocks?: ArrayLike<number>;
     palette?: number[];
 }
 
+/** How many blocks one sub chunk holds. */
+const BLOCKS_PER_SUBCHUNK = 4096;
+
+/**
+ * The widest palette a `Uint16Array` of indices can address.
+ *
+ * Far beyond anything a real sub chunk holds - the whole server knows 22079 block states - so
+ * reaching it means a decoder has been handed something that is not a sub chunk.
+ */
+const MAX_PALETTE_SIZE = 65536;
+
 export default class BlockStorage {
-    private blocks: number[];
+    /**
+     * One palette index per block, in XZY order.
+     *
+     * A `Uint16Array` rather than a `number[]`: V8 stores a plain array of small integers as 8
+     * bytes per element, so a 24 section Overworld column retained about 1000 KiB of block
+     * indices. Packed, the same column is 192 KiB.
+     */
+    private blocks: Uint16Array;
     private palette: number[];
 
     /**
@@ -24,7 +43,8 @@ export default class BlockStorage {
 
     public constructor({ blocks, palette }: BlockStorageData) {
         this.palette = palette ?? [BlockRuntimeIds.getByName('minecraft:air')];
-        this.blocks = blocks ?? new Array<number>(4096).fill(0);
+        this.blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+        if (blocks) this.blocks.set(blocks);
         this.paletteIndex = new Map(this.palette.map((runtimeId, index) => [runtimeId, index]));
     }
 
@@ -83,6 +103,10 @@ export default class BlockStorage {
     private getOrAddPaletteIndex(runtimeId: number): number {
         const existing = this.paletteIndex.get(runtimeId);
         if (existing !== undefined) return existing;
+
+        if (this.palette.length >= MAX_PALETTE_SIZE) {
+            throw new RangeError(`A sub chunk palette holds at most ${MAX_PALETTE_SIZE} entries`);
+        }
 
         const index = this.palette.push(runtimeId) - 1;
         this.paletteIndex.set(runtimeId, index);

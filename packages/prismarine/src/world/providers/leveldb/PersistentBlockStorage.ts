@@ -93,14 +93,14 @@ export const decodePersistentStorage = (stream: BinaryStream): BlockStorage => {
 
     const palette = Array.from({ length: paletteSize }, () => decodePaletteEntry(stream));
 
-    const blocks = Array.from({ length: BLOCKS_PER_SUBCHUNK }, (_, index) => {
+    for (let index = 0; index < BLOCKS_PER_SUBCHUNK; index++) {
         const paletteIndex = indices[index]!;
         if (paletteIndex >= paletteSize) {
             throw new Error(`Block ${index} refers to palette entry ${paletteIndex} of ${paletteSize}`);
         }
+    }
 
-        return paletteIndex;
-    });
-
-    return new BlockStorage({ blocks, palette });
+    // The decoded indices are already one 16 bit slot per block, which is how a storage holds
+    // them, so they go across whole rather than through 4096 single writes.
+    return new BlockStorage({ blocks: indices, palette });
 };
