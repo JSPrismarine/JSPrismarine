@@ -110,6 +110,11 @@ export class ChunkSampler {
         };
     }
 
+    /** Samples only the block state, avoiding the result object used by inspection callers. */
+    public stateAt(x: number, y: number, z: number): string {
+        return this.aquifer.computeSubstance(x, y, z, this.density(x, y, z)) ?? this.defaultBlock;
+    }
+
     /**
      * Generates one column from the top of the dimension down to its floor.
      *

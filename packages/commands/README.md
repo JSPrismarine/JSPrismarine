@@ -260,7 +260,10 @@ rules, 8 of which Java has no counterpart for, and it still spells the command l
   no timer behind it here yet.
 - 29 of Bedrock's commands are not implemented. `/allowlist`, `/save`, `/setmaxplayers`,
   `/mobevent`, `/tickingarea`, `/structure`, `/clearspawnpoint` and `/toggledownfall` each need a
-  subsystem no server here has; `/camera`, `/hud`, `/music`, `/dialogue`, `/inputpermission`,
+  subsystem no server here has. `/structure` is the closest of the eight:
+  `@jsprismarine/structures` reads and writes the NBT template format, and what is still missing
+  is somewhere for a player-made template to be saved to and read back from.
+  `/camera`, `/hud`, `/music`, `/dialogue`, `/inputpermission`,
   `/controlscheme`, `/aimassist`, `/project` and `/sendshowstoreoffer` each need a packet this
   repository does not write yet; and `/script`, `/scriptevent`, `/gametest`, `/editor-allowlist`,
   `/wsserver`, `/changesetting`, `/packstack`, `/permission`, `/event`, `/reloadconfig`,

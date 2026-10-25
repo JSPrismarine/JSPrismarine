@@ -10,9 +10,9 @@
  *
  * One gap worth stating. Java writes the scoreboard into `scoreboard.dat` and
  * reads it back on the next start; this one lives for as long as the process
- * does. Everything a running server can observe works - the display slots
+ * does. Everything a running server can observe works. The display slots
  * update, a score survives a player relogging, and an operation reads both
- * sides - and a restart starts over.
+ * sides. A restart starts over.
  */
 import type { EntityRef, ScoreboardCommandHost } from '@jsprismarine/commands';
 
@@ -57,7 +57,7 @@ const SWAP = '><';
  * Objectives, scores and display slots.
  *
  * Holders are names rather than entity references: Java scores a name, which
- * is why a "fake player" - a name no entity has - is the normal way a
+ * is why a "fake player", a name no entity has, is the normal way a
  * datapack keeps a global counter.
  */
 export class Scoreboard {
