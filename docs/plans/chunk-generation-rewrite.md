@@ -553,13 +553,18 @@ parent jigsaws, candidate elements and rotations with no cache. It is 20.9% self
 profile of a window containing a trial chamber. A template's jigsaw blocks are a function of the
 template and the rotation, so a `Map` keyed by both is the whole fix.
 
-**Give `baseHeight` a cheap column.** `StructureLevel.baseHeight` asks `columnAt` for a whole
-384-block column with aquifers on and scans it downward (`javaStructureLevel.ts:103`), which is
-384 `final_density` evaluations, 384 aquifer calls and 768 allocations for one height. Java's
-`getBaseHeight` walks cells from the top with aquifers off and returns at the first block the
-predicate accepts. Measured, this is 50 column misses per chunk, 6% of the chunk's density
-samples and 16% of layout wall time; a desert pyramid alone asks for 441 columns. Add an
-early-exiting walk to `ChunkSampler` and have `baseHeight` use it.
+**Give `baseHeight` a cheap column.** Done. `StructureLevel.baseHeight` asked `columnAt` for a
+whole 384-block column and scanned it downward, which was 384 `final_density` evaluations, 384
+aquifer calls and 768 allocations for one height. Measured, that was 50 column misses per chunk,
+6% of the chunk's density samples and 16% of layout wall time; a desert pyramid alone asks for 441
+columns. `ChunkSampler.columnTop` walks down and returns at the first block the predicate accepts,
+which is what `baseHeight` uses.
+
+Aquifers stay on, against what this plan said before. `NoiseBasedChunkGenerator.iterateNoiseColumn`
+in the pinned 26.3 jar builds its `NoiseChunk` with the dimension's own fluid picker and the
+settings' `aquifers` block; the `aquifersEnabled: false` that older versions passed is gone.
+Turning them off would have moved 28 of 11,520 sampled columns by up to 20 blocks and dropped a
+cold ocean ruin 28 blocks through the sea floor.
 
 While there, the column and sampler caches clear wholesale, `columns` at 16384 entries and
 `samplers` at 256 (`javaStructureLevel.ts:57` and `:72`). Retain by chunk through the holder
