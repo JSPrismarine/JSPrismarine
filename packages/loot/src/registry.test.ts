@@ -1,7 +1,9 @@
-import { scriptedRandom } from '@jsprismarine/predicates';
+import type { EnchantmentView, RandomSource } from '@jsprismarine/predicates';
+import { defaultItemStackOps, scriptedRandom } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import type { LootPackDefinitions } from './packs';
+import type { LootRegistryOptions } from './registry';
 import { LootRegistry } from './registry';
 
 const ORIGIN = { origin: { x: 0, y: 64, z: 0 } };
@@ -147,6 +149,181 @@ describe('rolling through the registry', () => {
         for (let roll = 0; roll < 10; roll += 1) registry.roll('minecraft:chests/igloo', { parameters: ORIGIN });
 
         expect(expansions).toBe(1);
+    });
+
+    it('smelts through the stack own recipes without the host repeating them', () => {
+        const registry = new LootRegistry(
+            stackOf(
+                {
+                    'minecraft:entities/cow': {
+                        type: 'minecraft:chest',
+                        pools: [
+                            {
+                                rolls: 1,
+                                entries: [
+                                    {
+                                        type: 'minecraft:item',
+                                        name: 'minecraft:beef',
+                                        modifier: [{ type: 'minecraft:furnace_smelt' }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    recipesJava: new Map<string, unknown>([
+                        [
+                            'minecraft:cooked_beef',
+                            {
+                                data: {
+                                    type: 'minecraft:smelting',
+                                    ingredient: 'minecraft:beef',
+                                    result: { id: 'minecraft:cooked_beef' }
+                                }
+                            }
+                        ]
+                    ])
+                }
+            )
+        );
+
+        expect(registry.roll('minecraft:entities/cow', { parameters: ORIGIN }).map((stack) => stack.id)).toEqual([
+            'minecraft:cooked_beef'
+        ]);
+        expect(registry.diagnostics.entries).toEqual([]);
+    });
+
+    it('expands a smelting ingredient tag out of the stack own tag files', () => {
+        const registry = new LootRegistry(
+            stackOf(
+                {
+                    'minecraft:blocks/oak_log': {
+                        type: 'minecraft:chest',
+                        pools: [
+                            {
+                                rolls: 1,
+                                entries: [
+                                    {
+                                        type: 'minecraft:item',
+                                        name: 'minecraft:oak_log',
+                                        modifier: [{ type: 'minecraft:furnace_smelt' }]
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                },
+                {
+                    recipesJava: new Map<string, unknown>([
+                        [
+                            'minecraft:charcoal',
+                            {
+                                data: {
+                                    type: 'minecraft:smelting',
+                                    ingredient: '#minecraft:logs',
+                                    result: { id: 'minecraft:charcoal' }
+                                }
+                            }
+                        ]
+                    ]),
+                    tags: new Map<string, unknown>([
+                        ['item/minecraft:logs', { data: { values: ['minecraft:oak_log'] } }]
+                    ])
+                }
+            )
+        );
+
+        expect(registry.roll('minecraft:blocks/oak_log', { parameters: ORIGIN }).map((stack) => stack.id)).toEqual([
+            'minecraft:charcoal'
+        ]);
+    });
+
+    it('enchants from the stream the table drew from, so a world seed replays the draw', () => {
+        const table = {
+            'minecraft:chests/igloo': {
+                type: 'minecraft:chest',
+                random_sequence: 'minecraft:chests/igloo',
+                pools: [
+                    {
+                        rolls: 1,
+                        entries: [
+                            {
+                                type: 'minecraft:item',
+                                name: 'minecraft:book',
+                                modifier: [{ type: 'minecraft:enchant_with_levels', levels: 30 }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+
+        // A view small enough to state here: the draw is one `nextInt`, so a
+        // roll that reuses the table's own stream is reproducible and a roll
+        // that reaches for a second one is not.
+        const enchantments = (random: RandomSource): EnchantmentView => ({
+            selectRandomEnchantments: () => new Map([['minecraft:sharpness', random.nextInt(5) + 1]])
+        });
+        const levelsFor = (worldSeed: bigint): unknown =>
+            new LootRegistry(stackOf(table), { worldSeed, enchantments })
+                .roll('minecraft:chests/igloo', { parameters: ORIGIN })
+                .map((stack) => stack.components.get('minecraft:enchantments'));
+
+        expect(levelsFor(1234n)).toEqual(levelsFor(1234n));
+        expect(levelsFor(1234n)).not.toEqual(levelsFor(4321n));
+    });
+
+    it('reports rather than enchanting when the host registered no enchantments', () => {
+        const registry = new LootRegistry(
+            stackOf({
+                'minecraft:chests/igloo': {
+                    type: 'minecraft:chest',
+                    pools: [
+                        {
+                            rolls: 1,
+                            entries: [
+                                {
+                                    type: 'minecraft:item',
+                                    name: 'minecraft:book',
+                                    modifier: [{ type: 'minecraft:enchant_with_levels', levels: 30 }]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            })
+        );
+
+        expect(registry.roll('minecraft:chests/igloo', { parameters: ORIGIN })[0]?.components.size).toBe(0);
+        expect(registry.diagnostics.entries.length).toBeGreaterThan(0);
+    });
+
+    it('clamps a count to the host per-item stack size rather than to 64', () => {
+        const table = {
+            'minecraft:chests/igloo': {
+                type: 'minecraft:chest',
+                pools: [
+                    {
+                        rolls: 1,
+                        entries: [
+                            {
+                                type: 'minecraft:item',
+                                name: 'minecraft:ender_pearl',
+                                modifier: [{ type: 'minecraft:set_count', count: 20 }]
+                            }
+                        ]
+                    }
+                ]
+            }
+        };
+        const countsWith = (options: LootRegistryOptions): readonly number[] =>
+            new LootRegistry(stackOf(table), options)
+                .roll('minecraft:chests/igloo', { parameters: ORIGIN })
+                .map((stack) => stack.count);
+
+        expect(countsWith({ items: { ...defaultItemStackOps, maxStackSize: () => 16 } })).toEqual([16]);
+        expect(countsWith({})).toEqual([20]);
     });
 
     it('lets a caller script the draw instead of the sequence', () => {
