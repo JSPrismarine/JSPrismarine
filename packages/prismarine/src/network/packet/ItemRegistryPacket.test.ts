@@ -1,12 +1,13 @@
 import { item_components as ItemComponents, item_table as ItemTable } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
-import { ByteOrder, NBTReader } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader, NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
 import { NetworkUtil } from '../NetworkUtil';
 import Identifiers from '../Identifiers';
 import ItemRegistryPacket from './ItemRegistryPacket';
+
+import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 /** Packet id 162 as a varuint. */
 const HEADER = [0xa2, 0x01];
@@ -161,6 +162,53 @@ describe('network', () => {
 
             it('returns the same cached table on every encode', () => {
                 expect(encode()).toEqual(buffer);
+            });
+
+            it('writes the entries it was given instead, when the content build supplies them', () => {
+                const stick: ItemRegistryEntry = {
+                    name: 'mypack:stick',
+                    runtimeId: 10000,
+                    componentBased: true,
+                    version: DATA_DRIVEN
+                };
+
+                const pk = new ItemRegistryPacket();
+                pk.entries = [stick];
+                pk.encode();
+
+                const written = decode(pk.getBuffer());
+                expect(written).toHaveLength(1);
+                expect(written[0]).toMatchObject({
+                    name: 'mypack:stick',
+                    runtimeId: 10000,
+                    componentBased: true,
+                    version: DATA_DRIVEN
+                });
+                // An entry with no components still writes the empty compound
+                // the positional field requires.
+                expect(written[0]?.components.size()).toBe(0);
+            });
+
+            it('writes the component compound of a registry entry that carries one', () => {
+                const properties = new NBTTagCompound('item_properties');
+                properties.addValue('damage', new Types.NumberVal(3));
+                const components = new NBTTagCompound();
+                components.addValue('item_properties', properties);
+
+                const pk = new ItemRegistryPacket();
+                pk.entries = [
+                    {
+                        name: 'mypack:sword',
+                        runtimeId: 10001,
+                        componentBased: true,
+                        version: DATA_DRIVEN,
+                        componentData: components
+                    }
+                ];
+                pk.encode();
+
+                const [written] = decode(pk.getBuffer());
+                expect(written?.components.getCompound('item_properties', false)?.getNumber('damage', 0)).toBe(3);
             });
         });
     });

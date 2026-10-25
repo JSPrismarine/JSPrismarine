@@ -66,8 +66,19 @@ export default class CreativeContentPacket extends DataPacket {
     /** The menu itself. Its order is what a creative pick is read against. */
     public entries: CreativeEntry[] = [];
 
+    /**
+     * The menu as plain stacks, which replaces {@link groups} and
+     * {@link entries} when it is set.
+     *
+     * The content build produces one of these directly, because its items
+     * are registry entries rather than this server's `Item` objects. Setting
+     * it is how a creative menu built from the registries is sent without
+     * going back through a class the content build does not use.
+     */
+    public payload: CreativeContent | null = null;
+
     public encodePayload(): void {
-        const payload: CreativeContent = {
+        const payload: CreativeContent = this.payload ?? {
             groups: this.groups.map(({ category, name, icon }) => ({ category, name, icon: itemAsStack(icon) })),
             entries: this.entries.map(({ item, group }) => ({ item: itemAsStack(item), group }))
         };

@@ -542,6 +542,46 @@ describe('network', () => {
             expect(CraftingDataPacket.uuidFor('torch')).toHaveLength(16);
         });
 
+        it('writes the payload it was given instead, when the content build supplies one', () => {
+            // The content build compiles Java's grammar straight into these
+            // lists, so there is no `Recipe` object for the packet to sort.
+            const packet = new CraftingDataPacket();
+            packet.recipes = [new ShapelessRecipe('ignored', 'crafting_table', [], [], 0)];
+            packet.payload = {
+                shaped: [],
+                shapeless: [],
+                smithingTransform: [],
+                potionMixes: [
+                    { inputId: 373, inputMeta: 0, reagentId: 377, reagentMeta: 0, outputId: 373, outputMeta: 5 }
+                ],
+                cleanRecipes: false
+            };
+            packet.encode();
+
+            const stream = new BinaryStream(packet.getBuffer());
+            stream.readUnsignedVarInt(); // Header.
+
+            // Every list before the potion mixes is empty, including the
+            // shapeless one `recipes` would have filled.
+            for (let i = 0; i < LISTS.indexOf('potionMixes'); i++) expect(stream.readUnsignedVarInt()).toBe(0);
+
+            expect(stream.readUnsignedVarInt()).toBe(1);
+            // Six varint32 in wire order: the input, the reagent, the output.
+            expect([
+                stream.readVarInt(),
+                stream.readVarInt(),
+                stream.readVarInt(),
+                stream.readVarInt(),
+                stream.readVarInt(),
+                stream.readVarInt()
+            ]).toEqual([373, 0, 377, 0, 373, 5]);
+
+            expect(stream.readUnsignedVarInt()).toBe(0); // Container mixes.
+            expect(stream.readUnsignedVarInt()).toBe(0); // Material reducers.
+            expect(stream.readBoolean()).toBe(false); // Clean recipes.
+            expect(stream.feof()).toBe(true);
+        });
+
         it('refuses a recipe it has no shape for, rather than writing a short one', () => {
             const odd = {
                 id: 'x',
