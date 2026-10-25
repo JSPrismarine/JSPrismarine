@@ -30,10 +30,11 @@ const ORIGIN = { x: 0, y: 64, z: 0 } as const;
 /** What every mob on this server reports about itself; see `Mob.lootState`. */
 const ALIVE_AND_GROWN = { flags: { is_on_fire: false, is_baby: false } } as const;
 
-/** Builds one content over the fixture stack with the given loot tables and tags in it. */
+/** Builds one content over the fixture stack with the given loot tables, tags and recipes in it. */
 const contentWith = (
     tables: Readonly<Record<string, unknown>>,
-    tags: Readonly<Record<string, unknown>> = {}
+    tags: Readonly<Record<string, unknown>> = {},
+    recipes: Readonly<Record<string, unknown>> = {}
 ): ServerContent =>
     buildServerContent(
         fixtureContentOptions({
@@ -44,6 +45,12 @@ const contentWith = (
                     lootTablesJava: new Map(
                         Object.entries(tables).map(([id, json]) => [id, definitionOf('lootTablesJava', id, json)])
                     ),
+                    recipesJava: new Map([
+                        ...fixtureDefinitions().recipesJava,
+                        ...Object.entries(recipes).map(
+                            ([id, json]) => [id, definitionOf('recipesJava', id, json)] as const
+                        )
+                    ]),
                     tags: new Map([
                         ...fixtureDefinitions().tags,
                         ...Object.entries(tags).map(([id, json]) => [id, definitionOf('tags', id, json)] as const)
@@ -234,6 +241,10 @@ describe.skipIf(!java)('what Java’s own tables drop', () => {
                     definitions: {
                         ...fixtureDefinitions(),
                         lootTablesJava: java!.lootTablesJava,
+                        // The recipes are here because `furnace_smelt` smelts
+                        // through them: a burning cow's beef is cooked by the
+                        // same `minecraft:cooked_beef` recipe a furnace uses.
+                        recipesJava: java!.recipesJava,
                         tags: new Map([...fixtureDefinitions().tags, ...java!.tags])
                     },
                     diagnostics: []
@@ -267,6 +278,23 @@ describe.skipIf(!java)('what Java’s own tables drop', () => {
 
         expect(spread(totalsOf(rolls, 'minecraft:beef'))).toEqual({ min: 1, max: 3 });
         expect(spread(totalsOf(rolls, 'minecraft:leather'))).toEqual({ min: 0, max: 2 });
+    });
+
+    it('cooks the meat of a mob that died burning', () => {
+        // Java's cow table puts `furnace_smelt` on the beef behind an
+        // `is_on_fire` check, and the modifier smelts through the stack's own
+        // recipes. With no recipes registered it reported and left the beef
+        // raw, which is the one branch this module's own doc comment promises.
+        const content = vanilla();
+        const onFire = { self: { flags: { is_on_fire: true, is_baby: false } } };
+
+        const burning = rollsOf(content, 'minecraft:cow', 60, { ...onFire, damage: killedByPlayer() });
+        const unharmed = rollsOf(content, 'minecraft:cow', 60, { damage: killedByPlayer() });
+
+        expect(spread(totalsOf(burning, 'minecraft:cooked_beef'))).toEqual({ min: 1, max: 3 });
+        expect(totalsOf(burning, 'minecraft:beef').every((count) => count === 0)).toBe(true);
+        expect(spread(totalsOf(unharmed, 'minecraft:beef'))).toEqual({ min: 1, max: 3 });
+        expect(totalsOf(unharmed, 'minecraft:cooked_beef').every((count) => count === 0)).toBe(true);
     });
 
     it('drops an iron golem’s three to five ingots and nought to two poppies', () => {
