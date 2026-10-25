@@ -18,6 +18,19 @@ const SAMPLE_OFFSET_Y = 1;
 const SAMPLE_OFFSET_Z = -5;
 const SURFACE_LEVEL_ADJUSTMENT = 8;
 const SIMILARITY_THRESHOLD = 25;
+const FLUID_LEVEL_CELL_WIDTH = 16;
+const FLUID_LEVEL_CELL_HEIGHT = 40;
+const FLUID_LEVEL_CELL_MIDDLE = 20;
+const FLUID_LEVEL_SPREAD = 10;
+const FLUID_LEVEL_SPREAD_RESOLUTION = 3;
+const LAVA_CELL_WIDTH = 64;
+const LAVA_SURFACE_CEILING = -10;
+const LAVA_NOISE_THRESHOLD = 0.3;
+const FLOODEDNESS_DEPTH = 64;
+const PARTIAL_FLOODEDNESS_FROM = -0.8;
+const PARTIAL_FLOODEDNESS_TO = 0.4;
+const FULL_FLOODEDNESS_FROM = -0.3;
+const FULL_FLOODEDNESS_TO = 0.8;
 
 /** Java's `DimensionType.WAY_BELOW_MIN_Y`, the level that means "no fluid at all". */
 export const WAY_BELOW_MIN_Y = -32512;
@@ -415,11 +428,13 @@ export class NoiseBasedAquifer implements Aquifer {
         } else {
             const distanceBelowSurface = this.adjustSurfaceLevel(lowestSurfaceLevel) - y;
             const floodednessFactor = surfaceAtCenterIsUnderGlobalFluidLevel
-                ? clampedMap(distanceBelowSurface, 0, 64, 1, 0)
+                ? clampedMap(distanceBelowSurface, 0, FLOODEDNESS_DEPTH, 1, 0)
                 : 0;
             const floodednessNoiseValue = clamp(this.floodednessNoise(this.context, x, y, z), -1, 1);
-            partiallyFloodedness = floodednessNoiseValue - map(floodednessFactor, 1, 0, -0.8, 0.4);
-            fullyFloodedness = floodednessNoiseValue - map(floodednessFactor, 1, 0, -0.3, 0.8);
+            partiallyFloodedness =
+                floodednessNoiseValue - map(floodednessFactor, 1, 0, PARTIAL_FLOODEDNESS_FROM, PARTIAL_FLOODEDNESS_TO);
+            fullyFloodedness =
+                floodednessNoiseValue - map(floodednessFactor, 1, 0, FULL_FLOODEDNESS_FROM, FULL_FLOODEDNESS_TO);
         }
 
         if (fullyFloodedness > 0) return globalFluid.fluidLevel;
@@ -428,12 +443,13 @@ export class NoiseBasedAquifer implements Aquifer {
     }
 
     private computeRandomizedFluidSurfaceLevel(x: number, y: number, z: number, lowestSurfaceLevel: number): number {
-        const fluidLevelCellX = floorDiv(x, 16);
-        const fluidLevelCellY = floorDiv(y, 40);
-        const fluidLevelCellZ = floorDiv(z, 16);
-        const fluidCellMiddleY = fluidLevelCellY * 40 + 20;
-        const spread = this.spreadNoise(this.context, fluidLevelCellX, fluidLevelCellY, fluidLevelCellZ) * 10;
-        return Math.min(lowestSurfaceLevel, fluidCellMiddleY + quantize(spread, 3));
+        const fluidLevelCellX = floorDiv(x, FLUID_LEVEL_CELL_WIDTH);
+        const fluidLevelCellY = floorDiv(y, FLUID_LEVEL_CELL_HEIGHT);
+        const fluidLevelCellZ = floorDiv(z, FLUID_LEVEL_CELL_WIDTH);
+        const fluidCellMiddleY = fluidLevelCellY * FLUID_LEVEL_CELL_HEIGHT + FLUID_LEVEL_CELL_MIDDLE;
+        const spread =
+            this.spreadNoise(this.context, fluidLevelCellX, fluidLevelCellY, fluidLevelCellZ) * FLUID_LEVEL_SPREAD;
+        return Math.min(lowestSurfaceLevel, fluidCellMiddleY + quantize(spread, FLUID_LEVEL_SPREAD_RESOLUTION));
     }
 
     private computeFluidType(
@@ -443,9 +459,18 @@ export class NoiseBasedAquifer implements Aquifer {
         globalFluid: FluidStatus,
         fluidSurfaceLevel: number
     ): string {
-        if (fluidSurfaceLevel <= -10 && fluidSurfaceLevel !== WAY_BELOW_MIN_Y && globalFluid.fluidType !== LAVA) {
-            const lavaNoiseValue = this.lavaNoise(this.context, floorDiv(x, 64), floorDiv(y, 40), floorDiv(z, 64));
-            if (Math.abs(lavaNoiseValue) > 0.3) return LAVA;
+        if (
+            fluidSurfaceLevel <= LAVA_SURFACE_CEILING &&
+            fluidSurfaceLevel !== WAY_BELOW_MIN_Y &&
+            globalFluid.fluidType !== LAVA
+        ) {
+            const lavaNoiseValue = this.lavaNoise(
+                this.context,
+                floorDiv(x, LAVA_CELL_WIDTH),
+                floorDiv(y, FLUID_LEVEL_CELL_HEIGHT),
+                floorDiv(z, LAVA_CELL_WIDTH)
+            );
+            if (Math.abs(lavaNoiseValue) > LAVA_NOISE_THRESHOLD) return LAVA;
         }
         return globalFluid.fluidType;
     }

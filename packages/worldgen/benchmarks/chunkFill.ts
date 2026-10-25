@@ -6,22 +6,18 @@
  * repetitions, which is the closest an occupied machine gets to an idle one.
  *
  * Arms:
- * - `closures`: the fill the generator does today, through the compiled density closures.
- * - `kernel`: the same fill with the WebAssembly kernel taking the density and the aquifer.
- * - `density-closures` and `density-kernel`: the density pass alone, with no aquifer.
- * - `kernel-raw`: the module's density pass with no JavaScript reading it.
- * - `blocks-raw`: the module's density and aquifer passes with no JavaScript reading them.
+ * - `fill`: the whole fill the generator does, density and aquifer, block by block.
+ * - `density`: the density pass alone, so a change can be charged to one half or the other.
  */
 import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';
-import { TerrainKernel } from '../src/kernel/TerrainKernel';
 import { RandomState } from '../src/RandomState';
 import { WorldgenData } from '../src/WorldgenData';
 
 /** The arms this file knows how to run. */
-export type BenchmarkArm = 'closures' | 'density-closures' | 'density-kernel' | 'kernel' | 'kernel-raw';
+export type BenchmarkArm = 'density' | 'fill';
 
-const ARMS: readonly BenchmarkArm[] = ['closures', 'kernel', 'density-closures', 'density-kernel', 'kernel-raw'];
+const ARMS: readonly BenchmarkArm[] = ['fill', 'density'];
 
 const CHUNKS = [
     [3, -5],
@@ -55,9 +51,9 @@ const fillChunk = (sampler: ChunkSampler): number => {
     return placed;
 };
 
-// The interpolation cell the density arms walk, so they cross a cell boundary as rarely as
+// The interpolation cell the density arm walks, so it crosses a cell boundary as rarely as
 // `forEachCellBlock` does. A column walk refetches eight corners every eight blocks and would
-// charge the closures for an order the generator stopped using.
+// charge the density pass for an order the generator stopped using.
 const cell = state.interpolationCellSize ?? { xz: CHUNK_SIZE, y: 384 };
 
 /** Reads the density of every block of a chunk, cell by cell, with no aquifer. */
@@ -81,20 +77,14 @@ const fillDensity = (sampler: ChunkSampler): number => {
 };
 
 const run = (arm: BenchmarkArm): { arm: BenchmarkArm; millisecondsPerChunk: number; checksum: number } => {
-    const kernel = arm === 'closures' || arm === 'density-closures' ? undefined : TerrainKernel.compile(state);
-    const walk = arm === 'closures' || arm === 'kernel' ? fillChunk : fillDensity;
+    const walk = arm === 'fill' ? fillChunk : fillDensity;
 
     let checksum = 0;
     let best = Number.POSITIVE_INFINITY;
     for (let round = 0; round < WARMUPS + REPETITIONS; round++) {
         const started = performance.now();
         for (const [chunkX, chunkZ] of CHUNKS) {
-            if (arm === 'kernel-raw') {
-                if (!kernel) throw new TypeError('the raw arm needs a kernel');
-                checksum += kernel.fill(chunkX, chunkZ)[0] ?? 0;
-            } else {
-                checksum += walk(new ChunkSampler(state, { chunkX, chunkZ, kernel }));
-            }
+            checksum += walk(new ChunkSampler(state, { chunkX, chunkZ }));
         }
         const elapsed = (performance.now() - started) / CHUNKS.length;
         if (round >= WARMUPS) best = Math.min(best, elapsed);

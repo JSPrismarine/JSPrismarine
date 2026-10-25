@@ -15,7 +15,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { rolldown } from 'rolldown';
 
-const ARMS = ['closures', 'kernel', 'density-closures', 'density-kernel', 'kernel-raw'] as const;
+const ARMS = ['fill', 'density'] as const;
 
 interface ArmResult {
     readonly arm: string;
@@ -44,30 +44,17 @@ try {
         }
     }
 
-    const closures = best.get('closures')?.millisecondsPerChunk ?? Number.NaN;
-    const densityClosures = best.get('density-closures')?.millisecondsPerChunk ?? Number.NaN;
     process.stdout.write(`\n${rounds} rounds, best of each arm, milliseconds per chunk\n`);
     for (const arm of ARMS) {
         const result = best.get(arm);
         if (!result) continue;
-        const against = arm.startsWith('density') || arm === 'kernel-raw' ? densityClosures : closures;
-        const ratio = (against / result.millisecondsPerChunk).toFixed(2);
-        process.stdout.write(`  ${arm.padEnd(18)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)}  ${ratio}x\n`);
+        process.stdout.write(`  ${arm.padEnd(10)} ${result.millisecondsPerChunk.toFixed(2).padStart(8)}\n`);
     }
 
-    // Both paths count the same blocks, so a checksum that moves means the arms disagree.
-    const checksums = new Map<number, string[]>();
-    for (const arm of ['closures', 'kernel'] as const) {
-        const value = best.get(arm)?.checksum ?? Number.NaN;
-        checksums.set(value, [...(checksums.get(value) ?? []), arm]);
-    }
-    for (const arm of ['density-closures', 'density-kernel'] as const) {
-        const value = best.get(arm)?.checksum ?? Number.NaN;
-        checksums.set(value, [...(checksums.get(value) ?? []), arm]);
-    }
-    process.stdout.write(
-        `\nchecksums: ${[...checksums].map(([value, arms]) => `${arms.join(' and ')} ${value}`).join(', ')}\n`
-    );
+    // An arm counts the same blocks every round, so a checksum that moves between rounds means
+    // the fill is not deterministic.
+    const checksums = ARMS.map((arm) => `${arm} ${best.get(arm)?.checksum ?? Number.NaN}`).join(', ');
+    process.stdout.write(`\nchecksums: ${checksums}\n`);
 } finally {
     rmSync(work, { recursive: true, force: true });
 }
