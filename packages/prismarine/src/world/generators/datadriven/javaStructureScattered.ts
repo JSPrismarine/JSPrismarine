@@ -389,8 +389,13 @@ const DESERT_CHAMBER_CHESTS: readonly (readonly [number, number])[] = [
  * that make a desert pyramid what it is, but their exact local coordinates are not checked
  * against Java's source.
  *
- * Java's suspicious sand, which 1.20 added to the four corridors, is left out: it needs the
- * archaeology loot tables and a brushable block entity, neither of which this seam carries.
+ * Java's suspicious sand, which 1.20 added to the corridors, is left out. The seam carries it:
+ * the four chests below attach a block entity with a loot table, `minecraft:suspicious_sand`
+ * maps to Bedrock's brushable block, and `archaeology/desert_pyramid` is in the loot data beside
+ * the well's and the trail ruins' tables, which both reach a chunk. What is missing is where the
+ * sand goes. Those positions live in Java's `DesertPyramidPiece` rather than in any data this
+ * server reads, and the corridors and the rooms here are already a reconstruction, so sand put
+ * at a coordinate of this file's own choosing would hand a player loot Java has nowhere.
  */
 class DesertPyramidPiece extends ScatteredPiece {
     public constructor(boundingBox: BoundingBox, facing: PieceFacing) {

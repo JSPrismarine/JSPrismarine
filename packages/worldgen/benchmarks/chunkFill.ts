@@ -7,8 +7,10 @@
  *
  * Arms:
  * - `closures`: the fill the generator does today, through the compiled density closures.
- * - `kernel`: the same fill with the WebAssembly kernel taking the density pass.
+ * - `kernel`: the same fill with the WebAssembly kernel taking the density and the aquifer.
  * - `density-closures` and `density-kernel`: the density pass alone, with no aquifer.
+ * - `kernel-raw`: the module's density pass with no JavaScript reading it.
+ * - `blocks-raw`: the module's density and aquifer passes with no JavaScript reading them.
  */
 import registryVectors from '../vectors/surface-registries.json' with { type: 'json' };
 import { CHUNK_SIZE, ChunkSampler } from '../src/chunk/ChunkSampler';

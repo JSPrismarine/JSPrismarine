@@ -60,7 +60,7 @@ generation point decides whether it is kept.
 | `ocean_ruin` | 2 | Generates, without the satellite ruins around a large one |
 | `shipwreck` | 2 | Generates |
 | `buried_treasure` | 1 | Generates |
-| `desert_pyramid` | 1 | Generates; the floor mosaic and sealed chamber are a reconstruction |
+| `desert_pyramid` | 1 | Generates; the floor mosaic, sealed chamber and corridors are a reconstruction, and the corridor suspicious sand is left out |
 | `igloo` | 1 | Generates |
 | `jungle_temple` | 1 | Generates; the basement is a reconstruction |
 | `nether_fossil` | 1 | Generates |
