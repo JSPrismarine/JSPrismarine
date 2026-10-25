@@ -62,10 +62,12 @@ function idleActivity(): ActivityData {
     ]);
 }
 
+/** The tadpole's two activities: the core package and `idle`. */
 export function tadpoleActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity()];
 }
 
+/** The tadpole's registry entry. It shares the frog's temptation sensor and has only `idle` to pick. */
 export const TADPOLE_BRAIN: BrainMobDefinition = {
     id: 'minecraft:tadpole',
     memories: [],

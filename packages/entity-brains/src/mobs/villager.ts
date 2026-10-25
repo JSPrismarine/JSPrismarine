@@ -691,6 +691,10 @@ export function makeVillagerBrain(profession: VillagerProfession, baby: boolean)
     });
 }
 
+/**
+ * The villager's registry entry. `makeBrain` reads the profession and the baby flag off the
+ * options, and `updateActivity` goes through the schedule rather than a priority list.
+ */
 export const VILLAGER_BRAIN: BrainMobDefinition = {
     id: 'minecraft:villager',
     memories: [],

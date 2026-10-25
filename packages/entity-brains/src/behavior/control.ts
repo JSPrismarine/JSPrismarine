@@ -108,6 +108,7 @@ export class Behavior implements BehaviorControl {
         return [...this.entryCondition.keys()];
     }
 
+    /** Checks the memory conditions and `checkExtraStartConditions`, then draws how long this run lasts. */
     public tryStart(context: BrainContext, timestamp: number): boolean {
         if (!this.hasRequiredMemories(context) || this.hooks.checkExtraStartConditions?.(context) === false) {
             return false;
@@ -119,6 +120,7 @@ export class Behavior implements BehaviorControl {
         return true;
     }
 
+    /** Runs the `tick` hook while the behavior has time left and `canStillUse` holds, and stops it otherwise. */
     public tickOrStop(context: BrainContext, timestamp: number): void {
         if (!this.timedOut(timestamp) && (this.hooks.canStillUse?.(context, timestamp) ?? false)) {
             this.hooks.tick?.(context, timestamp);
@@ -127,6 +129,7 @@ export class Behavior implements BehaviorControl {
         }
     }
 
+    /** Marks the behavior stopped and runs the `stop` hook. */
     public doStop(context: BrainContext, timestamp: number): void {
         this.behaviorStatus = 'stopped';
         this.hooks.stop?.(context, timestamp);
@@ -181,6 +184,7 @@ export class OneShot implements BehaviorControl {
         return this.body(context, timestamp);
     }
 
+    /** Runs the body once. The one-shot counts as started only when the body reports it did something. */
     public tryStart(context: BrainContext, timestamp: number): boolean {
         if (!this.body(context, timestamp)) {
             return false;
@@ -189,10 +193,12 @@ export class OneShot implements BehaviorControl {
         return true;
     }
 
+    /** Stops at once: a one-shot never survives into a second tick. */
     public tickOrStop(context: BrainContext, timestamp: number): void {
         this.doStop(context, timestamp);
     }
 
+    /** Marks the one-shot stopped. It holds no state beyond its status. */
     public doStop(_context: BrainContext, _timestamp: number): void {
         this.behaviorStatus = 'stopped';
     }
@@ -220,6 +226,7 @@ export class DoNothing implements BehaviorControl {
         return this.behaviorStatus;
     }
 
+    /** Always starts, and draws how many ticks the mob stands still for. */
     public tryStart(context: BrainContext, timestamp: number): boolean {
         this.behaviorStatus = 'running';
         this.endTimestamp =
@@ -227,12 +234,14 @@ export class DoNothing implements BehaviorControl {
         return true;
     }
 
+    /** Keeps standing still until the drawn duration runs out. */
     public tickOrStop(context: BrainContext, timestamp: number): void {
         if (timestamp > this.endTimestamp) {
             this.doStop(context, timestamp);
         }
     }
 
+    /** Marks the wait stopped. */
     public doStop(_context: BrainContext, _timestamp: number): void {
         this.behaviorStatus = 'stopped';
     }

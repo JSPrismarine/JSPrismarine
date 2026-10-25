@@ -114,10 +114,12 @@ function idleActivity(): ActivityData {
     ]);
 }
 
+/** The copper golem's two activities: the core package and `idle`. It never fights. */
 export function copperGolemActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity()];
 }
 
+/** The copper golem's registry entry: two sensors, no starting memories, and `idle` as its only choice. */
 export const COPPER_GOLEM_BRAIN: BrainMobDefinition = {
     id: 'minecraft:copper_golem',
     memories: [],

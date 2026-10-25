@@ -137,22 +137,27 @@ export class MemorySlot<Value> {
         this.remaining = MemorySlot.NEVER_EXPIRE;
     }
 
+    /** Whether the slot holds a value right now. */
     public hasValue(): boolean {
         return this.storedValue !== undefined;
     }
 
+    /** The stored value, or undefined while the slot is empty. */
     public value(): Value | undefined {
         return this.storedValue;
     }
 
+    /** Whether the slot was given a time to live rather than stored forever. */
     public canExpire(): boolean {
         return this.remaining !== MemorySlot.NEVER_EXPIRE;
     }
 
+    /** Whether the countdown has run out. {@link MemorySlot.tick} clears the slot on the next tick. */
     public hasExpired(): boolean {
         return this.remaining <= 0;
     }
 
+    /** Ticks left before the slot clears, or {@link MemorySlot.NEVER_EXPIRE}. */
     public timeToLive(): number {
         return this.remaining;
     }

@@ -89,10 +89,15 @@ function fightActivity(): ActivityData {
     );
 }
 
+/** The creaking's three activities: the core package, `idle` and `fight`. */
 export function creakingActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity()];
 }
 
+/**
+ * The creaking's registry entry. `updateActivity` falls back to the default activity while the
+ * creaking cannot move, which is how a watched one freezes mid-chase.
+ */
 export const CREAKING_BRAIN: BrainMobDefinition = {
     id: 'minecraft:creaking',
     memories: [],

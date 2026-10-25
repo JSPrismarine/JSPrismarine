@@ -94,10 +94,12 @@ function fightActivity(): ActivityData {
     );
 }
 
+/** The zoglin's three activities: the core package, `idle` and `fight`. */
 export function zoglinActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity()];
 }
 
+/** The zoglin's registry entry. Two sensors and no starting memories: it attacks whatever it can see. */
 export const ZOGLIN_BRAIN: BrainMobDefinition = {
     id: 'minecraft:zoglin',
     memories: [],

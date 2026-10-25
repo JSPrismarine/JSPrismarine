@@ -97,6 +97,7 @@ export class TestNavigation implements BrainNavigation {
     public done = true;
     public stuck = false;
 
+    /** Records the call and reports false for a target listed in {@link TestNavigation.unreachable}. */
     public moveTo(target: Vec3, speedModifier: number): boolean {
         if (!this.canReach(target)) {
             return false;
@@ -106,18 +107,22 @@ export class TestNavigation implements BrainNavigation {
         return true;
     }
 
+    /** False from the first accepted `moveTo` until `stop`, or until a test sets `done`. */
     public isDone(): boolean {
         return this.done;
     }
 
+    /** Whatever a test put in `stuck`. Nothing in the double sets it. */
     public isStuck(): boolean {
         return this.stuck;
     }
 
+    /** True unless the target is listed in {@link TestNavigation.unreachable}. */
     public canReach(target: Vec3): boolean {
         return !this.unreachable.some((pos) => pos.x === target.x && pos.y === target.y && pos.z === target.z);
     }
 
+    /** Counts the call in `stopped` and marks the path done. */
     public stop(): void {
         this.stopped++;
         this.done = true;
@@ -170,6 +175,7 @@ export class TestMob extends TestEntity implements BrainMob {
         return { world: this.world, body: this };
     }
 
+    /** Adds or removes an entity condition, which is how a test watches flags such as `aggressive`. */
     public setCondition(condition: string, value: boolean): void {
         if (value) {
             this.conditions.add(condition);
@@ -178,22 +184,27 @@ export class TestMob extends TestEntity implements BrainMob {
         }
     }
 
+    /** Records the call in `looks`. The double has no facing of its own. */
     public lookAt(position: Vec3): void {
         this.looks.push(position);
     }
 
+    /** Counts the call in `jumps`. */
     public jump(): void {
         this.jumps++;
     }
 
+    /** Records the target in `attacks`. No damage is dealt; the double has no combat. */
     public attack(target: BrainEntity): void {
         this.attacks.push(target);
     }
 
+    /** Records the sound name in `sounds`. */
     public playSound(sound: string): void {
         this.sounds.push(sound);
     }
 
+    /** The attribute a test passed in, or 0. Follow range and tempt range have defaults. */
     public attribute(attribute: string): number {
         return this.attributes[attribute] ?? 0;
     }
@@ -300,24 +311,29 @@ export class TestWorld implements BrainWorld {
         this.dayTimeTicks = (this.dayTimeTicks + ticks) % 24000;
     }
 
+    /** Ticks since the world was built, which {@link TestWorld.advance} moves. */
     public gameTime(): number {
         return this.time;
     }
 
+    /** Time of day in ticks, wrapped at 24000. */
     public dayTime(): number {
         return this.dayTimeTicks;
     }
 
+    /** The next scripted draw. The last value repeats once the script runs out. */
     public random(): number {
         const value = this.randomValues[Math.min(this.randomIndex, this.randomValues.length - 1)] ?? 0;
         this.randomIndex++;
         return value;
     }
 
+    /** The next scripted draw scaled into `[0, bound)`, and 0 when the bound is not positive. */
     public randomInt(bound: number): number {
         return bound <= 0 ? 0 : Math.floor(this.random() * bound);
     }
 
+    /** Every non-item entity within the radius, minus the excluded one. Items are tracked separately. */
     public livingEntitiesNear(center: Vec3, radius: number, exclude: BrainEntity): readonly BrainEntity[] {
         return this.entities.filter(
             (entity) =>
@@ -327,10 +343,12 @@ export class TestWorld implements BrainWorld {
         );
     }
 
+    /** Every entity a test spawned as `minecraft:player`, at any distance. */
     public players(): readonly BrainEntity[] {
         return this.entities.filter((entity) => entity.type === 'minecraft:player');
     }
 
+    /** Item entities inside the box, which is how Java bounds an item search rather than by radius. */
     public itemEntitiesNear(center: Vec3, xzRange: number, yRange: number): readonly BrainItemEntity[] {
         return this.items.filter(
             (item) =>
@@ -340,30 +358,37 @@ export class TestWorld implements BrainWorld {
         );
     }
 
+    /** Defers to the line-of-sight predicate a test passed in, which is true for everything by default. */
     public canSee(body: BrainEntity, target: BrainEntity): boolean {
         return this.lineOfSight(body, target);
     }
 
+    /** True for a living, non-spectator target the body can see. */
     public isTargetable(body: BrainEntity, target: BrainEntity): boolean {
         return target.alive && !target.spectator && this.canSee(body, target);
     }
 
+    /** Targetable, and allowed by the attackable predicate a test passed in. */
     public isAttackable(body: BrainEntity, target: BrainEntity): boolean {
         return this.isTargetable(body, target) && this.attackable(body, target);
     }
 
+    /** Compares the straight-line distance against the melee range a test set. */
     public isWithinMeleeRange(body: BrainEntity, target: BrainEntity): boolean {
         return distanceSquared(body.position, target.position) <= this.meleeRange * this.meleeRange;
     }
 
+    /** The block a test placed at the position, or `minecraft:air`. */
     public blockAt(pos: BlockPos): string {
         return this.blocks.get(key(pos)) ?? 'minecraft:air';
     }
 
+    /** The tags a test placed at the position, or an empty set. */
     public blockTagsAt(pos: BlockPos): ReadonlySet<string> {
         return this.blockTags.get(key(pos)) ?? new Set();
     }
 
+    /** The matching block nearest the center by Manhattan distance, searched over the box a test filled. */
     public findBlock(
         center: BlockPos,
         xzRange: number,
@@ -394,10 +419,12 @@ export class TestWorld implements BrainWorld {
         return found[0];
     }
 
+    /** The position a test parked in `nextRandomPos`, so a wander target is a fact of the test. */
     public randomPos(_body: BrainEntity, _request: RandomPosRequest): Vec3 | undefined {
         return this.nextRandomPos;
     }
 
+    /** Matching points of interest inside the box, nearest first by horizontal distance. */
     public pointsOfInterest(center: BlockPos, radius: number, type: (type: string) => boolean): readonly PoiRecord[] {
         return this.pois
             .filter(
@@ -415,6 +442,7 @@ export class TestWorld implements BrainWorld {
             );
     }
 
+    /** Takes the ticket at the position, and reports false when there is no record or no space left. */
     public claimPoi(pos: BlockPos, claimant: BrainEntity): boolean {
         const poi = this.pois.find((candidate) => key(candidate.pos) === key(pos));
         if (poi === undefined || !poi.hasSpace) {
@@ -425,6 +453,7 @@ export class TestWorld implements BrainWorld {
         return true;
     }
 
+    /** Frees the ticket at the position. Releasing an unknown position does nothing. */
     public releasePoi(pos: BlockPos, _claimant: BrainEntity): void {
         const poi = this.pois.find((candidate) => key(candidate.pos) === key(pos));
         if (poi === undefined) {
@@ -433,10 +462,12 @@ export class TestWorld implements BrainWorld {
         this.pois[this.pois.indexOf(poi)] = { pos: poi.pos, type: poi.type, hasSpace: true };
     }
 
+    /** Records the sound and where it played in `sounds`. */
     public playSound(sound: string, pos: Vec3): void {
         this.sounds.push({ sound, pos });
     }
 
+    /** Records the vibration in `gameEvents`, which is what the warden's sensor reads in a test. */
     public emitGameEvent(event: string, pos: Vec3, source?: BrainEntity): void {
         this.gameEvents.push({ event, pos, source });
     }

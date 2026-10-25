@@ -257,10 +257,12 @@ function ramActivity(): ActivityData {
     );
 }
 
+/** The goat's four activities: the core package, `idle`, `long_jump` and `ram`. */
 export function goatActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), longJumpActivity(), ramActivity()];
 }
 
+/** The goat's registry entry. `initMemories` fills both the ram and the long-jump cooldown, so a fresh goat starts idle. */
 export const GOAT_BRAIN: BrainMobDefinition = {
     id: 'minecraft:goat',
     memories: [],

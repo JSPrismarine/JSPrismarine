@@ -146,6 +146,7 @@ export class AngerManagement {
         return anger;
     }
 
+    /** Forgets a suspect outright, which is what the warden does to a target it can no longer reach. */
     public clearAnger(entity: BrainEntity): void {
         this.angerBySuspect.delete(entity.id);
         const index = this.suspects.indexOf(entity);
@@ -568,6 +569,13 @@ export function angerFrom(anger: AngerManagement, canTargetEntity: (entity: Brai
     };
 }
 
+/**
+ * The warden's eight activities: the core package, `emerge`, `dig`, `idle`, `roar`, `fight`,
+ * `investigate` and `sniff`.
+ *
+ * @param anger - The anger model the roar, the fight and the sniff read and write.
+ * @param followRange - Blocks the warden will chase a target over before giving up.
+ */
 export function wardenActivities(anger: WardenAnger, followRange: number): readonly ActivityData[] {
     const angryAt = (context: BrainContext): BrainEntity | undefined => anger.entityAngryAt(context);
     return [
@@ -618,6 +626,10 @@ export function makeWardenBrain(anger: AngerManagement, canTargetEntity: (entity
     });
 }
 
+/**
+ * The warden's registry entry. `initMemories` holds `DIG_COOLDOWN` for 1200 ticks, so a warden that
+ * has just emerged does not burrow straight back down.
+ */
 export const WARDEN_BRAIN: BrainMobDefinition = {
     id: 'minecraft:warden',
     memories: [

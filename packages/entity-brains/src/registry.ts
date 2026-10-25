@@ -53,6 +53,11 @@ export interface BrainMobDefinition {
 export class BrainMobRegistry {
     private readonly definitions = new Map<string, BrainMobDefinition>();
 
+    /**
+     * Adds a mob definition under its id.
+     *
+     * @throws When a definition with the same id is already registered.
+     */
     public register(definition: BrainMobDefinition): void {
         if (this.definitions.has(definition.id)) {
             throw new Error(`Duplicate brain mob: ${definition.id}`);
@@ -60,6 +65,7 @@ export class BrainMobRegistry {
         this.definitions.set(definition.id, definition);
     }
 
+    /** The definition registered under an entity id, or undefined when the mob runs on goals instead. */
     public get(id: string): BrainMobDefinition | undefined {
         return this.definitions.get(id);
     }

@@ -109,6 +109,14 @@ export interface BrainDefinition {
     readonly defaultActivity?: Activity;
 }
 
+/**
+ * One mob's memories, sensors and activity table. Java's `Brain`.
+ *
+ * A tick runs every sensor, ages every memory slot, starts the stopped behaviors of the active
+ * activities in ascending priority order, then ticks the running ones. The brain never picks an
+ * activity itself; the mob's `updateActivity` does that, and the brain only reports whether an
+ * activity's conditions hold.
+ */
 export class Brain {
     private readonly memories = new Map<MemoryModuleType<unknown>, MemorySlot<unknown>>();
     private readonly sensors: readonly Sensor[];
@@ -256,6 +264,7 @@ export class Brain {
         }
     }
 
+    /** Empties one memory slot, leaving it registered. */
     public eraseMemory(memory: MemoryModuleType<unknown>): void {
         this.slot(memory)?.clear();
     }
@@ -272,22 +281,27 @@ export class Brain {
         return [...this.memories.keys()];
     }
 
+    /** Replaces the schedule {@link Brain.updateActivityFromSchedule} reads. Only the villager has one. */
     public setSchedule(schedule: Schedule | undefined): void {
         this.schedule = schedule;
     }
 
+    /** Replaces the activities that stay active alongside whichever one is in force. */
     public setCoreActivities(activities: readonly Activity[]): void {
         this.coreActivities = activities;
     }
 
+    /** Replaces the activity the brain falls back to when no other one's conditions hold. */
     public setDefaultActivity(activity: Activity): void {
         this.defaultActivity = activity;
     }
 
+    /** Whether the activity is in force this tick, counting the core activities. */
     public isActive(activity: Activity): boolean {
         return this.activeActivities.has(activity);
     }
 
+    /** Every activity in force this tick, core ones included. */
     public getActiveActivities(): readonly Activity[] {
         return [...this.activeActivities];
     }
@@ -302,6 +316,7 @@ export class Brain {
         return undefined;
     }
 
+    /** Every running behavior, in ascending priority order. A debug read-out and the tests read this. */
     public getRunningBehaviors(): readonly BehaviorControl[] {
         const running: BehaviorControl[] = [];
         for (const priority of this.ascendingPriorities()) {
@@ -316,6 +331,7 @@ export class Brain {
         return running;
     }
 
+    /** Switches to the default activity without checking any conditions. */
     public useDefaultActivity(): void {
         this.setActiveActivity(this.defaultActivity);
     }
