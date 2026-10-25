@@ -1,5 +1,7 @@
 import ChunkRadiusUpdatedPacket from './ChunkRadiusUpdatedPacket';
 import ClientToServerHandshakePacket from './ClientToServerHandshakePacket';
+import CraftingDataPacket from './CraftingDataPacket';
+import CreativeContentPacket from './CreativeContentPacket';
 import DisconnectPacket from './DisconnectPacket';
 import ItemRegistryPacket from './ItemRegistryPacket';
 import LevelChunkPacket from './LevelChunkPacket';
@@ -21,6 +23,8 @@ import TextPacket from './TextPacket';
 export {
     ChunkRadiusUpdatedPacket,
     ClientToServerHandshakePacket,
+    CraftingDataPacket,
+    CreativeContentPacket,
     DisconnectPacket,
     ItemRegistryPacket,
     LevelChunkPacket,
@@ -41,6 +45,13 @@ export {
 };
 
 export { GameRuleType } from './StartGamePacket';
+export {
+    CreativeItemCategory,
+    creativeCategoryOf,
+    readCreativeContent,
+    writeCreativeContent
+} from './CreativeContentPacket';
+export { RecipeUnlockingContext, readCraftingData, recipeUuidFor, writeCraftingData } from './CraftingDataPacket';
 export { PositionMode } from './MovePlayerPacket';
 export { PlayStatus } from './PlayStatusPacket';
 export { PlayerActionType } from './PlayerActionPacket';
@@ -48,6 +59,14 @@ export { ResourcePackStatus } from './ResourcePackClientResponsePacket';
 export { TextPacketType } from './TextPacket';
 
 export type { ChunkRadiusUpdated } from './ChunkRadiusUpdatedPacket';
+export type { CreativeContent, CreativeEntry, CreativeGroup } from './CreativeContentPacket';
+export type {
+    CraftingData,
+    PotionMix,
+    ShapedRecipe,
+    ShapelessRecipe,
+    SmithingTransformRecipe
+} from './CraftingDataPacket';
 export type { Disconnect } from './DisconnectPacket';
 export type { LevelChunk } from './LevelChunkPacket';
 export type { MovePlayer } from './MovePlayerPacket';

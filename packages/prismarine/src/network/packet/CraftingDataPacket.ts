@@ -1,47 +1,36 @@
-import crypto from 'node:crypto';
+import { NetworkBinaryStream, recipeUuidFor, writeCraftingData } from '@jsprismarine/protocol';
 
 import type { Recipe } from '../../crafting/Recipe';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from '../../crafting/Recipe';
+import type { RecipeIngredient } from '../../crafting/RecipeIngredient';
 import type { Item } from '../../item/Item';
-import UUID from '../../utils/UUID';
 import Identifiers from '../Identifiers';
-import { NetworkUtil } from '../NetworkUtil';
-import { writeEmptyIngredient, writeRecipeIngredient } from '../type/RecipeIngredientCodec';
+import { itemAsStack } from './CreativeContentPacket';
 import DataPacket from './DataPacket';
 
-/** The docs' `RecipeUnlockingContext`: what has to be true before a recipe shows up in the book. */
-enum RecipeUnlockingContext {
-    /** Unlocked by holding the ingredients, which are then listed. */
-    NONE,
-    ALWAYS_UNLOCKED,
-    PLAYER_IN_WATER,
-    PLAYER_HAS_MANY_ITEMS
-}
+import type { CraftingData, PotionMix, RecipeIngredientData } from '@jsprismarine/protocol';
 
-/** Every recipe this server sends is available from the start. */
-const UNLOCK_CONTEXT: RecipeUnlockingContext = RecipeUnlockingContext.ALWAYS_UNLOCKED;
+/** The empty slot of a shaped pattern, which is an ingredient of no kind at all. */
+const EMPTY_SLOT: RecipeIngredientData = { descriptor: null, count: 0 };
+
+const asSlot = (ingredient: RecipeIngredient | null): RecipeIngredientData =>
+    ingredient ? { descriptor: ingredient.describe(), count: ingredient.count } : EMPTY_SLOT;
+
+const asOutputs = (outputs: readonly Item[]) => outputs.map(itemAsStack);
 
 /**
- * Every recipe the client is allowed to know about.
+ * Every recipe the client is allowed to know about, as the server's own `Recipe` objects.
  *
- * Sent once, on join, and identical for every player - so the encoded form is worth keeping.
+ * The wire format and its eleven arrays belong to `@jsprismarine/protocol`'s packet of the same
+ * name, which takes plain numbers and names. This is the server's end of it: the recipe list
+ * sorted into the payload's lists on the way out.
+ *
+ * Sent once, on join, and identical for every player, so the encoded form is worth keeping.
  * See `RecipeManager.revision` for what invalidates it.
  *
- * Wire order at protocol 2193 is eleven arrays and a flag, each array a varuint count followed
- * by its entries: Shaped Recipes, Shapeless Recipes, Multi Recipes, User Data Shapeless
- * Recipes, Shapeless Chemistry Recipes, Shaped Chemistry Recipes, Smithing Transform Recipes,
- * Smithing Trim Recipes, Potion Mixes, Container Mixes, Material Reducers, then Clear Recipes
- * as a boolean. There is no type id in front of a recipe - its list is its type - so the old
- * `RecipeEntryType` has no part in writing this any more.
- *
- * Furnace recipes are the casualty of that change: the format has no list for them, and none
- * of the others will take one. Smelting is data driven on the client now. The server still
- * keeps its furnace recipes and still smelts with them; it just no longer says so here.
- *
- * An ingredient inside a recipe is written in the form `RecipeIngredientCodec` describes, which
- * is not the `recipe-ingredient` type page's. A result is a `NetworkItemInstanceDescriptor`: a
- * varint id, a uint16 count, a varuint aux value, a varint block runtime id and a length
- * prefixed user data blob.
+ * Furnace recipes are dropped: protocol 2193 has no list for them, because smelting is data
+ * driven on the client now. The server still keeps its furnace recipes and still smelts with
+ * them; it just no longer says so here.
  *
  * **Bound To:** Client
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/crafting-data-packet/
@@ -55,6 +44,15 @@ export default class CraftingDataPacket extends DataPacket {
     public cleanRecipes = true;
 
     /**
+     * Brewing stand recipes, which carry numeric item ids rather than names.
+     *
+     * Kept apart from {@link recipes} because the server has no `Recipe` class whose
+     * ingredients are numbers, and because resolving the three items against the item registry
+     * is the caller's job rather than this packet's.
+     */
+    public potionMixes: readonly PotionMix[] = [];
+
+    /**
      * The net id a recipe is known by, which is its position in the manager's list.
      *
      * Passed in rather than looked up so that this packet needs nothing but what it is given,
@@ -64,138 +62,69 @@ export default class CraftingDataPacket extends DataPacket {
      */
     public netIdOf: (recipe: Recipe) => number = (recipe) => this.recipes.indexOf(recipe) + 1;
 
-    /** Writes the eleven recipe arrays in docs order, then Clear Recipes. */
+    /** Sorts the recipes into the payload's lists and hands them to the protocol writer. */
     public encodePayload(): void {
-        const shaped: ShapedRecipe[] = [];
-        const shapeless: ShapelessRecipe[] = [];
-        const smithing: SmithingRecipe[] = [];
+        const stream = new NetworkBinaryStream();
+        writeCraftingData(stream, this.payload());
+        this.write(stream.getBuffer());
+    }
+
+    private payload(): CraftingData {
+        const shaped: CraftingData['shaped'][number][] = [];
+        const shapeless: CraftingData['shapeless'][number][] = [];
+        const smithingTransform: CraftingData['smithingTransform'][number][] = [];
 
         for (const recipe of this.recipes) {
-            if (recipe instanceof ShapedRecipe) shaped.push(recipe);
-            else if (recipe instanceof ShapelessRecipe) shapeless.push(recipe);
-            else if (recipe instanceof SmithingRecipe) smithing.push(recipe);
-            else if (recipe instanceof FurnaceRecipe)
-                continue; // No list to put it in - see above.
-            else throw new Error(`Recipe ${recipe.id} is of a kind this packet cannot write`);
-        }
+            const base = { id: recipe.id, netId: this.netIdOf(recipe), station: recipe.station };
 
-        this.writeList(shaped, (recipe) => this.writeShaped(recipe));
-        this.writeList(shapeless, (recipe) => this.writeShapeless(recipe));
+            if (recipe instanceof ShapedRecipe) {
+                // Every slot, holes included: an empty slot in the pattern is an ingredient of
+                // no kind on the wire, not an ingredient that was skipped.
+                const pattern: RecipeIngredientData[] = [];
+                for (let y = 0; y < recipe.height; y++) {
+                    for (let x = 0; x < recipe.width; x++) pattern.push(asSlot(recipe.at(x, y)));
+                }
 
-        // Multi Recipes, User Data Shapeless Recipes, Shapeless Chemistry Recipes and Shaped
-        // Chemistry Recipes. Written empty rather than left out: absent, they do not save four
-        // bytes, they misalign everything after them - which now includes every list that follows.
-        this.writeUnsignedVarInt(0);
-        this.writeUnsignedVarInt(0);
-        this.writeUnsignedVarInt(0);
-        this.writeUnsignedVarInt(0);
-
-        this.writeList(smithing, (recipe) => this.writeSmithingTransform(recipe));
-        this.writeUnsignedVarInt(0); // Smithing Trim Recipes.
-
-        this.writeUnsignedVarInt(0); // Potion Mixes.
-        this.writeUnsignedVarInt(0); // Container Mixes.
-        this.writeUnsignedVarInt(0); // Material Reducers.
-
-        this.writeBoolean(this.cleanRecipes);
-    }
-
-    private writeList<T extends Recipe>(recipes: readonly T[], write: (recipe: T) => void): void {
-        this.writeUnsignedVarInt(recipes.length);
-        for (const recipe of recipes) write(recipe);
-    }
-
-    private writeShapeless(recipe: ShapelessRecipe): void {
-        NetworkUtil.writeString(this, recipe.id);
-
-        const ingredients = recipe.getIngredients();
-        this.writeUnsignedVarInt(ingredients.length);
-        for (const ingredient of ingredients) writeRecipeIngredient(this, ingredient);
-
-        this.writeOutputs(recipe.getOutputs());
-
-        UUID.fromBinary(CraftingDataPacket.uuidFor(recipe.id), 3).networkSerialize(this);
-        NetworkUtil.writeString(this, recipe.station);
-        this.writeVarInt(recipe.priority);
-        this.writeUnlockingRequirement();
-        this.writeUnsignedVarInt(this.netIdOf(recipe));
-    }
-
-    private writeShaped(recipe: ShapedRecipe): void {
-        NetworkUtil.writeString(this, recipe.id);
-
-        this.writeVarInt(recipe.width);
-        this.writeVarInt(recipe.height);
-
-        // The pattern is a counted list now, where 748 left the reader to work out its length
-        // from the width and the height. Both are still sent, and the client checks that they
-        // agree - a count that is not width times height is rejected outright.
-        this.writeUnsignedVarInt(recipe.width * recipe.height);
-
-        // Every slot, holes included: an empty slot in the pattern is an ingredient of no
-        // kind on the wire, not an ingredient that was skipped.
-        for (let y = 0; y < recipe.height; y++) {
-            for (let x = 0; x < recipe.width; x++) {
-                const ingredient = recipe.at(x, y);
-                if (ingredient) writeRecipeIngredient(this, ingredient);
-                else writeEmptyIngredient(this);
+                shaped.push({
+                    ...base,
+                    width: recipe.width,
+                    height: recipe.height,
+                    pattern,
+                    outputs: asOutputs(recipe.getOutputs()),
+                    priority: recipe.priority,
+                    symmetric: recipe.symmetric
+                });
+            } else if (recipe instanceof ShapelessRecipe) {
+                shapeless.push({
+                    ...base,
+                    ingredients: recipe.getIngredients().map((ingredient) => asSlot(ingredient)),
+                    outputs: asOutputs(recipe.getOutputs()),
+                    priority: recipe.priority
+                });
+            } else if (recipe instanceof SmithingRecipe) {
+                smithingTransform.push({
+                    ...base,
+                    template: asSlot(recipe.template),
+                    base: asSlot(recipe.input),
+                    addition: asSlot(recipe.addition),
+                    output: itemAsStack(recipe.output)
+                });
+            } else if (!(recipe instanceof FurnaceRecipe)) {
+                // A furnace recipe has no list to go in; anything else is a kind nothing knows.
+                throw new Error(`Recipe ${recipe.id} is of a kind this packet cannot write`);
             }
         }
 
-        this.writeOutputs(recipe.getOutputs());
-
-        UUID.fromBinary(CraftingDataPacket.uuidFor(recipe.id), 3).networkSerialize(this);
-        NetworkUtil.writeString(this, recipe.station);
-        this.writeVarInt(recipe.priority);
-        this.writeBoolean(recipe.symmetric);
-        this.writeUnlockingRequirement();
-        this.writeUnsignedVarInt(this.netIdOf(recipe));
-    }
-
-    private writeSmithingTransform(recipe: SmithingRecipe): void {
-        NetworkUtil.writeString(this, recipe.id);
-
-        writeRecipeIngredient(this, recipe.template);
-        writeRecipeIngredient(this, recipe.input);
-        writeRecipeIngredient(this, recipe.addition);
-
-        recipe.output.networkSerializeWithoutStackId(this);
-        NetworkUtil.writeString(this, recipe.station);
-        this.writeUnsignedVarInt(this.netIdOf(recipe));
-    }
-
-    /** The output list, in the form that carries no stack id - nothing is tracking these. */
-    private writeOutputs(outputs: readonly Item[]): void {
-        this.writeUnsignedVarInt(outputs.length);
-        for (const output of outputs) output.networkSerializeWithoutStackId(this);
-    }
-
-    /**
-     * What has to be done before a recipe appears in the book.
-     *
-     * An optional now, so it opens with a byte saying whether anything follows at all. Inside
-     * it, a context and then a second byte that is set only when the context is `NONE` - the
-     * one case where a list of unlocking ingredients follows. This server unlocks everything
-     * from the start, so the context says so and no list is written.
-     *
-     * Up to 748 this was a bare `true`. Left as it was, the client read that byte as "an
-     * optional is present" and then took the recipe's net id for the context - so every recipe
-     * after the first was one field out.
-     */
-    private writeUnlockingRequirement(): void {
-        this.writeBoolean(true); // The optional is present.
-        this.writeVarInt(UNLOCK_CONTEXT);
-        this.writeBoolean(UNLOCK_CONTEXT === RecipeUnlockingContext.NONE);
+        return { shaped, shapeless, smithingTransform, potionMixes: this.potionMixes, cleanRecipes: this.cleanRecipes };
     }
 
     /**
      * A recipe's UUID, derived from its id.
      *
-     * The data carries none, and it cannot be random: the client keys its recipe book on
-     * these, so a fresh set each start is a book that resets itself. Hashing the id gives the
-     * same answer every time, from the one thing a recipe is guaranteed to have.
+     * The data carries none, and it cannot be random: the client keys its recipe book on these,
+     * so a fresh set each start is a book that resets itself.
      */
     public static uuidFor(id: string): Buffer {
-        return crypto.createHash('md5').update(id).digest();
+        return recipeUuidFor(id);
     }
 }
