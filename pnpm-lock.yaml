@@ -1286,6 +1286,9 @@ importers:
       '@jsprismarine/blocks':
         specifier: workspace:*
         version: link:../blocks
+      '@jsprismarine/chunkgen':
+        specifier: workspace:*
+        version: link:../chunkgen
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser
