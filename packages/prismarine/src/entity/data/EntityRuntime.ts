@@ -32,6 +32,7 @@ import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
+import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, ruleIsOn } from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
 import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
@@ -557,6 +558,11 @@ export class EntityRuntime implements EntityScene {
      * hole it should: the blocks it can reach come out through their own loot
      * tables, everything in range is hurt by how much of the blast it can see,
      * and the entity itself goes with it.
+     *
+     * `mobGriefing` decides whether the hole is carved at all, which is what
+     * Java's `Mob.explode` does with it. With the rule off the blast still
+     * hurts and still shoves, because the rule is about the world rather than
+     * about the damage.
      */
     public explode(source: MobBody): void {
         const params = this.entities.get(source.id)?.instance.componentParams('minecraft:explode');
@@ -568,8 +574,11 @@ export class EntityRuntime implements EntityScene {
             center: source.position,
             power,
             candidates: this.all().filter((caught) => caught.id !== source.id),
+            breaksBlocks: ruleIsOn(this.world.level, MOB_GRIEFING),
             content: this.content(),
-            drop: (at, item) => this.host.drop(at, item)
+            // The blocks a blast breaks are still blocks, so `doTileDrops` decides whether they
+            // leave anything behind. No sink, and `detonate` rolls no loot at all.
+            drop: ruleIsOn(this.world.level, BLOCK_DROPS) ? (at, item) => this.host.drop(at, item) : undefined
         });
 
         for (const hit of blast.hits) {
@@ -637,13 +646,22 @@ export class EntityRuntime implements EntityScene {
         other.body.inventory.push(identifier);
     }
 
-    /** Breaks a block and drops what its loot table rolls. */
+    /**
+     * Breaks a block and drops what its loot table rolls.
+     *
+     * Only a mob ever reaches this, through the goal world, so `mobGriefing` decides whether the
+     * block goes at all and `doTileDrops` whether it leaves anything behind. A zombie at a door
+     * with the rule off stands there instead of coming through.
+     */
     public breakBlock(at: EntityPosition): void {
+        if (!ruleIsOn(this.world.level, MOB_GRIEFING)) return;
+
         const position = blockPositionOf(at);
         const block = this.world.blocks.get(position);
         if (block === undefined || block.identifier === AIR) return;
 
         this.world.blocks.set(position, { identifier: AIR, states: {} }, true);
+        if (!ruleIsOn(this.world.level, BLOCK_DROPS)) return;
 
         // A block the loot registry has no table for drops nothing rather than reporting,
         // because a block with no table is the normal case for most of the palette.
@@ -725,9 +743,13 @@ export class EntityRuntime implements EntityScene {
     /**
      * Kills an entity: drops what its `minecraft:loot` table rolls, then
      * removes it.
+     *
+     * `doMobLoot` decides whether the table is rolled, which is the rule the
+     * class-based `Mob.onDeath` already reads.
      */
     public kill(entity: DataEntity): void {
-        if (entity.facts.lootTable !== undefined) this.dropLoot(entity.facts.lootTable, entity.position);
+        const table = entity.facts.lootTable;
+        if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropLoot(table, entity.position);
         this.remove(entity.id, 'death');
     }
 
