@@ -131,3 +131,37 @@ An argument from the other edition parses anyway and the result carries a note n
 it silently would change which entities a command hits, and a `/execute` body the server itself
 built can legitimately carry a Java-only argument on a connection whose player is on Bedrock.
 `SelectorSyntaxError` carries the offset the parse stopped at.
+
+## Gamerules
+
+1.21.11 moved gamerules into a registry and renamed every one of them from camelCase to a
+namespaced snake_case id. The mcfunction runtime reads two of them,
+`minecraft:max_command_sequence_length` and `minecraft:max_command_forks`, so anything written
+against `maxCommandChainLength` or `maxCommandForkCount` is stale.
+
+`JAVA_GAME_RULES` holds the 59 rules Mojang's own `minecraft:game_rule` registry report lists for
+26.3, 47 boolean and 12 integer. `gameRule(name)` resolves a current id, a bare id, a pre-1.21.11
+camelCase name or Bedrock's lowercase name onto the same rule, and `renamedGameRule(legacy)`
+answers only the rename question.
+
+The measured shape of the rename differs from the figure in
+[the research note](../../docs/research/commands-functions-and-datapack-execution.md), which says
+36 renamed. Mojang's own old-to-new map, the constant pool of `GameRuleRegistryFix.class` in the
+26.3 jar, carries 59 legacy names over 58 current ones, of which 27 change more than case. Both
+`enableCommandBlocks` and `commandBlocksEnabled` become `minecraft:command_blocks_work`, which is
+why 59 names reach 58 ids. The 59th current rule,
+`minecraft:fire_spread_radius_around_player`, is not a rename at all: the fix folds the old
+booleans `doFireTick` and `allowFireTicksAwayFromPlayer` into one integer radius. The 3 removals
+the note reports do match, and `REMOVED_GAME_RULES` names them.
+
+Defaults are stated for three rules only. Mojang has never published any gamerule default;
+`GameRules.class` in the 26.3 jar has exactly three integer constants in its pool,
+`[32768, 65536, 2147483647]`, and minecraft.wiki and `Pumpkin-MC/Extractor` independently report
+65536 for both command limits and 32768 for `minecraft:max_block_modifications`. The minimums come
+from the 1.21.11 changelog, which does state them. Every other default belongs to the world, not to
+this package.
+
+Bedrock's names come from Mojang's own `BoolGameRule` and `IntGameRule` enums in the generated
+command table, so there is no second copy to keep in step. Bedrock has 32 boolean and 5 integer
+rules, 8 of which Java has no counterpart for, and it still spells the command limit
+`maxcommandchainlength`.
