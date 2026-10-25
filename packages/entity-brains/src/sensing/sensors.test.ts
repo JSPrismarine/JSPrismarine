@@ -96,7 +96,7 @@ describe('the sensor registry', () => {
 });
 
 describe('DummySensor', () => {
-    it('writes nothing, as Java’s empty body does', () => {
+    it('writes nothing, as the empty Java body does', () => {
         const sensor = new DummySensor();
         const { context } = scene(sensor);
         scan(sensor, context);
@@ -207,7 +207,7 @@ describe('IsInWaterSensor', () => {
 });
 
 describe('AdultSensor and AdultSensorAnyType', () => {
-    it('AdultSensor matches the body’s own type only', () => {
+    it('AdultSensor matches the type of the body only', () => {
         const living = new NearestLivingEntitySensor();
         const adults = new AdultSensor();
         const world = new TestWorld();
@@ -448,7 +448,7 @@ describe('TemptingSensor', () => {
         expect(body.brain.getMemory(MemoryModuleTypes.TEMPTING_PLAYER)).toBe(close);
     });
 
-    it('forAnimal defers to the animal’s own food predicate', () => {
+    it('forAnimal defers to the food predicate the animal supplies', () => {
         const sensor = TemptingSensor.forAnimal((item) => item.id === 'minecraft:wheat');
         const { world, context } = scene(sensor);
         const farmer = world.place(
