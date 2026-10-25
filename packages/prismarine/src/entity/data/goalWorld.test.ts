@@ -427,6 +427,17 @@ describe('the goal world over the entity runtime', () => {
             expect(enderman.carried).toBe('minecraft:redstone_lamp');
             expect(world.world.blocks.get({ x: 2, y: FLOOR_Y + 1, z: 0 })?.identifier).toBe('minecraft:air');
         });
+
+        it('leaves the block where it stands with mobGriefing off', () => {
+            const world = new TestEntityWorld({ gameRules: { mobGriefing: false } });
+            world.setBlock({ x: 2, y: FLOOR_Y + 1, z: 0 }, 'minecraft:redstone_lamp');
+            const fixture = fixtureOf(world);
+            spawned(fixture, 'jsprismarine:thief', groundAt(0, 0));
+
+            run(fixture, 3);
+
+            expect(world.world.blocks.get({ x: 2, y: FLOOR_Y + 1, z: 0 })?.identifier).toBe('minecraft:redstone_lamp');
+        });
     });
 
     describe('points of interest', () => {
@@ -555,6 +566,29 @@ describe('the goal world over the entity runtime', () => {
             fixture.runtime.explode(creeper.body);
 
             expect(world.world.blocks.get({ x: 0, y: FLOOR_Y, z: 0 })?.identifier).toBe('minecraft:obsidian');
+        });
+
+        it('leaves the ground alone with mobGriefing off, and still hurts what stood there', () => {
+            const world = new TestEntityWorld({ gameRules: { mobGriefing: false } });
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+            const bystander = spawned(fixture, 'jsprismarine:pet', groundAt(2, 0));
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(world.world.blocks.get({ x: 0, y: FLOOR_Y, z: 0 })?.identifier).toBe('minecraft:stone');
+            expect(world.drops).toHaveLength(0);
+            expect(bystander.instance.attributes.get('health')?.current).toBeLessThan(20);
+        });
+
+        it('takes the ground out again once mobGriefing is back on', () => {
+            const world = new TestEntityWorld({ gameRules: { mobGriefing: true } });
+            const fixture = fixtureOf(world);
+            const creeper = spawned(fixture, 'jsprismarine:bomber', groundAt(0, 0));
+
+            fixture.runtime.explode(creeper.body);
+
+            expect(world.world.blocks.get({ x: 0, y: FLOOR_Y, z: 0 })?.identifier).toBe('minecraft:air');
         });
 
         it('shoves what it does not kill away from itself', () => {

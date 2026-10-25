@@ -201,6 +201,17 @@ describe('EntityRuntime', () => {
             expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
             expect(runtime.all()).toHaveLength(0);
         });
+
+        it('rolls nothing with doMobLoot off, and still takes the entity', () => {
+            const world = new TestEntityWorld({ gameRules: { doMobLoot: false } });
+            const { runtime } = runtimeOf(world);
+
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            runtime.kill(cow!);
+
+            expect(world.drops).toHaveLength(0);
+            expect(runtime.all()).toHaveLength(0);
+        });
     });
 
     describe('counting', () => {

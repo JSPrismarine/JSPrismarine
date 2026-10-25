@@ -63,9 +63,9 @@ export interface ContentBlastOptions {
     /**
      * Whether blocks come out.
      *
-     * The caller's answer rather than a game rule read here, because `mobGriefing` is not on the
-     * content world seam: `ContentLevelFacts` carries the clock, the bounds and the weather and
-     * no rules at all. A caller that can read the rule passes it.
+     * The caller's answer rather than a game rule read here, because which rule applies is the
+     * caller's to know: a creeper's blast answers to `mobGriefing`, a TNT block's does not.
+     * {@link import('../../content/world/gameRules')} is where a caller reads one.
      */
     readonly breaksBlocks?: boolean;
     /** The content the loot tables live in. Without it a broken block drops nothing. */
