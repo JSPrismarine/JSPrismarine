@@ -5,7 +5,8 @@
  * `MobSpawner`, `TrialSpawner`; anything else is skipped by the client and ignored by every
  * vanilla tool that reads a world. Two callers need that spelling and they start from different
  * names. A block a player places is known by its Bedrock block identifier, and a block entity a
- * structure template carries is known by Java's own block entity type.
+ * structure template carries is known by Java's own block entity type. A third caller crosses
+ * between them, for a block entity a structure processor made and left untyped.
  *
  * Both are tables rather than a rule, because neither edition publishes a mapping and the
  * spelling is irregular either way: Bedrock files six wood types of sign and two placements of
@@ -175,6 +176,19 @@ export const bedrockBlockEntityIdOf = (blockIdentifier: string): string | undefi
 };
 
 /**
+ * {@link BY_JAVA_TYPE} read backwards, so the two directions cannot drift apart.
+ *
+ * The inverse is not quite a function, because Bedrock files a trapped chest under the same
+ * `Chest` as a plain one. The first row wins, and nothing downstream can tell, since every
+ * caller turns the answer straight back into the Bedrock id both types share.
+ */
+const JAVA_TYPE_BY_ID: Readonly<Record<string, string>> = ((): Record<string, string> => {
+    const types: Record<string, string> = {};
+    for (const [javaType, id] of Object.entries(BY_JAVA_TYPE)) types[id] ??= javaType;
+    return types;
+})();
+
+/**
  * The block entity id Bedrock files a Java block entity type under.
  *
  * @param javaType - A `minecraft:block_entity_type` identifier, for example `minecraft:vault`.
@@ -182,6 +196,24 @@ export const bedrockBlockEntityIdOf = (blockIdentifier: string): string | undefi
  *   is `potent_sulfur` and the two test blocks.
  */
 export const bedrockBlockEntityIdForJavaType = (javaType: string): string | undefined => BY_JAVA_TYPE[javaType];
+
+/**
+ * The Java block entity type a block carries one of, for a compound that names none.
+ *
+ * A structure processor's `append_loot` gives a block a loot table and nothing else. Java needs
+ * no more than that, because the block already has a block entity of its own and the rule only
+ * adds the table to it. The type has to come from the block here for the same reason, and the
+ * two tables above compose to answer it. The case that reaches a chunk is the suspicious gravel
+ * a trail ruins rule turns gravel into.
+ *
+ * @param blockIdentifier - The Bedrock block identifier, namespaced or bare.
+ * @returns The Java type, or undefined for a block one edition or the other keeps no block
+ *   entity on, such as a bed or a flower pot.
+ */
+export const javaBlockEntityTypeForBedrockBlock = (blockIdentifier: string): string | undefined => {
+    const id = bedrockBlockEntityIdOf(blockIdentifier);
+    return id === undefined ? undefined : JAVA_TYPE_BY_ID[id];
+};
 
 /** Every Java block entity type this server has a Bedrock id for, for a coverage check. */
 export const javaBlockEntityTypesWithBedrockIds = (): readonly string[] => Object.keys(BY_JAVA_TYPE);

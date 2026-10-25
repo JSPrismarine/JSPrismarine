@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
     bedrockBlockEntityIdForJavaType,
     bedrockBlockEntityIdOf,
+    javaBlockEntityTypeForBedrockBlock,
     javaBlockEntityTypesWithBedrockIds
 } from './bedrockBlockEntityIds';
 
@@ -106,5 +107,36 @@ describe('bedrockBlockEntityIdForJavaType', () => {
     it('has no answer for a Java type Bedrock does not have', () => {
         expect(bedrockBlockEntityIdForJavaType('minecraft:potent_sulfur')).toBeUndefined();
         expect(bedrockBlockEntityIdForJavaType('minecraft:test_block')).toBeUndefined();
+    });
+});
+
+describe('javaBlockEntityTypeForBedrockBlock', () => {
+    it('names the type for the block a structure processor gives a loot table to', () => {
+        // Both suspicious blocks, because an `append_loot` rule names the block and never the
+        // type, and a trail ruins gravel and a desert well sand go through the same rule shape.
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:suspicious_gravel')).toBe('minecraft:brushable_block');
+        expect(javaBlockEntityTypeForBedrockBlock('suspicious_sand')).toBe('minecraft:brushable_block');
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:barrel')).toBe('minecraft:barrel');
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:oak_wall_sign')).toBe('minecraft:sign');
+    });
+
+    it('round trips back to the id Bedrock files the block under', () => {
+        for (const block of ['minecraft:chest', 'minecraft:trapped_chest', 'minecraft:lit_furnace', 'bamboo_shelf']) {
+            const javaType = javaBlockEntityTypeForBedrockBlock(block);
+
+            // What the answer is for. The type goes into a block entity request and comes back
+            // out as an id. Two Java chests share one Bedrock id, so the tie cannot be read off
+            // the type, and this is the property that has to hold instead.
+            expect(javaType === undefined ? undefined : bedrockBlockEntityIdForJavaType(javaType), block).toBe(
+                bedrockBlockEntityIdOf(block)
+            );
+        }
+    });
+
+    it('has no answer for a block one edition or the other keeps no block entity on', () => {
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:stone')).toBeUndefined();
+        // Bedrock files a block entity on both; Java keeps neither in `block_entity_type`.
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:bed')).toBeUndefined();
+        expect(javaBlockEntityTypeForBedrockBlock('minecraft:flower_pot')).toBeUndefined();
     });
 });
