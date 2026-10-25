@@ -214,6 +214,23 @@ describe('RemoteConsole', () => {
         await remote.disable();
     });
 
+    it('shuts the server down when the link closes before enable', async () => {
+        // `childProcessLink` reports a born-closed channel one microtask after it is built.
+        // The subscription must already exist by then, whatever `bootstrap` awaits first.
+        const { server, shutdown } = fakeServer();
+        const { serverEnd, consoleEnd } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+
+        consoleEnd.close();
+        serverEnd.close();
+        await setImmediate();
+        expect(shutdown).toHaveBeenCalledTimes(1);
+
+        await remote.enable();
+        await remote.disable();
+        expect(shutdown).toHaveBeenCalledTimes(1);
+    });
+
     it('logs chat through the logger when the server has no line console', async () => {
         const { server, info, events } = fakeServer();
         const { serverEnd } = linked();
