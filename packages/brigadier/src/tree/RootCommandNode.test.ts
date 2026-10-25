@@ -57,9 +57,9 @@ describe('RootCommandNodeTest', () => {
         assert.equal(new RootCommandNode().equals(new RootCommandNode()), true);
 
         const temp1 = new RootCommandNode<Object>();
-        temp1.addChild(literal('foo').build());
+        temp1.addChild(literal<Object>('foo').build());
         const temp2 = new RootCommandNode<Object>();
-        temp2.addChild(literal('foo').build());
+        temp2.addChild(literal<Object>('foo').build());
 
         assert.equal(temp1.equals(temp2), true);
     });

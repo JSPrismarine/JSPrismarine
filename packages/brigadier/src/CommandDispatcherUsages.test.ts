@@ -1,13 +1,21 @@
 import { assert, expect, describe, beforeEach, it } from 'vitest';
 import type Command from './Command';
 import CommandDispatcher from './CommandDispatcher';
-import { literal } from './builder/LiteralArgumentBuilder';
+import { literal as sourcelessLiteral } from './builder/LiteralArgumentBuilder';
 import StringReader from './StringReader';
+
+/**
+ * `literal`, bound to this file's source type.
+ *
+ * `literal` has nothing to infer the source from, so a bare call builds a node over `unknown`
+ * that will not go into a dispatcher of any other source.
+ */
+const literal = (name: string) => sourcelessLiteral<Object>(name);
 
 describe('CommandDispatcher Usage Test', () => {
     let subject: CommandDispatcher<Object>;
     const source: Object = {};
-    const command: Command<Object> = async () => 0;
+    const command: Command<Object> = () => 0;
     beforeEach(() => {
         subject = new CommandDispatcher();
         subject.register(
@@ -73,8 +81,10 @@ describe('CommandDispatcher Usage Test', () => {
     });
 
     function get(command: string | StringReader) {
-        const t = subject.parse(command, source).getContext().getNodes();
-        return t[t.length - 1].getNode();
+        const nodes = subject.parse(command, source).getContext().getNodes();
+        const last = nodes[nodes.length - 1];
+        if (last === undefined) throw new Error(`"${command}" parsed to no nodes at all`);
+        return last.getNode();
     }
 
     it('testAllUsage_noCommands', () => {

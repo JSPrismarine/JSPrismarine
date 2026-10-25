@@ -9,7 +9,7 @@ import IntegerArgumentType from '../arguments/IntegerArgumentType';
 describe('LiteralArgumentBuilderTest', () => {
     let builder: RequiredArgumentBuilder<Object, number>;
     const type: ArgumentType<number> = instance(mock(IntegerArgumentType));
-    const command: Command<Object> = async () => 0;
+    const command: Command<Object> = () => 0;
 
     beforeEach(() => {
         builder = argument('foo', type);

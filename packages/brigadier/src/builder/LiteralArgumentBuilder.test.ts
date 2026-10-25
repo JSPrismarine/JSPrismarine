@@ -8,7 +8,7 @@ const { integer } = DefaultType;
 
 describe('LiteralArgumentBuilderTest', () => {
     let builder: LiteralArgumentBuilder<Object>;
-    const command: Command<Object> = async () => 0;
+    const command: Command<Object> = () => 0;
 
     beforeEach(() => {
         builder = new LiteralArgumentBuilder('foo');
