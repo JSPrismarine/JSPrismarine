@@ -8,7 +8,6 @@ export * from './entityTypes';
 export * from './eventEngine';
 export * from './events';
 export * from './filterContext';
-export * from './filterSource';
 export * from './filters';
 export * from './goals';
 export * from './goals/reference';

@@ -1,10 +1,9 @@
 import type { ComponentFactory, ComponentSchema, ParseResult } from '@jsprismarine/content';
 import { accepted, rejected } from '@jsprismarine/content';
 import type { Filter } from '@jsprismarine/packs';
-import { FilterParseError } from '@jsprismarine/packs';
+import { FilterParseError, parseFilter } from '@jsprismarine/packs';
 
 import type { AttributeName } from '../attributes';
-import { parseEntityFilter } from '../filterSource';
 import type { EntityHooks } from '../hooks';
 
 /**
@@ -50,7 +49,7 @@ export const asList = (value: unknown): readonly unknown[] =>
  */
 export const parseFilterValue = (value: unknown, label: string): ParseResult<Filter> => {
     try {
-        return accepted(parseEntityFilter(value));
+        return accepted(parseFilter(value));
     } catch (error) {
         if (!(error instanceof FilterParseError)) throw error;
         return rejected(`${label}: ${error.message}`);

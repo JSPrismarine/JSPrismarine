@@ -2,7 +2,7 @@ import { parseFilter } from '@jsprismarine/packs';
 import { describe, expect, it } from 'vitest';
 
 import type { FilterContext, FilterEntityView, FilterItemView } from './filterContext';
-import { IMPLEMENTED_FILTER_TESTS, evaluateFilter, hasFilterTest } from './filters';
+import { IMPLEMENTED_FILTER_TESTS, evaluateFilter, hasFilterTest, parseEntityFilter } from './filters';
 
 /**
  * The 107 tests the generated `Entities.html` of bedrock-samples v1.26.50.4
@@ -193,6 +193,16 @@ describe('evaluateFilter', () => {
         expect(evaluate({ any_of: [{ test: 'is_baby' }, { test: 'in_water' }] }, context)).toBe(true);
         expect(evaluate({ OR: [{ test: 'is_baby' }] }, context)).toBe(false);
         expect(evaluate({ none_of: [{ test: 'is_baby' }] }, context)).toBe(true);
+    });
+
+    it('reads the two shapes vanilla writes outside the published grammar', () => {
+        // The villager's become_zombie sensor writes two combinators side by
+        // side; the skeleton's lightning_immune group writes the legacy
+        // shorthand. Both parse in @jsprismarine/packs.
+        const sideBySide = { all_of: [{ test: 'in_water' }], any_of: [{ test: 'is_baby' }, { test: 'in_water' }] };
+        expect(evaluateFilter(parseEntityFilter(sideBySide), context)).toBe(true);
+        expect(evaluateFilter(parseEntityFilter({ other_with_families: 'player' }), context)).toBe(true);
+        expect(evaluateFilter(parseEntityFilter({ other_with_families: ['zombie', 'player'] }), context)).toBe(true);
     });
 
     it('reads a bare array as an implicit all_of', () => {

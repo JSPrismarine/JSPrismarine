@@ -1,7 +1,5 @@
 import type { Filter } from '@jsprismarine/packs';
-import { FilterParseError } from '@jsprismarine/packs';
-
-import { parseEntityFilter } from './filterSource';
+import { FilterParseError, parseFilter } from '@jsprismarine/packs';
 
 /**
  * The event grammar. An event is a node, and a node nests indefinitely through
@@ -176,7 +174,7 @@ export const parseEventNode = (value: unknown, report: EventReport): EventNode =
 const parseNodeFilter = (value: unknown, report: EventReport): Filter | undefined => {
     if (value === undefined) return undefined;
     try {
-        return parseEntityFilter(value);
+        return parseFilter(value);
     } catch (error) {
         if (!(error instanceof FilterParseError)) throw error;
         report('event.invalid', `filters did not parse: ${error.message}`);
