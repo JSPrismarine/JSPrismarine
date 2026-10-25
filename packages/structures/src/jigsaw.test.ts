@@ -16,7 +16,7 @@ import {
     rotateDirection
 } from './jigsaw';
 import { createLegacyRandom } from './random';
-import type { BedrockBlockState, BedrockStructureTemplate } from './types';
+import type { BedrockBlockState, BedrockStructureTemplate, BedrockTemplateBlock } from './types';
 import { NO_BLOCK, StructureFormatError } from './types';
 
 const bedrockOf = (javaId: string, properties: Record<string, string> = {}): BedrockBlockState => {
@@ -47,7 +47,7 @@ const room = (
     };
 
     const palette: BedrockBlockState[] = [bedrockOf('minecraft:stone')];
-    const blocks = [];
+    const blocks: BedrockTemplateBlock[] = [];
     for (let x = 0; x < 3; x++) {
         for (let z = 0; z < 3; z++) blocks.push({ pos: [x, 0, z] as const, state: 0, extraState: NO_BLOCK });
     }
