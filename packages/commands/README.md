@@ -132,6 +132,50 @@ it silently would change which entities a command hits, and a `/execute` body th
 built can legitimately carry a Java-only argument on a connection whose player is on Bedrock.
 `SelectorSyntaxError` carries the offset the parse stopped at.
 
+## The command set
+
+`registerVanillaCommands()` returns a `CommandRegistry` holding 50 commands: the 46 names Java 26.3
+and Bedrock 1.26.50 share, plus `/data`, `/item`, `/attribute` and `/random`, which are Java-only
+and which the datapack runtime cannot work without. Aliases are registered as redirects, so `/tp`,
+`/msg`, `/w` and `/experience` parse and run as their owners.
+
+```
+clear clone damage deop difficulty effect enchant execute fill function gamemode gamerule give
+help kick kill list locate loot me op particle place playsound recipe reload ride say schedule
+scoreboard setblock setworldspawn spawnpoint spreadplayers stop stopsound summon tag teleport
+tell tellraw time title transfer weather xp
+attribute data item random
+```
+
+`/execute` is a real subcommand chain, not `execute <target> <command>`. It has Java's 14
+subcommands, each redirecting back to the `execute` node; 13 `if`/`unless` conditions; 8 `on`
+relations; and 5 `store` targets. `as`, `at`, `on`, `positioned as`, `rotated as` and
+`facing entity` fork, so one line runs once per matched entity, and the Brigadier port's
+breadth-first loop in `CommandDispatcher.execute` does the fan-out.
+
+`execute store` needs the value a later command returns. Upstream Brigadier carries that on the
+source as a `CommandResultCallback`, which arrived with `ContextChain` in 2023; the port predates
+it. `storeCommandResults(dispatcher)` installs a `ResultConsumer` instead, which sees the same
+thing, one call per executed context, and feeds the sinks that `withStore` attached to the derived
+source. `registerVanillaCommands` wires it.
+
+## The CommandHost seam
+
+A command in this package is a Brigadier tree plus one or more calls into `CommandHost`. Nothing
+here imports the server, reads a world, or knows what an entity is beyond the seven fields
+`EntityRef` declares. The interface is five groups, `entities`, `world`, `scoreboard`, `data` and
+`server`, and `testCommandHost(overrides)` builds one whose every verb reports that nothing
+happened, so a test names the two or three methods the command under test calls and still gets a
+fully typed host rather than a cast.
+
+`CommandSource` is Java's `CommandSourceStack`: the entity, position, rotation, dimension, anchor,
+permission level and silence a command runs with. Every `with*` method returns a copy, because a
+forked `execute as @e` runs the rest of the chain once per source and sharing mutable state
+between branches would make the result depend on evaluation order.
+
+A command's return value is the count `execute store result` captures, so `/fill` returns the
+number of blocks it changed rather than a success flag.
+
 ## Gamerules
 
 1.21.11 moved gamerules into a registry and renamed every one of them from camelCase to a

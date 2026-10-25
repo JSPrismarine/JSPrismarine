@@ -89,7 +89,15 @@ export type CompareOperator = (typeof COMPARE_OPERATORS)[number];
 // Readers
 // ---------------------------------------------------------------------------
 
+/**
+ * Reads up to the next space, or a quoted run.
+ *
+ * The port's `readString` stops at any character outside its unquoted set,
+ * which excludes `:`, so it cuts `minecraft:stone` in half. Minecraft's own
+ * arguments are whitespace-delimited, so that is the rule here.
+ */
 const readToken = (reader: StringReader): string => {
+    if (reader.canRead() && (reader.peek() === '"' || reader.peek() === "'")) return reader.readQuotedString();
     const start = reader.getCursor();
     while (reader.canRead() && reader.peek() !== ' ') reader.skip();
     return reader.getString().slice(start, reader.getCursor());
@@ -182,7 +190,7 @@ export const wildcardIntegerArgument = (): BedrockDescribedType<number | '*'> =>
     });
 
 /** A single word, the `ID` type. This is the fallback everything else degrades to. */
-export const stringArgument = (): BedrockDescribedType<string> => basic('ID', (reader) => reader.readString());
+export const stringArgument = (): BedrockDescribedType<string> => basic('ID', readToken);
 
 /** The rest of the line as one string, the `MESSAGE_ROOT` type. */
 export const messageArgument = (): BedrockDescribedType<string> =>
@@ -213,8 +221,7 @@ export const blockStatesArgument = (): BedrockDescribedType<string> =>
     basic('BLOCK_STATE_ARRAY', (reader) => readToken(reader));
 
 /** A function path, the `PATHCOMMAND` type. */
-export const filePathArgument = (): BedrockDescribedType<string> =>
-    basic('PATHCOMMAND', (reader) => reader.readString());
+export const filePathArgument = (): BedrockDescribedType<string> => basic('PATHCOMMAND', readToken);
 
 /** An `a..b`, `a..`, `..b` or `a` integer range, the `FULLINTEGERRANGE` type. */
 export const integerRangeArgument = (): BedrockDescribedType<IntegerRange> =>
@@ -280,7 +287,7 @@ export const commandArgument = (): BedrockDescribedType<string> =>
  */
 export const enumArgument = <const T extends string>(name: string, values: readonly T[]): BedrockDescribedType<T> => ({
     parse: (reader) => {
-        const token = reader.readString();
+        const token = readToken(reader);
         const value = values.find((candidate) => candidate === token);
         if (value === undefined) fail(reader, `'${token}' is not one of ${values.join(', ')}`);
         return value;
@@ -295,7 +302,7 @@ export const enumArgument = <const T extends string>(name: string, values: reado
  * `GameTestName` and `GameTestTag`.
  */
 export const softEnumArgument = (name: string): BedrockDescribedType<string> => ({
-    parse: (reader) => reader.readString(),
+    parse: (reader) => readToken(reader),
     describeBedrock: () => ({ kind: 'softEnum', name })
 });
 
@@ -347,15 +354,15 @@ export const nbtCompoundArgument = (): BedrockDescribedType<string> =>
 
 /** `minecraft:loot_modifier`, a standalone item modifier file id. */
 export const itemModifierArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no loot_modifier parameter type', (reader) => reader.readString());
+    unrepresentable('Bedrock has no loot_modifier parameter type', readToken);
 
 /** `minecraft:loot_predicate`, the argument of `execute if predicate`. */
 export const lootPredicateArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no loot_predicate parameter type', (reader) => reader.readString());
+    unrepresentable('Bedrock has no loot_predicate parameter type', readToken);
 
 /** `minecraft:loot_table`, the argument of `/loot` and `execute if items`. */
 export const lootTableArgument = (): BedrockDescribedType<string> =>
-    unrepresentable('Bedrock has no loot_table parameter type', (reader) => reader.readString());
+    unrepresentable('Bedrock has no loot_table parameter type', readToken);
 
 /**
  * A registry id, `minecraft:resource` and its tag-accepting variants.
@@ -369,5 +376,5 @@ export const lootTableArgument = (): BedrockDescribedType<string> =>
  */
 export const resourceArgument = (registry: string, values?: readonly string[]): BedrockDescribedType<string> =>
     values === undefined
-        ? unrepresentable(`Bedrock has no parameter type for the ${registry} registry`, (reader) => reader.readString())
+        ? unrepresentable(`Bedrock has no parameter type for the ${registry} registry`, readToken)
         : enumArgument(registry.replace(/[^\w]/g, '_'), values);
