@@ -1,3 +1,6 @@
+// The loss list is imported through its own module rather than the package index, because
+// `scripts/dashboard.ts` runs under plain node, and the index re-exports its siblings without
+// file extensions. `lossList.ts` imports nothing, so node and NodeNext both resolve it.
 import {
     BLOCK_LOSSES,
     BLOCK_MERGES,
@@ -6,7 +9,7 @@ import {
     ITEM_LOSSES,
     ITEM_MERGES,
     REGISTRY_LOSSES
-} from '@jsprismarine/mapping';
+} from '@jsprismarine/mapping/lossList';
 
 import type { Family } from './families.ts';
 

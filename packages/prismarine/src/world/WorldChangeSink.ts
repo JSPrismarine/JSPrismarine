@@ -49,6 +49,29 @@ export interface WorldChangeSink {
     blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number): void;
 
     /**
+     * A named sound played at a position.
+     *
+     * Separate from {@link blockSound} because the name is a string rather than a number. The
+     * `LevelSoundEvent` enum covers a few dozen sounds; the engine systems and the block
+     * behaviors name several hundred, `open.door` and `random.chestopen` among them, and
+     * those travel as text.
+     * @param {Vector3} position - Where the sound comes from, already centered in its block.
+     * @param {string} name - The client sound definition's name.
+     */
+    namedSound(position: Vector3, name: string): void;
+
+    /**
+     * A named particle effect appeared at a position.
+     *
+     * The counterpart of {@link namedSound} for particles, and separate from
+     * {@link worldEffect} for the same reason: the hardcoded effects are numbered, the ones a
+     * behavior pack can name are not.
+     * @param {Vector3} position - Where the effect appears, already centered in its block.
+     * @param {string} name - The effect's identifier, such as `minecraft:crop_growth_emitter`.
+     */
+    namedParticle(position: Vector3, name: string): void;
+
+    /**
      * Something cosmetic happened: particles, a splash, a break animation.
      * @param {Vector3 | null} position - Where, or null for the world as a whole.
      * @param {LevelEvent} effect - Which effect.
@@ -175,6 +198,8 @@ export interface WorldChangeSink {
 export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     blockChanged: () => {},
     blockSound: () => {},
+    namedSound: () => {},
+    namedParticle: () => {},
     worldEffect: () => {},
     actorEffect: async () => {},
     actorSound: () => {},

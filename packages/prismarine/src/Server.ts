@@ -4,11 +4,12 @@ import Console from './Console';
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
 import BlockManager from './block/BlockManager';
-import type { Random } from './block/DropTable';
+import type { Random } from './utils/Random';
 import { ChatManager } from './chat/ChatManager';
 import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
+import { serverWorldSource } from './content/world/serverSource';
 import { StationRegistry } from './crafting/CraftingStation';
 import RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
@@ -261,10 +262,24 @@ export default class Server extends EventEmitter {
         this.content = undefined;
         if (!settings.enabled) return;
 
+        const seed = this.worldSeed();
         const timer = new Timer();
         try {
             this.content = buildServerContent({
                 strict: settings.strict,
+                seed,
+                world: serverWorldSource({
+                    // By dimension rather than by name: the content packages address a world
+                    // as `minecraft:overworld`, and this server loads one world per dimension.
+                    worldFor: (dimension) =>
+                        this.worldManager.getWorlds().find((world) => world.getDimension().name === dimension),
+                    content: () => {
+                        if (!this.content) throw new Error('the content world was read before the content was built');
+                        return this.content;
+                    },
+                    seed,
+                    difficulty: () => this.config.getDifficulty()
+                }),
                 packs: {
                     worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
                     pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
@@ -281,6 +296,19 @@ export default class Server extends EventEmitter {
             `Loaded §e${this.content.blocks.types.size}§r blocks, §e${this.content.items.registry.size}§r items and §e${this.content.entities.registry.size}§r entities from the pack stack in §e${timer.stop()} ms`
         );
         if (errors > 0) this.logger.warn(`The pack stack reported §c${errors}§r error(s); see the content report`);
+    }
+
+    /**
+     * The default world's seed, read from the config rather than from the world.
+     *
+     * The content build runs before any world loads, and a `World` takes its seed from this
+     * same entry, so the two agree.
+     * @returns {bigint} The seed, and zero when the default world has no entry.
+     * @internal
+     */
+    private worldSeed(): bigint {
+        const seed = this.config.getWorlds()[this.config.getLevelName()]?.seed;
+        return typeof seed === 'number' ? BigInt(Math.trunc(seed)) : 0n;
     }
 
     /**
