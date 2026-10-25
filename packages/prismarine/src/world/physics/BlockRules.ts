@@ -94,30 +94,26 @@ export const FALLS: ReadonlySet<string> = new Set([
     'minecraft:black_concrete_powder'
 ]);
 
-/** The still and moving forms of each liquid, which physics has to treat as one substance. */
+/**
+ * The still and moving forms of each liquid, which physics has to treat as one substance.
+ *
+ * How far and how fast each one travels is not here: `@jsprismarine/engine-systems` carries
+ * Java's own rates and owns the spread. What is left is the pair of identifiers the support
+ * and gravity rules need in order to recognize liquid at all.
+ */
 export interface LiquidKind {
     readonly still: string;
     readonly flowing: string;
-
-    /** Ticks between one spread and the next. Water is quick; lava crawls. */
-    readonly spreadDelay: number;
-
-    /** How many blocks it travels from its source before running out. */
-    readonly reach: number;
 }
 
 export const WATER: LiquidKind = {
     still: 'minecraft:water',
-    flowing: 'minecraft:flowing_water',
-    spreadDelay: 5,
-    reach: 7
+    flowing: 'minecraft:flowing_water'
 };
 
 export const LAVA: LiquidKind = {
     still: 'minecraft:lava',
-    flowing: 'minecraft:flowing_lava',
-    spreadDelay: 30,
-    reach: 3
+    flowing: 'minecraft:flowing_lava'
 };
 
 export const LIQUIDS: readonly LiquidKind[] = [WATER, LAVA];
@@ -174,18 +170,3 @@ export const falls = (name: string): boolean => FALLS.has(name);
  * @returns {boolean} Whether liquid flows into it.
  */
 export const isWashedAway = (name: string): boolean => WASHED_AWAY.has(name);
-
-/**
- * `liquid_depth` for a flowing liquid.
- *
- * Zero is a source and one to seven are the thinning steps away from it. The fourth bit marks
- * liquid that is falling, which vanilla treats as full strength however far it has come - which is
- * why a waterfall stays a waterfall all the way down.
- */
-export const FALLING_DEPTH_FLAG = 8;
-
-/** Whether a depth describes falling liquid. */
-export const isFalling = (depth: number): boolean => (depth & FALLING_DEPTH_FLAG) !== 0;
-
-/** How far from its source a depth is, ignoring whether it is falling. */
-export const spreadOf = (depth: number): number => depth & 0x7;
