@@ -62,8 +62,12 @@ export interface EngineOptions {
      * The engine handles the fluids and leaves the rest open, which is the
      * hook `@jsprismarine/block-behaviors` fills with crop growth, ice melting
      * and the rest of the randomly ticking blocks.
+     *
+     * The block is passed along with the position because the engine has just
+     * read it to find the handler, and reading it again is a chunk lookup and
+     * a block-state construction per tick in the hottest loop the world has.
      */
-    randomTickHandlers?: Readonly<Record<string, (at: BlockPosition) => void>>;
+    randomTickHandlers?: Readonly<Record<string, (at: BlockPosition, block: BlockRef) => void>>;
     /**
      * Java's `INCREASED_FIRE_BURNOUT` environment attribute, which the humid
      * biomes set. It takes 50 off every burn-out denominator and halves the
@@ -266,7 +270,7 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
                 (at) => {
                     const block = world.getBlock(at);
                     const handler = randomTickHandlers[block.name];
-                    if (handler !== undefined) handler(at);
+                    if (handler !== undefined) handler(at, block);
                 },
                 tickSpeed
             );

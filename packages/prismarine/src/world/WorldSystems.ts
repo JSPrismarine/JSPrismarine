@@ -58,15 +58,29 @@ export interface WorldSystemsReport {
     readonly light: LightFlushResult;
 }
 
+/** One chunk a random tick visits, and the sub chunk indices worth drawing from. */
+export interface RandomTickChunk {
+    readonly x: number;
+    readonly z: number;
+    /** Sub chunk indices, as the dimension numbers them: the Overworld runs -4 to 19. */
+    readonly sections: Iterable<number>;
+}
+
 /** What {@link WorldSystems} reads out of the world it serves. */
 export interface WorldSystemsView {
     readonly dimension: DimensionDefinition;
     /** The block at a world position, or undefined when its chunk is not loaded. */
     blockAt(x: number, y: number, z: number): SystemBlock | undefined;
-    /** The chunk coordinates the world holds in memory, which is what random ticking visits. */
+    /** The chunk coordinates the world holds in memory, which is what the light pass crosses. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
     /** `random_tick_speed`, which is draws per section rather than a rate. */
     randomTickSpeed?(): number;
+    /**
+     * Where this tick's random draws land: Java's "a player ticket holds this chunk, and this
+     * section of it holds something". Left out, every section of every loaded chunk is drawn
+     * for, which is what this did before the world could answer.
+     */
+    randomTickChunks?(): Iterable<RandomTickChunk>;
 }
 
 /**
@@ -202,35 +216,55 @@ export class WorldSystems {
     }
 
     /**
-     * Hands every loaded chunk's sections to the engine's random tick driver.
+     * Hands the sections a random tick may land in to the engine's driver.
      *
-     * The driver draws before it filters, as Java does: a section of nothing but stone still
-     * consumes its draws, so the sequence does not depend on what the world holds. One chunk
-     * at a time rather than all of them at once, because the draw state is shared across the
-     * world and the order it is stepped in is part of the result.
+     * Java's `ServerLevel.tickChunks` decides the same thing twice over, and both halves
+     * matter more than they look. It visits only the chunks a player ticket holds, so an
+     * empty server simulates nothing however much of the world is in memory; and inside
+     * those it draws only for sections whose palette holds something that takes random ticks,
+     * so the hundreds of blocks of air above the ground cost nothing. A world that drew for
+     * every section of every loaded chunk spent its whole tick budget on 441 chunks of air
+     * with nobody online.
+     *
+     * The driver still draws before it filters within a section, which is also Java: a
+     * section of nothing but stone consumes its draws, so the sequence does not depend on
+     * what that section holds. One chunk at a time rather than all of them at once, because
+     * the draw state is shared across the world and the order it is stepped in is part of the
+     * result.
      */
     private runRandomTicks(): number {
         const speed = this.view.randomTickSpeed?.() ?? DEFAULT_RANDOM_TICK_SPEED;
         if (speed <= 0) return 0;
 
-        const floor = minSubChunk(this.view.dimension);
-        const count = subChunkCount(this.view.dimension);
-
         let ticked = 0;
-        for (const chunk of this.view.loadedChunks()) {
+        for (const chunk of this.randomTickChunks()) {
             const sections: SectionOrigin[] = [];
-            for (let section = 0; section < count; section++) {
-                sections.push({
-                    x: chunk.x * SECTION_SIZE,
-                    y: (floor + section) * SECTION_SIZE,
-                    z: chunk.z * SECTION_SIZE
-                });
+            for (const section of chunk.sections) {
+                sections.push({ x: chunk.x * SECTION_SIZE, y: section * SECTION_SIZE, z: chunk.z * SECTION_SIZE });
             }
+            if (sections.length === 0) continue;
 
             ticked += this.engine.runRandomTicks(this.randomPositions, sections, speed);
         }
 
         return ticked;
+    }
+
+    /**
+     * The chunks and sections one tick's random draws visit.
+     *
+     * The world answers when it can. A view that has not supplied {@link
+     * WorldSystemsView.randomTickChunks} - which every test double predates - falls back to
+     * every section of every loaded chunk, the behavior this had before, so nothing silently
+     * stops ticking.
+     */
+    private randomTickChunks(): Iterable<RandomTickChunk> {
+        const answered = this.view.randomTickChunks?.();
+        if (answered !== undefined) return answered;
+
+        const floor = minSubChunk(this.view.dimension);
+        const sections = Array.from({ length: subChunkCount(this.view.dimension) }, (_unused, at) => floor + at);
+        return Array.from(this.view.loadedChunks(), ({ x, z }) => ({ x, z, sections }));
     }
 
     private lightView(): BlockLightView {

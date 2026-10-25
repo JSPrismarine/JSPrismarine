@@ -225,6 +225,58 @@ describe('world', () => {
                 for (const at of ticked) expect(blocks.get(key(at.x, at.y, at.z))?.states['growth']).toBe(1);
             });
 
+            it('hands the handler the block it already read, rather than making it read again', () => {
+                const { blocks, systemsOf } = worldOf();
+                for (let y = -64; y < 320; y++) {
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) blocks.set(key(x, y, z), WHEAT);
+                    }
+                }
+
+                const seen: SystemBlock[] = [];
+                systemsOf({ randomTickHandlers: { 'minecraft:wheat': (_at, block) => void seen.push(block) } }).tick(1);
+
+                expect(seen.length).toBeGreaterThan(0);
+                for (const block of seen) expect(block).toEqual(WHEAT);
+            });
+
+            it('visits only the chunks and sections the world says to', () => {
+                const { blocks, view, world } = worldOf([
+                    { x: 0, z: 0 },
+                    { x: 1, z: 0 }
+                ]);
+                for (let y = -64; y < 320; y++) {
+                    for (let x = 0; x < 32; x++) {
+                        for (let z = 0; z < 16; z++) blocks.set(key(x, y, z), WHEAT);
+                    }
+                }
+
+                // Java's two halves: one chunk is held by a player ticket, and one section of it
+                // holds anything. The other chunk is loaded and still.
+                const systems = new WorldSystems({
+                    view: { ...view, randomTickChunks: () => [{ x: 0, z: 0, sections: [4] }] },
+                    world,
+                    randomTickHandlers: { 'minecraft:wheat': () => {} }
+                });
+
+                // Three draws in one section rather than three in each of 24 sections of two
+                // chunks, and all of them inside the section the world named.
+                expect(systems.tick(1).randomTicked).toBe(3);
+            });
+
+            it('draws nothing at all when the world names no chunks, which is an empty server', () => {
+                const { blocks, view, world } = worldOf();
+                for (let y = -64; y < 320; y++) {
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) blocks.set(key(x, y, z), WHEAT);
+                    }
+                }
+
+                const systems = new WorldSystems({ view: { ...view, randomTickChunks: () => [] }, world });
+
+                expect(systems.tick(1).randomTicked).toBe(0);
+            });
+
             it('leaves a block no handler names alone', () => {
                 const { blocks, systemsOf } = worldOf();
                 for (let y = -64; y < 320; y++) {
