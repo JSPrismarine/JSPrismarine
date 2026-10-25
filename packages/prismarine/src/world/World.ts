@@ -34,7 +34,7 @@ import CoordinateUtils from './CoordinateUtils';
 import EntityGrid from './EntityGrid';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { Dimensions } from './Dimension';
+import { Dimensions, maxY } from './Dimension';
 import MobSpawner from './MobSpawner';
 import { placePlayerSpawn } from './SpawnPlacement';
 import type { StoredSpawnPoint } from './RespawnPoint';
@@ -275,6 +275,8 @@ export class World implements Service {
             view: {
                 dimension: this.dimension,
                 blockAt: (x, y, z) => this.loadedBlockAt(x, y, z),
+                blockRuntimeIdAt: (x, y, z) => this.loadedBlockRuntimeIdAt(x, y, z),
+                topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 randomTickSpeed: () => {
                     const [value] = this.gameRuleManager?.getGameRule(GameRules.RandomTickSpeed) ?? [];
@@ -1316,6 +1318,41 @@ export class World implements Service {
 
         const state = chunk.getBlock(x, y, z);
         return { name: state.name, states: state.properties };
+    }
+
+    /**
+     * The runtime id at a position, or undefined where {@link loadedBlockAt} has no block.
+     *
+     * The same read without resolving the id to a state, for a caller that keeps a table of its
+     * own per runtime id. The light engine does: it wants two numbers per block and asks tens of
+     * millions of times while a world preloads, and resolving each of those to a `BlockState` and
+     * then through the property table by name and state values was most of the cost of lighting
+     * a chunk.
+     * @param {number} x - World x.
+     * @param {number} y - World y.
+     * @param {number} z - World z.
+     * @returns {number | undefined} The runtime id, air's where the column has no sub chunk, and
+     * undefined when the chunk is not in memory or `y` is outside the dimension.
+     */
+    public loadedBlockRuntimeIdAt(x: number, y: number, z: number): number | undefined {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return undefined;
+
+        return chunk.getBlockRuntimeId(x, y, z);
+    }
+
+    /**
+     * One past the highest y a column stores a block for - see {@link Chunk.getTopStoredY}.
+     *
+     * Public for the same reason {@link loadedBlockAt} is. A chunk that is not in memory answers
+     * with the dimension ceiling, because the only safe answer about a column nothing can read is
+     * that something might stand anywhere in it.
+     * @param {number} x - World x.
+     * @param {number} z - World z.
+     * @returns {number} One past the highest stored y.
+     */
+    public topOfColumn(x: number, z: number): number {
+        return this.getLoadedChunk(x >> 4, z >> 4)?.getTopStoredY() ?? maxY(this.dimension) + 1;
     }
 
     /**
