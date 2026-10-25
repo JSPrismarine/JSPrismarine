@@ -3,11 +3,6 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { testEntityServer } from '../testing/entityServer';
-import DiamondSword from '../item/items/DiamondSword';
-import GoldenSword from '../item/items/GoldenSword';
-import IronSword from '../item/items/IronSword';
-import WoodenSword from '../item/items/WoodenSword';
-import DiamondPickaxe from '../item/items/DiamondPickaxe';
 import { Item } from '../item/Item';
 import { Position } from '../world/Position';
 import { canHarm, CREATIVE_REACH, distanceToBody, meleeAttack, SURVIVAL_REACH } from './Combat';
@@ -22,6 +17,9 @@ import type { Entity } from './Entity';
  * The swing itself, not the packet that carries it: what the reach allows, what the damage comes
  * to, and what everybody nearby is told about it.
  */
+
+/** A stack of one vanilla item, whose attack damage comes from its Java components. */
+const item = (name: string) => new Item({ name });
 
 /** Everything a fight reaches for, and nothing else. */
 const scene = ({ pvp = true } = {}) => {
@@ -73,19 +71,23 @@ describe('melee', () => {
         });
 
         it('climbs with the tier of a sword', () => {
-            expect(new WoodenSword().getAttackDamage()).toBe(4);
-            expect(new IronSword().getAttackDamage()).toBe(6);
-            expect(new DiamondSword().getAttackDamage()).toBe(7);
+            expect(item('minecraft:wooden_sword').getAttackDamage()).toBe(4);
+            expect(item('minecraft:iron_sword').getAttackDamage()).toBe(6);
+            expect(item('minecraft:diamond_sword').getAttackDamage()).toBe(7);
         });
 
         it('makes gold hit like wood, not like the tier it mines at', () => {
             // Gold sits between wood and stone in the harvest order, which is why a table indexed
             // by tier cannot be an ascending run of numbers.
-            expect(new GoldenSword().getAttackDamage()).toBe(new WoodenSword().getAttackDamage());
+            expect(item('minecraft:golden_sword').getAttackDamage()).toBe(
+                item('minecraft:wooden_sword').getAttackDamage()
+            );
         });
 
         it('makes a pickaxe worse than a sword of the same tier', () => {
-            expect(new DiamondPickaxe().getAttackDamage()).toBeLessThan(new DiamondSword().getAttackDamage());
+            expect(item('minecraft:diamond_pickaxe').getAttackDamage()).toBeLessThan(
+                item('minecraft:diamond_sword').getAttackDamage()
+            );
         });
     });
 
