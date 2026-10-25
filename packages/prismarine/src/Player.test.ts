@@ -54,6 +54,9 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
+        // No pack stack, so there are no advancements to raise and no
+        // enchantment definitions to run.
+        getContent: () => undefined,
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',
@@ -67,6 +70,8 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getName: () => 'test',
         getServer: () => server,
         getPlayerData: async () => ({}),
+        // Named so a dimension change can say which one the player left.
+        getDimension: () => ({ name: 'minecraft:overworld' }) as never,
         broadcastMove: async () => {},
         removeEntity: async () => {},
         getPlayers: () => [],
@@ -583,6 +588,7 @@ describe('Player', () => {
             sent.length = 0;
 
             const target = stub<World>({
+                getDimension: () => ({ name: 'minecraft:the_nether' }) as never,
                 getName: () => 'other',
                 addEntity: async () => {}
             });
@@ -602,7 +608,11 @@ describe('Player', () => {
             // The client reports each screen back by the id its ChangeDimensionPacket carried,
             // and the docs want that id unique among the screens still open.
             const { player, sent } = fakePlayer();
-            const target = stub<World>({ getName: () => 'other', addEntity: async () => {} });
+            const target = stub<World>({
+                getName: () => 'other',
+                addEntity: async () => {},
+                getDimension: () => ({ name: 'minecraft:the_nether' }) as never
+            });
 
             await player.setWorld(target);
 

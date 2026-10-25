@@ -1,4 +1,5 @@
 import type { PlayerSession } from '../../';
+import type Player from '../../Player';
 import type Server from '../../Server';
 import { advancementItemCrafted } from '../../advancement/triggers';
 import CraftingInput from '../../crafting/CraftingInput';
@@ -116,7 +117,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
-            this.apply(request, server, inventory, craftingInput, craftingChanged)
+            this.apply(request, server, player, inventory, craftingInput, craftingChanged)
         );
 
         await session.send(response);
@@ -130,6 +131,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
     private apply(
         request: ItemStackRequest,
         server: Server,
+        player: Player,
         inventory: HumanInventory,
         craftingInput: CraftingInput,
         craftingChanged: Set<number>

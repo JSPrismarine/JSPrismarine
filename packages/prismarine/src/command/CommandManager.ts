@@ -8,6 +8,7 @@ import {
     Error,
     GenericNamespaceInvalidError
 } from '@jsprismarine/errors';
+import { TICK_FUNCTION_TAG } from '@jsprismarine/mcfunction';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import type { Command, Entity, Server, Service } from '../';
@@ -26,7 +27,9 @@ import { CommandArgument, isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
 import { isCommandExecutor } from './CommandExecutor';
 import * as Commands from './Commands';
-import { entityRefOf } from './host/support';
+import type { FunctionContent } from './function';
+import { FunctionRuntime, functionContentOf, loadServerFunctions } from './function';
+import { dimensionIdOf, entityRefOf } from './host/support';
 import { serverCommandHost } from './host/serverCommandHost';
 import { UNWIRED_COMMANDS, buildVanillaCommands } from './vanillaCommands';
 
@@ -95,11 +98,130 @@ export class CommandManager implements Service {
      */
     private readonly vanilla: CommandRegistry<CommandSource>;
 
+    /**
+     * The mcfunction runtime, built on first use.
+     *
+     * Lazily rather than in the constructor because the functions come from
+     * the pack stack and the manager is constructed before the content build
+     * runs. {@link CommandManager.setFunctionContent} drops it, so a content
+     * reload drops the compiled functions with the packs they came from.
+     */
+    private functions: FunctionRuntime | undefined;
+
+    /** A function source other than the server's content; see {@link CommandManager.setFunctionContent}. */
+    private functionContent: FunctionContent | undefined;
+
     public constructor(server: Server) {
         this.server = server;
         this.dispatcher = new CommandDispatcher<CommandExecutor>();
         this.host = serverCommandHost(server);
         this.vanilla = buildVanillaCommands();
+    }
+
+    /**
+     * The mcfunction runtime this server's `/function` and `/schedule` run
+     * through.
+     *
+     * @returns {FunctionRuntime} The runtime, holding whatever functions the
+     * loaded datapacks declared - which is none when `content-packs` is off.
+     */
+    public getFunctionRuntime(): FunctionRuntime {
+        this.functions ??= new FunctionRuntime({
+            loaded: loadServerFunctions(this.functionContent ?? functionContentOf(this.server.getContent())),
+            dispatch: (commandLine, source) => this.runFunctionLine(commandLine, source),
+            report: (diagnostic) => {
+                const where = diagnostic.functionId
+                    ? ` (${diagnostic.functionId}${diagnostic.line === undefined ? '' : `:${diagnostic.line}`})`
+                    : '';
+                const message = `${diagnostic.message}${where}`;
+                if (diagnostic.severity === 'error') this.server.getLogger().warn(`§cfunction:§r ${message}`);
+                else this.server.getLogger().debug(message, 'CommandManager/functions');
+            }
+        });
+        return this.functions;
+    }
+
+    /**
+     * Replaces the functions this server runs and drops the compiled ones.
+     *
+     * @param {FunctionContent} [content] - Where to compile functions from.
+     * Undefined goes back to the server's own content, which is what a reload
+     * wants; a caller that loaded a datapack itself passes its registries.
+     */
+    public setFunctionContent(content?: FunctionContent): void {
+        this.functionContent = content;
+        this.functions = undefined;
+    }
+
+    /**
+     * Runs one line of a function through the vanilla dispatcher.
+     *
+     * No `collectAsyncCommands` here: a function line is dispatched from
+     * inside a command body, which is already inside the collection
+     * `dispatchCommand` opened, so the work a host verb parks reaches that
+     * same queue and is awaited with the rest of the line that called the
+     * function. {@link CommandManager.tickFunctions} is the one entry point
+     * that opens its own.
+     */
+    private runFunctionLine(commandLine: string, source: CommandSource): { result?: number; forks?: number } {
+        const results = this.vanilla.getDispatcher().execute(commandLine, source);
+        if (!Array.isArray(results)) return {};
+
+        const result = results.reduce<number>((sum, value) => sum + (typeof value === 'number' ? value : 0), 0);
+        // A forked `execute as @e` reports one result per context, which is
+        // exactly what `maxCommandForks` counts.
+        return { result, forks: results.length };
+    }
+
+    /**
+     * Runs `#minecraft:tick` and whatever `/schedule` put on this tick.
+     *
+     * Called once per server tick from the tick loop. Nothing here is awaited
+     * by a sender, so the work the lines park is collected and awaited here
+     * instead.
+     *
+     * @returns {Promise<number>} How many command lines ran.
+     */
+    public async tickFunctions(): Promise<number> {
+        const runtime = this.getFunctionRuntime();
+        if (runtime.queued === 0 && !runtime.has(`#${TICK_FUNCTION_TAG}`)) return 0;
+
+        let commands = 0;
+        const started = collectAsyncCommands(() => {
+            commands = runtime.tick(this.internalSource());
+        });
+        await Promise.all(started);
+        return commands;
+    }
+
+    /**
+     * Runs `#minecraft:load`, which a server does once after its packs load.
+     *
+     * @returns {Promise<number>} How many command lines ran.
+     */
+    public async runLoadFunctions(): Promise<number> {
+        const runtime = this.getFunctionRuntime();
+        let commands = 0;
+        const started = collectAsyncCommands(() => {
+            commands = runtime.runLoad(this.internalSource());
+        });
+        await Promise.all(started);
+        return commands;
+    }
+
+    /**
+     * The source `#minecraft:tick` and `#minecraft:load` run with: the server
+     * itself, in the default world, with every permission and nobody to talk
+     * to. Java's is the same stack the console runs with, silenced.
+     */
+    private internalSource(): CommandSource {
+        return createCommandSource({
+            host: this.host,
+            dimension: dimensionIdOf(this.server.getWorldManager().getDefaultWorld()),
+            permissionLevel: CommandPermissionLevel.INTERNAL,
+            silent: true,
+            onError: (message) => this.server.getLogger().warn(`§cfunction:§r ${message}`)
+        });
     }
 
     /**

@@ -15,7 +15,7 @@ import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismar
 import { flattenBlockStates, resolveBlocks, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { BehaviorRegistry, Registry } from '@jsprismarine/content';
 import type { Diagnostic } from '@jsprismarine/content';
-import { EnchantmentRegistry, parseEnchantment } from '@jsprismarine/enchantments';
+import { EnchantmentRegistry, createEnchantmentView, parseEnchantment } from '@jsprismarine/enchantments';
 import { EntityTypes } from '@jsprismarine/entities';
 import type { EntityType } from '@jsprismarine/entities';
 import { BrainMobRegistry, registerBrainMobs } from '@jsprismarine/entity-brains';
@@ -23,7 +23,9 @@ import { createGoalEntityRegistry } from '@jsprismarine/entity-goals';
 import type { EntityComponentRegistry } from '@jsprismarine/entities';
 import { deferredItemFactory, registerVanillaItemBehaviors } from '@jsprismarine/item-behaviors';
 import type { ItemFacts, ItemHooks, ItemRegistry, ItemType } from '@jsprismarine/items';
-import { flattenItemFacts, loadItemTypes, vanillaItemDefinitions } from '@jsprismarine/items';
+import { flattenItemFacts, loadItemTypes, maxDamage, maxStackSize, vanillaItemDefinitions } from '@jsprismarine/items';
+import { defaultItemStackOps } from '@jsprismarine/predicates';
+import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
 import { LootRegistry } from '@jsprismarine/loot';
 import { load as loadPacks } from '@jsprismarine/packs';
 import type { Definition, Definitions } from '@jsprismarine/packs';
@@ -38,6 +40,7 @@ import type { ContentOptions } from './ContentOptions';
 import { resolvePackStack } from './packStack';
 import { buildContentTags } from './tags';
 import type { ContentTags } from './tags';
+import { advancementRewards } from '../advancement/rewards';
 import { unwiredWorldSource } from './world/unwired';
 import { contentWorldViews } from './world/views';
 import type { ContentWorldViews } from './world/views';
@@ -228,14 +231,30 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         });
     }
 
-    const advancements = new AdvancementEngine();
-    advancements.load(parseAdvancements(definitions.advancements, diagnostics));
+    // What lets a `#tag` inside a criterion or a `supported_items` expand.
+    // Without it `#minecraft:stone_tool_materials` in `story/mine_stone`
+    // matches nothing, which is most of the advancement corpus: nearly every
+    // item predicate in it names a tag rather than an item.
+    const resolver = contentResolver(definitions, tags);
 
     const enchantments = new EnchantmentRegistry({
-        definitions: parseEnchantments(definitions.enchantments, diagnostics),
+        definitions: parseEnchantments(definitions.enchantments, resolver, diagnostics),
         tags: enchantmentTagsFor(tags),
         items: { tagsOf: itemTagIndex(tags) }
     });
+
+    // The engine evaluates loot conditions, so it needs the same views a loot
+    // roll does. Without `items` the `count` of an item predicate and the slot
+    // counts of `inventory_changed` report instead of answering; without
+    // `enchantments` an `enchantments` item predicate does. The reward hooks
+    // are bound in `src/advancement/rewards.ts`, which is where a player can
+    // be found again behind the `EntityView` the hook is handed.
+    const advancements = new AdvancementEngine({
+        items: itemStackOpsFor(items.types),
+        enchantments: createEnchantmentView(enchantments),
+        rewards: advancementRewards()
+    });
+    advancements.load(parseAdvancements(definitions.advancements, resolver, diagnostics));
 
     const content: ServerContent = {
         definitions,
@@ -277,11 +296,57 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     return content;
 };
 
+/**
+ * The predicate grammar's stack operations, answering the two per-item limits
+ * out of the resolved item types instead of the package's 64-and-indestructible
+ * defaults.
+ *
+ * `inventory_changed` counts full slots with `maxStackSize` and the anvil reads
+ * `maxDamage`, so a default of 64 for an ender pearl and 0 for a pickaxe is the
+ * difference between those answering and answering wrong.
+ */
+const itemStackOpsFor = (types: ReadonlyMap<string, ItemType>): ItemStackOps => ({
+    ...defaultItemStackOps,
+    maxStackSize: (stack) => types.get(stack.id)?.params(maxStackSize) ?? DEFAULT_MAX_STACK_SIZE,
+    maxDamage: (stack) => types.get(stack.id)?.params(maxDamage) ?? 0
+});
+
+/** What an item that names no `minecraft:max_stack_size` stacks to, which is Java's default. */
+const DEFAULT_MAX_STACK_SIZE = 64;
+
+/**
+ * The reference resolver the Java grammars parse against.
+ *
+ * Elements come straight out of the loaded registries, and tags out of the
+ * merged `ContentTags` rather than out of the raw files: the merge has already
+ * applied Java Edition's cross-pack rule, so a tag two packs both add to
+ * expands to both halves here and to one of them through the files.
+ */
+const contentResolver = (definitions: Definitions, tags: ContentTags): ReferenceResolver => {
+    const elements: Readonly<Record<string, ReadonlyMap<string, Definition> | undefined>> = {
+        loot_table: definitions.lootTablesJava,
+        predicate: definitions.predicates,
+        item_modifier: definitions.itemModifiers,
+        recipe: definitions.recipesJava,
+        advancement: definitions.advancements,
+        enchantment: definitions.enchantments
+    };
+
+    return {
+        element: (registry, id) => elements[registry]?.get(id)?.data,
+        tag: (registry, id) => (tags.has(registry, id) ? tags.members(registry, id) : undefined)
+    };
+};
+
 /** Parses every advancement file, reporting rather than throwing on a bad one. */
-const parseAdvancements = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]) => {
+const parseAdvancements = (
+    definitions: ReadonlyMap<string, Definition>,
+    resolver: ReferenceResolver,
+    diagnostics: Diagnostic[]
+) => {
     const parsed = [];
     for (const [id, definition] of definitions) {
-        const result = parseAdvancement(id, definition.data);
+        const result = parseAdvancement(id, definition.data, { resolver });
         for (const entry of result.diagnostics) {
             diagnostics.push({
                 severity: 'error',
@@ -297,10 +362,14 @@ const parseAdvancements = (definitions: ReadonlyMap<string, Definition>, diagnos
 };
 
 /** Parses every enchantment file, reporting rather than throwing on a bad one. */
-const parseEnchantments = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]) => {
+const parseEnchantments = (
+    definitions: ReadonlyMap<string, Definition>,
+    resolver: ReferenceResolver,
+    diagnostics: Diagnostic[]
+) => {
     const parsed = [];
     for (const [id, definition] of definitions) {
-        const result = parseEnchantment(id, definition.data);
+        const result = parseEnchantment(id, definition.data, { resolver });
         for (const entry of result.diagnostics) {
             diagnostics.push({
                 severity: 'error',

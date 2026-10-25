@@ -27,7 +27,9 @@ const scene = ({ solidAt = null }: { solidAt?: ((x: number, y: number, z: number
         getServer: () => ({
             post: () => {},
             getTick: () => 0,
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
+            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
+            // No pack stack, so the enchantment step has no definitions to run.
+            getContent: () => undefined
         }),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},

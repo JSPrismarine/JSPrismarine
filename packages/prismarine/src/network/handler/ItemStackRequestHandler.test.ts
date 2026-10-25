@@ -74,7 +74,14 @@ const run = async (
     const sent: DataPacket[] = [];
     const craftingSlots: Array<{ slot: number; item: string }> = [];
     const session = stub<PlayerSession>({
-        getPlayer: () => stub<Player>({ getInventory: () => inventory, getCraftingInput: () => craftingInput }),
+        getPlayer: () =>
+            stub<Player>({
+                getInventory: () => inventory,
+                getCraftingInput: () => craftingInput,
+                // A finished craft raises `recipe_crafted`, which asks the
+                // server whether any content is loaded. These doubles load none.
+                getServer: () => server
+            }),
         send: async (packet) => void sent.push(packet),
         // The grid lives in the player's UI window, and an `ItemStackResponse` can only answer
         // about slots the request named - a craft names none of them.
@@ -365,7 +372,8 @@ describe('network', () => {
             const server = stub<Server>({
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
-                getLogger: () => stub<Logger>({ debug: () => {} })
+                getLogger: () => stub<Logger>({ debug: () => {} }),
+                getContent: () => undefined
             });
             registry.registerRecipeStations(server);
 
@@ -419,7 +427,8 @@ describe('network', () => {
             const server = stub<Server>({
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
-                getLogger: () => stub<Logger>({ debug: () => {} })
+                getLogger: () => stub<Logger>({ debug: () => {} }),
+                getContent: () => undefined
             });
             registry.registerRecipeStations(server);
 
