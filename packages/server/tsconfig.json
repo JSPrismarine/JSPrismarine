@@ -6,6 +6,6 @@
         "rootDir": "../../",
         "typeRoots": ["./node_modules/@types", "./src/@types", "./dist/index.d.ts"]
     },
-    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*"],
+    "exclude": ["src/**/*.test.*", "../**/src/**/*.test.*", "src/**/__fixtures__/**"],
     "include": ["src/**/*", "src/**/*.json"]
 }

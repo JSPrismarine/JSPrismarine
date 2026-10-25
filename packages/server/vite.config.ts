@@ -10,7 +10,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const input = Object.fromEntries(
     globSync('./**/src/**/*.{ts*,json}', {
-        ignore: ['**/*.d.ts', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/*.test.*']
+        ignore: ['**/*.d.ts', '**/coverage/**', '**/dist/**', '**/node_modules/**', '**/*.test.*', '**/__fixtures__/**']
     }).map((file) => {
         const filenameWithoutExt = file.slice(0, file.length - extname(file).length);
 
