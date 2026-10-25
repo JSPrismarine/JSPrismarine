@@ -11,6 +11,9 @@ import { buildServerContent } from './content/ServerContent';
 import type { ServerContent } from './content/ServerContent';
 import { readContentSettings } from './content/settings';
 import { serverWorldSource } from './content/world/serverSource';
+import { EntityRuntimes } from './entity/data/live';
+import type { LiveEntityRuntime } from './entity/data/live';
+import type { ServerWorldHandle } from './content/world/serverSource';
 import { StationRegistry } from './crafting/CraftingStation';
 import RecipeManager from './crafting/RecipeManager';
 import { CommandManager } from './command/CommandManager';
@@ -152,6 +155,24 @@ export default class Server extends EventEmitter {
     private content: ServerContent | undefined;
 
     /**
+     * The world the content acts through, kept beside the content it was built for.
+     *
+     * The adapters are inside `ServerContent.world` as the nine projected interfaces, which is
+     * all a content package may see. The interaction path needs one thing those do not expose:
+     * the item actor port, which it tells what an interaction landed on.
+     */
+    private contentWorld: ServerWorldHandle | undefined;
+
+    /**
+     * The data-driven entity runtimes, one per dimension.
+     *
+     * Filled by the content world source as it assembles each dimension's adapter, and read
+     * by that dimension's `World` to tick it. Empty while `content-packs` is off, which is
+     * what leaves `MobSpawner` and the written entity classes in charge.
+     */
+    private entityRuntimes = new EntityRuntimes();
+
+    /**
      * If the server is stopping.
      * @internal
      */
@@ -275,26 +296,33 @@ export default class Server extends EventEmitter {
     private enableContent(): void {
         const settings = readContentSettings();
         this.content = undefined;
+        this.contentWorld = undefined;
+        // A fresh registry per build: the runtimes hold a closure over the content that is
+        // about to be replaced, and an entity driven by the old one would read the old types.
+        this.entityRuntimes = new EntityRuntimes();
         if (!settings.enabled) return;
 
         const seed = this.worldSeed();
         const timer = new Timer();
+        this.contentWorld = serverWorldSource({
+            // By dimension rather than by name: the content packages address a world
+            // as `minecraft:overworld`, and this server loads one world per dimension.
+            worldFor: (dimension) =>
+                this.worldManager.getWorlds().find((world) => world.getDimension().name === dimension),
+            content: () => {
+                if (!this.content) throw new Error('the content world was read before the content was built');
+                return this.content;
+            },
+            seed,
+            difficulty: () => this.config.getDifficulty(),
+            entityRuntimes: this.entityRuntimes
+        });
+
         try {
             this.content = buildServerContent({
                 strict: settings.strict,
                 seed,
-                world: serverWorldSource({
-                    // By dimension rather than by name: the content packages address a world
-                    // as `minecraft:overworld`, and this server loads one world per dimension.
-                    worldFor: (dimension) =>
-                        this.worldManager.getWorlds().find((world) => world.getDimension().name === dimension),
-                    content: () => {
-                        if (!this.content) throw new Error('the content world was read before the content was built');
-                        return this.content;
-                    },
-                    seed,
-                    difficulty: () => this.config.getDifficulty()
-                }),
+                world: this.contentWorld,
                 packs: {
                     worldPacks: settings.worldPacks.map((path) => ({ kind: 'directory', path })),
                     pluginPacks: settings.datapacks.map((path) => ({ kind: 'datapack', path }))
@@ -878,6 +906,31 @@ export default class Server extends EventEmitter {
      */
     public getContent(): ServerContent | undefined {
         return this.content;
+    }
+
+    /**
+     * The world the content acts through, for the interaction path.
+     *
+     * Undefined whenever {@link Server.getContent} is, since the two are built together.
+     * @returns {ServerWorldHandle | undefined} The handle, or undefined when no content was built.
+     */
+    public getContentWorld(): ServerWorldHandle | undefined {
+        return this.contentWorld;
+    }
+
+    /**
+     * The data-driven entities of one dimension, or undefined when it has none.
+     *
+     * Asking builds the dimension's content adapter if nothing has yet, so a world that
+     * loads after the content was built still gets a runtime. Undefined while `content-packs`
+     * is off, which is what tells a `World` to keep running the written entity classes and
+     * `MobSpawner` instead.
+     * @param {string} dimension - The namespaced dimension identifier.
+     * @returns {LiveEntityRuntime | undefined} The runtime, or undefined when none was built.
+     */
+    public getEntityRuntime(dimension: string): LiveEntityRuntime | undefined {
+        this.contentWorld?.at(dimension);
+        return this.entityRuntimes.at(dimension);
     }
 
     /**
