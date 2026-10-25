@@ -23,6 +23,38 @@ describe('buildServerContent', () => {
         expect(content.tags.members('block', 'minecraft:mineable/pickaxe')).toEqual([...FIXTURE_BLOCKS]);
     });
 
+    /**
+     * Both halves of the enchantment registry's wiring. The item tags decide
+     * whether an enchantment supports a stack at all, and the enchantment tags
+     * decide what the enchanting table may draw. The build used to pass the
+     * item tags in the enchantment tags' place and nothing in the item tags'
+     * place, which left `supports` false for every enchantment and the table's
+     * pool empty.
+     */
+    describe('the enchantment registry', () => {
+        it('supports a stack through the item tag its supported_items names', () => {
+            const content = buildServerContent(fixtureContentOptions());
+            const pickaxe = { id: 'minecraft:diamond_pickaxe', count: 1, components: new Map() };
+
+            expect(content.enchantments.supports(pickaxe, 'minecraft:fortune')).toBe(true);
+            expect(content.enchantments.applicableTo(pickaxe)).toEqual(['minecraft:fortune']);
+        });
+
+        it('refuses a stack the tag does not name', () => {
+            const content = buildServerContent(fixtureContentOptions());
+            const torch = { id: 'minecraft:torch', count: 1, components: new Map() };
+
+            expect(content.enchantments.supports(torch, 'minecraft:fortune')).toBe(false);
+        });
+
+        it('expands the enchantment tags the table and the loot rules read', () => {
+            const content = buildServerContent(fixtureContentOptions());
+
+            expect([...content.enchantments.membersOf('minecraft:in_enchanting_table')]).toEqual(['minecraft:fortune']);
+            expect(content.enchantments.hasTag('minecraft:fortune', 'minecraft:in_enchanting_table')).toBe(true);
+        });
+    });
+
     it('leaves the registries nothing sources empty rather than absent', () => {
         const content = buildServerContent(
             fixtureContentOptions({ load: () => ({ definitions: emptyDefinitions(), diagnostics: [] }) })

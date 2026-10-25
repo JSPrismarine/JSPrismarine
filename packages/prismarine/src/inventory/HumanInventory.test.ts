@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import { Item } from '../item/Item';
-import { ItemEnchantmentType } from '../item/ItemEnchantmentType';
 import ContainerEntry from './ContainerEntry';
 import HumanInventory from './HumanInventory';
 
@@ -52,8 +51,8 @@ describe('HumanInventory.getItemInHand', () => {
         const held = new HumanInventory().getItemInHand();
 
         expect(held.getName()).toBe('minecraft:air');
-        expect(() => held.hasEnchantment(ItemEnchantmentType.SilkTouch)).not.toThrow();
-        expect(held.hasEnchantment(ItemEnchantmentType.SilkTouch)).toBe(false);
+        expect(() => held.hasEnchantment('minecraft:silk_touch')).not.toThrow();
+        expect(held.hasEnchantment('minecraft:silk_touch')).toBe(false);
         expect(held.isTool()).toBe(false);
     });
 

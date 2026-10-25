@@ -1,6 +1,6 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import type BinaryStream from '@jsprismarine/binaryutils';
-import { attributeModifiers, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
+import { attributeModifiers, enchantable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
@@ -9,7 +9,6 @@ import type { ServerContent } from '../content/ServerContent';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
-import type { ItemEnchantmentType } from './ItemEnchantmentType';
 import { vanillaItemTypes } from './vanillaItemTypes';
 
 export interface ItemProps {
@@ -34,10 +33,41 @@ export interface ItemProps {
     blockRuntimeId?: number;
     /** The content the item's components are read from, when the server built one. */
     content?: ServerContent;
+    /**
+     * Enchantments on the stack, as Java's `minecraft:enchantments` component
+     * holds them: namespaced enchantment id to level.
+     */
+    enchantments?: ReadonlyMap<string, number> | Readonly<Record<string, number>>;
 }
 
 /** A player's own base attack damage, which an item modifies rather than replaces. */
 const PLAYER_BASE_ATTACK_DAMAGE = 1;
+
+/** The namespace every vanilla identifier carries, added to a bare name. */
+const DEFAULT_NAMESPACE = 'minecraft';
+
+/** `sharpness` and `minecraft:sharpness` name the same enchantment. */
+const namespacedId = (id: string): string => (id.includes(':') ? id : `${DEFAULT_NAMESPACE}:${id}`);
+
+/**
+ * Normalizes whatever form a caller holds enchantment levels in into the map
+ * the stack keeps: namespaced ids, whole levels, nothing at level zero.
+ */
+const enchantmentMap = (
+    levels: ReadonlyMap<string, number> | Readonly<Record<string, number>> | undefined
+): ReadonlyMap<string, number> => {
+    if (levels === undefined) return new Map();
+
+    // A plain record has no `Symbol.iterator`, which is what tells the two
+    // apart without asserting that one of them is the other.
+    const entries = Symbol.iterator in levels ? [...levels] : Object.entries(levels);
+    const normalized = new Map<string, number>();
+    for (const [id, level] of entries) {
+        const whole = Math.trunc(level);
+        if (whole > 0) normalized.set(namespacedId(id), whole);
+    }
+    return normalized;
+};
 
 /** The default stack size for an item no table names. */
 const DEFAULT_MAX_STACK_SIZE = 64;
@@ -79,11 +109,23 @@ export class Item {
     public nbt = null;
     public count = 1;
 
-    public constructor({ id, name, meta, count, blockRuntimeId, content }: ItemProps) {
+    /**
+     * The stack's `minecraft:enchantments`, by namespaced id.
+     *
+     * Held here rather than in a general component bag because this is the one
+     * per-stack component the server reads today, and a bag with one entry in
+     * it is a bag nobody can check the shape of. Written through
+     * {@link Item.withEnchantments}, so a stack is never enchanted in place
+     * behind the back of whatever is holding it.
+     */
+    private enchantmentLevels: ReadonlyMap<string, number>;
+
+    public constructor({ id, name, meta, count, blockRuntimeId, content, enchantments }: ItemProps) {
         this.name = name;
         this.legacyId = id ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
         this.content = content;
+        this.enchantmentLevels = enchantmentMap(enchantments);
         if (meta) this.meta = meta;
         // Declared by `ItemProps` but silently dropped until 2168, so a stack read off the
         // wire came back as one item however many the client said it held.
@@ -194,8 +236,57 @@ export class Item {
         return this.addedAttribute('minecraft:armor_toughness');
     }
 
-    public hasEnchantment(_enchantment: ItemEnchantmentType): boolean {
-        return false;
+    /**
+     * The stack's enchantments, by namespaced Java id.
+     *
+     * Java ids and not Bedrock ones, because the enchantment definitions, the
+     * loot tables and the effect components are all Java's and converting at
+     * every read would mean converting back to run any of them.
+     */
+    public getEnchantments(): ReadonlyMap<string, number> {
+        return this.enchantmentLevels;
+    }
+
+    /**
+     * The level of one enchantment, or zero when the stack does not carry it.
+     *
+     * @param enchantment - A namespaced or bare Java enchantment id.
+     */
+    public getEnchantmentLevel(enchantment: string): number {
+        return this.enchantmentLevels.get(namespacedId(enchantment)) ?? 0;
+    }
+
+    /**
+     * A copy of this stack carrying a different enchantment set.
+     *
+     * A copy rather than a mutation: the anvil and the enchanting table both
+     * compute a result before the player has paid for it, and a stack enchanted
+     * in place would have been enchanted whether they paid or not.
+     */
+    public withEnchantments(levels: ReadonlyMap<string, number> | Readonly<Record<string, number>>): Item {
+        const copy = new Item({
+            id: this.legacyId,
+            name: this.name,
+            meta: this.meta,
+            count: this.count,
+            blockRuntimeId: this.placedBlockRuntimeId,
+            content: this.content,
+            enchantments: levels
+        });
+        copy.durability = this.durability;
+        return copy;
+    }
+
+    /**
+     * Whether the stack carries an enchantment at any level.
+     *
+     * @param enchantment - A namespaced or bare Java enchantment id. This took
+     *   `ItemEnchantmentType` and always answered false; the enum numbers
+     *   Bedrock's 37 enchantments, gives two of them the same number, and has
+     *   nothing to say about the other six or about a datapack's.
+     */
+    public hasEnchantment(enchantment: string): boolean {
+        return this.getEnchantmentLevel(enchantment) > 0;
     }
 
     public getMaxDurability(): number {
@@ -242,9 +333,33 @@ export class Item {
         return false;
     }
 
-    /** This stack as the loot grammar reads one, for a `tool` loot context parameter. */
+    /**
+     * This stack as the loot, predicate and enchantment grammars read one.
+     *
+     * The components carry what those grammars actually look at today:
+     * `minecraft:enchantments` for Fortune, Looting, Silk Touch and every
+     * effect component, and the three the item type declares that the
+     * enchanting table and the anvil read off a stack -
+     * `minecraft:enchantable`, `minecraft:max_damage` and `minecraft:damage`.
+     * An empty map used to go out here, which made every `apply_bonus` see an
+     * unenchanted tool and every enchanting table refuse every item.
+     */
     public asPredicateStack(): PredicateItemStack {
-        return { id: this.name, count: this.count, components: new Map() };
+        const components = new Map<string, unknown>();
+        if (this.enchantmentLevels.size > 0) {
+            components.set('minecraft:enchantments', { levels: Object.fromEntries(this.enchantmentLevels) });
+        }
+
+        const enchantability = this.type()?.params(enchantable)?.value;
+        if (enchantability !== undefined) components.set('minecraft:enchantable', { value: enchantability });
+
+        const limit = this.getMaxDurability();
+        if (limit > 0) {
+            components.set('minecraft:max_damage', limit);
+            components.set('minecraft:damage', Math.max(0, limit - this.durability));
+        }
+
+        return { id: this.name, count: this.count, components };
     }
 
     /**

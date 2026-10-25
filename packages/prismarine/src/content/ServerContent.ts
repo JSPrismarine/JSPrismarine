@@ -233,7 +233,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
 
     const enchantments = new EnchantmentRegistry({
         definitions: parseEnchantments(definitions.enchantments, diagnostics),
-        tags: itemTagsFor(tags)
+        tags: enchantmentTagsFor(tags),
+        items: { tagsOf: itemTagIndex(tags) }
     });
 
     const content: ServerContent = {
@@ -314,9 +315,42 @@ const parseEnchantments = (definitions: ReadonlyMap<string, Definition>, diagnos
     return parsed;
 };
 
-/** The merged `item` tags, in the shape `EnchantmentRegistry` reads them. */
-const itemTagsFor = (tags: ContentTags): ReadonlyMap<string, readonly string[]> =>
-    new Map(tags.tags('item').map((tag) => [tag, tags.members('item', tag)]));
+/**
+ * The merged `enchantment` tags, which are what `EnchantmentRegistry.tags`
+ * holds: `in_enchanting_table`, `treasure`, `curse` and the twelve others that
+ * carry behavior no enchantment file states about itself.
+ *
+ * These used to be built from the `item` registry instead, which put every
+ * item tag under a name no enchantment tag has. `membersOf` then found nothing
+ * for `in_enchanting_table`, so an enchanting table drew from an empty pool.
+ */
+const enchantmentTagsFor = (tags: ContentTags): ReadonlyMap<string, readonly string[]> =>
+    new Map(tags.tags('enchantment').map((tag) => [tag, tags.members('enchantment', tag)]));
+
+/**
+ * Item id to the `item` tags it carries, inverted once per content build.
+ *
+ * This is `ItemView.tagsOf`, the seam that decides whether an enchantment
+ * supports a stack at all: every vanilla `supported_items` names a
+ * `#minecraft:enchantable/...` tag rather than listing items, so without it
+ * `registry.supports` answers false for all 43 enchantments.
+ */
+const itemTagIndex = (tags: ContentTags): ((itemId: string) => readonly string[]) => {
+    let index: Map<string, string[]> | undefined;
+    return (itemId) => {
+        if (index === undefined) {
+            index = new Map();
+            for (const tag of tags.tags('item')) {
+                for (const member of tags.members('item', tag)) {
+                    const held = index.get(member);
+                    if (held) held.push(tag);
+                    else index.set(member, [tag]);
+                }
+            }
+        }
+        return index.get(itemId) ?? [];
+    };
+};
 
 /** Parses every spawn rule file, reporting rather than throwing on a bad one. */
 const parseSpawnRules = (definitions: ReadonlyMap<string, Definition>, diagnostics: Diagnostic[]): SpawnRule[] => {
