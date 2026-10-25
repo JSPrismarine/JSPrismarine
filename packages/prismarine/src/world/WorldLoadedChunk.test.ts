@@ -6,7 +6,7 @@ import { World } from './World';
 import Chunk from './chunk/Chunk';
 import type { Config } from '../config/Config';
 import type { Generator } from './Generator';
-import type { Logger, LoggerBuilder } from '@jsprismarine/logger';
+import type { Logger } from '@jsprismarine/logger';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 import type Server from '../Server';
@@ -16,7 +16,7 @@ import type Server from '../Server';
  * never answers for a chunk the world does not have yet.
  */
 const testWorld = () => {
-    const logger = stub<LoggerBuilder & Logger>({
+    const logger = stub<Logger>({
         info: () => {},
         warn: () => {},
         error: () => {},
@@ -26,6 +26,7 @@ const testWorld = () => {
 
     return new World({
         name: 'loaded-chunk-test',
+        path: 'loaded-chunk-test',
         server: stub<Server>({
             getLogger: () => logger,
             getConfig: () => stub<Config>({ getEntityTrackingInterval: () => 20 }),

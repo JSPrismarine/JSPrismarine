@@ -4,6 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { World } from '../../world/World';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type DataPacket from '../packet/DataPacket';
 import EmotePacket, { EmoteFlags } from '../packet/EmotePacket';
@@ -39,7 +40,7 @@ const setup = (xuid: string | null, others: (sender: Player) => Player[]) => {
     return { logged, server, session };
 };
 
-const request = (overrides: Partial<EmotePacket> = {}) =>
+const request = (overrides: StubMembers<EmotePacket> = {}) =>
     Object.assign(
         new EmotePacket(),
         {

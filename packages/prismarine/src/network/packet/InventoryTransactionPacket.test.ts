@@ -373,6 +373,7 @@ describe('InventoryTransactionPacket', () => {
 
     it('keeps a variant index it does not know, and stops reading after the actions', () => {
         const packet = decode(
+            // @ts-expect-error - 7 names no transaction type, which is what the reader must keep.
             transaction(7, (out) => {
                 out.writeUnsignedVarInt(0); // No actions.
                 out.write(Buffer.from([0xde, 0xad, 0xbe, 0xef])); // A body of a shape nobody knows.
@@ -388,6 +389,7 @@ describe('InventoryTransactionPacket', () => {
         const packet = new InventoryTransactionPacket();
         packet.legacyRequestId = 0;
         packet.legacySlotChanges = [];
+        // @ts-expect-error - 7 names no transaction type, so the writer has nothing to write.
         packet.transactionType = 7;
         packet.inventoryActions = [];
 

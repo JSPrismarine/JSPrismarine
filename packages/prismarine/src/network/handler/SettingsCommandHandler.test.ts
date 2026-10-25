@@ -19,6 +19,7 @@ describe('SettingsCommandHandler', () => {
                     dispatchCommand: async (sender, target, input) => {
                         senders.push(sender, target);
                         dispatched.push(input ?? '');
+                        return true;
                     }
                 })
         });

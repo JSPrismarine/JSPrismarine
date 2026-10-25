@@ -8,6 +8,7 @@ import type Server from '../../Server';
 import type { NetworkWorldReplicator, WorldReplicators } from '../NetworkWorldReplicator';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
@@ -42,7 +43,7 @@ const fakeSession = () => {
     };
 };
 
-const soundAt = (x: number, y: number, z: number, fields: Partial<LevelSoundEventPacket> = {}) =>
+const soundAt = (x: number, y: number, z: number, fields: StubMembers<LevelSoundEventPacket> = {}) =>
     Object.assign(new LevelSoundEventPacket(), {
         sound: LevelSoundEvent.ATTACK_NODAMAGE,
         positionX: x,

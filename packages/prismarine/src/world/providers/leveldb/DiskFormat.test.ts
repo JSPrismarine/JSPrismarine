@@ -382,6 +382,7 @@ describe('world', () => {
             const restored = decodeData3D(encodeData3D(biomes, Dimensions.Overworld), Dimensions.Overworld);
 
             const mixedBack = restored.palettes[5];
+            if (mixedBack === undefined) throw new Error('the sixth sub chunk was not read back');
             if (typeof mixedBack === 'number') throw new Error('a section of four biomes is not uniform');
             expect(Array.from(mixedBack.slice(0, 8))).toEqual([1, 4, 21, 16, 1, 4, 21, 16]);
         });

@@ -26,6 +26,19 @@ import MobEquipmentPacket from './packet/MobEquipmentPacket';
 import PlayerSession from './PlayerSession';
 
 /**
+ * The packet at a position among the ones that went out, or a failure naming what was missing.
+ *
+ * Reading a position off an array answers `T | undefined`, and threading that through a dozen
+ * assertions hides which one actually failed. An absent packet is the interesting failure, so
+ * it is reported as itself.
+ */
+const nth = <T>(packets: readonly T[], index: number, what: string): T => {
+    const packet = packets[index];
+    if (packet === undefined) throw new Error(`no ${what} at ${index}: ${packets.length} went out`);
+    return packet;
+};
+
+/**
  * What another client is told about a player: what they wear, what they hold in the off hand,
  * and who they are when they first come into view.
  */
@@ -102,7 +115,8 @@ describe('network', () => {
 
                 const contents = sent.filter((packet) => packet instanceof InventoryContentPacket);
                 expect(contents).toHaveLength(2);
-                const [inventory, armor] = contents;
+                const inventory = nth(contents, 0, 'InventoryContentPacket');
+                const armor = nth(contents, 1, 'InventoryContentPacket');
 
                 expect(inventory.windowId).toBe(WindowIds.INVENTORY);
                 expect(inventory.containerId).toBe(ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY);
@@ -121,7 +135,11 @@ describe('network', () => {
                 await session.sendInventory();
 
                 // The off hand goes out through `sendArmorFor` afterwards; the hand comes first.
-                const [hand] = sent.filter((packet) => packet instanceof MobEquipmentPacket);
+                const hand = nth(
+                    sent.filter((packet) => packet instanceof MobEquipmentPacket),
+                    0,
+                    'MobEquipmentPacket'
+                );
                 expect(hand.runtimeEntityId).toBe(7n);
                 expect(hand.item.getName()).toBe('minecraft:diamond_sword');
                 expect(hand.windowId).toBe(WindowIds.INVENTORY);

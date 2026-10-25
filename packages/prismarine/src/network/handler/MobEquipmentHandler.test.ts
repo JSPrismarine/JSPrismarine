@@ -7,6 +7,7 @@ import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type { World } from '../../world/World';
 import type DataPacket from '../packet/DataPacket';
@@ -67,7 +68,7 @@ const fakeWorld = () => {
 };
 
 /** What a client sends when it selects a hotbar slot: both slot fields name it, container 0. */
-const selected = (slot: number, overrides: Partial<MobEquipmentPacket> = {}): MobEquipmentPacket =>
+const selected = (slot: number, overrides: StubMembers<MobEquipmentPacket> = {}): MobEquipmentPacket =>
     Object.assign(
         new MobEquipmentPacket(),
         {

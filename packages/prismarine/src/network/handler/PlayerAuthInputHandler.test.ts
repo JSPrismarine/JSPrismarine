@@ -258,6 +258,7 @@ describe('PlayerAuthInputHandler', () => {
         it('sets a flag that does not exist', async () => {
             // 2 is the gap the 1.26.51 docs page papers over: a reader that numbers the
             // members consecutively would take it for JumpDown.
+            // @ts-expect-error - 2 is not a member, which is exactly what the guard rejects.
             await dropped((packet) => packet.inputData.add(2), 'input flag 2 does not exist');
         });
 

@@ -11,7 +11,7 @@ import type Server from '../../Server';
 import { loose } from '../../entity/Archery';
 import { meleeAttack } from '../../entity/Combat';
 import type { Entity } from '../../entity/Entity';
-import type Metadata from '../../entity/Metadata';
+import type { Metadata } from '../../entity/Metadata';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -192,6 +192,8 @@ describe('InventoryTransactionHandler', () => {
 
         it('names a type the packet does not carry, as read off the wire', () => {
             const packet = transaction(TransactionType.NORMAL, null);
+            // @ts-expect-error - 7 names no transaction type, which is the case under test:
+            // the field is read off the wire, so any varint can land in it.
             packet.transactionType = 7;
 
             expect(rejectionReason(packet)).toBe('transaction type 7 is not one the packet may carry');
@@ -229,6 +231,7 @@ describe('InventoryTransactionHandler', () => {
             expect(use({ hotbarSlot: 9 })).toBe('hotbar slot 9 is outside the hotbar');
             expect(use({ hotbarSlot: -1 })).toBe('hotbar slot -1 is outside the hotbar');
             expect(use({ actionType: 4 })).toBe('item use action 4 does not exist');
+            // @ts-expect-error - 2 names no hand; the guard rejecting it is the point.
             expect(use({ hand: 2 })).toBe('hand 2 does not exist');
             expect(use({ blockFace: 6 })).toBe("face 6 is not one of a block's six");
             expect(use({ blockFace: 255, actionType: ItemUseActionType.DESTROY })).toBeNull();
@@ -246,6 +249,7 @@ describe('InventoryTransactionHandler', () => {
     it('drops a transaction of a type it does not know at debug level, without throwing', async () => {
         const world = fake();
         const packet = transaction(TransactionType.USE_ITEM, null);
+        // @ts-expect-error - 9 names no transaction type, which is what the handler must survive.
         packet.transactionType = 9;
 
         await expect(handle(packet, world)).resolves.toBeUndefined();

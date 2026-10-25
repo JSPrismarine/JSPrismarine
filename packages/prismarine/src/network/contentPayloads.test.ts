@@ -461,8 +461,14 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
         // The user data blob is left out on purpose: the captured path drops
         // the catalog's NBT and this one carries it, which is the one place
         // the content build sends more than the path it replaces.
+        // `userData` is optional on the wire structure and `ItemStack` defaults it to an empty
+        // blob, so an absent one and an empty one are the same thing to compare against.
+        const EMPTY_USER_DATA = Buffer.alloc(0);
         const withNbt = ours.filter(
-            (entry, index) => !entry.item.userData.equals(itemAsStack(theirs[index]!.item).userData)
+            (entry, index) =>
+                !(entry.item.userData ?? EMPTY_USER_DATA).equals(
+                    itemAsStack(theirs[index]!.item).userData ?? EMPTY_USER_DATA
+                )
         );
         console.debug(
             `creative entries: ${ours.length}, ${disagreements.length} disagree, ${withNbt.length} gained NBT`

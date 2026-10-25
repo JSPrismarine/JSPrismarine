@@ -3,11 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 
 import { Vector3 } from '@jsprismarine/math';
+import type { Logger } from '@jsprismarine/logger';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
-import type Config from '../config/Config';
-import type LoggerBuilder from '../utils/Logger';
+import type { Config } from '../config/Config';
 import type Server from '../Server';
 import { stub } from '../testing/stub.test.helper';
 import Chunk from './chunk/Chunk';
@@ -48,7 +48,7 @@ let previousDirectory: string | undefined;
 const testServer = (): Server =>
     stub<Server>({
         getLogger: () =>
-            stub<LoggerBuilder>({
+            stub<Logger>({
                 info: () => {},
                 warn: () => {},
                 error: () => {},

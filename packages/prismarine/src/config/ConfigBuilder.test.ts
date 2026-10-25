@@ -44,7 +44,11 @@ describe('config', () => {
             rmSync(directory, { recursive: true, force: true });
         });
 
-        const both = () => [new ConfigBuilder(yamlPath), new ConfigBuilder(jsonPath)];
+        /** The same config read from each supported file type, as a pair so both can be named. */
+        const both = (): [yaml: ConfigBuilder, json: ConfigBuilder] => [
+            new ConfigBuilder(yamlPath),
+            new ConfigBuilder(jsonPath)
+        ];
 
         it('should properly read from the config file', () => {
             const [configYaml, configJson] = both();

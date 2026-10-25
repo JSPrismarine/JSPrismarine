@@ -12,6 +12,7 @@ import { ChunkTag, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
 import { Dimensions } from '../../Dimension';
+import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
@@ -189,7 +190,7 @@ describe('world', () => {
         it("writes a player's items as the Items NBT a vanilla tool reads", async () => {
             const worldPath = scratch();
             const { provider } = harness(worldPath);
-            const empty = (size: number) => new Array<null>(size).fill(null);
+            const empty = (size: number): (StoredItemStack | null)[] => new Array(size).fill(null);
             const slots = empty(36);
             slots[4] = {
                 name: 'minecraft:diamond_sword',

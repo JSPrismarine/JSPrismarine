@@ -26,13 +26,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import BlockManager from '../block/BlockManager';
 import { entityRefOf } from '../command/host/support';
 import { worldCommandHost } from '../command/host/world';
-import type Config from '../config/Config';
+import type { Config } from '../config/Config';
 import type Console from '../Console';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
+import type { ServerWorldHandle } from '../content/world/serverSource';
 import { serverWorldSource } from '../content/world/serverSource';
-import type { ServerWorldHandle } from '../content/world/adapter';
 import { useItemOnBlock } from '../item/interaction';
 import ItemManager from '../item/ItemManager';
 import type ClientConnection from '../network/ClientConnection';
@@ -49,7 +49,7 @@ import type { Generator } from './Generator';
 import { Position } from './Position';
 import LevelDB from './providers/leveldb/LevelDB';
 import { World } from './World';
-import type { WorldManager } from './WorldManager';
+import type WorldManager from './WorldManager';
 
 /** Where the bed stands, with the ground under it and nothing above. */
 const BED = { x: 10, y: 64, z: 10 };

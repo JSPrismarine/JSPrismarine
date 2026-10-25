@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
-import type Entity from '../../entity/Entity';
+import type { Entity } from '../../entity/Entity';
 import { stub } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -26,7 +26,8 @@ const fakeSession = (options: { npcDistance?: number; tracked?: boolean } = {}) 
     const opened: number[] = [];
     const logged: string[] = [];
 
-    const world = stub<World>({
+    // Annotated, because the entity the world answers with holds a position back into it.
+    const world: World = stub<World>({
         getEntity: (runtimeId) =>
             runtimeId === NPC && options.npcDistance !== undefined
                 ? stub<Entity>({ getPosition: () => new Position(options.npcDistance ?? 0, 0, 0, world) })

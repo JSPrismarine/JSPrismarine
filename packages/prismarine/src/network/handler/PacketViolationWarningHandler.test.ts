@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import Identifiers from '../Identifiers';
 import type PlayerSession from '../PlayerSession';
@@ -13,7 +14,7 @@ import PacketViolationWarningPacket, {
 import PacketViolationWarningHandler from './PacketViolationWarningHandler';
 
 describe('PacketViolationWarningHandler', () => {
-    const handleWith = (fields: Partial<PacketViolationWarningPacket>): string[] => {
+    const handleWith = (fields: StubMembers<PacketViolationWarningPacket>): string[] => {
         const logged: string[] = [];
         const server = stub<Server>({
             getLogger: () => stub<Logger>({ warn: (...message) => void logged.push(message[0] ?? '') })
@@ -39,9 +40,17 @@ describe('PacketViolationWarningHandler', () => {
     });
 
     it('falls back to numbers for an id and members it does not know', () => {
-        expect(handleWith({ type: 7, severity: 9, packetId: 0x7ff, message: '' })).toEqual([
-            'Steve rejected an unregistered packet (0x7ff) as type 7, severity 9: ""'
-        ]);
+        expect(
+            handleWith({
+                // @ts-expect-error - a client may report a member the enum does not name, and
+                // the line it produces for one is what this covers.
+                type: 7,
+                // @ts-expect-error - likewise for the severity.
+                severity: 9,
+                packetId: 0x7ff,
+                message: ''
+            })
+        ).toEqual(['Steve rejected an unregistered packet (0x7ff) as type 7, severity 9: ""']);
     });
 
     it('names the Unknown members rather than mistaking -1 for a missing name', () => {

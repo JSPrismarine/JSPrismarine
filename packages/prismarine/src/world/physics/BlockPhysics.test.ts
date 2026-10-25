@@ -1,7 +1,7 @@
+import type { Logger } from '@jsprismarine/logger';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import type { Block } from '../../block/Block';
-import type LoggerBuilder from '../../utils/Logger';
 import type BlockManager from '../../block/BlockManager';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Server from '../../Server';
@@ -66,7 +66,7 @@ class TestWorld {
             stub<Server>({
                 // No pack stack, so a destroyed block falls back to the catalog's own drop.
                 getContent: () => undefined,
-                getLogger: () => stub<LoggerBuilder>({ error: () => {}, debug: () => {} }),
+                getLogger: () => stub<Logger>({ error: () => {}, debug: () => {} }),
                 getBlockManager: () =>
                     stub<BlockManager>({
                         findBlock: (name) => (name === 'minecraft:nonexistent' ? null : blockNamed(name)),

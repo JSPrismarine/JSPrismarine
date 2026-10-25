@@ -8,7 +8,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Console from './Console';
 import Player from './Player';
 import type Server from './Server';
-import type { WorldManager } from './world/WorldManager';
+import type WorldManager from './world/WorldManager';
 import type { Block } from './block/Block';
 import type { Config } from './config/Config';
 import { AttributeIds } from './entity/Attribute';
@@ -484,8 +484,12 @@ describe('Player', () => {
             expect(player.metadata.breathing).toBe(true);
             // Where the `ReadyToSpawn` put the client: the spawn block's corner, the eyes 1.62
             // above it, as a Bedrock Dedicated Server says.
-            const { x, y, z } = player.getPosition();
-            expect({ x, y, z }).toEqual({ x: 0, y: 64 + EYE_HEIGHT, z: 0 });
+            const position = player.getPosition();
+            expect({ x: position.getX(), y: position.getY(), z: position.getZ() }).toEqual({
+                x: 0,
+                y: 64 + EYE_HEIGHT,
+                z: 0
+            });
         });
 
         it('tells the client it is alive again as a Bedrock server does, without moving it', async () => {

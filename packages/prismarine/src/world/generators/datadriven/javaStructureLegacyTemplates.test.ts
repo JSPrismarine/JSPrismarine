@@ -1,6 +1,6 @@
 import type { BlockEntityRequest, BlockState, HeightmapType } from '@jsprismarine/features';
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import type { JavaStructureTemplate } from '@jsprismarine/structures';
+import type { JavaStructureTemplate, JavaTemplateBlock } from '@jsprismarine/structures';
 import { createLegacyRandom } from '@jsprismarine/structures';
 import { describe, expect, it } from 'vitest';
 
@@ -36,7 +36,7 @@ const template = (
     block: string,
     marker?: string
 ): JavaStructureTemplate => {
-    const blocks: JavaStructureTemplate['blocks'] = [];
+    const blocks: JavaTemplateBlock[] = [];
     for (let x = 0; x < sizeX; x++) {
         for (let y = 0; y < sizeY; y++) {
             for (let z = 0; z < sizeZ; z++) blocks.push({ pos: [x, y, z], state: 0 });

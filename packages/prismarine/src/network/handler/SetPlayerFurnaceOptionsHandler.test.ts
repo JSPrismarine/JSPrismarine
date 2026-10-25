@@ -4,6 +4,7 @@ import type { Logger } from '@jsprismarine/logger';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { LoggedLines } from '../../testing/blockTarget.test.helper';
+import type { StubMembers } from '../../testing/stub.test.helper';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import SetPlayerFurnaceOptionsPacket, {
@@ -27,7 +28,7 @@ const fakeSession = () => {
     return { logged, server, session };
 };
 
-const options = (fields: Partial<SetPlayerFurnaceOptionsPacket> = {}) =>
+const options = (fields: StubMembers<SetPlayerFurnaceOptionsPacket> = {}) =>
     Object.assign(new SetPlayerFurnaceOptionsPacket(), {
         furnaceType: FurnaceType.Smoker,
         leftTab: FurnaceLeftTabIndex.RecipeSearch,
