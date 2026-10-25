@@ -6,12 +6,14 @@
  * mobs, items on the ground, blocks, combat, riding, breeding and trade.
  *
  * `GoalWorld`'s members are all optional by design, and a goal whose world
- * cannot answer one refuses to start rather than throwing. The members left
- * out here are the ones this server has nowhere to get an answer from yet;
- * each is a goal that stays asleep rather than a goal that behaves wrongly.
+ * cannot answer one refuses to start rather than throwing. This host answers
+ * all of them, which is what {@link goalWorldOf}'s `Required<GoalWorld>`
+ * return type pins: a member added to the seam stops this file compiling
+ * until the runtime can answer it, rather than quietly putting 52 goals to
+ * sleep.
  */
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
-import type { GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
+import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
 import type { DataEntity, MobBody } from './DataEntity';
 import { distance } from './DataEntity';
@@ -31,6 +33,10 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => ({
     target: () => {
         const target = entity.target === undefined ? undefined : scene.byId(entity.target);
         return target === undefined ? undefined : goalMobOf(target, scene);
+    },
+    lastDamager: () => {
+        const last = entity.body.damage.last()?.sourceId;
+        return last === undefined ? undefined : scene.mobById(last);
     }
 });
 
@@ -95,7 +101,7 @@ const nearestPlayerTo = (here: EntityPosition, scene: EntityScene, maxDistance: 
  * `GoalSupport` holds the world it was handed, and it is built while the
  * `EntityInstance` is still being constructed.
  */
-export const goalWorldOf = (entity: MobBody, scene: EntityScene): GoalWorld => {
+export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalWorld> => {
     const sorted = (candidates: readonly DataEntity[]) =>
         [...candidates].sort((a, b) => distance(entity.position, a.position) - distance(entity.position, b.position));
 
@@ -113,6 +119,17 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): GoalWorld => {
                 .map((player) => playerGoalMob(player.id, player.identifier, player.position)),
         items: (radius) => scene.items(entity.position, radius),
         blocks: (query) => scene.blocks(entity.position, query),
+        poi: (kind, radius) => scene.poi(kind, entity.position, radius),
+        damagers: (): readonly GoalDamage[] =>
+            entity.damage.records().map((record) => ({
+                mob: record.sourceId === undefined ? undefined : scene.mobById(record.sourceId),
+                cause: record.cause,
+                total: record.total
+            })),
+        lastPusher: () => (entity.lastPusher === undefined ? undefined : scene.mobById(entity.lastPusher)),
+        owner: () => (entity.owner === undefined ? undefined : scene.mobById(entity.owner)),
+        vehicle: () => scene.vehicleOf(entity),
+        riders: () => scene.ridersOf(entity),
         target: () => {
             const target = entity.target === undefined ? undefined : scene.byId(entity.target);
             return target === undefined ? undefined : goalMobOf(target, scene);
@@ -125,24 +142,43 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): GoalWorld => {
             entity.home = position;
         },
         attack: (mob) => scene.attack(entity, mob),
+        shoot: (mob, projectile) => scene.shoot(entity, mob, projectile),
         knockback: (mob, horizontal, vertical) => scene.knockback(entity, mob, horizontal, vertical),
+        push: (velocity) => entity.push(velocity),
+        explode: () => scene.explode(entity),
         teleportTo: (position) => {
             entity.position = position;
             entity.stopMoving();
         },
+        mount: (mob) => scene.mount(entity, mob),
+        dismount: () => scene.dismount(entity),
+        pickUp: (item) => scene.pickUp(entity, item),
         carriedItem: () => entity.carried,
         setCarriedItem: (identifier) => {
             entity.carried = identifier;
         },
+        inventory: () => [...entity.inventory],
+        giveItem: (mob, identifier) => scene.giveItem(entity, mob, identifier),
         dropItem: (identifier, position) =>
             scene.host.drop(blockPositionOf(position ?? entity.position), { identifier, count: 1 }),
         setBlock: (position, identifier) =>
             scene.world.blocks.set(blockPositionOf(position), { identifier, states: {} }, true),
+        breakBlock: (position) => scene.breakBlock(position),
         spawn: (identifier, position, event) => {
             scene.spawn(identifier, position, { event });
         },
         playSound: (name) => scene.world.effects.playSound(blockPositionOf(entity.position), name),
         dropLoot: (table, position) => scene.dropLoot(table, position),
+        openTrade: (player) => scene.openTrade(entity, player),
+        tradingPlayer: () => (entity.tradingPlayer === undefined ? undefined : scene.mobById(entity.tradingPlayer)),
+        setSitting: (sitting) => {
+            entity.sitting = sitting;
+        },
+        setSleeping: (sleeping) => {
+            entity.sleeping = sleeping;
+        },
+        canBreedWith: (mob) => scene.canBreedWith(entity, mob),
+        breedWith: (mob) => scene.breedWith(entity, mob),
         canSee: (mob) => distance(entity.position, mob.position()) <= entity.facts.followRange,
         trigger: (event, target) => scene.trigger(entity, event, target),
         report: (message) => scene.report(`${entity.identifier}: ${message}`)
@@ -154,7 +190,7 @@ export const withinMeleeReach = (from: EntityPosition, to: EntityPosition): bool
     distance(from, to) <= MELEE_REACH;
 
 /** A player as a goal sees one; the server answers no filter facts about it yet. */
-const playerGoalMob = (id: number, identifier: string, position: EntityPosition): GoalMob => ({
+export const playerGoalMob = (id: number, identifier: string, position: EntityPosition): GoalMob => ({
     id,
     position: () => position,
     view: () => ({}),

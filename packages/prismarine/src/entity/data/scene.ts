@@ -38,14 +38,48 @@ export interface EntityScene {
     remove(id: number, reason: string): void;
     /** The blocks as the path finder reads them. */
     navigation(): NavigationView;
+    /**
+     * One entity or player, by runtime id, as a goal sees it.
+     *
+     * The two live in different indexes, so this is the one place that looks
+     * in both: a damager, an owner or a rider is a runtime id and the goal
+     * does not care which index answered.
+     */
+    mobById(id: number): GoalMob | undefined;
     /** Item stacks lying within a radius, nearest first. */
     items(center: EntityPosition, radius: number): readonly GoalItem[];
     /** Blocks matching a query around a position, nearest first. */
     blocks(center: EntityPosition, query: BlockQuery): readonly GoalBlock[];
+    /** The nearest point of interest of a kind, for the eleven goals that ask. */
+    poi(kind: string, center: EntityPosition, radius: number): EntityPosition | undefined;
     /** Deals one entity's melee damage to another. */
     attack(attacker: MobBody, target: GoalMob): void;
+    /** Fires one entity's projectile at a mob. */
+    shoot(shooter: MobBody, target: GoalMob, projectile: string | undefined): void;
     /** Knocks a mob away from the entity. */
     knockback(source: MobBody, target: GoalMob, horizontal: number, vertical: number): void;
+    /** Detonates an entity, which is what its `minecraft:explode` component declares. */
+    explode(source: MobBody): void;
+    /** Puts an entity on a mob as a rider, if the mob has a seat free for it. */
+    mount(rider: MobBody, vehicle: GoalMob): void;
+    /** Takes an entity off whatever it rides. */
+    dismount(rider: MobBody): void;
+    /** What an entity rides, or undefined when it rides nothing. */
+    vehicleOf(rider: MobBody): GoalMob | undefined;
+    /** Who rides an entity, in the order they got on. */
+    ridersOf(vehicle: MobBody): readonly GoalMob[];
+    /** Takes an item stack lying in the world into an entity's inventory. */
+    pickUp(taker: MobBody, item: GoalItem): void;
+    /** Moves one item from an entity's inventory to another entity. */
+    giveItem(giver: MobBody, taker: GoalMob, identifier: string): void;
+    /** Breaks a block and drops what its loot table rolls. */
+    breakBlock(at: EntityPosition): void;
+    /** Opens one entity's trade screen for a player. */
+    openTrade(trader: MobBody, player: GoalMob): void;
+    /** Whether two entities may breed with each other now. */
+    canBreedWith(parent: MobBody, mate: GoalMob): boolean;
+    /** Produces the offspring of a successful breeding. */
+    breedWith(parent: MobBody, mate: GoalMob): void;
     /** Rolls a loot table and drops what it produced. */
     dropLoot(table: string, at: EntityPosition): void;
     /** Fires an entity event on a named subject, which `trigger` with a target does. */

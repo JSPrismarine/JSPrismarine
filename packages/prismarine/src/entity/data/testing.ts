@@ -32,8 +32,14 @@ import { entityContentGroups } from '../contentAdapter';
 import { EntityRuntime } from './EntityRuntime';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 
-/** The blocks the entity fixture declares: a floor, a lamp and an air block to walk through. */
-export const FIXTURE_BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:redstone_lamp'] as const;
+/**
+ * The blocks the entity fixture declares.
+ *
+ * A floor, an air block to walk through, a lamp to break and a bed, which is
+ * the block Java's `PoiTypes` makes a home and so the one the sleep and
+ * shelter goals search for.
+ */
+export const FIXTURE_BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:redstone_lamp', 'minecraft:bed'] as const;
 
 /** The y the fixture world's stone floor sits at; everything above it is air. */
 export const FLOOR_Y = 63;
@@ -66,7 +72,8 @@ export const entityFixturePalette = (): BlockPalette =>
     new BlockPalette([
         ['minecraft:air', new BlockStateModel([])],
         ['minecraft:stone', new BlockStateModel([])],
-        ['minecraft:redstone_lamp', new BlockStateModel([])]
+        ['minecraft:redstone_lamp', new BlockStateModel([])],
+        ['minecraft:bed', new BlockStateModel([])]
     ]);
 
 /** One entity file, in the shape a behavior pack writes. */
@@ -451,7 +458,11 @@ export interface EntityFixture {
  * content rather than the content itself, and nothing dereferences it until a
  * hook runs.
  */
-export const entityFixture = (world = new TestEntityWorld(), overrides: ContentOptions = {}): EntityFixture => {
+export const entityFixture = (
+    world = new TestEntityWorld(),
+    overrides: ContentOptions = {},
+    extra: ExtraEntities = {}
+): EntityFixture => {
     const reports: string[] = [];
     let content: ServerContent | undefined;
 
@@ -471,6 +482,6 @@ export const entityFixture = (world = new TestEntityWorld(), overrides: ContentO
         ...entityContentGroups(runtime)
     };
 
-    content = buildServerContent(entityContentOptions({ world: singleDimension(adapter), ...overrides }));
+    content = buildServerContent(entityContentOptions({ world: singleDimension(adapter), ...overrides }, extra));
     return { content, runtime, world, adapter, reports };
 };
