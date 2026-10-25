@@ -1,6 +1,21 @@
 import yargs from 'yargs/yargs';
 import pkg from '../../package.json' with { type: 'json' };
 
+declare const BUILD_TIME: string | undefined;
+declare const BUILD_GIT_HASH: string | undefined;
+declare const BUILD_VERSION: string | undefined;
+declare const BUILD_FLAVOR: string | undefined;
+declare const BUILD_TYPE: string | undefined;
+
+const buildVersion = typeof BUILD_VERSION === 'undefined' ? pkg.version : BUILD_VERSION;
+const buildDetails = [
+    typeof BUILD_FLAVOR === 'undefined' ? undefined : BUILD_FLAVOR,
+    typeof BUILD_TYPE === 'undefined' ? undefined : BUILD_TYPE,
+    typeof BUILD_GIT_HASH === 'undefined' ? undefined : `commit ${BUILD_GIT_HASH}`,
+    typeof BUILD_TIME === 'undefined' ? undefined : `built ${BUILD_TIME}`
+].filter((detail) => detail !== undefined);
+const versionText = buildDetails.length > 0 ? `${buildVersion} (${buildDetails.join(', ')})` : buildVersion;
+
 /** The roles the entry point can take; `server` is what the host spawns its child with. */
 export const ROLES = ['server'] as const;
 
@@ -42,7 +57,7 @@ export const serverCli = (argv: readonly string[]) =>
             hidden: true
         })
         .help('help', 'Show this help message')
-        .version('version', 'Show the server version', pkg.version)
+        .version('version', 'Show the server version', versionText)
         .completion('completion', 'Generate a shell completion script')
         .strict()
         .check(({ _, port, watch, headless }) => {

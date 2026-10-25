@@ -51,11 +51,26 @@ const body =
     sections.length > 0
         ? `## Highlights\n\n${sections.join('\n\n')}`
         : `## Highlights\n\nNo user-facing changes were detected in runtime source commits since \`${previousReleaseTag}\`.`;
+const macOSNotice = `### macOS first launch
+
+The macOS executables are ad-hoc signed and are not notarized. If macOS blocks a downloaded executable, remove its quarantine attribute before running it:
+
+\`\`\`sh
+xattr -d com.apple.quarantine ./prismarine-darwin-arm64
+\`\`\`
+
+For the app bundle, run this after extracting its ZIP:
+
+\`\`\`sh
+xattr -dr com.apple.quarantine JSPrismarine-arm64.app
+\`\`\`
+
+Use the \`x64\` asset names on Intel Macs.`;
 
 console.error(
     `Generated ${[...highlights.values()].reduce((total, entries) => total + entries.length, 0)} highlights since ${previousReleaseTag}`
 );
-process.stdout.write(`${body}\n`);
+process.stdout.write(`${body}\n\n${macOSNotice}\n`);
 
 function runGit(args) {
     return execFileSync('git', args, { cwd: repositoryRoot, encoding: 'utf8' }).trim();

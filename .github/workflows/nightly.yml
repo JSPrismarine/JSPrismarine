@@ -1,4 +1,5 @@
 name: Executable
+
 on:
     push:
         branches:
@@ -10,13 +11,57 @@ env:
     CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 jobs:
+    nightly-version:
+        name: 🏷️ Resolve nightly version
+        runs-on: ubuntu-latest
+        permissions:
+            actions: read
+            contents: read
+        env:
+            GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        outputs:
+            version: ${{ steps.metadata.outputs.BUILD_VERSION }}
+        steps:
+            - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+            - name: 🕒 Read workflow start time
+              id: start_time
+              run: |
+                  started_at="$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" --jq '.run_started_at')"
+                  echo "started_at=$started_at" >> "$GITHUB_OUTPUT"
+
+            - name: 🏷️ Set nightly version
+              id: metadata
+              env:
+                  BUILD_TYPE: nightly
+                  GITHUB_RUN_STARTED_AT: ${{ steps.start_time.outputs.started_at }}
+              run: node .github/scripts/set-build-metadata.mjs
+
     nightly:
-        name: 🚚 Build nightly executable
+        name: 🚚 Build nightly executable (${{ matrix.platform }})
+        needs: nightly-version
         strategy:
             matrix:
-                os: [ubuntu, macos, windows]
-        runs-on: ${{ matrix.os }}-latest
-        continue-on-error: true
+                include:
+                    - runner: ubuntu-latest
+                      platform: linux-x64
+                      target: bun-linux-x64
+                      output: dist/prismarine-linux-x64
+                      architecture: ''
+                    - runner: macos-latest
+                      platform: macos-arm64
+                      target: bun-darwin-arm64
+                      output: dist/prismarine-darwin-arm64
+                      architecture: arm64
+                    - runner: windows-latest
+                      platform: windows-x64
+                      target: bun-windows-x64
+                      output: dist/prismarine-windows-x64
+                      architecture: ''
+        runs-on: ${{ matrix.runner }}
+        env:
+            BUILD_TYPE: nightly
+            BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
         steps:
             - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
@@ -25,9 +70,7 @@ jobs:
             - name: 📦 Install
               uses: ./.github/common/install
 
-            - name: 🔨 Build Executable
-              id: build
-              continue-on-error: true
+            - name: 🔨 Build packages
               run: pnpm run build
 
             # Keep installation and the lockfile on pnpm; Bun only compiles the executable.
@@ -36,18 +79,75 @@ jobs:
               with:
                   bun-version: canary
 
-            - name: 🗃️ Compile Executable
-              id: compile
+            - name: 🏷️ Set build metadata
+              run: node .github/scripts/set-build-metadata.mjs
+
+            - name: 🗃️ Compile executable
+              env:
+                  BUILD_TARGET: ${{ matrix.target }}
+                  BUILD_OUTPUT: ${{ matrix.output }}
               shell: bash
-              run: |
-                  mkdir -p dist
-                  bun build ./packages/server/src/Server.ts --compile --outfile=./dist/prismarine
+              run: node .github/scripts/build-aot.mjs "$BUILD_TARGET" "$BUILD_OUTPUT"
 
-            - name: 🚚 Publish Artifact
-              if: ${{ steps.build.outcome == 'success' && steps.compile.outcome == 'success' }}
-              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+            - name: 🍎 Package macOS app
+              if: ${{ matrix.architecture != '' }}
+              env:
+                  BUILD_ARCHITECTURE: ${{ matrix.architecture }}
+                  BUILD_OUTPUT: ${{ matrix.output }}
+              run: node .github/scripts/package-macos-app.mjs "$BUILD_OUTPUT" "$BUILD_ARCHITECTURE"
+
+            - name: 🚚 Publish artifact
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
               with:
-                  name: prismarine-${{ matrix.os }}
+                  name: prismarine-${{ matrix.platform }}
                   path: |
-                      ./dist/prismarine*
+                      dist/prismarine-*
+                      dist/JSPrismarine-*.app.zip
+                  if-no-files-found: error
 
+    nightly-release:
+        name: 🌙 Publish nightly release
+        needs: [nightly-version, nightly]
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ secrets.MACHINE_USER }}
+            BUILD_TYPE: nightly
+            BUILD_VERSION: ${{ needs.nightly-version.outputs.version }}
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+
+            - name: 🏷️ Set build metadata
+              run: node .github/scripts/set-build-metadata.mjs
+
+            - name: 📥 Download executables
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+              with:
+                  path: dist
+                  merge-multiple: true
+
+            - name: 📝 Generate release highlights
+              run: node .github/scripts/generate-release-highlights.mjs > dist/highlights.md
+
+            - name: 🌙 Publish nightly release
+              run: |
+                  tag="jsprismarine@${BUILD_VERSION}"
+                  title="JSPrismarine ${BUILD_VERSION}"
+                  if gh release view "$tag" >/dev/null 2>&1; then
+                      gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --prerelease
+                      gh release upload "$tag" dist/prismarine-* dist/JSPrismarine-*.app.zip dist/highlights.md --clobber
+                  else
+                      gh release create "$tag" \
+                          dist/prismarine-* \
+                          dist/JSPrismarine-*.app.zip \
+                          dist/highlights.md \
+                          --target "$GITHUB_SHA" \
+                          --title "$title" \
+                          --prerelease \
+                          --latest=false \
+                          --notes-file dist/highlights.md
+                  fi

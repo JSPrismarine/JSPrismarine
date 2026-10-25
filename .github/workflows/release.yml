@@ -104,10 +104,83 @@ jobs:
                   pnpm run version:unstable
                   pnpm run release:unstable
 
-    aot-release:
-        name: 📦 Release standalone executables
+    aot-build:
+        name: 🗃️ Build standalone executables (${{ matrix.group }})
         needs: release
-        if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        if: ${{ needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        strategy:
+            matrix:
+                include:
+                    - runner: ubuntu-latest
+                      group: linux
+                      targets: >-
+                          bun-linux-x64
+                          bun-linux-arm64
+                          bun-linux-x64-musl
+                          bun-linux-arm64-musl
+                    - runner: macos-latest
+                      group: macos
+                      targets: >-
+                          bun-darwin-x64
+                          bun-darwin-arm64
+                    - runner: windows-latest
+                      group: windows-x64
+                      targets: bun-windows-x64
+                    - runner: windows-11-arm
+                      group: windows-arm64
+                      targets: bun-windows-arm64
+        runs-on: ${{ matrix.runner }}
+        permissions:
+            contents: read
+        env:
+            BUILD_TYPE: release
+            RELEASE_VERSION: ${{ needs.release.outputs.shared_version }}
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  submodules: 'recursive'
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # Keep installation and the lockfile on pnpm; Bun only compiles the executables.
+            - name: 🐰 Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: canary
+
+            - name: 🏷️ Set build metadata
+              run: node .github/scripts/set-build-metadata.mjs
+
+            - name: 🗃️ Compile executables
+              env:
+                  BUILD_TARGETS: ${{ matrix.targets }}
+              shell: bash
+              run: |
+                  mkdir -p dist
+                  for target in $BUILD_TARGETS; do
+                      output="dist/prismarine-${target#bun-}"
+                      node .github/scripts/build-aot.mjs "$target" "$output"
+                      if [[ "$target" == bun-darwin-* ]]; then
+                          architecture="${target##*-}"
+                          node .github/scripts/package-macos-app.mjs "$output" "$architecture"
+                      fi
+                  done
+
+            - name: 🚚 Upload executable artifacts
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+              with:
+                  name: prismarine-${{ matrix.group }}
+                  path: |
+                      dist/prismarine-*
+                      dist/JSPrismarine-*.app.zip
+                  if-no-files-found: error
+
+    aot-release:
+        name: 📦 Publish standalone executables
+        needs: [release, aot-build]
+        if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.published == 'true' && needs.aot-build.result == 'success' }}
         runs-on: ubuntu-latest
         permissions:
             contents: write
@@ -119,39 +192,12 @@ jobs:
               uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
               with:
                   fetch-depth: 0
-                  submodules: 'recursive'
-                  token: ${{ secrets.MACHINE_USER }}
 
-            - name: 🧬 Update submodules
-              run: git submodule update --init --recursive
-
-            - name: 📦 Install
-              uses: ./.github/common/install
-
-            # Keep installation and the lockfile on pnpm; Bun only compiles the executables.
-            - name: 🐰 Setup Bun
-              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+            - name: 📥 Download executable artifacts
+              uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
               with:
-                  bun-version: canary
-
-            - name: 🗃️ Compile Executables
-              run: |
-                  mkdir -p dist
-                  for target in \
-                      bun-linux-x64 \
-                      bun-linux-arm64 \
-                      bun-linux-x64-musl \
-                      bun-linux-arm64-musl \
-                      bun-darwin-x64 \
-                      bun-darwin-arm64 \
-                      bun-windows-x64 \
-                      bun-windows-arm64
-                  do
-                      bun build ./packages/server/src/Server.ts \
-                          --compile \
-                          --target="$target" \
-                          --outfile="dist/prismarine-${target#bun-}"
-                  done
+                  path: dist
+                  merge-multiple: true
 
             - name: 📝 Generate release highlights
               run: node .github/scripts/generate-release-highlights.mjs > dist/highlights.md
@@ -162,10 +208,11 @@ jobs:
                   title="JSPrismarine ${RELEASE_VERSION}"
                   if gh release view "$tag" >/dev/null 2>&1; then
                       gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest
-                      gh release upload "$tag" dist/prismarine-* dist/highlights.md --clobber
+                      gh release upload "$tag" dist/prismarine-* dist/JSPrismarine-*.app.zip dist/highlights.md --clobber
                   else
                       gh release create "$tag" \
                           dist/prismarine-* \
+                          dist/JSPrismarine-*.app.zip \
                           dist/highlights.md \
                           --target "$GITHUB_SHA" \
                           --title "$title" \
