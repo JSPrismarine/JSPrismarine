@@ -307,6 +307,18 @@ their Chebyshev distance is 2 or less, and the chromatic number of that graph is
 colour chain means one cold chunk drags a 33 by 33 neighbourhood of feature passes with it before
 it can finish, which is a stall on every teleport into ungenerated terrain.
 
+**What it cost in the step table.** One row. Java's `full` step declares no dependency at distance
+1, because the feature pass has already written through and there is nothing left to collect; ours
+reads its eight neighbours at `features` to take their patches, so it declares that and the read is
+checked like every other. The accumulated table does not move, because `full` already guaranteed
+`initialize_light` at distance 1 and `initialize_light` is above `features`. Every radius,
+`RADIUS_AROUND_FULL_CHUNK` and `SAFETY_MARGIN_CHUNKS` read what they read before.
+
+**What it cost at the border, measured.** Over the generation corpus, 1.4% to 1.9% of a decorated
+chunk's positions, and the whole of it in one direction: a chunk gains blocks its neighbours' feature
+passes owe it. None of it is a block changing its mind. The 169-position figure above sizes
+something narrower, the order-dependent set, and it is not the size of the one-time move.
+
 ## Alternatives rejected
 
 **Keep the 3 by 3 region and add workers.** 43% of the per-chunk cost is the window and the
