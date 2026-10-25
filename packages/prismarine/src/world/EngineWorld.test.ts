@@ -6,7 +6,7 @@ import { Vector3 } from '@jsprismarine/math';
 import type { Logger } from '@jsprismarine/logger';
 import { Difficulty } from '@jsprismarine/minecraft';
 import { REDSTONE_TORCH, REPEATER, SIGNAL_STATE } from '@jsprismarine/engine-systems';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import type BlockManager from '../block/BlockManager';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -46,6 +46,22 @@ const STONE = named('minecraft:stone');
 const REDSTONE_BLOCK = named('minecraft:redstone_block');
 const WIRE = named('minecraft:redstone_wire', { [SIGNAL_STATE]: 0 });
 const WATER = named('minecraft:water', { liquid_depth: 0 });
+const FIRE = named('minecraft:fire', { age: 0 });
+
+/**
+ * Runs `work` with every draw fixed at its lowest.
+ *
+ * Fire is written in odds - whether the rain puts it out, how fast it ages, what it catches -
+ * so a test of what fire does is a test of a coin toss unless the draws are held still.
+ */
+const withFixedDraws = async (work: () => Promise<void>): Promise<void> => {
+    const draws = vi.spyOn(Math, 'random').mockReturnValue(0);
+    try {
+        await work();
+    } finally {
+        draws.mockRestore();
+    }
+};
 
 /** A chunk of stone up to {@link GROUND} and air above it. */
 const flatChunk = (x: number, z: number): Chunk => {
@@ -295,6 +311,91 @@ describe('world', () => {
                 world.setLoadedBlockState(-1, GROUND + 1, 0, named('minecraft:air'), true);
 
                 expect(createEngineWorld(world).getBlock(at).states['extended_bit']).toBe(false);
+            });
+        });
+
+        describe('weather', () => {
+            it('starts clear, and `/weather` is what changes it', async () => {
+                const world = await flatWorld();
+
+                expect(world.getWeather()).toBe('clear');
+
+                world.setWeather('thunder', 1000);
+
+                expect(world.getWeather()).toBe('thunder');
+            });
+
+            it("rains on open sky and not under a roof, which is Java's `isRainingAt`", async () => {
+                const world = await flatWorld();
+
+                expect(world.isRainingAt(0, GROUND + 1, 0)).toBe(false);
+
+                world.setWeather('rain', 1000);
+                // A roof over one column only, which is the case a chunk-wide height would
+                // get wrong: it would shelter all 256 columns from one block.
+                world.setLoadedBlockState(2, GROUND + 4, 2, STONE, true);
+                await runTicks(world, 1);
+
+                expect(world.isRainingAt(0, GROUND + 1, 0)).toBe(true);
+                expect(world.isRainingAt(1, GROUND + 1, 1)).toBe(true);
+                expect(world.isRainingAt(2, GROUND + 1, 2)).toBe(false);
+                // Java agrees with the light engine about the roof block itself: `canSeeSky`
+                // compares the heightmap against the position, and a solid block raises the
+                // heightmap past its own y. The rain lands on the block above it.
+                expect(world.isRainingAt(2, GROUND + 4, 2)).toBe(false);
+                expect(world.isRainingAt(2, GROUND + 5, 2)).toBe(true);
+            });
+
+            it('answers no for a position in a chunk nobody has loaded', async () => {
+                const world = await flatWorld();
+                world.setWeather('rain', 1000);
+
+                expect(world.isRainingAt(4096, GROUND + 1, 4096)).toBe(false);
+            });
+
+            it('puts out a fire the world is ticking, which is the whole point of wiring it', () => {
+                // The draws are fixed so the extinguish roll, `randomFloat() < 0.2 + age * 0.03`,
+                // always lands. Without it the test would turn on a one-in-five chance per fire
+                // tick, and the fire ticks once every thirty to forty.
+                return withFixedDraws(async () => {
+                    const world = await flatWorld();
+                    // `minecraft:fire_spread_radius_around_player`: a fire with nobody near it
+                    // books its next tick and does nothing else, rain or no rain.
+                    standInPlayer(world);
+                    world.setWeather('rain', 10_000);
+
+                    // `onPlace` books the first fire tick thirty ticks out.
+                    world.setLoadedBlockState(0, GROUND + 1, 0, FIRE, true);
+                    expect(nameAt(world, 0, GROUND + 1, 0)).toBe('minecraft:fire');
+                    expect(world.isRainingAt(0, GROUND + 1, 0)).toBe(true);
+
+                    await runTicks(world, 45);
+
+                    expect(nameAt(world, 0, GROUND + 1, 0)).toBe('minecraft:air');
+                });
+            });
+
+            it('leaves a sheltered fire burning, because no rain reaches it', () => {
+                return withFixedDraws(async () => {
+                    const world = await flatWorld();
+                    standInPlayer(world);
+
+                    // A roof over the fire and over every neighbor it reads through Java's
+                    // `isNearRain`. Written through the world rather than into the chunk, so
+                    // the light engine hears about it and the sky test changes its answer.
+                    for (let x = -2; x <= 2; x++) {
+                        for (let z = -2; z <= 2; z++) world.setLoadedBlockState(x, GROUND + 5, z, STONE, true);
+                    }
+                    world.setWeather('rain', 10_000);
+                    await runTicks(world, 1);
+
+                    world.setLoadedBlockState(0, GROUND + 1, 0, FIRE, true);
+                    expect(world.isRainingAt(0, GROUND + 1, 0)).toBe(false);
+
+                    await runTicks(world, 45);
+
+                    expect(nameAt(world, 0, GROUND + 1, 0)).toBe('minecraft:fire');
+                });
             });
         });
 

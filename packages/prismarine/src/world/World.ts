@@ -52,7 +52,9 @@ import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import type { RandomTickChunk, SystemBlock, WorldSystemsOptions } from './WorldSystems';
 import { WorldSystems } from './WorldSystems';
 import { sectionTakesRandomTicks } from './randomTickSections';
+import { WorldWeather, savedWeatherOf } from './Weather';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
+import type { Weather } from '@jsprismarine/engine-systems';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
@@ -101,6 +103,9 @@ const SAVE_BATCH_SIZE = 8;
  * server costs nothing to run.
  */
 export const SIMULATION_DISTANCE = 10;
+
+/** Sky light at a position nothing stands over, which is what `Level.canSeeSky` answers. */
+const FULL_SKY_LIGHT = 15;
 
 /**
  * Which way a block goes when placed against each face, indexed by the face the client sent:
@@ -257,6 +262,18 @@ export class World implements Service {
     private readonly systems: WorldSystems;
 
     /**
+     * The weather cycle, its level events and the five numbers the save keeps - see
+     * {@link WorldWeather}.
+     *
+     * Built on first use rather than in the constructor, because this package's world tests
+     * assemble a `World` with `Object.create(World.prototype)` and assign the handful of
+     * fields the path under test needs. Nothing configures the weather, so asking each of them
+     * to stand one up would be noise; everything it reads it reads through {@link
+     * World.weatherCycle} at call time.
+     */
+    private weather: WorldWeather | undefined;
+
+    /**
      * Where this world reports what happened in it.
      *
      * Dropped on the floor until something attaches a real one, which is what makes a world
@@ -346,6 +363,7 @@ export class World implements Service {
 
         const level = await this.getLevelData();
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
+        this.weatherCycle().restore(savedWeatherOf(level.weather));
         if (level.gameRules) {
             level.gameRules.forEach(([name, [value, editable]]) =>
                 this.gameRuleManager.setGameRule(name, value, editable)
@@ -452,6 +470,10 @@ export class World implements Service {
         // Before the entities, so a mob walks on the world as it is this tick rather than as it was
         // before the sand under it fell away.
         await this.runBlockUpdates();
+
+        // Before the systems, as `ServerLevel.tick` runs `advanceWeatherCycle` before its tick
+        // lists: a fire scheduled this tick should be put out by rain that started this tick.
+        this.weatherCycle().tick(this.currentTick);
 
         // Java's order: the two scheduled tick lists, then the chunk tick that draws the random
         // positions, then the light the writes above queued. Budgeted, so one tick cannot stall
@@ -1302,6 +1324,65 @@ export class World implements Service {
         return this.systems;
     }
 
+    /** This world's weather, built the first time anything asks. */
+    private weatherCycle(): WorldWeather {
+        this.weather ??= new WorldWeather({
+            cycleAllowed: () => this.getGameRuleManager().getGameRule(GameRules.DoWeatherCycle)?.[0] !== false,
+            randomInt: (bound) => Math.floor(Math.random() * bound),
+            broadcast: (event, data) => {
+                this.changes.worldEffect(null, event, data);
+            }
+        });
+
+        return this.weather;
+    }
+
+    /** What the sky is doing: `clear`, `rain` or `thunder`. */
+    public getWeather(): Weather {
+        return this.weatherCycle().current();
+    }
+
+    /**
+     * Whether rain is falling on one position, Java's `Level.isRainingAt`.
+     *
+     * Three of Java's four conditions: it has to be raining, the position has to see the sky,
+     * and nothing may stand above it. The fourth is the biome's precipitation, which is a
+     * temperature curve over the height that neither edition publishes in a form this
+     * repository holds, so every biome counts as rainy here and fire in a snowy one is put out
+     * where Java would leave it burning.
+     *
+     * The sky test is the light engine's. Full sky light means an unobstructed column: sky
+     * light loses at least one per step the moment it has to travel sideways, so 15 at a
+     * position and nowhere short of the sky above it are the same statement. The engine
+     * already keeps it per block and updates it with every write, which is the whole reason
+     * not to walk the column here - {@link World.topOfColumn} answers per chunk at sub chunk
+     * resolution, so one block on a hilltop would shelter the whole chunk from the rain.
+     *
+     * It is also Java's own test rather than an approximation of it. `Level.canSeeSky` reads
+     * the `MOTION_BLOCKING` heightmap, which a fire does not raise because it has no
+     * collision; a fire does not dampen light here either, so the position it stands in still
+     * reads 15.
+     *
+     * @returns False for a position in a chunk whose light the engine has not computed, which
+     * is also what a fire there would answer: nothing is ticking it.
+     */
+    public isRainingAt(x: number, y: number, z: number): boolean {
+        if (!this.weatherCycle().raining()) return false;
+
+        return this.systems.lighting.getSkyLight(x, y, z) === FULL_SKY_LIGHT;
+    }
+
+    /**
+     * Sets the weather, which is what `/weather <kind> [duration]` does.
+     *
+     * @param kind - `clear`, `rain` or `thunder`.
+     * @param durationTicks - How long, in ticks. Left out, each kind gets Java's own
+     *   randomized default: 10 to 150 minutes clear, 10 to 20 raining, 3 to 13 storming.
+     */
+    public setWeather(kind: Weather, durationTicks?: number): void {
+        this.weatherCycle().set(kind, durationTicks);
+    }
+
     /**
      * Where this tick's random draws land: Java's `ServerLevel.tickChunks`, in two halves.
      *
@@ -1789,6 +1870,7 @@ export class World implements Service {
         const data = {
             ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
             gameRules: Array.from(this.getGameRuleManager().getGameRules()),
+            weather: this.weatherCycle().saved(),
             entities: this.getEntities()
                 .filter((entity) => !(entity instanceof Player))
                 .map((entity) => ({
