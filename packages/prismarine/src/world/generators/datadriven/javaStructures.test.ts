@@ -304,12 +304,22 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
         );
 
         it(
-            'gives a trial chamber its vaults',
+            'gives a trial chamber its vaults, with the reward and the key each wants',
             async () => {
                 const chunk = await chunkAt(3, -14);
+                const vaults = [...chunk.getBlockEntities()].filter((entry) => entry.getId() === 'Vault');
+                const configs = vaults.map((vault) => vault.toNBT().getCompound('config', false));
 
-                expect(blockEntityIds(chunk)).toContain('Vault');
-                expect(lootTables(chunk)).toContain('loot_tables/chests/trial_chambers/reward_ominous.json');
+                expect(vaults.length).toBeGreaterThan(0);
+                // Both live inside the `config`, which is where a Bedrock vault reads them. A
+                // top-level `LootTable` is what a chest carries and what no vault does.
+                expect(configs.map((config) => config?.getString('loot_table', ''))).toContain(
+                    'loot_tables/chests/trial_chambers/reward_ominous.json'
+                );
+                expect(
+                    configs.map((config) => config?.getCompound('key_item', false)?.getString('Name', ''))
+                ).toContain('minecraft:ominous_trial_key');
+                expect(lootTables(chunk)).not.toContain('loot_tables/chests/trial_chambers/reward_ominous.json');
             },
             CHUNK_TIMEOUT
         );
