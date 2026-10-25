@@ -2,17 +2,38 @@ import {
     BEDROCK_ONLY_COMMAND_NAMES,
     JAVA_ONLY_COMMAND_NAMES,
     SHARED_COMMAND_NAMES,
-    registerVanillaCommands
+    createCommandSource,
+    registerVanillaCommands,
+    testCommandHost
 } from '@jsprismarine/commands';
 import { describe, expect, it } from 'vitest';
 
-import { CONTENT_ONLY_COMMANDS, UNWIRED_COMMANDS, buildVanillaCommands, unwiredCommands } from './vanillaCommands';
+import type { EnchantmentRegistry } from '@jsprismarine/enchantments';
+import type { Registry } from '@jsprismarine/content';
+import type { EntityType } from '@jsprismarine/entities';
+import type { BlockType } from '@jsprismarine/blocks';
+import type { ItemType } from '@jsprismarine/items';
+
+import type {
+    ServerContent,
+    ServerContentBlocks,
+    ServerContentEntities,
+    ServerContentItems
+} from '../content/ServerContent';
+import { stub } from '../testing/stub.test.helper';
+import {
+    CONTENT_ONLY_COMMANDS,
+    UNWIRED_COMMANDS,
+    buildVanillaCommands,
+    contentRegistryIds,
+    unwiredCommands
+} from './vanillaCommands';
 
 /** Every command `@jsprismarine/commands` implements, wired here or not. */
 const implemented = [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES, ...BEDROCK_ONLY_COMMAND_NAMES];
 
 describe('the vanilla command set this server runs', () => {
-    const registry = buildVanillaCommands(true);
+    const registry = buildVanillaCommands({});
 
     it('accounts for every command the package implements', () => {
         // The whole point of the split: a name is either dispatchable or
@@ -27,7 +48,7 @@ describe('the vanilla command set this server runs', () => {
         // `/loot` rolls Java's tables and a server with no content build has
         // none, so it is the one command whose availability is a question
         // about the configuration rather than about the code.
-        const withoutContent = buildVanillaCommands(false);
+        const withoutContent = buildVanillaCommands();
 
         expect(withoutContent.getMetadata('loot')).toBeUndefined();
         expect(registry.getMetadata('loot')).toBeDefined();
@@ -88,10 +109,40 @@ describe('the vanilla command set this server runs', () => {
         expect(registerVanillaCommands().getNames().sort()).toEqual([...implemented].sort());
     });
 
+    it('reads the four validated registries off the content build', () => {
+        const content = stub<ServerContent>({
+            entities: stub<ServerContentEntities>({
+                registry: stub<Registry<EntityType>>({ keys: () => ['mypack:dragon'] })
+            }),
+            blocks: stub<ServerContentBlocks>({ types: new Map([['mypack:brass_block', stub<BlockType>()]]) }),
+            items: stub<ServerContentItems>({ types: new Map([['mypack:wrench', stub<ItemType>()]]) }),
+            enchantments: stub<EnchantmentRegistry>({ ids: ['mypack:keen'] })
+        });
+
+        expect(contentRegistryIds(content)).toEqual({
+            entityTypes: ['mypack:dragon'],
+            blocks: ['mypack:brass_block'],
+            items: ['mypack:wrench'],
+            enchantments: ['mypack:keen']
+        });
+    });
+
+    it('lets a pack entity through the parse gate it used to fail at', () => {
+        // The registry argument validated against Mojang's frozen enum, so
+        // `/summon mypack:dragon` was refused before it reached the host.
+        const source = createCommandSource({ host: testCommandHost(), permissionLevel: 4 });
+        const withPack = buildVanillaCommands({ entityTypes: ['mypack:dragon'] });
+
+        expect(() => withPack.getDispatcher().execute('summon mypack:dragon 0 0 0', source)).not.toThrow();
+        expect(() => registry.getDispatcher().execute('summon mypack:dragon 0 0 0', source)).toThrow(
+            'minecraft:entity_type registry'
+        );
+    });
+
     it('offers 52 commands with the pack stack on and 50 with it off', () => {
         // The number a player sees in their client. Stated outright because
         // it is what a release note reports and what a regression moves.
         expect(registry.getNames()).toHaveLength(52);
-        expect(buildVanillaCommands(false).getNames()).toHaveLength(50);
+        expect(buildVanillaCommands().getNames()).toHaveLength(50);
     });
 });
