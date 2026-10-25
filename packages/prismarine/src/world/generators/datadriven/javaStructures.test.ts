@@ -197,6 +197,76 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     );
 
     it(
+        'digs a mineshaft where the placement puts it',
+        async () => {
+            await landsIn(
+                16,
+                128,
+                'minecraft:mineshaft',
+                'minecraft:mineshafts',
+                ['minecraft:rail', 'minecraft:oak_fence', 'minecraft:web', 'minecraft:oak_planks'],
+                -64
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'builds a stronghold where the concentric rings put it',
+        async () => {
+            await landsIn(
+                -48,
+                115,
+                'minecraft:stronghold',
+                'minecraft:strongholds',
+                ['minecraft:stone_bricks', 'minecraft:mossy_stone_bricks', 'minecraft:iron_bars'],
+                -64
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'raises an ocean monument where the placement puts it',
+        async () => {
+            await landsIn(
+                -80,
+                -73,
+                'minecraft:monument',
+                'minecraft:ocean_monuments',
+                [
+                    'minecraft:prismarine',
+                    'minecraft:prismarine_bricks',
+                    'minecraft:dark_prismarine',
+                    'minecraft:sea_lantern'
+                ],
+                35
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'builds a woodland mansion in the dark forest the placement found',
+        async () => {
+            await landsIn(
+                111,
+                420,
+                'minecraft:mansion',
+                'minecraft:woodland_mansions',
+                [
+                    'minecraft:dark_oak_planks',
+                    'minecraft:birch_planks',
+                    'minecraft:cobblestone',
+                    'minecraft:dark_oak_log'
+                ],
+                60
+            );
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'names the structure types that still have no builder',
         () => {
             const registries = loadJavaWorldgenRegistries(sources!);
@@ -207,12 +277,7 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
 
             // The inventory of what this server does not generate yet. A family that lands comes
             // off this list, and a type that silently stops generating lands back on it.
-            expect(missing).toEqual([
-                'minecraft:end_city',
-                'minecraft:fortress',
-                'minecraft:ocean_monument',
-                'minecraft:woodland_mansion'
-            ]);
+            expect(missing).toEqual(['minecraft:end_city', 'minecraft:fortress']);
         },
         CHUNK_TIMEOUT
     );

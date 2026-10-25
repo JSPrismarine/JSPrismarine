@@ -192,14 +192,49 @@ describe('piston move', () => {
         expect(test.world.nameAt(at(2))).toBe('minecraft:stone');
     });
 
-    it('drops a popped block in the way as an item', () => {
+    it('carries a pushed block entity with the block, rather than writing the block twice', () => {
+        placePiston(test);
+        test.world.place(at(1), block('minecraft:chest'));
+        test.world.setBlockEntityData(at(1), { analogOutput: 9 });
+        test.world.place({ x: 0, y: 0, z: 0 }, stone);
+
+        test.engine.setBlockAndUpdate(at(0, 0, 0), lever(true));
+
+        expect(test.world.moved).toEqual([{ from: at(1), to: at(2) }]);
+        expect(test.world.nameAt(at(2))).toBe('minecraft:chest');
+        // The block entity is at the new position rather than lost with the write, which is
+        // what keeps a pushed chest's contents.
+        expect(test.world.getBlockEntityData(at(2))).toEqual({ analogOutput: 9 });
+        expect(test.world.getBlockEntityData(at(1))).toBeUndefined();
+    });
+
+    it('moves a row of blocks farthest first, so none lands on one that has not left', () => {
+        placePiston(test);
+        test.world.place(at(1), block('minecraft:stone'));
+        test.world.place(at(2), block('minecraft:dirt'));
+        test.world.place(at(3), block('minecraft:oak_planks'));
+        test.world.place({ x: 0, y: 0, z: 0 }, stone);
+
+        test.engine.setBlockAndUpdate(at(0, 0, 0), lever(true));
+
+        expect(test.world.nameAt(at(1))).toBe(PISTON_ARM.plain);
+        expect(test.world.nameAt(at(2))).toBe('minecraft:stone');
+        expect(test.world.nameAt(at(3))).toBe('minecraft:dirt');
+        expect(test.world.nameAt(at(4))).toBe('minecraft:oak_planks');
+    });
+
+    it('asks the host to take a popped block in the way out, with its drops', () => {
         placePiston(test);
         test.world.place(at(1), block('minecraft:torch'));
         test.world.place({ x: 0, y: 0, z: 0 }, stone);
 
         test.engine.setBlockAndUpdate(at(0, 0, 0), lever(true));
 
-        expect(test.world.items).toEqual([{ at: at(1), item: { identifier: 'minecraft:torch', count: 1 } }]);
+        // What falls is the host's, from the torch's own loot table. This package says only
+        // that the torch is destroyed rather than moved and that it yields what it yields.
+        expect(test.world.destroyed).toEqual([
+            { at: at(1), block: block('minecraft:torch'), removal: { drops: true, notifyNeighbors: false } }
+        ]);
         expect(test.world.nameAt(at(1))).toBe(PISTON_ARM.plain);
     });
 });

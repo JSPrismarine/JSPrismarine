@@ -1,7 +1,7 @@
 // Both decision modules are imported through their own leaf module rather than the package
-// index, because `scripts/dashboard.ts` runs under plain node, and an index re-exports its
-// siblings without file extensions. Neither leaf imports a value, so node and NodeNext both
-// resolve them.
+// index, which keeps the graph to the two decisions this file derives its rows from. The
+// `scripts/dashboard.ts` runner loads this file under plain node, which resolves a bare
+// sibling import only through the hook that script registers.
 import type { SharedStat } from '@jsprismarine/entities/javaStats';
 import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
 import {

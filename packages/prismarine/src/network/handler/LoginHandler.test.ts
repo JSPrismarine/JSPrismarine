@@ -74,6 +74,8 @@ describe('network', () => {
 
             const server: Server = stub<Server>({
                 getChunkScheduler: chunkScheduler,
+                // No pack stack, so a restored inventory resolves no item through the content.
+                getContent: () => undefined,
                 getLogger: logger,
                 getSessionManager: sessionManager,
                 getWorldManager: () => stub<WorldManager>({ getDefaultWorld: world }),

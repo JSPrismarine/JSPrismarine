@@ -283,16 +283,16 @@ export const applyPistonMove = (
     if (!structure.resolved) return false;
 
     for (let i = structure.toDestroy.length - 1; i >= 0; i--) {
-        const pos = structure.toDestroy[i]!;
-        const destroyed = world.getBlock(pos);
-        world.spawnItem(pos, { identifier: destroyed.name, count: 1 });
-        world.setBlock(pos, AIR, false);
+        world.destroyBlock(structure.toDestroy[i]!, { drops: true, notifyNeighbors: false });
     }
 
-    const moved = structure.toPush.map((pos) => ({ pos, state: world.getBlock(pos) }));
-    for (const { pos } of moved) world.setBlock(pos, AIR, false);
-    for (const { pos, state } of moved) {
-        world.setBlock(relative(pos, structure.pushDirection), state, false);
+    // Farthest from the piston first, which is Java's order in `moveBlocks` and the order
+    // that lets each block land in a position the one ahead of it has already left. Moves
+    // rather than writes, so a pushed chest arrives with what it was holding.
+    const moved = structure.toPush;
+    for (let i = moved.length - 1; i >= 0; i--) {
+        const pos = moved[i]!;
+        world.moveBlock(pos, relative(pos, structure.pushDirection));
     }
 
     if (extending) {
@@ -315,7 +315,7 @@ export const applyPistonMove = (
 
     updates.updateNeighborsAt(pistonPos, piston.name);
     updates.updateNeighborsAt(armPos, piston.name);
-    for (const { pos } of moved) {
+    for (const pos of moved) {
         updates.updateNeighborsAt(pos, piston.name);
         updates.updateNeighborsAt(relative(pos, structure.pushDirection), piston.name);
     }

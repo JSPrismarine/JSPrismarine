@@ -5,6 +5,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { fixtureContentOptions } from '../content/testing';
+import { unwiredWorld } from '../content/world/unwired';
 import { Dimensions } from '../world/Dimension';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
@@ -76,6 +77,25 @@ const scene = ({
 
     return { world, spawn, effects, cleared, dropped };
 };
+
+/**
+ * The fixture content, with the two world members a break reads wired up.
+ *
+ * A blast now takes a block out through the content hooks, which read the block entity at
+ * the position before the family gets `onBreak`. The unwired adapter throws on that read,
+ * which a break treats as the content declining and falls back from, so a fixture that
+ * leaves it unwired rolls no table at all. Nothing stands at the position in this scene, so
+ * the honest answer is that there is no block entity.
+ */
+const blastContentOptions = () =>
+    fixtureContentOptions({
+        world: {
+            at: () => {
+                const base = unwiredWorld();
+                return { ...base, blocks: { ...base.blocks, data: () => undefined, setData: () => {} } };
+            }
+        }
+    });
 
 /**
  * How much health something this far from a power-3 blast loses.
@@ -225,7 +245,7 @@ describe('explosions', () => {
         it("yields what the block's Java loot table says, not the block", async () => {
             // The fixture's `minecraft:blocks/stone` drops cobblestone, which is the point:
             // an explosion rolls the same table a pickaxe does rather than a path of its own.
-            const quarry = scene({ solid: true, content: buildServerContent(fixtureContentOptions()) });
+            const quarry = scene({ solid: true, content: buildServerContent(blastContentOptions()) });
 
             await explode(quarry.world, new Vector3(0, 64, 0), { power: 3 });
 

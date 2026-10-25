@@ -227,7 +227,14 @@ const engineWorldOf = (adapter: ServerWorldAdapter): WorldAccess => ({
     scheduleTick: (kind, at, type, delay, priority) => adapter.ticks.schedule(kind, at, type, delay, priority),
     hasScheduledTick: (kind, at, type) => adapter.ticks.isScheduled(kind, at, type),
     willTickThisTick: (kind, at, type) => adapter.ticks.runsThisTick(kind, at, type),
-    spawnItem: (at, item) => adapter.entities.drop(at, item),
+    // Taking a block out means raising its `onBreak` and rolling Java's table for it, and
+    // carrying one means carrying its block entity with it. `src/world/EngineWorld.ts` is
+    // where both are implemented, and it is the world every engine system actually runs
+    // over; the only member of this one the server reads is `getBlock`, through
+    // `blocks.power`. Rather than a second, weaker rule for a caller that does not exist,
+    // these say who owns them.
+    destroyBlock: notWired('engineWorld.destroyBlock', CONTENT_AREAS.world),
+    moveBlock: notWired('engineWorld.moveBlock', CONTENT_AREAS.world),
     playSound: (at, sound) => adapter.effects.playSound(at, sound),
     getDifficulty: () => adapter.level.difficulty(),
     getWeather: () => adapter.level.weather(),

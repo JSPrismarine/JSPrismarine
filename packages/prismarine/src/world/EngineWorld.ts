@@ -14,12 +14,13 @@
  * palette does not hold and the write was declined, so pistons never extended.
  */
 import { bedrockBlockStates, javaBlockStates } from '@jsprismarine/mapping';
-import { Vector3 } from '@jsprismarine/math';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
 import type { BlockEntityData, BlockPosition, BlockRef, Difficulty, Weather } from '@jsprismarine/engine-systems';
 import { AIR, positionKey } from '@jsprismarine/engine-systems';
 
+import { destroyBlock } from './blockDestroy';
 import { maxY } from './Dimension';
+import { takeBlockEntity } from './blockMove';
 import type { World } from './World';
 import type { WorldSystemsAccess } from './WorldSystems';
 
@@ -33,9 +34,6 @@ const WEATHER_WITHOUT_A_CYCLE: Weather = 'clear';
 
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 const difficultyName = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
-
-/** Where a sound or a drop goes: the middle of the block, not its corner. */
-const centerOf = (at: BlockPosition): Vector3 => new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5);
 
 /**
  * Builds the engine's world over one {@link World}.
@@ -77,33 +75,36 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
 
     const dimension = world.getDimension();
 
+    const readBlock = (at: BlockPosition): BlockRef => {
+        const block = world.loadedBlockAt(at.x, at.y, at.z);
+        if (block === undefined) return AIR;
+
+        const states = javaBlockStates(block.name, block.states);
+        const kept = dropped.get(positionKey(at));
+        return { name: block.name, states: kept?.name === block.name ? { ...states, ...kept.states } : states };
+    };
+
+    /**
+     * Writes a block, and runs the updates it causes when the caller asks for them.
+     *
+     * A write into an unloaded chunk is refused rather than queued. The system that tried
+     * reads air back on its next tick and tries again, which is a few wasted reads at the
+     * edge of the loaded world and never a generated chunk.
+     */
+    const writeBlock = (at: BlockPosition, to: BlockRef, notifyNeighbors: boolean): void => {
+        const states = bedrockBlockStates(to.name, to.states);
+
+        const key = positionKey(at);
+        const extra = Object.entries(to.states).filter(([state]) => !(state in states));
+        if (extra.length === 0) dropped.delete(key);
+        else dropped.set(key, { name: to.name, states: Object.fromEntries(extra) });
+
+        world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states }, notifyNeighbors);
+    };
+
     return {
-        getBlock: (at): BlockRef => {
-            const block = world.loadedBlockAt(at.x, at.y, at.z);
-            if (block === undefined) return AIR;
-
-            const states = javaBlockStates(block.name, block.states);
-            const kept = dropped.get(positionKey(at));
-            return { name: block.name, states: kept?.name === block.name ? { ...states, ...kept.states } : states };
-        },
-
-        /**
-         * Writes a block, and runs the updates it causes when the caller asks for them.
-         *
-         * A write into an unloaded chunk is refused rather than queued. The system that
-         * tried reads air back on its next tick and tries again, which is a few wasted
-         * reads at the edge of the loaded world and never a generated chunk.
-         */
-        setBlock: (at, to, notifyNeighbors) => {
-            const states = bedrockBlockStates(to.name, to.states);
-
-            const key = positionKey(at);
-            const extra = Object.entries(to.states).filter(([state]) => !(state in states));
-            if (extra.length === 0) dropped.delete(key);
-            else dropped.set(key, { name: to.name, states: Object.fromEntries(extra) });
-
-            world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states }, notifyNeighbors);
-        },
+        getBlock: readBlock,
+        setBlock: writeBlock,
 
         getBlockEntityData: (at) => blockEntities.get(positionKey(at)),
         setBlockEntityData: (at, data) => {
@@ -111,20 +112,32 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
         },
 
         /**
-         * Drops a block as an item, which is what a piston destroying what it pushed does.
+         * Takes a block out: its family gets `onBreak`, Java's table decides what falls, and
+         * what stands in its place goes in afterwards.
          *
-         * The drop is a block identifier, so it goes through the block registry and is lost
-         * when nothing has registered that block. Awaiting it would make every system in the
-         * engine asynchronous for a dropped stack nobody reads back.
+         * The hook runs before the write because a family reads the block entity it is about
+         * to lose, which is what spills a chest a piston popped or a stream of water reached.
+         * Nothing is awaited: every caller is a system running inside the world tick, and the
+         * item entity it spawns is read by nobody this tick.
          */
-        spawnItem: (at, item) => {
-            const block = world.getServer().getBlockManager().findBlock(item.identifier);
-            if (block === null) return;
+        destroyBlock: (at, removal) => {
+            destroyBlock({ world, position: at, dropsBlock: removal.drops });
+            writeBlock(at, removal.replacement ?? AIR, removal.notifyNeighbors ?? true);
+        },
 
-            const contents = Array.from({ length: item.count }, () => block);
-            void world.dropContents(centerOf(at), contents).catch((error: unknown) => {
-                world.getServer().getLogger().error(error);
-            });
+        /**
+         * Carries a block and its block entity one position, which is what a piston does.
+         *
+         * The block entity comes off before the write that would clear it and is filed at
+         * the new position afterwards, so a pushed chest arrives with what it held.
+         */
+        moveBlock: (from, to) => {
+            const moving = readBlock(from);
+            const carried = takeBlockEntity(world, from);
+
+            writeBlock(from, AIR, false);
+            writeBlock(to, moving, false);
+            carried?.(to);
         },
 
         // The engine names a sound with its namespace and a Bedrock client looks one up by

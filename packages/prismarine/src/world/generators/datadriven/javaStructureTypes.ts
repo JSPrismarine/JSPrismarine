@@ -7,7 +7,9 @@
  */
 import { buildJigsawStructure } from './javaStructureJigsaw';
 import { buildIgloo, buildNetherFossil, buildOceanRuin, buildShipwreck } from './javaStructureLegacyTemplates';
+import { buildWoodlandMansion } from './javaStructureMansion';
 import { buildMineshaft } from './javaStructureMineshaft';
+import { buildOceanMonument } from './javaStructureOceanMonument';
 import { buildRuinedPortal } from './javaStructureRuinedPortal';
 import { buildBuriedTreasure, buildDesertPyramid, buildJungleTemple, buildSwampHut } from './javaStructureScattered';
 import { buildStronghold } from './javaStructureStronghold';
@@ -42,9 +44,11 @@ export const STRUCTURE_BUILDERS: ReadonlyMap<string, StructureBuilder> = new Map
     ['minecraft:jungle_temple', buildJungleTemple],
     ['minecraft:mineshaft', buildMineshaft],
     ['minecraft:nether_fossil', buildNetherFossil],
+    ['minecraft:ocean_monument', buildOceanMonument],
     ['minecraft:ocean_ruin', buildOceanRuin],
     ['minecraft:ruined_portal', buildRuinedPortal],
     ['minecraft:shipwreck', buildShipwreck],
     ['minecraft:stronghold', buildStronghold],
-    ['minecraft:swamp_hut', buildSwampHut]
+    ['minecraft:swamp_hut', buildSwampHut],
+    ['minecraft:woodland_mansion', buildWoodlandMansion]
 ]);

@@ -116,7 +116,8 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
     const blockEntities = new Map<string, BlockEntityData>();
     const scheduler = new TickScheduler();
     const sounds: PlayedSound[] = [];
-    const items: SpawnedItem[] = [];
+    const destroyed: DestroyedBlock[] = [];
+    const moved: MovedBlock[] = [];
     const updates: BlockUpdate[] = [];
 
     let difficulty: Difficulty = options.difficulty ?? 'normal';
@@ -143,7 +144,8 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
     const world: TestWorld = {
         scheduler,
         sounds,
-        items,
+        destroyed,
+        moved,
         updates,
         place,
         placeLine(from, axis, length, to) {
@@ -194,8 +196,21 @@ export const createTestWorld = (options: TestWorldOptions = {}): TestWorld => {
         },
         hasScheduledTick: (kind, at, type) => scheduler.list(kind).hasScheduledTick(at, type),
         willTickThisTick: (kind, at, type) => scheduler.list(kind).willTickThisTick(at, type),
-        spawnItem(at, item) {
-            items.push({ at, item });
+        // The host's job on a real server: raise the break hooks, roll the loot and write
+        // what stands in the block's place. Here it records the call and writes, because
+        // what the systems are tested on is which blocks they ask to have taken out.
+        destroyBlock(at, removal) {
+            destroyed.push({ at, block: getBlock(at), removal });
+            world.setBlock(at, removal.replacement ?? AIR, removal.notifyNeighbors ?? true);
+        },
+        moveBlock(from, to) {
+            moved.push({ from, to });
+
+            const carried = blockEntities.get(positionKey(from));
+            const state = getBlock(from);
+            world.setBlock(from, AIR, false);
+            world.setBlock(to, state, false);
+            if (carried !== undefined) blockEntities.set(positionKey(to), carried);
         },
         playSound(at, sound) {
             sounds.push({ at, sound });
