@@ -8,7 +8,7 @@
     "scripts": {
         "clean": "rimraf dist *.tsbuildinfo .turbo",
         "test": "vitest run",
-        "typecheck": "tsc-ts --noEmit",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "dashboard": "node scripts/dashboard.ts"
     },
     "repository": {

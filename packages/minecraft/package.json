@@ -37,7 +37,7 @@
     "funding": "https://github.com/sponsors/JSPrismarine",
     "scripts": {
         "build": "vite build && node ../../scripts/emit-dts.mts",
-        "typecheck": "tsc-ts --noEmit",
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "generate": "node datagen/import-schemas.js && node datagen/generate-enums.js && node datagen/generate-blocks.js && node datagen/generate-recipes.js",
         "generate:import": "node datagen/import-schemas.js",
         "generate:enums": "node datagen/generate-enums.js",

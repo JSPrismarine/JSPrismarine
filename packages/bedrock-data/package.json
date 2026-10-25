@@ -46,7 +46,7 @@
         "generate": "node ../../scripts/ensure-submodules.mts && node utils/build.js",
         "build": "pnpm run generate && vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "pnpm run build",
-        "typecheck": "tsc-ts --noEmit"
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",
