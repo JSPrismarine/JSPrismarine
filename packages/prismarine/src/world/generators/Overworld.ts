@@ -35,6 +35,14 @@ export default class Overworld extends BaseGenerator {
         return this.require().generateChunk(cx, cz, seed);
     }
 
+    /** @inheritDoc */
+    public stopGenerating(): void {
+        // Only if the pipeline was ever built. A server that shuts down before its first chunk
+        // has nothing queued to give up, and building one here to tell it to stop would read
+        // about 1500 JSON documents on the way out.
+        this.generator?.stopGenerating();
+    }
+
     private require(): DataDrivenGenerator {
         if (this.generator) return this.generator;
 
