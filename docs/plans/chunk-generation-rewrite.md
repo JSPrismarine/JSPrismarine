@@ -623,28 +623,19 @@ hides the thing this slice is fixing.
 
 ---
 
-## Slice 15: the WebAssembly terrain kernel
+## Slice 15: the WebAssembly terrain kernel - abandoned
 
-**Only start this once slice 14 has landed and been measured.** ADR 0002's arithmetic says 50
-chunks per second on a moving front needs it, and 100 while filling a region needs it. If slice
-14 overshot its 2.5 times, re-derive the arithmetic before writing any WAT. A slow algorithm
-compiled to WebAssembly is still slow.
+**Do not start this.** It was built, measured bit-identical against the JavaScript, merged, and
+then reverted. The reason is in ADR 0002 under [what it measured once it was
+built](../adr/0002-chunk-generation-architecture.md#what-it-measured-once-it-was-built): the
+premise under the whole slice - that terrain is about 90% of a chunk once the ladder has landed -
+is wrong. Terrain is 71 of 239 milliseconds. Six point four times on 30% of a chunk is about 1.25
+times overall, for a second implementation of the density graph, the noise and the aquifer that
+would have had to stay bit-identical to the first forever.
 
-**What changes.** The density and noise evaluation for a whole chunk moves into one WebAssembly
-module with linear memory as the chunk buffer. JavaScript crosses the boundary once per chunk.
-
-**Why once per chunk.** An exported call taking and returning an `f64` costs 9.7 nanoseconds and a
-single-octave noise call 29.8. Calling in per density sample would spend 2.9 ms per chunk on call
-overhead alone.
-
-**The one hazard.** Floating point multiplication is not associative. The measured port diverged
-by 1.4e-13 because the WAT computed `t*(t*(t*x))` where the JavaScript computed `((t*t)*t)*x`. Port
-expression by expression and keep the association order. Compiling once and passing the
-`WebAssembly.Module` through `postMessage` is supported, so every worker instantiates the same
-module in 0.04 to 0.09 ms.
-
-**Prove no output change.** A fixture test comparing bit patterns, not tolerances, per expression,
-before the kernel is wired into anything. Then **sampler**, then all four checks.
+What the measurement did find is that the decoration pass is 161 of those 239 milliseconds, which
+is why slice 12 - every pure status on a worker - is the slice that pays, and why the pool now
+runs the whole ladder rather than `terrain` alone.
 
 ---
 
@@ -689,12 +680,15 @@ step drags a fresh column of chunks into the radius-11 structure window.
 | 12 | Every pure status runs on six workers | about 19 | about 17 |
 | 13 | `jigsawBlocksOf` is memoized and `baseHeight` exits early | about 20 | about 19 |
 | 14 | The terrain fill is 2.5 times faster | about 42 | about 31 |
-| 15 | The terrain kernel is WebAssembly | about 93 | about 52 |
 
-Rows 1 to 8 are arithmetic over measured parts. Rows 9 to 15 apply the measured 4.7 times and two
-targets that are not measurements: 2.5 times on the terrain fill and 6.4 times from WebAssembly,
-the second of which was measured on a kernel and not on this fill. After slice 11 terrain is about
-90% of the per-chunk cost, so slices 14 and 15 are the only ones left that move the number.
+Rows 1 to 8 are arithmetic over measured parts. Rows 9 to 14 apply the measured 4.7 times and one
+target that is not a measurement: 2.5 times on the terrain fill.
+
+**These projections have since been measured and row 9 to 11 was wrong.** A pool over `terrain`
+alone measured 1.29 times, not 4.7, because terrain is 30% of a chunk rather than the 90% this
+table assumes and the other 70% stayed on the server thread. With the whole ladder in the worker
+the measurement is 124.7 ms a chunk against 427.8 on one thread, which is 8.0 chunks per second.
+Slice 15 is abandoned; see above.
 
 ## Risks, worst first
 
@@ -757,7 +751,8 @@ skip.
 today's feature ordering reproducible inside one process. Removing it earlier makes the corpus
 intermittent rather than wrong, which is the worst failure mode to debug.
 
-**10. WebAssembly is a second copy of the hot path.** Every later change to a density function has
+**10. WebAssembly is a second copy of the hot path.** This is the risk that decided it: see slice
+15, which was built and then reverted. Every later change to a density function has
 to land twice, in the same floating point association order, forever. That is why slice 15 is last
 and conditional rather than an obvious win.
 

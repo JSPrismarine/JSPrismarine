@@ -150,10 +150,9 @@ one direction, where every step drags a fresh column of chunks into the structur
 | Plus rejecting a structure before assembling it | about 243 | about 283 | 4.1, one thread | 3.5, one thread |
 | Plus the pool | about 243 | about 283 | 19 | 17 |
 | Plus a faster terrain fill, 2.5x | about 112 | about 152 | 42 | 31 |
-| Plus a WebAssembly terrain kernel | about 50 | about 90 | 93 | 52 |
 
-The last two rows do not stack. A WebAssembly fill replaces the JavaScript one, so its row is 6.4
-times against the original 227 ms rather than against the 2.5 times row above it.
+These are the projections this decision was taken on. See [what it measured once it was
+built](#what-it-measured-once-it-was-built) for where they were wrong.
 
 Read the rows as follows.
 
@@ -205,25 +204,14 @@ worth 36 times on corner lookups by itself. What is left is the per-block work: 
 the top of the world to the bottom, with no early exit and one closure call per node. The 2.5
 times row is a target, not a measurement.
 
-**WebAssembly is worth 6.4 times on the arithmetic and only if the whole fill moves inside it.**
-An exported call costs 9.7 nanoseconds, so calling into WebAssembly per density sample would spend
-2.9 ms per chunk on call overhead before doing any work. Compiled once, a `WebAssembly.Module`
-travels through `postMessage`, so every worker instantiates the same module. The hazard is that
-floating point multiplication is not associative. The measured port diverged by 1.4e-13 purely
-because the hand-written WAT computed `t*(t*(t*x))` where the JavaScript computed `((t*t)*t)*x`.
+**The conclusion this was taken on.** 50 chunks per second needs the ladder, the structure
+rejection fix and the pool together, and then a terrain fill several times faster than the one
+measured. No stage reaches the target alone, and the pool, which is the part that sounds like
+the answer, was expected to be worth less than the two algorithmic stages beside it.
 
-**The honest conclusion.** 50 chunks per second is reachable on both models, and it needs the
-ladder, the structure rejection fix, the pool and a WebAssembly terrain kernel together. 100
-chunks per second is reachable while filling a region and not while walking a front, where the
-structure window keeps paying. No stage reaches the target alone, and the pool, which is the part
-that sounds like the answer, is worth less than the two algorithmic stages beside it.
-
-The number this rests on is terrain at 227 ms per chunk. After the ladder and the rejection fix,
-terrain is about 90% of the per-chunk cost, so the whole remaining question is how fast
-`ChunkSampler` can fill a chunk. 50 chunks per second on a front needs it about 2.5 times faster;
-100 chunks per second on a fill needs it about 4.5 times faster. WebAssembly measured 6.4 times
-on the arithmetic, which is the only measurement in range of either, and it only applies if the
-whole fill moves inside the module.
+That rests on terrain being 227 ms per chunk and about 90% of the per-chunk cost once the ladder
+and the rejection fix have landed. Both halves of that turned out to be wrong, which is the
+subject of the next section.
 
 The terrain rows are an average and the beardifier is why they are not a constant. A chunk away
 from every structure pays 0.5 ms for it; a chunk inside an ancient city's beard pays 220 ms per
@@ -232,6 +220,52 @@ single thing the ladder buys that is not in the 454 ms, and indexing the pieces 
 of scanning the list on every sample takes most of the rest. Until that lands, terrain near a
 large structure costs several times the 227 ms these rows assume, in exactly the places players
 walk to.
+
+## What it measured once it was built
+
+The projections above were taken before the ladder existed. With it built, measured over a
+contiguous 24 by 24 block of overworld chunks on the same Apple M1 Pro:
+
+| arm | ms/chunk | chunks/s |
+| --- | --- | --- |
+| One thread | 427.8 | 2.3 |
+| Six workers, `terrain` only | 237.4 | 4.2 |
+| Six workers, the whole ladder | 124.7 | 8.0 |
+
+And the split of one chunk on one thread, over a 6 by 6 block where the holders cover
+everything, so these are the costs with no duplicate neighbor work in them:
+
+| arm | ms/chunk |
+| --- | --- |
+| `terrain` alone | 71 |
+| plus the structure layout | 78 |
+| the whole ladder | 239 |
+
+**Terrain is 30% of a chunk, not 90%.** The decoration pass and the Bedrock translation are 161
+of the 239 ms. The structure layout, which the section above treats as the expensive half of the
+problem, is seven milliseconds once a candidate is rejected before it is assembled. The
+projections assumed the ladder would leave terrain as nearly all of what remained; it left
+`features` as nearly all of it.
+
+**That is why a pool over `terrain` alone was worth 1.29 times.** It is what the split predicts:
+one status of the three left the server thread, so about 70% of a chunk stayed serial and
+1/(0.7 + 0.3/6) is 1.33. The pool was not undersized or misconfigured. It was pooling the part
+that was not the cost.
+
+**So the whole ladder runs in the worker.** Only the Bedrock translation stays on the server
+thread, because it reads the Java-to-Bedrock tables and is a palette lookup rather than a
+per-block walk. Java keeps `features` on a single executor because Java writes a feature through
+into its neighbors; this server's decoration pass runs over a private view and returns patches,
+which is what makes it safe to run anywhere. `ShardedGenerationPool` then gives each worker a
+region of the world so the neighbors a chunk reads are ones that worker has already built.
+
+**WebAssembly was built and reverted.** A terrain kernel was written, measured bit-identical and
+merged, and then taken out again: 6.4 times on the arithmetic applies to 30% of a chunk, so the
+ceiling it was reaching for was about 1.25 times overall. The cost was a second implementation of
+the density graph, the noise and the aquifer, each of which had to stay bit-identical to the
+JavaScript beside it forever. The measurements that justified it are still in
+[parallel-chunk-generation-in-node.md](../research/parallel-chunk-generation-in-node.md); what
+was wrong was not the 6.4 times, it was which fraction of the chunk it applied to.
 
 ## What guarantees byte-identical output
 
@@ -344,11 +378,16 @@ registry bundle. The bundle was the largest measured startup saving: 75 ms for e
 against 540 ms reading from disk and 289 ms through `workerData`, where the `workerData` cost
 lands on the main thread.
 
+**A WebAssembly terrain kernel.** Built, measured bit-identical, merged and then reverted. See
+[what it measured once it was built](#what-it-measured-once-it-was-built): 6.4 times on the
+arithmetic is 6.4 times on 30% of a chunk, and the price was a second implementation of the
+density graph, the noise and the aquifer that had to stay bit-identical forever.
+
 **A native addon instead of WebAssembly.** It buys SIMD and real shared memory and costs a
 compiled artifact per platform. These packages are published to npm, so a mandatory native addon
 changes every consumer's install. It also lets the compiler contract multiply-add into a fused
 instruction unless told not to, which is a world that is subtly not Java's and would pass every
-tolerance-based test.
+tolerance-based test. Moot now for the same reason the WebAssembly kernel is.
 
 **deepslate.** Already rejected in `packages/worldgen/README.md`. It has no carvers and no placed
 features, and it is slower than this repository's own sampler: 630 ms for a terrain pass against
@@ -368,6 +407,10 @@ depth of one and caps delivery to a player at one chunk per await. It has to ask
 once, which the plan does in the slice that lands the pool. `World.preload` already batches 32
 through `Promise.all` (`World.ts:759`), so the preload path does not need the change and the
 per-player path does.
+
+A request carries how badly its chunk is wanted, because a pool with a backlog has to be told
+what to serve first. A chunk a player is standing next to is `immediate`, one inside half their
+view distance is `soon`, and the rim beyond it and the whole start region preload are `idle`.
 
 `applyFeaturePatch`, `applyPatchToChunk`, `copyCenterFrom`, `featurePatches`, `generatedChunks`
 and `serializeGeneration` are deleted. `GENERATION_CACHE_SIZE` goes with them. Holders are
