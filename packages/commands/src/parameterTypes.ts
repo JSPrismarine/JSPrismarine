@@ -41,9 +41,14 @@ export const ParameterOption = {
 
 /**
  * The basic parameter type ids, keyed by the name Mojang's command metadata
- * spells. `EXECUTECHAINEDOPTION_0` and the four `POSTFIX_*` names are the two
- * types with no id of their own: a chained subcommand indexes the packet's
- * chained-subcommand table and a postfix indexes its postfix table.
+ * spells.
+ *
+ * Mojang's table declares 26 basic parameter type names and 21 of them are
+ * below, which is not a gap. The other five, `EXECUTECHAINEDOPTION_0` and the
+ * four `POSTFIX_*` names, carry no id of their own: a chained subcommand
+ * indexes the packet's chained-subcommand table and a postfix indexes its
+ * postfix table, and {@link BedrockParameterShape} gives each its own kind.
+ * 21 + 1 + 4 is the 26.
  */
 export const BedrockParameterTypeId = {
     INT: 1,
@@ -145,8 +150,8 @@ export const bedrockBasicTypeNames: readonly string[] = bedrockCommandTable.basi
 /**
  * Whether this package can give the named basic parameter type a wire id.
  *
- * The two it cannot are the chained-subcommand type and the four postfix
- * types, which index packet tables instead of carrying an id.
+ * False for the five that index a packet table instead of carrying an id:
+ * the chained-subcommand type and the four postfix types.
  */
 export const hasParameterTypeId = (name: string): name is BedrockParameterTypeName =>
     Object.hasOwn(BedrockParameterTypeId, name);
