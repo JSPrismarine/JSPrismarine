@@ -302,3 +302,58 @@ describe('LightEngine sky light', () => {
         expect(engine.getSkyLight(4, 10, 4)).toBe(0);
     });
 });
+
+describe('LightEngine topOfColumn', () => {
+    /** A scene with a floor, a roofed pocket, a lantern under the roof and one in the open. */
+    const scene = (): TestBlockLightView => {
+        const view = skyWorld();
+        for (let x = 0; x <= 15; x++) {
+            for (let z = 0; z <= 15; z++) view.place(x, 4, z, STONE);
+        }
+        for (let x = 2; x <= 6; x++) {
+            for (let z = 2; z <= 6; z++) view.place(x, 9, z, STONE);
+        }
+        view.place(4, 6, 4, LANTERN);
+        view.place(12, 12, 12, GLOWSTONE);
+        view.place(8, 20, 8, WATER);
+        return view;
+    };
+
+    /** Every level of both layers, so a difference anywhere in the world shows up. */
+    const levels = (engine: LightEngine): number[] => {
+        const out: number[] = [];
+        for (let x = 0; x <= 15; x++) {
+            for (let z = 0; z <= 15; z++) {
+                for (let y = 0; y < 32; y++) out.push(engine.getBlockLight(x, y, z), engine.getSkyLight(x, y, z));
+            }
+        }
+        return out;
+    };
+
+    const lit = (view: TestBlockLightView, topOfColumn?: (x: number, z: number) => number): number[] => {
+        const engine = new LightEngine(topOfColumn ? Object.assign(Object.create(view), { topOfColumn }) : view);
+        engine.onChunkLoaded(0, 0);
+        settle(engine);
+        return levels(engine);
+    };
+
+    it('lights the world the same way a view that cannot answer does', () => {
+        // 21 is one past the highest block in the scene, so everything the walk skips is air.
+        expect(lit(scene(), () => 21)).toEqual(lit(scene()));
+    });
+
+    it('takes an answer above the ceiling as the ceiling', () => {
+        expect(lit(scene(), () => 9999)).toEqual(lit(scene()));
+    });
+
+    it('leaves a column whose answer is its floor dark and open to the sky', () => {
+        const engine = new LightEngine(Object.assign(Object.create(scene()), { topOfColumn: () => 0 }));
+        engine.onChunkLoaded(0, 0);
+        settle(engine);
+
+        // Nothing was scanned, so the heightmap stays at the floor: the whole column reads as
+        // open sky. This is the shape of the damage a view that under-reports does.
+        expect(engine.getSkyLight(4, 0, 4)).toBe(15);
+        expect(engine.getBlockLight(4, 6, 4)).toBe(0);
+    });
+});
