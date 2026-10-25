@@ -7,13 +7,11 @@
  * tick runs inside the world tick and must not wait for a chunk, nor pull terrain into
  * existence by flowing water at the edge of the loaded world.
  *
- * Two state names are the engine's own rather than the palette's, `facing_direction` and
- * `attachment_face`, and both hold a direction word where Bedrock stores a number. A system
- * that rewrites a block it read keeps the palette's own states and is unaffected, which
- * covers the diodes, the torches and the observer. A system that builds a block out of those
- * two names is not: a piston arm comes out as a state this palette does not hold and the
- * write is declined. Giving the engine the palette's spelling belongs in
- * `@jsprismarine/mapping`, not here.
+ * The engine spells a block's states Java's way - `facing_direction` holds a direction word
+ * where Bedrock holds a number, and the number is per block - so every block is translated on
+ * the way in and back on the way out, through `@jsprismarine/mapping`, which is the one place
+ * allowed to know that two editions exist. Without it a piston arm came out as a state this
+ * palette does not hold and the write was declined, so pistons never extended.
  */
 import { Vector3 } from '@jsprismarine/math';
 import { DIFFICULTIES, DIMENSIONS } from '@jsprismarine/engine-systems';
@@ -66,7 +64,7 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
     return {
         getBlock: (at): BlockRef => {
             const block = world.loadedBlockAt(at.x, at.y, at.z);
-            return block === undefined ? AIR : { name: block.name, states: block.states };
+            return block === undefined ? AIR : { name: block.name, states: javaBlockStates(block.name, block.states) };
         },
 
         /**
@@ -77,7 +75,8 @@ export const createEngineWorld = (world: World): WorldSystemsAccess => {
          * reads at the edge of the loaded world and never a generated chunk.
          */
         setBlock: (at, to, notifyNeighbors) => {
-            world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states: to.states }, notifyNeighbors);
+            const states = bedrockBlockStates(to.name, to.states);
+            world.setLoadedBlockState(at.x, at.y, at.z, { name: to.name, states }, notifyNeighbors);
         },
 
         getBlockEntityData: (at) => blockEntities.get(positionKey(at)),

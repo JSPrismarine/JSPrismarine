@@ -29,7 +29,13 @@ const scene = ({ pvp = true } = {}) => {
 
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({ post: () => {}, getTick: () => 0, getRandom: () => () => 0.5 }),
+        getServer: () => ({
+            post: () => {},
+            getTick: () => 0,
+            getRandom: () => () => 0.5,
+            // No pack stack, so no enchantment definitions to run.
+            getContent: () => undefined
+        }),
         sendActorEvent: async () => {},
         sendActorSound: async (entity: Entity, sound: LevelSoundEvent) =>
             void noises.push({ type: entity.getType(), sound }),

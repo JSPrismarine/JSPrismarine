@@ -24,7 +24,9 @@ const scene = () => {
             post: () => {},
             getTick: () => 0,
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
-            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL })
+            getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
+            // No pack stack, so the enchantment step has no definitions to run.
+            getContent: () => undefined
         }),
         sendActorEvent: async () => {},
         sendActorSound: async () => {},

@@ -37,7 +37,13 @@ const TOUGHNESS_DIVISOR = 4;
 /** Armor never protects less than a flat fifth of its points, however hard the blow. */
 const MIN_ARMOR_FRACTION = 5;
 
-/** Enchantment protection is capped the same way armor is, and counted the same way. */
+/**
+ * The protection total is capped the same way armor is, and counted the same way.
+ *
+ * Java's `CombatRules.getDamageAfterMagicAbsorb`, and the cap is why a second
+ * full set of Protection IV is worth nothing: four pieces already reach 16 of
+ * the 20 the formula will take.
+ */
 const MAX_ENCHANTMENT_PROTECTION = 20;
 const ENCHANTMENT_DIVISOR = 25;
 
@@ -67,8 +73,17 @@ const BYPASSES_ARMOR: ReadonlySet<DamageCause> = new Set([
  * Separate from the set above, and it has to be: a fall ignores armor points but is still
  * reduced by Feather Falling, which is the whole reason anyone enchants boots. Folding the two
  * together made the best boots in the game do nothing.
+ *
+ * Empty, and that is Java's answer rather than an omission. Java gates this step on
+ * `#minecraft:bypasses_enchantments`, whose only member is `minecraft:sonic_boom` - a warden's
+ * shriek, which this server has no `DamageCause` for. Everything else is decided by each
+ * enchantment's own `requirements`: all five of the Protection family refuse a source in
+ * `#minecraft:bypasses_invulnerability`, which is what keeps them off the void, and Fire
+ * Protection, Blast Protection, Projectile Protection and Feather Falling each name the one
+ * damage tag they answer. This set held Starvation and Void before the components were read,
+ * and the first of those was wrong: Java's Protection does reduce starving.
  */
-const BYPASSES_ENCHANTMENTS: ReadonlySet<DamageCause> = new Set([DamageCause.Starvation, DamageCause.Void]);
+const BYPASSES_ENCHANTMENTS: ReadonlySet<DamageCause> = new Set();
 
 /** What the damage pipeline knows about the entity being hit. */
 export interface Mitigation {
@@ -76,7 +91,13 @@ export interface Mitigation {
     defensePoints: number;
     /** Armor toughness, which only diamond and netherite have. */
     toughness: number;
-    /** The Enchantment Protection Factor of everything worn, already summed. */
+    /**
+     * The Enchantment Protection Factor of everything worn, already summed.
+     *
+     * The total of every `minecraft:damage_protection` effect component that
+     * answered this particular blow; see `enchantmentProtection` in
+     * `src/enchantment/mitigation.ts`, which is what works it out.
+     */
     enchantmentProtection: number;
     /** The level of the Resistance effect, or zero. */
     resistance: number;
@@ -122,7 +143,11 @@ export const armorReduced = (damage: number, defensePoints: number, toughness: n
 };
 
 /**
- * What the Protection enchantments leave of what armor let through.
+ * What the `damage_protection` enchantments leave of what armor let through.
+ *
+ * Which enchantments contributed, and how much each one was worth, is decided
+ * by their files rather than here: this is only Java's `CombatRules` arithmetic
+ * over whatever total they came to.
  * @param {number} damage - What armor let through.
  * @param {number} enchantmentProtection - The summed Enchantment Protection Factor.
  * @returns {number} What gets through.

@@ -4,6 +4,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Entity } from './Entity';
 import type { Attribute } from './Attribute';
 import { Attributes } from './Attribute';
+import type { ViewableEquipment } from './predicateView';
 
 /**
  * How far a human's eyes are above its feet, in blocks.
@@ -74,6 +75,28 @@ export default class Human extends Entity {
     /** Armor toughness worn, which softens what a hard blow does to that armor. */
     public override getArmorToughness(): number {
         return this.inventory.getArmorToughness();
+    }
+
+    /**
+     * What is worn and held, which is what the enchantment effect components
+     * are run over.
+     *
+     * The armor container's four slots are helmet, chestplate, leggings and
+     * boots in the order the client numbers them, so the mapping is positional
+     * rather than looked up.
+     */
+    public override getEquipment(): ViewableEquipment {
+        const armor = this.inventory.getArmor();
+        const offhand = this.inventory.getOffhand();
+
+        return {
+            mainhand: this.inventory.getItemInHand(),
+            offhand: offhand.getEntry(0)?.toItemStack(),
+            head: armor.getEntry(0)?.toItemStack(),
+            chest: armor.getEntry(1)?.toItemStack(),
+            legs: armor.getEntry(2)?.toItemStack(),
+            feet: armor.getEntry(3)?.toItemStack()
+        };
     }
 
     public getInventory(): HumanInventory {

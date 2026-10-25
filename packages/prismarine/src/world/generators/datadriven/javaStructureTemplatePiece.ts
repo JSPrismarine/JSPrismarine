@@ -197,7 +197,42 @@ export interface TemplatePieceOptions {
      * decoration from code. Java's `TemplateStructurePiece.handleDataMarker`.
      */
     readonly onDataMarker?: (marker: DataMarker, writer: StructureWriter, random: RandomSource) => void;
+    /**
+     * Runs once the template's blocks and its markers are placed, which is where a structure
+     * does the touching up Java does after `placeInWorld` returns.
+     */
+    readonly onPlaced?: (writer: StructureWriter, random: RandomSource) => void;
 }
+
+/**
+ * Where a template's own block zero lands when Java turns it about a pivot.
+ *
+ * Java's `StructureTemplate.transform` turns a block position about
+ * `StructurePlaceSettings.rotationPivot`, which a legacy structure sets to a point of the
+ * building rather than to a corner, so the turned template spreads around that point and into
+ * negative coordinates. `transformTemplate` keeps a turned template inside its own extent
+ * instead. The two differ by a translation and nothing else, so the corner is the one the
+ * translation puts the template's own zero block on.
+ */
+export const pivotedCorner = (
+    position: TemplatePosition,
+    size: TemplatePosition,
+    placement: Placement,
+    pivot: TemplatePosition
+): TemplatePosition => {
+    const [pivotX, , pivotZ] = pivot;
+    const java: TemplatePosition =
+        placement.rotation === 'clockwise_90'
+            ? [pivotX + pivotZ, 0, pivotZ - pivotX]
+            : placement.rotation === 'clockwise_180'
+              ? [pivotX + pivotX, 0, pivotZ + pivotZ]
+              : placement.rotation === 'counterclockwise_90'
+                ? [pivotX - pivotZ, 0, pivotX + pivotZ]
+                : [0, 0, 0];
+
+    const ours = transformPosition(size, [0, 0, 0], placement);
+    return [position[0] + java[0] - ours[0], position[1], position[2] + java[2] - ours[2]];
+};
 
 /** One structure template stamped at a position. */
 export class TemplatePiece implements StructurePiece {
