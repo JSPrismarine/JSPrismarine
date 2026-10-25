@@ -612,6 +612,10 @@ export default class Server extends EventEmitter {
                         worldUpdatesMs = now() - phaseStartedAt;
                     }
 
+                    // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
+                    // worlds, as Java runs it, so a function sees the world the tick left.
+                    await this.commandManager.tickFunctions();
+
                     // Whatever fits in this tick's slice; the rest waits for the next one.
                     phaseStartedAt = now();
                     try {
