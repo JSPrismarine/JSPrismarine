@@ -5,6 +5,8 @@ import type { SpawnConditionContext } from './conditions';
 import { SpawnDelays, evaluateSpawnCondition } from './conditions';
 import type { SpawnConstants } from './constants';
 import { SPAWN_CONSTANTS, poolCapFor } from './constants';
+import type { EngineSpawnRule } from './engineRules';
+import { VANILLA_ENGINE_SPAWN_RULES } from './engineRules';
 import type { HerdRule, SpawnCondition, SpawnPermutation, SpawnRule } from './rules';
 import type { SpawnPass, SpawnPosition, SpawnWorld } from './world';
 
@@ -46,6 +48,12 @@ export interface SpawnerOptions {
     readonly constants?: SpawnConstants;
     /** The `minecraft:delay_filter` cooldowns, so a caller can persist them across a restart. */
     readonly delays?: SpawnDelays;
+    /**
+     * The conditions Bedrock keeps in engine code, keyed by the entity each
+     * one gates. Defaults to {@link VANILLA_ENGINE_SPAWN_RULES}; pass an empty
+     * map to run the JSON conditions alone.
+     */
+    readonly engineRules?: ReadonlyMap<string, EngineSpawnRule>;
     /** Receives every biome filter test the evaluator could not answer. */
     readonly onUnanswered?: EvaluateFilterOptions['onUnanswered'];
 }
@@ -131,6 +139,7 @@ export class Spawner {
     private readonly random: RandomSource;
     private readonly constants: SpawnConstants;
     private readonly delays: SpawnDelays;
+    private readonly engineRules: ReadonlyMap<string, EngineSpawnRule>;
     private readonly onUnanswered: EvaluateFilterOptions['onUnanswered'] | undefined;
 
     public constructor(options: SpawnerOptions) {
@@ -138,6 +147,7 @@ export class Spawner {
         this.random = options.random;
         this.constants = options.constants ?? SPAWN_CONSTANTS;
         this.delays = options.delays ?? new SpawnDelays();
+        this.engineRules = options.engineRules ?? VANILLA_ENGINE_SPAWN_RULES;
         this.onUnanswered = options.onUnanswered;
 
         for (const rule of options.rules) {
@@ -241,7 +251,16 @@ export class Spawner {
         return !this.world.solid(at) && !this.world.solid({ ...at, y: at.y + 1 });
     }
 
-    /** Runs one attempt: collect the rules that pass here, draw one, and build its herd. */
+    /**
+     * Runs one attempt: collect the rules that pass here, draw one, and build
+     * its herd.
+     *
+     * A rule with an engine condition is asked that first, because a condition
+     * Bedrock keeps in code is a condition the file was never able to state.
+     * `minecraft:slime` is the rule this matters to: its file names no
+     * brightness and no height, so without the engine condition it is the only
+     * monster that passes in daylight and it fills the pool on its own.
+     */
     private attemptAt(
         pool: string,
         rules: readonly SpawnRule[],
@@ -254,6 +273,9 @@ export class Spawner {
         let totalWeight = 0;
 
         for (const rule of rules) {
+            const engineRule = this.engineRules.get(rule.identifier);
+            if (engineRule !== undefined && !engineRule(position, { world: this.world, random: this.random })) continue;
+
             for (const condition of rule.conditions) {
                 if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick)).passed) continue;
                 candidates.push({ rule, condition });
