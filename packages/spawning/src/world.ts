@@ -68,6 +68,14 @@ export interface SpawnWorld {
     biomeTags(at: SpawnPosition): readonly string[];
     /** The biome name at one position, for `is_biome`. */
     biome?(at: SpawnPosition): string;
+    /**
+     * The lowest y an entity may stand on in one column, which is the position
+     * the surface pass tries. Undefined when the column is not loaded, which
+     * skips the attempt.
+     */
+    surfaceY(x: number, z: number): number | undefined;
+    /** The lowest y the world generates, which bounds the underground pass. */
+    minY(): number;
     /** The players the spawner spawns around, which is every player in the spawn region. */
     players(): readonly SpawnPlayer[];
     /** How many entities of one population pool stand in the spawn region now. */
@@ -94,6 +102,16 @@ export const distanceSquared = (from: SpawnPosition, to: SpawnPosition): number 
     const dy = from.y - to.y;
     const dz = from.z - to.z;
     return dx * dx + dy * dy + dz * dz;
+};
+
+/**
+ * The squared distance between two positions on the X and Z axes alone, which
+ * is what a chunk radius such as the simulation distance measures.
+ */
+export const horizontalDistanceSquared = (from: SpawnPosition, to: SpawnPosition): number => {
+    const dx = from.x - to.x;
+    const dz = from.z - to.z;
+    return dx * dx + dz * dz;
 };
 
 /** Which pass a position belongs to, which the world decides and the conditions read. */
