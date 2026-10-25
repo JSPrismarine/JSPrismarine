@@ -3,6 +3,7 @@ import type BinaryStream from '@jsprismarine/binaryutils';
 import { attributeModifiers, enchantable, maxDamage, maxStackSize, tool } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 import type { ItemStack as PredicateItemStack } from '@jsprismarine/predicates';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 
 import type { ServerContent } from '../content/ServerContent';
@@ -10,6 +11,7 @@ import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { attributeValueOf } from '../enchantment/attributes';
 import { holderSetIncludes } from './holderSets';
 import type { TagLookup } from './holderSets';
+import { itemUserDataTag } from './userData';
 import { vanillaItemTypes } from './vanillaItemTypes';
 
 export interface ItemProps {
@@ -530,12 +532,35 @@ export class Item {
     }
 
     /**
+     * What the client is told about this stack beyond its id, count and aux value.
+     *
+     * The enchantments, the name, the lore and the durability spent, in the shape
+     * {@link itemUserDataTag} lays out. Null for a stack with none of them, which is most of
+     * them and every slot of an untouched inventory.
+     */
+    public userDataTag(): NBTTagCompound | null {
+        return itemUserDataTag({
+            enchantments: this.enchantmentLevels,
+            customName: this.customName,
+            lore: this.loreLines,
+            // Spent rather than remaining, which is what both editions store and what the
+            // client draws the damage bar from.
+            damage: Math.max(0, this.getMaxDurability() - this.durability),
+            enchantmentRegistry: this.content?.enchantments
+        });
+    }
+
+    /**
      * The length prefixed `User Data Buffer`: the stack's `ItemInstanceUserData`, which
      * `@jsprismarine/protocol` lays out.
      *
-     * No stack here carries NBT or a can-place-on or can-destroy list yet, so the blob is the
-     * empty structure: a zero marker and two empty lists, plus the blocking tick a shield ends
-     * with. An empty stack writes a bare zero length instead of the structure.
+     * The blob is the stack's own compound when it has one, two empty block lists, and the
+     * blocking tick a shield ends with. An empty stack writes a bare zero length instead of
+     * the structure.
+     *
+     * A null compound used to go out here whatever the stack held, so an enchanted pickaxe,
+     * a renamed sword and a lore line all arrived as the plain item. The mechanics ran on the
+     * server and nothing about them reached the player.
      * @param {BinaryStream} stream - the stream to write to.
      * @param {boolean} present - whether this stack holds anything at all.
      */
@@ -547,7 +572,7 @@ export class Item {
 
         const blob = new NetworkBinaryStream();
         const shield = this.getName() === 'minecraft:shield';
-        new ItemInstanceUserData(null, shield ? { blockingTick: 0n } : {}).serialize(blob);
+        new ItemInstanceUserData(this.userDataTag(), shield ? { blockingTick: 0n } : {}).serialize(blob);
 
         stream.writeUnsignedVarInt(blob.getBuffer().byteLength);
         stream.write(new Uint8Array(blob.getBuffer()));
