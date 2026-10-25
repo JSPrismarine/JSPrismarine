@@ -19,6 +19,7 @@ import type { Config } from '../config/Config';
 import type { ServerContent } from '../content/ServerContent';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions } from '../content/testing';
+import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
 import type Server from '../Server';
 import { stub } from './stub.test.helper';
@@ -48,6 +49,10 @@ export const testContent = (): ServerContent => (sharedContent ??= buildServerCo
  */
 export const inertEntityRuntime = (): LiveEntityRuntime =>
     stub<LiveEntityRuntime>({
+        // The fixture build, so a caller that asks the runtime what the stack declares - which
+        // is what `/summon` does before it spawns - gets an answer rather than a crash. The
+        // fixture declares no entity, so every such question answers no.
+        runtime: stub<EntityRuntime>({ content: () => testContent() }),
         tick: async () => {},
         persist: () => {},
         restore: () => undefined
