@@ -10,6 +10,7 @@
  * One handler per block the content declares an `onRandomTick` for, rather than one that looks
  * every block up, because the engine's dispatch is a property read on this record.
  */
+import type { WorldActions } from '@jsprismarine/block-behaviors';
 import type { BlockPosition } from '@jsprismarine/engine-systems';
 
 import type { ServerContent } from '../content/ServerContent';
@@ -46,11 +47,21 @@ export const contentRandomTickHandlers = (
     const { content, world, report } = options;
     const reported = new Set<string>();
 
+    /**
+     * The block actions of this world's dimension, resolved once.
+     *
+     * `blockWorld.at` builds a fresh projection on every call, and a chunk tick asks for one per
+     * randomly ticking block it draws - so resolving it per tick allocated the whole seam's worth
+     * of closures hundreds of times a second. A world keeps its dimension for its whole life.
+     */
+    let actions: WorldActions | undefined;
+
     const dispatch = (identifier: string, at: BlockPosition): void => {
         const live = world();
         if (!live) return;
 
-        const block = content.world.blockWorld.at(live.getDimension().name).getBlock(at);
+        actions ??= content.world.blockWorld.at(live.getDimension().name);
+        const block = actions.getBlock(at);
         // The engine read the block before choosing this handler, so a mismatch means a behavior
         // reached earlier in the same tick replaced it. The block that is there now is not this
         // one's business.

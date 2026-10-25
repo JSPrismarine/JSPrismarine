@@ -29,6 +29,7 @@ import {
     applyProcessors,
     createProcessor,
     createProcessorList,
+    transformPosition,
     transformTemplate,
     transformedSize,
     translateJavaTemplate
@@ -296,15 +297,17 @@ export class TemplatePiece implements StructurePiece {
         }
 
         const handler = this.options.onDataMarker;
-        if (handler === undefined) return;
-
-        for (const marker of prepared.markers) {
-            handler(
-                { value: marker.value, x: originX + marker.x, y: originY + marker.y, z: originZ + marker.z },
-                writer,
-                random
-            );
+        if (handler !== undefined) {
+            for (const marker of prepared.markers) {
+                handler(
+                    { value: marker.value, x: originX + marker.x, y: originY + marker.y, z: originZ + marker.z },
+                    writer,
+                    random
+                );
+            }
         }
+
+        this.options.onPlaced?.(writer, random);
     }
 }
 

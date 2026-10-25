@@ -32,6 +32,12 @@ export interface StructureLevel {
      * biomes in. The structure biome check reads this rather than the fuzzed per-block lookup.
      */
     noiseBiome(quartX: number, quartY: number, quartZ: number): string;
+    /**
+     * Java's `Biome.coldEnoughToSnow(pos)`, which the ruined portal reads to decide whether its
+     * lava is lava. Optional, because it needs the biome registry rather than the noise; a level
+     * that cannot answer is treated as warm, which is the common case.
+     */
+    coldEnoughToSnow?(x: number, y: number, z: number): boolean;
 }
 
 /** Where a piece writes the blocks it decided on. Writes outside the chunk are dropped. */

@@ -31,6 +31,7 @@ import {
     SurfaceSystem,
     WorldgenData,
     carveChunk,
+    coldEnoughToSnow,
     createClimateSampler,
     parseBiomeClimate,
     parseCarver
@@ -453,7 +454,9 @@ export class DataDrivenGenerator implements Generator {
             height: this.dimension.height,
             noiseBiome: resolver,
             isSolid: (state) => oracle.isSolid(state),
-            isFluid: (state) => oracle.fluid(state) !== 'empty'
+            isFluid: (state) => oracle.fluid(state) !== 'empty',
+            coldEnoughToSnow: (x, y, z) =>
+                coldEnoughToSnow(climateOf(resolver(x >> 2, y >> 2, z >> 2)), x, y, z, settings.seaLevel)
         });
 
         const plan = this.buildFeaturePlan();
