@@ -7,6 +7,9 @@ import Cow from './passive/Cow';
 import IronGolem from './neutral/IronGolem';
 import Wolf from './neutral/Wolf';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
+import { definitionOf } from '../content/ContentOptions';
+import { buildServerContent } from '../content/ServerContent';
+import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import { AttributeIds } from './Attribute';
@@ -22,6 +25,36 @@ import type { Mob } from './Mob';
  * an empty hook and nothing removed a dead mob from the world.
  */
 
+/**
+ * A content build with a cow table and nothing for a wolf, which is the
+ * shape Java's own stack has: `minecraft:entities/wolf` exists and is empty.
+ * The numbers a real table produces are checked in `mobLoot.test.ts`; this
+ * file only cares that a death reaches one.
+ */
+const lootContent = () =>
+    buildServerContent(
+        fixtureContentOptions({
+            load: () => ({
+                definitions: {
+                    ...fixtureDefinitions(),
+                    lootTablesJava: new Map([
+                        [
+                            'minecraft:entities/cow',
+                            definitionOf('lootTablesJava', 'minecraft:entities/cow', {
+                                type: 'minecraft:entity',
+                                pools: [
+                                    { rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:beef' }] },
+                                    { rolls: 1, entries: [{ type: 'minecraft:item', name: 'minecraft:leather' }] }
+                                ]
+                            })
+                        ]
+                    ])
+                },
+                diagnostics: []
+            })
+        })
+    );
+
 /** Everything a dying mob reaches for, and nothing else. */
 const scene = ({ mobLoot = true } = {}) => {
     const flashes: ActorEvent[] = [];
@@ -29,9 +62,18 @@ const scene = ({ mobLoot = true } = {}) => {
     const dropped: Item[] = [];
     const removed: string[] = [];
 
+    const content = lootContent();
+
     const world: any = {
         getName: () => 'test',
-        getServer: () => ({ post: () => {}, getTick: () => 0, getRandom: () => () => 0.5 }),
+        getTicks: () => 0,
+        getDimension: () => ({ name: 'minecraft:overworld' }),
+        getServer: () => ({
+            post: () => {},
+            getTick: () => 0,
+            getRandom: () => () => 0.5,
+            getContent: () => content
+        }),
         sendActorEvent: async (_entity: unknown, event: ActorEvent) => void flashes.push(event),
         sendActorSound: async (_entity: unknown, sound: LevelSoundEvent) => void noises.push(sound),
         broadcastMove: async () => {},

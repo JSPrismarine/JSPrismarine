@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 
 import { allEntities } from './Entities';
 import { DEFAULT_STATS, MOB_STATS, statsOf } from './MobStats';
-import { MOB_LOOT } from './LootTables';
 import { Mob } from './Mob';
 
 describe('mob stats', () => {
@@ -23,14 +22,6 @@ describe('mob stats', () => {
         for (const type of Object.keys(MOB_STATS)) {
             expect(type).toMatch(/^minecraft:[a-z0-9_]+$/);
         }
-    });
-
-    it('only has loot for mobs it also has figures for', () => {
-        // A loot table keyed by a name the stats table does not know is a name one of the two has
-        // wrong, and a mob that drops something it should not - or nothing when it should.
-        const orphans = Object.keys(MOB_LOOT).filter((type) => !(type in MOB_STATS));
-
-        expect(orphans).toStrictEqual([]);
     });
 
     it('is Bedrock’s numbers, not a guess', () => {

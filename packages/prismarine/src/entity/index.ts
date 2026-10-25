@@ -3,6 +3,7 @@ export * from './Entity';
 export * from './EntitySize';
 export * from './Metadata';
 export * from './Mob';
+export * from './mobLoot';
 
 export * from './ai/Brains';
 export * from './ai/Goal';
