@@ -16,6 +16,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
+import type { OpenBlockContainer } from '../PlayerSession';
 import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
@@ -80,12 +81,15 @@ const run = async (
     requests: ItemStackRequest[],
     inventory: HumanInventory,
     server: Server,
-    craftingInput = new CraftingInput()
+    craftingInput = new CraftingInput(),
+    options: { open?: OpenBlockContainer; player?: Player } = {}
 ) => {
     const sent: DataPacket[] = [];
     const craftingSlots: Array<{ slot: number; item: string }> = [];
     const session = stub<PlayerSession>({
+        getOpenBlockContainer: () => options.open,
         getPlayer: () =>
+            options.player ??
             stub<Player>({
                 getInventory: () => inventory,
                 getCraftingInput: () => craftingInput,
