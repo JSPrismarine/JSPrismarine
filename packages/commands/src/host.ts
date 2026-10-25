@@ -276,8 +276,15 @@ export interface DataCommandHost {
     ): number;
     /** Copies items from one slot range to another, optionally through a modifier. */
     copySlots(from: DataTarget, fromSlot: ItemSlot, to: DataTarget, toSlot: ItemSlot, modifier?: string): number;
-    /** Runs a loot table and delivers the drops; `source` says which `/loot` source was used. */
-    runLootTable(table: string, source: CommandSource, destination: LootDestination): number;
+    /**
+     * Rolls loot and delivers it.
+     *
+     * @param loot - What to roll. `/loot kill` and `/loot mine` roll the table
+     *   of the entity or block they name rather than one the player typed, so
+     *   the four forms are a model rather than a table id.
+     * @returns How many items were delivered.
+     */
+    runLoot(loot: LootSource, source: CommandSource, destination: LootDestination): number;
     /** Evaluates a datapack predicate, for `execute if predicate`. */
     testPredicate(predicate: string, source: CommandSource): boolean;
     /** Runs a function or `#tag`, returning the value `/return` produced. */
@@ -289,6 +296,37 @@ export interface DataCommandHost {
     randomValue(min: number, max: number, sequence?: string): number;
     resetRandomSequence(sequence: string | '*', seed?: number): boolean;
 }
+
+/**
+ * What `/loot` rolls.
+ *
+ * Java's four sources, and only the first names a table outright. `kill`
+ * rolls the table of the entity it names, `mine` rolls the table of the block
+ * at the position, and `fish` rolls a named table with the position and tool
+ * the fishing conditions read - so a host handed a bare table id could answer
+ * only one of the four.
+ */
+export type LootSource =
+    /** `loot <table>`: the table, rolled with the command's own position as its origin. */
+    | { readonly kind: 'table'; readonly table: string }
+    /** `fish <table> <pos> [<tool>]`: a named table with a position and a tool. */
+    | {
+          readonly kind: 'fish';
+          readonly table: string;
+          readonly dimension: string;
+          readonly position: Vector3;
+          /** An item id, or `mainhand` or `offhand`, which read off the source entity. */
+          readonly tool?: string;
+      }
+    /** `kill <target>`: whatever that entity would drop if it died now. */
+    | { readonly kind: 'kill'; readonly entity: EntityRef }
+    /** `mine <pos> [<tool>]`: whatever that block would drop if the tool broke it. */
+    | {
+          readonly kind: 'mine';
+          readonly dimension: string;
+          readonly position: Vector3;
+          readonly tool?: string;
+      };
 
 /** Where `/loot` puts what a loot table produced. */
 export type LootDestination =

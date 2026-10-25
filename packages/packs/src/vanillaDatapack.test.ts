@@ -94,10 +94,27 @@ describe.skipIf(!enabled)('the vanilla 26.3 datapack', () => {
         expect(definitions.damageTypes.size).toBe(51);
         expect(definitions.predicates.size).toBe(3);
 
+        // The report with no resolver is what this package can answer alone:
+        // the references the stack closes itself, and the rest left for the
+        // Bedrock side. Whether those reach Bedrock is `@jsprismarine/mapping`'s
+        // question, and src/vanillaIdentifiers.test.ts there is where Phase 0's
+        // exit criterion is measured.
         const report = reportIdentifiers(definitions);
-        expect(report.length).toBeGreaterThan(1000);
-        expect(report.every((entry) => entry.resolution === 'unknown')).toBe(true);
+        expect(report).toHaveLength(4088);
         expect(report.some((entry) => entry.registry === 'item' && entry.id === 'minecraft:diamond')).toBe(true);
+
+        // 43 more than the mapping resolver closes, because the datapack
+        // defines its own enchantments: with a resolver that knows them they
+        // answer against Bedrock, and with none they answer here.
+        const closed = report.filter((entry) => entry.resolution === 'known');
+        expect(closed).toHaveLength(402);
+        expect(closed.every((entry) => entry.source === 'pack')).toBe(true);
+        // The 883 tag files are referenced 298 times by name, and every one
+        // of those names a tag the pack carries.
+        expect(closed.filter((entry) => entry.id.startsWith('#'))).toHaveLength(298);
+        expect(
+            report.filter((entry) => entry.resolution === 'unknown').every((entry) => entry.source === 'resolver')
+        ).toBe(true);
     });
 
     it('validates every definition against vanilla-mcdoc', { timeout: 600_000 }, async () => {
