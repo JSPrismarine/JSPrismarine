@@ -182,6 +182,7 @@ function scaredActivity(): ActivityData {
     });
 }
 
+/** The armadillo's three activities: the core package, `idle`, and the `panic` it rolls up in. */
 export function armadilloActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), scaredActivity()];
 }
@@ -191,6 +192,10 @@ function isScaredBy(entity: { type: string; typeTags: ReadonlySet<string> }): bo
     return entity.type === 'minecraft:player' || entity.typeTags.has('minecraft:undead');
 }
 
+/**
+ * The armadillo's registry entry. Its fifth sensor is the scare scan that writes
+ * `DANGER_DETECTED_RECENTLY`, which is the memory `panic` runs on.
+ */
 export const ARMADILLO_BRAIN: BrainMobDefinition = {
     id: 'minecraft:armadillo',
     memories: [],

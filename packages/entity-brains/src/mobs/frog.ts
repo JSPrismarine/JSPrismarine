@@ -308,10 +308,15 @@ function tongueActivity(): ActivityData {
     });
 }
 
+/** The frog's six activities: the core package, `idle`, `swim`, `lay_spawn`, `tongue` and `long_jump`. */
 export function frogActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), swimActivity(), laySpawnActivity(), tongueActivity(), longJumpActivity()];
 }
 
+/**
+ * The frog's registry entry. `initMemories` starts the long-jump cooldown at a full interval, so a
+ * freshly spawned frog does not jump on its first tick.
+ */
 export const FROG_BRAIN: BrainMobDefinition = {
     id: 'minecraft:frog',
     memories: [],

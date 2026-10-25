@@ -108,10 +108,15 @@ function panicActivity(): ActivityData {
     });
 }
 
+/** The happy ghast's three activities: the core package, `idle`, and the empty `panic` that suppresses idling. */
 export function happyGhastActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), panicActivity()];
 }
 
+/**
+ * The happy ghast's registry entry. `alsoRunsGoals` is true: the harness, the riding and the
+ * flight control stay on the goal system.
+ */
 export const HAPPY_GHAST_BRAIN: BrainMobDefinition = {
     id: 'minecraft:happy_ghast',
     memories: [],

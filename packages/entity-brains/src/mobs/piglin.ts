@@ -733,6 +733,13 @@ function dismountOrSkipMounting(): BehaviorControl {
         });
 }
 
+/**
+ * The piglin's seven activities: the core package, `idle`, `admire_item`, `fight`, `celebrate`, the
+ * `avoid` retreat and `ride`.
+ *
+ * @param onBarter - Called once the piglin stops holding the gold it was admiring, so the host can
+ * roll the barter loot table and drop the result.
+ */
 export function piglinActivities(onBarter?: (context: BrainContext) => void): readonly ActivityData[] {
     return [
         coreActivity(onBarter),
@@ -760,6 +767,7 @@ export function makePiglinBrain(onBarter?: (context: BrainContext) => void): Bra
     });
 }
 
+/** The piglin's registry entry. `admire_item` outranks `fight`, so a piglin handed gold stops attacking to look at it. */
 export const PIGLIN_BRAIN: BrainMobDefinition = {
     id: 'minecraft:piglin',
     memories: [

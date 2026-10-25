@@ -21,11 +21,13 @@ import { OneShot } from './control.js';
 export class ShufflingList<Item> {
     private readonly entries: { readonly item: Item; readonly weight: number; key: number }[] = [];
 
+    /** Appends an entry and returns the list, so entries chain. A higher weight sorts first more often. */
     public add(item: Item, weight: number): this {
         this.entries.push({ item, weight, key: 0 });
         return this;
     }
 
+    /** Redraws every entry's key and reorders the list in place. */
     public shuffle(random: () => number): this {
         for (const entry of this.entries) {
             entry.key = -(random() ** (1 / entry.weight));
@@ -34,6 +36,7 @@ export class ShufflingList<Item> {
         return this;
     }
 
+    /** The entries in their current order, without their weights. */
     public items(): readonly Item[] {
         return this.entries.map((entry) => entry.item);
     }
@@ -101,6 +104,10 @@ export class GateBehavior implements BehaviorControl {
         return [...memories];
     }
 
+    /**
+     * Checks the gate's own memory conditions, reorders the children when the policy is `shuffled`,
+     * then starts them until one takes under `run_one`, or all of them have been tried under `try_all`.
+     */
     public tryStart(context: BrainContext, timestamp: number): boolean {
         for (const [memory, status] of this.entryCondition) {
             if (!context.body.brain.checkMemory(memory, status)) {
@@ -122,6 +129,7 @@ export class GateBehavior implements BehaviorControl {
         return true;
     }
 
+    /** Ticks every running child and stops the gate once none is left running. */
     public tickOrStop(context: BrainContext, timestamp: number): void {
         for (const child of this.list.items()) {
             if (child.status === 'running') {
@@ -133,6 +141,7 @@ export class GateBehavior implements BehaviorControl {
         }
     }
 
+    /** Stops every running child and erases the gate's `exitErasedMemories`. */
     public doStop(context: BrainContext, timestamp: number): void {
         this.behaviorStatus = 'stopped';
         for (const child of this.list.items()) {

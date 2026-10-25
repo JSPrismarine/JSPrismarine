@@ -189,10 +189,15 @@ function fightActivity(): ActivityData {
     );
 }
 
+/** The piglin brute's three activities: the core package, `idle` and `fight`. */
 export function piglinBruteActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity()];
 }
 
+/**
+ * The piglin brute's registry entry. `initMemories` writes `HOME` at the spawn position, which is
+ * what keeps a brute inside its bastion.
+ */
 export const PIGLIN_BRUTE_BRAIN: BrainMobDefinition = {
     id: 'minecraft:piglin_brute',
     memories: [MemoryModuleTypes.NEAREST_VISIBLE_ADULT_PIGLINS],

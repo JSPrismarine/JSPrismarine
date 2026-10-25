@@ -299,10 +299,12 @@ function digActivity(): ActivityData {
     );
 }
 
+/** The sniffer's four activities: the core package, `idle`, `sniff` and `dig`. */
 export function snifferActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), sniffingActivity(), digActivity()];
 }
 
+/** The sniffer's registry entry. `SNIFFER_EXPLORED_POSITIONS` persists, so a sniffer will not dig the same spot twice. */
 export const SNIFFER_BRAIN: BrainMobDefinition = {
     id: 'minecraft:sniffer',
     memories: [MemoryModuleTypes.SNIFFER_EXPLORED_POSITIONS],

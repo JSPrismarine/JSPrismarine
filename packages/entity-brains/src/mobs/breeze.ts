@@ -248,10 +248,12 @@ function fightActivity(): ActivityData {
     );
 }
 
+/** The breeze's three activities: the core package, `idle` and `fight`. */
 export function breezeActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity()];
 }
 
+/** The breeze's registry entry. `BreezeAttackEntitySensor` picks the target that `fight` shoots at. */
 export const BREEZE_BRAIN: BrainMobDefinition = {
     id: 'minecraft:breeze',
     memories: [],

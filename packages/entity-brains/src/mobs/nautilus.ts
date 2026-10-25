@@ -240,6 +240,7 @@ function fightActivity(speed: number, sound: string): ActivityData {
     );
 }
 
+/** The nautilus's three activities: the core package, `idle` and the dash `fight`. */
 export function nautilusActivities(): readonly ActivityData[] {
     return [
         nautilusCoreActivity(),
@@ -256,6 +257,7 @@ const nautilusSensors = () => [
     TemptingSensor.forTag(NAUTILUS.temptationTag)
 ];
 
+/** The nautilus's registry entry. It keeps `ANGRY_AT` and `ATTACK_TARGET_COOLDOWN`, and prefers `fight` over `idle`. */
 export const NAUTILUS_BRAIN: BrainMobDefinition = {
     id: 'minecraft:nautilus',
     memories: [MemoryModuleTypes.ANGRY_AT, MemoryModuleTypes.ATTACK_TARGET_COOLDOWN],
@@ -304,6 +306,7 @@ function zombieNautilusIdleActivity(): ActivityData {
     ]);
 }
 
+/** The zombie nautilus's three activities. Same shape as the nautilus's, with its own dash speed and sound. */
 export function zombieNautilusActivities(): readonly ActivityData[] {
     return [
         zombieNautilusCoreActivity(),
@@ -312,6 +315,7 @@ export function zombieNautilusActivities(): readonly ActivityData[] {
     ];
 }
 
+/** The zombie nautilus's registry entry. The same memories and sensors as the nautilus, under its own id. */
 export const ZOMBIE_NAUTILUS_BRAIN: BrainMobDefinition = {
     id: 'minecraft:zombie_nautilus',
     memories: [MemoryModuleTypes.ANGRY_AT, MemoryModuleTypes.ATTACK_TARGET_COOLDOWN],

@@ -167,10 +167,15 @@ function retreatActivity(): ActivityData {
     );
 }
 
+/** The hoglin's four activities: the core package, `idle`, `fight` and the `avoid` retreat. */
 export function hoglinActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity(), retreatActivity()];
 }
 
+/**
+ * The hoglin's registry entry. `updateActivity` also mirrors `ATTACK_TARGET` onto the `aggressive`
+ * condition, which is what the client renders.
+ */
 export const HOGLIN_BRAIN: BrainMobDefinition = {
     id: 'minecraft:hoglin',
     memories: [],

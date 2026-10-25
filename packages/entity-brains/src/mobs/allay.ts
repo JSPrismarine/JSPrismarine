@@ -189,6 +189,7 @@ export function allayActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity()];
 }
 
+/** The allay's registry entry. It keeps a liked player and a liked note block across ticks, and only ever picks `idle`. */
 export const ALLAY_BRAIN: BrainMobDefinition = {
     id: 'minecraft:allay',
     memories: [

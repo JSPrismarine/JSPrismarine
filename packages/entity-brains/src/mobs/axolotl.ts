@@ -194,10 +194,15 @@ function playDeadActivity(): ActivityData {
     );
 }
 
+/** The axolotl's four activities: the core package, `idle`, `fight` and `play_dead`. */
 export function axolotlActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity(), fightActivity(), playDeadActivity()];
 }
 
+/**
+ * The axolotl's registry entry. `updateActivity` leaves an axolotl that is already playing dead
+ * alone, and stamps a hunting cooldown when one drops out of `fight`.
+ */
 export const AXOLOTL_BRAIN: BrainMobDefinition = {
     id: 'minecraft:axolotl',
     memories: [],

@@ -130,10 +130,12 @@ function idleActivity(): ActivityData {
     ]);
 }
 
+/** The camel's two activities: the core package and `idle`. Its goals run everything else. */
 export function camelActivities(): readonly ActivityData[] {
     return [coreActivity(), idleActivity()];
 }
 
+/** The camel's registry entry. `alsoRunsGoals` is true, so riding, leashing and breeding stay on the goal system. */
 export const CAMEL_BRAIN: BrainMobDefinition = {
     id: 'minecraft:camel',
     memories: [],
