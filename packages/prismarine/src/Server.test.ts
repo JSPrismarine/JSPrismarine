@@ -14,6 +14,7 @@ vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: any) {
         this.start = vi.fn();
         this.on = vi.fn();
+        this.kill = vi.fn();
     });
     return {
         ...(await importActual<typeof import('@jsprismarine/raknet')>()),
@@ -46,10 +47,8 @@ describe('Server', () => {
      * for it. `enable` is a no-op so the file under `JSP_DIR` is never read; every value the
      * server asks for at startup is answered by an override below.
      *
-     * One folder per test on purpose: these tests stub `shutdown`, so the server they started is
-     * left running and still holding its world. LevelDB takes a directory lock - two writers on
-     * one world delete each other's files - so a second server pointed at the same folder is
-     * refused, as it should be.
+     * One folder per test keeps each startup independent. LevelDB takes a directory lock, so
+     * two servers must not open the same world at once.
      */
     const debugConfig = (levelName: string) =>
         new (class DebugConfig extends Config {
@@ -118,11 +117,8 @@ describe('Server', () => {
             config: debugConfig('test-world')
         });
 
-        const mockExit = vi.spyOn(prismarine, 'shutdown').mockResolvedValue(undefined);
-
         await prismarine.bootstrap('0.0.0.0', 12345);
-        await expect(() => prismarine.shutdown()).not.toThrow();
-        expect(mockExit).toBeCalledTimes(1);
+        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
     });
 
     it('starts and stops without crashing in headless mode', async () => {
@@ -133,10 +129,7 @@ describe('Server', () => {
             headless: true
         });
 
-        const mockExit = vi.spyOn(prismarine, 'shutdown').mockResolvedValue(undefined);
-
         await prismarine.bootstrap('0.0.0.0', 12345);
-        await expect(() => prismarine.shutdown()).not.toThrow();
-        expect(mockExit).toBeCalledTimes(1);
+        await expect(prismarine.shutdown({ stayAlive: true })).resolves.toBeUndefined();
     });
 });
