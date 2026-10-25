@@ -80,8 +80,8 @@ all six shapes is in [the commands package README](../../packages/commands/READM
 
 ## What you can actually type
 
-`@jsprismarine/commands` implements 59 commands. This server registers 51 of them when
-`content-packs` is on and 49 when it is off:
+`@jsprismarine/commands` implements 60 commands. This server registers 52 of them when
+`content-packs` is on and 50 when it is off:
 
 ```
 clear clone damage deop difficulty enchant execute fill function gamemode gamerule give help kick
@@ -167,6 +167,25 @@ Separately, 29 of Bedrock's own commands are not implemented at all. They group 
   [the plan](../plans/data-driven-vanilla.md) puts out of scope in section 12: `/script`,
   `/scriptevent`, `/gametest`, `/editor-allowlist`, `/wsserver`, `/changesetting`, `/packstack`,
   `/permission`, `/event`, `/reloadconfig`, `/reloadpacketlimitconfig` and `/serveridentity`.
+
+## Naming content a pack defines
+
+An argument that names a registry entry — a block for `/setblock` and `/fill`, an item for
+`/give`, an entity type for `/summon`, an enchantment for `/enchant` — accepts whatever the server
+has loaded **in addition to** Mojang's published list, not instead of it. So `/summon mypack:dragon`
+works once your pack defines it, and a vanilla name still works even on a build that happens not to
+carry it. The client completes from the union.
+
+Three registries stay pinned to Mojang's list because nothing here can extend them: damage types,
+which this server has no registry for, and mob effects, whose `/effect` is unwired. Attributes,
+particles and biomes are validated by nobody in either direction, because Bedrock publishes no enum
+for them, so those arguments take any string.
+
+One consequence worth knowing: `/summon villager` gives you `minecraft:villager_v2`, Bedrock's
+current villager, rather than the pre-1.11 entity whose name Mojang's enum still carries. The
+command resolves through the same Java-to-Bedrock mapping the entity runtime uses, so the two
+cannot disagree about which villager they mean — which matters, because the villager is the one
+brain mob the editions spell differently.
 
 ## Selectors
 
@@ -450,13 +469,11 @@ there is no `/trigger` in this set, so recording the grant would set a flag noth
 as long as the process. Everything a running server can observe works, including display slots and
 a score surviving a player relogging.
 
-**`/loot insert` refuses.** The other three destinations (`give`, `spawn`, `replace`) work. Its
-refusal message still says this server has no container block entities, which is no longer true —
-chests and the other 24 container blocks now hold real slots — so this is a wiring gap rather than
-a missing subsystem.
 
-**`/replaceitem` only writes a player's named slots.** Container blocks and the slots this server's
-inventories do not name are refused rather than silently skipped.
+**`/replaceitem` cannot write the slots no entity here holds.** It writes a player's named slots,
+the ender chest, the indexed `slot.armor <n>` spelling, and container blocks through
+`/replaceitem block <pos> slot.container <n>`. It refuses `slot.saddle`, `slot.chest`,
+`slot.equippable` and `slot.armor.body`, because nothing in this server holds them.
 
 **`Constraints` is always empty in the command packet.** Mojang's schema names the field without
 defining it, and gophertunnel, Cloudburst and PocketMine disagree about what the indices mean, so
