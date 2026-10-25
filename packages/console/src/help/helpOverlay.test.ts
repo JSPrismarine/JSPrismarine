@@ -2,22 +2,14 @@ import { createTestRenderer } from '@opentui/core/testing';
 import { describe, expect, it } from 'vitest';
 
 import { COMMAND_CATALOG } from '../keymap/catalog';
+import { defaultTheme } from '../theme/theme';
 import { createHelpOverlay } from './helpOverlay';
-import type { HelpColors } from './helpOverlay';
-
-const colors: HelpColors = {
-    text: '#ffffff',
-    muted: '#808080',
-    accent: '#00ffff',
-    border: '#4040ff',
-    background: '#000000'
-};
 
 const rows = (frame: string) => frame.replace(/\n$/, '').split('\n');
 
 async function setup(width: number, height: number) {
     const test = await createTestRenderer({ width, height });
-    const overlay = createHelpOverlay({ renderer: test.renderer }, { colors, catalog: COMMAND_CATALOG });
+    const overlay = createHelpOverlay({ renderer: test.renderer, theme: defaultTheme }, { catalog: COMMAND_CATALOG });
     test.renderer.root.add(overlay.renderable);
     const frame = async () => {
         await test.renderOnce();

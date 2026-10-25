@@ -1,7 +1,7 @@
 import type { ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
 import type { LogLevel } from '@jsprismarine/logger';
 import { BoxRenderable, CliRenderEvents } from '@opentui/core';
-import type { CliRenderer, KeyEvent } from '@opentui/core';
+import type { KeyEvent } from '@opentui/core';
 
 import { createHelpOverlay } from '../help/helpOverlay';
 import { createInputBar } from '../input/inputBar';
@@ -18,8 +18,7 @@ import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, sta
 import type { Segment, ServerState } from '../status/segments';
 import { createToastStack } from '../status/toasts';
 import type { ToastInput } from '../status/toastQueue';
-import type { Theme } from '../theme';
-import { statusColorsFrom } from './colors';
+import type { ConsoleContext } from '../context';
 import { INITIAL_DEV_STATE, reduceDevState } from './devState';
 import type { DevState } from './devState';
 import { computeLayout } from './layout';
@@ -28,9 +27,7 @@ import { createSidePane } from './sidePane';
 import { createTitleBar } from './titleBar';
 
 /** Shared objects the app and its components read. */
-export interface AppContext {
-    renderer: CliRenderer;
-    theme: Theme;
+export interface AppContext extends ConsoleContext {
     store: LogStore;
     history: CommandHistory;
     /** Clock in epoch milliseconds; defaults to `Date.now`. */
@@ -106,7 +103,7 @@ interface Metrics {
 export function createApp(ctx: AppContext, props: AppProps): App {
     const { renderer, theme, store, history } = ctx;
     const now = ctx.now ?? Date.now;
-    const colors = statusColorsFrom(theme);
+    const components = { renderer, theme };
 
     let disposed = false;
     let state: ServerState = 'starting';
@@ -145,23 +142,11 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         overflow: 'hidden'
     });
 
-    const toasts = createToastStack({ renderer }, { colors });
-    const titleBar = createTitleBar({ renderer, theme }, { serverName: props.serverName, version: props.version });
-    const sidePane = createSidePane({ renderer, theme });
-    const statusBar = createStatusBar({ renderer }, { colors });
-    const help = createHelpOverlay(
-        { renderer },
-        {
-            colors: {
-                text: theme.text,
-                muted: theme.textMuted,
-                accent: theme.accent,
-                border: theme.border,
-                background: theme.surface
-            },
-            catalog: COMMAND_CATALOG
-        }
-    );
+    const toasts = createToastStack(components);
+    const titleBar = createTitleBar(components, { serverName: props.serverName, version: props.version });
+    const sidePane = createSidePane(components);
+    const statusBar = createStatusBar(components);
+    const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG });
 
     /** Turns an exception from a handler into a toast and a raw stderr line. */
     const report = (error: unknown): void => {
@@ -189,31 +174,26 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let view: LogView = mountLogView();
 
     function mountLogView(): LogView {
-        const created = createLogView(
-            { renderer },
-            { store, theme, wrap, showNamespace: layout.showNamespace, levelWidth: layout.levelWidth }
-        );
+        const created = createLogView(components, {
+            store,
+            wrap,
+            showNamespace: layout.showNamespace,
+            levelWidth: layout.levelWidth
+        });
         created.setSearchHighlight(search);
         logColumn.add(created.renderable, 0);
         return created;
     }
 
-    const input = createInputBar(
-        { renderer },
-        {
-            promptColor: colors.accent,
-            textColor: colors.text,
-            ghostColor: colors.muted,
-            disabledColor: colors.muted,
-            history,
-            now,
-            onSubmit: guard(submit),
-            onComplete: props.onComplete,
-            onInterrupt: guard(interrupt),
-            onHint: guard((text: string | undefined) => statusBar.setHint(text)),
-            onToggle: guard(toggle)
-        }
-    );
+    const input = createInputBar(components, {
+        history,
+        now,
+        onSubmit: guard(submit),
+        onComplete: props.onComplete,
+        onInterrupt: guard(interrupt),
+        onHint: guard((text: string | undefined) => statusBar.setHint(text)),
+        onToggle: guard(toggle)
+    });
 
     logColumn.add(toasts.renderable);
     main.add(logColumn);

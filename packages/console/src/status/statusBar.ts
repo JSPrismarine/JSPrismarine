@@ -1,21 +1,14 @@
 import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { CliRenderer, TextChunk } from '@opentui/core';
+import type { TextChunk } from '@opentui/core';
 
+import type { ConsoleContext } from '../context';
 import { layoutSegments } from './segments';
-import type { Segment, StatusColors } from './segments';
+import type { Segment } from './segments';
 
 /**
- * Renderer-level dependencies a status component needs. Matches the console's component contract.
- */
-export interface StatusContext {
-    renderer: CliRenderer;
-}
-
-/**
- * Initial contents and colors of the status bar.
+ * Initial contents of the status bar.
  */
 export interface StatusBarProps {
-    colors: StatusColors;
     /** Server metrics shown on the left; laid out by priority in the space the right side leaves. */
     left?: readonly Segment[];
     /** Filter summary and key hints shown on the right. Defaults to `? help`. */
@@ -47,11 +40,14 @@ const GAP = 1;
 const columns = (text: string) => [...text].length;
 
 /**
- * Creates the status bar. The bar measures itself against the renderer's terminal width.
+ * Creates the status bar. The bar measures itself against the renderer's terminal width and
+ * draws on the theme's `surface` color.
  */
-export function createStatusBar(ctx: StatusContext, props: StatusBarProps): StatusBar {
-    const { renderer } = ctx;
-    const { colors } = props;
+export function createStatusBar(
+    ctx: Pick<ConsoleContext, 'renderer' | 'theme'>,
+    props: StatusBarProps = {}
+): StatusBar {
+    const { renderer, theme } = ctx;
     let left = props.left ?? [];
     let right = props.right ?? [HELP_SEGMENT];
     let hint: string | undefined;
@@ -64,17 +60,17 @@ export function createStatusBar(ctx: StatusContext, props: StatusBarProps): Stat
         justifyContent: 'space-between',
         paddingLeft: PADDING,
         paddingRight: PADDING,
-        backgroundColor: colors.background
+        backgroundColor: theme.surface
     });
-    const leftText = new TextRenderable(renderer, { id: 'status-left', fg: colors.text, truncate: true });
-    const rightText = new TextRenderable(renderer, { id: 'status-right', fg: colors.text });
+    const leftText = new TextRenderable(renderer, { id: 'status-left', fg: theme.text, truncate: true });
+    const rightText = new TextRenderable(renderer, { id: 'status-right', fg: theme.text });
     renderable.add(leftText);
     renderable.add(rightText);
 
     const chunksFor = (segments: readonly Segment[]): TextChunk[] =>
         segments.flatMap((segment, index) => {
-            const chunk = fg(colors[segment.tone])(segment.text);
-            return index === 0 ? [chunk] : [fg(colors.muted)(SEPARATOR), chunk];
+            const chunk = fg(theme[segment.tone])(segment.text);
+            return index === 0 ? [chunk] : [fg(theme.muted)(SEPARATOR), chunk];
         });
 
     const layout = () => {

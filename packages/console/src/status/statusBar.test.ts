@@ -1,19 +1,13 @@
+import type { CliRenderer } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { describe, expect, it } from 'vitest';
 
+import { defaultTheme } from '../theme/theme';
 import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, stateSegment } from './segments';
 import { createStatusBar } from './statusBar';
-import type { Segment, StatusColors } from './segments';
+import type { Segment } from './segments';
 
-const colors: StatusColors = {
-    ok: '#00ff00',
-    warning: '#ffff00',
-    danger: '#ff0000',
-    muted: '#808080',
-    accent: '#00ffff',
-    text: '#ffffff',
-    background: '#000000'
-};
+const ctx = (renderer: CliRenderer) => ({ renderer, theme: defaultTheme });
 
 const left: Segment[] = [
     stateSegment('running'),
@@ -35,7 +29,7 @@ describe('createStatusBar', () => {
     it('renders every segment at 120 columns with the right side flush right', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {
-            const bar = createStatusBar({ renderer: setup.renderer }, { colors, left, right });
+            const bar = createStatusBar(ctx(setup.renderer), { left, right });
             setup.renderer.root.add(bar.renderable);
             await setup.renderOnce();
 
@@ -51,7 +45,7 @@ describe('createStatusBar', () => {
     it('drops low priority segments at 60 columns', async () => {
         const setup = await createTestRenderer({ width: 60, height: 1 });
         try {
-            const bar = createStatusBar({ renderer: setup.renderer }, { colors, left, right });
+            const bar = createStatusBar(ctx(setup.renderer), { left, right });
             setup.renderer.root.add(bar.renderable);
             await setup.renderOnce();
 
@@ -68,7 +62,7 @@ describe('createStatusBar', () => {
     it('re-lays out when the renderer resizes', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {
-            const bar = createStatusBar({ renderer: setup.renderer }, { colors, left, right });
+            const bar = createStatusBar(ctx(setup.renderer), { left, right });
             setup.renderer.root.add(bar.renderable);
             await setup.renderOnce();
             expect(firstLine(setup.captureCharFrame())).toContain('up 00:05:40');
@@ -84,7 +78,7 @@ describe('createStatusBar', () => {
     it('shows a hint instead of the left segments while one is set', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {
-            const bar = createStatusBar({ renderer: setup.renderer }, { colors, left, right });
+            const bar = createStatusBar(ctx(setup.renderer), { left, right });
             setup.renderer.root.add(bar.renderable);
 
             bar.setHint('Press Ctrl+C again to stop the server');
@@ -107,7 +101,7 @@ describe('createStatusBar', () => {
     it('replaces the segment lists through setLeft and setRight', async () => {
         const setup = await createTestRenderer({ width: 120, height: 1 });
         try {
-            const bar = createStatusBar({ renderer: setup.renderer }, { colors });
+            const bar = createStatusBar(ctx(setup.renderer));
             setup.renderer.root.add(bar.renderable);
             await setup.renderOnce();
             expect(firstLine(setup.captureCharFrame()).trimEnd().endsWith('? help')).toBe(true);

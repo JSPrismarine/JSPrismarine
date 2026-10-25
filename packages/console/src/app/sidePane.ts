@@ -1,18 +1,12 @@
 import { BoxRenderable, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { CliRenderer, TextChunk } from '@opentui/core';
+import type { TextChunk } from '@opentui/core';
 
+import type { ConsoleContext } from '../context';
 import { formatTime } from '../log/logLine';
 import { formatMemory, formatPlayers, formatUptime } from '../status/segments';
 import type { ServerState } from '../status/segments';
-import type { Theme } from '../theme';
 import type { DevState } from './devState';
 import type { SidePaneMode } from './layout';
-
-/** Renderer-level dependencies the side pane needs. */
-export interface SidePaneContext {
-    renderer: CliRenderer;
-    theme: Theme;
-}
 
 /** Everything the side pane shows. Missing fields render as a dash until the server reports them. */
 export interface SidePaneModel {
@@ -74,7 +68,7 @@ function rowsFor(model: SidePaneModel): Row[] {
  * Creates the side pane. Rows are rebuilt on every `update`; the pane holds at most a dozen
  * of them, so that costs less than keeping the rows in step by hand.
  */
-export function createSidePane(ctx: SidePaneContext): SidePane {
+export function createSidePane(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>): SidePane {
     const { renderer, theme } = ctx;
 
     const renderable = new BoxRenderable(renderer, {

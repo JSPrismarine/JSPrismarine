@@ -120,6 +120,5 @@ describe('levelToken', () => {
         expect(levelToken('verbose', monochromeTheme).attributes).toBe(TextAttributes.DIM);
         expect(levelToken('debug', monochromeTheme).attributes).toBe(TextAttributes.DIM);
         expect(levelToken('silly', monochromeTheme).attributes).toBe(TextAttributes.DIM);
-        expect(levelToken('dev', monochromeTheme).attributes).toBe(TextAttributes.DIM);
     });
 });

@@ -1,7 +1,10 @@
+import type { ThemeRole } from '../theme/theme';
+
 /**
- * Color role a status segment or toast is drawn with. The theme maps each tone to a color.
+ * Color role a status segment or toast is drawn with. Each tone is a theme role, so components
+ * read `theme[segment.tone]`.
  */
-export type SegmentTone = 'ok' | 'warning' | 'danger' | 'muted' | 'accent';
+export type SegmentTone = Extract<ThemeRole, 'ok' | 'warning' | 'danger' | 'muted' | 'accent'>;
 
 /**
  * One item in the status bar. Higher `priority` segments survive longer when the bar narrows.
@@ -13,14 +16,6 @@ export interface Segment {
     tone: SegmentTone;
     priority: number;
 }
-
-/**
- * Colors the status components draw with, keyed by tone plus the bar's own text and background.
- */
-export type StatusColors = Record<SegmentTone, string> & {
-    text: string;
-    background: string;
-};
 
 /**
  * Lifecycle states of the server process as reported by the supervisor.

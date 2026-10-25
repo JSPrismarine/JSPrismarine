@@ -1,7 +1,7 @@
 import type { LogEntry } from '@jsprismarine/console-protocol';
+import { isAtLeastLevel } from '@jsprismarine/logger';
 import type { LogLevel } from '@jsprismarine/logger';
 import type { RawStream, StoredRecord } from './types';
-import { compareLevels } from './types';
 
 /** Options for {@link LogStore}. */
 export interface LogStoreOptions {
@@ -217,7 +217,7 @@ export class LogStore {
 
     private passes(record: StoredRecord): boolean {
         if (record.kind !== 'log') return true;
-        if (this.maxLevel !== undefined && compareLevels(record.level, this.maxLevel) > 0) return false;
+        if (this.maxLevel !== undefined && !isAtLeastLevel(record.level, this.maxLevel)) return false;
         const pattern = this.namespacePattern;
         if (pattern === undefined) return true;
         return record.namespace.toLowerCase().includes(pattern.needle) !== pattern.invert;

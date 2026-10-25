@@ -1,8 +1,7 @@
 import { BoxRenderable, TextRenderable } from '@opentui/core';
 
+import type { ConsoleContext } from '../context';
 import { ToastQueue } from './toastQueue';
-import type { StatusColors } from './segments';
-import type { StatusContext } from './statusBar';
 import type { ToastInput } from './toastQueue';
 
 /**
@@ -16,10 +15,9 @@ export interface ToastTimers<Handle = unknown> {
 }
 
 /**
- * Colors, limits, and timers of a toast stack.
+ * Limits and timers of a toast stack.
  */
 export interface ToastStackProps {
-    colors: StatusColors;
     /** Toasts shown at once; defaults to 3. Overflow drops the oldest non-sticky toast. */
     maxVisible?: number;
     /** Lifetime of a toast that sets neither `sticky` nor `ttlMs`; defaults to 4000. */
@@ -53,9 +51,11 @@ const defaultTimers: ToastTimers<ReturnType<typeof setTimeout>> = {
  * Creates the toast stack. One timer is armed for the earliest expiry and re-armed after each
  * change, so pushing many toasts never schedules more than one callback.
  */
-export function createToastStack(ctx: StatusContext, props: ToastStackProps): ToastStack {
-    const { renderer } = ctx;
-    const { colors } = props;
+export function createToastStack(
+    ctx: Pick<ConsoleContext, 'renderer' | 'theme'>,
+    props: ToastStackProps = {}
+): ToastStack {
+    const { renderer, theme } = ctx;
     const timers: ToastTimers = props.timers ?? defaultTimers;
     const queue = new ToastQueue({ maxVisible: props.maxVisible ?? 3, defaultTtlMs: props.defaultTtlMs ?? 4000 });
     let timer: unknown;
@@ -80,12 +80,12 @@ export function createToastStack(ctx: StatusContext, props: ToastStackProps): To
                 id: toast.id,
                 border: true,
                 borderStyle: 'rounded',
-                borderColor: colors[toast.tone],
-                backgroundColor: colors.background,
+                borderColor: theme[toast.tone],
+                backgroundColor: theme.surface,
                 paddingLeft: 1,
                 paddingRight: 1
             });
-            box.add(new TextRenderable(renderer, { id: `${toast.id}-text`, content: toast.text, fg: colors.text }));
+            box.add(new TextRenderable(renderer, { id: `${toast.id}-text`, content: toast.text, fg: theme.text }));
             renderable.add(box);
         }
     };

@@ -2,19 +2,9 @@ import { BoxRenderable } from '@opentui/core';
 import { createTestRenderer } from '@opentui/core/testing';
 import { describe, expect, it } from 'vitest';
 
+import { defaultTheme } from '../theme/theme';
 import { createToastStack } from './toasts';
-import type { StatusColors } from './segments';
 import type { ToastTimers } from './toasts';
-
-const colors: StatusColors = {
-    ok: '#00ff00',
-    warning: '#ffff00',
-    danger: '#ff0000',
-    muted: '#808080',
-    accent: '#00ffff',
-    text: '#ffffff',
-    background: '#000000'
-};
 
 /** Manual timers: `advance(ms)` moves the clock and fires every timer that came due, in order. */
 function manualTimers() {
@@ -61,8 +51,8 @@ describe('createToastStack', () => {
         const clock = manualTimers();
         try {
             const stack = createToastStack(
-                { renderer: test.renderer },
-                { colors, defaultTtlMs: 4000, timers: clock.timers }
+                { renderer: test.renderer, theme: defaultTheme },
+                { defaultTtlMs: 4000, timers: clock.timers }
             );
             test.parent.add(stack.renderable);
 
@@ -91,7 +81,7 @@ describe('createToastStack', () => {
         const test = await setup();
         const clock = manualTimers();
         try {
-            const stack = createToastStack({ renderer: test.renderer }, { colors, timers: clock.timers });
+            const stack = createToastStack({ renderer: test.renderer, theme: defaultTheme }, { timers: clock.timers });
             test.parent.add(stack.renderable);
 
             const crash = stack.push({ tone: 'danger', text: 'server crashed', sticky: true });
@@ -118,7 +108,7 @@ describe('createToastStack', () => {
         const test = await setup();
         const clock = manualTimers();
         try {
-            const stack = createToastStack({ renderer: test.renderer }, { colors, timers: clock.timers });
+            const stack = createToastStack({ renderer: test.renderer, theme: defaultTheme }, { timers: clock.timers });
             test.parent.add(stack.renderable);
             stack.push({ tone: 'ok', text: 'one' });
             stack.push({ tone: 'ok', text: 'two' });

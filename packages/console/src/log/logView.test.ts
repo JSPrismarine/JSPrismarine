@@ -27,7 +27,7 @@ const lines = (frame: string) =>
 async function setup(width = 100, height = 20) {
     const test = await createTestRenderer({ width, height });
     const store = new LogStore();
-    const view = createLogView({ renderer: test.renderer }, { store, theme: defaultTheme });
+    const view = createLogView({ renderer: test.renderer, theme: defaultTheme }, { store });
     test.renderer.root.add(view.renderable);
     await test.renderOnce();
     const frame = async () => {

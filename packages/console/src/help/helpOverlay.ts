@@ -1,26 +1,12 @@
 import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { CliRenderer, ColorInput, TextChunk } from '@opentui/core';
+import type { TextChunk } from '@opentui/core';
 
+import type { ConsoleContext } from '../context';
 import { COMMAND_GROUPS, formatBinding } from '../keymap/catalog';
 import type { CommandCatalog, CommandSpec } from '../keymap/catalog';
 
-/** Renderer-level dependencies the overlay needs. Matches the console's component contract. */
-export interface HelpContext {
-    renderer: CliRenderer;
-}
-
-/** Colors the overlay reads from the theme. */
-export interface HelpColors {
-    text: ColorInput;
-    muted: ColorInput;
-    accent: ColorInput;
-    border: ColorInput;
-    background: ColorInput;
-}
-
 /** Inputs for {@link createHelpOverlay}. */
 export interface HelpOverlayProps {
-    colors: HelpColors;
     /** Commands to list. The overlay is generated from this, so it cannot drift from the bindings. */
     catalog: CommandCatalog;
 }
@@ -124,9 +110,12 @@ function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeig
  * resize: one column when it fits, two when the terminal is too short but wide enough, and a
  * trailing `…` row when even that does not fit.
  */
-export function createHelpOverlay(ctx: HelpContext, props: HelpOverlayProps): HelpOverlay {
-    const { renderer } = ctx;
-    const { colors, catalog } = props;
+export function createHelpOverlay(
+    ctx: Pick<ConsoleContext, 'renderer' | 'theme'>,
+    props: HelpOverlayProps
+): HelpOverlay {
+    const { renderer, theme } = ctx;
+    const { catalog } = props;
 
     const renderable = new BoxRenderable(renderer, {
         id: 'help-overlay',
@@ -136,10 +125,10 @@ export function createHelpOverlay(ctx: HelpContext, props: HelpOverlayProps): He
         flexDirection: 'column',
         border: true,
         borderStyle: 'rounded',
-        borderColor: colors.border,
-        backgroundColor: colors.background,
+        borderColor: theme.border,
+        backgroundColor: theme.surface,
         title: TITLE,
-        titleColor: colors.accent,
+        titleColor: theme.accent,
         titleAlignment: 'center',
         paddingLeft: PADDING_X,
         paddingRight: PADDING_X
@@ -148,9 +137,9 @@ export function createHelpOverlay(ctx: HelpContext, props: HelpOverlayProps): He
     const chunksFor = (line: HelpLine, keyWidth: number): TextChunk[] => {
         switch (line.kind) {
             case 'header':
-                return [fg(colors.muted)(line.text)];
+                return [fg(theme.textMuted)(line.text)];
             case 'command':
-                return [fg(colors.accent)(line.keys.padEnd(keyWidth + KEY_GAP)), fg(colors.text)(line.title)];
+                return [fg(theme.accent)(line.keys.padEnd(keyWidth + KEY_GAP)), fg(theme.text)(line.title)];
             case 'blank':
                 return [];
         }
@@ -198,7 +187,7 @@ export function createHelpOverlay(ctx: HelpContext, props: HelpOverlayProps): He
                     new TextRenderable(renderer, {
                         id: 'help-ellipsis',
                         height: 1,
-                        content: new StyledText([fg(colors.muted)(ELLIPSIS)])
+                        content: new StyledText([fg(theme.textMuted)(ELLIPSIS)])
                     })
                 );
             }
@@ -210,7 +199,7 @@ export function createHelpOverlay(ctx: HelpContext, props: HelpOverlayProps): He
                 id: 'help-footer',
                 height: 1,
                 marginTop: 1,
-                content: new StyledText([fg(colors.muted)(FOOTER)])
+                content: new StyledText([fg(theme.textMuted)(FOOTER)])
             })
         );
 
