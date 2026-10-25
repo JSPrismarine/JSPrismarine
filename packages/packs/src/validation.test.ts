@@ -40,6 +40,25 @@ describe('structuralValidator', () => {
         expect(findings).toEqual([expect.objectContaining({ severity: 'warning', code: 'definition.unknown-key' })]);
     });
 
+    it('reads a null section as an absent one, the way 23 vanilla entities write events', () => {
+        // area_effect_cloud.json and 22 more ship `"events": null`.
+        const findings = structuralValidator({
+            registry: 'entities',
+            path: 'entities/thing.json',
+            data: { ...entity({}), 'minecraft:entity': { ...entity({})['minecraft:entity'], events: null } }
+        });
+        expect(findings).toEqual([]);
+    });
+
+    it('still reports a section written as something other than an object', () => {
+        const findings = structuralValidator({
+            registry: 'entities',
+            path: 'entities/thing.json',
+            data: { ...entity({}), 'minecraft:entity': { ...entity({})['minecraft:entity'], events: 3 } }
+        });
+        expect(findings).toContainEqual(expect.objectContaining({ severity: 'error', code: 'definition.missing-key' }));
+    });
+
     it('parses every nested filters key, accepting the integer encoding', () => {
         const findings = structuralValidator({
             registry: 'entities',

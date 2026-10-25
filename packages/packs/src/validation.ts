@@ -67,7 +67,11 @@ interface Shape {
     requiresWrapper: boolean;
     /** Required keys of the wrapper's `description` object. */
     descriptionKeys?: readonly string[];
-    /** Wrapper keys whose value must be an object when present. */
+    /**
+     * Wrapper keys whose value must be an object when present. A key written
+     * as `null` counts as absent: 23 vanilla entity files, `area_effect_cloud`
+     * among them, write `"events": null` for a definition with no events.
+     */
     objectKeys?: readonly string[];
     /** Required root keys with their expected container type. */
     requiredRootArrays?: readonly string[];
@@ -252,7 +256,7 @@ export const structuralValidator: DefinitionValidator = ({ registry, data }) => 
     }
 
     for (const key of shape.objectKeys ?? []) {
-        if (wrapper[key] !== undefined && !isRecord(wrapper[key]))
+        if (wrapper[key] !== undefined && wrapper[key] !== null && !isRecord(wrapper[key]))
             findings.push({ severity: 'error', code: 'definition.missing-key', message: `${key} must be an object` });
     }
 
