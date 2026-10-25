@@ -1296,6 +1296,9 @@ importers:
       '@jsprismarine/color-parser':
         specifier: workspace:*
         version: link:../color-parser
+      '@jsprismarine/commands':
+        specifier: workspace:*
+        version: link:../commands
       '@jsprismarine/console-protocol':
         specifier: workspace:*
         version: link:../console-protocol
@@ -1414,6 +1417,9 @@ importers:
       ts-json-schema-generator:
         specifier: 2.9.0
         version: 2.9.0
+      tsx:
+        specifier: 4.23.15
+        version: 4.23.15
       typescript:
         specifier: 7.0.2
         version: 7.0.2

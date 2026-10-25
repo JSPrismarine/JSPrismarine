@@ -48,6 +48,7 @@
         "generate": "node utils/generate-schemas.cjs",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
+        "bench:chunks": "node --import tsx benchmarks/chunkGeneration.ts",
         "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json",
         "prepack": "pnpm run generate"
     },
@@ -72,6 +73,7 @@
         "glob": "13.0.6",
         "rimraf": "6.1.3",
         "ts-json-schema-generator": "2.9.0",
+        "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "8.3.5",
         "vitest": "5.0.5"
