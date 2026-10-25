@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { dirname, join } from 'node:path';
 
 import BinaryStream from '@jsprismarine/binaryutils';
+import type { ClimateEntry } from '@jsprismarine/worldgen';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 
 /**
@@ -253,3 +254,28 @@ export interface JavaBiomePointVectors {
 export const loadJavaBiomePoints = (): JavaBiomePointVectors =>
     // Parsed JSON boundary; the dumper writes one entry per climate parameter list.
     readJson(join(worldgenRoot, 'vectors/biome-points.json')) as JavaBiomePointVectors;
+
+/**
+ * Unpacks one climate parameter point out of the biome vector file.
+ *
+ * The oracle writes a point as fourteen space-separated numbers: the index into the file's
+ * biome list, then the six parameter spans as min and max pairs, then the offset. Reading it
+ * here keeps the format in one place, beside the loader that produces the file's other halves.
+ */
+export const unpackClimatePoint = (packed: string, biomes: readonly string[]): ClimateEntry<string> => {
+    const values = packed.split(' ').map(Number);
+    const at = (index: number): number => values[index] ?? 0;
+    const span = (index: number) => ({ min: at(index), max: at(index + 1) });
+    return {
+        point: {
+            temperature: span(1),
+            humidity: span(3),
+            continentalness: span(5),
+            erosion: span(7),
+            depth: span(9),
+            weirdness: span(11),
+            offset: at(13)
+        },
+        value: biomes[at(0)] ?? `<biome index ${at(0)}>`
+    };
+};
