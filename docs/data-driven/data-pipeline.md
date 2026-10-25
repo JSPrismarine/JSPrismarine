@@ -101,9 +101,37 @@ search in `utils/java/jdk.ts` with the compose stage, which looks at `JSP_JAVA_H
 and, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape and counts of
 both files.
 
-The Bedrock-side captures under `packages/bedrock-data/src/jsp/` come from running the pinned BDS
-with `packages/client/tools/capture-server-data.mjs`, which is likewise a version-bump task rather
-than a build step.
+```sh
+pnpm --filter @jsprismarine/bedrock-data run dump:bedrock
+```
+
+This is the Bedrock half, run on a Bedrock version bump and weekly. It copies the fetched server
+into `node_modules/.cache/jsprismarine/bds-run/<version>/` rather than starting it inside the
+extracted archive, makes the binary executable (the zip reader writes every entry as a plain
+file), sets `content-log-console-output-enabled=true`, which is the only channel a behavior pack
+has, and runs three passes with a fresh world each:
+
+- `dump` loads the dump behavior pack and writes one file per Script API registry into
+  `src/jsp/bedrock/`: the block types with their tags and water rules, the per-block state
+  domains, the item table with its components, the entity components and bounding boxes, and the
+  biome, effect, enchantment, dimension and potion lists.
+- `refworld` generates the reference region through ticking areas, stops the server cleanly so
+  the world reaches disk, and reduces the save to `src/jsp/reference_world.json`.
+- `packets` logs a client in with `packages/client/tools/capture-server-data.mjs` and rewrites
+  the item table, the data-driven block definitions, the jigsaw rules and the biome definitions,
+  plus the raw payloads of the engine tables this repository has no decoder for yet under
+  `src/jsp/packets/`.
+
+The job runs on Linux x86-64, which is the zip `sources.json` pins, and refuses anywhere else.
+`.github/workflows/capture.yml` runs it weekly and on a change to `sources.json`, and opens a
+pull request when a golden moved.
+
+`packages/bedrock-data/utils/bedrock-dump/region.ts` defines the reference region: a fixed seed,
+the Overworld, and 400 chunks at the world origin, split into ticking areas of a hundred chunks
+because that is the engine's limit. The golden carries a sha256 per chunk of the heightmap, the
+3D biome arrays, the topmost non-air block name per column and the layer 0 block states, plus
+whole arrays for sixteen chunks and one block histogram for the region. Those are the rows
+Phase 4's exit criteria name.
 
 ## Generate
 
@@ -160,8 +188,9 @@ Java vanilla datapack as missing.
 3. If the Java version moved, run `pnpm --filter @jsprismarine/bedrock-data run datagen:java` to
    replace the cached datapack and reports, then `pnpm --filter @jsprismarine/bedrock-data run
    dump:java` and update the counts `src/javaGoldens.test.ts` asserts.
-4. If the Bedrock version moved, update the resources submodule, refresh the BDS captures with
-   `packages/client/tools/capture-server-data.mjs`, and run
+4. If the Bedrock version moved, update the resources submodule, run
+   `pnpm --filter @jsprismarine/bedrock-data run dump:bedrock` on a Linux x86-64 machine (or let
+   `.github/workflows/capture.yml` run it and open the pull request), and run
    `pnpm --filter @jsprismarine/bedrock-data run generate`.
 5. Run `pnpm --filter @jsprismarine/mapping run generate:tables` and
    `pnpm --filter @jsprismarine/mapping run generate:block-properties`, then review the table
