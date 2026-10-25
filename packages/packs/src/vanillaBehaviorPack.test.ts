@@ -100,21 +100,26 @@ describe.skipIf(!enabled)('the vanilla Bedrock behavior pack', () => {
     });
 
     it('loads every registry of the composed BDS vanilla layers', { timeout: 60_000 }, () => {
-        const { definitions, diagnostics } = load([{ kind: 'brarchiveLayers', path: bdsVanillaLayers() }]);
+        // A strict load of the shipped vanilla stack has to succeed: this is
+        // the headline stack the package exists to read.
+        const { definitions, diagnostics } = load([{ kind: 'brarchiveLayers', path: bdsVanillaLayers() }], {
+            strict: true
+        });
 
-        // One error, over the only two files in the whole of BDS that carry a
-        // wrapper with no description: `entities/npc.json` in the
-        // vanilla_1.16.100 and vanilla_1.17.20 layers, each a bare component
-        // map at format_version 1.13.0. They patch a saved pack through the
-        // engine's own upgrade path rather than defining an entity, and the
-        // vanilla_1.20.80 layer carries the real npc, so the composed result
-        // is right and the loader has nothing to register for these two. The
-        // collector reports the pair once.
-        expect(errorsOf(diagnostics)).toEqual([
+        expect(errorsOf(diagnostics)).toEqual([]);
+        // The only two files in the whole of BDS that carry a wrapper with no
+        // description: `entities/npc.json` in the vanilla_1.16.100 and
+        // vanilla_1.17.20 layers, each a bare component map at format_version
+        // 1.13.0. They patch a saved pack through the engine's own upgrade
+        // path rather than defining an entity, and the vanilla_1.20.80 layer
+        // carries the real npc, so the composed result is right and these two
+        // are superseded, which makes them warnings.
+        const npc = diagnostics.filter((diagnostic) => diagnostic.path === 'entities/npc.json');
+        expect(npc).toEqual([
             expect.objectContaining({
+                severity: 'warning',
                 code: 'definition.missing-key',
-                message: 'description must be an object',
-                path: 'entities/npc.json'
+                message: 'description must be an object; a later pack supersedes this file'
             })
         ]);
         // 129 entities, 60 spawn rules, 309 loot tables and 27 trade tables

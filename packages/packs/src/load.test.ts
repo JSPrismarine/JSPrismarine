@@ -164,6 +164,58 @@ describe('load', () => {
         expect(diagnostics.some((diagnostic) => diagnostic.code === 'definition.missing-wrapper')).toBe(true);
     });
 
+    /** Writes a pack whose `entities/robot.json` is a wrapper with no description. */
+    const packWithBrokenRobot = (): string => {
+        const pack = temporaryDir();
+        mkdirSync(join(pack, 'entities'), { recursive: true });
+        writeFileSync(join(pack, 'manifest.json'), readFileSync(join(basePack, 'manifest.json')));
+        writeFileSync(
+            join(pack, 'entities', 'robot.json'),
+            JSON.stringify({ format_version: '1.26.0', 'minecraft:entity': { components: {} } })
+        );
+        return pack;
+    };
+
+    it('warns instead of failing when a later pack supersedes the broken file', () => {
+        const { definitions, diagnostics } = load(
+            [
+                { kind: 'directory', path: packWithBrokenRobot() },
+                { kind: 'directory', path: overridePack }
+            ],
+            { strict: true }
+        );
+
+        expect(definitions.entities.get('fixture:robot')?.pack).toBe('Override Pack');
+        expect(diagnostics).toContainEqual(
+            expect.objectContaining({
+                severity: 'warning',
+                code: 'definition.missing-key',
+                pack: 'Base Pack',
+                path: 'entities/robot.json'
+            })
+        );
+    });
+
+    it('fails the strict load when nothing supersedes the broken file', () => {
+        const broken = packWithBrokenRobot();
+        try {
+            load([{ kind: 'directory', path: broken }], { strict: true });
+            expect.unreachable('the broken file should fail a strict load');
+        } catch (error) {
+            if (!(error instanceof PackLoadError)) throw error;
+            expect(error.diagnostics.length).toBeGreaterThan(0);
+        }
+
+        const { diagnostics } = load([{ kind: 'directory', path: broken }]);
+        expect(diagnostics).toContainEqual(
+            expect.objectContaining({
+                severity: 'error',
+                code: 'definition.missing-key',
+                path: 'entities/robot.json'
+            })
+        );
+    });
+
     it('accepts an injected validator in place of the structural one', () => {
         const { diagnostics } = load([{ kind: 'directory', path: basePack }], {
             validator: ({ path }) => [{ severity: 'warning', code: 'custom.flag', message: `saw ${path}` }]
@@ -172,14 +224,11 @@ describe('load', () => {
         expect(diagnostics.length).toBeGreaterThan(0);
     });
 
-    it('turns diagnostics into a load failure in strict mode', () => {
-        expect(() => load([{ kind: 'directory', path: basePack }], { strict: true })).toThrow(PackLoadError);
-        try {
-            load([{ kind: 'directory', path: basePack }], { strict: true });
-        } catch (error) {
-            if (!(error instanceof PackLoadError)) throw error;
-            expect(error.diagnostics.length).toBeGreaterThan(0);
-        }
+    it('loads a stack whose only diagnostics are warnings in strict mode', () => {
+        // The base pack writes an unknown root key, which is a warning.
+        const { definitions, diagnostics } = load([{ kind: 'directory', path: basePack }], { strict: true });
+        expect(definitions.entities.get('fixture:robot')).toBeDefined();
+        expect(diagnostics.some((diagnostic) => diagnostic.severity === 'warning')).toBe(true);
     });
 
     it('loads a clean stack in strict mode', () => {
