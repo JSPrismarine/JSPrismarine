@@ -23,5 +23,16 @@ the three anvils, the brewing stand, the dispenser, the dropper, the hopper, the
 the grindstone, the stonecutter, the cartography table, the smithing table, the lectern and the
 crafter.
 
-Moving a stack into or out of a block container is still refused: `ItemStackRequestHandler` only
-resolves the player's own containers, the cursor, the crafting grid and the armor slots.
+The enchanting table and the anvil also take their craft. `ItemStackRequestHandler` resolves
+`ENCHANTING_INPUT_CONTAINER`, `ENCHANTING_MATERIAL_CONTAINER`, `ANVIL_INPUT_CONTAINER` and
+`ANVIL_MATERIAL_CONTAINER` into two slots held on the open window, so a stack can sit in the table
+between the `PLACE` that puts it there and the craft that takes it out, and the request rollback
+covers them. A `CRAFTING_RECIPE` while an enchanting table is open is the row the player clicked
+rather than a recipe, and runs `takeEnchantingRow`; a `CRAFTING_RECIPE_OPTIONAL` while an anvil is
+open runs `takeFromAnvil` with the name out of `Strings To Filter`. Moving a stack into or out of a
+*storage* container is still refused.
+
+A craft result that the server built per use is no longer rebuilt from its name on the way to a
+slot, which used to be right for the shared creative menu and would have thrown away the
+enchantments an enchanting table had just applied. The anvil result also carries its
+`minecraft:custom_name` onto the stack, which it had nowhere to put before `Item` grew one.

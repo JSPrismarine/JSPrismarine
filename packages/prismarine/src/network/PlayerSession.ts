@@ -143,6 +143,13 @@ export interface OpenBlockContainer {
      * what gives them back, and a second player at the same table has their own pair.
      */
     readonly inputs: (Item | null)[];
+    /**
+     * Bookshelves around an enchanting table, as the last redraw counted them.
+     *
+     * Kept rather than recounted when a row is taken, so the rows the player was shown and the
+     * row that is applied are drawn from one number. Zero for every other screen.
+     */
+    bookshelfPower: number;
 }
 
 export default class PlayerSession {
@@ -830,7 +837,8 @@ export default class PlayerSession {
             position: at,
             identifier,
             screen: container.screen,
-            inputs: [null, null]
+            inputs: [null, null],
+            bookshelfPower: 0
         };
         return this.blockContainer;
     }
