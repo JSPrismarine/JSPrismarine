@@ -204,12 +204,16 @@ const BIOME_CELLS_PER_SUBCHUNK = 64;
 /**
  * How many chunks of one world the generator builds at once by default.
  *
- * Six, which is where this machine's worker scaling peaks and is therefore what a pool is sized
- * at. It is the depth the pool has to be held at to keep every worker busy, and it is also the
- * depth the chunk status ladder's shared-promise path needs to fire at all: with a depth of one
- * the start region's batch of thirty-two is strictly sequential, which is what it was before.
+ * One, because building several at once on one thread is measurably worse. A 49 chunk fill at
+ * seed 1234, three repetitions with the two depths interleaved so a load spike hits both, best
+ * of three: 36.8 s at depth one against 40.3 s at depth six, and depth one won every one of the
+ * three pairings by 9 to 14%. Six half-built chunks hold six feature views and interleave at
+ * every terrain yield, and they share no work that holder retention was not sharing already.
+ *
+ * It is a depth rather than the promise tail it replaces because a pool of workers has to be
+ * held at its worker count to keep every worker busy. The number to raise is this one.
  */
-const DEFAULT_CONCURRENCY = 6;
+const DEFAULT_CONCURRENCY = 1;
 
 /**
  * How far around a requested chunk the generator keeps holders, in chunks.

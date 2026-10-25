@@ -24,12 +24,12 @@ export const DEFAULT_BUDGET_MS = 5;
 /**
  * How many chunks a tick asks for before it waits for one.
  *
- * Six, which is the depth a worker pool has to be held at to keep every worker busy on this
- * machine. One, which is what awaiting each delivery in turn amounted to, keeps a pool of any
- * size at a depth of one and caps a player's terrain at one chunk per await however much of the
- * budget is left.
+ * One while the generator builds one chunk at a time, because asking for more only parks them in
+ * the generator's own queue and makes the tick wait for all of them rather than for one. Raise it
+ * with the generator's depth, not on its own: awaiting each delivery in turn is what holds a pool
+ * of any size at a depth of one.
  */
-export const DEFAULT_DEPTH = 6;
+export const DEFAULT_DEPTH = 1;
 
 /**
  * Told about a chunk that could not be produced or sent. `coord` is absent when the failure
