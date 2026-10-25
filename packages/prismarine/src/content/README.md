@@ -145,7 +145,12 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 
 ### Entities (`src/entity/`)
 
-- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`.
+- `entities`: `at`, `near`, `players`, `spawn`, `remove`, `drop`, `countOfType`. `spawn` puts a
+  body into the live world rather than an `EntityInstance` into the data-driven index, because the
+  live world is what clients are sent and what a save writes. The content entity registry decides
+  which identifiers are spawnable, a written class is used where one adds behavior, and everything
+  else is a `GenericEntity` carrying the identifier, which the client draws from the identifier
+  anyway.
 - The optional `spawning` group: `site`, `poolCount`, `mobEventActive` and the optional
   `villageBorderDistance`.
 - The optional `ai` group: `goalWorld(entity)`, `actuator(entity)` and `brainWorld()`. `GoalWorld`
@@ -171,7 +176,6 @@ subsystem that owes it, and each for a reason rather than for want of plumbing.
 | Member | Why |
 | --- | --- |
 | `blocks.biome`, `blocks.biomeTags` | A chunk stores a numeric Bedrock biome id, and nothing maps one back to an identifier. `@jsprismarine/mapping` goes from Java identifiers to Bedrock ones only, and the biome tags live in pack biome definitions nothing parses yet. |
-| `entities.spawn` | Putting an entity into the world by identifier needs a factory covering every identifier a pack can name; the class registry covers the types with a class. |
 | `effects.emitGameEvent` | Java's game event system. Nothing listens, and Bedrock puts nothing on the wire for one. |
 | `items.stateOf`, `items.targetOf`, `items.perform` for the entity half of `ItemWorldAction` | Twenty-two of the twenty-eight variants need a player session and an entity index. |
 | The `spawning`, `ai` and `generation` groups | Left absent rather than filled with throwing members, which is what makes the projection in `views.ts` report the owner. |
