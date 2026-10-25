@@ -586,7 +586,14 @@ export class EntityRuntime implements EntityScene {
             content: this.content(),
             // The blocks a blast breaks are still blocks, so `doTileDrops` decides whether they
             // leave anything behind. No sink, and `detonate` rolls no loot at all.
-            drop: ruleIsOn(this.world.level, BLOCK_DROPS) ? (at, item) => this.host.drop(at, item) : undefined
+            drop: ruleIsOn(this.world.level, BLOCK_DROPS) ? (at, item) => this.host.drop(at, item) : undefined,
+            // The server's own destruction path, which raises each block's `onBreak` before
+            // the blast writes over it; that is what spills the chest a creeper caught.
+            destroy: (at) =>
+                this.host.destroyBlock?.(at, {
+                    explosionRadius: power,
+                    dropsBlock: ruleIsOn(this.world.level, BLOCK_DROPS)
+                }) ?? false
         });
 
         for (const hit of blast.hits) {
