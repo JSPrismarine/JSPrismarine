@@ -77,6 +77,11 @@ export default class StringArgumentType implements ArgumentType<string> {
         return result;
     }
 
+    /**
+     * Returns sample strings that `CommandNode.findAmbiguities` parses against sibling nodes to
+     * detect overlapping argument types. The samples cover one bare word, one word with
+     * underscores, and one phrase with spaces, so they exercise all three {@link StringType} forms.
+     */
     public getExamples(): Iterable<string> {
         return EXAMPLES;
     }

@@ -15,6 +15,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
 import type Chunk from '../../chunk/Chunk';
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
+import { GenerationStopped } from '../../Generator';
 import { DataDrivenGenerator } from './DataDrivenGenerator';
 import { bedrockBiomeIdOf } from './javaTranslation';
 import { findJavaWorldgenSources, loadJavaWorldgenRegistries } from './javaWorldgenData';
@@ -203,6 +204,30 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
             expect(logs.size).toBeGreaterThan(0);
             expect(logs.size).toBeLessThanOrEqual(2);
             expect([...logs.keys()]).toContain('minecraft:spruce_log');
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
+        'finishes the chunk it had started and refuses the ones queued behind it',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const stopping = new DataDrivenGenerator({ registries, decorate: false, carve: false });
+
+            // Asked for in one turn, the way the start region asks for a batch.
+            const inFlight = stopping.generateChunk(0, 0, SEED);
+            const queued = [stopping.generateChunk(1, 0, SEED), stopping.generateChunk(2, 0, SEED)];
+
+            // One turn of the event loop, so the first request is past the front of the queue
+            // and generating. That is the state a shutdown finds, and the one a half-built
+            // chunk could come out of.
+            await new Promise((resolve) => setImmediate(resolve));
+            stopping.stopGenerating();
+
+            expect((await inFlight).getHighestBlockAt(0, 0)).not.toBeNull();
+            for (const request of queued) {
+                await expect(request).rejects.toBeInstanceOf(GenerationStopped);
+            }
         },
         CHUNK_TIMEOUT
     );

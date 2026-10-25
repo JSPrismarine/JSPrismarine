@@ -52,6 +52,7 @@ import Chunk from '../../chunk/Chunk';
 import { Dimensions, subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
+import { GenerationStopped } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
 import type { RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
@@ -190,6 +191,9 @@ export class DataDrivenGenerator implements Generator {
     private readonly biomeSource: MultiNoiseBiomeSource;
     private readonly pipelines = new Map<string, SeededPipeline>();
 
+    /** Whether {@link DataDrivenGenerator.stopGenerating} has been called. */
+    private stopped = false;
+
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
         this.dimension = options.dimension ?? Dimensions.Overworld;
@@ -223,7 +227,7 @@ export class DataDrivenGenerator implements Generator {
     /** @inheritDoc */
     public async generateChunk(cx: number, cz: number, seed = 0): Promise<Chunk> {
         const pipeline = this.pipelineFor(BigInt(Math.trunc(seed)));
-        return this.serializeGeneration(pipeline, async () => {
+        return this.serializeGeneration(cx, cz, pipeline, async () => {
             const key = this.chunkKey(cx, cz);
             const generated = pipeline.generatedChunks.get(key);
             if (generated !== undefined) return generated;
@@ -248,6 +252,11 @@ export class DataDrivenGenerator implements Generator {
             pipeline.generatedChunks.set(key, chunk);
             return chunk;
         });
+    }
+
+    /** @inheritDoc */
+    public stopGenerating(): void {
+        this.stopped = true;
     }
 
     /** Every Java state the translator could not place, for a caller that wants to report them. */
@@ -451,9 +460,28 @@ export class DataDrivenGenerator implements Generator {
         }
     }
 
-    /** Runs chunk generations in request order so cross-chunk feature writes remain ordered. */
-    private serializeGeneration<T>(pipeline: SeededPipeline, generate: () => Promise<T>): Promise<T> {
-        const result = pipeline.generationTail.then(generate);
+    /**
+     * Runs chunk generations in request order so cross-chunk feature writes remain ordered.
+     *
+     * The queue is also where a stopped generator answers. A request is refused when it reaches
+     * the front rather than when it was made, which is what lets the chunk being generated right
+     * now finish while everything behind it is dropped. The start region asks for thirty-two
+     * chunks in one turn, so at a shutdown almost all of them are still waiting here.
+     * @param cx - Chunk x, for the rejection to name.
+     * @param cz - Chunk z, for the rejection to name.
+     * @throws {GenerationStopped} When {@link DataDrivenGenerator.stopGenerating} was called
+     * before this request's turn came.
+     */
+    private serializeGeneration<T>(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline,
+        generate: () => Promise<T>
+    ): Promise<T> {
+        const result = pipeline.generationTail.then(() => {
+            if (this.stopped) throw new GenerationStopped(cx, cz);
+            return generate();
+        });
         pipeline.generationTail = result.then(
             () => undefined,
             () => undefined
