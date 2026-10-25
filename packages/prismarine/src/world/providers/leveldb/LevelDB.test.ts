@@ -153,6 +153,73 @@ describe('world', () => {
             await reopened.provider.disable();
         });
 
+        it("writes a player's items as the Items NBT a vanilla tool reads", async () => {
+            const worldPath = scratch();
+            const { provider } = harness(worldPath);
+            const empty = (size: number) => new Array<null>(size).fill(null);
+            const slots = empty(36);
+            slots[4] = {
+                name: 'minecraft:diamond_sword',
+                count: 1,
+                damage: 12,
+                customName: 'Biter',
+                lore: ['One line'],
+                enchantments: { 'minecraft:sharpness': 3, 'minecraft:sweeping_edge': 2 }
+            };
+
+            const data: WorldPlayerData = {
+                username: 'Player',
+                gamemode: 'Survival',
+                position: { x: 0, y: 64, z: 0, pitch: 0, yaw: 0, headYaw: 0 },
+                health: 14,
+                food: 9,
+                saturation: 2,
+                experience: { level: 5, progress: 0.25 },
+                inventory: {
+                    items: slots,
+                    handSlot: 4,
+                    armor: empty(4),
+                    offhand: empty(1),
+                    enderChest: empty(27)
+                }
+            };
+
+            await provider.enable();
+            await provider.writePlayerData('items-xuid', data);
+            await provider.disable();
+
+            const database = await Database.open(path.join(worldPath, 'db'), { readOnly: true });
+            const value = database.get(encodePlayerServerKey('items-xuid'));
+            if (value === null) throw new Error('Expected player_server record');
+
+            const reader = new NBTReader(new BinaryStream(value), ByteOrder.LITTLE_ENDIAN);
+            reader.setUseVarint(false);
+            const nbt = reader.parse();
+
+            const stored = [...(nbt.getList('Inventory', false) ?? [])];
+            expect(stored).toHaveLength(1);
+            const sword = stored[0];
+            if (!(sword instanceof NBTTagCompound)) throw new Error('Expected an item compound');
+
+            expect(sword.getString('Name', '')).toBe('minecraft:diamond_sword');
+            expect(sword.getByte('Count', 0)).toBe(1);
+            expect(sword.getByte('Slot', -1)).toBe(4);
+            expect(nbt.getNumber('SelectedInventorySlot', -1)).toBe(4);
+
+            // Bedrock's own `ench` carries the two the client's registry lists, and Sweeping
+            // Edge is not one of them - so the Java ids beside it are what makes it total.
+            const tag = sword.getCompound('tag', false);
+            expect(tag?.getNumber('Damage', 0)).toBe(12);
+            expect([...(tag?.getList('ench', false) ?? [])]).toHaveLength(1);
+            expect(tag?.getCompound('display', false)?.getString('Name', '')).toBe('Biter');
+            await database.close();
+
+            const reopened = harness(worldPath);
+            await reopened.provider.enable();
+            expect(await reopened.provider.readPlayerData('items-xuid')).toEqual(data);
+            await reopened.provider.disable();
+        });
+
         it('generates a chunk that is not there, and does not write one back for it', async () => {
             const { provider } = harness(scratch());
             await provider.enable();

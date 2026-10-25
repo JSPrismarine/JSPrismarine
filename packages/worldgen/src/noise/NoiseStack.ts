@@ -26,8 +26,11 @@ export class NoiseStack implements Noise {
 
     /** @inheritDoc */
     public get3(x: number, y: number, z: number): number {
+        const layers = this.layers;
         let value = 0;
-        for (const layer of this.layers) {
+        for (let index = 0; index < layers.length; index++) {
+            const layer = layers[index];
+            if (!layer) continue;
             const frequency = layer.frequency;
             value = f32(value + f32(layer.amplitude * layer.noise.get3(x * frequency, y * frequency, z * frequency)));
         }
@@ -36,8 +39,11 @@ export class NoiseStack implements Noise {
 
     /** @inheritDoc */
     public get2(x: number, z: number): number {
+        const layers = this.layers;
         let value = 0;
-        for (const layer of this.layers) {
+        for (let index = 0; index < layers.length; index++) {
+            const layer = layers[index];
+            if (!layer) continue;
             const frequency = layer.frequency;
             value = f32(value + f32(layer.amplitude * layer.noise.get2(x * frequency, z * frequency)));
         }
