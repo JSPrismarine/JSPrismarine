@@ -1,11 +1,19 @@
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 import { integer } from '@jsprismarine/brigadier';
-import { describe, expect, it, vi } from 'vitest';
+import type { Logger } from '@jsprismarine/logger';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Server } from '../';
+import type { ChatManager } from '../chat/ChatManager';
 import Console from '../Console';
 import Player from '../Player';
-import type { PermissionManager } from '../permission/PermissionManager';
+import { PermissionManager } from '../permission/PermissionManager';
+import type SessionManager from '../SessionManager';
 import { stub, stubOf } from '../testing/stub.test.helper';
+import UUID from '../utils/UUID';
 import type GameRuleManager from '../world/GameRuleManager';
 import type { World } from '../world/World';
 import type WorldManager from '../world/WorldManager';
@@ -237,6 +245,101 @@ describe('command', () => {
 
             await expect(commandManager.dispatchCommand(console, console, '/nope')).resolves.toBe(false);
             expect(sendMessage).toHaveBeenCalledWith(expect.stringContaining('Unknown command'));
+        });
+
+        describe('permission config integration', () => {
+            let directory: string;
+
+            beforeEach(() => {
+                directory = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-permission-test-'));
+                vi.stubEnv('JSP_DIR', directory);
+            });
+
+            afterEach(() => {
+                vi.unstubAllEnvs();
+                rmSync(directory, { recursive: true, force: true });
+            });
+
+            it('lets the default UUID owner run /op and persists the target UUID', async () => {
+                const ownerUuid = 'fbf8646c-652c-38c4-96ff-a29d86cb5943';
+                const targetUuid = '00000000-0000-0000-0000-000000000007';
+                const logger = stub<Logger>({
+                    debug: () => {},
+                    verbose: () => {},
+                    info: () => {},
+                    warn: () => {},
+                    error: () => {}
+                });
+                const target = stubOf(Player, {
+                    getName: () => 'Target',
+                    getUUID: () => UUID.fromString(targetUuid),
+                    getNetworkSession: () =>
+                        stub<ReturnType<Player['getNetworkSession']>>({ sendAvailableCommands: async () => {} }),
+                    getServer: () => server,
+                    sendSettings: async () => {}
+                });
+                const sessionManager = stub<SessionManager>({
+                    getAllPlayers: () => [],
+                    getPlayerByExactName: (name) => (name === 'Target' ? target : undefined)
+                });
+                const permissionManager = new PermissionManager({
+                    getLogger: () => logger,
+                    getSessionManager: () => sessionManager,
+                    post: () => 0
+                });
+                const console = stub<Console>({
+                    getName: () => 'Console',
+                    getFormattedUsername: () => 'Console',
+                    getServer: () => server,
+                    sendMessage: () => {}
+                });
+                const world = stub<World>({
+                    getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] })
+                });
+                const server = stub<Server>({
+                    emit: async () => {},
+                    post: () => 0,
+                    getLogger: () => logger,
+                    getSessionManager: () => sessionManager,
+                    getPermissionManager: () => permissionManager,
+                    getConsole: () => console,
+                    getChatManager: () => stub<ChatManager>({ send: async () => {} })
+                });
+                const permissionOwner = stub<Player>({
+                    getName: () => 'Filfat',
+                    getUUID: () => UUID.fromString(ownerUuid),
+                    isOp: () => false,
+                    getPermissions: () => []
+                });
+
+                await permissionManager.enable();
+                const grants = await permissionManager.getPermissions(permissionOwner);
+                const owner = stubOf(Player, {
+                    getName: () => 'Filfat',
+                    getUUID: () => UUID.fromString(ownerUuid),
+                    getRuntimeId: () => 1n,
+                    getPermissions: () => grants,
+                    isOp: () => permissionManager.isOp(ownerUuid),
+                    getWorld: () => world,
+                    getServer: () => server,
+                    sendMessage: async () => {}
+                });
+                const commandManager = new CommandManager(server);
+                await commandManager.enable();
+
+                await expect(commandManager.dispatchCommand(owner, owner, '/op Target')).resolves.toBe(true);
+
+                expect(permissionManager.isOp(targetUuid)).toBe(true);
+                expect(permissionManager.isOp('Target')).toBe(false);
+
+                const reloadedManager = new PermissionManager({
+                    getLogger: () => logger,
+                    getSessionManager: () => sessionManager,
+                    post: () => 0
+                });
+                await reloadedManager.enable();
+                expect(reloadedManager.isOp(targetUuid)).toBe(true);
+            });
         });
     });
 });
