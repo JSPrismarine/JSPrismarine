@@ -7,14 +7,16 @@
  * path a player's `CommandRequestPacket` takes. The two together are what say
  * the command layer is wired rather than merely present.
  */
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { Logger } from '@jsprismarine/logger';
+import { load } from '@jsprismarine/packs';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Server from '../Server';
 import { Config } from '../config/Config';
+import { buildContentTags } from '../content/tags';
 import type { World } from '../world/World';
 import type { CommandExecutor } from './CommandExecutor';
 import { UNWIRED_COMMANDS } from './vanillaCommands';

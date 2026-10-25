@@ -9,13 +9,29 @@
  * trial chambers and the eighteen abandoned camps are all this one builder.
  */
 import type { PlacedPiece, PoolElement, Rotation } from '@jsprismarine/structures';
-import { assembleJigsaw, parsePoolAliases } from '@jsprismarine/structures';
+import { assembleJigsaw, createLegacyRandom, parsePoolAliases } from '@jsprismarine/structures';
 
 import { sampleStructureHeight } from './javaStructureHeight';
 import type { StructureBuildContext, StructureBuilder, StructureLayout } from './javaStructureStarts';
 import type { ProcessorsReference } from './javaStructureTemplatePiece';
 import { TemplatePiece } from './javaStructureTemplatePiece';
 import type { StructurePiece } from './javaStructureWorld';
+
+/**
+ * The stream the pool alias draws come from.
+ *
+ * Java forks a positional random off the world seed at the structure's position, which is a
+ * stream of its own rather than part of the structure's. This is a stream of its own too, keyed
+ * the same way, so the aliases are the same every time a chunk is generated and drawing them
+ * never moves the layout.
+ */
+const aliasRandom = (context: StructureBuildContext) =>
+    createLegacyRandom(
+        BigInt.asIntN(
+            64,
+            context.seed + BigInt(context.chunkX) * 341873128712n + BigInt(context.chunkZ) * 132897987541n
+        )
+    );
 
 /** Java's quarter turns, in the order `Rotation.values()` lists them. */
 const ROTATIONS: readonly Rotation[] = ['none', 'clockwise_90', 'clockwise_180', 'counterclockwise_90'];
@@ -51,7 +67,7 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
             pool: context.pool,
             template: (location) => context.templates.template(location),
             random: context.random,
-            poolAliases: parsePoolAliases(definition.pool_aliases),
+            poolAliases: parsePoolAliases(definition.pool_aliases, aliasRandom(context)),
             terrainHeight: (x, z, name) => context.level.baseHeight(x, z, asHeightmap(name))
         }
     );
