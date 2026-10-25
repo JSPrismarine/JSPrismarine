@@ -14,20 +14,32 @@ const record = (message: string, level: LogRecord['level'] = 'info'): LogRecord 
     formatted: `[${level}] ${message}`
 });
 
-/** A link that records what it was asked to send and answers `send` with a scripted value. */
+/**
+ * A link that records what it was asked to send and answers `send` with a scripted value.
+ * `closeLink` runs the close listeners the transport registered; `unsubscribeClose` counts
+ * how often those registrations were released.
+ */
 const recordingLink = (options: { accept: () => boolean; flush?: () => Promise<void> }) => {
     const sent: ServerMessage[] = [];
+    const closeListeners: Array<() => void> = [];
+    const unsubscribeClose = vi.fn();
     const link: FlushableLink<ConsoleMessage, ServerMessage> = {
         send(message) {
             sent.push(message);
             return options.accept();
         },
         onMessage: () => () => {},
-        onClose: () => () => {},
+        onClose: (listener) => {
+            closeListeners.push(listener);
+            return unsubscribeClose;
+        },
         close: () => {},
         flush: options.flush
     };
-    return { link, sent };
+    const closeLink = () => {
+        for (const listener of closeListeners) listener();
+    };
+    return { link, sent, closeLink, unsubscribeClose };
 };
 
 const logMessages = (sent: readonly ServerMessage[]) =>
@@ -160,6 +172,50 @@ describe('RemoteLogTransport', () => {
         expect(sent.map((message) => message.type)).toEqual(['log', 'log.dropped', 'log']);
         expect(logMessages(sent)).toEqual(['1:a', 'log.dropped', '3:c']);
         expect(transport.pending).toBe(0);
+    });
+
+    it('stops retrying and drops its queue once the link closes', () => {
+        vi.useFakeTimers();
+        const { link, sent, closeLink } = recordingLink({ accept: () => false });
+        const transport = new RemoteLogTransport(link, { retryMs: 20 });
+
+        transport.log(record('a'));
+        transport.log(record('b'));
+        transport.log(record('c'));
+        expect(transport.pending).toBe(2);
+
+        closeLink();
+        transport.log(record('after'));
+        vi.advanceTimersByTime(1000);
+
+        // Only `a`, the probe that came back `false`, ever reached the link.
+        expect(logMessages(sent)).toEqual(['1:a']);
+        expect(transport.pending).toBe(0);
+        expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it('sends nothing more on close after the link closed', () => {
+        const { link, sent, closeLink } = recordingLink({ accept: () => false });
+        const transport = new RemoteLogTransport(link, { capacity: 1 });
+
+        transport.log(record('a'));
+        transport.log(record('b'));
+        transport.log(record('c'));
+        closeLink();
+        transport.close();
+
+        expect(logMessages(sent)).toEqual(['1:a']);
+    });
+
+    it('releases its close listener when closed', () => {
+        const { link, unsubscribeClose } = recordingLink({ accept: () => true });
+        const transport = new RemoteLogTransport(link);
+
+        expect(unsubscribeClose).not.toHaveBeenCalled();
+        transport.close();
+        transport.close();
+
+        expect(unsubscribeClose).toHaveBeenCalledTimes(1);
     });
 
     it('does not throw when the link is closed', () => {

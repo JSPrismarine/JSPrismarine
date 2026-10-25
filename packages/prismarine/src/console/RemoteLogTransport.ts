@@ -1,8 +1,7 @@
 import type { ConsoleMessage, MessageLink, ServerMessage } from '@jsprismarine/console-protocol';
 import { PROTOCOL_VERSION } from '@jsprismarine/console-protocol';
 import type { LogLevel, LogRecord, LogTransport } from '@jsprismarine/logger';
-
-const LEVEL_WEIGHT: Record<LogLevel, number> = { error: 0, warn: 1, info: 2, verbose: 3, debug: 4, silly: 5 };
+import { isAtLeastLevel } from '@jsprismarine/logger';
 
 /**
  * A {@link MessageLink} that may also report when its unsent backlog has drained.
@@ -34,6 +33,9 @@ export interface RemoteLogTransportOptions {
  * pause (`send` returned `false`) records queue up to the capacity; the oldest fall off and
  * are counted. Once the link drains, a single `log.dropped` with that count goes out before
  * the queued records resume, so the console knows where the hole is.
+ *
+ * When the link closes under the transport, the queue is dropped and the retry stops; there
+ * is no one left to deliver to, and {@link close} then sends nothing.
  */
 export class RemoteLogTransport implements LogTransport {
     private readonly capacity: number;
@@ -45,6 +47,7 @@ export class RemoteLogTransport implements LogTransport {
     private queue: ServerMessage[] = [];
     private droppedCount = 0;
     private retryTimer: NodeJS.Timeout | undefined;
+    private readonly unsubscribeClose: () => void;
 
     /**
      * @param link - The server end of the console link.
@@ -56,6 +59,7 @@ export class RemoteLogTransport implements LogTransport {
     ) {
         this.capacity = options.capacity ?? 5000;
         this.retryMs = options.retryMs ?? 20;
+        this.unsubscribeClose = link.onClose(() => this.abandon());
     }
 
     /** Records dropped from the queue and not yet announced with a `log.dropped` message. */
@@ -81,7 +85,7 @@ export class RemoteLogTransport implements LogTransport {
      * {@link close} are ignored.
      */
     public log(record: LogRecord): void {
-        if (this.closed || LEVEL_WEIGHT[record.level] > LEVEL_WEIGHT[this.minLevel]) return;
+        if (this.closed || !isAtLeastLevel(record.level, this.minLevel)) return;
 
         this.seq += 1;
         const message: ServerMessage = {
@@ -111,12 +115,22 @@ export class RemoteLogTransport implements LogTransport {
     public close(): void {
         if (this.closed) return;
         this.closed = true;
+        this.unsubscribeClose();
         this.stopRetry();
 
         const queued = this.queue;
         this.queue = [];
         this.announceDropped();
         for (const message of queued) this.link.send(message);
+    }
+
+    /** The link closed under the transport: nothing queued can be delivered any more. */
+    private abandon(): void {
+        this.closed = true;
+        this.unsubscribeClose();
+        this.stopRetry();
+        this.queue = [];
+        this.droppedCount = 0;
     }
 
     private enqueue(message: ServerMessage): void {
