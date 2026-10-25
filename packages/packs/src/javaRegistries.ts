@@ -21,6 +21,33 @@ export const JAVA_REGISTRY_IDS = [
 /** One Java-sourced registry. */
 export type JavaRegistryId = (typeof JAVA_REGISTRY_IDS)[number];
 
+/**
+ * How a registry composes when more than one pack provides the same id.
+ * These are Java's three modes:
+ *
+ * - `override`: the last pack that has the file wins, whole.
+ * - `tags`: `values` concatenate in pack order, and a file that sets
+ *   `replace` discards everything earlier.
+ * - `assign`: the objects merge key by key, a later pack's key winning.
+ */
+export type MergeMode = 'override' | 'tags' | 'assign';
+
+/**
+ * The merge mode per registry. Every 26.3 data registry but tags overrides.
+ * `assign` is the mode Java gives its language files, which live in a
+ * resource pack rather than a datapack, so no registry here selects it yet.
+ */
+export const MERGE_MODES: Readonly<Record<JavaRegistryId, MergeMode>> = {
+    lootTablesJava: 'override',
+    recipesJava: 'override',
+    advancements: 'override',
+    tags: 'tags',
+    enchantments: 'override',
+    damageTypes: 'override',
+    predicates: 'override',
+    itemModifiers: 'override'
+};
+
 /** The 26.3 directory under `data/<namespace>/` for each registry. */
 const DIRECTORIES: Record<string, Exclude<JavaRegistryId, 'tags'>> = {
     loot_table: 'lootTablesJava',

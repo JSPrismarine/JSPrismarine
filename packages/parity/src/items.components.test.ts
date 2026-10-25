@@ -23,8 +23,8 @@ import { REFERENCES } from './references.ts';
  * Gap ids: `unmapped-java-item:<java id>`, `unadvertised:<bedrock id>`,
  * `unknown-component:<component>`, `loss:<java id>` for a reviewed mapping loss that keeps no
  * components, `mapping-disagrees:<java id>` where the item table and the mapping table
- * disagree on an item's Bedrock identity, and `resolve:<bedrock id>` for a row the component
- * runtime reports a diagnostic for.
+ * disagree on an item's Bedrock identity, and `resolve:<code>@<file>` for a row the component
+ * runtime reports a diagnostic for, named by its code and file.
  */
 const compareItemComponents = (): { gaps: string[]; rows: number; detail: string[] } => {
     const advertised = loadRequiredItemList();
@@ -54,7 +54,7 @@ const compareItemComponents = (): { gaps: string[]; rows: number; detail: string
     // Java's whole item registry, from the mapping package's independently generated table. An
     // item whose identity does not survive the mapping has no components to carry, so it
     // reports as the reviewed loss it is rather than as a missing row.
-    const reviewedLosses = new Set(ITEM_LOSSES.map((loss) => loss.javaId));
+    const reviewedLosses = new Set<string>(ITEM_LOSSES.map((loss) => loss.javaId));
     for (const javaId of Object.keys(itemsTable.items)) {
         if (javaWithRow.has(javaId)) continue;
         gaps.add(reviewedLosses.has(javaId) ? `loss:${javaId}` : `unmapped-java-item:${javaId}`);
@@ -62,8 +62,8 @@ const compareItemComponents = (): { gaps: string[]; rows: number; detail: string
 
     const { diagnostics } = loadItemTypes();
     for (const diagnostic of diagnostics) {
-        gaps.add(`resolve:${diagnostic.identifier ?? diagnostic.path ?? 'unknown'}`);
-        if (detail.length < 20) detail.push(`${diagnostic.identifier ?? ''}: ${diagnostic.message}`);
+        gaps.add(`resolve:${diagnostic.code}@${diagnostic.path ?? diagnostic.pack}`);
+        if (detail.length < 20) detail.push(`${diagnostic.path ?? diagnostic.pack}: ${diagnostic.message}`);
     }
 
     return { gaps: [...gaps], rows: Object.keys(itemTypesTable.items).length, detail };

@@ -1,9 +1,11 @@
 /**
- * Which creative menu a player is shown.
+ * Which creative menu and which recipe list a player is sent.
  *
- * The client answers a pick with the entry's position, so the menu that goes
- * out and the list `ItemStackRequestHandler` reads a pick against have to be
- * the same one. These tests pin which of the two sources each path picks.
+ * Each has two sources, the content build and the server's own tables, and
+ * the creative one also has a reader: the client answers a pick with the
+ * entry's position, so the menu that goes out and the list
+ * `ItemStackRequestHandler` reads a pick against have to be the same one.
+ * These tests pin which source each path takes.
  */
 import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';

@@ -48,12 +48,35 @@ download: `JSP_BDS_PATH`, `JSP_JAVA_JAR_PATH`, `JSP_BEDROCK_SAMPLES_PATH` and
 
 ## Compose
 
-In code today, composition means two things. The fetch stage hashes each source's folders into
+```sh
+pnpm --filter @jsprismarine/bedrock-data run datagen:java
+```
+
+This runs Mojang's data generator (`net.minecraft.data.Main --server --reports --all`) against the
+fetched Java server jar, whose sha1 it re-checks against `sources.json` before executing it. One
+run writes both halves of the Java data, into the same cache the fetch stage uses:
+
+- `node_modules/.cache/jsprismarine/vanilla-datapack/<version>/`, the vanilla datapack, 8372 files.
+  `@jsprismarine/packs` loads it as the Java member of the pack stack, the overworld generator
+  reads its `worldgen/*` registries and block tags, and the loot, advancement, predicate,
+  enchantment and feature corpus suites read it.
+- `node_modules/.cache/jsprismarine/java-reports/<version>/generated/reports/`, the data reports,
+  1666 files. The mapping and item table generators read them, and the overworld generator reads
+  `biome_parameters` from them, the 7594 climate boxes that exist nowhere else.
+
+The generator writes no `pack.mcmeta`, so the step writes one from the `pack_version` the jar
+declares in its `version.json` (121.0 for 26.3). That file is what marks the directory as a
+loadable datapack for every reader above. The same `version.json` names the JDK the jar needs
+(Java 25 for 26.3), found through `JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS,
+`/usr/libexec/java_home`.
+
+A second run is a no-op once both directories hold the files the step checks for; `-- --force`
+regenerates. The output is Mojang's content and stays in the gitignored cache.
+`JSP_VANILLA_DATAPACK` and `JSP_JAVA_REPORTS` point consumers at a copy produced elsewhere.
+
+The other half of composition is unchanged: the fetch stage hashes each source's folders into
 `pack-hashes.json`, and `@jsprismarine/packs` reads the vanilla behavior pack's brarchive layers
-directly when a stack loads, so there is no separate composed-pack artifact yet. The plan's full
-compose stage, which also runs the Java data generator for the vanilla datapack as a pipeline step,
-is planned ([plan section 6](../plans/data-driven-vanilla.md)). The mapping table generator already
-runs the data generator on demand; see the generate stage below.
+directly when a stack loads, so there is no separate composed-pack artifact yet.
 
 ## Dump
 
@@ -73,9 +96,10 @@ rewrites the goldens under `packages/bedrock-data/src/jsp/java/`:
 - `entity_attributes.json`: the default attribute values, dimensions and category for the 93 entity
   types with an attribute supplier.
 
-The dumper needs a JDK matching the jar's class file version (Java 25 for 26.3), found through
-`JSP_JAVA_HOME`, `JAVA_HOME` or, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts`
-checks the shape and counts of both files.
+The dumper needs a JDK matching the jar's class file version (Java 25 for 26.3). It shares the
+search in `utils/java/jdk.ts` with the compose stage, which looks at `JSP_JAVA_HOME`, `JAVA_HOME`
+and, on macOS, `/usr/libexec/java_home`. `src/javaGoldens.test.ts` checks the shape and counts of
+both files.
 
 The Bedrock-side captures under `packages/bedrock-data/src/jsp/` come from running the pinned BDS
 with `packages/client/tools/capture-server-data.mjs`, which is likewise a version-bump task rather
@@ -112,6 +136,20 @@ pnpm --filter @jsprismarine/mapping run generate:block-properties
 flattens the Java block property golden through the block mapping into
 `packages/mapping/src/tables/blockProperties.json`, keyed by Bedrock state. It needs only committed
 inputs, no fetched sources.
+
+## Running the server from the pipeline
+
+The data-driven overworld generator reads both halves of the Java data, so a development server
+needs the fetch and compose stages before `pnpm dev`:
+
+```sh
+pnpm --filter @jsprismarine/bedrock-data run fetch:sources
+pnpm --filter @jsprismarine/bedrock-data run datagen:java
+pnpm dev
+```
+
+Without them the generator throws and names those two commands, and the pack stack reports the
+Java vanilla datapack as missing.
 
 ## A version bump, step by step
 

@@ -21,6 +21,8 @@ import type { Command } from '../command/Command';
 import type { CommandArgumentType } from '../command/CommandArguments';
 import { isCommandArgument } from '../command/CommandArguments';
 import type { CommandTreeNode } from '../command/CommandManager';
+import { vanillaPermissionOf } from '../command/CommandManager';
+import { commandDataOf } from '../command/availableCommands';
 import type { Attribute, Attributes } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
@@ -38,7 +40,7 @@ import { effectiveViewDistance, toChunk } from '../world/Proximity';
 import Chunk from '../world/chunk/Chunk';
 import type ClientConnection from './ClientConnection';
 import { EntityTracker } from './EntityTracker';
-import { joinContentPayloads } from './contentPayloads';
+import { craftingRecipeCount, joinContentPayloads, limitCraftingData } from './contentPayloads';
 import type { DataPacket } from './Packets';
 import { BatchPacket } from './Packets';
 import AddActorPacket from './packet/AddActorPacket';
@@ -784,12 +786,32 @@ export default class PlayerSession {
      * Until it has these the client proposes nothing and never sends a `CRAFTING_RECIPE`, so
      * everything below this - the matcher, the stations, the grid - is invisible without it.
      *
+     * The recipes come from the content build when there is one, which is the only way
+     * Java's brewing recipes and a pack's own recipes reach the client, and from the recipe
+     * manager otherwise.
+     *
      * How many go out is `crafting-recipe-limit` in the config: `0` sends nothing, `-1`
      * sends everything, and it starts at one. See there for why.
      */
     public async sendCraftingData(): Promise<void> {
         const limit = this.server.getConfig().getCraftingRecipeLimit();
         if (limit === 0) return;
+
+        const payloads = joinContentPayloads(this.server.getContent(), this.server.getLogger());
+        if (payloads !== undefined) {
+            const all = craftingRecipeCount(payloads.crafting);
+            const packet = new CraftingDataPacket();
+            packet.payload = limit < 0 ? payloads.crafting : limitCraftingData(payloads.crafting, limit);
+
+            await this.connection.sendDataPacket(packet);
+
+            const sent = craftingRecipeCount(packet.payload);
+            this.server
+                .getLogger()
+                .debug(`Sent §b${sent}§r of §b${all}§r recipe(s) to ${this.player.getName()}`);
+
+            return;
+        }
 
         const manager = this.server.getRecipeManager();
         const all = manager.getRecipes();
@@ -905,6 +927,12 @@ export default class PlayerSession {
      * One `CommandData` per command, each branch of its tree an overload, with overloads that
      * come out the same folded into one. Only commands the player's permissions allow are
      * sent, so the list is built per recipient and sent again when those permissions change.
+     *
+     * Two sources, one list. The vanilla set comes from `@jsprismarine/commands`, already
+     * flattened into Bedrock's overload shape by its own flattener, which is the half that
+     * carries chained subcommands and therefore the chained `/execute` tree. The classes this
+     * server still registers itself - the `jsprismarine:` namespace, `/ban` and `/pardon` -
+     * come from `CommandManager.getCommandsList()` and are described a node at a time.
      */
     public async sendAvailableCommands(): Promise<void> {
         const playerEnum = new CommandEnum();
@@ -961,6 +989,18 @@ export default class PlayerSession {
                 cmd.overloads.push(parameters);
             }
             pk.commandData.push(cmd);
+        }
+
+        for (const command of commandManager.getVanillaCommandList()) {
+            const permission = vanillaPermissionOf(command.name);
+            if (!this.server.getPermissionManager().can(this.player).execute(permission)) continue;
+
+            // The level the command declares, capped at the player's own: a
+            // client hides a command whose level is above its own even though
+            // the server would run it, which is what a player granted one
+            // operator command by name would otherwise see.
+            const own = this.player.isOp() ? CommandPermissionLevel.OWNER : CommandPermissionLevel.ANY;
+            pk.commandData.push(commandDataOf(command, Math.min(command.permissionLevel, own)));
         }
 
         await this.getConnection().sendDataPacket(pk);
