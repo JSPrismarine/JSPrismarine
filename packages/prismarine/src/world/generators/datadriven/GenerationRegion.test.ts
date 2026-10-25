@@ -1,0 +1,150 @@
+/**
+ * The optional `FeatureWorld` hooks, run through the vanilla features that need them.
+ *
+ * Each test builds a region, runs one real feature into it and reads back what the region kept,
+ * because the thing worth checking is that a generated chest, spawner, gateway or crystal
+ * survives the trip from `@jsprismarine/features` into a chunk, not that the hook was called.
+ */
+import { WorldgenRandom, bonusChest, endGateway, endSpike, monsterRoom } from '@jsprismarine/features';
+import { describe, expect, it } from 'vitest';
+
+import { GenerationRegion } from './GenerationRegion';
+import { createJavaBlockOracle } from './javaBlockOracle';
+import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
+
+const STONE = { name: 'minecraft:stone', properties: {} };
+const AIR = { name: 'minecraft:air', properties: {} };
+
+const SEED = 1234n;
+
+/** A region with no block tags, which is all these features read the oracle for. */
+const region = (): GenerationRegion =>
+    new GenerationRegion({
+        chunkX: 0,
+        chunkZ: 0,
+        minY: -64,
+        height: 384,
+        seaLevel: 63,
+        seed: SEED,
+        blocks: createJavaBlockOracle(new Map()),
+        biomeAt: () => 'minecraft:plains'
+    });
+
+/** Fills the whole three by three chunk window with stone up to `top`. */
+const fillStone = (built: GenerationRegion, top: number): void => {
+    for (let x = -16; x < 32; x++) {
+        for (let z = -16; z < 32; z++) {
+            for (let y = top - 24; y <= top; y++) built.write(x, y, z, STONE);
+        }
+    }
+};
+
+describe('setBlockEntity', () => {
+    it('gives a generated bonus chest the loot table it fills from', () => {
+        const built = region();
+        fillStone(built, 63);
+
+        expect(bonusChest().place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 64, z: 8 })).toBe(true);
+
+        const placed = built.centerBlockEntities();
+        expect(placed).toHaveLength(1);
+        expect(placed[0]?.request).toEqual({
+            id: 'minecraft:chest',
+            lootTable: 'minecraft:chests/spawn_bonus_chest'
+        });
+        expect(built.stateAt(placed[0]!.x, placed[0]!.y, placed[0]!.z).name).toBe('minecraft:chest');
+
+        const chest = createBlockEntity(placed[0]!, SEED);
+        expect(chest?.getId()).toBe('Chest');
+        const nbt = chest!.toNBT();
+        expect(nbt.getString('LootTable', '')).toBe('loot_tables/chests/spawn_bonus_chest.json');
+        expect(nbt.getNumber('LootTableSeed', 0)).not.toBe(0);
+        expect(nbt.getNumber('x', -1)).toBe(placed[0]!.x);
+    });
+
+    it('gives a dungeon spawner the mob it spawns, named the way Bedrock names it', () => {
+        const built = region();
+        fillStone(built, 50);
+        // Java needs one to five two-block gaps in the room's wall. The two columns cover both
+        // room widths the feature draws, and only ever one of them lands on a wall.
+        for (const x of [4, 5]) for (const y of [40, 41]) built.write(x, y, 8, AIR);
+
+        expect(monsterRoom().place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 40, z: 8 })).toBe(true);
+
+        const spawner = built.centerBlockEntities().find((entry) => entry.request.id === 'minecraft:mob_spawner');
+        expect(spawner).toBeDefined();
+        expect(built.stateAt(spawner!.x, spawner!.y, spawner!.z).name).toBe('minecraft:spawner');
+
+        const blockEntity = createBlockEntity(spawner!, SEED);
+        expect(blockEntity?.getId()).toBe('MobSpawner');
+        expect(blockEntity!.toNBT().getString('EntityIdentifier', '')).toMatch(/^minecraft:(skeleton|zombie|spider)$/);
+    });
+
+    it('gives an end gateway the portal it sends a traveler to', () => {
+        const built = region();
+        const exit = { x: 100, y: 50, z: 100 };
+
+        expect(
+            endGateway(exit, true).place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 70, z: 8 })
+        ).toBe(true);
+
+        const placed = built.centerBlockEntities();
+        expect(placed).toHaveLength(1);
+
+        const gateway = createBlockEntity(placed[0]!, SEED);
+        expect(gateway?.getId()).toBe('EndGateway');
+        const portal = gateway!.toNBT().getCompound('ExitPortal', false);
+        expect(portal?.getNumber('X', 0)).toBe(100);
+        expect(portal?.getNumber('Y', 0)).toBe(50);
+        expect(portal?.getNumber('Z', 0)).toBe(100);
+    });
+
+    it('drops a block entity when a later write takes its block away', () => {
+        const built = region();
+        fillStone(built, 63);
+        bonusChest().place(built.featureWorld(), new WorldgenRandom(SEED), { x: 8, y: 64, z: 8 });
+
+        const placed = built.centerBlockEntities()[0]!;
+        built.write(placed.x, placed.y, placed.z, STONE);
+
+        expect(built.centerBlockEntities()).toHaveLength(0);
+    });
+
+    it('keeps nothing for a position outside the region', () => {
+        const built = region();
+        built.featureWorld().setBlockEntity?.({ x: 500, y: 64, z: 500 }, { id: 'minecraft:chest' });
+
+        expect(built.centerBlockEntities()).toHaveLength(0);
+    });
+});
+
+describe('spawnEntity', () => {
+    it('records the end spike crystal in the middle of its block', () => {
+        const built = region();
+        const spikes = [{ centerX: 8, centerZ: 8, radius: 2, height: 70, guarded: false }];
+
+        expect(
+            endSpike(spikes, true, undefined).place(built.featureWorld(), new WorldgenRandom(SEED), {
+                x: 8,
+                y: 0,
+                z: 8
+            })
+        ).toBe(true);
+
+        const spawns = built.centerEntitySpawns();
+        expect(spawns).toHaveLength(1);
+        expect(spawns[0]).toMatchObject({ type: 'minecraft:end_crystal', x: 8.5, y: 71, z: 8.5 });
+        expect(spawns[0]!.yaw).toBeGreaterThanOrEqual(0);
+        expect(spawns[0]!.yaw).toBeLessThan(360);
+
+        // Bedrock still calls it the ender crystal, which is the name an entity class answers to.
+        expect(createEntitySpawn(spawns[0]!)).toMatchObject({ type: 'minecraft:ender_crystal', x: 8.5, z: 8.5 });
+    });
+
+    it('keeps nothing for a position outside the region', () => {
+        const built = region();
+        built.featureWorld().spawnEntity?.('minecraft:end_crystal', { x: 500, y: 64, z: 500 }, 0);
+
+        expect(built.centerEntitySpawns()).toHaveLength(0);
+    });
+});

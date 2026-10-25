@@ -16,11 +16,12 @@ import type {
     FilterSubjects,
     RandomSource
 } from './filterContext';
-import { defaultRandom } from './filterContext';
+import { damagerSubjects, defaultRandom, isPlayerView } from './filterContext';
 import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
 import type { EntityAction } from './events';
-import type { DamageEvent, DamageOutcome, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
+import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
+import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
 import type { PropertyDefinition, PropertyValue } from './properties';
 import { PropertyValues } from './properties';
 import type { TriggerComponentName } from './triggers';
@@ -254,13 +255,54 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     }
 
     /**
-     * Offers one damage event to the active components.
+     * Applies one damage event.
      *
-     * @returns What the first component that answered decided, or undefined
-     *   when none did, which means the damage applies unchanged.
+     * The first component that answers `onDamage` decides the amount, which is
+     * what `minecraft:damage_sensor` does. An immunity component then turns the
+     * cause aside, after the sensors have seen it, so a sensor still fires its
+     * event on damage the entity ends up ignoring. What is left comes off the
+     * `health` attribute, and `minecraft:on_hurt`,
+     * `minecraft:on_hurt_by_player` and `minecraft:on_death` fire in that
+     * order.
+     *
+     * @returns What landed, with the events queued for the entity's next tick.
      */
-    public damage(event: DamageEvent): DamageOutcome | undefined {
-        return this.dispatchFirst('onDamage', this, event);
+    public damage(event: DamageEvent): DamageResult {
+        const outcome = this.dispatchFirst('onDamage', this, event);
+        const events = [...(outcome?.events ?? [])];
+        const amount = this.immuneTo(event.cause) ? 0 : Math.max(0, outcome?.amount ?? event.amount);
+
+        const health = this.attributes.get('health');
+        let remaining = health?.current;
+        if (health !== undefined && amount > 0) remaining = this.attributes.set('health', health.current - amount);
+
+        const subjects = damagerSubjects(event.damager);
+        const fire = (component: TriggerComponentName): void => {
+            const fired = this.trigger(component, subjects);
+            if (fired !== undefined) events.push(fired);
+        };
+
+        if (amount > 0) {
+            fire('minecraft:on_hurt');
+            if (isPlayerView(event.damager)) fire('minecraft:on_hurt_by_player');
+        }
+
+        const died = amount > 0 && remaining !== undefined && remaining <= 0;
+        if (died) fire('minecraft:on_death');
+
+        return { amount, health: remaining, died, events };
+    }
+
+    /**
+     * Whether an immunity component on the entity turns a damage cause aside.
+     *
+     * `minecraft:fire_immune` and `minecraft:freezing_immune` are empty
+     * markers, so the cause list is the whole of what each one means and the
+     * entity reads them here rather than through a hook.
+     */
+    private immuneTo(cause: string): boolean {
+        if (this.hasComponent('minecraft:fire_immune') && FIRE_DAMAGE_CAUSES.includes(cause)) return true;
+        return this.hasComponent('minecraft:freezing_immune') && FREEZING_DAMAGE_CAUSES.includes(cause);
     }
 
     /**

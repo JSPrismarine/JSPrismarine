@@ -36,6 +36,7 @@ import type { DimensionDefinition } from '../../Dimension';
 import type { Generator } from '../../Generator';
 import { GenerationRegion } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
+import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 
@@ -239,8 +240,37 @@ export class DataDrivenGenerator implements Generator {
             chunk.setBlockRuntimeId(localX, y, localZ, runtimeId);
         });
 
+        this.recordBlockEntities(region, chunk, pipeline);
+        this.recordEntitySpawns(region, chunk);
         this.recordBiomes(cx, cz, chunk, pipeline);
         return chunk;
+    }
+
+    /**
+     * Files the block entities the decoration pass attached.
+     *
+     * A chest without this is a chest with nothing in it and a spawner without it is an inert
+     * block, so a type the rewrite has no Bedrock name for is skipped rather than guessed at.
+     */
+    private recordBlockEntities(region: GenerationRegion, chunk: Chunk, pipeline: SeededPipeline): void {
+        for (const placed of region.centerBlockEntities()) {
+            const blockEntity = createBlockEntity(placed, pipeline.randomState.seed);
+            if (blockEntity !== undefined) chunk.setBlockEntity(blockEntity);
+        }
+    }
+
+    /**
+     * Records the entities a feature built its blocks around.
+     *
+     * The generator has no world to add an entity to, so the chunk carries the request and the
+     * world acts on it the first time the chunk is loaded.
+     */
+    private recordEntitySpawns(region: GenerationRegion, chunk: Chunk): void {
+        const spawns = chunk.getEntitySpawns();
+        for (const requested of region.centerEntitySpawns()) {
+            const spawn = createEntitySpawn(requested);
+            if (spawn !== undefined) spawns.push(spawn);
+        }
     }
 
     /**

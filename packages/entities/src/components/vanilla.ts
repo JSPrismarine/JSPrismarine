@@ -5,6 +5,7 @@ import type { Filter } from '@jsprismarine/packs';
 import type { EntityInstance } from '../entityInstance';
 import { splitSpawnReference } from '../eventEngine';
 import { parseEventTarget } from '../events';
+import { damagerSubjects } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
@@ -730,7 +731,7 @@ export const damageSensor: ComponentFactory<EntityHooks, DamageSensorParams> = {
     },
     create: (params) => ({
         onDamage: (entity, damage) => {
-            const context = entity.filterContext();
+            const context = { ...entity.filterContext(), ...damagerSubjects(damage.damager) };
             for (const trigger of params.triggers) {
                 if (trigger.cause !== 'any' && trigger.cause !== damage.cause) continue;
                 if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, context)) continue;

@@ -11,7 +11,14 @@
  * tree that crosses into a neighbor is clipped at the border, where Java carries it over into
  * that neighbor's saved chunk.
  */
-import type { BlockOracle, BlockState, FeatureWorld, HeightmapType } from '@jsprismarine/features';
+import type {
+    BlockEntityRequest,
+    BlockOracle,
+    BlockPos,
+    BlockState,
+    FeatureWorld,
+    HeightmapType
+} from '@jsprismarine/features';
 import type { SurfaceChunk } from '@jsprismarine/worldgen';
 
 /** The chunk radius a feature may write into, which is Java's `WorldGenRegion` size. */
@@ -40,6 +47,26 @@ export interface GenerationRegionOptions {
     readonly isColdEnoughToSnow?: (x: number, y: number, z: number) => boolean;
 }
 
+/** A block entity a feature attached to a block it placed, in world coordinates. */
+export interface RegionBlockEntity {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    /** What the feature asked for, still naming Java's block entity type and loot table. */
+    readonly request: BlockEntityRequest;
+}
+
+/** An entity a feature asked for, at the entity coordinates it stands on. */
+export interface RegionEntitySpawn {
+    /** The Java entity type the feature named, for example `minecraft:end_crystal`. */
+    readonly type: string;
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+    /** Which way it faces, in degrees. */
+    readonly yaw: number;
+}
+
 /**
  * A three by three chunk window of Java block states.
  *
@@ -65,6 +92,12 @@ export class GenerationRegion {
 
     /** The highest y holding anything other than air, per region column. */
     private readonly highest: Int32Array;
+
+    /** The block entities features attached, keyed by the same index the states use. */
+    private readonly blockEntities = new Map<number, RegionBlockEntity>();
+
+    /** The entities features asked for, in the order they asked. */
+    private readonly entitySpawns: RegionEntitySpawn[] = [];
 
     /** The `WORLD_SURFACE_WG` heights frozen after the terrain fill, as Java freezes them. */
     private frozenSurface: Int32Array | null = null;
@@ -94,6 +127,10 @@ export class GenerationRegion {
         if (index === -1) return false;
 
         this.states[index] = this.paletteSlot(state);
+        // A block entity belongs to the block it was attached to, so overwriting that block
+        // takes it away, as Java's `setBlock` does.
+        if (this.blockEntities.size > 0) this.blockEntities.delete(index);
+
         const column = this.columnIndex(x, z);
         if (state.name !== AIR) {
             if (y > this.highest[column]!) this.highest[column] = y;
@@ -147,6 +184,8 @@ export class GenerationRegion {
             setBlock: (position, state) => this.write(position.x, position.y, position.z, state),
             getHeight: (heightmap, x, z) => this.heightAt(heightmap, x, z),
             getBiome: (position) => this.options.biomeAt(position.x, position.y, position.z),
+            setBlockEntity: (position, data) => this.attachBlockEntity(position, data),
+            spawnEntity: (type, position, yaw) => this.recordEntity(type, position, yaw),
             ...(this.options.isColdEnoughToSnow
                 ? {
                       isColdEnoughToSnow: (position: { x: number; y: number; z: number }) =>
@@ -154,6 +193,16 @@ export class GenerationRegion {
                   }
                 : {})
         };
+    }
+
+    /** The block entities attached inside the center chunk, which is the chunk that is kept. */
+    public centerBlockEntities(): readonly RegionBlockEntity[] {
+        return [...this.blockEntities.values()].filter((entry) => this.isInCenterChunk(entry.x, entry.z));
+    }
+
+    /** The entities asked for inside the center chunk, in the order the features asked. */
+    public centerEntitySpawns(): readonly RegionEntitySpawn[] {
+        return this.entitySpawns.filter((spawn) => this.isInCenterChunk(Math.floor(spawn.x), Math.floor(spawn.z)));
     }
 
     /** Every non-air state the center chunk holds, for the translation pass. */
@@ -169,6 +218,36 @@ export class GenerationRegion {
                 }
             }
         }
+    }
+
+    /**
+     * Records a block entity against the block a feature just wrote.
+     *
+     * A position outside the region is dropped, the same way the block write that preceded it
+     * was dropped, so the two never disagree about whether the block is there.
+     */
+    private attachBlockEntity(position: BlockPos, request: BlockEntityRequest): void {
+        const index = this.indexOf(position.x, position.y, position.z);
+        if (index === -1) return;
+
+        this.blockEntities.set(index, { x: position.x, y: position.y, z: position.z, request });
+    }
+
+    /**
+     * Records an entity a feature built its blocks around.
+     *
+     * The feature names a block position, and an entity stands in the middle of its block, which
+     * is where Java's `end_spike` puts the crystal it summons.
+     */
+    private recordEntity(type: string, position: BlockPos, yaw: number): void {
+        if (this.indexOf(position.x, position.y, position.z) === -1) return;
+
+        this.entitySpawns.push({ type, x: position.x + 0.5, y: position.y, z: position.z + 0.5, yaw });
+    }
+
+    /** Whether a block column belongs to the chunk being generated rather than to a neighbor. */
+    private isInCenterChunk(x: number, z: number): boolean {
+        return x >> 4 === this.chunkX && z >> 4 === this.chunkZ;
     }
 
     /** A bare identifier as a state, memoized through the palette's own index. */

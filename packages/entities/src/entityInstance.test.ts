@@ -382,8 +382,18 @@ describe('damage', () => {
         const { types } = load(creeper);
         const entity = types.spawn('test:creeper');
 
-        expect(entity.damage({ cause: 'fall', amount: 6 })).toEqual({ amount: 0, events: [] });
-        expect(entity.damage({ cause: 'entity_attack', amount: 6 })).toBeUndefined();
+        expect(entity.damage({ cause: 'fall', amount: 6 })).toEqual({
+            amount: 0,
+            health: 20,
+            died: false,
+            events: []
+        });
+        expect(entity.damage({ cause: 'entity_attack', amount: 6 })).toEqual({
+            amount: 6,
+            health: 14,
+            died: false,
+            events: []
+        });
     });
 
     it('fires the event a damage sensor names, applied on the next tick', () => {

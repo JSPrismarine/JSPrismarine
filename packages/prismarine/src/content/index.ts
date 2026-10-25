@@ -1,4 +1,5 @@
 export * from './ContentOptions';
+export * from './lootTablePaths';
 export * from './ServerContent';
 export * from './packStack';
 export * from './settings';
