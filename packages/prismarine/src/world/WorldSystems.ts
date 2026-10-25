@@ -71,6 +71,25 @@ export interface WorldSystemsView {
     readonly dimension: DimensionDefinition;
     /** The block at a world position, or undefined when its chunk is not loaded. */
     blockAt(x: number, y: number, z: number): SystemBlock | undefined;
+    /**
+     * The runtime id at a world position, which names the same block {@link blockAt} answers
+     * with and nothing else.
+     *
+     * The light pass reads two numbers per block and asks tens of millions of times while a
+     * world preloads. With this it resolves a block's identifier and state values once per
+     * distinct id and reads the rest out of a table; without it, it asks {@link blockAt} and
+     * goes through the property table by name and state values for every single read. Left out
+     * by every test double, which take the second path.
+     */
+    blockRuntimeIdAt?(x: number, y: number, z: number): number | undefined;
+    /**
+     * One past the highest y a column stores a block for, as
+     * {@link import('@jsprismarine/lighting').BlockLightView.topOfColumn} defines it.
+     *
+     * Left out, a fresh chunk's light scan reads every block from the dimension ceiling down,
+     * which in an Overworld is mostly open sky.
+     */
+    topOfColumn?(x: number, z: number): number;
     /** The chunk coordinates the world holds in memory, which is what the light pass crosses. */
     loadedChunks(): Iterable<{ readonly x: number; readonly z: number }>;
     /** `random_tick_speed`, which is draws per section rather than a rate. */
@@ -137,6 +156,9 @@ export class WorldSystems {
     private readonly view: WorldSystemsView;
 
     private readonly randomPositions = new BlockRandomPositions();
+
+    /** What each runtime id this world has read does to light - see {@link lightPropertiesAt}. */
+    private readonly lightByRuntimeId = new Map<number, BlockLightProperties>();
 
     public constructor(options: WorldSystemsOptions) {
         this.view = options.view;
@@ -275,12 +297,37 @@ export class WorldSystems {
             // One past the highest block y, which is how the light engine bounds its columns.
             maxY: maxY(dimension) + 1,
             hasSkyLight: dimension.id === 0,
-            blockAt: (x, y, z) => {
-                const block = this.view.blockAt(x, y, z);
-                if (block === undefined) return undefined;
-
-                return lightPropertiesOf(block) ?? TRANSPARENT;
-            }
+            blockAt: (x, y, z) => this.lightPropertiesAt(x, y, z),
+            topOfColumn: (x, z) => this.view.topOfColumn?.(x, z) ?? maxY(dimension) + 1
         };
+    }
+
+    /**
+     * The two numbers the light engine reads, memoised per runtime id.
+     *
+     * A runtime id is a hash of the block's own identifier and state values, so it names one
+     * block for the life of the process and what that block does to light cannot change under
+     * the memo. Resolving it to a `BlockState` and then through
+     * `@jsprismarine/mapping`'s property table - which matches state overrides by splitting
+     * their keys and merges the row it finds - costs two allocations and a string walk, and the
+     * light pass asks tens of millions of times while a world preloads.
+     *
+     * A view with no {@link WorldSystemsView.blockRuntimeIdAt} resolves every read the long way,
+     * which is what this did for all of them.
+     */
+    private lightPropertiesAt(x: number, y: number, z: number): BlockLightProperties | undefined {
+        const runtimeId = this.view.blockRuntimeIdAt?.(x, y, z);
+        if (runtimeId !== undefined) {
+            const known = this.lightByRuntimeId.get(runtimeId);
+            if (known !== undefined) return known;
+        }
+
+        const block = this.view.blockAt(x, y, z);
+        if (block === undefined) return undefined;
+
+        const properties = lightPropertiesOf(block) ?? TRANSPARENT;
+        if (runtimeId !== undefined) this.lightByRuntimeId.set(runtimeId, properties);
+
+        return properties;
     }
 }

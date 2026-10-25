@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import type { BlockPosition, TestWorld } from '@jsprismarine/engine-systems';
 import { createTestWorld } from '@jsprismarine/engine-systems';
 
+import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { Dimensions } from './Dimension';
 import type { SystemBlock, WorldSystemsAccess, WorldSystemsOptions, WorldSystemsView } from './WorldSystems';
 import { LIGHT_BUDGET_PER_TICK, WorldSystems } from './WorldSystems';
@@ -11,6 +12,7 @@ const AIR: SystemBlock = { name: 'minecraft:air', states: {} };
 const STONE: SystemBlock = { name: 'minecraft:stone', states: {} };
 const GLOWSTONE: SystemBlock = { name: 'minecraft:glowstone', states: {} };
 const WHEAT: SystemBlock = { name: 'minecraft:wheat', states: { growth: 0 } };
+const GLASS: SystemBlock = { name: 'minecraft:glass', states: {} };
 
 const key = (x: number, y: number, z: number): string => `${x},${y},${z}`;
 
@@ -118,6 +120,54 @@ describe('world', () => {
 
                 expect(systems.lighting.getBlockLight(8, 40, 8)).toBe(0);
                 expect(systems.lighting.getBlockLight(9, 40, 8)).toBe(0);
+            });
+
+            it('lights the same world through the runtime id and the column top as without them', () => {
+                // Both shortcuts are optional, so the two paths have to agree block for block.
+                // A floor with a glowstone on it, a pane of glass above and nothing higher.
+                const scene = (view: WorldSystemsView, blocks: Map<string, SystemBlock>): WorldSystems => {
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) blocks.set(key(x, 40, z), STONE);
+                    }
+                    blocks.set(key(8, 41, 8), GLOWSTONE);
+                    blocks.set(key(4, 44, 4), GLASS);
+
+                    const systems = new WorldSystems({ view, world: createTestWorld() });
+                    systems.onChunkLoaded(0, 0);
+                    systems.lighting.flush();
+                    return systems;
+                };
+
+                /** Every level of both layers over the chunk, so one block's difference shows. */
+                const levels = (systems: WorldSystems): number[] => {
+                    const out: number[] = [];
+                    for (let x = 0; x < 16; x++) {
+                        for (let z = 0; z < 16; z++) {
+                            for (let y = 30; y <= 60; y++) {
+                                out.push(systems.lighting.getBlockLight(x, y, z));
+                                out.push(systems.lighting.getSkyLight(x, y, z));
+                            }
+                        }
+                    }
+                    return out;
+                };
+
+                const plain = worldOf();
+                const shortcut = worldOf();
+                const shortcutView: WorldSystemsView = {
+                    ...shortcut.view,
+                    blockRuntimeIdAt: (x, y, z) => {
+                        const block = shortcut.view.blockAt(x, y, z);
+                        return block === undefined
+                            ? undefined
+                            : (BlockRuntimeIds.tryGetByState(block.name, block.states) ?? undefined);
+                    },
+                    // One past the scene's highest block, rounded up to the sub chunk the real
+                    // world answers with.
+                    topOfColumn: () => 48
+                };
+
+                expect(levels(scene(shortcutView, shortcut.blocks))).toEqual(levels(scene(plain.view, plain.blocks)));
             });
 
             it('stops the flood at an opaque block', () => {

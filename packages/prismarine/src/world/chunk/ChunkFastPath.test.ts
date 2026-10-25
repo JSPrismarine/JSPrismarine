@@ -74,6 +74,29 @@ describe('world', () => {
             const [storage] = chunk.getSubChunk(0)?.getStorages() ?? [];
             expect(storage?.getPalette()).toEqual([BlockRuntimeIds.getByName('minecraft:air'), stone, dirt]);
         });
+
+        // The light engine starts a column scan here and trusts everything above to be air,
+        // so the only thing worth asserting is that nothing above it is anything else.
+        it('getTopStoredY leaves nothing but air above it', () => {
+            const air = BlockRuntimeIds.getByName('minecraft:air');
+            const chunk = new Chunk(0, 0);
+            chunk.fillColumn(3, 9, -64, 71, BlockRuntimeIds.getByName('minecraft:stone'));
+            chunk.setBlockRuntimeId(5, 130, 5, BlockRuntimeIds.getByName('minecraft:glowstone'));
+
+            const top = chunk.getTopStoredY();
+            expect(top).toBeGreaterThan(130);
+            for (let x = 0; x < 16; x += 5) {
+                for (let z = 0; z < 16; z += 5) {
+                    for (let y = top; y <= chunk.getMaxY(); y++) {
+                        expect(chunk.getBlockRuntimeId(x, y, z)).toBe(air);
+                    }
+                }
+            }
+        });
+
+        it('getTopStoredY answers the dimension floor for a chunk holding nothing', () => {
+            expect(new Chunk(0, 0).getTopStoredY()).toBe(new Chunk(0, 0).getMinY());
+        });
     });
 
     describe('serialised chunk cache', () => {

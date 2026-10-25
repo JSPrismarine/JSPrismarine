@@ -215,6 +215,30 @@ export default class Chunk {
     }
 
     /**
+     * One past the highest y this chunk stores a block for.
+     *
+     * Everything above it is air, because {@link getBlock} answers with air for a y no sub chunk
+     * covers. The light engine reads it to start a fresh chunk's column scan below the open sky
+     * rather than at the world ceiling, which is most of the blocks it would otherwise read.
+     *
+     * Sub chunk resolution rather than per column, and deliberately not {@link getTopEmpty}: a
+     * sub chunk that exists is counted whether or not it holds anything, because "its palette has
+     * one entry" is not the same statement as "it is all air", and this answer has to be an upper
+     * bound that no block sits above.
+     * @returns {number} One past the highest stored y, or the dimension floor for a chunk that
+     * holds no sub chunk at all.
+     */
+    public getTopStoredY(): number {
+        let top = this.dimension.minY;
+        for (const index of this.subChunks.keys()) {
+            const above = (index + 1) * 16;
+            if (above > top) top = above;
+        }
+
+        return top;
+    }
+
+    /**
      * Returns the Chunk slice at the given index, which is signed - the Overworld's floor is -4.
      * @param {number} y - The sub chunk index to get.
      */
