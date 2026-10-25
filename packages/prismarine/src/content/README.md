@@ -178,7 +178,7 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
 - The optional `spawning` group: `site`, `poolCount`, `mobEventActive` and the optional
   `villageBorderDistance`.
 - The optional `ai` group: `goalWorld(entity)`, `actuator(entity)` and `brainWorld()`. `GoalWorld`
-  has 44 optional members, and a goal whose world cannot answer one refuses to start rather than
+  has 43 optional members, and a goal whose world cannot answer one refuses to start rather than
   throwing, so this can come up a member at a time.
 
 A player's right click goes through [`item/interaction.ts`](../item/interaction.ts) before it

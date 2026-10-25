@@ -12,13 +12,14 @@ import Human from './Human';
  * One entity hitting another.
  *
  * Free functions rather than a method, because both sides of a fight need the same code and they
- * live in different class hierarchies: a `Player` is a `Human` and a zombie is a `Mob`, and their
- * only common ancestor is `Entity`, which has no business knowing what a weapon is. Putting it
- * here also keeps it out of the packet handler, where it would only ever have served players.
+ * live in different places: a `Player` is a `Human`, and a mob is a `GenericEntity` body the
+ * data-driven runtime drives. Their only common ancestor is `Entity`, which has no business
+ * knowing what a weapon is. Putting it here also keeps it out of the packet handler, where it
+ * would only ever have served players.
  *
- * Deliberately imports neither `Player` nor `Mob`. A goal will call this, goals are reached from
- * `Mob`, and `Mob` would then import this back - so anything species-specific is passed in by
- * whoever knows it. That is why the reach and the critical are options and not worked out here.
+ * Deliberately imports neither `Player` nor anything under `entity/data`, which would import this
+ * back. Anything species-specific is passed in by whoever knows it, which is why the reach and
+ * the critical are options and not worked out here.
  */
 
 /** How far a player may reach in survival, measured to the target's body rather than its center. */
