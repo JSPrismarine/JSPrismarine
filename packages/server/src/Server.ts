@@ -6,8 +6,10 @@ import { Config, RemoteConsole, RemoteLogTransport, Server } from '@jsprismarine
 
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import pkg from '../package.json' with { type: 'json' };
 import type { ServerArgs } from './cli/Cli';
 import { parseServerArgs } from './cli/Cli';
+import type { ConsoleFrontend } from './host/frontends';
 import { loadTuiFrontend, plainFrontend } from './host/frontends';
 import { spawnServerChild } from './host/ServerChild';
 import { Supervisor } from './host/Supervisor';
@@ -38,12 +40,16 @@ const logFileName = (): string => {
     return `jsprismarine.${day}-${time}.log`;
 };
 
+/**
+ * A path inside the server's data directory. `resolve`, not `join`, so an absolute JSP_DIR
+ * such as /data is used as is, the way the rest of the server resolves it.
+ */
+const dataPath = (...segments: string[]): string => path.resolve(process.cwd(), process.env.JSP_DIR || '', ...segments);
+
 const fileTransport = (config: Config): FileTransport =>
     new FileTransport({
         level: config.getLogLevel(),
-        // `resolve`, not `join`, so an absolute JSP_DIR such as /data is used as is, the way
-        // the rest of the server resolves it.
-        filename: path.resolve(process.cwd(), process.env.JSP_DIR || '', 'logs', logFileName())
+        filename: dataPath('logs', logFileName())
     });
 
 /**
@@ -112,7 +118,7 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
  * `--role server`, and shows the chosen frontend. With `--watch` it also restarts the child
  * when a workspace package changes.
  */
-const runHost = async (args: ServerArgs, frontend: Awaited<ReturnType<typeof loadTuiFrontend>>): Promise<void> => {
+const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined): Promise<void> => {
     process.title = 'JSPrismarine host';
     const ui = frontend ?? plainFrontend();
 
@@ -169,7 +175,15 @@ const main = async (): Promise<void> => {
           });
     if (decision.reason) process.stderr.write(`prismarine: ${decision.reason}\n`);
 
-    const tui = decision.mode === 'tui' ? await loadTuiFrontend() : undefined;
+    const tui =
+        decision.mode === 'tui'
+            ? await loadTuiFrontend({
+                  // The config file lives in the child, so the title bar shows the product name.
+                  serverName: 'JSPrismarine',
+                  version: pkg.version,
+                  historyFile: dataPath('.console_history')
+              })
+            : undefined;
     if (tui || (args.watch && !args.headless)) {
         await runHost(args, tui);
         return;
