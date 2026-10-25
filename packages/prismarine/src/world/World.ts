@@ -210,6 +210,20 @@ export class World implements Service {
 
     /** Two minutes at the server's twenty ticks per second. */
     private static readonly AUTO_SAVE_INTERVAL_TICKS = 20 * 120;
+
+    /**
+     * The autosave that is still running, or null when none is.
+     *
+     * A tick starts a save and does not wait for it. Writing 441 freshly generated chunks
+     * takes about a second and a half, and `Server.tick` installs the next tick's timer only
+     * once `update` has resolved - so an awaited autosave stopped the world for as long as it
+     * took. That is under the loop's two second catch-up limit on an idle machine and over it
+     * on a busy one, which is the whole of the difference between a server that holds 20 TPS
+     * and one that announces it has skipped ninety ticks. {@link saveChunks} already yields
+     * between batches; not awaiting it is what lets those yields reach the tick loop rather
+     * than only the socket.
+     */
+    private saving: Promise<void> | null = null;
     private readonly provider: BaseProvider & Provider;
     private readonly server: Server;
     private readonly seed: number;
@@ -425,6 +439,11 @@ export class World implements Service {
      * more chunks and stops the tick; waiting for the start region means every chunk that was
      * generated is in `this.chunks` before the save walks it; and the provider is closed last,
      * once nothing is left that could ask it for anything.
+     *
+     * An autosave a tick started is one of those things. {@link World.save} waits for it
+     * before writing anything of its own, so by the time this reaches `provider.disable` no
+     * write is outstanding - closing the database under one is the same failure the start
+     * region race used to cause.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
@@ -463,9 +482,9 @@ export class World implements Service {
         // equality: `currentTick / 20 === 120` holds for exactly one value of the counter,
         // so the world was saved once, two minutes in, and then never again for the rest
         // of the process' life.
-        if (this.currentTick % World.AUTO_SAVE_INTERVAL_TICKS === 0) {
-            await this.save();
-        }
+        //
+        // Started, not awaited - see {@link World.saving} for why the tick must not wait.
+        if (this.currentTick % World.AUTO_SAVE_INTERVAL_TICKS === 0) this.beginAutoSave();
 
         // Before the entities, so a mob walks on the world as it is this tick rather than as it was
         // before the sand under it fell away.
@@ -1780,7 +1799,57 @@ export class World implements Service {
         this.server.getLogger().verbose(`(took §e${timer.stop()} ms§r)!`);
     }
 
+    /**
+     * Writes this world to disk: every player in it, every changed chunk, the level data.
+     *
+     * Whatever autosave a tick already started goes first. Two passes over the same chunks at
+     * once would race on `Chunk.markSaved`: the one that finished second would clear the flag
+     * for a write the other had not made yet, and that change would never reach disk.
+     */
     public async save(): Promise<void> {
+        // Null unless a tick started one, which is the ordinary case. It never rejects -
+        // `beginAutoSave` reports its own failures - so this cannot throw on its behalf.
+        await this.saving;
+        await this.write();
+    }
+
+    /**
+     * Starts an autosave unless one is already running.
+     *
+     * Skipped rather than queued. A save still going when the next falls due has more to write
+     * than two minutes of ticks allowed, and queueing would answer that with an ever-growing
+     * backlog of passes over the same chunks. Nothing is lost by skipping: a chunk this pass
+     * does not reach is still dirty, so the next one picks it up.
+     */
+    private beginAutoSave(): void {
+        if (this.saving !== null) return;
+
+        // Assigned in the same turn the save is started, before anything can await it, so a
+        // shutdown arriving on the next turn finds the promise to wait for.
+        this.saving = this.runAutoSave();
+    }
+
+    /**
+     * One autosave pass, which owns its own failures.
+     *
+     * Nothing awaits this - the tick that started it has long since finished - so a rejection
+     * escaping would be an unhandled one, and the server runs with
+     * `--unhandled-rejections=strict`. A save that fails is worth a log line and the next
+     * pass; it is not worth the process.
+     */
+    private async runAutoSave(): Promise<void> {
+        try {
+            await this.write();
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save level ${this.getFormattedName()}`);
+            this.server.getLogger().error(error);
+        } finally {
+            this.saving = null;
+        }
+    }
+
+    /** One pass over everything, with nothing queued in front of it. */
+    private async write(): Promise<void> {
         // `forEach` discards the promise an async callback returns, so these writes used to
         // be in flight - and their failures unobserved - long after `save` had resolved.
         // A shutdown save could return before a single player had reached disk.
