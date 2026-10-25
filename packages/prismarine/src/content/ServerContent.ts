@@ -26,7 +26,7 @@ import type { ItemFacts, ItemHooks, ItemRegistry, ItemType } from '@jsprismarine
 import { flattenItemFacts, loadItemTypes, maxDamage, maxStackSize, vanillaItemDefinitions } from '@jsprismarine/items';
 import { defaultItemStackOps } from '@jsprismarine/predicates';
 import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
-import { LootRegistry } from '@jsprismarine/loot';
+import { LootRegistry, bedrockLootTables, javaLootTables } from '@jsprismarine/loot';
 import { load as loadPacks } from '@jsprismarine/packs';
 import type { Definition, Definitions } from '@jsprismarine/packs';
 import { loadRecipes } from '@jsprismarine/recipes';
@@ -105,6 +105,15 @@ export interface ServerContent {
     readonly recipes: RecipeBook;
     /** Java's loot tables, compiled on first roll. */
     readonly loot: LootRegistry;
+    /**
+     * Bedrock's loot tables, compiled on first roll, which is what a mob
+     * spawns holding: `minecraft:equipment.table` names one of these.
+     *
+     * Separate from {@link ServerContent.loot} because a registry reads one
+     * dialect, and these are the behavior pack's own files rather than a
+     * datapack's.
+     */
+    readonly equipmentLoot: LootRegistry;
     /** Java's advancements, with their trigger graph built. */
     readonly advancements: AdvancementEngine;
     /** Java's enchantments and their effect components. */
@@ -296,11 +305,25 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         // item is. `structures` stays out: an `exploration_map` needs a
         // structure search, and this server has none to offer yet, so the
         // modifier reports rather than pointing a map at a made-up place.
-        loot: new LootRegistry(definitions, {
-            worldSeed: options.seed ?? 0n,
-            enchantments: (random) => createEnchantmentView(enchantments, { random }),
-            items: itemStackOpsFor(items.types)
-        }),
+        loot: new LootRegistry(
+            { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+            {
+                worldSeed: options.seed ?? 0n,
+                enchantments: (random) => createEnchantmentView(enchantments, { random }),
+                items: itemStackOpsFor(items.types),
+                strict
+            }
+        ),
+        // The same evaluator over the behavior pack's own tables, which is
+        // what a mob spawns holding. Two registries rather than one because a
+        // registry reads one dialect, and which dialect is now a member of the
+        // source rather than a word sitting beside it: `javaLootTables` over
+        // this map is the mistake that armed 2000 zombies of 2000, and it no
+        // longer compiles.
+        equipmentLoot: new LootRegistry(
+            { ...definitions, lootTables: bedrockLootTables(definitions.lootTables) },
+            { worldSeed: options.seed ?? 0n, items: itemStackOpsFor(items.types), strict }
+        ),
         advancements,
         enchantments,
         spawnRules: parseSpawnRules(definitions.spawnRules, diagnostics),

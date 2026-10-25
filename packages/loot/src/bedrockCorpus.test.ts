@@ -5,6 +5,8 @@ import { load } from '@jsprismarine/packs';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs/sources';
 import { describe, expect, it } from 'vitest';
 
+import type { LootTableSource } from './packs';
+import { bedrockLootTables, javaLootTables } from './packs';
 import { LootRegistry } from './registry';
 
 /**
@@ -43,9 +45,18 @@ const definitions = (): Definitions =>
         { kind: 'brarchiveLayers', path: bdsBehaviorPacks(), uuids: [VANILLA_BEHAVIOR_PACK_UUID] }
     ]).definitions);
 
-/** A registry over the Bedrock table registry, in whichever dialect is being measured. */
+/**
+ * A registry over the Bedrock table registry, read through whichever dialect
+ * is being measured.
+ *
+ * `javaLootTables` over the Bedrock map is the defect written down: it is the
+ * only way left to say it, and saying it needs the word `java` in the source.
+ */
+const sourceOf = (dialect: 'java' | 'bedrock'): LootTableSource =>
+    dialect === 'bedrock' ? bedrockLootTables(definitions().lootTables) : javaLootTables(definitions().lootTables);
+
 const registryOf = (dialect: 'java' | 'bedrock'): LootRegistry =>
-    new LootRegistry({ ...definitions(), lootTablesJava: definitions().lootTables }, { worldSeed: 1234n, dialect });
+    new LootRegistry({ ...definitions(), lootTables: sourceOf(dialect) }, { worldSeed: 1234n });
 
 const ZOMBIE = 'loot_tables/entities/zombie_equipment.json';
 const TRIALS = 2000;

@@ -2,6 +2,7 @@ import type { EnchantmentView, RandomSource } from '@jsprismarine/predicates';
 import { defaultItemStackOps, scriptedRandom } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
+import { javaLootTables } from './packs';
 import type { LootPackDefinitions } from './packs';
 import type { LootRegistryOptions } from './registry';
 import { LootRegistry } from './registry';
@@ -13,7 +14,7 @@ const stackOf = (
     tables: Readonly<Record<string, unknown>>,
     extra: Partial<LootPackDefinitions> = {}
 ): LootPackDefinitions => ({
-    lootTablesJava: new Map(Object.entries(tables).map(([id, data]) => [id, { data }])),
+    lootTables: javaLootTables(new Map(Object.entries(tables).map(([id, data]) => [id, { data }]))),
     ...extra
 });
 

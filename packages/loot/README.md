@@ -39,11 +39,14 @@ Most servers will use the registry instead, because it already knows the world s
 and each table's own context key set:
 
 ```typescript
-import { LootRegistry } from '@jsprismarine/loot';
+import { LootRegistry, javaLootTables } from '@jsprismarine/loot';
 import { load } from '@jsprismarine/packs';
 
 const { definitions } = load(stack);
-const loot = new LootRegistry(definitions, { worldSeed: 1234n });
+const loot = new LootRegistry(
+    { ...definitions, lootTables: javaLootTables(definitions.lootTablesJava) },
+    { worldSeed: 1234n }
+);
 
 loot.validate(); // compiles every table and reports reference cycles
 loot.roll('minecraft:blocks/coal_ore', { parameters: { origin, block_state, tool } });
@@ -111,17 +114,23 @@ diagnostics.
 ## The Bedrock dialect
 
 Bedrock's behavior packs carry loot tables of their own, in the spelling Java used before 26.3
-renamed four fields. `dialect: 'bedrock'` reads that spelling. Java's path is untouched and stays
-the default, because the 1447 datapack tables are this project's gameplay source.
+renamed four fields. `bedrockLootTables` reads that spelling. Java's path is untouched, because the
+1447 datapack tables are this project's gameplay source.
 
 ```typescript
 const equipment = new LootRegistry(
-    { ...definitions, lootTablesJava: definitions.lootTables },
-    { dialect: 'bedrock', worldSeed }
+    { ...definitions, lootTables: bedrockLootTables(definitions.lootTables) },
+    { worldSeed }
 );
 
 equipment.roll('loot_tables/entities/zombie_equipment.json');
 ```
+
+The dialect is a member of the source rather than an option beside it, and there is no third way to
+build a source. Both editions' tables are `ReadonlyMap<string, unknown>`, so while the two were
+stated separately nothing could tell a host that had paired the wrong two — and one had: the
+Bedrock map went into a field named `lootTablesJava`, and only a `dialect: 'bedrock'` written six
+lines away kept it right. Pairing them in the value is what makes that a compile error.
 
 What the two dialects spell differently:
 
@@ -202,9 +211,11 @@ nothing there, rather than failing the roll.
 - **`DynamicDropSource`** answers a `dynamic` entry, keyed by the name the entry carries.
 - **`SlotSourceView`** answers a `slots` entry from its raw `slot_source` JSON.
 - **`LootContentOptions`** fills the content view described in the next section.
-- **`LootPackDefinitions`** is the pack stack the registry reads. `Definitions` from
-  `@jsprismarine/packs` satisfies it structurally, so you pass that object straight in and this
-  package keeps no dependency on the loader.
+- **`LootPackDefinitions`** is the pack stack the registry reads. Every member but `lootTables` is
+  structural, so you spread `Definitions` from `@jsprismarine/packs` in and override that one with
+  `javaLootTables(...)` or `bedrockLootTables(...)`; this package keeps no dependency on the loader.
+- **`LootTableSource`** is a loot table map and the dialect it is written in, together. Build one
+  with `javaLootTables` or `bedrockLootTables`.
 - **`ItemIdentifierMapper`** translates a result to Bedrock, covered below.
 
 ## The content view

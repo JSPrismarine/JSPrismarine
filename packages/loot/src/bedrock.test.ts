@@ -3,6 +3,7 @@ import { PredicateContext, constantRandom, scriptedRandom } from '@jsprismarine/
 import { describe, expect, it } from 'vitest';
 
 import type { BedrockDifficulty, LootDifficultyView } from './dialect';
+import { bedrockLootTables } from './packs';
 import { LootRegistry } from './registry';
 import { parseLootTable, rollLootTable } from './table';
 
@@ -315,17 +316,16 @@ describe('a loot_table entry that names a path', () => {
     });
 
     it('reports a path that leads back to the table it started from', () => {
-        const registry = new LootRegistry(
-            {
-                lootTablesJava: new Map<string, unknown>([
+        const registry = new LootRegistry({
+            lootTables: bedrockLootTables(
+                new Map<string, unknown>([
                     [
                         'loot_tables/a.json',
                         { pools: [{ rolls: 1, entries: [{ type: 'loot_table', name: 'loot_tables/a.json' }] }] }
                     ]
                 ])
-            },
-            { dialect: 'bedrock' }
-        );
+            )
+        });
 
         registry.table('loot_tables/a.json');
 
