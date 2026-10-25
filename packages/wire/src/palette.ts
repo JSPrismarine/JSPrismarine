@@ -18,9 +18,7 @@
  */
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound, NBTWriter, Types } from '@jsprismarine/nbt';
-// A deep import because `@jsprismarine/protocol` re-exports the packet class
-// and its `StartGame` payload but not this member type.
-import type { BlockProperty } from '@jsprismarine/protocol/packet/StartGamePacket';
+import type { BlockProperty } from '@jsprismarine/protocol';
 
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtInt, nbtString, readNetworkNbt } from './nbt';

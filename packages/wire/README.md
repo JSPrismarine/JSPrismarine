@@ -244,10 +244,6 @@ told about a block registry that disagrees with its own does not complain, it dr
 
 ## What is left
 
-- **`BlockProperty` and `ItemRegistryEntry` are deep imports.** `@jsprismarine/protocol` exports the
-  two packet classes and their payload types but not these member types, so this package imports
-  them from `@jsprismarine/protocol/packet/StartGamePacket` and
-  `@jsprismarine/protocol/packet/ItemRegistryPacket`.
 - **The creative and crafting payloads have no packet to match.** `CreativeContentPacket` and
   `CraftingDataPacket` live in `@jsprismarine/prismarine` and take the server's own `Item` and
   `Recipe` classes, so the shapes here are named after the wire's fields and a caller adapts. Moving
