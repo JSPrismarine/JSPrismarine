@@ -52,8 +52,16 @@ export interface JavaWorldgenRegistries {
     readonly blockStateProviders: JavaRegistry;
     /** `worldgen/processor_list`, which a structure template is run through as it is placed. */
     readonly processorLists: JavaRegistry;
+    /** `worldgen/structure`, the 52 structures and the fields each type generates from. */
+    readonly structures: JavaRegistry;
+    /** `worldgen/structure_set`, the 21 placements that decide which chunks a structure starts in. */
+    readonly structureSets: JavaRegistry;
+    /** `worldgen/template_pool`, the 245 pools a jigsaw structure grows out of. */
+    readonly templatePools: JavaRegistry;
     /** `tags/block`, each value the raw document with its `values` list and `#` references. */
     readonly blockTags: JavaRegistry;
+    /** `tags/worldgen/biome`, which is how a structure says where it may generate. */
+    readonly biomeTags: JavaRegistry;
     /** `reports/biome_parameters`, keyed by dimension identifier such as `minecraft:overworld`. */
     readonly biomeParameters: JavaRegistry;
 }
@@ -178,7 +186,11 @@ export const loadJavaWorldgenRegistries = (sources: JavaWorldgenSources): JavaWo
         placedFeatures: worldgen('placed_feature'),
         blockStateProviders: worldgen('block_state_provider'),
         processorLists: worldgen('processor_list'),
+        structures: worldgen('structure'),
+        structureSets: worldgen('structure_set'),
+        templatePools: worldgen('template_pool'),
         blockTags: readAcrossNamespaces(data, 'tags', 'block'),
+        biomeTags: readAcrossNamespaces(data, 'tags', 'worldgen', 'biome'),
         biomeParameters: normalizeBiomeParameters(
             readRegistry(join(sources.reports, 'reports', 'biome_parameters', 'minecraft'), 'minecraft')
         )

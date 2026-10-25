@@ -15,7 +15,7 @@
  * `javaBlockStateToBedrock`, back to the Bedrock identifier it lands on.
  */
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
-import type { ItemStack as PredicateItemStack, RandomSource } from '@jsprismarine/predicates';
+import type { ItemStack as PredicateItemStack, LevelView, RandomSource } from '@jsprismarine/predicates';
 
 import type { ContentBlock, ContentItemDrop } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
@@ -71,6 +71,8 @@ export interface BlockDropContext {
     readonly position?: { readonly x: number; readonly y: number; readonly z: number };
     /** What broke it, which decides silk touch, fortune and the shears branches. */
     readonly tool?: PredicateItemStack;
+    /** The world the clock and location conditions read. */
+    readonly level?: LevelView;
     /** Replaces the table's own sequenced stream, for a test that wants a scripted draw. */
     readonly random?: RandomSource;
 }
@@ -106,6 +108,7 @@ export const rollBlockDrops = (
             block_state: { name: `minecraft:${table.slice(BLOCK_TABLE_PREFIX.length)}` },
             tool: context.tool ?? BARE_HAND
         },
+        level: context.level,
         random: context.random
     });
 

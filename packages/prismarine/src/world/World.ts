@@ -169,6 +169,21 @@ export class World implements Service {
     private readonly dimension: DimensionDefinition;
     private spawn: Vector3 | null = null;
 
+    /**
+     * Set the moment a shutdown begins, and read wherever a lazy chunk load would otherwise
+     * reach for a provider that is about to be closed.
+     *
+     * A world is torn down while its start region is still generating on every dev restart,
+     * so this is the ordinary case rather than a defensive one.
+     */
+    private closing = false;
+
+    /**
+     * The start region preload while it is running, so a shutdown can wait for it rather than
+     * race it. Null the rest of the time.
+     */
+    private preload: Promise<void> | null = null;
+
     /** Puts wildlife into the world near players and takes it away behind them. */
     private readonly mobSpawner: MobSpawner;
 
@@ -297,14 +312,36 @@ export class World implements Service {
         this.provider.setWorld(this);
         await this.provider.enable();
 
-        await this.preloadSpawnRegion();
+        // Resolved once, here, while the provider is open and nothing is tearing it down.
+        // Finding a spawn means generating the terrain to look at, so the alternative is a
+        // save that generates chunks - which is what `saveLevelData` used to do, from inside
+        // a tick and from the middle of a shutdown.
+        await this.getSpawnPosition();
+
+        this.preload = this.preloadSpawnRegion();
+        try {
+            await this.preload;
+        } finally {
+            this.preload = null;
+        }
     }
 
     /**
      * On disable hook.
+     *
+     * The order is the whole of it. Marking the world closed stops the preload asking for
+     * more chunks and stops the tick running; waiting for the preload means every chunk that
+     * was generated is in `this.chunks` before the save walks it; and the provider is closed
+     * last, once nothing can ask it for anything.
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        this.closing = true;
+
+        // A preload that failed has already been reported to whoever awaited `enable`; the
+        // save still has to happen, so its failure must not take this path down with it.
+        await this.preload?.catch(() => {});
+
         await this.save();
         await this.provider.disable();
     }
