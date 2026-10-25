@@ -20,6 +20,7 @@ export {
     type PackIdentifierResolution,
     type PackIdentifierResolver
 } from './packIdentifierResolver';
+export { SERVER_SIDE_REGISTRIES, type ServerSideRegistry, type ServerSideRegistryId } from './packRegistries';
 export {
     BEDROCK_BIOME_LOSSES,
     BLOCK_LOSSES,
@@ -32,6 +33,7 @@ export {
     ITEM_MERGES,
     PARTIAL_BLOCK_PROPERTY_COLLAPSES,
     REGISTRY_LOSSES,
+    UNTRANSLATED_REGISTRIES,
     type BedrockBiomeLoss,
     type BlockLoss,
     type BlockMerge,
@@ -44,7 +46,8 @@ export {
     type ItemLoss,
     type ItemMerge,
     type PartialBlockPropertyCollapse,
-    type RegistryLoss
+    type RegistryLoss,
+    type UntranslatedRegistry
 } from './lossList';
 export {
     MAPPED_REGISTRIES,

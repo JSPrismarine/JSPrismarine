@@ -20,7 +20,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES } from '../../src/lossList.ts';
+import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
+import { SERVER_SIDE_REGISTRIES } from '../../src/packRegistries.ts';
 import { type JavaNbtCompound, readGzippedJavaNbt } from './java-nbt.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
@@ -167,6 +168,8 @@ interface VanillaDataModule {
 }
 const bedrockBiomes = readJson(join(samplesDir, 'mojang-biomes.json')) as VanillaDataModule;
 const bedrockEnchantments = readJson(join(samplesDir, 'mojang-enchantments.json')) as VanillaDataModule;
+const bedrockMobEffects = readJson(join(samplesDir, 'mojang-effects.json')) as VanillaDataModule;
+const bedrockPotions = readJson(join(samplesDir, 'mojang-potion-effects.json')) as VanillaDataModule;
 
 const bedrockItemTable = readJson(join(repoRoot, 'packages/bedrock-data/src/jsp/required_item_list.json')) as Record<
     string,
@@ -590,21 +593,127 @@ for (const javaId of javaEnchantmentFiles) {
     enchantmentsTable[javaId] = bedrockId;
 }
 
+/**
+ * Joins one Java registry onto a pinned Bedrock name list by identifier,
+ * applying the listed renames and skipping the reviewed losses. Refuses to
+ * emit when a Java entry is neither renamed, matched, nor a reviewed loss,
+ * which is how a Bedrock version that drops a name gets caught.
+ */
+const joinByName = (
+    registry: 'mob_effect' | 'potion',
+    javaIds: readonly string[],
+    bedrockNames: ReadonlySet<string>,
+    renames: Readonly<Record<string, string>>
+): Record<string, string> => {
+    const table: Record<string, string> = {};
+    for (const javaId of javaIds) {
+        if (registryLossIds.has(`${registry} ${javaId}`)) continue;
+        const bedrockId = renames[javaId] ?? javaId;
+        if (!bedrockNames.has(bedrockId)) {
+            throw new Error(`Java ${registry} ${javaId} maps to ${bedrockId}, which bedrock-samples does not list`);
+        }
+        table[javaId] = bedrockId;
+    }
+    return table;
+};
+
+const javaMobEffects = Object.keys(javaRegistries['minecraft:mob_effect']?.entries ?? {}).sort();
+const bedrockMobEffectNames = new Set(bedrockMobEffects.data_items.map((item) => item.name));
+const mobEffectsTable = joinByName('mob_effect', javaMobEffects, bedrockMobEffectNames, {
+    // Bedrock spells the raid reward the other way round; every other effect matches exactly.
+    'minecraft:hero_of_the_village': 'minecraft:village_hero'
+});
+
+const javaPotions = Object.keys(javaRegistries['minecraft:potion']?.entries ?? {}).sort();
+const bedrockPotionNames = new Set(bedrockPotions.data_items.map((item) => item.name));
+const potionsTable = joinByName('potion', javaPotions, bedrockPotionNames, {
+    // Bedrock drops the underscore in night vision, in both the base and the extended potion.
+    'minecraft:long_night_vision': 'minecraft:long_nightvision',
+    'minecraft:night_vision': 'minecraft:nightvision'
+});
+
 writeTable('registries.json', {
     $notice: notice(
-        `Java ${javaVersion} biome and enchantment identifiers to Bedrock ${bedrockVersion} identifiers: GeyserMC biomes.json joined against the bedrock-samples mojang-biomes ids, and the enchantment name correspondence verified against mojang-enchantments. 'bedrockBiomes' is the inverse, every Bedrock biome by identifier with the numeric id a chunk stores. The 'bedrock' enchantment list is the pinned Bedrock name set, kept beside the table so the property tests run offline.`
+        `Java ${javaVersion} biome, enchantment, mob effect and potion identifiers to Bedrock ${bedrockVersion} identifiers: GeyserMC biomes.json joined against the bedrock-samples mojang-biomes ids, and the enchantment, effect and potion name correspondences verified against mojang-enchantments, mojang-effects and mojang-potion-effects. 'bedrockBiomes' is the inverse, every Bedrock biome by identifier with the numeric id a chunk stores. The 'bedrock' lists are the pinned Bedrock name sets, kept beside the table so the property tests run offline.`
     ),
     javaVersion,
     bedrockVersion,
     geyserMappingsCommit: geyserCommit,
     biome: biomesTable,
     enchantment: enchantmentsTable,
+    mob_effect: mobEffectsTable,
+    potion: potionsTable,
     bedrockBiomes: bedrockBiomeTable,
     bedrock: {
-        enchantment: [...bedrockEnchantmentNames].sort()
+        enchantment: [...bedrockEnchantmentNames].sort(),
+        mob_effect: [...bedrockMobEffectNames].sort(),
+        potion: [...bedrockPotionNames].sort()
     }
 });
 
+// ---------------------------------------------------------------------------
+// The Java identifier census: the registries no Bedrock table answers
+// ---------------------------------------------------------------------------
+
+/**
+ * Every `minecraft:` id a data-driven registry publishes, read as the file
+ * tree under `data/minecraft/<registry>/`: `worldgen/structure/village/plains.json`
+ * is `minecraft:village/plains`.
+ */
+const datapackRegistryIds = (registry: string): string[] | undefined => {
+    const root = join(generatedDir, 'data/minecraft', registry);
+    if (!existsSync(root)) return undefined;
+    const ids: string[] = [];
+    const descend = (directory: string, prefix: string): void => {
+        for (const entry of readdirSync(directory, { withFileTypes: true })) {
+            if (entry.isDirectory()) descend(join(directory, entry.name), `${prefix}${entry.name}/`);
+            else if (entry.name.endsWith('.json'))
+                ids.push(`minecraft:${prefix}${entry.name.slice(0, -'.json'.length)}`);
+        }
+    };
+    descend(root, '');
+    return ids.sort();
+};
+
+/**
+ * The entries of one census registry: its datapack files when Java ships it
+ * as data, otherwise its entry list in the registry report. A registry in
+ * neither is a classification mistake rather than missing data, so it throws.
+ */
+const censusRegistryIds = (registry: string): string[] => {
+    const fromData = datapackRegistryIds(registry);
+    if (fromData !== undefined && fromData.length > 0) return fromData;
+    const reported = javaRegistries[`minecraft:${registry}`]?.entries;
+    if (reported === undefined) {
+        throw new Error(`${registry} is neither a Java ${javaVersion} data directory nor a reported registry`);
+    }
+    return Object.keys(reported).sort();
+};
+
+const censusRegistries = [
+    ...SERVER_SIDE_REGISTRIES.map((entry) => entry.registry),
+    ...UNTRANSLATED_REGISTRIES.map((entry) => entry.registry)
+].sort();
+const census: Record<string, string[]> = {};
+for (const registry of censusRegistries) census[registry] = censusRegistryIds(registry);
+
+for (const untranslated of UNTRANSLATED_REGISTRIES) {
+    const found = census[untranslated.registry]?.length ?? 0;
+    if (found !== untranslated.entries.count) {
+        throw new Error(
+            `The allow list says ${untranslated.registry} has ${untranslated.entries.count} entries; Java ${javaVersion} publishes ${found}. Review the row before changing the count.`
+        );
+    }
+}
+
+writeTable('javaIdentifiers.json', {
+    $notice: notice(
+        `Every Java ${javaVersion} identifier of the registries no Bedrock table answers, read from Mojang's reports/registries.json and the data directories beside it. The loader checks a reference into one of these registries against this census, so a typo still fails the load even where there is no Bedrock side to map onto. Which registries appear is decided by src/packRegistries.ts and the untranslated rows of src/lossList.ts.`
+    ),
+    javaVersion,
+    registries: census
+});
+
 console.log(
-    `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments.`
+    `Tables generated: ${Object.keys(blocksTable).length} blocks (${mappingList.length} states onto ${targetStates.size} Bedrock states), ${Object.keys(itemsTable).length} items, ${Object.keys(entitiesTable).length} entities, ${Object.keys(biomesTable).length} biomes (inverted onto ${javaByBedrockBiome.size} of ${Object.keys(bedrockBiomeTable).length} Bedrock biomes), ${Object.keys(enchantmentsTable).length} enchantments, ${Object.keys(mobEffectsTable).length} mob effects, ${Object.keys(potionsTable).length} potions, and a census of ${Object.values(census).reduce((total, ids) => total + ids.length, 0)} identifiers over ${censusRegistries.length} registries with no Bedrock table.`
 );

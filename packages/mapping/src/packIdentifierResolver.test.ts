@@ -25,19 +25,35 @@ describe('createPackIdentifierResolver', () => {
         expect(resolver.resolve('item', 'fixture:ruby')).toBe('known');
     });
 
-    it('resolves a registry the tables do not cover as unknown', () => {
-        expect(resolver.resolve('fluid', 'minecraft:water')).toBe('unknown');
+    it('resolves a registry nothing covers as unknown', () => {
+        expect(resolver.resolve('chat_type', 'minecraft:chat')).toBe('unknown');
     });
 
-    it('routes each covered registry to its lookup', () => {
+    it('routes each mapped registry to its lookup', () => {
         expect(resolver.resolve('block', 'minecraft:oak_log')).toBe('known');
         expect(resolver.resolve('entity_type', 'minecraft:zombified_piglin')).toBe('known');
         expect(resolver.resolve('entity_type', 'minecraft:spectral_arrow')).toBe('loss');
         expect(resolver.resolve('worldgen/biome', 'minecraft:plains')).toBe('known');
         expect(resolver.resolve('enchantment', 'minecraft:infinity')).toBe('known');
+        expect(resolver.resolve('mob_effect', 'minecraft:hero_of_the_village')).toBe('known');
+        expect(resolver.resolve('potion', 'minecraft:long_night_vision')).toBe('known');
     });
 
-    it('resolves tag references as unknown', () => {
+    it('resolves a server-side registry against the pinned Java census', () => {
+        expect(resolver.resolve('fluid', 'minecraft:flowing_water')).toBe('known');
+        expect(resolver.resolve('villager_trade', 'minecraft:armorer/1/emerald_iron_boots')).toBe('known');
+        expect(resolver.resolve('point_of_interest_type', 'minecraft:librarian')).toBe('known');
+        expect(resolver.resolve('fluid', 'minecraft:custard')).toBe('unknown');
+    });
+
+    it('resolves an allow-listed registry as a loss', () => {
+        expect(resolver.resolve('banner_pattern', 'minecraft:globe')).toBe('loss');
+        expect(resolver.resolve('instrument', 'minecraft:seek_goat_horn')).toBe('loss');
+        expect(resolver.resolve('painting_variant', 'minecraft:donkey_kong')).toBe('loss');
+        expect(resolver.resolve('painting_variant', 'minecraft:not_a_painting')).toBe('unknown');
+    });
+
+    it('leaves tag references to the report, which can see the loaded tags', () => {
         expect(resolver.resolve('item', '#minecraft:planks')).toBe('unknown');
     });
 });
@@ -87,10 +103,11 @@ describe('reportIdentifiers with the mapping resolver', () => {
         for (const entry of report) {
             byResolution.set(entry.resolution, (byResolution.get(entry.resolution) ?? 0) + 1);
         }
-        // Known: minecraft:stone and fixture:ruby. Loss: minecraft:spectral_arrow.
-        // Unknown: minecraft:not_an_item and the uncovered fluid registry's minecraft:water.
-        expect(byResolution.get('known')).toBe(2);
+        // Known: minecraft:stone, fixture:ruby and the census entry
+        // minecraft:water. Loss: minecraft:spectral_arrow. Unknown: the one
+        // item Java 26.3 does not have.
+        expect(byResolution.get('known')).toBe(3);
         expect(byResolution.get('loss')).toBe(1);
-        expect(byResolution.get('unknown')).toBe(2);
+        expect(byResolution.get('unknown')).toBe(1);
     });
 });

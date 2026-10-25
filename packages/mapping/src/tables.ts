@@ -8,6 +8,7 @@ import blockStatesTableJson from './tables/blockStates.json';
 import blocksTableJson from './tables/blocks.json';
 import entitiesTableJson from './tables/entities.json';
 import itemsTableJson from './tables/items.json';
+import javaIdentifiersTableJson from './tables/javaIdentifiers.json';
 import registriesTableJson from './tables/registries.json';
 
 /** The generated block table: the target palette and one entry per Java block. */
@@ -54,10 +55,17 @@ export interface EntitiesTable {
     bedrockIdentifiers: string[];
 }
 
-/** The generated biome and enchantment tables, with the pinned Bedrock name set beside them. */
+/**
+ * The generated name-to-name registry tables, with the pinned Bedrock name
+ * sets beside them. The keys are the registry names a datapack reference
+ * uses, so {@link import('./registryMapping').MappedRegistry} indexes this
+ * directly.
+ */
 export interface RegistriesTable {
     biome: Record<string, string>;
     enchantment: Record<string, string>;
+    mob_effect: Record<string, string>;
+    potion: Record<string, string>;
     /**
      * The biome inverse: every Bedrock biome by identifier, carrying the numeric id a chunk
      * stores and the Java biome that maps onto it. `java` is absent for the Bedrock biomes no
@@ -65,7 +73,19 @@ export interface RegistriesTable {
      * {@link import('./lossList').BEDROCK_BIOME_LOSSES}.
      */
     bedrockBiomes: Record<string, { id: number; java?: string }>;
-    bedrock: { enchantment: string[] };
+    bedrock: { enchantment: string[]; mob_effect: string[]; potion: string[] };
+}
+
+/**
+ * The generated Java identifier census: every entry of the registries no
+ * Bedrock table answers, keyed by the registry name a datapack reference
+ * uses. {@link import('./packRegistries').SERVER_SIDE_REGISTRIES} and the
+ * untranslated rows of {@link import('./lossList').UNTRANSLATED_REGISTRIES}
+ * decide which registries appear.
+ */
+export interface JavaIdentifiersTable {
+    javaVersion: string;
+    registries: Record<string, string[]>;
 }
 
 // The generated tables are data the compiler cannot type beyond the JSON
@@ -78,5 +98,7 @@ export const blockStatesTable = blockStatesTableJson as unknown as BlockStatesTa
 export const itemsTable = itemsTableJson as unknown as ItemsTable;
 /** The entity table instance. */
 export const entitiesTable = entitiesTableJson as unknown as EntitiesTable;
-/** The biome and enchantment table instance. */
+/** The biome, enchantment, mob effect and potion table instance. */
 export const registriesTable = registriesTableJson as unknown as RegistriesTable;
+/** The Java identifier census instance. */
+export const javaIdentifiersTable = javaIdentifiersTableJson as unknown as JavaIdentifiersTable;

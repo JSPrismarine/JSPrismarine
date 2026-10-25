@@ -34,10 +34,20 @@ import {
     ITEM_LOSSES,
     ITEM_MERGES,
     PARTIAL_BLOCK_PROPERTY_COLLAPSES,
-    REGISTRY_LOSSES
+    REGISTRY_LOSSES,
+    UNTRANSLATED_REGISTRIES
 } from './lossList';
-import { bedrockBiomeToJava, javaIdentifierToBedrock } from './registryMapping';
-import { blockStatesTable, blocksTable, entitiesTable, itemsTable, registriesTable } from './tables';
+import { createPackIdentifierResolver } from './packIdentifierResolver';
+import { SERVER_SIDE_REGISTRIES } from './packRegistries';
+import { MAPPED_REGISTRIES, bedrockBiomeToJava, javaIdentifierToBedrock } from './registryMapping';
+import {
+    blockStatesTable,
+    blocksTable,
+    entitiesTable,
+    itemsTable,
+    javaIdentifiersTable,
+    registriesTable
+} from './tables';
 
 // Documented totals for the pinned versions, from
 // docs/research/java-to-bedrock-translation.md sections 2, 3, 4 and 6.
@@ -48,6 +58,8 @@ const JAVA_ITEMS = 1658;
 const JAVA_ENTITY_TYPES = 161;
 const JAVA_BIOMES = 67;
 const JAVA_ENCHANTMENTS = 43;
+const JAVA_MOB_EFFECTS = 40;
+const JAVA_POTIONS = 46;
 /** The biomes the pinned Bedrock data lists, which is every biome a chunk can store. */
 const BEDROCK_BIOMES = 89;
 
@@ -124,6 +136,17 @@ describe('property 1: every Java palette entry maps', () => {
         // The loss list never shadows a table entry.
         for (const loss of ENTITY_LOSSES) expect(entitiesTable.entities).not.toHaveProperty(loss.javaId);
         for (const loss of enchantmentLosses) expect(registriesTable.enchantment).not.toHaveProperty(loss.javaId);
+    });
+
+    it('covers all 40 mob effects and 46 potions', () => {
+        for (const [registry, javaCount] of [
+            ['mob_effect', JAVA_MOB_EFFECTS],
+            ['potion', JAVA_POTIONS]
+        ] as const) {
+            const losses = REGISTRY_LOSSES.filter((loss) => loss.registry === registry);
+            expect(Object.keys(registriesTable[registry]), registry).toHaveLength(javaCount - losses.length);
+            for (const loss of losses) expect(registriesTable[registry], loss.javaId).not.toHaveProperty(loss.javaId);
+        }
     });
 
     it('covers all 89 Bedrock biomes in the inverse direction, by id and by identifier', () => {
@@ -434,6 +457,19 @@ describe('property 4: every output identifier exists in the real Bedrock data fo
         }
     });
 
+    it('mob effect and potion identifiers are in the pinned Bedrock name sets, one Java entry each', () => {
+        for (const registry of ['mob_effect', 'potion'] as const) {
+            const reverse = new Map<string, string>();
+            for (const [javaId, bedrockId] of Object.entries(registriesTable[registry])) {
+                expect(registriesTable.bedrock[registry], bedrockId).toContain(bedrockId);
+                // Neither registry merges: two Java entries sharing a Bedrock
+                // name would be a loss, and there is no row for one.
+                expect(reverse.has(bedrockId), bedrockId).toBe(false);
+                reverse.set(bedrockId, javaId);
+            }
+        }
+    });
+
     it('biome and enchantment identifiers are in the pinned Bedrock name sets', () => {
         for (const bedrockId of Object.values(registriesTable.biome)) {
             expect(registriesTable.bedrockBiomes, bedrockId).toHaveProperty(bedrockId);
@@ -475,5 +511,53 @@ describe("property 5: every output state value is in that state's real domain", 
                 expect(domain, `${target.name} ${key}=${value}`).toContain(value);
             }
         }
+    });
+});
+
+/**
+ * The census is the sixth property, and the one Chunker has no equivalent
+ * for: it is what lets the loader call its coverage total for the registries
+ * no Bedrock table answers. The checks keep it from becoming a blanket pass.
+ */
+describe('the Java identifier census', () => {
+    it('holds exactly the registries the classification declares, and no mapped one', () => {
+        const declared = [
+            ...SERVER_SIDE_REGISTRIES.map((entry) => entry.registry),
+            ...UNTRANSLATED_REGISTRIES.map((entry) => entry.registry)
+        ].sort();
+        expect(Object.keys(javaIdentifiersTable.registries).sort()).toEqual(declared);
+        // A registry in both halves would be allow-listed and waved through
+        // at once, and a mapped registry does not belong here at all.
+        expect(new Set(declared).size).toBe(declared.length);
+        for (const registry of [...MAPPED_REGISTRIES, 'item', 'block', 'entity_type']) {
+            expect(javaIdentifiersTable.registries, registry).not.toHaveProperty(registry);
+        }
+    });
+
+    it('pins how many entries each allow-listed registry has', () => {
+        for (const untranslated of UNTRANSLATED_REGISTRIES) {
+            expect(javaIdentifiersTable.registries[untranslated.registry], untranslated.registry).toHaveLength(
+                untranslated.entries.count
+            );
+        }
+    });
+
+    it('lists only namespaced minecraft identifiers, each once', () => {
+        for (const [registry, ids] of Object.entries(javaIdentifiersTable.registries)) {
+            expect(ids.length, registry).toBeGreaterThan(0);
+            expect(new Set(ids).size, registry).toBe(ids.length);
+            for (const id of ids) expect(id.startsWith('minecraft:'), `${registry} ${id}`).toBe(true);
+        }
+    });
+
+    it('resolves a census registry only for entries the pinned data publishes', () => {
+        const resolver = createPackIdentifierResolver();
+        expect(resolver.resolve('game_event', 'minecraft:step')).toBe('known');
+        expect(resolver.resolve('worldgen/structure', 'minecraft:ancient_city')).toBe('known');
+        expect(resolver.resolve('painting_variant', 'minecraft:kebab')).toBe('loss');
+        expect(resolver.resolve('game_event', 'minecraft:not_an_event')).toBe('unknown');
+        // No passthrough: a custom structure has no path to a Bedrock client.
+        expect(resolver.resolve('worldgen/structure', 'myaddon:tower')).toBe('unknown');
+        expect(resolver.resolve('chat_type', 'minecraft:chat')).toBe('unknown');
     });
 });
