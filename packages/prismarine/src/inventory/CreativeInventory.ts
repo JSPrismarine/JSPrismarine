@@ -43,12 +43,23 @@ const blockRuntimeIdOf = (blockStates: string | undefined): number => {
     return NBTTagCompound.readFromStream(stream, ByteOrder.LITTLE_ENDIAN).getNumber('network_id', 0);
 };
 
+/** The menu and its headings, which are built in one pass and read together. */
+interface BuiltMenu {
+    readonly entries: readonly CreativeEntry[];
+    readonly groups: readonly CreativeGroup[];
+}
+
 /**
  * The creative menu, in the order the client shows it.
  *
- * Built once and kept, because it is both what `CreativeContentPacket` sends and what a
- * creative pick is resolved through: the client answers with the *position* of the entry it
- * clicked, so the two have to be the same list or a player gets an item they did not choose.
+ * One per server, built from that server's own registries. It used to be a static built
+ * once per process, so the second server in a process served the first one's menu and
+ * tests had to call `reset()` between cases.
+ *
+ * Built on the first read and kept, because it is both what `CreativeContentPacket` sends
+ * and what a creative pick is resolved through: the client answers with the *position* of
+ * the entry it clicked, so the two have to be the same list or a player gets an item they
+ * did not choose.
  *
  * An entry is shown when the **item table** names it, because that table is the registry the
  * client resolves against and a name missing from it is an item it cannot be handed. Having a
@@ -60,17 +71,20 @@ const blockRuntimeIdOf = (blockStates: string | undefined): number => {
  * nothing ever matched and the menu was empty from the day it was written.
  */
 export class CreativeInventory {
-    private static entries: CreativeEntry[] | null = null;
-    private static groups: CreativeGroup[] | null = null;
+    private readonly registries: CreativeRegistries;
+    private menu: BuiltMenu | null = null;
 
     /**
-     * The menu, each entry with the heading it sits under.
-     * @param {CreativeRegistries} server - where the registered blocks and items come from.
-     * @returns {CreativeEntry[]} the menu, in order.
+     * @param {CreativeRegistries} registries - where the registered blocks and items come
+     * from. A whole `Server` fits.
      */
-    public static getEntries(server: CreativeRegistries): CreativeEntry[] {
-        if (CreativeInventory.entries) return CreativeInventory.entries;
+    public constructor(registries: CreativeRegistries) {
+        this.registries = registries;
+    }
 
+    /** Builds the menu and its headings from the registries this instance was given. */
+    private build(): BuiltMenu {
+        const server = this.registries;
         const registered = [...server.getBlockManager().getBlocks(), ...server.getItemManager().getItems()];
 
         // Indexed by name: scanning every block and item once per creative entry would be
@@ -92,14 +106,22 @@ export class CreativeInventory {
             entries.push({ item: toItem(entry.name, entry.meta ?? 0, entry.block_states), group: entry.group });
         }
 
-        CreativeInventory.entries = entries;
-        CreativeInventory.groups = CreativeGroups.map((group) => ({
+        const groups = CreativeGroups.map((group) => ({
             category: creativeCategoryOf(group.category),
             name: group.name,
             icon: toItem(group.icon, 0, group.icon_block_states)
         }));
 
-        return entries;
+        return { entries, groups };
+    }
+
+    /**
+     * The menu, each entry with the heading it sits under.
+     * @returns {readonly CreativeEntry[]} the menu, in order.
+     */
+    public getEntries(): readonly CreativeEntry[] {
+        this.menu ??= this.build();
+        return this.menu.entries;
     }
 
     /**
@@ -107,21 +129,19 @@ export class CreativeInventory {
      *
      * Sent whole, every time, even where a group has no entry left under it: an entry names
      * its group by position, so dropping one would file the rest under the wrong heading.
-     * @param {CreativeRegistries} server - where the registered blocks and items come from.
-     * @returns {CreativeGroup[]} the headings, in order.
+     * @returns {readonly CreativeGroup[]} the headings, in order.
      */
-    public static getGroups(server: CreativeRegistries): CreativeGroup[] {
-        CreativeInventory.getEntries(server);
-        return CreativeInventory.groups ?? [];
+    public getGroups(): readonly CreativeGroup[] {
+        this.menu ??= this.build();
+        return this.menu.groups;
     }
 
     /**
      * The whole menu as plain items.
-     * @param {CreativeRegistries} server - where the registered blocks and items come from.
      * @returns {Item[]} the menu, in order.
      */
-    public static getItems(server: CreativeRegistries): Item[] {
-        return CreativeInventory.getEntries(server).map((entry) => entry.item);
+    public getItems(): Item[] {
+        return this.getEntries().map((entry) => entry.item);
     }
 
     /**
@@ -129,18 +149,11 @@ export class CreativeInventory {
      *
      * Net ids are one-based, matching what `CreativeContentPacket` writes alongside each
      * entry.
-     * @param {CreativeRegistries} server - where the registered blocks and items come from.
      * @param {number} netId - the id the client sent back.
      * @returns {Item | null} the item, or `null` if the id names nothing.
      */
-    public static get(server: CreativeRegistries, netId: number): Item | null {
-        return CreativeInventory.getEntries(server)[netId - 1]?.item ?? null;
-    }
-
-    /** Drops the built menu. Needed when a plugin changes what is registered, and by tests. */
-    public static reset(): void {
-        CreativeInventory.entries = null;
-        CreativeInventory.groups = null;
+    public get(netId: number): Item | null {
+        return this.getEntries()[netId - 1]?.item ?? null;
     }
 }
 

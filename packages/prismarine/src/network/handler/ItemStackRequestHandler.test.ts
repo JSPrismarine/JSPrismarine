@@ -11,7 +11,7 @@ import { StationRegistry } from '../../crafting/CraftingStation';
 import { ShapelessRecipe } from '../../crafting/Recipe';
 import RecipeManager from '../../crafting/RecipeManager';
 import { ItemIngredient } from '../../crafting/RecipeIngredient';
-import CreativeInventory from '../../inventory/CreativeInventory';
+import type CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
@@ -52,15 +52,26 @@ const slot = (slotId: number, containerId = ContainerUiId.COMBINED_HOTBAR_AND_IN
     stackNetId: 0
 });
 
-/** A server whose creative menu is one known item, so a pick can be checked by name. */
+/**
+ * A server whose creative menu is the items given, so a pick can be checked by name.
+ *
+ * The menu is a double rather than the real one built over a stub registry: what is under
+ * test is which list a pick is read against, and the vanilla list is 1980 entries of
+ * irrelevance.
+ */
 const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
-    CreativeInventory.reset();
-    CreativeInventory['entries'] = creative.map((item) => ({ item, group: 0 }));
+    const entries = creative.map((item) => ({ item, group: 0 }));
+    const menu = stub<CreativeInventory>({
+        getEntries: () => entries,
+        getItems: () => creative,
+        get: (netId: number) => entries[netId - 1]?.item ?? null
+    });
 
     // A refusal says why it refused, and says it through the logger.
     return stub<Server>({
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         getContent: () => undefined,
+        getCreativeInventory: () => menu,
         ...overrides
     });
 };

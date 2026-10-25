@@ -22,6 +22,7 @@ import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
 import ItemManager from './item/ItemManager';
+import { CreativeInventory } from './inventory/CreativeInventory';
 import ClientConnection from './network/ClientConnection';
 import { joinContentPayloads } from './network/contentPayloads';
 import Identifiers from './network/Identifiers';
@@ -126,6 +127,15 @@ export default class Server extends EventEmitter {
     private readonly itemManager: ItemManager;
     private readonly blockManager: BlockManager;
     private readonly recipeManager: RecipeManager;
+
+    /**
+     * This server's creative menu.
+     *
+     * Owned here rather than kept in a static, so two servers in one process each serve
+     * their own registries. Built on the first read, which is after plugins have
+     * registered.
+     */
+    private readonly creativeInventory = new CreativeInventory(this);
 
     /**
      * The blocks a player can craft at. Derived from the recipe book once it is loaded, so a
@@ -863,6 +873,14 @@ export default class Server extends EventEmitter {
      */
     public getBlockManager(): BlockManager {
         return this.blockManager;
+    }
+
+    /**
+     * Returns this server's creative menu.
+     * @returns {CreativeInventory} The menu, built from this server's own registries.
+     */
+    public getCreativeInventory(): CreativeInventory {
+        return this.creativeInventory;
     }
 
     /**
