@@ -13,17 +13,22 @@ export interface RemoteConsoleOptions {
     statusIntervalMs?: number;
     /**
      * Longest gap between two `status` messages while nothing changes, in milliseconds;
-     * defaults to 5000. Within it a status whose TPS and player counts match the last one
-     * sent is skipped.
+     * defaults to 5000. Within it a status whose TPS (to the nearest 0.5) and player counts
+     * match the last one sent is skipped.
      */
     statusKeepAliveMs?: number;
     /** Longest wait for the link to drain in {@link RemoteConsole.disable}, in milliseconds; defaults to 500. */
     flushTimeoutMs?: number;
 }
 
-/** The parts of a `status` message that decide whether a new one is worth sending. */
+/**
+ * The parts of a `status` message that decide whether a new one is worth sending.
+ *
+ * TPS is rounded to the nearest 0.5: a live server reads 19.98 one second and 20.02 the
+ * next, and comparing those exactly would send a status every interval.
+ */
 const statusKey = (status: Extract<ServerMessage, { type: 'status' }>): string =>
-    `${status.tps}|${status.players}|${status.maxPlayers}`;
+    `${Math.round(status.tps * 2) / 2}|${status.players}|${status.maxPlayers}`;
 
 /**
  * The server end of the remote console: the service a headless server runs when a host
