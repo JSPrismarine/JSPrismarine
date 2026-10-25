@@ -26,6 +26,7 @@ const worldLoading = (chunk: Chunk) => {
         generator: {},
         config: {},
         provider: { readChunk: async () => chunk },
+        systems: { onChunkLoaded: () => {} },
         addEntity: async (entity: Entity) => void added.push(entity),
         server: { getLogger: () => ({ debug: () => {}, warn: () => {} }) }
     });

@@ -38,6 +38,9 @@ import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
 import type { Generator } from './Generator';
+import type { SystemBlock } from './WorldSystems';
+import { WorldSystems } from './WorldSystems';
+import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
@@ -165,6 +168,14 @@ export class World implements Service {
     private readonly physics: BlockPhysics;
 
     /**
+     * The light engine and the two scheduled tick lists.
+     *
+     * Built here rather than lazily so the content adapter's `ticks` group has something to
+     * schedule into before the first chunk loads.
+     */
+    private readonly systems: WorldSystems;
+
+    /**
      * Where this world reports what happened in it.
      *
      * Dropped on the floor until something attaches a real one, which is what makes a world
@@ -190,6 +201,24 @@ export class World implements Service {
         this.dimension = dimension ?? Dimensions.Overworld;
         this.mobSpawner = new MobSpawner(this);
         this.physics = new BlockPhysics(this);
+        this.systems = new WorldSystems(
+            {
+                dimension: this.dimension,
+                blockAt: (x, y, z) => this.loadedBlockAt(x, y, z),
+                loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
+                randomTickSpeed: () => {
+                    const [value] = this.gameRuleManager.getGameRule(GameRules.RandomTickSpeed) ?? [];
+                    return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
+                }
+            },
+            {
+                // A scheduled block or fluid tick is the position coming due, which is the same
+                // thing `runBlockUpdates` hands to physics.
+                scheduledTick: (_kind, at) => {
+                    void this.physics.update(at.x, at.y, at.z, this.currentTick);
+                }
+            }
+        );
 
         this.gameRuleManager.setGameRule(GameRules.ShowCoordinates, true, true);
 
@@ -297,6 +326,11 @@ export class World implements Service {
         // Before the entities, so a mob walks on the world as it is this tick rather than as it was
         // before the sand under it fell away.
         await this.runBlockUpdates();
+
+        // Java's order: the two scheduled tick lists, then the chunk tick that draws the random
+        // positions, then the light the writes above queued. Budgeted, so one tick cannot stall
+        // on a light flood or a backlog of fluid ticks.
+        this.systems.tick(this.currentTick);
 
         const entities = this.getEntities();
 
@@ -444,6 +478,9 @@ export class World implements Service {
         const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config);
         this.chunks.set(index, chunk);
         this.markEntitiesInChunkChanged(chunk);
+
+        // After the chunk is in the map: the engine reads the blocks back through the world.
+        this.systems.onChunkLoaded(x, z);
 
         await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
@@ -871,7 +908,15 @@ export class World implements Service {
         // round of neighbor updates - so a settled pool of water would never stop working.
         if (chunk.getBlockRuntimeId(x & 0xf, y, z & 0xf) === runtimeId) return false;
 
+        // Read before the write: the light engine's decrease wave needs what stood here.
+        const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
+        const next = chunk.getBlock(x, y, z);
+        this.systems.onBlockChanged(
+            { x, y, z },
+            { name: previous.name, states: previous.properties },
+            { name: next.name, states: next.properties }
+        );
 
         this.changes.blockChanged(new Vector3(x, y, z), runtimeId);
 
@@ -906,6 +951,25 @@ export class World implements Service {
     /** The queue of positions waiting to react to a change - see {@link BlockUpdateScheduler}. */
     public getBlockUpdates(): BlockUpdateScheduler {
         return this.blockUpdates;
+    }
+
+    /** The light engine and the two scheduled tick lists - see {@link WorldSystems}. */
+    public getSystems(): WorldSystems {
+        return this.systems;
+    }
+
+    /**
+     * The block at a position, or undefined when its chunk is not in memory.
+     *
+     * The synchronous read the light engine and the random tick pass need: both run inside the
+     * tick and neither may generate terrain by looking at it.
+     */
+    public loadedBlockAt(x: number, y: number, z: number): SystemBlock | undefined {
+        const chunk = this.getLoadedChunk(x >> 4, z >> 4);
+        if (!chunk || y < chunk.getMinY() || y > chunk.getMaxY()) return undefined;
+
+        const state = chunk.getBlock(x, y, z);
+        return { name: state.name, states: state.properties };
     }
 
     /**

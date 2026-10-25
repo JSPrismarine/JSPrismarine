@@ -53,6 +53,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         getEntities: () => [],
         getPlayers: () => [],
         runBlockUpdates: async () => void calls.push('blockUpdates'),
+        systems: { tick: () => void calls.push('systems') },
         mobSpawner: { tick: async () => void calls.push('mobSpawner') },
         save: async () => {},
         server: {
@@ -87,6 +88,7 @@ describe('world', () => {
 
             expect(calls).toStrictEqual([
                 'blockUpdates',
+                'systems',
                 'mobSpawner',
                 'reconcile',
                 'flushBlockChanges',
