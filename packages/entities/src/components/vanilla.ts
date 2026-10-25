@@ -726,8 +726,8 @@ export interface TimerParams {
     readonly randomInterval: boolean;
     /** Weighted durations the timer draws from instead of `time`. */
     readonly choices: readonly TimerChoice[];
-    /** The event the timer fires when it runs out. */
-    readonly event?: string;
+    /** The event the timer fires when it runs out, with whom it fires on. */
+    readonly down?: SensorTrigger;
 }
 
 interface TimerState {
@@ -758,13 +758,12 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
         const choices = asList(value.random_time_choices)
             .filter(isRecord)
             .map((choice) => ({ weight: numberAt(choice, 'weight', 1), value: numberAt(choice, 'value', 0) }));
-        const event = isRecord(value.time_down_event) ? stringAt(value.time_down_event, 'event') : undefined;
         return accepted({
             time: parseTimeRange(value.time),
             looping: booleanAt(value, 'looping', true),
             randomInterval: booleanAt(value, 'randomInterval', true),
             choices,
-            event
+            down: parseComponentTrigger(value.time_down_event)
         });
     },
     create: (params) => {
@@ -793,7 +792,8 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
                 if (state === undefined) return;
                 state.remaining -= 1;
                 if (state.remaining > 0) return;
-                if (params.event !== undefined) entity.fire(params.event);
+                if (params.down?.event !== undefined)
+                    entity.raise(params.down.event, params.down.target, 'minecraft:timer');
                 if (params.looping) state.remaining = Math.round(draw(entity) * TICKS_PER_SECOND);
                 else states.delete(entity);
             }
@@ -805,8 +805,16 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
 export interface SensorTrigger {
     readonly filters?: Filter;
     readonly event?: string;
-    readonly target: string;
+    readonly target: EventTarget;
 }
+
+/** Reads a component's `{event, target}` pair, which seven bodies write the same way. */
+const parseComponentTrigger = (value: unknown): SensorTrigger | undefined => {
+    if (!isRecord(value)) return undefined;
+    const event = stringAt(value, 'event');
+    if (event === undefined) return undefined;
+    return { event, target: parseEventTarget(value.target, () => undefined) };
+};
 
 const parseSensorTriggers = (
     value: unknown,
@@ -823,7 +831,11 @@ const parseSensorTriggers = (
             if (!parsed.ok) return { ok: false, message: parsed.message };
             filters = parsed.value;
         }
-        triggers.push({ filters, event: stringAt(entry, 'event'), target: stringAt(entry, 'target') ?? 'self' });
+        triggers.push({
+            filters,
+            event: stringAt(entry, 'event'),
+            target: parseEventTarget(entry.target, () => undefined)
+        });
     }
     return { ok: true, triggers };
 };
@@ -853,7 +865,7 @@ export const environmentSensor: ComponentFactory<EntityHooks, EnvironmentSensorP
             for (const trigger of params.triggers) {
                 if (trigger.event === undefined) continue;
                 if (trigger.filters !== undefined && !evaluateFilter(trigger.filters, context)) continue;
-                entity.fire(trigger.event);
+                entity.raise(trigger.event, trigger.target, 'minecraft:environment_sensor');
             }
         }
     })

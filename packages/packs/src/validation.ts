@@ -26,6 +26,17 @@ export interface DefinitionFile {
  */
 export type DefinitionValidator = (file: DefinitionFile) => ValidationFinding[];
 
+/**
+ * Runs validators in order over one file and concatenates their findings.
+ * This is how schema validation joins the structural checks rather than
+ * replacing them: the schemas cover part of each half and leave unknown keys
+ * open, so both layers have something to say about the same file.
+ */
+export const composeValidators =
+    (...validators: readonly DefinitionValidator[]): DefinitionValidator =>
+    (file) =>
+        validators.flatMap((validate) => validate(file));
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
 

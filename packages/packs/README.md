@@ -48,13 +48,34 @@ encoding the 1.26 serializer writes, a group map carrying more than one combinat
 shorthand that names the test in the key, as the skeleton's `{"other_with_families": "lightning"}`
 does.
 
-Validation in this version is structural (required keys and container types per registry) on both
-sides. Pass `validator` in the load options to replace it, for example with schema-based validation:
-on the Bedrock side the bedrock-samples schemas, on the Java side `vanilla-mcdoc` through
-`@spyglassmc/mcdoc`, which this package does not depend on because the mcdoc checker runs inside a
-Spyglass project service and fetches its schema tarball at runtime. Unknown keys load anyway and are
-reported once per pack; `strict: true` turns an error into a `PackLoadError`, and a warning never
-fails a load.
+Validation has two layers. `structuralValidator`, the default, checks required keys and container
+types per registry and parses every `filters` key with the filter grammar. `bedrockSchemaValidator`
+checks a definition against Mojang's own JSON Schema for its registry and `format_version`.
+`composeValidators` joins them, and `validator` in the load options takes the result:
+
+```typescript
+import { bedrockSchemaValidator, composeValidators, readBedrockSchemas, structuralValidator } from '@jsprismarine/packs';
+
+const validator = composeValidators(structuralValidator, bedrockSchemaValidator(readBedrockSchemas(samplesCheckout)));
+```
+
+The schemas are read off disk rather than bundled, because `bedrock-samples/LICENSE.md` reserves all
+rights; `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` puts a checkout in the cache.
+A file picks its schema by the engine's own rule, the same version or the closest one that is not
+greater, and a file older than every published schema checks against none. Mojang publishes a root
+document for entities, items, blocks, biomes, spawn rules and the crafting catalog; recipes, loot
+tables, trade tables, features and feature rules have none and keep the structural checks alone.
+
+One repair is applied to the schemas as they load: every `oneOf` reads as `anyOf`. Mojang's
+generator writes a variant union as `oneOf`, which JSON Schema reads as "exactly one", and the
+variants overlap. `Filter Group Map` is `"type": "object"` with no required key, so it matches every
+object and a plain filter test matches two arms at once; `Block Descriptor` lists the same `$ref` as
+two of its three arms. Read literally, the published schemas reject 347 files of the vanilla
+behavior pack, all of them valid. Read as `anyOf`, the pack validates clean and the arms stay
+checked.
+
+Unknown keys load anyway and are reported once per pack; `strict: true` turns an error into a
+`PackLoadError`, and a warning never fails a load.
 
 Repeats of the same pack, code and message collapse into one diagnostic, so a pattern that holds
 for a whole pack costs one line of the report rather than one per file. A collapsed diagnostic
