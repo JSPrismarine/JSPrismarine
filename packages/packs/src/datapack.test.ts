@@ -176,6 +176,22 @@ describe('datapack sources', () => {
         ]);
     });
 
+    it('does not call an overlay empty because every file in it is a registry it skips', () => {
+        // The loader never opens a file no registry owns. "Holds no files" still has to mean
+        // what it says, so the count is taken over the paths rather than over what was read.
+        const pack = writeDatapack({
+            'pack.mcmeta': JSON.stringify({
+                pack: { min_format: 121, max_format: 121 },
+                overlays: { entries: [{ directory: 'patch', min_format: 121, max_format: 121 }] }
+            }),
+            'data/fixture/recipe/base.json': RECIPE,
+            'patch/data/fixture/worldgen/biome/plains.json': JSON.stringify({ temperature: 0.8 })
+        });
+
+        const { diagnostics } = load([{ kind: 'datapack', path: pack }]);
+        expect(diagnostics).toEqual([]);
+    });
+
     it('lets an overlay replace a base tag file outright rather than merging it', () => {
         // Merging is between packs. Within one pack the overlay is the same
         // pack's file at a higher priority, so the base copy is not read.
