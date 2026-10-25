@@ -101,8 +101,9 @@ const errorText = (error: unknown): string => (error instanceof Error ? error.me
  * owns signals. Each new server link gets a `subscribe` for every level, and commands and
  * completions travel over it with request ids that the matching result resolves. A fallback on
  * `process` `exit`, `uncaughtException`, and `unhandledRejection` writes the terminal reset
- * sequence and leaves raw mode when `renderer.destroy()` never ran; the two error paths then
- * exit with code 1 the way Node does without OpenTUI's own handlers in the way.
+ * sequence and leaves raw mode when `renderer.destroy()` never ran. It does nothing else: the
+ * host's own fatal handler kills the child, closes the console, prints the error once, and
+ * exits, so a second print or `process.exit` here would race it.
  *
  * @throws Error when the renderer cannot start, for example because OpenTUI's native library
  * is missing. The message names the cause so the host can print it and fall back.
@@ -153,13 +154,12 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             // The terminal is gone; nothing to restore.
         }
     };
-    const onUncaught = (error: Error): void => {
+    // Named functions so the host and tests can tell these listeners apart from OpenTUI's.
+    const onUncaught = (): void => {
         restoreTerminal();
-        process.stderr.write(`${error.stack ?? error.message}\n`);
-        process.exit(1);
     };
-    const onUnhandledRejection = (reason: unknown): void => {
-        onUncaught(reason instanceof Error ? reason : new Error(`Unhandled rejection: ${String(reason)}`));
+    const onUnhandledRejection = (): void => {
+        restoreTerminal();
     };
     process.on('exit', restoreTerminal);
     process.on('uncaughtException', onUncaught);
