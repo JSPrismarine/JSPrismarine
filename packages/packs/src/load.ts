@@ -1,5 +1,5 @@
 import { loadDatapack } from './datapack';
-import type { Diagnostic } from './diagnostics';
+import type { Diagnostic, DiagnosticSeverity } from './diagnostics';
 import { DiagnosticCollector } from './diagnostics';
 import type { FormatVersion } from './formatVersion';
 import { parseVersion } from './formatVersion';
@@ -8,7 +8,7 @@ import { parseLenientJson } from './lenientJson';
 import { parseManifest } from './manifest';
 import type { RegistryId } from './registries';
 import { identifierForDefinition, routeForPath } from './registries';
-import type { PackStack } from './sources';
+import type { PackFiles, PackStack } from './sources';
 import { expandSource } from './sources';
 import type { DefinitionValidator } from './validation';
 import { structuralValidator } from './validation';
@@ -36,7 +36,7 @@ export type DefinitionRegistries = Record<RegistryId | JavaRegistryId, Map<strin
 
 /** Options for {@link load}. */
 export interface LoadOptions {
-    /** Fail the load when any diagnostic is reported, instead of reporting and continuing. */
+    /** Fail the load when an error is reported, instead of reporting and continuing. Warnings never fail it. */
     strict?: boolean;
     /** Replaces the structural validator, so schema-based validation can take over. */
     validator?: DefinitionValidator;
@@ -48,14 +48,13 @@ export interface LoadResult {
     diagnostics: readonly Diagnostic[];
 }
 
-/** Error thrown by a strict load; `diagnostics` holds the full report. */
+/** Error thrown by a strict load; `diagnostics` holds the full report, warnings included. */
 export class PackLoadError extends Error {
     public override name = 'PackLoadError';
 
     public constructor(public readonly diagnostics: readonly Diagnostic[]) {
-        super(
-            `the pack stack did not load cleanly: ${diagnostics.length} diagnostic(s), first: ${diagnostics[0]?.message}`
-        );
+        const errors = diagnostics.filter((diagnostic) => diagnostic.severity === 'error');
+        super(`the pack stack did not load cleanly: ${errors.length} error(s), first: ${errors[0]?.message}`);
     }
 }
 
@@ -66,13 +65,56 @@ const isMcb = (bytes: Uint8Array): boolean =>
 
 const decoder = new TextDecoder();
 
+/** One stack member after expansion: the Bedrock packs it holds, or a datapack still to read. */
+type StackUnit =
+    | { kind: 'bedrock'; packs: readonly PackFiles[]; diagnostics: readonly Diagnostic[] }
+    | { kind: 'datapack'; path: string };
+
+/**
+ * Expands the Bedrock members of a stack, keeping stack order and keeping
+ * each member's own diagnostics with it, so the report reads in stack order
+ * even though every Bedrock pack is known before the first one loads.
+ */
+const expandStack = (stack: PackStack): StackUnit[] =>
+    stack.map((source) => {
+        if (source.kind === 'datapack') return { kind: 'datapack', path: source.path };
+        const diagnostics: Diagnostic[] = [];
+        return { kind: 'bedrock', packs: expandSource(source, diagnostics), diagnostics };
+    });
+
+/**
+ * Maps each Bedrock pack-relative path to the last pack in the stack that
+ * provides it, which is the pack whose copy of the file the composed result
+ * uses.
+ */
+const lastProviderOfPath = (units: readonly StackUnit[]): Map<string, PackFiles> => {
+    const providers = new Map<string, PackFiles>();
+    for (const unit of units) {
+        if (unit.kind !== 'bedrock') continue;
+        for (const pack of unit.packs) {
+            for (const path of pack.files.keys()) providers.set(path, pack);
+        }
+    }
+    return providers;
+};
+
 /**
  * Loads a pack stack into one `Definitions` object plus a diagnostics report.
  * Packs apply in stack order and a later pack wins by identifier: its
  * definition replaces the earlier one whole, never merged. A pack whose
  * manifest does not validate is skipped and reported.
  *
- * @throws {PackLoadError} In strict mode, when any diagnostic is reported.
+ * A Bedrock file that does not parse is an error, except when a later pack in
+ * the stack provides the same pack-relative path. That copy replaces this one
+ * whole, so the broken file cannot reach the composed result and is reported
+ * as a warning instead, which keeps a strict load from failing over a file
+ * nothing reads. The vanilla layers rely on it: two of them ship an
+ * `entities/npc.json` that only patches a saved pack, and a later layer
+ * carries the real one. The Java half has no equivalent rule, because its
+ * tags merge across packs rather than replacing one another.
+ *
+ * @throws {PackLoadError} In strict mode, when an error is reported. A
+ *   warning never fails the load.
  */
 export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult => {
     const validator = options.validator ?? structuralValidator;
@@ -99,27 +141,30 @@ export const load = (stack: PackStack, options: LoadOptions = {}): LoadResult =>
         itemModifiers: new Map()
     };
 
-    for (const source of stack) {
-        if (source.kind === 'datapack') {
-            loadDatapack(source.path, registries, validator, collector);
+    const units = expandStack(stack);
+    const lastProvider = lastProviderOfPath(units);
+
+    for (const unit of units) {
+        if (unit.kind === 'datapack') {
+            loadDatapack(unit.path, registries, validator, collector);
             continue;
         }
 
-        const sourceDiagnostics: Diagnostic[] = [];
-        const packs = expandSource(source, sourceDiagnostics);
-        for (const diagnostic of sourceDiagnostics) collector.add(diagnostic);
+        for (const diagnostic of unit.diagnostics) collector.add(diagnostic);
 
-        for (const pack of packs) {
+        for (const pack of unit.packs) {
             const packName = loadManifest(pack.origin, pack.files.get('manifest.json'), collector);
             if (packName === undefined) continue;
 
             for (const [path, bytes] of pack.files) {
-                loadDefinitionFile(registries, packName, path, bytes, validator, collector);
+                const superseded = lastProvider.get(path) !== pack;
+                loadDefinitionFile(registries, packName, path, bytes, superseded, validator, collector);
             }
         }
     }
 
-    if (options.strict && collector.diagnostics.length > 0) throw new PackLoadError(collector.diagnostics);
+    const failed = collector.diagnostics.some((diagnostic) => diagnostic.severity === 'error');
+    if (options.strict && failed) throw new PackLoadError(collector.diagnostics);
 
     return { definitions: registries, diagnostics: collector.diagnostics };
 };
@@ -159,15 +204,25 @@ const loadManifest = (
     return manifest?.header.name;
 };
 
-/** Parses, validates and registers one definition file; the latest pack wins by identifier. */
+/**
+ * Parses, validates and registers one definition file; the latest pack wins
+ * by identifier. A file a later pack supersedes reports its parse failures as
+ * warnings, because its content never reaches the composed result.
+ */
 const loadDefinitionFile = (
     registries: DefinitionRegistries,
     pack: string,
     path: string,
     bytes: Uint8Array,
+    superseded: boolean,
     validator: DefinitionValidator,
     collector: DiagnosticCollector
 ): void => {
+    /** Downgrades a parse failure to a warning when a later pack supersedes the file. */
+    const severityOf = (severity: DiagnosticSeverity): DiagnosticSeverity =>
+        superseded && severity === 'error' ? 'warning' : severity;
+    const note = superseded ? '; a later pack supersedes this file' : '';
+
     const registry = routeForPath(path);
     if (!registry) return;
 
@@ -187,18 +242,19 @@ const loadDefinitionFile = (
         data = parseLenientJson(decoder.decode(bytes));
     } catch (error) {
         collector.add({
-            severity: 'error',
+            severity: severityOf('error'),
             code: 'definition.invalid-json',
             pack,
             path,
-            message: error instanceof Error ? error.message : String(error)
+            message: `${error instanceof Error ? error.message : String(error)}${note}`
         });
         return;
     }
 
     let failed = false;
     for (const finding of validator({ registry, path, data })) {
-        collector.add({ ...finding, pack, path });
+        const severity = severityOf(finding.severity);
+        collector.add({ ...finding, severity, message: `${finding.message}${note}`, pack, path });
         failed ||= finding.severity === 'error';
     }
     if (failed) return;
@@ -206,11 +262,11 @@ const loadDefinitionFile = (
     const identifier = identifierForDefinition(registry, path, data);
     if (identifier === undefined) {
         collector.add({
-            severity: 'error',
+            severity: severityOf('error'),
             code: 'definition.no-identifier',
             pack,
             path,
-            message: 'the file declares no description.identifier'
+            message: `the file declares no description.identifier${note}`
         });
         return;
     }

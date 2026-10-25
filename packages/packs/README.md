@@ -53,4 +53,12 @@ sides. Pass `validator` in the load options to replace it, for example with sche
 on the Bedrock side the bedrock-samples schemas, on the Java side `vanilla-mcdoc` through
 `@spyglassmc/mcdoc`, which this package does not depend on because the mcdoc checker runs inside a
 Spyglass project service and fetches its schema tarball at runtime. Unknown keys load anyway and are
-reported once per pack; `strict: true` turns any diagnostic into a `PackLoadError`.
+reported once per pack; `strict: true` turns an error into a `PackLoadError`, and a warning never
+fails a load.
+
+A Bedrock file that does not parse is an error, unless a later pack in the stack provides the same
+pack-relative path. That copy replaces the broken one whole, so the broken file cannot reach the
+composed result, and the loader reports it as a warning instead. The shipped vanilla layers need
+this: two of them carry an `entities/npc.json` that patches a saved pack rather than defining an
+entity, and a later layer carries the real one. The Java side has no such rule, because its tags
+merge across packs instead of replacing one another.
