@@ -73,18 +73,22 @@ export class Scoreboard {
 
     private nextIdentity = 1n;
 
+    /** Whether an objective of that name exists. */
     public has(objective: string): boolean {
         return this.objectives.has(objective);
     }
 
+    /** Every objective name, in the order the objectives were added. */
     public names(): readonly string[] {
         return [...this.objectives.keys()];
     }
 
+    /** The objective's display name, falling back to its own name, as Java does. */
     public displayNameOf(objective: string): string {
         return this.objectives.get(objective)?.displayName ?? objective;
     }
 
+    /** The objective's criterion, or `dummy` for a name the board does not hold. */
     public criterionOf(objective: string): string {
         return this.objectives.get(objective)?.criterion ?? 'dummy';
     }
@@ -116,6 +120,7 @@ export class Scoreboard {
         return cleared;
     }
 
+    /** What a display slot is showing, or undefined when the slot is empty. */
     public display(slot: string): Display | undefined {
         return this.displays.get(slot);
     }
@@ -128,10 +133,16 @@ export class Scoreboard {
         return true;
     }
 
+    /** A holder's score on an objective, or undefined when the holder has none. */
     public score(holder: string, objective: string): number | undefined {
         return this.scores.get(holder)?.get(objective);
     }
 
+    /**
+     * Writes a holder's score on an objective.
+     *
+     * @returns The value as stored, truncated and clamped to a 32-bit int.
+     */
     public setScore(holder: string, objective: string, value: number): number {
         // Java clamps a score to a 32-bit int, which is what the packet writes.
         const clamped = Math.max(-2_147_483_648, Math.min(2_147_483_647, Math.trunc(value)));
@@ -152,6 +163,7 @@ export class Scoreboard {
         return removed;
     }
 
+    /** Every objective the holder has a score on, keyed by objective name. */
     public scoresOf(holder: string): Readonly<Record<string, number>> {
         return Object.fromEntries(this.scores.get(holder) ?? []);
     }

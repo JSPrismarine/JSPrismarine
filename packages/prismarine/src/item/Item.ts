@@ -174,6 +174,7 @@ export class Item {
         return this.networkId || this.getId();
     }
 
+    /** The stack's damage or variant value, which the wire carries beside the id. */
     public getMeta(): number {
         return this.meta;
     }
