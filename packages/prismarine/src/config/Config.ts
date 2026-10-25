@@ -81,6 +81,52 @@ const COMMENTS = {
     'crafting-recipe-limit': 'How many recipes to send: -1 for all, 0 for none, or a cap.'
 } as const satisfies Record<keyof ConfigFile, string>;
 
+/**
+ * What each key is worth when the file does not say.
+ *
+ * The fields below start here and {@link Config.enable} reads the same values,
+ * so the two cannot drift and a `Config` whose `enable` never ran answers the
+ * way a config file with nothing in it does. That is not hypothetical: the
+ * test servers subclass `Config` and stub `enable`, which left `difficulty`
+ * undefined; `getDifficulty` then threw partway through the join burst and
+ * left the client waiting at `AWAITING_SPAWN` for packets that never came. A
+ * default rather than a louder throw because every one of these keys is
+ * already optional in the file - a server starts with no config file at all,
+ * and a config nobody enabled is the same question asked a second way.
+ *
+ * `worlds` is the one key with no entry: its default carries a fresh seed, so
+ * it is generated per config rather than written down. See
+ * {@link defaultWorlds}.
+ */
+const DEFAULTS = {
+    'log-level': isDev ? 'verbose' : 'info',
+    port: 19132,
+    'server-ip': '0.0.0.0',
+    'level-name': 'world',
+    'max-players': 20,
+    gamemode: 'survival',
+    difficulty: 'normal',
+    motd: 'Another JSPrismarine server!',
+    'view-distance': 10,
+    'preload-radius': 10,
+    'chunk-send-budget-ms': 5,
+    'proximity-broadcast': true,
+    'entity-tracking-hysteresis': 2,
+    'entity-tracking-interval': 4,
+    'online-mode': false,
+    'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
+    'enable-query': true,
+    'enable-process-title': true,
+    'enable-ticking': true,
+    'log-excluded-packets': ['SetTimePacket'],
+    'crafting-recipe-limit': -1
+} as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
+
+/** The single flat world a server with no `worlds` key runs, on a seed of its own. */
+const defaultWorlds = (): Record<string, WorldData> => ({
+    world: { generator: 'Flat', provider: 'LevelDB', seed: SeedGenerator() }
+});
+
 /** Runtime settings that take precedence over values in the server config file. */
 export interface ConfigOptions {
     /** Port the server listens on. */
@@ -111,40 +157,40 @@ export class Config {
 
     private readonly serverPortOverride: number | undefined;
 
-    private logLevel!: LogLevel;
+    private logLevel: LogLevel = DEFAULTS['log-level'];
 
-    private port!: number;
-    private serverIp!: string;
-    private levelName!: string;
-    private worlds!: Record<string, WorldData>;
-    private maxPlayers!: number;
-    private gamemode!: string;
-    private difficulty!: string;
-    private motd!: string;
-    private viewDistance!: number;
-    private preloadRadius!: number;
-    private chunkSendBudgetMs!: number;
-    private proximityBroadcast!: boolean;
-    private entityTrackingHysteresis!: number;
-    private entityTrackingInterval!: number;
-    private onlineMode!: boolean;
-    private packetCompressionLevel!: number;
+    private port: number = DEFAULTS.port;
+    private serverIp: string = DEFAULTS['server-ip'];
+    private levelName: string = DEFAULTS['level-name'];
+    private worlds: Record<string, WorldData> = defaultWorlds();
+    private maxPlayers: number = DEFAULTS['max-players'];
+    private gamemode: string = DEFAULTS.gamemode;
+    private difficulty: string = DEFAULTS.difficulty;
+    private motd: string = DEFAULTS.motd;
+    private viewDistance: number = DEFAULTS['view-distance'];
+    private preloadRadius: number = DEFAULTS['preload-radius'];
+    private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
+    private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
+    private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
+    private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
+    private onlineMode: boolean = DEFAULTS['online-mode'];
+    private packetCompressionLevel: number = DEFAULTS['packet-compression-level'];
 
     /**
      * Controls if the minecraft/source query response should be enabled.
      */
-    private enableQuery: boolean = true;
+    private enableQuery: boolean = DEFAULTS['enable-query'];
 
     /**
      * Controls if the process title should be updated.
      * @remarks this can cause performance issues in some terminals.
      */
-    private enableProcessTitle: boolean = true;
+    private enableProcessTitle: boolean = DEFAULTS['enable-process-title'];
 
     /**
      * Controls if the ticking should be enabled.
      */
-    private enableTicking: boolean = true;
+    private enableTicking: boolean = DEFAULTS['enable-ticking'];
 
     /**
      * Packets left out of the traffic log, by class name.
@@ -153,7 +199,7 @@ export class Config {
      * `SetTimePacket` goes to every player twenty times a second - bury everything else.
      * Excluding them by name is the only way to keep the rest.
      */
-    private logExcludedPackets: string[] = ['SetTimePacket'];
+    private logExcludedPackets: string[] = [...DEFAULTS['log-excluded-packets']];
 
     /**
      * How many recipes to send: `-1` for every one, `0` for none, a positive number to cap.
@@ -168,7 +214,7 @@ export class Config {
      * Both were worth having: a truncated item stack in the first recipe once took the client
      * out without a word, and the way back was zero, then one, then ten.
      */
-    private craftingRecipeLimit = -1;
+    private craftingRecipeLimit: number = DEFAULTS['crafting-recipe-limit'];
 
     /**
      * Creates the server configuration.
@@ -178,7 +224,7 @@ export class Config {
     public constructor({ serverPort }: ConfigOptions = {}) {
         this.serverPortOverride = serverPort;
         this.configBuilder = new ConfigBuilder(configFilePath());
-        this.logLevel = this.configBuilder.get('log-level', isDev ? 'verbose' : 'info', COMMENTS['log-level']);
+        this.logLevel = this.configBuilder.get('log-level', DEFAULTS['log-level'], COMMENTS['log-level']);
     }
 
     /**
@@ -194,30 +240,24 @@ export class Config {
         this.configBuilder = config;
         const read = <T>(key: keyof typeof COMMENTS, defaults: T): T => config.get(key, defaults, COMMENTS[key]);
 
-        this.logLevel = read('log-level', isDev ? 'verbose' : 'info');
-        this.port = read('port', 19132);
+        this.logLevel = read('log-level', DEFAULTS['log-level']);
+        this.port = read('port', DEFAULTS.port);
         if (this.serverPortOverride !== undefined) this.port = this.serverPortOverride;
-        this.serverIp = read('server-ip', '0.0.0.0');
-        this.levelName = read('level-name', 'world');
-        this.worlds = read<Record<string, WorldData>>('worlds', {
-            world: {
-                generator: 'Flat',
-                provider: 'LevelDB',
-                seed: SeedGenerator()
-            }
-        });
-        this.maxPlayers = read('max-players', 20);
-        this.gamemode = read('gamemode', 'survival');
-        this.difficulty = read('difficulty', 'normal');
-        this.motd = read('motd', 'Another JSPrismarine server!');
-        this.viewDistance = read('view-distance', 10);
-        this.preloadRadius = read('preload-radius', 10);
-        this.chunkSendBudgetMs = read('chunk-send-budget-ms', 5);
-        this.proximityBroadcast = read('proximity-broadcast', true);
-        this.entityTrackingHysteresis = read('entity-tracking-hysteresis', 2);
-        this.entityTrackingInterval = read('entity-tracking-interval', 4);
-        this.onlineMode = read('online-mode', false);
-        this.packetCompressionLevel = read('packet-compression-level', DEFAULT_PACKET_COMPRESSION_LEVEL);
+        this.serverIp = read('server-ip', DEFAULTS['server-ip']);
+        this.levelName = read('level-name', DEFAULTS['level-name']);
+        this.worlds = read<Record<string, WorldData>>('worlds', this.worlds);
+        this.maxPlayers = read('max-players', DEFAULTS['max-players']);
+        this.gamemode = read('gamemode', DEFAULTS.gamemode);
+        this.difficulty = read('difficulty', DEFAULTS.difficulty);
+        this.motd = read('motd', DEFAULTS.motd);
+        this.viewDistance = read('view-distance', DEFAULTS['view-distance']);
+        this.preloadRadius = read('preload-radius', DEFAULTS['preload-radius']);
+        this.chunkSendBudgetMs = read('chunk-send-budget-ms', DEFAULTS['chunk-send-budget-ms']);
+        this.proximityBroadcast = read('proximity-broadcast', DEFAULTS['proximity-broadcast']);
+        this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
+        this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
+        this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
+        this.packetCompressionLevel = read('packet-compression-level', DEFAULTS['packet-compression-level']);
         this.enableQuery = read('enable-query', this.enableQuery);
         this.enableProcessTitle = read('enable-process-title', this.enableProcessTitle);
         this.enableTicking = read('enable-ticking', this.enableTicking);
