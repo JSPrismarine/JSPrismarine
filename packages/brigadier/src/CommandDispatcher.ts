@@ -110,7 +110,7 @@ export default class CommandDispatcher<S> {
                         result.push(value);
                         this.consumer.onCommandComplete(context, true, value);
                     } catch (ex: any) {
-                        this.consumer.onCommandComplete(context, false, ex);
+                        this.consumer.onCommandComplete(context, false, 0);
                         if (!forked) throw ex;
                     }
                 }
