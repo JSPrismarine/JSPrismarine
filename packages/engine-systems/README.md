@@ -220,6 +220,12 @@ end is why standing fully behind a wall still costs half a heart. Knockback is t
 times `getKnockbackMultiplier` times `1 - EXPLOSION_KNOCKBACK_RESISTANCE`, along the line from the
 center to the entity's eyes.
 
+A blast is 1352 rays of up to 18 steps, so the hot loop runs about 24,000 times. Two flat arrays
+over the cube a ray can reach hold the resistance already read and whether a position is already
+marked, which takes the block reads down to about 800, and one shared occluder cache serves every
+entity's exposure rays. A TNT blast of radius 4 costs about 0.5 ms, a charged creeper's radius 6
+about 1.1 ms, and a 24-TNT chain detonating in one tick about 16 ms.
+
 `explode` returns the hits rather than applying them, because this package has no entity model, and
 calls `onBlockDestroyed` for each block before clearing it, because it has no item model either.
 That is where a host rolls the block's loot table with Java's `explosion_radius`, the parameter

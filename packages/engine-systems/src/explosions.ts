@@ -184,15 +184,40 @@ const lerp = (t: number, from: number, to: number): number => from + t * (to - f
 const WORLD_EDGE = 30_000_000;
 
 /**
- * Whether anything solid stands between two points.
+ * Whether the block at a position stops a sight ray.
  *
  * Java clips against collision shapes with `ClipContext.Block.COLLIDER` and
- * `ClipContext.Fluid.NONE`. Neither edition publishes collision shapes, so this walks the
- * voxels the segment crosses and treats {@link isFullCube} as the only occluder, which is the
- * same approximation the rest of this package makes and the README records. A fence or a slab
- * therefore casts no shadow here, and water casts none in Java either.
+ * `ClipContext.Fluid.NONE`. Neither edition publishes collision shapes, so {@link isFullCube}
+ * is the only occluder, which is the same approximation the rest of this package makes and the
+ * README records. A fence or a slab therefore casts no shadow here, and water casts none in
+ * Java either.
  */
-const isObstructed = (world: ExplosionWorld, from: Point, to: Point): boolean => {
+type Occluder = (x: number, y: number, z: number) => boolean;
+
+/**
+ * An {@link Occluder} that reads each position once.
+ *
+ * Every entity near a blast fires its exposure rays at the same point, so they walk largely the
+ * same voxels, and each read otherwise costs a mapping-table lookup. The key packs the position
+ * into one integer; it only collides for positions 8192 blocks apart, which no single blast
+ * spans.
+ */
+const cachedOccluder = (world: ExplosionWorld): Occluder => {
+    const known = new Map<number, boolean>();
+
+    return (x, y, z) => {
+        const key = (y + 0x800) * 0x4000000 + ((x & 0x1fff) << 13) + (z & 0x1fff);
+        let answer = known.get(key);
+        if (answer === undefined) {
+            answer = isFullCube(world.getBlock({ x, y, z }));
+            known.set(key, answer);
+        }
+        return answer;
+    };
+};
+
+/** Whether anything solid stands between two points, walking the voxels the segment crosses. */
+const isObstructed = (occludes: Occluder, from: Point, to: Point): boolean => {
     let x = Math.floor(from.x);
     let y = Math.floor(from.y);
     let z = Math.floor(from.z);
@@ -220,7 +245,7 @@ const isObstructed = (world: ExplosionWorld, from: Point, to: Point): boolean =>
     const spanZ = dz === 0 ? Number.POSITIVE_INFINITY : 1 / Math.abs(dz);
 
     for (;;) {
-        if (isFullCube(world.getBlock({ x, y, z }))) return true;
+        if (occludes(x, y, z)) return true;
         if (x === endX && y === endY && z === endZ) return false;
 
         if (nextX < nextY && nextX < nextZ) {
@@ -248,7 +273,11 @@ const isObstructed = (world: ExplosionWorld, from: Point, to: Point): boolean =>
  *
  * @returns 0 for a box with a negative side, which is what Java answers for one.
  */
-export const getSeenPercent = (world: ExplosionWorld, center: Point, box: BoundingBox): number => {
+export const getSeenPercent = (world: ExplosionWorld, center: Point, box: BoundingBox): number =>
+    seenPercentThrough(cachedOccluder(world), center, box);
+
+/** The same, over an occluder the caller already holds, so a blast shares one across entities. */
+const seenPercentThrough = (occludes: Occluder, center: Point, box: BoundingBox): number => {
     const stepX = 1 / ((box.maxX - box.minX) * 2 + 1);
     const stepY = 1 / ((box.maxY - box.minY) * 2 + 1);
     const stepZ = 1 / ((box.maxZ - box.minZ) * 2 + 1);
@@ -269,7 +298,7 @@ export const getSeenPercent = (world: ExplosionWorld, center: Point, box: Boundi
                     z: lerp(tz, box.minZ, box.maxZ) + insetZ
                 };
 
-                if (!isObstructed(world, from, center)) clear += 1;
+                if (!isObstructed(occludes, from, center)) clear += 1;
                 total += 1;
             }
         }
@@ -428,7 +457,7 @@ const shuffle = <T>(items: T[], world: ExplosionWorld): void => {
 
 /** What a blast does to one entity, or undefined when it is out of range or immune. */
 const hitOf = <T extends ExplosionEntity>(
-    world: ExplosionWorld,
+    occludes: Occluder,
     center: Point,
     radius: number,
     entity: T
@@ -451,7 +480,7 @@ const hitOf = <T extends ExplosionEntity>(
     const awayLength = Math.hypot(awayX, awayY, awayZ);
 
     const knockbackMultiplier = entity.knockbackMultiplier ?? 1;
-    const seen = getSeenPercent(world, center, entity.box);
+    const seen = seenPercentThrough(occludes, center, entity.box);
     const push = (1 - ratio) * seen * knockbackMultiplier * (1 - (entity.knockbackResistance ?? 0));
 
     // Java's `Vec3.normalize` answers zero for a zero-length vector, which is what an entity
@@ -491,9 +520,12 @@ export const explode = <T extends ExplosionEntity>(
     const positions = calculateExplodedPositions(world, center, radius);
 
     const hits: ExplosionHit<T>[] = [];
-    if (radius >= MIN_EXPLOSION_RADIUS) {
+    if (radius >= MIN_EXPLOSION_RADIUS && entities.length > 0) {
+        // One occluder for every entity: they all fire at the same point, so they walk
+        // largely the same voxels and each one is read once for the whole blast.
+        const occludes = cachedOccluder(world);
         for (const entity of entities) {
-            const hit = hitOf(world, center, radius, entity);
+            const hit = hitOf(occludes, center, radius, entity);
             if (hit !== undefined) hits.push(hit);
         }
     }
