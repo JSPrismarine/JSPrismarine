@@ -72,6 +72,7 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
         currentTick: 0,
         blockUpdates: new BlockUpdateScheduler(),
+        systems: { onBlockChanged: () => {} },
         getChunkAt: async () => chunk,
         getBlock: async () => broken,
         // Standing where these tests break their block, so the break is well inside both the

@@ -76,6 +76,7 @@ const fakeWorld = (initial: BlockState) => {
         entityChunkIndices: new Map(),
         currentTick: 0,
         blockUpdates: new BlockUpdateScheduler(),
+        systems: { onBlockChanged: () => {} },
         entities,
         players: new Map(),
         getChunkAt: async () => chunk,
