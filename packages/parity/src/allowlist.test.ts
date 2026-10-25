@@ -55,7 +55,7 @@ describe('allow list', () => {
 
             const ruling = statRuling(entry.id.slice(divider + 1), stat);
             expect(entry.kind, entry.id).toBe(ruling.kind === 'java' ? 'defect' : 'accepted');
-            if (ruling.kind !== 'java') expect(entry.reason, entry.id).toBe(ruling.reason);
+            expect(entry.reason, entry.id).toBe(ruling.reason);
         }
     });
 

@@ -1,5 +1,5 @@
 import type { EntityInstance, SharedStat } from '@jsprismarine/entities';
-import { SHARED_STATS, statRuling } from '@jsprismarine/entities';
+import { JAVA_STAT_EXCEPTIONS, SHARED_STATS, statRuling } from '@jsprismarine/entities';
 import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { expect, it } from 'vitest';
 
@@ -147,22 +147,26 @@ describeFamily(FAMILIES.entitiesStats, [REFERENCES.javaEntityAttributes, REFEREN
     });
 
     it('compares all nine shared stats across the whole dump, not health alone', () => {
-        // The ADR counts 423 shared stats over the 93 Java types the entity package reaches by
-        // name. This row goes through `javaEntityTypeToBedrock`, which also reaches the four
-        // types Bedrock keeps a legacy identifier for, so it compares 15 more.
+        // The ADR counts 438 shared stats. 423 are a type both editions spell the same way;
+        // the other 15 belong to the five types Bedrock keeps a legacy identifier for, which
+        // this row reaches through `javaEntityTypeToBedrock`: evocation_illager, villager_v2,
+        // zombie_villager_v2, tropicalfish and zombie_pigman.
         expect(measured).toHaveLength(438);
         expect(new Set(measured.map((row) => row.stat)).size).toBe(Object.keys(SHARED_STATS).length);
         expect(new Set(measured.map((row) => row.bedrockId)).size).toBeGreaterThanOrEqual(85);
     });
 
     it('leaves every surviving disagreement to a stat Bedrock decides or a reviewed row', () => {
-        // 103 are stats the client predicts or draws with, 15 are the exceptions the ADR lists,
-        // and the 2 the decision gives to Java are the defects the allow list records.
+        // 103 are stats the client predicts or draws with. The rest are the ADR's reviewed
+        // exceptions, one measured row each, so that count is read off the decision and drops
+        // when an exception stops disagreeing. Nothing is left for the decision to give to
+        // Java: a row that ruled that way would be a stat the server should already run
+        // Java's number for, and `detail` names it.
         const kinds = disagreements.map((row) => statRuling(row.bedrockId, row.stat).kind);
 
-        expect(disagreements).toHaveLength(120);
+        expect(detail).toEqual([]);
         expect(kinds.filter((kind) => kind === 'bedrock')).toHaveLength(103);
-        expect(kinds.filter((kind) => kind === 'exception')).toHaveLength(15);
-        expect(kinds.filter((kind) => kind === 'java')).toHaveLength(2);
+        expect(kinds.filter((kind) => kind === 'exception')).toHaveLength(JAVA_STAT_EXCEPTIONS.length);
+        expect(disagreements).toHaveLength(103 + JAVA_STAT_EXCEPTIONS.length);
     });
 });
