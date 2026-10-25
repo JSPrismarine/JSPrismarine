@@ -90,7 +90,8 @@ What each task does, from `ChunkStatusTasks`:
 - **`generateStructureStarts`** calls `ChunkGenerator.createStructures(...)` when
   `generateStructures()` is on, then `ServerLevel.onStructureStartsAvailable(chunk)`. For every
   structure set whose `StructurePlacement.isStructureChunk(state, x, z)` accepts this chunk, it
-  generates a `StructureStart` and stores it on the centre chunk. It writes no blocks.
+  generates a `StructureStart` and stores it on the centre chunk. It writes no blocks. The biome
+  check happens before the structure is assembled, not after; section 8 has the order.
 - **`generateStructureReferences`** builds a `WorldGenRegion` and calls
   `ChunkGenerator.createReferences(region, ..., chunk)`, which loops `sourceX, sourceZ` over
   `[-8, +8]` and, for every `StructureStart` in each of those 289 chunks whose bounding box
@@ -766,6 +767,69 @@ Three places where a naive implementation inflates the count:
    Java runs `applyBiomeDecoration` exactly once per chunk, in that chunk's own `features` step.
 3. Treating `count` as a count of successes rather than of candidate positions. Each position a
    `count` modifier emits is a candidate that the later filters, including `biome`, may reject.
+
+### A structure assembled into a biome that refuses it
+
+`Structure.generate` never assembles one. Read in order:
+
+```java
+Optional<GenerationStub> generation = this.findValidGenerationPoint(context);
+if (generation.isPresent() && (testStart = new StructureStart(this, sourceChunkPos, references,
+        (builder = generation.get().getPiecesBuilder()).build())).isValid()) {
+
+public Optional<GenerationStub> findValidGenerationPoint(GenerationContext context) {
+    return this.findGenerationPoint(context).filter(context::isValidBiome);
+}
+```
+
+`GenerationStub` is `record GenerationStub(BlockPos position, Either<Consumer<StructurePiecesBuilder>,
+StructurePiecesBuilder> generator)`, and `getPiecesBuilder()` is what runs the `Consumer` side. So
+`findGenerationPoint` settles a position, the filter tests the biome there, and only a stub that
+survives the filter has its pieces built.
+
+The test itself is one lookup at one position, at biome quart resolution:
+
+```java
+public boolean isValidBiome(GenerationStub stub) {
+    BlockPos startPos = stub.position();
+    return this.validBiome.test(this.biomeResolver.getNoiseBiome(
+        QuartPos.fromBlock(startPos.getX()),
+        QuartPos.fromBlock(startPos.getY()),
+        QuartPos.fromBlock(startPos.getZ())));
+}
+```
+
+Every structure type whose `findGenerationPoint` returns the `Consumer` side therefore pays only
+what it takes to settle the position. The two helpers most of them go through,
+`Structure.onTopOfChunkCenter` and `SinglePieceStructure.findGenerationPoint`, read one to four
+columns through `getFirstOccupiedHeight` and `getLowestY`. `JigsawPlacement.addPieces` places the
+start piece, projects it onto the heightmap at the piece's own middle, and defers the whole
+breadth-first walk:
+
+```java
+return Optional.of(new Structure.GenerationStub(new BlockPos(centerX, centerY, centerZ),
+    arg_0 -> JigsawPlacement.lambda$addPieces$2(centerPiece, maxDepth, ...)));
+```
+
+One structure assembles first, and it has to. `MineshaftStructure.findGenerationPoint` runs
+`generatePiecesAndAdjust` into a `StructurePiecesBuilder` and answers `Either.right` of it, because
+the vertical settle those pieces make is what sets the stub's own y:
+
+```java
+int yOffset = this.generatePiecesAndAdjust(mineshaftPiecesBuilder, context);
+return Optional.of(new Structure.GenerationStub(startPos.offset(0, yOffset, 0),
+    (Either<...>)Either.right((Object)mineshaftPiecesBuilder)));
+```
+
+Three structures test more than the stub position, and all three do it inside
+`findGenerationPoint`, before the stub exists. `SinglePieceStructure` and `Structure.onTopOfChunkCenter`
+open with `couldValidBiomeExistOnTopOfChunkCenter`, which scans every biome quart of the column at
+the chunk's middle and gives up if none of them is allowed. `WoodlandMansionStructure` does the same
+for the column at offset 7. `OceanMonumentStructure` calls
+`biomeResolver.getBiomesWithin(x, seaLevel, z, 29)` and refuses unless every biome in that radius is
+in `BiomeTags.REQUIRED_OCEAN_MONUMENT_SURROUNDING`. These are extra refusals ahead of the one at the
+stub position, not a different position for it, so none of them makes the stub position's biome test
+depend on the assembly.
 
 ## 9. Mapping onto this repository
 
