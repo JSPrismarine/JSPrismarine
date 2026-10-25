@@ -22,6 +22,7 @@ import * as Commands from './Commands';
 import { Command, argument, literal } from './Command';
 import { isCommandArgument } from './CommandArguments';
 import type { CommandExecutor } from './CommandExecutor';
+import type { ConsoleSender } from './ConsoleSender';
 import { CommandManager } from './CommandManager';
 
 describe('command', () => {
@@ -287,7 +288,7 @@ describe('command', () => {
                     getSessionManager: () => sessionManager,
                     post: () => 0
                 });
-                const console = stub<Console>({
+                const console = stub<ConsoleSender>({
                     getName: () => 'Console',
                     getFormattedUsername: () => 'Console',
                     getServer: () => server,
@@ -302,7 +303,7 @@ describe('command', () => {
                     getLogger: () => logger,
                     getSessionManager: () => sessionManager,
                     getPermissionManager: () => permissionManager,
-                    getConsole: () => console,
+                    getConsoleSender: () => console,
                     getChatManager: () => stub<ChatManager>({ send: async () => {} })
                 });
                 const permissionOwner = stub<Player>({

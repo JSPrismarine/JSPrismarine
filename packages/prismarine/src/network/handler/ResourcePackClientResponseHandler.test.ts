@@ -4,7 +4,7 @@ import { DisconnectReason, Gametype } from '@jsprismarine/minecraft';
 import { InetAddress } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Console from '../../Console';
+import type { ConsoleSender } from '../../command/ConsoleSender';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
@@ -104,7 +104,7 @@ const harness = ({
         getLogger: () => stub<Logger>({ info: () => {}, debug }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival', getDifficulty: () => 1 }),
         getTick: () => 100,
-        getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
+        getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         post: ([, event]: [string, Event]) => {
             if (cancelSpawn) event.preventDefault();
             return 0;

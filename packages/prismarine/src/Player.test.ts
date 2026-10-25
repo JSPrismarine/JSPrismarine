@@ -5,7 +5,7 @@ import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import { describe, expect, it, vi } from 'vitest';
 
-import type Console from './Console';
+import type { ConsoleSender } from './command/ConsoleSender';
 import Player from './Player';
 import type Server from './Server';
 import type { Block } from './block/Block';
@@ -50,7 +50,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         post: () => 0,
         emit: async (name: string, event: unknown) => void events.push([name, event]),
         getTick: () => 0,
-        getConsole: () => stub<Console>({ getFormattedUsername: () => 'Console' }),
+        getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
