@@ -80,7 +80,10 @@ export interface EnchantmentRegistryOptions {
      * `in_enchanting_table` does.
      */
     readonly tags?: ReadonlyMap<string, readonly string[]>;
-    /** Defaults to {@link componentItemView}. */
+    /**
+     * Item answers the host can give, merged over {@link componentItemView}
+     * so an unimplemented member still falls back to reading the component.
+     */
     readonly items?: ItemView;
 }
 
@@ -110,7 +113,7 @@ export class EnchantmentRegistry {
         this.tags = new Map(
             [...(options.tags ?? new Map())].map(([id, values]) => [namespaced(id.replace(/^#/, '')), values])
         );
-        this.items = options.items ?? componentItemView;
+        this.items = { ...componentItemView, ...options.items };
     }
 
     /** Every enchantment id the registry holds, in load order. */
