@@ -1,0 +1,13 @@
+---
+'@jsprismarine/parity': minor
+---
+
+Consume the entity stat decision, measure the loot distribution, and wire the feature row to a source that will exist.
+
+`entities.stats` compared health alone and carried the armor stand and the wither as defects. It now spawns each mob the way the server spawns one, with the Java stat table in the environment, and compares all nine stats both editions publish: 438 rows over the 93 types the Java dump holds, reached through `javaEntityTypeToBedrock`. Each surviving disagreement goes through `statRuling` from `@jsprismarine/entities`, so the dashboard row carries the decision's own verdict and reason rather than a second copy of it. 103 are stats Bedrock decides and 15 are the reviewed exceptions, which become accepted gaps; a `java` ruling becomes a defect. The two old defects close, and two new ones appear: `javaAttributeBases` looks an entity up in the Java dump by the identifier it spawned under, so the evoker and the villager, which keep Bedrock's legacy identifiers, never find their Java row and still run the pack's follow range.
+
+`loot.distribution` is a new row, the half of phase 2's loot exit that did not exist. It rolls every table whose draws its own file determines, counts the stacks by item identifier and runs Pearson's chi-squared test against the probabilities the declared weights and roll counts imply: 54 tables with a real choice to make, 175 counting the ones that draw a single item a declared number of times, over 400000 draws from a fixed world seed. The row measures the roller against Mojang's numbers, not against rolls sampled from a running Java server, and `declaredDistribution` refuses any table whose distribution its weights alone do not fix. Both limits are stated on the row and in the README. `chiSquared.ts` carries the test and its tail function, checked against published critical values.
+
+`worldgen.features` required a separately captured feature distribution on top of the reference world, and nothing was ever going to produce one: the distribution is the reference world's own `blockCounts`. The row would have stayed not-measured after the golden landed, so it now stands on that single source, with `loadReferenceWorld` checking the golden's format version and a type-only import of the capture job's own `ReferenceWorld` failing the build if the file the job writes stops being the file the rows read. The row still reports not measured, because no run has committed a golden.
+
+`blocks.properties` goes green: the property table generator now keeps the retracted piston's light dampening, so both defect entries report stale and leave the list.
