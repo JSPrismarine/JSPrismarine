@@ -9,7 +9,9 @@ import { stub } from './testing/stub.test.helper';
 
 /** A server double that records what the console dispatches and subscribes to. */
 const fakeServer = () => {
-    const dispatchCommand = vi.fn(async () => {});
+    // Answers true, the way a dispatch that ran reports itself. The console only reads the
+    // promise, but the test files go through the type checker and the signature does not.
+    const dispatchCommand = vi.fn(async () => true);
     const on = vi.fn();
     const setConsole = vi.fn();
     const server = stub<Server>({
