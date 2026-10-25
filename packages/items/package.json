@@ -41,7 +41,7 @@
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "test": "vitest run",
-        "typecheck": "tsc-ts --noEmit"
+        "typecheck": "tsc-ts --noEmit && tsc-ts --noEmit -p tsconfig.test.json"
     },
     "repository": {
         "type": "git",

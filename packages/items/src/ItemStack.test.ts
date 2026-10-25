@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import type { PatchEntry } from './ItemStack';
 import { canStack, ItemStack, mergeStacks, patchesEqual, sameItemSameComponents } from './ItemStack';
 import { food, maxDamage } from './components/defaults';
 import { maxStackSize } from './components/universal';
@@ -61,7 +62,7 @@ describe('an item stack over its type defaults', () => {
     });
 
     it('does not alias the patch it was constructed from', () => {
-        const source = new Map([['minecraft:damage', { kind: 'set', value: 5 } as const]]);
+        const source = new Map<string, PatchEntry>([['minecraft:damage', { kind: 'set', value: 5 }]]);
         const stack = new ItemStack(registry.holder('minecraft:diamond_pickaxe'), 1, source);
         source.set('minecraft:damage', { kind: 'set', value: 9 });
         expect(stack.get('minecraft:damage')).toBe(5);
