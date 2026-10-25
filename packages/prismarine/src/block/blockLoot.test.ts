@@ -37,6 +37,130 @@ describe('block', () => {
             expect(rollBlockDrops(content, { identifier: 'minecraft:redstone_lamp', states: {} })).toEqual([]);
         });
 
+        /**
+         * A stack holding nothing but the two Java 26.3 tables this suite
+         * rolls, copied field for field out of the vanilla datapack. Both
+         * branch on `block_state`, which is the only way a Bedrock block that
+         * Java states rather than names can drop the right number.
+         */
+        const statefulTables = () =>
+            buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: {
+                            ...fixtureDefinitions(),
+                            lootTablesJava: new Map([
+                                [
+                                    'minecraft:blocks/black_concrete_slab',
+                                    definitionOf('lootTablesJava', 'minecraft:blocks/black_concrete_slab', {
+                                        type: 'minecraft:block',
+                                        pools: [
+                                            {
+                                                rolls: 1,
+                                                entries: [
+                                                    {
+                                                        type: 'minecraft:item',
+                                                        name: 'minecraft:black_concrete_slab',
+                                                        modifier: [
+                                                            {
+                                                                type: 'minecraft:set_count',
+                                                                condition: {
+                                                                    type: 'minecraft:match_block',
+                                                                    blocks: 'minecraft:black_concrete_slab',
+                                                                    state: { type: 'double' }
+                                                                },
+                                                                count: 2
+                                                            },
+                                                            { type: 'minecraft:explosion_decay' }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        random_sequence: 'minecraft:blocks/black_concrete_slab'
+                                    })
+                                ],
+                                [
+                                    'minecraft:blocks/shelf_mushroom',
+                                    definitionOf('lootTablesJava', 'minecraft:blocks/shelf_mushroom', {
+                                        type: 'minecraft:block',
+                                        pools: [
+                                            {
+                                                rolls: 1,
+                                                entries: [
+                                                    {
+                                                        type: 'minecraft:item',
+                                                        name: 'minecraft:shelf_mushroom',
+                                                        modifier: [
+                                                            {
+                                                                type: 'minecraft:set_count',
+                                                                condition: {
+                                                                    type: 'minecraft:match_block',
+                                                                    blocks: 'minecraft:shelf_mushroom',
+                                                                    state: { age: '1' }
+                                                                },
+                                                                count: 2
+                                                            },
+                                                            { type: 'minecraft:explosion_decay' }
+                                                        ]
+                                                    }
+                                                ]
+                                            }
+                                        ],
+                                        random_sequence: 'minecraft:blocks/shelf_mushroom'
+                                    })
+                                ]
+                            ])
+                        },
+                        diagnostics: []
+                    })
+                })
+            );
+
+        describe('a Bedrock block Java states rather than names', () => {
+            it('reaches the parent block table of an identifier Bedrock split off', () => {
+                const content = statefulTables();
+
+                expect(blockLootTableOf(content, 'minecraft:black_concrete_double_slab')).toBe(
+                    'minecraft:blocks/black_concrete_slab'
+                );
+            });
+
+            it('yields two slabs for the double slab and one for the half, as the Java table says', () => {
+                const content = statefulTables();
+
+                expect(
+                    rollBlockDrops(content, {
+                        identifier: 'minecraft:black_concrete_double_slab',
+                        states: { 'minecraft:vertical_half': 'bottom' }
+                    })
+                ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 2 }]);
+                expect(
+                    rollBlockDrops(content, {
+                        identifier: 'minecraft:black_concrete_slab',
+                        states: { 'minecraft:vertical_half': 'bottom' }
+                    })
+                ).toEqual([{ identifier: 'minecraft:black_concrete_slab', count: 1 }]);
+            });
+
+            it('yields two shelf mushrooms at the grown stage and one before it', () => {
+                const content = statefulTables();
+
+                expect(
+                    rollBlockDrops(content, {
+                        identifier: 'minecraft:shelf_mushroom',
+                        states: { growth: 1, 'minecraft:cardinal_direction': 'north' }
+                    })
+                ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 2 }]);
+                expect(
+                    rollBlockDrops(content, {
+                        identifier: 'minecraft:shelf_mushroom',
+                        states: { growth: 0, 'minecraft:cardinal_direction': 'north' }
+                    })
+                ).toEqual([{ identifier: 'minecraft:shelf_mushroom', count: 1 }]);
+            });
+        });
+
         it('is what a block breaking yields', () => {
             const content = buildServerContent(fixtureContentOptions());
             const stone = new Block({ name: 'minecraft:stone', content });
