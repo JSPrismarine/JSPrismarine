@@ -80,6 +80,20 @@ const readEntryData = (buffer: Buffer, entry: ZipEntry): Buffer => {
 };
 
 /**
+ * Reads one entry of a zip archive into memory, without writing anything to
+ * disk. Used for the small metadata files inside a downloaded archive, such
+ * as the `version.json` at the root of Mojang's bundler jar.
+ *
+ * @param name - Entry path inside the archive, with `/` separators.
+ * @returns The entry's bytes, or undefined when the archive has no such entry.
+ */
+export const readZipEntry = async (archivePath: string, name: string): Promise<Buffer | undefined> => {
+    const buffer = await readFile(archivePath);
+    const entry = readCentralDirectory(buffer).find((candidate) => candidate.name === name);
+    return entry === undefined ? undefined : readEntryData(buffer, entry);
+};
+
+/**
  * Unpacks a zip archive into a directory, creating it if needed. Supports the
  * stored and deflate methods, which is all the pinned sources use, and fails
  * on zip64. Every entry is written as a regular file; entry names that could

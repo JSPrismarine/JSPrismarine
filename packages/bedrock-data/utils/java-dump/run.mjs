@@ -4,6 +4,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { findJdkHome } from '../java/jdk.ts';
+
 /**
  * Compiles and runs the Java property and attribute dumper against the pinned Java Edition
  * server jar, then writes the goldens under `src/jsp/java/`.
@@ -98,35 +100,6 @@ const extractServer = (jarPath) => {
     return { serverJar, librariesDir };
 };
 
-/** Finds a JDK of at least the required major version, or explains how to point at one. */
-const findJdk = () => {
-    const candidates = [];
-    if (process.env.JSP_JAVA_HOME) candidates.push(process.env.JSP_JAVA_HOME);
-    if (process.env.JAVA_HOME) candidates.push(process.env.JAVA_HOME);
-    if (process.platform === 'darwin') {
-        try {
-            const home = execFileSync('/usr/libexec/java_home', ['-v', `${REQUIRED_JDK_MAJOR}+`], {
-                encoding: 'utf8'
-            }).trim();
-            if (home) candidates.push(home);
-        } catch {
-            // No matching JVM registered; the error below explains what to install.
-        }
-    }
-
-    for (const home of candidates) {
-        const javac = path.join(home, 'bin/javac');
-        if (!fs.existsSync(javac)) continue;
-        const version = execFileSync(javac, ['-version'], { encoding: 'utf8' }).trim();
-        const major = Number(version.replace('javac ', '').split('.')[0]);
-        if (major >= REQUIRED_JDK_MAJOR) return home;
-    }
-    throw new Error(
-        `No JDK ${REQUIRED_JDK_MAJOR} or newer found. Install one (for example Temurin) or set ` +
-            'JSP_JAVA_HOME to the home directory of a suitable JDK.'
-    );
-};
-
 const runDumper = (jdkHome, serverJar, librariesDir) => {
     const classesDir = path.join(cacheDir, 'dump-classes');
     const outputDir = path.join(cacheDir, 'dump-out');
@@ -160,6 +133,7 @@ const writeGolden = (outputDir, name) => {
 
 const jarPath = await downloadServerJar();
 const { serverJar, librariesDir } = extractServer(jarPath);
-const outputDir = runDumper(findJdk(), serverJar, librariesDir);
+const jdkHome = findJdkHome({ minimumMajor: REQUIRED_JDK_MAJOR, binaries: ['java', 'javac'] });
+const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
 writeGolden(outputDir, 'entity_attributes.json');

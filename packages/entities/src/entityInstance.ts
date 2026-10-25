@@ -22,6 +22,7 @@ import { GoalScheduler } from './goals';
 import type { EntityAction, EventTarget } from './events';
 import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
+import { isRideableParams } from './riding';
 import type { PropertyDefinition, PropertyValue } from './properties';
 import { PropertyValues } from './properties';
 import type { TriggerComponentName } from './triggers';
@@ -124,6 +125,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private pending: EventEffects[] = [];
     private home: EntityPosition | undefined;
     private target: FilterEntityView | undefined;
+    private mounted: EntityInstance | undefined;
+    private readonly seated: EntityInstance[] = [];
 
     /**
      * @param holder - A holder from the registry of resolved entity types.
@@ -445,6 +448,75 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return this.environment.molang?.(source, this);
     }
 
+    /** Who is riding this entity, in the order they took their seats. */
+    public get riders(): readonly EntityInstance[] {
+        return this.seated;
+    }
+
+    /** What this entity is riding, which the `is_riding` filter test reads. */
+    public get vehicle(): EntityInstance | undefined {
+        return this.mounted;
+    }
+
+    /**
+     * Seats a rider on this entity.
+     *
+     * The seat count caps the riders and `family_types` decides who is let in.
+     * A rider already on something else leaves it first, and a seat taken
+     * fires `on_rider_enter_event` on the vehicle.
+     *
+     * @returns Whether the rider took a seat. False means the entity carries
+     *   no active `minecraft:rideable`, the seats are full, the rider is not of
+     *   an allowed family, or the two are already in one riding chain.
+     */
+    public mount(rider: EntityInstance): boolean {
+        const params = this.componentParams('minecraft:rideable');
+        if (!isRideableParams(params)) return false;
+        if (this.seated.length >= params.seatCount || this.seated.includes(rider)) return false;
+        if (params.familyTypes.length > 0 && !params.familyTypes.some((name) => rider.families().includes(name)))
+            return false;
+        // A vehicle cannot end up riding its own passenger.
+        for (let above: EntityInstance | undefined = this; above !== undefined; above = above.mounted)
+            if (above === rider) return false;
+
+        rider.mounted?.dismount(rider);
+        this.seated.push(rider);
+        rider.mounted = this;
+        if (params.onRiderEnterEvent !== undefined)
+            this.raise(params.onRiderEnterEvent, 'self', 'minecraft:rideable');
+        return true;
+    }
+
+    /**
+     * Takes a rider off this entity, firing `on_rider_exit_event`.
+     *
+     * @returns Whether the rider was on this entity.
+     */
+    public dismount(rider: EntityInstance): boolean {
+        const seat = this.seated.indexOf(rider);
+        if (seat < 0) return false;
+        this.seated.splice(seat, 1);
+        rider.mounted = undefined;
+
+        const params = this.componentParams('minecraft:rideable');
+        if (isRideableParams(params) && params.onRiderExitEvent !== undefined)
+            this.raise(params.onRiderExitEvent, 'self', 'minecraft:rideable');
+        return true;
+    }
+
+    /** Takes every rider off, which is what losing `minecraft:rideable` does. */
+    public ejectRiders(): void {
+        for (const rider of [...this.seated]) this.dismount(rider);
+    }
+
+    /** The type families of the active `minecraft:type_family` component. */
+    public families(): readonly string[] {
+        const params = this.componentParams('minecraft:type_family');
+        if (params === null || typeof params !== 'object' || !('family' in params)) return [];
+        const family = params.family;
+        return Array.isArray(family) ? family.filter((name): name is string => typeof name === 'string') : [];
+    }
+
     /** What the entity is attacking now, which the `is_target` filter test reads. */
     public get attackTarget(): FilterEntityView | undefined {
         return this.target;
@@ -598,27 +670,19 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             id: () => outer.id?.() ?? this.identity,
             flag: (name: EntityFlag) => this.ownFlag(name) ?? outer.flag?.(name),
             measure: (name: EntityMeasure) => this.ownMeasure(name) ?? outer.measure?.(name),
-            names: (name: EntityNameSet) => (name === 'is_family' ? this.families() : outer.names?.(name)),
+            names: (name: EntityNameSet) => this.ownNames(name) ?? outer.names?.(name),
             property: (name: string) => this.properties.get(name),
             hasProperty: (name: string) => this.properties.has(name),
             hasComponent: (name: string) => this.hasComponent(name),
             equipment: (slot, index) => outer.equipment?.(slot, index),
             slotFill: (slot) => outer.slotFill?.(slot),
             carries: (matches) => outer.carries?.(matches),
-            vehicle: () => outer.vehicle?.(),
+            vehicle: () => this.mounted?.filterContext().self ?? outer.vehicle?.(),
             owner: () => outer.owner?.(),
             attackTarget: () => this.target ?? outer.attackTarget?.(),
             leashHolder: () => outer.leashHolder?.(),
             trusts: (other) => outer.trusts?.(other)
         };
-    }
-
-    /** The type families of the active `minecraft:type_family` component. */
-    private families(): readonly string[] {
-        const params = this.componentParams('minecraft:type_family');
-        if (params === null || typeof params !== 'object' || !('family' in params)) return [];
-        const family = params.family;
-        return Array.isArray(family) ? family.filter((name): name is string => typeof name === 'string') : [];
     }
 
     private ownFlag(name: EntityFlag): boolean | undefined {

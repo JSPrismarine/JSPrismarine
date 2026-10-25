@@ -10,7 +10,7 @@ import { fetchSource, hashSourceContent, resolveContentRoot } from './fetch.ts';
 import { hashFolder } from './folder-hash.ts';
 import { verifyFileHash } from './hash.ts';
 import type { SourceDescriptor } from './manifest.ts';
-import { extractZip } from './unzip.ts';
+import { extractZip, readZipEntry } from './unzip.ts';
 
 /** Builds a zip archive of stored (uncompressed) entries, for tests only. */
 const buildZip = (entries: Record<string, string>): Buffer => {
@@ -158,6 +158,16 @@ describe('extractZip', () => {
         const archive = join(dir, 'evil.zip');
         await writeFile(archive, zip);
         await expect(extractZip(archive, join(dir, 'out'))).rejects.toThrow(/unsafe name/);
+    });
+});
+
+describe('readZipEntry', () => {
+    it('reads one entry and reports a missing one as undefined', async () => {
+        const archive = join(dir, 'bundle.zip');
+        await writeFile(archive, buildZip({ 'version.json': '{"id":"26.3"}', 'other.txt': 'ignored' }));
+
+        expect((await readZipEntry(archive, 'version.json'))?.toString('utf8')).toBe('{"id":"26.3"}');
+        expect(await readZipEntry(archive, 'absent.json')).toBeUndefined();
     });
 });
 
