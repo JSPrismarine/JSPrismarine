@@ -49,8 +49,9 @@ export class ToastQueue {
     }
 
     /**
-     * Adds a toast and evicts the oldest non-sticky toast (or the oldest toast when all are
-     * sticky) while the queue is over `maxVisible`.
+     * Adds a toast and, while the queue is over `maxVisible`, evicts the oldest non-sticky toast
+     * among the older ones, or the oldest toast when they are all sticky. The toast just pushed
+     * is never the victim, so the returned id always names a visible toast.
      *
      * @param now - Current time on the caller's clock; `expiresAt` is derived from it.
      * @returns The new toast's id.
@@ -65,7 +66,7 @@ export class ToastQueue {
             expiresAt: input.sticky ? undefined : now + ttl
         });
         while (this.entries.length > this.options.maxVisible) {
-            const victim = this.entries.findIndex((toast) => !toast.sticky);
+            const victim = this.entries.slice(0, -1).findIndex((toast) => !toast.sticky);
             this.entries.splice(victim === -1 ? 0 : victim, 1);
         }
         return id;

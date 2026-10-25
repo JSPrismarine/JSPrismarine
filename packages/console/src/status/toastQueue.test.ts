@@ -45,6 +45,16 @@ describe('ToastQueue', () => {
         expect(queue.toasts.map((toast) => toast.text)).toEqual(['sticky', 'b']);
     });
 
+    it('never evicts the toast just pushed, even when every older toast is sticky', () => {
+        const queue = new ToastQueue({ maxVisible: 2, defaultTtlMs: 4000 });
+        queue.push({ tone: 'danger', text: 'crash', sticky: true }, 0);
+        queue.push({ tone: 'danger', text: 'generation failed', sticky: true }, 1);
+        const id = queue.push({ tone: 'ok', text: 'restarted' }, 2);
+
+        expect(queue.toasts.map((toast) => toast.text)).toEqual(['generation failed', 'restarted']);
+        expect(queue.toasts.at(-1)?.id).toBe(id);
+    });
+
     it('drops the oldest sticky toast when every toast is sticky and over maxVisible', () => {
         const queue = new ToastQueue({ maxVisible: 1, defaultTtlMs: 4000 });
         queue.push({ tone: 'danger', text: 'old', sticky: true }, 0);
