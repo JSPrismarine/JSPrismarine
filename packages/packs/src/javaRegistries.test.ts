@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { routeDatapackPath } from './javaRegistries';
+import { mergeJavaDefinition } from './datapack';
+import { MERGE_MODES, routeDatapackPath } from './javaRegistries';
 import { structuralValidator } from './validation';
 
 describe('routeDatapackPath', () => {
@@ -100,5 +101,36 @@ describe('structuralValidator for Java registries', () => {
                 data: { message_id: 'arrow', scaling: 'never', exhaustion: '0.1' }
             })
         ).toMatchObject([{ severity: 'error', code: 'definition.missing-key' }]);
+    });
+});
+
+describe('MERGE_MODES', () => {
+    it('gives tags the merging mode and every other 26.3 registry the overriding one', () => {
+        expect(MERGE_MODES.tags).toBe('tags');
+        expect(Object.entries(MERGE_MODES).filter(([, mode]) => mode !== 'override')).toEqual([['tags', 'tags']]);
+    });
+});
+
+describe('mergeJavaDefinition', () => {
+    it('overrides with the later file whole', () => {
+        expect(mergeJavaDefinition('override', { a: 1 }, { b: 2 })).toEqual({ b: 2 });
+    });
+
+    it('concatenates tag values and lets replace discard what came before', () => {
+        expect(mergeJavaDefinition('tags', { replace: false, values: ['a'] }, { values: ['b'] })).toEqual({
+            replace: false,
+            values: ['a', 'b']
+        });
+        expect(
+            mergeJavaDefinition('tags', { replace: false, values: ['a'] }, { replace: true, values: ['b'] })
+        ).toEqual({ replace: true, values: ['b'] });
+    });
+
+    it('assigns key by key, the later file winning per key', () => {
+        expect(mergeJavaDefinition('assign', { a: 1, b: 1 }, { b: 2, c: 3 })).toEqual({ a: 1, b: 2, c: 3 });
+    });
+
+    it('takes a non-object file whole, whatever the mode', () => {
+        expect(mergeJavaDefinition('tags', { values: ['a'] }, [1, 2])).toEqual([1, 2]);
     });
 });

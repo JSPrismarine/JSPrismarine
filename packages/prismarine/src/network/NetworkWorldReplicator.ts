@@ -17,6 +17,8 @@ import ActorEventPacket from './packet/ActorEventPacket';
 import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from './packet/UpdateBlockPacket';
 import LevelEventPacket from './packet/LevelEventPacket';
+import PlaySoundPacket from './packet/PlaySoundPacket';
+import SpawnParticleEffectPacket from './packet/SpawnParticleEffectPacket';
 
 /**
  * The actor type a sound is attributed to, where vanilla sends something other than nothing.
@@ -237,6 +239,25 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         packet.disableRelativeVolume = false;
 
         this.sendAround(position, packet, { radius: SOUND_RADIUS });
+    }
+
+    /** @inheritdoc */
+    public namedSound(position: Vector3, name: string): void {
+        const packet = new PlaySoundPacket();
+        packet.name = name;
+        packet.position = position;
+
+        this.sendAround(position, packet, { radius: SOUND_RADIUS });
+    }
+
+    /** @inheritdoc */
+    public namedParticle(position: Vector3, name: string): void {
+        const packet = new SpawnParticleEffectPacket();
+        packet.dimensionId = this.world.getDimension().id;
+        packet.effectName = name;
+        packet.position = position;
+
+        this.sendAround(position, packet, { radius: WORLD_EVENT_RADIUS });
     }
 
     /** @inheritdoc */
