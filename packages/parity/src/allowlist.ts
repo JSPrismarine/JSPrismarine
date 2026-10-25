@@ -5,6 +5,7 @@
 import type { SharedStat } from '@jsprismarine/entities/javaStats';
 import { JAVA_STAT_EXCEPTIONS, statRuling } from '@jsprismarine/entities/javaStats';
 import {
+    BLOCK_ENTITY_CONTENT_LOSSES,
     BLOCK_LOSSES,
     BLOCK_MERGES,
     ENTITY_LOSSES,
@@ -107,6 +108,13 @@ const mappingLossEntries = (): readonly AllowListEntry[] => [
     ...REGISTRY_LOSSES.map((loss) => ({
         family: 'mapping.registries' as const,
         id: `loss:${loss.registry}/${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: loss.reason,
+        reference: loss.reference
+    })),
+    ...BLOCK_ENTITY_CONTENT_LOSSES.map((loss) => ({
+        family: 'mapping.blockentities' as const,
+        id: `loss:${loss.javaType}/${loss.field}`,
         kind: 'accepted' as const,
         reason: loss.reason,
         reference: loss.reference
