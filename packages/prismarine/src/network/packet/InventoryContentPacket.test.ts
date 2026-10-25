@@ -1,5 +1,6 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
+import { ItemInstanceUserData, NetworkBinaryStream } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import ContainerEntry from '../../inventory/ContainerEntry';
@@ -185,6 +186,27 @@ describe('InventoryContentPacket', () => {
         const shield = readBack(encoded(inventory.getItems(true))).slots[0]!;
         expect(shield.userData).toHaveLength(18);
         expect(readUserData(shield.userData, true).blockingTick).toBe(0n);
+    });
+
+    it('carries an enchanted, renamed stack without losing the rest of the packet', () => {
+        // The blob is length prefixed, so NBT inside it is the one thing that can push every
+        // field after it out of place. A client that reads this packet one field short
+        // disconnects rather than drawing the item wrong, which is why the whole packet is
+        // read back rather than just the stack.
+        const inventory = new Inventory(1);
+        const sword = new Item({ id: 0, name: 'minecraft:diamond_sword' })
+            .withEnchantments({ 'minecraft:sharpness': 2 })
+            .withDisplay('Needle', ['Out of a dungeon']);
+        inventory.setItem(0, new ContainerEntry({ item: sword }));
+
+        const slot = readBack(encoded(inventory.getItems(true))).slots[0]!;
+        const blob = new NetworkBinaryStream(slot.userData);
+        const userData = new ItemInstanceUserData();
+        userData.deserialize(blob);
+
+        expect(blob.feof()).toBe(true);
+        expect(userData.userDataTag?.getCompound('display', false)?.getString('Name', '')).toBe('Needle');
+        expect(userData.userDataTag?.getList('ench', false)?.size).toBe(1);
     });
 
     it('does not throw on an inventory that is entirely empty', () => {
