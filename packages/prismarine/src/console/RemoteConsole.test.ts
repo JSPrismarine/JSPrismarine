@@ -128,6 +128,29 @@ describe('RemoteConsole', () => {
         await remote.disable();
     });
 
+    it('answers a command still running at disable as ok, once', async () => {
+        // `stop` awaits `server.shutdown()`, which ends in `process.exit`, so its dispatch
+        // never settles. The host must still get a result before the channel closes.
+        let finish = (_ok: boolean) => {};
+        const { server } = fakeServer({ dispatchCommand: () => new Promise<boolean>((resolve) => (finish = resolve)) });
+        const { serverEnd, consoleEnd, received } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+        await remote.enable();
+
+        consoleEnd.send({ type: 'command', v, id: 'c3', line: 'stop' });
+        await setImmediate();
+        expect(types(received)).not.toContain('command.result');
+
+        await remote.disable();
+        await setImmediate();
+        const results = () => received.filter((message) => message.type === 'command.result');
+        expect(results()).toEqual([{ type: 'command.result', v, id: 'c3', ok: true }]);
+
+        finish(false);
+        await setImmediate();
+        expect(results()).toHaveLength(1);
+    });
+
     it('completes the text before the cursor against the command names', async () => {
         const { server } = fakeServer();
         const { serverEnd, consoleEnd, received } = linked();
