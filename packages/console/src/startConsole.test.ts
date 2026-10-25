@@ -169,6 +169,30 @@ describe('startConsole', () => {
         expect(t.test.renderer.isDestroyed).toBe(true);
     });
 
+    it('only restores the terminal on an uncaught error and leaves printing and exiting to the host', async () => {
+        const t = await setup();
+        handle = t.handle;
+        const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+        const stderr = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
+        const exit = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        try {
+            const onUncaught = process
+                .listeners('uncaughtException')
+                .find((listener) => listener.name === 'onUncaught');
+            if (onUncaught === undefined) throw new Error('onUncaught is not registered');
+
+            onUncaught(new Error('boom'), 'uncaughtException');
+
+            expect(stdout).toHaveBeenCalledWith(TERMINAL_RESET);
+            expect(stderr).not.toHaveBeenCalled();
+            expect(exit).not.toHaveBeenCalled();
+        } finally {
+            stdout.mockRestore();
+            stderr.mockRestore();
+            exit.mockRestore();
+        }
+    });
+
     it('rejects with a clear error when the renderer cannot start', async () => {
         await expect(
             startConsole({
