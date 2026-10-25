@@ -74,7 +74,7 @@ describe('the behavior catalog', () => {
             shieldDurabilityCost
         };
 
-        const named = new Set(ITEM_FAMILIES.flatMap((family) => [...(family.entryPoints ?? [])]));
+        const named = new Set(ITEM_FAMILIES.flatMap((family) => ('entryPoints' in family ? family.entryPoints : [])));
         expect([...named].sort()).toEqual(Object.keys(entryPoints).sort());
         for (const [name, value] of Object.entries(entryPoints)) expect(typeof value, name).toBe('function');
     });
