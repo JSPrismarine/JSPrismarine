@@ -93,10 +93,7 @@ const buildChunk = (settingsId: string, biomeSourceName: string) => {
     return { randomState, settings, grid, biomeSourceName };
 };
 
-const runRule = (
-    built: ReturnType<typeof buildChunk>,
-    rule: ReturnType<MaterialRuleData['parseRule']>
-): BlockArraySurfaceChunk => {
+const runPass = (built: ReturnType<typeof buildChunk>, rule: ReturnType<MaterialRuleData['parseRule']>) => {
     const chunk = new BlockArraySurfaceChunk({
         chunkX: columnVectors.chunkX,
         chunkZ: columnVectors.chunkZ,
@@ -106,15 +103,20 @@ const runRule = (
     const source = createBiomeSource(built.biomeSourceName);
     const resolver = source.resolver(createClimateSampler(built.randomState, new SampleContext()));
     const biomes = new BiomeManager(resolver, BiomeManager.obfuscateSeed(SEED));
-    new SurfaceSystem(built.randomState).buildSurface({
+    const pass = new SurfaceSystem(built.randomState).buildSurface({
         chunk,
         rule,
         biomeAt: (x, y, z) => biomes.getBiome(x, y, z),
         biomeClimate,
         sampleContext: new SampleContext()
     });
-    return chunk;
+    return { chunk, pass };
 };
+
+const runRule = (
+    built: ReturnType<typeof buildChunk>,
+    rule: ReturnType<MaterialRuleData['parseRule']>
+): BlockArraySurfaceChunk => runPass(built, rule).chunk;
 
 /** Turns a built column into the `"<y> <count> <block>"` runs the vector file holds. */
 const runsOf = (chunk: BlockArraySurfaceChunk, blockX: number, blockZ: number): string[] => {
@@ -258,4 +260,64 @@ describe('one synthetic rule per material condition type', () => {
             }
         }, 120_000);
     }
+});
+
+describe('the material rule at one position, which a carver asks after it opens a cave', () => {
+    /**
+     * Three outcomes, one per detail of Java's `MaterialSystem.topMaterial`. The outer branch
+     * only runs at a floor depth of one, the inner one only above the water line.
+     */
+    const probe = materialRuleData.parseRule(
+        {
+            type: 'minecraft:sequence',
+            sequence: [
+                {
+                    type: 'minecraft:condition',
+                    if_true: {
+                        type: 'minecraft:stone_depth',
+                        offset: 0,
+                        add_surface_depth: false,
+                        secondary_depth_range: 0,
+                        surface_type: 'floor'
+                    },
+                    then_run: {
+                        type: 'minecraft:sequence',
+                        sequence: [
+                            {
+                                type: 'minecraft:condition',
+                                if_true: {
+                                    type: 'minecraft:water',
+                                    offset: 0,
+                                    surface_depth_multiplier: 0,
+                                    add_stone_depth: false
+                                },
+                                then_run: { type: 'minecraft:block', result_state: 'minecraft:gold_block' }
+                            },
+                            { type: 'minecraft:block', result_state: 'minecraft:lapis_block' }
+                        ]
+                    }
+                },
+                { type: 'minecraft:block', result_state: 'minecraft:diamond_block' }
+            ]
+        },
+        'top material probe'
+    );
+
+    /** A column of the vector chunk and a y deep inside its stone, sixty blocks under the floor. */
+    const column = columnVectors.dimensions[0]!.columns.entries[0]!;
+    const deepY = 0;
+
+    it('pins both stone depth counters to one, whatever the column really looks like', () => {
+        const { chunk, pass } = runPass(buildChunk('minecraft:overworld', 'overworld'), probe);
+
+        // The surface pass counts the real depth here and never reaches the outer branch.
+        expect(chunk.getBlock(column.x, deepY, column.z)).toBe('minecraft:diamond_block');
+        expect(pass.topMaterial(column.x, deepY, column.z, false)).toBe('minecraft:gold_block');
+    });
+
+    it('puts the water line one block above the position when the carved block holds fluid', () => {
+        const { pass } = runPass(buildChunk('minecraft:overworld', 'overworld'), probe);
+
+        expect(pass.topMaterial(column.x, deepY, column.z, true)).toBe('minecraft:lapis_block');
+    });
 });

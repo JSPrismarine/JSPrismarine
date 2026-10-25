@@ -135,6 +135,39 @@ describe.skipIf(!enabled)('the data-driven overworld', () => {
     );
 
     it(
+        'runs the surface rule again under a cave mouth that took a grass block',
+        async () => {
+            const registries = loadJavaWorldgenRegistries(sources!);
+            const carved = new DataDrivenGenerator({ registries, decorate: false });
+
+            // Chunk 205,200 of this seed is plains with 36 grass blocks under a cave mouth.
+            const plain = await terrainOnly.generateChunk(205, 200, SEED);
+            const withCaves = await carved.generateChunk(205, 200, SEED);
+
+            const exposed: string[] = [];
+            for (let x = 0; x < 16; x++) {
+                for (let z = 0; z < 16; z++) {
+                    for (let y = plain.getMinY() + 1; y <= plain.getMaxY(); y++) {
+                        if (plain.getBlock(x, y, z).name !== 'minecraft:grass_block') continue;
+                        if (withCaves.getBlock(x, y, z).name === 'minecraft:grass_block') continue;
+                        if (plain.getBlock(x, y - 1, z).name !== 'minecraft:dirt') continue;
+
+                        // The carve may have taken the block below as well, which leaves the
+                        // opening and nothing to re-surface.
+                        const below = withCaves.getBlock(x, y - 1, z).name;
+                        if (below === 'minecraft:air' || below === 'minecraft:water') continue;
+                        exposed.push(below);
+                    }
+                }
+            }
+
+            expect(exposed.length).toBeGreaterThan(0);
+            expect([...new Set(exposed)]).toEqual(['minecraft:grass_block']);
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'decorates a chunk',
         async () => {
             const registries = loadJavaWorldgenRegistries(sources!);

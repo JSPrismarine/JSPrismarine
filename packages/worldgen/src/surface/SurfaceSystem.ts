@@ -74,6 +74,32 @@ const makeBands = (random: RandomSource, bands: string[], baseWidth: number, sta
     }
 };
 
+/**
+ * What one chunk's finished surface pass can still answer.
+ *
+ * Java's `terrain` status runs the carvers after the surface materials are in, and a carver
+ * that cuts through a grass block asks the material rule what the dirt it exposed should
+ * become. The rule is compiled once per chunk against one position context, so the answer comes
+ * from the pass that compiled it rather than from a second compile per carved block.
+ *
+ * Java builds a fresh context per call instead. The two agree because every cached answer in
+ * the context is keyed by the update counters, which both `updateXZ` and `updateY` bump.
+ */
+export interface SurfacePass {
+    /**
+     * The material the rule puts at one position, both stone depth counters pinned to one.
+     *
+     * This is Java's `MaterialSystem.topMaterial`. The pinned counters make the rule answer
+     * with the column's top material whatever shape the column has after a carver cut it, which
+     * is the point: the real counters would describe the hole, not the ground.
+     *
+     * @param hasFluid - Whether the block above this one holds a fluid. It becomes the water
+     *   height the `water` condition reads, so a flooded cave gets its underwater material.
+     * @returns The block to place, or undefined when no rule matched the position.
+     */
+    topMaterial(blockX: number, blockY: number, blockZ: number, hasFluid: boolean): string | undefined;
+}
+
 /** What the surface pass needs besides the chunk it is building. */
 export interface BuildSurfaceOptions {
     /** The chunk, already filled with terrain and fluids. */
@@ -172,8 +198,10 @@ export class SurfaceSystem {
      *
      * Columns are walked from the top down, because the stone depth counters and the water
      * height the rules read are accumulated in that order.
+     *
+     * @returns The compiled rule and its context, which the carvers query per carved block.
      */
-    public buildSurface(options: BuildSurfaceOptions): void {
+    public buildSurface(options: BuildSurfaceOptions): SurfacePass {
         const chunk = options.chunk;
         const minBlockX = chunk.chunkX * CHUNK_SIZE;
         const minBlockZ = chunk.chunkZ * CHUNK_SIZE;
@@ -218,6 +246,23 @@ export class SurfaceSystem {
                 }
             }
         }
+
+        return {
+            topMaterial: (blockX, blockY, blockZ, hasFluid) => {
+                const localX = blockX & 15;
+                const localZ = blockZ & 15;
+                context.updateXZ(
+                    blockX,
+                    blockZ,
+                    this.surfaceGradientX(chunk, localX, localZ),
+                    this.surfaceGradientZ(chunk, localX, localZ)
+                );
+                // Java passes `Integer.MIN_VALUE` for "nothing above"; this pass spells the
+                // same sentinel `-Infinity`, which is what the `water` condition tests for.
+                context.updateY(1, 1, hasFluid ? blockY + 1 : Number.NEGATIVE_INFINITY, blockY);
+                return rule(blockX, blockY, blockZ);
+            }
+        };
     }
 
     private buildColumn(

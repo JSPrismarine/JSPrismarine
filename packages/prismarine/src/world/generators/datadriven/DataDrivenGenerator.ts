@@ -39,7 +39,8 @@ import type {
     BiomeResolver,
     CarverConfig,
     MaterialRuleNode,
-    NoiseGeneratorSettings
+    NoiseGeneratorSettings,
+    SurfacePass
 } from '@jsprismarine/worldgen';
 import {
     BiomeManager,
@@ -311,11 +312,17 @@ interface BiomeDecoration {
     readonly indicesByStep: readonly (readonly number[])[];
 }
 
-/** The identifier `minecraft:bedrock`, which the carvers must not open. */
-const BEDROCK = 'minecraft:bedrock';
+/** Java's `#minecraft:uncarvable`, the blocks a carver may not open. Bedrock is its one member. */
+const UNCARVABLE = 'minecraft:uncarvable';
 
 /** What a carver leaves behind. Java's carvers write cave air rather than ordinary air. */
 const CAVE_AIR = 'minecraft:cave_air';
+
+/** The two blocks whose removal makes a carver re-run the surface rule under the column. */
+const CARVE_RESURFACES_BELOW = new Set(['minecraft:grass_block', 'minecraft:mycelium']);
+
+/** The exact block a carver re-surfaces, which is not the `#minecraft:dirt` tag. */
+const DIRT = 'minecraft:dirt';
 
 /** How many chunk holders the generator keeps alive past the run that built them. */
 const GENERATION_CACHE_SIZE = 128;
@@ -998,7 +1005,7 @@ export class DataDrivenGenerator implements Generator {
         }
 
         region.freezeSurfaceHeights();
-        pipeline.surface.buildSurface({
+        const surface = pipeline.surface.buildSurface({
             chunk: region.surfaceChunk(),
             rule: pipeline.materialRule,
             biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
@@ -1009,7 +1016,7 @@ export class DataDrivenGenerator implements Generator {
 
         // Java's `terrain` status runs the fill, the surface materials and the carvers in that
         // order, so a cave mouth cuts through finished grass rather than being paved over by it.
-        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler);
+        if (this.options.carve !== false) this.carve(cx, cz, region, pipeline, sampler, surface);
 
         return region;
     }
@@ -1059,15 +1066,22 @@ export class DataDrivenGenerator implements Generator {
      * tunnel can be marked where the terrain never put a block; Java's write is a no-op there
      * and this skips it, because a cave-air block standing in the sky would raise the region's
      * column ceiling and the surface pass reads that ceiling.
+     *
+     * Each marked column is walked downward, because the re-surfacing below carries a latch
+     * down the column: once the carve has taken a grass block or mycelium out of the column,
+     * every dirt block it then exposes gets the material rule run on it again. Without that
+     * step a cave mouth leaves bare dirt under the sky, and `patch_grass_plain` happily grows
+     * short grass on it, because `#minecraft:dirt` supports vegetation in Java too.
      */
     private carve(
         cx: number,
         cz: number,
         region: GenerationRegion,
         pipeline: SeededPipeline,
-        sampler: ChunkSampler
+        sampler: ChunkSampler,
+        surface: SurfacePass
     ): void {
-        const mask = new CarvingMask(this.dimension.minY, this.dimension.minY + this.dimension.height - 1);
+        const mask = CarvingMask.forChunk(pipeline.surface.generationContext);
 
         carveChunk({
             seed: pipeline.randomState.seed,
@@ -1079,22 +1093,32 @@ export class DataDrivenGenerator implements Generator {
             output: mask
         });
 
-        for (let localX = 0; localX < 16; localX++) {
-            for (let localZ = 0; localZ < 16; localZ++) {
-                for (let y = this.dimension.minY; y < this.dimension.minY + this.dimension.height; y++) {
-                    if (!mask.isCarved(localX, y, localZ)) continue;
+        mask.visit((localX, localZ, bottomY, topY) => {
+            const x = cx * 16 + localX;
+            const z = cz * 16 + localZ;
+            let tookGrass = false;
 
-                    const x = cx * 16 + localX;
-                    const z = cz * 16 + localZ;
-                    const existing = region.stateAt(x, y, z);
-                    if (pipeline.oracle.isAir(existing)) continue;
-                    if (existing.name === BEDROCK || pipeline.oracle.fluid(existing) !== 'empty') continue;
+            for (let y = topY; y >= bottomY; y--) {
+                const existing = region.stateAt(x, y, z);
+                if (pipeline.oracle.isAir(existing)) continue;
+                // Java skips `#minecraft:uncarvable` and nothing else. Water is carved like
+                // any other block and the aquifer decides what goes back in its place.
+                if (pipeline.oracle.hasTag(existing, UNCARVABLE)) continue;
+                if (CARVE_RESURFACES_BELOW.has(existing.name)) tookGrass = true;
 
-                    const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
-                    region.writeName(x, y, z, fluid ?? CAVE_AIR);
-                }
+                const fluid = sampler.aquifer.computeSubstance(x, y, z, 0);
+                region.writeName(x, y, z, fluid ?? CAVE_AIR);
+
+                if (!tookGrass || region.stateAt(x, y - 1, z).name !== DIRT) continue;
+
+                // Java asks the carved block's own fluid state, which is empty for the air the
+                // aquifer hands back above the water table, so reading the write back is the
+                // honest test.
+                const hasFluid = pipeline.oracle.fluid(region.stateAt(x, y, z)) !== 'empty';
+                const material = surface.topMaterial(x, y - 1, z, hasFluid);
+                if (material !== undefined) region.writeName(x, y - 1, z, material);
             }
-        }
+        });
     }
 
     private chunkKey(chunkX: number, chunkZ: number): string {
