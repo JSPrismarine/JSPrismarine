@@ -30,7 +30,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import { entityContentGroups } from '../contentAdapter';
 import { EntityRuntime } from './EntityRuntime';
-import type { EntityHostFacts, EntityWorldFacts } from './host';
+import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 
 /** The blocks the entity fixture declares: a floor, a lamp and an air block to walk through. */
 export const FIXTURE_BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:redstone_lamp'] as const;
@@ -195,8 +195,17 @@ export const entityFixtureDefinitions = () =>
         ]
     ]);
 
-/** The definitions the entity fixture composes to. */
-export const entityFixtureStack = (): Definitions =>
+/** One entity type a test adds to the fixture, as the body of its behavior-pack file. */
+export type ExtraEntities = Readonly<Record<string, Record<string, unknown>>>;
+
+/**
+ * The definitions the entity fixture composes to.
+ *
+ * @param extra - Entity files a test declares, keyed by identifier. They go
+ *   through the same loader as the fixture's own, so a test that needs a mob
+ *   with a particular goal on it writes the goal rather than a double.
+ */
+export const entityFixtureStack = (extra: ExtraEntities = {}): Definitions =>
     definitionsOf({
         blocks: new Map(
             FIXTURE_BLOCKS.map((identifier) => [
@@ -204,7 +213,13 @@ export const entityFixtureStack = (): Definitions =>
                 definitionOf('blocks', identifier, blockFile(identifier, 1.5, identifier === 'minecraft:air'))
             ])
         ),
-        entities: entityFixtureDefinitions(),
+        entities: new Map([
+            ...entityFixtureDefinitions(),
+            ...Object.entries(extra).map(
+                ([identifier, body]) =>
+                    [identifier, definitionOf('entities', identifier, entityFile(identifier, body))] as const
+            )
+        ]),
         spawnRules: new Map([
             [
                 'minecraft:cow',
@@ -262,8 +277,8 @@ export const entityFixtureStack = (): Definitions =>
     });
 
 /** Content options that build the entity fixture without reading a file. */
-export const entityContentOptions = (overrides: ContentOptions = {}): ContentOptions => ({
-    load: () => ({ definitions: entityFixtureStack(), diagnostics: [] }),
+export const entityContentOptions = (overrides: ContentOptions = {}, extra: ExtraEntities = {}): ContentOptions => ({
+    load: () => ({ definitions: entityFixtureStack(extra), diagnostics: [] }),
     blockPalette: entityFixturePalette(),
     itemDefinitions: fixtureItemDefinitions(),
     ...overrides
@@ -303,6 +318,11 @@ export class TestEntityWorld {
 
     /** Blocks a test placed, over the flat floor. */
     private readonly placed = new Map<string, ContentBlock>();
+
+    /** The item stacks still lying on the ground, by runtime id. */
+    private readonly lying = new Map<number, ContentItemEntity>();
+
+    private nextItemId = 1;
 
     private readonly options: TestWorldOptions;
 
@@ -352,13 +372,36 @@ export class TestEntityWorld {
         };
     }
 
-    /** The facts about entities the runtime's index does not hold. */
+    /**
+     * The facts about entities the runtime's index does not hold.
+     *
+     * Dropped items are an index of their own here, which is what a server
+     * with an item subsystem supplies: `drop` puts one in and `takeItem`
+     * takes it out, so a pickup goal has something real to pick up.
+     */
     public get host(): EntityHostFacts {
         return {
             players: () => this.players,
-            drop: (position, item) => this.drops.push({ position, item }),
+            drop: (position, item) => {
+                this.drops.push({ position, item });
+                this.lying.set(this.nextItemId, { id: this.nextItemId, position, item });
+                this.nextItemId += 1;
+            },
+            items: () => [...this.lying.values()],
+            takeItem: (id) => {
+                const found = this.lying.get(id);
+                this.lying.delete(id);
+                return found?.item;
+            },
             mobEventActive: () => false
         };
+    }
+
+    /** Puts an item stack on the ground, and hands back its runtime id. */
+    public dropItem(position: ContentPosition, item: ContentItemDrop): number {
+        const id = this.nextItemId;
+        this.host.drop(position, item);
+        return id;
     }
 
     /**

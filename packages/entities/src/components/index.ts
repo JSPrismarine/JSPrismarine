@@ -12,11 +12,13 @@ import {
     attributeComponents,
     breathable,
     collisionBox,
+    damageOverTime,
     damageSensor,
     despawn,
     environmentSensor,
     equipment,
     experienceReward,
+    hurtOnCondition,
     instantDespawn,
     integerStateComponents,
     inventory,
@@ -93,7 +95,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:can_stand_on_powder_snow',
     'minecraft:conditional_bandwidth_optimization',
     'minecraft:custom_hit_test',
-    'minecraft:damage_over_time',
     'minecraft:dash_action',
     'minecraft:dimension_bound',
     'minecraft:drying_out_timer',
@@ -113,7 +114,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:group_size',
     'minecraft:healable',
     'minecraft:home',
-    'minecraft:hurt_on_condition',
     'minecraft:input_ground_controlled',
     'minecraft:inside_block_notifier',
     'minecraft:interact',
@@ -189,11 +189,13 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(attack);
     register(breathable);
     register(collisionBox);
+    register(damageOverTime);
     register(damageSensor);
     register(despawn);
     register(environmentSensor);
     register(equipment);
     register(experienceReward);
+    register(hurtOnCondition);
     register(instantDespawn);
     register(inventory);
     register(jumpStatic);
