@@ -62,8 +62,8 @@ export default class HumanInventory extends Inventory {
     /**
      * Armor points worn, summed across the four pieces.
      *
-     * The per-piece figures already live on the item classes - an iron chestplate has said it is
-     * worth six since long before anything asked.
+     * Each piece reads its own figure off Java's `minecraft:attribute_modifiers`, so an iron
+     * chestplate is worth six here because Java says six.
      * @returns {number} Points, out of twenty for a full diamond set.
      */
     public getArmorDefensePoints(): number {
