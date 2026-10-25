@@ -46,7 +46,10 @@ const fake = () => {
         setSprinting: async (sprinting) => void calls.push(`sprint ${sprinting}`),
         setSneaking: async (sneaking) => void calls.push(`sneak ${sneaking}`),
         getRuntimeId: () => 1n,
-        getWorld: () => world
+        getWorld: () => world,
+        // The crack animation reads the held item, so the break time is the
+        // tool's rather than a fist's.
+        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() })
     });
     const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn(), recordInputTick: vi.fn() });
     const server = stub<Server>({
