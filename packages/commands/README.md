@@ -57,8 +57,8 @@ flattener's report. Pass `source` to filter by `CommandNode.canUse` the way Java
 is only told about the commands they may run.
 
 Bedrock's tree is a flat overload list per command with no redirects, so Java's graph becomes a
-cartesian expansion. Three shapes do not survive, and each produces a note instead of a silent
-drop:
+cartesian expansion. Six shapes do not survive it unchanged, and each produces a note instead of a
+silent drop:
 
 | Shape | What the client gets | Note |
 | --- | --- | --- |
@@ -209,3 +209,17 @@ Bedrock's names come from Mojang's own `BoolGameRule` and `IntGameRule` enums in
 command table, so there is no second copy to keep in step. Bedrock has 32 boolean and 5 integer
 rules, 8 of which Java has no counterpart for, and it still spells the command limit
 `maxcommandchainlength`.
+
+## What is not wired yet
+
+- `AvailableCommandsPacket` in `packages/prismarine` writes `0` for `Chained Subcommand Values`,
+  `0` for `Chained Subcommand Data` and `false` for every overload's `isChaining`. The payload this
+  package builds carries all three, so the chained `/execute` shape cannot reach a client until the
+  packet writes them.
+- `Constraints` is always empty. Mojang's schema names the field and stops, and gophertunnel,
+  Cloudburst and PocketMine do not agree on what the indices mean, so nothing is written rather
+  than guessing.
+- The selector argument reads with the Java grammar unless a caller passes `dialect: 'bedrock'`.
+  Wiring the dialect to the connection a `CommandRequestPacket` arrived on belongs to the server.
+- `execute if stopwatch` parses and always answers false. `/stopwatch` is a 26.x Java command with
+  no timer behind it here yet.
