@@ -57,6 +57,52 @@ export const writeAbovePrompt = (cli: PromptWriter, line: string): void => {
     if (cli.line) cli.output.write(cli.line);
 };
 
+/** The byte a terminal in raw mode sends for Ctrl+C, in place of raising a signal. */
+const END_OF_TEXT = 0x03;
+
+/**
+ * How many interrupts one chunk of raw terminal input holds.
+ *
+ * In raw mode Ctrl+C is not a signal. Node's tty documentation says of `setRawMode` that
+ * "Ctrl+C will no longer cause a SIGINT when in this mode", and under a real pty the keypress
+ * arrives as this one byte with nothing else happening at all. So stdin, and not a signal
+ * handler, is where an interrupt lands whenever a terminal is attached.
+ *
+ * More than one in a chunk is the case worth counting. The byte waits in the terminal's buffer
+ * until the event loop next polls, and the whole reason an operator is pressing Ctrl+C is that
+ * the loop is busy generating terrain - so the presses arrive together, in a single read,
+ * seconds after the last of them. Measured on a server preloading a start region: twelve
+ * seconds between the keypress and the read that collected it. Treating that read as one press
+ * loses every press but the first, and the second press is the one that forces an exit.
+ * @param chunk - What stdin just read.
+ * @returns {number} The number of Ctrl+C presses in it.
+ */
+export const countInterrupts = (chunk: Uint8Array): number =>
+    chunk.reduce<number>((count, byte) => count + (byte === END_OF_TEXT ? 1 : 0), 0);
+
+/** The one event a readline interface reports a Ctrl+C on. */
+export interface InterruptSource {
+    on(event: 'SIGINT', listener: () => void): unknown;
+}
+
+/**
+ * Stops a readline interface from closing itself the first time Ctrl+C is pressed.
+ *
+ * readline parses byte 3 too and emits `SIGINT` - but only when something is listening. With
+ * no listener it closes the interface instead, and a closed interface never reads stdin again.
+ * That is the reported "input stops working": one Ctrl+C took the console down and left the
+ * server running, and the keypress handler that was meant to start a shutdown never ran at
+ * all, because closing removed it first.
+ *
+ * The listener has nothing to do because {@link countInterrupts} already acted on the same
+ * byte. Reading stdin directly is what survives this interface being closed by the shutdown
+ * that the first press started, which is where the second press has to still be heard.
+ * @param cli - The interface reading the terminal.
+ */
+export const keepOpenThroughInterrupts = (cli: InterruptSource): void => {
+    cli.on('SIGINT', () => {});
+};
+
 /**
  * Completes a partially typed console line against the known command names.
  *
@@ -75,7 +121,22 @@ export const completeCommand = (names: readonly string[], line: string): Complet
 export default class Console implements CommandExecutor, Service {
     private cli?: readline.Interface;
 
+    /** The stdin reader that counts Ctrl+C, held so {@link Console.disable} can take it off. */
+    private interrupts?: (chunk: Buffer) => void;
+
     public constructor(private readonly server: Server) {}
+
+    /**
+     * One Ctrl+C, whichever press it is.
+     *
+     * What the second one means is `Server.shutdown`'s to decide and not this console's, so
+     * every press is the same call. See `Server.forceExit`.
+     */
+    private interrupt(): void {
+        this.server.shutdown().catch((error: unknown) => {
+            this.server.getLogger().error(error);
+        });
+    }
 
     /**
      * On enable hook.
@@ -112,18 +173,22 @@ export default class Console implements CommandExecutor, Service {
         });
         this.server.getLogger().setConsole(this);
 
-        this.cli.on('keypress', async (_, key) => {
-            switch (key.name) {
-                case 'c': {
-                    if (key.ctrl) {
-                        await this.server.shutdown();
-                    }
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
+        // Read off stdin rather than through readline, for the two reasons on
+        // `countInterrupts` and `keepOpenThroughInterrupts`: a read can carry several presses,
+        // and the first of them closes the interface.
+        this.interrupts = (chunk: Buffer) => {
+            for (let presses = countInterrupts(chunk); presses > 0; presses--) this.interrupt();
+        };
+        process.stdin.on('data', this.interrupts);
+        keepOpenThroughInterrupts(this.cli);
+
+        // Raw mode is what put the interrupt on stdin to begin with, and it is what stops the
+        // kernel killing this process on the next one. Handing it back the moment a shutdown
+        // begins makes a later Ctrl+C a signal again - one that arrives whether or not the
+        // event loop is free, which during world generation it is not. See
+        // `Server.releaseOnShutdown`.
+        this.server.releaseOnShutdown(() => {
+            if (process.stdin.isRaw) process.stdin.setRawMode?.(false);
         });
 
         this.cli.on('line', (input: string) => {
@@ -147,6 +212,8 @@ export default class Console implements CommandExecutor, Service {
      * @group Lifecycle
      */
     public async disable(): Promise<void> {
+        if (this.interrupts) process.stdin.off('data', this.interrupts);
+        this.interrupts = undefined;
         this.cli?.close();
         this.cli?.removeAllListeners();
     }

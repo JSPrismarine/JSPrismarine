@@ -1,8 +1,14 @@
+import readline from 'node:readline';
+import { PassThrough } from 'node:stream';
+
 import { describe, expect, it, vi } from 'vitest';
-import { completeCommand, writeAbovePrompt } from './Console';
+import { completeCommand, countInterrupts, keepOpenThroughInterrupts, writeAbovePrompt } from './Console';
 import type { PromptWriter } from './Console';
 
 const CLEAR_ROW = '\x1b[2K\r';
+
+/** The byte a terminal in raw mode sends for Ctrl+C, in place of raising a signal. */
+const CTRL_C = '\x03';
 
 /** A readline stand-in that records everything written to its output. */
 const fakeCli = (overrides: Partial<PromptWriter> = {}): PromptWriter & { written: string[] } => {
@@ -65,6 +71,81 @@ describe('Console', () => {
             expect(cli.written.length).toBe(50);
             expect(cli.written.every((chunk) => chunk.startsWith(CLEAR_ROW))).toBe(true);
             expect(refresh).toHaveBeenCalledTimes(50);
+        });
+    });
+
+    describe('countInterrupts', () => {
+        const bytes = (text: string) => Buffer.from(text, 'latin1');
+
+        it('finds nothing in ordinary typing', () => {
+            expect(countInterrupts(bytes('/stop\n'))).toBe(0);
+        });
+
+        it('finds one press', () => {
+            expect(countInterrupts(bytes(CTRL_C))).toBe(1);
+        });
+
+        it('finds every press in a read, which is how a frozen console delivers them', () => {
+            // The presses wait in the terminal's buffer while the loop generates terrain and
+            // arrive together. Counting the read as one press loses all but the first, and the
+            // second press is the one that forces an exit.
+            expect(countInterrupts(bytes(CTRL_C + CTRL_C + CTRL_C))).toBe(3);
+        });
+
+        it('finds a press among whatever else was typed first', () => {
+            expect(countInterrupts(bytes(`/sto${CTRL_C}`))).toBe(1);
+        });
+    });
+
+    describe('keepOpenThroughInterrupts', () => {
+        /**
+         * A readline interface over plain streams, which behaves as the terminal one does for
+         * everything below: `terminal: true` is what makes readline parse keystrokes, and it
+         * does not require a tty to do it.
+         */
+        const terminal = () => {
+            const input = new PassThrough();
+            const output = new PassThrough();
+            output.resume();
+
+            const cli = readline.createInterface({ input, output, terminal: true, prompt: '> ' });
+            const state = { closed: false, lines: [] as string[] };
+            cli.on('close', () => {
+                state.closed = true;
+            });
+            cli.on('line', (line: string) => state.lines.push(line));
+
+            /** Hands readline the bytes and waits for it to have read them. */
+            const type = async (text: string) => {
+                input.write(text);
+                await new Promise((resolve) => setImmediate(resolve));
+            };
+
+            return { cli, state, type };
+        };
+
+        it('leaves the console open, so one Ctrl+C does not end input for good', async () => {
+            // Left alone, readline answers byte 3 by closing itself, and a closed interface
+            // never reads stdin again. That is the reported "input stops working".
+            const { cli, state, type } = terminal();
+            keepOpenThroughInterrupts(cli);
+
+            await type(CTRL_C);
+            await type('/stop\n');
+
+            expect(state.closed).toBe(false);
+            expect(state.lines).toEqual(['/stop']);
+        });
+
+        it('survives a burst of presses', async () => {
+            const { cli, state, type } = terminal();
+            keepOpenThroughInterrupts(cli);
+
+            await type(CTRL_C + CTRL_C + CTRL_C);
+            await type('/stop\n');
+
+            expect(state.closed).toBe(false);
+            expect(state.lines).toEqual(['/stop']);
         });
     });
 
