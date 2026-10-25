@@ -126,7 +126,11 @@ dimension-wide fluid surface. `compileOreVeinRule` implements the `minecraft:ore
 its three draws in Java's order.
 
 **Chunk sampling.** `ChunkSampler` samples `final_density` per block and runs the aquifer over the
-result, top-down, for one block, one column or a whole 16 by 16 chunk.
+result, for one block, one column or a whole 16 by 16 chunk. `column` and `fill` go top-down;
+`forEachCellBlock` walks the chunk one interpolation cell at a time, which is what a generator
+filling a whole chunk should use. A sample answers the same in either order, so the choice is
+only about how long an `interpolated` node can hold its eight cell corners: a column walk leaves
+a cell every eight blocks, a cell walk every 128.
 
 ## Seams left open
 
@@ -152,9 +156,13 @@ injection point rather than a stub:
 
 ## Known gaps
 
-- A full overworld chunk takes about 0.63 seconds. Java samples whole volumes at once where this
-  samples positions; the interpolation grid recovers most of that, and the next step is sampling a
-  column's `final_density` in one pass.
+- Filling a full overworld chunk through `forEachCellBlock` takes roughly 30 ms on an Apple M1
+  Pro, and that figure was taken on a host at load average 40 to 120, so read it as an order of
+  magnitude rather than a budget. About a quarter of it is Perlin evaluation on the 1225 cell
+  corners, which is already the fewest evaluations the lattice allows, and about a third is the
+  per-block walk of the density graph. Java samples whole volumes at once where this samples
+  positions. The levers left are interpolating incrementally inside a cell, compiling the graph
+  to one function body instead of a tree of closures, and a WebAssembly kernel.
 - The random sources use `BigInt` for their 64-bit state. That is exact and slow, and it is the
   reason `PositionalRandomFactory.at` is the most expensive call in the ore vein stage.
 - Nothing here reads a data pack. `WorldgenData` takes the three registries as maps of parsed JSON,
