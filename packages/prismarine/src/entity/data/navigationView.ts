@@ -11,7 +11,7 @@ import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { ServerContent } from '../../content/ServerContent';
-import type { ContentBlockAccess } from '../../content/world/adapter';
+import type { ContentBlock, ContentBlockAccess } from '../../content/world/adapter';
 
 /** The two water identifiers, which a path finder treats as passable and a swim profile prefers. */
 const WATER = new Set(['minecraft:water', 'minecraft:flowing_water']);
@@ -38,19 +38,53 @@ const CLIMBABLE = new Set(['minecraft:ladder', 'minecraft:vine', 'minecraft:scaf
 /** The two portals, which `avoid_portals` steers around. */
 const PORTALS = new Set(['minecraft:portal', 'minecraft:end_portal', 'minecraft:end_gateway']);
 
-/** Builds the path finder's view of one dimension. */
+/**
+ * Builds the path finder's view of one dimension.
+ *
+ * Built once per runtime rather than per query, because the memo below is
+ * what makes a path search affordable: one A* expands up to 512 nodes and
+ * reads about eight cells at each, so a stroll that finds nothing costs four
+ * thousand block reads, and a server runs one of those per wandering mob per
+ * tick.
+ */
 export const navigationViewOf = (blocks: ContentBlockAccess, content: () => ServerContent): NavigationView => {
-    /** The `solid` column of the block at a position, or undefined outside the loaded world. */
-    const solidAt = (position: EntityPosition): boolean | undefined => {
-        const block = blocks.get(position);
-        if (block === undefined) return undefined;
+    /**
+     * Whether each block with no state values is solid, by identifier.
+     *
+     * A block with no states has exactly one runtime id, so its `solid`
+     * column cannot vary, and air and stone are nearly all of what a path
+     * search reads. Keyed on the palette the answer came from, so a content
+     * reload throws the memo away with the ids it was computed from.
+     */
+    let memo: { palette: unknown; solid: Map<string, boolean | undefined> } | undefined;
+    const stateless = (): Map<string, boolean | undefined> => {
+        const palette = content().blocks.palette;
+        if (memo?.palette !== palette) memo = { palette, solid: new Map() };
+        return memo.solid;
+    };
 
+    /** The `solid` column of one block, computed through the palette. */
+    const solidOf = (block: ContentBlock): boolean | undefined => {
         const built = content();
         const palette = built.blocks.palette;
         if (!palette.entry(block.identifier)) return undefined;
         const runtimeId = palette.runtimeId(block.identifier, block.states);
         if (runtimeId === undefined) return undefined;
         return built.blocks.table.solid[runtimeId] === 1;
+    };
+
+    /** The `solid` column of the block at a position, or undefined outside the loaded world. */
+    const solidAt = (position: EntityPosition): boolean | undefined => {
+        const block = blocks.get(position);
+        if (block === undefined) return undefined;
+
+        if (Object.keys(block.states).length > 0) return solidOf(block);
+
+        const cache = stateless();
+        if (cache.has(block.identifier)) return cache.get(block.identifier);
+        const solid = solidOf(block);
+        cache.set(block.identifier, solid);
+        return solid;
     };
 
     const identifierAt = (position: EntityPosition): string | undefined => blocks.get(position)?.identifier;
