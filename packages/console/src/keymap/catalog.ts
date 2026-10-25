@@ -37,6 +37,7 @@ export type CommandCatalog = readonly CommandSpec[];
 
 const plain = (name: string): KeyBinding => ({ name });
 const ctrl = (name: string): KeyBinding => ({ name, ctrl: true });
+const ctrlShift = (name: string): KeyBinding => ({ name, ctrl: true, shift: true });
 const empty = (name: string, shift = false): KeyBinding => ({ name, shift, emptyLineOnly: true });
 
 /**
@@ -45,7 +46,8 @@ const empty = (name: string, shift = false): KeyBinding => ({ name, shift, empty
  *
  * Enter, history, Tab, and Ctrl+C are line editing and are decoded by the input bar, so they are
  * not listed. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line reach it
- * through the input bar.
+ * through the input bar. `server.restart` needs a terminal that speaks the kitty keyboard
+ * protocol: a legacy terminal sends the same byte for Ctrl+Shift+R as for Ctrl+R.
  */
 export const COMMAND_CATALOG = [
     { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [ctrl('r')] },
@@ -64,6 +66,7 @@ export const COMMAND_CATALOG = [
     { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [ctrl('b')] },
     { id: 'view.help', title: 'Help', group: 'View', bindings: [empty('?')] },
     { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [ctrl('k')] },
+    { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [ctrlShift('r')] },
     { id: 'server.stop', title: 'Stop server', group: 'Server', bindings: [], hint: 'Ctrl+C twice' }
 ] as const satisfies CommandCatalog;
 
@@ -91,7 +94,9 @@ const KEY_LABELS: Readonly<Record<string, string>> = {
 };
 
 /**
- * Spells a binding the way the UX table does: `PgUp`, `Ctrl+U`, `N`, `?`.
+ * Spells a binding the way the UX table does: `PgUp`, `Ctrl+U`, `N`, `?`. A shifted letter on
+ * its own is just the capital; with Ctrl it reads `Ctrl+Shift+R`, since `Ctrl+R` is a
+ * different chord.
  */
 export function formatBinding(binding: KeyBinding): string {
     const isLetter = /^[a-z]$/.test(binding.name);
@@ -101,7 +106,7 @@ export function formatBinding(binding: KeyBinding): string {
     const parts: string[] = [];
     if (binding.ctrl) parts.push('Ctrl');
     if (binding.meta) parts.push('Alt');
-    if (binding.shift && !isLetter) parts.push('Shift');
+    if (binding.shift && (!isLetter || binding.ctrl)) parts.push('Shift');
     parts.push(base);
     return parts.join('+');
 }

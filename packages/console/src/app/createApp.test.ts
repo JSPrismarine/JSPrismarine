@@ -333,10 +333,17 @@ describe('createApp', () => {
             end: 'END'
         };
 
+        /** Ctrl+Shift+letter only exists in the kitty keyboard protocol; `CSI code;6u` is ctrl+shift. */
+        const kittyCtrlShift = (letter: string): string => `\u001B[${letter.charCodeAt(0)};6u`;
+
         const press = (t: Harness, binding: KeyBinding): void => {
             const named = NAMED_KEYS[binding.name];
             if (named !== undefined) {
                 t.mockInput.pressKey(named, { shift: binding.shift, ctrl: binding.ctrl, meta: binding.meta });
+                return;
+            }
+            if (binding.ctrl && binding.shift && !binding.meta) {
+                t.mockInput.pressKey(kittyCtrlShift(binding.name));
                 return;
             }
             t.mockInput.pressKey(binding.shift ? binding.name.toUpperCase() : binding.name, {
@@ -411,6 +418,10 @@ describe('createApp', () => {
             'view.palette': async (t) => {
                 expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);
             },
+            'server.restart': async (t) => {
+                expect(count(t.captureCharFrame(), 'restart is only available with --watch')).toBe(1);
+                expect(t.actions.restart).not.toHaveBeenCalled();
+            },
             'server.stop': async () => {
                 // Bound to no key; two Ctrl+C presses reach it through the input bar.
             }
@@ -450,6 +461,23 @@ describe('createApp', () => {
             await effects[id](t);
             const promptRow = t.captureCharFrame().split('\n')[38] ?? '';
             expect(promptRow.trimEnd()).toBe(id === 'log.search' ? '> /' : '> type a command, ? for help');
+        });
+
+        it('restarts on Ctrl+Shift+R only once the supervisor says it can', async () => {
+            const t = await setup({ width: 120, height: 40 });
+            dispose = t.dispose;
+
+            t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages', canRestart: false });
+            t.mockInput.pressKey(kittyCtrlShift('r'));
+            await t.renderOnce();
+            expect(t.actions.restart).not.toHaveBeenCalled();
+            expect(t.captureCharFrame()).toContain('restart is only available with --watch');
+
+            t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages', canRestart: true });
+            t.mockInput.pressKey(kittyCtrlShift('r'));
+            await t.renderOnce();
+            expect(t.actions.restart).toHaveBeenCalledTimes(1);
+            expect(t.history.entries).toEqual([]);
         });
 
         it('jumps to the last search match on /text and steps back with N', async () => {

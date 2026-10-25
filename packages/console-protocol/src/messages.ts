@@ -88,7 +88,15 @@ export type SupervisorEvent =
           signal?: string | null;
           generation: number;
       }
-    | { type: 'supervisor.watching'; root: string }
+    | {
+          type: 'supervisor.watching';
+          root: string;
+          /**
+           * Whether the host will act on a restart request. Set by the supervisor on the way
+           * out; a frontend treats a missing value as false.
+           */
+          canRestart?: boolean;
+      }
     | { type: 'supervisor.changed'; path: string }
     | { type: 'supervisor.generating'; ok?: boolean }
     | { type: 'supervisor.output'; stream: 'stdout' | 'stderr'; text: string };

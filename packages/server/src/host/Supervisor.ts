@@ -230,9 +230,12 @@ export class Supervisor {
 
     /**
      * Delivers an event to every {@link onEvent} listener. The watcher reports through here so
-     * a frontend subscribes to one source for both the child's and the watcher's state.
+     * a frontend subscribes to one source for both the child's and the watcher's state. A
+     * `supervisor.watching` event picks up `canRestart` on the way, so a frontend knows whether
+     * a restart it asks for will happen.
      */
     public emit(event: SupervisorEvent): void {
-        for (const listener of this.eventListeners) listener(event);
+        const outgoing = event.type === 'supervisor.watching' ? { ...event, canRestart: this.canRestart } : event;
+        for (const listener of this.eventListeners) listener(outgoing);
     }
 }
