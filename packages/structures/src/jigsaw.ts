@@ -9,11 +9,15 @@
  * box does not overlap a piece already placed. Everything random goes through
  * the injected {@link RandomSource}, so an assembly is reproducible.
  *
- * The shape is Java Edition 26.3's `JigsawPlacement`. Two parts of it are
- * deliberately left out, because they need a world this package does not
- * have: the terrain-matching projection's height adjustment and the
- * `use_expansion_hack` y search, and the voxel-accurate free-space shape,
- * which here is a list of piece bounding boxes.
+ * The shape is Java Edition 26.3's `JigsawPlacement`. The terrain height it
+ * reads for a projected start and for a terrain-matching element is injected
+ * through {@link JigsawSources.terrainHeight}, so an assembly still runs in a
+ * test with no world; without it both settle where a rigid element would.
+ *
+ * Two parts of Java's placer are left out. Its free space is a voxel shape and
+ * here it is a list of piece bounding boxes, which rejects a few placements
+ * Java's deflated shape accepts. And `placement_priority`, which only the
+ * trial chambers use, does not reorder the queue.
  */
 import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
 
@@ -45,13 +49,19 @@ export const POOL_ELEMENT_TYPES = [
 /** One of the five pool element types. */
 export type PoolElementType = (typeof POOL_ELEMENT_TYPES)[number];
 
+/** A processor chain named by identifier, or written inline as Java 26.3 lets a field be. */
+export type PoolElementProcessors = string | { readonly processors: readonly unknown[] };
+
 /** One element of a template pool. */
 export interface PoolElement {
     readonly type: PoolElementType;
     /** The structure template identifier, for the two single element types. */
     readonly location?: string;
-    /** The processor list identifier the element is placed through. */
-    readonly processors?: string;
+    /**
+     * The processor chain the element is placed through, as an identifier or an inline list.
+     * The 245 vanilla pools write it inline 1439 times and by identifier 757.
+     */
+    readonly processors?: PoolElementProcessors;
     readonly projection: Projection;
     /** The placed feature identifier, for a feature element. */
     readonly feature?: string;
@@ -113,6 +123,11 @@ export interface PlacedPiece {
 export interface JigsawAssembly {
     /** The placed pieces, the start piece first, then in the order they were placed. */
     readonly pieces: readonly PlacedPiece[];
+    /**
+     * Java's generation point: the middle of the start piece at the height it settled to. This
+     * is the position the structure's biome check is made at, and what `/locate` reports.
+     */
+    readonly origin?: TemplatePosition;
     /** How many candidate placements were rejected because their box overlapped a placed piece. */
     readonly rejectedForCollision: number;
     /** Jigsaw connections that found no pool, no candidate or no room. */
@@ -128,6 +143,15 @@ export interface JigsawSources {
     readonly random: RandomSource;
     /** Pool identifiers this run replaces with another, from the structure's `pool_aliases`. */
     readonly poolAliases?: ReadonlyMap<string, string>;
+    /**
+     * Java's `ChunkGenerator.getFirstFreeHeight`: the bare terrain height of a column, before
+     * anything is decorated.
+     *
+     * Absent for a caller with no world, which is what a test has. Without it a projected start
+     * stays at the y it was given and a terrain-matching element sits where a rigid one would,
+     * which is the flat-ground answer.
+     */
+    readonly terrainHeight?: (x: number, z: number, heightmap: string) => number;
 }
 
 /** The structure fields that drive an assembly. */
@@ -141,6 +165,17 @@ export interface JigsawConfig {
     readonly startPosition: TemplatePosition;
     /** How far from the start position, in blocks, a piece may sit. */
     readonly maxDistanceFromCenter?: number;
+    /**
+     * The heightmap the start piece settles onto, Java's `project_start_to_heightmap`. The
+     * structure's own start height is added to it, so a village lands on the surface and trail
+     * ruins land fifteen blocks under it.
+     */
+    readonly projectStartToHeightmap?: string;
+    /**
+     * Java's `use_expansion_hack`: a piece whose own jigsaw points back into itself reserves
+     * vertical room for whatever that jigsaw will grow, so two houses never end up stacked.
+     */
+    readonly useExpansionHack?: boolean;
 }
 
 const HORIZONTAL: readonly Direction[] = ['north', 'east', 'south', 'west'];
@@ -248,10 +283,15 @@ const parsePoolElement = (definition: unknown): PoolElement => {
     }
 
     const nested = Array.isArray(definition.elements) ? definition.elements.map(parsePoolElement) : undefined;
+    const processors = definition.processors;
     return {
         type: type as PoolElementType,
         ...(typeof definition.location === 'string' ? { location: definition.location } : {}),
-        ...(typeof definition.processors === 'string' ? { processors: definition.processors } : {}),
+        ...(typeof processors === 'string'
+            ? { processors }
+            : isRecord(processors) && Array.isArray(processors.processors)
+              ? { processors: { processors: processors.processors } }
+              : {}),
         projection: definition.projection === 'terrain_matching' ? 'terrain_matching' : 'rigid',
         ...(typeof definition.feature === 'string' ? { feature: definition.feature } : {}),
         ...(nested === undefined ? {} : { elements: nested })
@@ -344,6 +384,17 @@ const rotateJigsaw = (
     };
 };
 
+/**
+ * How far above a piece's own floor its ground sits.
+ *
+ * Java's `StructurePoolElement.getGroundLevelDelta` answers 1 for every element type the vanilla
+ * pools use, so the start piece settles with its second layer on the terrain surface.
+ */
+const GROUND_LEVEL_DELTA = 1;
+
+/** The heightmap a terrain-matching element and the expansion hack both read. */
+const TERRAIN_HEIGHTMAP = 'WORLD_SURFACE_WG';
+
 /** Java's `Util.shuffle`: a Fisher-Yates pass drawing `nextInt(i)` downward. */
 const shuffled = <T>(values: readonly T[], random: RandomSource): T[] => {
     const result = [...values];
@@ -400,6 +451,37 @@ interface QueuedPiece {
 }
 
 /**
+ * The jigsaw blocks of a template under a rotation, shuffled and then ordered by selection
+ * priority, which is Java's `getShuffledJigsawBlocks`.
+ *
+ * The shuffle happens first and the sort is stable, so the priority decides the groups and the
+ * draw decides the order inside each group. Both steps consume the stream Java consumes.
+ */
+const shuffledJigsaws = (
+    template: BedrockStructureTemplate,
+    rotation: Rotation,
+    origin: TemplatePosition,
+    random: RandomSource
+): JigsawBlockInfo[] =>
+    shuffled(
+        jigsawBlocksOf(template).map((jigsaw) => rotateJigsaw(jigsaw, template.size, rotation, origin)),
+        random
+    ).sort((left, right) => right.selectionPriority - left.selectionPriority);
+
+/** The tallest element of a pool, which is the room the expansion hack reserves. */
+const poolYSpan = (pool: TemplatePool | undefined, sources: JigsawSources): number => {
+    if (pool === undefined) return 0;
+
+    let span = 0;
+    for (const entry of pool.elements) {
+        const location = entry.element.location;
+        const template = location === undefined ? undefined : sources.template(location);
+        if (template !== undefined) span = Math.max(span, template.size[1]);
+    }
+    return span;
+};
+
+/**
  * Grows a structure from a start pool.
  *
  * The walk is breadth first from the start piece, the same order Java's
@@ -419,6 +501,8 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
     }
 
+    // Java draws the rotation before the element, and the order is what the stream depends on.
+    const startRotation = ROTATIONS[sources.random.nextInt(4)] ?? 'none';
     const startElements = expandByWeight(startPool);
     const startElement = startElements[sources.random.nextInt(Math.max(1, startElements.length))];
     const start = startElement === undefined ? undefined : candidateOf(startElement, sources);
@@ -426,22 +510,35 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
     }
 
-    const startRotation = ROTATIONS[sources.random.nextInt(4)] ?? 'none';
     const startSize = transformedSize(start.template.size, { rotation: startRotation });
 
     let startPosition = config.startPosition;
     if (config.startJigsawName !== undefined) {
-        const anchor = jigsawBlocksOf(start.template)
-            .map((jigsaw) => rotateJigsaw(jigsaw, start.template.size, startRotation, [0, 0, 0]))
-            .find((jigsaw) => jigsaw.name === config.startJigsawName);
-        if (anchor !== undefined) {
-            startPosition = [
-                config.startPosition[0] - anchor.pos[0],
-                config.startPosition[1] - anchor.pos[1],
-                config.startPosition[2] - anchor.pos[2]
-            ];
-        }
+        const anchor = shuffledJigsaws(start.template, startRotation, [0, 0, 0], sources.random).find(
+            (jigsaw) => jigsaw.name === config.startJigsawName
+        );
+        // A start pool whose element carries no such jigsaw places nothing at all, rather than
+        // placing the piece somewhere the structure was not anchored to.
+        if (anchor === undefined) return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
+
+        startPosition = [
+            config.startPosition[0] - anchor.pos[0],
+            config.startPosition[1] - anchor.pos[1],
+            config.startPosition[2] - anchor.pos[2]
+        ];
     }
+
+    const unsettled = boxOf(startPosition, startSize);
+    // Java's integer division, which truncates toward zero rather than downward.
+    const centerX = Math.trunc((unsettled.maxX + unsettled.minX) / 2);
+    const centerZ = Math.trunc((unsettled.maxZ + unsettled.minZ) / 2);
+    const settledY =
+        config.projectStartToHeightmap !== undefined && sources.terrainHeight !== undefined
+            ? config.startPosition[1] + sources.terrainHeight(centerX, centerZ, config.projectStartToHeightmap)
+            : startPosition[1];
+
+    const lift = settledY - (unsettled.minY + GROUND_LEVEL_DELTA);
+    startPosition = [startPosition[0], startPosition[1] + lift, startPosition[2]];
 
     const startPiece: PlacedPiece = {
         location: start.location,
@@ -451,6 +548,7 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         boundingBox: boxOf(startPosition, startSize),
         depth: 0
     };
+    const origin: TemplatePosition = [centerX, settledY, centerZ];
 
     const pieces: PlacedPiece[] = [startPiece];
     const queue: QueuedPiece[] = [{ piece: startPiece, template: start.template, depth: 0 }];
@@ -472,10 +570,11 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         const current = queue.shift();
         if (current === undefined) break;
 
-        const parentJigsaws = shuffled(
-            jigsawBlocksOf(current.template).map((jigsaw) =>
-                rotateJigsaw(jigsaw, current.template.size, current.piece.rotation, current.piece.position)
-            ),
+        const parentRigid = current.piece.element.projection === 'rigid';
+        const parentJigsaws = shuffledJigsaws(
+            current.template,
+            current.piece.rotation,
+            current.piece.position,
             sources.random
         );
 
@@ -499,6 +598,13 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
                 parent.pos[2] + step[2]
             ];
 
+            // Read at most once per connection, as Java caches it across the candidate loop.
+            let groundY: number | undefined;
+            const terrainY = (): number => {
+                groundY ??= sources.terrainHeight?.(parent.pos[0], parent.pos[2], TERRAIN_HEIGHTMAP) ?? attachAt[1];
+                return groundY;
+            };
+
             let placed = false;
             for (const element of candidates) {
                 if (placed) break;
@@ -510,22 +616,19 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
                 for (const rotation of shuffled(ROTATIONS, sources.random)) {
                     if (placed) break;
                     const size = transformedSize(candidate.template.size, { rotation });
-                    const childJigsaws = shuffled(
-                        jigsawBlocksOf(candidate.template).map((jigsaw) =>
-                            rotateJigsaw(jigsaw, candidate.template.size, rotation, [0, 0, 0])
-                        ),
-                        sources.random
-                    );
+                    const childJigsaws = shuffledJigsaws(candidate.template, rotation, [0, 0, 0], sources.random);
+                    const reserved = expansionRoom(config, sources, size, childJigsaws, resolvePool);
 
                     for (const child of childJigsaws) {
                         if (!canAttach(parent, child)) continue;
 
+                        const childRigid = element.projection === 'rigid';
                         const position: TemplatePosition = [
                             attachAt[0] - child.pos[0],
-                            attachAt[1] - child.pos[1],
+                            parentRigid && childRigid ? attachAt[1] - child.pos[1] : terrainY() - child.pos[1],
                             attachAt[2] - child.pos[2]
                         ];
-                        const box = boxOf(position, size);
+                        const box = reservedBox(boxOf(position, size), reserved);
                         if (!withinRange(box)) continue;
                         if (pieces.some((other) => boxesOverlap(other.boundingBox, box))) {
                             rejectedForCollision++;
@@ -552,8 +655,53 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         }
     }
 
-    return { pieces, rejectedForCollision, unresolvedConnections };
+    return { pieces, origin, rejectedForCollision, unresolvedConnections };
 };
+
+/**
+ * The vertical room a candidate reserves above itself, Java's expansion hack.
+ *
+ * A piece whose own jigsaw points back inside its own box will grow something there later, and
+ * nothing is yet placed to stop another piece landing on top of it. Java answers by making the
+ * candidate's box as tall as the tallest element of whatever pool that inward jigsaw targets,
+ * and only for a candidate no taller than sixteen blocks.
+ *
+ * @returns The height the box must reach, or 0 when the candidate reserves nothing.
+ */
+const expansionRoom = (
+    config: JigsawConfig,
+    sources: JigsawSources,
+    size: TemplatePosition,
+    jigsaws: readonly JigsawBlockInfo[],
+    resolvePool: (identifier: string) => TemplatePool | undefined
+): number => {
+    if (config.useExpansionHack !== true || size[1] > 16) return 0;
+
+    const box = boxOf([0, 0, 0], size);
+    let room = 0;
+    for (const jigsaw of jigsaws) {
+        const step = DIRECTION_STEP[jigsaw.front];
+        const front: TemplatePosition = [jigsaw.pos[0] + step[0], jigsaw.pos[1] + step[1], jigsaw.pos[2] + step[2]];
+        if (!insideBox(box, front)) continue;
+
+        const pool = resolvePool(jigsaw.pool);
+        room = Math.max(room, poolYSpan(pool, sources), poolYSpan(resolvePool(pool?.fallback ?? ''), sources));
+    }
+
+    return room;
+};
+
+/** A box grown upward to the room a candidate reserved, which is Java's `encapsulate`. */
+const reservedBox = (box: BoundingBox, room: number): BoundingBox =>
+    room <= 0 ? box : { ...box, maxY: box.minY + Math.max(room + 1, box.maxY - box.minY) };
+
+const insideBox = (box: BoundingBox, position: TemplatePosition): boolean =>
+    position[0] >= box.minX &&
+    position[0] <= box.maxX &&
+    position[1] >= box.minY &&
+    position[1] <= box.maxY &&
+    position[2] >= box.minZ &&
+    position[2] <= box.maxZ;
 
 /**
  * Reads the `pool_aliases` list a jigsaw structure may carry, as a map from
