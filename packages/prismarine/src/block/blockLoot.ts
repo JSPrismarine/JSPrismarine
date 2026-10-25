@@ -15,14 +15,26 @@
  * silk touch branches and the shears rules are read rather than written.
  *
  * The one thing that has to be bridged is the name. A loot table is keyed by
- * the Java block id and the server's blocks are Bedrock ones, so the index
- * below is built the only way the mapping package allows: forward, from every
- * `minecraft:blocks/...` table the stack registered, through
- * `javaBlockStateToBedrock`, back to the Bedrock identifier it lands on.
+ * the Java block id and the server's blocks are Bedrock ones, so every roll
+ * runs `bedrockBlockStateToJava` first and asks the stack for the table of
+ * whatever Java block came back.
+ *
+ * Reading the state and not just the identifier is what makes that work.
+ * Bedrock splits blocks Java keeps whole, and the split is in the name: Java's
+ * `black_concrete_slab` at `type=double` is a block of its own in Bedrock, and
+ * so are the lit furnace, the powered repeater and the hundred-odd others
+ * `bedrockBlockToJava` reunites with their parent. Resolving the identifier
+ * alone reaches none of them, and they dropped nothing at all.
+ *
+ * The same state then goes into the roll as `block_state`, which is what Java
+ * tables that branch on it need: the double slab's own table is the one that
+ * says a `type=double` slab yields two, and a `shelf_mushroom` at `age=1`
+ * yields two mushrooms.
  */
-import { javaBlockStateToBedrock } from '@jsprismarine/mapping';
+import { bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 import type {
     BlockEntityView,
+    BlockState,
     ItemStack as PredicateItemStack,
     LevelView,
     RandomSource
@@ -37,46 +49,77 @@ import type { ServerContent } from '../content/ServerContent';
 const BLOCK_TABLE_PREFIX = 'minecraft:blocks/';
 
 /**
- * Bedrock identifier to Java block loot table id, one index per content
- * build.
- *
- * Keyed weakly on the content so a reload drops it with the registries it
- * describes, and built on first use because a server that never breaks a
- * block never pays the 1400 lookups.
+ * The block table ids one content build registered, kept weakly so a reload
+ * drops the set with the registries it describes.
  */
-const indexes = new WeakMap<ServerContent, ReadonlyMap<string, string>>();
+const registered = new WeakMap<ServerContent, ReadonlySet<string>>();
 
-/** Walks every registered block table once and records which Bedrock block each one drops. */
-const buildIndex = (content: ServerContent): ReadonlyMap<string, string> => {
-    const index = new Map<string, string>();
-    for (const id of content.loot.ids) {
-        if (!id.startsWith(BLOCK_TABLE_PREFIX)) continue;
-
-        const mapped = javaBlockStateToBedrock(`minecraft:${id.slice(BLOCK_TABLE_PREFIX.length)}`);
-        if (mapped.kind === 'unknown') continue;
-
-        // Several Java blocks can collapse onto one Bedrock identifier - the
-        // merges `@jsprismarine/mapping` lists - and the first table wins,
-        // which is load order. A later one would be no more right.
-        if (!index.has(mapped.bedrock.name)) index.set(mapped.bedrock.name, id);
+/** The table id of one Java block, or undefined when the stack registered none. */
+const tableOf = (content: ServerContent, javaBlock: string): string | undefined => {
+    let ids = registered.get(content);
+    if (ids === undefined) {
+        ids = new Set(content.loot.ids.filter((id) => id.startsWith(BLOCK_TABLE_PREFIX)));
+        registered.set(content, ids);
     }
-    return index;
+
+    const id = `${BLOCK_TABLE_PREFIX}${javaBlock.slice('minecraft:'.length)}`;
+    return ids.has(id) ? id : undefined;
+};
+
+/** A block's table and the Java state the table's own conditions read. */
+interface BlockLootSource {
+    /** The namespaced Java loot table id. */
+    readonly table: string;
+    /** The Java block state the Bedrock block stands for, as the `block_state` parameter. */
+    readonly state: BlockState;
+}
+
+/**
+ * The table a Bedrock block rolls, and the Java state it rolls as.
+ *
+ * The block's own state answers first, which is the only answer that can carry
+ * the properties a table branches on. Where that Java block has no table the
+ * search widens to every Java block the identifier stands for, so a Bedrock
+ * torch on a wall still drops a torch even though Java publishes no table for
+ * `wall_torch`.
+ */
+const sourceOf = (
+    content: ServerContent,
+    identifier: string,
+    states: Readonly<Record<string, string | number | boolean>> | undefined
+): BlockLootSource | undefined => {
+    const exact = bedrockBlockStateToJava(identifier, states);
+    if (exact.kind === 'mapped') {
+        const table = tableOf(content, exact.java.name);
+        if (table !== undefined) {
+            return { table, state: { name: exact.java.name, properties: exact.java.properties } };
+        }
+    }
+
+    for (const javaBlock of bedrockBlockToJava(identifier)) {
+        const table = tableOf(content, javaBlock);
+        if (table !== undefined) return { table, state: { name: javaBlock } };
+    }
+    return undefined;
 };
 
 /**
  * The Java loot table a Bedrock block drops through.
  *
+ * @param content - The content build whose stack registered the tables.
+ * @param identifier - The namespaced Bedrock block identifier.
+ * @param states - The block's state values, which decide the answer wherever
+ *   Bedrock splits one Java block across several identifiers. Without them the
+ *   answer is the first Java block the identifier stands for that has a table,
+ *   which is enough to tell a block that drops something from one that does not.
  * @returns The table id, or undefined for a block the stack registered no
  *   table for, which is a Bedrock-only block or a stack with no Java half.
  */
-export const blockLootTableOf = (content: ServerContent, identifier: string): string | undefined => {
-    let index = indexes.get(content);
-    if (index === undefined) {
-        index = buildIndex(content);
-        indexes.set(content, index);
-    }
-    return index.get(identifier);
-};
+export const blockLootTableOf = (
+    content: ServerContent,
+    identifier: string,
+    states?: Readonly<Record<string, string | number | boolean>>
+): string | undefined => sourceOf(content, identifier, states)?.table;
 
 /** What a break knows about itself, beyond the block that broke. */
 export interface BlockDropContext {
@@ -139,17 +182,17 @@ export const rollBlockDrops = (
     block: ContentBlock,
     context: BlockDropContext = {}
 ): readonly ContentItemDrop[] => {
-    const table = blockLootTableOf(content, block.identifier);
-    if (table === undefined) return [];
+    const source = sourceOf(content, block.identifier, block.states);
+    if (source === undefined) return [];
 
-    const rolled = content.loot.roll(table, {
+    const rolled = content.loot.roll(source.table, {
         parameterSet: 'block',
         parameters: {
             origin: context.position ?? NOWHERE,
-            // The predicates read Java block names, and the table id is the
-            // Java name, so the state goes in under that rather than under
-            // the Bedrock identifier the server holds.
-            block_state: { name: `minecraft:${table.slice(BLOCK_TABLE_PREFIX.length)}` },
+            // The predicates read Java block names and Java property values,
+            // so what goes in is the Java state the Bedrock block stands for
+            // rather than the Bedrock identifier the server holds.
+            block_state: source.state,
             tool: context.tool ?? BARE_HAND,
             explosion_radius: context.explosionRadius,
             block_entity: blockEntityView(block, context.blockEntity)
