@@ -2,13 +2,14 @@
  * The vanilla command set as data-driven definitions over the Brigadier port.
  *
  * `registerVanillaCommands` builds one registry holding the 46 command names
- * Java and Bedrock share plus the four Java-only ones the datapack runtime
- * needs, `/data`, `/item`, `/attribute` and `/random`. Every command's body
- * is one or more calls into the injected `CommandHost`, so the package holds
- * no world state.
+ * Java and Bedrock share, the four Java-only ones the datapack runtime needs -
+ * `/data`, `/item`, `/attribute` and `/random` - and the nine Bedrock-only ones
+ * a Bedrock operator reaches for. Every command's body is one or more calls
+ * into the injected `CommandHost`, so the package holds no world state.
  */
 import type { CommandSource } from '../host';
 import { CommandRegistry } from '../tree';
+import { registerBedrockCommands } from './bedrock';
 import { registerDataCommands } from './data';
 import { registerEntityCommands } from './entities';
 import { registerExecute, storeCommandResults } from './execute';
@@ -76,6 +77,26 @@ export const SHARED_COMMAND_NAMES: readonly string[] = [
 export const JAVA_ONLY_COMMAND_NAMES: readonly string[] = ['attribute', 'data', 'item', 'random'];
 
 /**
+ * The Bedrock commands Java has no counterpart for that this package
+ * implements, from Bedrock's other 38.
+ *
+ * Four are older spellings of something Java says differently and run the same
+ * host verbs as the Java form; the rest are Bedrock's own. See
+ * {@link registerBedrockCommands} for why these and not the other 29.
+ */
+export const BEDROCK_ONLY_COMMAND_NAMES: readonly string[] = [
+    'camerashake',
+    'daylock',
+    'fog',
+    'playanimation',
+    'replaceitem',
+    'testfor',
+    'testforblock',
+    'testforblocks',
+    'titleraw'
+];
+
+/**
  * Builds a registry holding the whole command set.
  *
  * The dispatcher's `ResultConsumer` is wired to the `execute store` sinks, so
@@ -92,6 +113,7 @@ export const registerVanillaCommands = (
     registerWorldCommands(registry);
     registerDataCommands(registry);
     registerServerCommands(registry);
+    registerBedrockCommands(registry);
     storeCommandResults(registry.getDispatcher());
     return registry;
 };

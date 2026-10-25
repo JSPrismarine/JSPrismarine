@@ -14,6 +14,7 @@ import {
     entityArgument,
     enumArgument,
     integerArgument,
+    jsonArgument,
     messageArgument,
     rawTextArgument,
     stringArgument
@@ -94,37 +95,10 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
         { description: 'Sends a rawtext message.', permissionLevel: CommandPermissionLevel.GAME_DIRECTORS }
     );
 
-    registry.register(
-        lit('title').then(
-            arg('targets', entityArgument())
-                .then(
-                    arg('kind', enumArgument('TitleKind', ['title', 'subtitle', 'actionbar'] as const)).then(
-                        arg('text', messageArgument()).executes(
-                            command((context) => {
-                                const current = source(context);
-                                const targets = select(current, value(context, 'targets'));
-                                current.host.server.sendTitle(targets, value(context, 'kind'), value(context, 'text'));
-                                return report(current, targets.length, `Showed a title to ${targets.length} players`);
-                            })
-                        )
-                    )
-                )
-                .then(
-                    arg('action', enumArgument('TitleAction', ['clear', 'reset'] as const)).executes(
-                        command((context) => {
-                            const current = source(context);
-                            const targets = select(current, value(context, 'targets'));
-                            current.host.server.sendTitle(targets, value(context, 'action'), '');
-                            return report(current, targets.length, `Cleared the title for ${targets.length} players`);
-                        })
-                    )
-                )
-        ),
-        {
-            description: 'Shows a title, subtitle or action bar.',
-            permissionLevel: CommandPermissionLevel.GAME_DIRECTORS
-        }
-    );
+    registry.register(titleTree('title', false), {
+        description: 'Shows a title, subtitle or action bar.',
+        permissionLevel: CommandPermissionLevel.GAME_DIRECTORS
+    });
 
     registry.register(
         lit('op').then(arg('targets', entityArgument()).executes(command((context) => operators(context, true)))),
@@ -235,6 +209,89 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
             ),
         { description: 'Unlocks or locks recipes.', permissionLevel: CommandPermissionLevel.GAME_DIRECTORS }
     );
+};
+
+/**
+ * The tree `/title` and `/titleraw` share.
+ *
+ * Mojang spells both the same way, four forms over one selector, and the only
+ * difference is whether the text is a message or a `rawtext` object. Written
+ * once so the two cannot drift: a `times` form on one and not the other is a
+ * client that cannot set its fade on half the commands.
+ *
+ * @param name - The command's own name, which is also its text argument's type.
+ * @param raw - Whether the text form takes a `rawtext` JSON object.
+ */
+const titleTree = (name: 'title' | 'titleraw', raw: boolean) => {
+    const slots = enumArgument(`${name === 'title' ? 'TitleSet' : 'TitleRawSet'}`, [
+        'title',
+        'subtitle',
+        'actionbar'
+    ] as const);
+
+    const showTitle = (context: Context): number => {
+        const current = source(context);
+        const targets = select(current, value(context, 'targets'));
+        current.host.server.sendTitle(targets, {
+            kind: value<'actionbar' | 'subtitle' | 'title'>(context, 'titleLocation'),
+            text: value(context, 'text'),
+            raw
+        });
+        return report(current, targets.length, `Showed a title to ${targets.length} players`);
+    };
+
+    return lit(name).then(
+        arg('targets', entityArgument())
+            .then(
+                arg('titleLocation', slots).then(
+                    arg('text', raw ? jsonArgument() : messageArgument()).executes(command(showTitle))
+                )
+            )
+            .then(
+                arg('action', enumArgument('TitleAction', ['clear', 'reset'] as const)).executes(
+                    command((context) => {
+                        const current = source(context);
+                        const targets = select(current, value(context, 'targets'));
+                        current.host.server.sendTitle(targets, { kind: value<'clear' | 'reset'>(context, 'action') });
+                        return report(current, targets.length, `Cleared the title for ${targets.length} players`);
+                    })
+                )
+            )
+            .then(
+                lit('times').then(
+                    arg('fadeIn', integerArgument({ min: 0 })).then(
+                        arg('stay', integerArgument({ min: 0 })).then(
+                            arg('fadeOut', integerArgument({ min: 0 })).executes(
+                                command((context) => {
+                                    const current = source(context);
+                                    const targets = select(current, value(context, 'targets'));
+                                    current.host.server.sendTitle(targets, {
+                                        kind: 'times',
+                                        fadeIn: value(context, 'fadeIn'),
+                                        stay: value(context, 'stay'),
+                                        fadeOut: value(context, 'fadeOut')
+                                    });
+                                    return report(
+                                        current,
+                                        targets.length,
+                                        `Set the title times for ${targets.length} players`
+                                    );
+                                })
+                            )
+                        )
+                    )
+                )
+            )
+    );
+};
+
+/** Registers `/titleraw`, which is `/title` over a `rawtext` object. */
+export const registerTitleRaw = (registry: CommandRegistry<CommandSource>): void => {
+    registry.register(titleTree('titleraw', true), {
+        description: 'Controls screen titles with JSON messages.',
+        permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
+        requiresCheats: true
+    });
 };
 
 const operators = (context: Context, grant: boolean): number => {

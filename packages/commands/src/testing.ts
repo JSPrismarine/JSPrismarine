@@ -126,6 +126,9 @@ const server = (): ServerCommandHost => ({
     recipes: () => 0,
     sendMessage: () => {},
     sendTitle: () => {},
+    shakeCamera: () => 0,
+    setFog: () => 0,
+    playAnimation: () => 0,
     usage: () => []
 });
 
