@@ -94,7 +94,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Serve
 
     const blockGroup = createContentBlockGroup({
         storage: worldBlockStorage(world),
-        blockEntities: worldBlockEntities(),
+        blockEntities: worldBlockEntities(world),
         content,
         dimension
     });
