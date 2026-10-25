@@ -1,6 +1,7 @@
 import BinaryStream from '@jsprismarine/binaryutils';
 
 import { PLAINS_BIOME } from '../../chunk/ChunkBiomes';
+import type { BiomeSection } from '../../chunk/ChunkBiomes';
 import { subChunkCount } from '../../Dimension';
 import type { DimensionDefinition } from '../../Dimension';
 
@@ -28,8 +29,11 @@ const VALID_BITS_PER_BLOCK = [0, 1, 2, 3, 4, 5, 6, 8, 16];
 export interface Biomes {
     /** Column heights above the dimension floor, indexed `x * 16 + z`. */
     heightmap: Uint16Array;
-    /** One entry per block per sub chunk, bottom sub chunk first. */
-    palettes: Int32Array[];
+    /**
+     * One entry per sub chunk, bottom sub chunk first: a single biome id for a uniform section,
+     * or one id per block for a mixed one.
+     */
+    palettes: BiomeSection[];
 }
 
 const bitsFor = (paletteSize: number): number => {
@@ -39,7 +43,15 @@ const bitsFor = (paletteSize: number): number => {
     return VALID_BITS_PER_BLOCK.find((bits) => bits >= needed) ?? 16;
 };
 
-const writePalette = (biomes: Int32Array, stream: BinaryStream): void => {
+const writePalette = (biomes: BiomeSection, stream: BinaryStream): void => {
+    if (typeof biomes === 'number') {
+        // Zero bits per block: no word data, and a palette holding the one id.
+        stream.writeByte(0);
+        stream.writeIntLE(1);
+        stream.writeIntLE(biomes);
+        return;
+    }
+
     const palette: number[] = [];
     const index = new Map<number, number>();
 
@@ -71,11 +83,13 @@ const writePalette = (biomes: Int32Array, stream: BinaryStream): void => {
     for (const biome of palette) stream.writeIntLE(biome);
 };
 
-const readPalette = (stream: BinaryStream, below: Int32Array | null): Int32Array | null => {
+const readPalette = (stream: BinaryStream, below: BiomeSection | null): BiomeSection | null => {
     const header = stream.readByte();
     if (header === INHERIT_HEADER) {
         // Nothing follows. The caller repeats whatever the previous sub chunk held.
-        return below === null ? null : Int32Array.from(below);
+        if (below === null) return null;
+
+        return typeof below === 'number' ? below : new Int32Array(below);
     }
 
     const bitsPerBlock = header >> 1;
@@ -83,19 +97,28 @@ const readPalette = (stream: BinaryStream, below: Int32Array | null): Int32Array
         throw new Error(`Biome palette declares ${bitsPerBlock} bits per block`);
     }
 
+    // Zero bits per block is a whole sub chunk of one biome, and no index data at all. Five out
+    // of six sections of a real world are this, so it never spells 4096 copies of one number out.
+    if (bitsPerBlock === 0) {
+        const uniformSize = stream.readIntLE();
+        if (uniformSize <= 0) throw new Error(`Biome palette declares ${uniformSize} entries`);
+
+        const first = stream.readIntLE();
+        for (let i = 1; i < uniformSize; i++) stream.readIntLE();
+
+        return first;
+    }
+
     const indices = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+    const perWord = Math.floor(32 / bitsPerBlock);
+    const words = Math.ceil(BLOCKS_PER_SUBCHUNK / perWord);
+    const mask = (1 << bitsPerBlock) - 1;
 
-    if (bitsPerBlock > 0) {
-        const perWord = Math.floor(32 / bitsPerBlock);
-        const words = Math.ceil(BLOCKS_PER_SUBCHUNK / perWord);
-        const mask = (1 << bitsPerBlock) - 1;
-
-        let position = 0;
-        for (let word = 0; word < words; word++) {
-            const packed = stream.readIntLE();
-            for (let slot = 0; slot < perWord && position < BLOCKS_PER_SUBCHUNK; slot++) {
-                indices[position++] = (packed >>> (bitsPerBlock * slot)) & mask;
-            }
+    let position = 0;
+    for (let word = 0; word < words; word++) {
+        const packed = stream.readIntLE();
+        for (let slot = 0; slot < perWord && position < BLOCKS_PER_SUBCHUNK; slot++) {
+            indices[position++] = (packed >>> (bitsPerBlock * slot)) & mask;
         }
     }
 
@@ -124,7 +147,7 @@ export const encodeData3D = (biomes: Biomes, dimension: DimensionDefinition): Bu
 
     const expected = subChunkCount(dimension);
     for (let i = 0; i < expected; i++) {
-        writePalette(biomes.palettes[i] ?? uniformBiomes(PLAINS_BIOME), stream);
+        writePalette(biomes.palettes[i] ?? PLAINS_BIOME, stream);
     }
 
     return stream.getBuffer();
@@ -136,7 +159,7 @@ export const decodeData3D = (value: Buffer, dimension: DimensionDefinition): Bio
     const heightmap = new Uint16Array(COLUMNS);
     for (let i = 0; i < COLUMNS; i++) heightmap[i] = stream.readUnsignedShortLE();
 
-    const palettes: Int32Array[] = [];
+    const palettes: BiomeSection[] = [];
     const expected = subChunkCount(dimension);
 
     for (let i = 0; i < expected; i++) {
@@ -145,16 +168,20 @@ export const decodeData3D = (value: Buffer, dimension: DimensionDefinition): Bio
 
         const below = palettes.at(-1) ?? null;
         const palette = readPalette(stream, below);
-        palettes.push(palette ?? uniformBiomes(PLAINS_BIOME));
+        palettes.push(palette ?? PLAINS_BIOME);
     }
 
     return { heightmap, palettes };
 };
 
+/**
+ * One sub chunk's biomes with every block spelled out, for a caller that is about to write
+ * different biomes into some of them.
+ */
 export const uniformBiomes = (biome: number): Int32Array => new Int32Array(BLOCKS_PER_SUBCHUNK).fill(biome);
 
 /** A whole chunk of one biome, for a freshly generated chunk that has no biome data yet. */
 export const uniformData3D = (biome: number, dimension: DimensionDefinition): Biomes => ({
     heightmap: new Uint16Array(COLUMNS),
-    palettes: Array.from({ length: subChunkCount(dimension) }, () => uniformBiomes(biome))
+    palettes: Array.from({ length: subChunkCount(dimension) }, () => biome)
 });

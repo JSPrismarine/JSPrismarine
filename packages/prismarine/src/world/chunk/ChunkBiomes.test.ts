@@ -53,6 +53,21 @@ describe('world', () => {
             expect(restored.get(0, 0, 0)).toBe(PLAINS_BIOME);
         });
 
+        it('hands a uniform section over as one id and a mixed one as an array', () => {
+            const biomes = new ChunkBiomes(Dimensions.Overworld);
+            biomes.fillSection(4, DESERT);
+            biomes.set(1, 70, 2, JUNGLE);
+
+            const sections = biomes.toSectionIds();
+
+            // Section 4 is y 64 to 79, which is also where the single jungle block went.
+            const mixed = sections[4 + 4];
+            expect(sections[0]).toBe(PLAINS_BIOME);
+            expect(mixed).toBeInstanceOf(Int32Array);
+            if (typeof mixed === 'number') throw new Error('a section holding two biomes is not uniform');
+            expect(mixed).toHaveLength(4096);
+        });
+
         it('refuses a biome id that cannot be stored', () => {
             const biomes = new ChunkBiomes(Dimensions.Overworld);
 

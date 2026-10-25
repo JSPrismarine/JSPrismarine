@@ -33,7 +33,18 @@ export const PLAINS_BIOME = 1;
 const MAX_BIOME_ID = 0xffff;
 
 /** One sub chunk's biomes: a single id while the section is uniform, packed once it is not. */
-type BiomeSection = number | Uint16Array;
+type PackedSection = number | Uint16Array;
+
+/**
+ * One sub chunk's biomes as the disk codec hands them over: a single id for a uniform section,
+ * or one id per block.
+ *
+ * Almost every section of almost every column is uniform, and spelling those out was the single
+ * most expensive thing a chunk read did - 24 arrays of 4096 built and scanned per column, only to
+ * collapse back to one number. The format already distinguishes the two cases, with a zero bit
+ * width and a one entry palette, so the exchange type says so too.
+ */
+export type BiomeSection = number | Int32Array;
 
 const bitsFor = (paletteSize: number): number => {
     if (paletteSize <= 1) return 0;
@@ -47,7 +58,7 @@ const indexOf = (x: number, y: number, z: number): number => ((x & 0xf) << 8) | 
 
 export class ChunkBiomes {
     private readonly dimension: DimensionDefinition;
-    private readonly sections: BiomeSection[];
+    private readonly sections: PackedSection[];
 
     /**
      * @param dimension - Decides how many sub chunks the column carries: 24, 8 or 16.
@@ -107,32 +118,35 @@ export class ChunkBiomes {
         }
     }
 
-    /** Every biome of one sub chunk, bottom section first, as the disk codec wants them. */
-    public sectionIds(index: number): Int32Array {
+    /** One sub chunk's biomes, in the form the disk codec wants them. */
+    public sectionIds(index: number): BiomeSection {
         const section = this.sections[index];
-        if (section === undefined) return new Int32Array(BLOCKS_PER_SUBCHUNK).fill(PLAINS_BIOME);
+        if (section === undefined) return PLAINS_BIOME;
 
-        return typeof section === 'number'
-            ? new Int32Array(BLOCKS_PER_SUBCHUNK).fill(section)
-            : Int32Array.from(section);
+        // The constructor, not `Int32Array.from`: `from` iterates a typed array one boxed step
+        // at a time, where the constructor converts the whole buffer in one go.
+        return typeof section === 'number' ? section : new Int32Array(section);
     }
 
     /** Every sub chunk's biomes, bottom section first. */
-    public toSectionIds(): Int32Array[] {
+    public toSectionIds(): BiomeSection[] {
         return this.sections.map((_, index) => this.sectionIds(index));
     }
 
-    /** Rebuilds the column from the per-section arrays the disk codec reads. */
-    public static fromSectionIds(ids: readonly Int32Array[], dimension: DimensionDefinition): ChunkBiomes {
+    /** Rebuilds the column from the per-section ids the disk codec reads. */
+    public static fromSectionIds(ids: readonly BiomeSection[], dimension: DimensionDefinition): ChunkBiomes {
         const biomes = new ChunkBiomes(dimension);
 
         for (let index = 0; index < biomes.sections.length; index++) {
             const section = ids[index];
             if (section === undefined) continue;
 
-            const first = section[0] ?? PLAINS_BIOME;
-            const uniform = section.every((biome) => biome === first);
-            biomes.sections[index] = uniform ? first : Uint16Array.from(section, (biome) => biome & MAX_BIOME_ID);
+            if (typeof section === 'number') {
+                biomes.sections[index] = section & MAX_BIOME_ID;
+                continue;
+            }
+
+            biomes.sections[index] = packSection(section);
         }
 
         return biomes;
@@ -164,13 +178,41 @@ export class ChunkBiomes {
 }
 
 /**
+ * One sub chunk's spelled-out biomes in the form a column keeps them: the single id when every
+ * block agrees, and a packed array when they do not.
+ *
+ * Hand-rolled loops rather than `every` and `Uint16Array.from`. Both take a callback per element,
+ * and `from` walks a typed array through the iterator protocol, which allocates a result object
+ * for each of the 4096 entries. This runs on every mixed section of every chunk read.
+ */
+const packSection = (section: Int32Array): PackedSection => {
+    const first = (section[0] ?? PLAINS_BIOME) & MAX_BIOME_ID;
+
+    let index = 1;
+    while (index < BLOCKS_PER_SUBCHUNK && (section[index]! & MAX_BIOME_ID) === first) index++;
+    if (index === BLOCKS_PER_SUBCHUNK) return first;
+
+    const packed = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+    for (let i = 0; i < BLOCKS_PER_SUBCHUNK; i++) packed[i] = section[i]! & MAX_BIOME_ID;
+
+    return packed;
+};
+
+/**
  * One sub chunk's biomes in the network form: a header whose low bit says the palette holds ids
  * rather than NBT, then the packed indices, then the palette as ZigZag varints.
  *
  * A single-biome section writes the header and the one id and no word data, which is what the
  * zero bit width means.
  */
-const writeNetworkPalette = (biomes: Int32Array, stream: BinaryStream): void => {
+const writeNetworkPalette = (biomes: BiomeSection, stream: BinaryStream): void => {
+    if (typeof biomes === 'number') {
+        // No word data and no palette count: the single id follows the header on its own.
+        stream.writeByte(1);
+        stream.writeVarInt(biomes);
+        return;
+    }
+
     const palette: number[] = [];
     const index = new Map<number, number>();
 
@@ -182,7 +224,6 @@ const writeNetworkPalette = (biomes: Int32Array, stream: BinaryStream): void => 
     stream.writeByte((bitsPerBlock << 1) | 1);
 
     if (bitsPerBlock === 0) {
-        // No word data and no palette count: the single id follows the header on its own.
         stream.writeVarInt(palette[0] ?? PLAINS_BIOME);
         return;
     }

@@ -357,9 +357,10 @@ describe('world', () => {
             const biomes = uniformData3D(1, Dimensions.Overworld);
             const restored = decodeData3D(encodeData3D(biomes, Dimensions.Overworld), Dimensions.Overworld);
 
+            // A uniform section comes back as the one biome it holds, not 4096 copies of it.
             expect(restored.palettes).toHaveLength(24);
-            expect(restored.palettes[0]![0]).toBe(1);
-            expect(restored.palettes[23]![4095]).toBe(1);
+            expect(restored.palettes[0]).toBe(1);
+            expect(restored.palettes[23]).toBe(1);
         });
 
         it('round-trips a heightmap', () => {
@@ -379,7 +380,9 @@ describe('world', () => {
 
             const restored = decodeData3D(encodeData3D(biomes, Dimensions.Overworld), Dimensions.Overworld);
 
-            expect(Array.from(restored.palettes[5]!.slice(0, 8))).toEqual([1, 4, 21, 16, 1, 4, 21, 16]);
+            const mixedBack = restored.palettes[5];
+            if (typeof mixedBack === 'number') throw new Error('a section of four biomes is not uniform');
+            expect(Array.from(mixedBack.slice(0, 8))).toEqual([1, 4, 21, 16, 1, 4, 21, 16]);
         });
 
         it('reads a record whose tail was left off', () => {
@@ -391,7 +394,7 @@ describe('world', () => {
 
             const restored = decodeData3D(truncated, Dimensions.Overworld);
             expect(restored.palettes).toHaveLength(3);
-            expect(restored.palettes[0]![0]).toBe(1);
+            expect(restored.palettes[0]).toBe(1);
         });
 
         it('refuses a record cut off in the middle of a palette', () => {
@@ -406,6 +409,24 @@ describe('world', () => {
 
             expect(encoded.byteLength).toBeGreaterThan(512);
             expect(encoded.readUInt16LE(0)).toBe(0);
+        });
+
+        it('writes the same bytes for a uniform section however it is spelled', () => {
+            // The number form is the fast path a chunk read now produces; it must encode to the
+            // bytes the spelled-out form always did, or a saved world changes shape under it.
+            const spelled = encodeData3D(
+                {
+                    heightmap: new Uint16Array(256),
+                    palettes: Array.from({ length: 24 }, () => uniformBiomes(21))
+                },
+                Dimensions.Overworld
+            );
+            const packed = encodeData3D(
+                { heightmap: new Uint16Array(256), palettes: Array.from({ length: 24 }, () => 21) },
+                Dimensions.Overworld
+            );
+
+            expect(packed).toEqual(spelled);
         });
 
         it('writes one palette per sub chunk of the dimension', () => {
