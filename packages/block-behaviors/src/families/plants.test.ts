@@ -210,18 +210,20 @@ describe('leavesFamily', () => {
         expect(harness.dimension.particles.at(-1)?.name).toBe('minecraft:leaf_particle');
     });
 
-    it('schedules the distance check once when a neighbor changes', () => {
+    it('writes nothing when a neighbor changes', () => {
+        // The decay check reads the canopy fresh on every random tick, so a neighbor
+        // change has nothing to record. Writing update_bit here used to cost two block
+        // writes per leaf per tick forever: clearing it notified the six neighbors, each
+        // un-flagged leaf flagged itself again, and the canopy never settled. A 125-leaf
+        // slab churned 248 writes a tick, each one a packet, a light update, seven
+        // scheduled physics positions and six more notifications.
         const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');
         harness.dimension.set(plant, 'minecraft:oak_leaves', { persistent_bit: false, update_bit: false });
 
         harness.neighborChanged(plant, 'north');
 
-        expect(harness.dimension.stateAt(plant, 'update_bit')).toBe(true);
-        expect(harness.dimension.scheduled).toHaveLength(1);
-
-        harness.neighborChanged(plant, 'south');
-
-        expect(harness.dimension.scheduled).toHaveLength(1);
+        expect(harness.dimension.stateAt(plant, 'update_bit')).toBe(false);
+        expect(harness.dimension.scheduled).toEqual([]);
     });
 });
 
