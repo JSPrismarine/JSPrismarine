@@ -134,6 +134,28 @@ export interface JigsawAssembly {
     readonly unresolvedConnections: number;
 }
 
+/**
+ * A start piece placed, with the rest of the structure still to grow.
+ *
+ * Java's `JigsawPlacement.addPieces` returns a `Structure.GenerationStub`: the generation point,
+ * paired with a `Consumer<StructurePiecesBuilder>` that `Structure.generate` only runs once
+ * `findValidGenerationPoint` has accepted the biome there. {@link JigsawStart.expand} is that
+ * consumer, so a caller can read {@link JigsawStart.origin}, decide the structure does not belong
+ * here, and never pay for the expansion.
+ */
+export interface JigsawStart {
+    /** Java's generation point, absent when no start piece could be placed at all. */
+    readonly origin?: TemplatePosition;
+    /**
+     * Grows the structure from the start piece.
+     *
+     * Call it at most once, and before anything else draws from
+     * {@link JigsawSources.random}: the expansion continues the stream the start piece left off
+     * at, which is what Java's shared `WorldgenRandom` does.
+     */
+    readonly expand: () => JigsawAssembly;
+}
+
 /** What an assembly draws on, all injected so a run is reproducible. */
 export interface JigsawSources {
     /** Resolves a template pool identifier. */
@@ -326,7 +348,31 @@ export const parseTemplatePool = (definition: unknown): TemplatePool => {
  * Both spellings of the pool field are accepted: Java writes `pool` and
  * Bedrock's own `.mcstructure` jigsaw block entities write `target_pool`.
  */
-export const jigsawBlocksOf = (template: BedrockStructureTemplate): JigsawBlockInfo[] => {
+export const jigsawBlocksOf = (template: BedrockStructureTemplate): JigsawBlockInfo[] => [
+    ...jigsawBlocksCached(template)
+];
+
+/**
+ * {@link jigsawBlocksOf} without the defensive copy, memoized per template.
+ *
+ * An assembly rescans the same handful of templates once per parent jigsaw, per candidate
+ * element and per rotation, and the scan walks every block of the template to find the four or
+ * five that are jigsaws. The result depends on the template alone, so it is read once. The
+ * entries are deeply readonly, which is what makes handing the same array to every caller safe;
+ * the exported function copies the array itself because its signature promises a mutable one.
+ */
+const jigsawBlocksCached = (template: BedrockStructureTemplate): readonly JigsawBlockInfo[] => {
+    const cached = jigsawBlockCache.get(template);
+    if (cached !== undefined) return cached;
+
+    const read = readJigsawBlocks(template);
+    jigsawBlockCache.set(template, read);
+    return read;
+};
+
+const jigsawBlockCache = new WeakMap<BedrockStructureTemplate, readonly JigsawBlockInfo[]>();
+
+const readJigsawBlocks = (template: BedrockStructureTemplate): readonly JigsawBlockInfo[] => {
     const blocks: JigsawBlockInfo[] = [];
     for (const block of template.blocks) {
         const state = template.palette[block.state];
@@ -464,7 +510,7 @@ const shuffledJigsaws = (
     random: RandomSource
 ): JigsawBlockInfo[] =>
     shuffled(
-        jigsawBlocksOf(template).map((jigsaw) => rotateJigsaw(jigsaw, template.size, rotation, origin)),
+        jigsawBlocksCached(template).map((jigsaw) => rotateJigsaw(jigsaw, template.size, rotation, origin)),
         random
     ).sort((left, right) => right.selectionPriority - left.selectionPriority);
 
@@ -489,26 +535,43 @@ const poolYSpan = (pool: TemplatePool | undefined, sources: JigsawSources): numb
  * {@link JigsawSources.random}, so the same seed and the same pools produce
  * the same layout.
  *
+ * This is {@link startJigsaw} with the expansion run straight away. A caller that wants to look
+ * at the generation point before paying for the expansion asks for the start instead.
+ *
  * @returns The placed pieces and a count of what the bounding boxes and the
  * pools rejected, which is how a caller sees a pool that cannot close.
  */
-export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): JigsawAssembly => {
+export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): JigsawAssembly =>
+    startJigsaw(config, sources).expand();
+
+/** What {@link startJigsaw} answers when no start piece could be placed. */
+const NO_START: JigsawStart = {
+    expand: () => ({ pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 })
+};
+
+/**
+ * Places a structure's start piece and leaves the expansion to the caller.
+ *
+ * Everything that decides the generation point happens here: the start rotation and element are
+ * drawn, the piece is anchored and settled onto the terrain, and its middle becomes
+ * {@link JigsawStart.origin}. Java splits at exactly this line. `JigsawPlacement.addPieces`
+ * returns a `GenerationStub` carrying that position and a closure over the breadth-first walk,
+ * and `Structure.generate` only runs the closure once the biome at the position has been
+ * accepted, so a village drawn into the wrong biome costs a start piece rather than a village.
+ */
+export const startJigsaw = (config: JigsawConfig, sources: JigsawSources): JigsawStart => {
     const resolvePool = (identifier: string): TemplatePool | undefined =>
         sources.pool(sources.poolAliases?.get(identifier) ?? identifier);
 
     const startPool = resolvePool(config.startPool);
-    if (startPool === undefined) {
-        return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
-    }
+    if (startPool === undefined) return NO_START;
 
     // Java draws the rotation before the element, and the order is what the stream depends on.
     const startRotation = ROTATIONS[sources.random.nextInt(4)] ?? 'none';
     const startElements = expandByWeight(startPool);
     const startElement = startElements[sources.random.nextInt(Math.max(1, startElements.length))];
     const start = startElement === undefined ? undefined : candidateOf(startElement, sources);
-    if (start === undefined) {
-        return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
-    }
+    if (start === undefined) return NO_START;
 
     const startSize = transformedSize(start.template.size, { rotation: startRotation });
 
@@ -519,7 +582,7 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
         );
         // A start pool whose element carries no such jigsaw places nothing at all, rather than
         // placing the piece somewhere the structure was not anchored to.
-        if (anchor === undefined) return { pieces: [], rejectedForCollision: 0, unresolvedConnections: 1 };
+        if (anchor === undefined) return NO_START;
 
         startPosition = [
             config.startPosition[0] - anchor.pos[0],
@@ -550,8 +613,20 @@ export const assembleJigsaw = (config: JigsawConfig, sources: JigsawSources): Ji
     };
     const origin: TemplatePosition = [centerX, settledY, centerZ];
 
+    return { origin, expand: () => expandJigsaw(config, sources, resolvePool, start.template, startPiece, origin) };
+};
+
+/** The breadth-first walk out from a placed start piece, which is the expensive half. */
+const expandJigsaw = (
+    config: JigsawConfig,
+    sources: JigsawSources,
+    resolvePool: (identifier: string) => TemplatePool | undefined,
+    startTemplate: BedrockStructureTemplate,
+    startPiece: PlacedPiece,
+    origin: TemplatePosition
+): JigsawAssembly => {
     const pieces: PlacedPiece[] = [startPiece];
-    const queue: QueuedPiece[] = [{ piece: startPiece, template: start.template, depth: 0 }];
+    const queue: QueuedPiece[] = [{ piece: startPiece, template: startTemplate, depth: 0 }];
     let rejectedForCollision = 0;
     let unresolvedConnections = 0;
 
