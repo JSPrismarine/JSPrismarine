@@ -53,6 +53,21 @@ const drawMany = <T>(count: number, draw: () => T): T[] => Array.from({ length: 
  */
 const asFloat = (value: number): number => Math.fround(value);
 
+/**
+ * One golden provider row read as the pair it is.
+ *
+ * The fixture arrives as JSON, so each row types as a mixed array of its two column types and
+ * every position on it reads back as either. A row that is not a name and a sequence is the
+ * fixture being wrong, which is worth saying out loud rather than threading through.
+ */
+const providerRow = (row: readonly (string | number[])[]): readonly [name: string, drawn: readonly number[]] => {
+    const [name, drawn] = row;
+    if (typeof name !== 'string' || !Array.isArray(drawn)) {
+        throw new Error(`a golden provider row is not a name and a sequence: ${JSON.stringify(row)}`);
+    }
+    return [name, drawn];
+};
+
 describe('golden vectors: the population and feature seeds', () => {
     it('derives the population seed for every world seed and chunk Java was asked about', () => {
         for (const row of vectors.seeds) {
@@ -99,7 +114,8 @@ describe('golden vectors: the int providers', () => {
         expect(Object.keys(providers).sort()).toEqual(vectors.intProviders.map(([name]) => name).sort());
     });
 
-    for (const [name, expected] of vectors.intProviders) {
+    for (const row of vectors.intProviders) {
+        const [name, expected] = providerRow(row);
         it(`draws ${name} as Java does`, () => {
             const provider = providers[name];
             expect(provider).toBeDefined();
@@ -117,7 +133,8 @@ describe('golden vectors: the float providers', () => {
         'clamped_normal:0.5:0.25:0..1': clampedNormalFloat(0.5, 0.25, 0, 1)
     };
 
-    for (const [name, expected] of vectors.floatProviders) {
+    for (const row of vectors.floatProviders) {
+        const [name, expected] = providerRow(row);
         it(`draws ${name} as Java does`, () => {
             const provider = providers[name];
             expect(provider).toBeDefined();
@@ -160,7 +177,8 @@ describe('golden vectors: the height providers', () => {
         expect(Object.keys(providers).sort()).toEqual(vectors.heightProviders.map(([name]) => name).sort());
     });
 
-    for (const [name, expected] of vectors.heightProviders) {
+    for (const row of vectors.heightProviders) {
+        const [name, expected] = providerRow(row);
         it(`draws ${name} as Java does`, () => {
             const provider = providers[name];
             expect(provider).toBeDefined();
