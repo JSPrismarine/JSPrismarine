@@ -1,9 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
+import pkg from '../../package.json' with { type: 'json' };
 import { Config, toPacketCompressionLevel } from './Config';
 
 describe('config', () => {
@@ -70,22 +71,26 @@ describe('config', () => {
         });
 
         it('should write every key with a comment explaining it', () => {
-            const text = readFileSync(path.join(configDirectory, 'config.yaml'), 'utf8');
+            const text = readFileSync(path.join(configDirectory, 'config.json'), 'utf8');
 
             expect(text).toContain(
-                '# The UDP port the server listens on. Bedrock clients look for 19132.\nport: 19132\n'
+                `https://unpkg.com/@jsprismarine/prismarine@${pkg.version}/schemas/config.schema.json`
             );
-            expect(text).toContain('# How far players see, in chunks.\nview-distance: 10\n');
-            // Every key has a comment above it: as many comment lines as top-level keys.
-            const keys = text.match(/^[a-z-]+:/gm) ?? [];
-            const comments = text.match(/^# /gm) ?? [];
+            expect(text).toContain('// The UDP port the server listens on. Bedrock clients look for 19132.');
+            expect(text).toContain('"port": 19132');
+            expect(text).toContain('// How far players see, in chunks.');
+            expect(text).toContain('"view-distance": 10');
+            // Every setting has a comment; `$schema` is the only top-level key without one.
+            const keys = text.match(/^ {4}"[^"]+":/gm) ?? [];
+            const comments = text.match(/^ {4}\/\//gm) ?? [];
             expect(keys.length).toBeGreaterThan(20);
-            expect(comments).toHaveLength(keys.length);
+            expect(comments).toHaveLength(keys.length - 1);
         });
 
         it('should add a new key to an older file without touching what is there', async () => {
-            const file = path.join(configDirectory, 'config.yaml');
-            writeFileSync(file, '# My server.\nport: 25565 # forwarded\nmotd: Hi there\n');
+            const file = path.join(configDirectory, 'config.json');
+            const oldConfig = '{\n  // My server.\n  "port": 25565, // forwarded\n  "motd": "Hi there"\n}\n';
+            writeFileSync(file, oldConfig);
 
             const reread = new Config();
             await reread.enable();
@@ -93,8 +98,35 @@ describe('config', () => {
             const text = readFileSync(file, 'utf8');
             expect(reread.getServerPort()).toBe(25565);
             expect(reread.getMotd()).toBe('Hi there');
-            expect(text.startsWith('# My server.\nport: 25565 # forwarded\nmotd: Hi there\n')).toBe(true);
-            expect(text).toContain('# How far players see, in chunks.\nview-distance: 10\n');
+            expect(text).toContain('  // My server.');
+            expect(text).toContain('"port": 25565, // forwarded');
+            expect(text).toContain('"motd": "Hi there"');
+            expect(text.indexOf('"port":') < text.indexOf('"motd":')).toBe(true);
+            expect(text).toContain('// How far players see, in chunks.');
+            expect(text).toContain('"view-distance": 10');
+        });
+
+        it('should keep using a legacy config.yaml when config.json is absent', async () => {
+            const jsonFile = path.join(configDirectory, 'config.json');
+            const yamlFile = path.join(configDirectory, 'config.yaml');
+            rmSync(jsonFile);
+            writeFileSync(yamlFile, 'port: 25565\nmotd: Legacy server\n');
+
+            const legacyConfig = new Config();
+            await legacyConfig.enable();
+
+            expect(legacyConfig.getServerPort()).toBe(25565);
+            expect(legacyConfig.getMotd()).toBe('Legacy server');
+            expect(existsSync(jsonFile)).toBe(false);
+        });
+
+        it('should prefer config.json when both config files exist', async () => {
+            writeFileSync(path.join(configDirectory, 'config.yaml'), 'port: 25565\n');
+
+            const reread = new Config();
+            await reread.enable();
+
+            expect(reread.getServerPort()).toBe(19132);
         });
 
         it('should set the gamemode', () => {

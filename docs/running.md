@@ -38,9 +38,11 @@ it when it is missing.
 
 ## 4. Configuration
 
-The server keeps its settings in `config.yaml` in its working directory
-(`jsp/` during development) and creates the file on first start. Every key is
-written with a comment above it saying what it does.
+New servers keep their settings in `config.json` in the working directory
+(`jsp/` during development). The server creates it on first start, with every
+setting preceded by a comment explaining it and a `$schema` URL for the
+matching package version. Existing `config.yaml` files remain in use when
+`config.json` is absent; if both files exist, `config.json` takes precedence.
 
 The file is yours to edit. The server only ever changes the key it is
 writing: your comments, blank lines and the order of the keys stay as they
@@ -57,8 +59,8 @@ The published `@jsprismarine/prismarine` package includes Draft 7 JSON
 Schemas under `schemas/`. Each reference uses the exact package version that
 wrote the file, served from UNPKG, so a standalone server or binary does not
 need a separate npm install to make the schema available. Object files such as
-`permissions.json`, `level.json`, and fallback player data contain a `$schema`
-property. The root of `ops.json` and `banned-players.json` is an array, so those
+`config.json`, `permissions.json`, `level.json`, and fallback player data contain
+a `$schema` property. The root of `ops.json` and `banned-players.json` is an array, so those
 files instead start with a `JSPrismarine schema` comment holding the versioned
 URL. To validate those arrays in VS Code, map the file names in
 `settings.json` and replace the URL placeholders with each file's exact URL:

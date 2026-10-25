@@ -27,6 +27,9 @@ pnpm install @jsprismarine/prismarine --save
 
 ## JSON Schemas
 
+Fresh server installs use `config.json`; an existing `config.yaml` remains in
+use when `config.json` is absent.
+
 Draft 7 schemas for the package's JSON configuration and data files are
 included in the published package under `schemas/`. JSON object files receive
 a `$schema` URL pinned to the package version that writes them. The files

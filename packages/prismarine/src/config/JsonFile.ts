@@ -54,7 +54,7 @@ export const toJsonFileContents = (filePath: string, document: ConfigDocument): 
 /**
  * Reads a JSON data file the server owns into a document it can edit in place.
  *
- * For the files beside `config.yaml` that hold lists or records rather than settings: the
+ * For the files beside `config.json` that hold lists or records rather than settings: the
  * ban list, the operators, each world's level data. They are rewritten by the server, and
  * going through a document keeps whatever a person added to them by hand.
  *
