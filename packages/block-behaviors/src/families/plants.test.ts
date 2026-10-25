@@ -117,13 +117,13 @@ describe('saplingFamily', () => {
 });
 
 describe('leavesFamily', () => {
-    it('keeps leaves within four blocks of a log and decays the fifth', () => {
+    it('keeps leaves within six blocks of a log and decays the seventh', () => {
         const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');
-        harness.dimension.fill({ x: 0, y: 0, z: 0 }, { x: 4, y: 0, z: 0 }, 'minecraft:oak_leaves', {
+        harness.dimension.fill({ x: 0, y: 0, z: 0 }, { x: 6, y: 0, z: 0 }, 'minecraft:oak_leaves', {
             persistent_bit: false,
             update_bit: false
         });
-        harness.dimension.set({ x: 5, y: 0, z: 0 }, 'minecraft:oak_log');
+        harness.dimension.set({ x: 7, y: 0, z: 0 }, 'minecraft:oak_log');
 
         harness.dimension.queueRandom(0.9);
         harness.randomTick({ x: 1, y: 0, z: 0 });
@@ -134,6 +134,39 @@ describe('leavesFamily', () => {
         harness.randomTick({ x: 0, y: 0, z: 0 });
 
         expect(harness.dimension.identifierAt({ x: 0, y: 0, z: 0 })).toBe(AIR);
+    });
+
+    it('drops nothing from a canopy Java built, however many random ticks it gets', () => {
+        // The reported flood: thousands of items appearing as new chunks started ticking.
+        // A radius-4 rule condemned 59 of the 1173 leaves in one generated chunk where
+        // Java's condemns 4, and every condemned leaf is a break with a chance of a drop.
+        // This is the shape that broke, a canopy whose outer leaves are five and six steps
+        // from the trunk, random-ticked until every position has had a turn.
+        const harness = bindFamily(leavesFamily, 'minecraft:oak_leaves');
+        const canopy: { x: number; y: number; z: number }[] = [];
+
+        for (let y = 0; y <= 2; y += 1) {
+            const reach = 3 - y;
+            for (let x = -reach; x <= reach; x += 1) {
+                for (let z = -reach; z <= reach; z += 1) {
+                    if (x === 0 && z === 0 && y < 2) continue;
+                    canopy.push({ x, y, z });
+                }
+            }
+        }
+
+        for (const position of canopy) {
+            harness.dimension.set(position, 'minecraft:oak_leaves', { persistent_bit: false, update_bit: false });
+        }
+        harness.dimension.fill({ x: 0, y: -4, z: 0 }, { x: 0, y: 1, z: 0 }, 'minecraft:oak_log');
+
+        for (const position of canopy) {
+            harness.dimension.queueRandom(0);
+            harness.randomTick(position);
+        }
+
+        expect(harness.dimension.drops).toEqual([]);
+        expect(canopy.filter((position) => harness.dimension.identifierAt(position) === AIR)).toEqual([]);
     });
 
     it('never decays a placed leaf block', () => {

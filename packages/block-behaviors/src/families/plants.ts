@@ -175,10 +175,10 @@ export const saplingFamily = defineFamily(
 /** The chance a decaying leaf block drops a sapling. */
 export const SAPLING_DROP_CHANCE = 1 / 20;
 
-/** Leaves, which decay when no log is within four blocks and come away to shears. */
+/** Leaves, which decay when no log is within six blocks and come away to shears. */
 export const leavesFamily = defineFamily(
     'jsprismarine:leaves',
-    'Decays on a random tick when no log is within four blocks through other leaves, unless persistent_bit is set, drops a sapling by chance, and drops itself to shears or silk touch.',
+    'Decays on a random tick when no log is within six blocks through other leaves, unless persistent_bit is set, drops a sapling by chance, and drops itself to shears or silk touch.',
     {
         onNeighborChanged: (event, world) => {
             if (stateBoolean(event.block, 'persistent_bit')) return;
