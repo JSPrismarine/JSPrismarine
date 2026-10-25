@@ -45,6 +45,22 @@ describe('spawn rules', () => {
 
         expect(fixture.runtime.all()).toEqual([]);
     });
+
+    it('runs no cycle at all with doMobSpawning off', () => {
+        const fixture = entityFixture(
+            new TestEntityWorld({
+                players: [{ id: 7, identifier: 'minecraft:player', position: GROUND }],
+                random: [0.1, 0.4, 0.7, 0.2, 0.9, 0.5],
+                gameRules: { doMobSpawning: false }
+            })
+        );
+        const spawnWorld = contentWorldViews(singleDimension(fixture.adapter), () => fixture.content).spawnWorld;
+
+        fixture.runtime.startSpawning(spawnWorld);
+        fixture.runtime.tick(0);
+
+        expect(fixture.runtime.all()).toEqual([]);
+    });
 });
 
 describe('the despawn pass', () => {

@@ -32,7 +32,7 @@ import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
-import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, ruleIsOn } from '../../content/world/gameRules';
+import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
 import { canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
@@ -297,10 +297,17 @@ export class EntityRuntime implements EntityScene {
         });
     }
 
-    /** The entities the spawner asked for on this tick, after they were created. */
+    /**
+     * The entities the spawner asked for on this tick, after they were created.
+     *
+     * `doMobSpawning` stops the cycle rather than the spawn, which is what Java's
+     * `NaturalSpawner` does with it: the despawn pass still runs, so turning the rule off
+     * empties a world instead of freezing it at whatever was already standing in it.
+     */
     private runSpawnCycle(tick: number): readonly SpawnRequest[] {
         const spawner = this.spawner;
         if (spawner === undefined) return [];
+        if (!ruleIsOn(this.world.level, SPAWN_MOBS)) return [];
 
         const requests = spawner.tick(tick);
         for (const request of requests)
