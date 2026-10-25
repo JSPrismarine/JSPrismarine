@@ -274,12 +274,19 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
 const isDimension = (identifier: string, name: string): boolean =>
     identifier === name || identifier === `minecraft:${name}`;
 
-/** A property test names its property in `domain`; `has_property` also accepts it in `value`. */
-const domainOrValue = (test: FilterTest): string => test.domain ?? (typeof test.value === 'string' ? test.value : '');
+/**
+ * A property test names its property in `domain`; `has_property` also accepts
+ * it in `value`. The 1.26 serializer writes `domain` as an integer for the
+ * slot tests, so a name is only a name when it is a string.
+ */
+const domainOrValue = (test: FilterTest): string => {
+    const name = test.domain ?? test.value;
+    return typeof name === 'string' ? name : '';
+};
 
 const readProperty = (subject: FilterEntityView, test: FilterTest): Fact => {
     const name = test.domain;
-    if (name === undefined) return undefined;
+    if (typeof name !== 'string') return undefined;
     return subject.property?.(name);
 };
 
