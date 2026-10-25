@@ -74,6 +74,29 @@ export {
 } from './diodes';
 export { SCHEDULED_TICK_BLOCKS, createEngine, type Engine, type EngineOptions } from './engine';
 export {
+    EXPLOSION_ABSORPTION_SCALE,
+    EXPLOSION_DAMAGE_CURVE,
+    EXPLOSION_ENTITY_REACH,
+    EXPLOSION_INTENSITY_FLOOR,
+    EXPLOSION_INTENSITY_SPREAD,
+    EXPLOSION_RAY_DECAY,
+    EXPLOSION_RAY_GRID,
+    EXPLOSION_RAY_STEP,
+    MIN_EXPLOSION_RADIUS,
+    calculateExplodedPositions,
+    explode,
+    explosionDamage,
+    explosionResistanceOf,
+    getSeenPercent,
+    type BoundingBox,
+    type ExplosionEntity,
+    type ExplosionHit,
+    type ExplosionOptions,
+    type ExplosionResult,
+    type ExplosionWorld,
+    type Point
+} from './explosions';
+export {
     FIRE,
     FIRE_AGE_STATE,
     FIRE_MAX_AGE,

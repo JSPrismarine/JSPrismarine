@@ -1,9 +1,10 @@
 /**
  * The one seam every system in this package reads and writes the world through.
  *
- * Redstone, fluids, fire and random ticking never touch a chunk, a palette or a
- * block entity directly. They call {@link WorldAccess}, so a test drives a whole
- * circuit with a small voxel double and the server implements the interface once.
+ * Redstone, fluids, fire, random ticking and explosions never touch a chunk, a
+ * palette or a block entity directly. They call {@link WorldAccess}, so a test
+ * drives a whole circuit with a small voxel double and the server implements the
+ * interface once.
  */
 
 import type { BlockStateValue } from '@jsprismarine/blocks';
@@ -163,7 +164,7 @@ export interface DroppedItem {
 }
 
 /**
- * Everything the four systems read and write.
+ * Everything the systems read and write.
  *
  * The host implements it over its own chunks; {@link createTestWorld} implements
  * it over a map of positions. Scheduling goes through here rather than through a

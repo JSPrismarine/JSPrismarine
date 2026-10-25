@@ -1,8 +1,8 @@
 # @jsprismarine/engine-systems
 
-The four engine systems neither edition publishes as data: the tick scheduler, redstone, flowing
-fluids, and fire spread with the random tick driver. Every other package in this repository is built
-from Mojang's own data. These four are not, because Mojang keeps them in code in both editions, so
+The engine systems neither edition publishes as data: the tick scheduler, redstone, flowing fluids,
+fire spread with the random tick driver, and explosions. Every other package in this repository is
+built from Mojang's own data. These are not, because Mojang keeps them in code in both editions, so
 this package is written against the code instead.
 
 The code it is written against is the pinned Java 26.3 server jar in
@@ -12,11 +12,12 @@ read out of it rather than from a wiki page. The classes are named in the source
 `LevelTicks`, `ScheduledTick`, `TickPriority`, `RedstoneWireBlock`, `DefaultRedstoneWireEvaluator`,
 `DiodeBlock`, `RepeaterBlock`, `ComparatorBlock`, `ObserverBlock`, `PistonBaseBlock`,
 `PistonStructureResolver`, `CollectingNeighborUpdater`, `SignalGetter`, `FlowingFluid`,
-`WaterFluid`, `LavaFluid`, `LiquidBlock`, `FireBlock` and `ServerLevel`.
+`WaterFluid`, `LavaFluid`, `LiquidBlock`, `FireBlock`, `ServerExplosion`,
+`ExplosionDamageCalculator`, `ApplyExplosionDecay` and `ServerLevel`.
 
 ## The `WorldAccess` seam
 
-All four systems read and write the world through one interface, `WorldAccess`. Nothing in this
+Every system reads and writes the world through one interface, `WorldAccess`. Nothing in this
 package touches a chunk, a palette or a block entity directly.
 
 ```ts
@@ -32,7 +33,8 @@ world.onBlockUpdated((at, to) => {
 
 `WorldAccess` covers block state, block entity data, tick scheduling and its two queries, item
 drops, sounds, difficulty, weather, rain, dimension, game time, the world random and the height
-bounds. The random source and the height bounds are not in the brief's list but are needed:
+bounds. Explosions take `ExplosionWorld`, which is the six members of it a blast actually uses, so
+a host can set one off without standing up the rest of the engine. The random source and the height bounds are not in the brief's list but are needed:
 fire spread, lava's spread delay and the random tick driver all draw from the random source, and
 `PistonBaseBlock.isPushable` and `FlowingFluid` both read the height bounds.
 
@@ -193,6 +195,56 @@ three.
 Which blocks take random ticks comes from the mapping table's `randomTick` flag. What a random tick
 does to a block is not this package's business past the fluids: `EngineOptions.randomTickHandlers`
 is the hook `@jsprismarine/block-behaviors` fills with crop growth, ice melting and the rest.
+
+## 5. Explosions
+
+`ServerExplosion`, which is a ray cast rather than a sphere. One ray leaves the center for every
+cell on the surface of a 16 by 16 by 16 grid, 1352 of them, each carrying an intensity of
+`radius * (0.7 + random * 0.6)` and stepping 0.3 blocks at a time. Every block a ray crosses takes
+`(blastResistance + 0.3) * 0.3` off that intensity and every step takes a further 0.22500001, and
+every position a ray still has intensity at joins the set that comes out. That is the whole reason a
+blast carves an irregular hole, leaves the blocks behind a wall standing, and is stopped by one
+block of water where a block of stone only slows it.
+
+The blast resistance is `@jsprismarine/mapping`'s, dumped from the same jar, so obsidian's 1200 and
+water's 100 are not written down here. Air is the one block that costs a ray nothing at all; a block
+with no resistance still costs it 0.09, which is why a ray dies faster through tall grass than
+through nothing.
+
+Entity damage is `ExplosionDamageCalculator.getEntityDamageAmount` over
+`ServerExplosion.getSeenPercent`. The exposure fires a grid of rays from the entity's own box back
+at the center, spaced `1 / (side * 2 + 1)` per axis, and reports the fraction that arrive, so cover
+grades rather than switching. Damage is `((impact² + impact) / 2) * 7 * reach + 1` where impact is
+how close the entity is as a fraction of `radius * 2`, times the exposure, and the flat one at the
+end is why standing fully behind a wall still costs half a heart. Knockback is the same impact
+times `getKnockbackMultiplier` times `1 - EXPLOSION_KNOCKBACK_RESISTANCE`, along the line from the
+center to the entity's eyes.
+
+`explode` returns the hits rather than applying them, because this package has no entity model, and
+calls `onBlockDestroyed` for each block before clearing it, because it has no item model either.
+That is where a host rolls the block's loot table with Java's `explosion_radius`, the parameter
+`ApplyExplosionDecay` turns into a `1 / radius` chance per item.
+
+### What is not reproduced
+
+- **Collision-shape clipping for the exposure rays.** Java clips with `ClipContext.Block.COLLIDER`.
+  Neither edition publishes collision shapes, so the exposure rays treat `isFullCube` as the only
+  thing that casts a shadow, and a fence or a slab casts none. The same approximation the fluids
+  and redstone make, listed under "What has no published source" below.
+- **Waterlogging.** Java takes the higher of the block's and the fluid's resistance at a position,
+  which is how a waterlogged block resists like water. Bedrock keeps its water in a second block
+  layer, so a host that wants that calls `explosionResistanceOf` for the second layer itself.
+- **Fire.** `ServerExplosion.createFire` lights one position in three where the block is air and the
+  block below renders solid. Only a ghast fireball and a bed in the nether set it, and neither
+  exists here yet. The positions it needs are in `ExplosionResult.positions`, air included, which is
+  why air is in there.
+- **`Entity.onExplosionHit` and `Block.wasExploded`.** The per-entity and per-block callbacks Java
+  fires after the blast, which are what chains one TNT into the next and what pops a shulker box's
+  contents. The host raises those from the hits and the destroyed blocks.
+- **The draws themselves.** Each ray's starting intensity and the shuffle that decides which dropped
+  stacks merge both come from the host's random source, which is not Java's `LegacyRandomSource`.
+  Two blasts therefore carve different holes of the same shape and size. Everything that does not
+  depend on a draw matches.
 
 ## What has no published source
 
