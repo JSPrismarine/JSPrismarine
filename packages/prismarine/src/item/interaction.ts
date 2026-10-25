@@ -35,10 +35,12 @@ import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { isRespawnBlock } from '../world/RespawnPoint';
 import TextPacketType from '../network/type/TextPacketType';
-import { openContainerContents } from '../inventory/containerStore';
+import { fillContainerLoot } from '../inventory/containerLoot';
+import { openContainerContents, restorePlacedContents } from '../inventory/containerStore';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
+import type { Item } from './Item';
 import type Player from '../Player';
 
 /** What {@link useItemOnBlock} is given about one click. */
@@ -93,7 +95,8 @@ const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): Ho
  *
  * @returns True when a block went down.
  */
-const placeBlock = (interaction: BlockInteraction, identifier: string, face: BlockFace): boolean => {
+const placeBlock = (interaction: BlockInteraction, placed: Item, face: BlockFace): boolean => {
+    const identifier = placed.getName();
     const { player, content } = interaction;
     const blocks = content.world.blockWorld.at(player.getWorld().getDimension().name);
     const manager = player.getServer().getBlockManager();
@@ -117,6 +120,9 @@ const placeBlock = (interaction: BlockInteraction, identifier: string, face: Blo
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
     blocks.setBlock(target, identifier);
+    // After the hook, which gave a container an empty record: a shulker box put back down
+    // holds what it was carrying rather than what a fresh one holds.
+    restorePlacedContents(blocks, target, identifier, placed);
     blocks.playSound(target, 'place');
     return true;
 };
@@ -144,6 +150,10 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
     if (container === undefined) return false;
 
     const at = new Vector3(interaction.position.x, interaction.position.y, interaction.position.z);
+    // Before the read, because this is the open that fills a generated chest: a structure
+    // leaves the table and the seed on the block entity and the first open rolls them.
+    fillContainerLoot(interaction.content, player.getWorld(), interaction.position, block.identifier);
+
     // Read through the same module the request path writes through, so the slots a player is
     // shown and the slots they can then move a stack through are one list in one order.
     const contents = container.slots === 0 ? [] : openContainerContents(player, interaction.position, block.identifier);
@@ -273,7 +283,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             }
         }
 
-        return placeBlock(interaction, held.getName(), face) ? 'handled' : 'declined';
+        return placeBlock(interaction, held, face) ? 'handled' : 'declined';
     });
 };
 
