@@ -16,7 +16,7 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 
 import { itemSlotsFromNbt, itemSlotsToNbt } from '../../../inventory/itemNbt';
 import type { StoredInventory, StoredItemStack } from '../../../inventory/persistence';
-import type { WorldPlayerData } from '../../World';
+import type { StoredPlayerAttribute, WorldPlayerData } from '../../World';
 import type { StoredSpawnPoint } from '../../RespawnPoint';
 
 /** The compound holding every field Bedrock has no schema for. */
@@ -50,6 +50,9 @@ const ATTRIBUTE_BOUNDS: Record<keyof typeof ATTRIBUTE_NAMES, { min: number; max:
     level: { min: 0, max: 24791 },
     progress: { min: 0, max: 1 }
 };
+
+/** Attribute names represented by the older explicit fields on {@link WorldPlayerData}. */
+const LEGACY_ATTRIBUTE_NAMES = new Set<string>(Object.values(ATTRIBUTE_NAMES));
 
 const floatList = (values: readonly number[]): Set<Types.FloatVal> =>
     new Set(values.map((value) => new Types.FloatVal(value)));
@@ -88,46 +91,75 @@ const containerFromNbt = (nbt: NBTTagCompound, tag: string, size: number): (Stor
     return slots;
 };
 
-/** Bedrock's `Attributes` list for the values the record carries. */
+/** One attribute in Bedrock's `Attributes` list. */
+const attributeToNbt = (name: string, value: StoredPlayerAttribute): NBTTagCompound => {
+    const attribute = new NBTTagCompound('');
+    attribute.addValue('Name', new Types.StringVal(name));
+    attribute.addValue('Base', new Types.FloatVal(value.base));
+    attribute.addValue('Current', new Types.FloatVal(value.current));
+    attribute.addValue('Min', new Types.FloatVal(value.min));
+    attribute.addValue('Max', new Types.FloatVal(value.max));
+    return attribute;
+};
+
+/** Bedrock's `Attributes` list, using the attributes the player actually carries. */
 const attributesToNbt = (data: WorldPlayerData): Set<NBTTagCompound> => {
-    const values: Partial<Record<keyof typeof ATTRIBUTE_NAMES, number>> = {
-        health: data.health,
-        food: data.food,
-        saturation: data.saturation,
-        level: data.experience?.level,
-        progress: data.experience?.progress
-    };
+    const values: Record<string, StoredPlayerAttribute> = { ...(data.attributes ?? {}) };
+    if (data.attributes === undefined) {
+        const add = (
+            name: string,
+            value: number | undefined,
+            bounds: (typeof ATTRIBUTE_BOUNDS)[keyof typeof ATTRIBUTE_BOUNDS]
+        ): void => {
+            if (value === undefined) return;
+            values[name] = { ...bounds, base: value, current: value };
+        };
+        add(ATTRIBUTE_NAMES.health, data.health, ATTRIBUTE_BOUNDS.health);
+        add(ATTRIBUTE_NAMES.food, data.food, ATTRIBUTE_BOUNDS.food);
+        add(ATTRIBUTE_NAMES.saturation, data.saturation, ATTRIBUTE_BOUNDS.saturation);
+        add(ATTRIBUTE_NAMES.level, data.experience?.level, ATTRIBUTE_BOUNDS.level);
+        add(ATTRIBUTE_NAMES.progress, data.experience?.progress, ATTRIBUTE_BOUNDS.progress);
+    }
 
     const list = new Set<NBTTagCompound>();
-    for (const [key, value] of Object.entries(values)) {
-        if (value === undefined) continue;
-
-        const field = key as keyof typeof ATTRIBUTE_NAMES;
-        const bounds = ATTRIBUTE_BOUNDS[field];
-        const attribute = new NBTTagCompound('');
-        attribute.addValue('Name', new Types.StringVal(ATTRIBUTE_NAMES[field]));
-        attribute.addValue('Base', new Types.FloatVal(value));
-        attribute.addValue('Current', new Types.FloatVal(value));
-        attribute.addValue('Min', new Types.FloatVal(bounds.min));
-        attribute.addValue('Max', new Types.FloatVal(bounds.max));
-        list.add(attribute);
-    }
+    for (const [name, value] of Object.entries(values)) list.add(attributeToNbt(name, value));
 
     return list;
 };
 
-/** The `Current` of each attribute the record knows, by its own field name. */
-const attributesFromNbt = (nbt: NBTTagCompound): Partial<Record<keyof typeof ATTRIBUTE_NAMES, number>> => {
-    const byName = new Map(compoundsIn(nbt, 'Attributes').map((entry) => [entry.getString('Name', ''), entry]));
+/** Every attribute in the record, by its namespaced identifier. */
+const attributesFromNbt = (nbt: NBTTagCompound): Record<string, StoredPlayerAttribute> => {
+    const values: Record<string, StoredPlayerAttribute> = {};
+    for (const entry of compoundsIn(nbt, 'Attributes')) {
+        const name = entry.getString('Name', '');
+        if (name === '') continue;
 
-    const values: Partial<Record<keyof typeof ATTRIBUTE_NAMES, number>> = {};
-    for (const [field, name] of Object.entries(ATTRIBUTE_NAMES)) {
-        const entry = byName.get(name);
-        if (entry === undefined) continue;
-
-        values[field as keyof typeof ATTRIBUTE_NAMES] = entry.getFloat('Current', entry.getFloat('Base', 0));
+        const base = entry.getFloat('Base', 0);
+        values[name] = {
+            min: entry.getFloat('Min', 0),
+            max: entry.getFloat('Max', base),
+            base,
+            current: entry.getFloat('Current', base)
+        };
     }
+    return values;
+};
 
+/** Values the older, explicit player record fields carry. */
+const legacyAttributesFrom = (
+    attributes: Readonly<Record<string, StoredPlayerAttribute>>
+): Partial<Record<keyof typeof ATTRIBUTE_NAMES, number>> => {
+    const values: Partial<Record<keyof typeof ATTRIBUTE_NAMES, number>> = {};
+    const health = attributes[ATTRIBUTE_NAMES.health]?.current;
+    const food = attributes[ATTRIBUTE_NAMES.food]?.current;
+    const saturation = attributes[ATTRIBUTE_NAMES.saturation]?.current;
+    const level = attributes[ATTRIBUTE_NAMES.level]?.current;
+    const progress = attributes[ATTRIBUTE_NAMES.progress]?.current;
+    if (health !== undefined) values.health = health;
+    if (food !== undefined) values.food = food;
+    if (saturation !== undefined) values.saturation = saturation;
+    if (level !== undefined) values.level = level;
+    if (progress !== undefined) values.progress = progress;
     return values;
 };
 
@@ -202,6 +234,8 @@ export const playerDataToNbt = (data: WorldPlayerData): NBTTagCompound => {
         saved.addValue('enchantmentSeed', new Types.NumberVal(data.enchantmentSeed));
     }
     if (data.savedAt !== undefined) saved.addValue('savedAt', new Types.DoubleVal(data.savedAt));
+    if (data.flying !== undefined) saved.addValue('flying', new Types.ByteVal(data.flying ? 1 : 0));
+    if (data.attributes !== undefined) saved.addValue('attributes', new Types.ByteVal(1));
     if (data.spawn !== undefined) {
         saved.addValue('spawnDimension', new Types.StringVal(data.spawn.dimension));
         saved.addValue('spawnForced', new Types.ByteVal(data.spawn.forced === true ? 1 : 0));
@@ -235,6 +269,7 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
     const gameMode = saved?.getString('gamemode', '') || gamemodeName(nbt.getNumber('PlayerGameType', 0));
     const username = saved?.getString('username', nbt.getString('NameTag', '')) ?? '';
     const attributes = attributesFromNbt(nbt);
+    const legacyAttributes = legacyAttributesFrom(attributes);
     const inventory = inventoryFromNbt(nbt);
     const advancements = saved?.getString('advancements', '') ?? '';
     const spawn = spawnFromNbt(nbt, saved);
@@ -252,16 +287,20 @@ export const playerDataFromNbt = (nbt: NBTTagCompound): WorldPlayerData => {
             headYaw: savedPosition?.getDouble('headYaw', rotation[0] ?? 0) ?? rotation[0] ?? 0
         },
         ...(saved?.has('enchantmentSeed') ? { enchantmentSeed: saved.getNumber('enchantmentSeed', 0) } : {}),
+        ...(saved?.has('flying') ? { flying: saved.getByte('flying', 0) === 1 } : {}),
+        ...(saved?.has('attributes') || Object.keys(attributes).some((name) => !LEGACY_ATTRIBUTE_NAMES.has(name))
+            ? { attributes }
+            : {}),
         ...(advancements === '' ? {} : { advancements: parseAdvancements(advancements) }),
         ...(spawn === undefined ? {} : { spawn }),
         ...(saved?.has('savedAt') ? { savedAt: saved.getDouble('savedAt', 0) } : {}),
         ...(inventory === undefined ? {} : { inventory }),
-        ...(attributes.health === undefined ? {} : { health: attributes.health }),
-        ...(attributes.food === undefined ? {} : { food: attributes.food }),
-        ...(attributes.saturation === undefined ? {} : { saturation: attributes.saturation }),
-        ...(attributes.level === undefined && attributes.progress === undefined
+        ...(legacyAttributes.health === undefined ? {} : { health: legacyAttributes.health }),
+        ...(legacyAttributes.food === undefined ? {} : { food: legacyAttributes.food }),
+        ...(legacyAttributes.saturation === undefined ? {} : { saturation: legacyAttributes.saturation }),
+        ...(legacyAttributes.level === undefined && legacyAttributes.progress === undefined
             ? {}
-            : { experience: { level: attributes.level ?? 0, progress: attributes.progress ?? 0 } })
+            : { experience: { level: legacyAttributes.level ?? 0, progress: legacyAttributes.progress ?? 0 } })
     };
 };
 

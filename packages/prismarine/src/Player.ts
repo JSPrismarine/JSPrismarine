@@ -3,7 +3,7 @@ import { Dimension, DisconnectReason, Gametype, getGametypeId } from '@jsprismar
 import type { InetAddress } from '@jsprismarine/raknet';
 import assert from 'node:assert';
 import { CHAT_TEXT_TYPE, Chat, ChatType } from './chat/Chat';
-import { AttributeIds } from './entity/Attribute';
+import { Attribute, AttributeIds } from './entity/Attribute';
 import type { DamageSource } from './entity/DamageSource';
 import { deathMessage } from './entity/DeathMessages';
 import { DamageCause } from './entity/Entity';
@@ -284,10 +284,10 @@ export default class Player extends Human {
         // had rather than earning their first advancement twice.
         loadAdvancements(this, playerData.advancements);
         enchantmentSeedOf(this, playerData.enchantmentSeed);
-        this.restoreCarriedState(playerData);
 
         this.permissions = await this.server.getPermissionManager().getPermissions(this);
         this.gamemode = getGametypeId(playerData.gamemode || this.server.getConfig().getGamemode());
+        this.restoreCarriedState(playerData);
 
         // A returning player goes back where they were; a new one is placed the way BDS
         // places them, which may not be the spawn point itself.
@@ -340,14 +340,30 @@ export default class Player extends Human {
     private restoreCarriedState(data: Partial<WorldPlayerData>): void {
         restoreInventory(this.getInventory(), data.inventory, this.server.getContent());
 
-        if (data.health !== undefined) this.attributes.setValue(AttributeIds.Health, data.health);
-        if (data.food !== undefined) this.setFood(data.food);
-        if (data.saturation !== undefined) this.setSaturation(data.saturation);
-        if (data.experience !== undefined) {
-            this.attributes.setValue(AttributeIds.PlayerLevel, data.experience.level);
-            this.attributes.setValue(AttributeIds.PlayerExperience, data.experience.progress);
+        if (data.attributes !== undefined) {
+            for (const [name, attribute] of Object.entries(data.attributes)) {
+                this.attributes.setAttribute(
+                    new Attribute({
+                        name,
+                        min: attribute.min,
+                        max: attribute.max,
+                        def: attribute.base,
+                        value: attribute.current
+                    })
+                );
+            }
+        } else {
+            if (data.health !== undefined) this.attributes.setValue(AttributeIds.Health, data.health);
+            if (data.food !== undefined) this.setFood(data.food);
+            if (data.saturation !== undefined) this.setSaturation(data.saturation);
+            if (data.experience !== undefined) {
+                this.attributes.setValue(AttributeIds.PlayerLevel, data.experience.level);
+                this.attributes.setValue(AttributeIds.PlayerExperience, data.experience.progress);
+            }
         }
 
+        this.flying =
+            data.flying === true && (this.gamemode === Gametype.CREATIVE || this.gamemode === Gametype.SPECTATOR);
         this.spawnPoint = data.spawn;
     }
 

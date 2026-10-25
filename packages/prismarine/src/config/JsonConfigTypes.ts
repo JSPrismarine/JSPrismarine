@@ -163,6 +163,8 @@ export interface WorldPlayerData {
     username?: string;
     /** The saved game mode, normally Survival, Creative, Adventure, or Spectator. */
     gamemode: string;
+    /** Whether the player was flying when this record was saved. */
+    flying?: boolean;
     position: {
         x: number;
         y: number;
@@ -212,6 +214,13 @@ export interface WorldPlayerData {
         progress: number;
     };
     /**
+     * Every live attribute, keyed by its namespaced identifier.
+     *
+     * Keeping the definition beside the value lets the player record preserve attributes
+     * added by content without teaching the provider a new field for each one.
+     */
+    attributes?: Readonly<Record<string, StoredPlayerAttribute>>;
+    /**
      * Where this player comes back after a death, or absent for the world spawn.
      *
      * Nothing modeled one before this: every respawn answered with the world spawn, which is
@@ -229,4 +238,12 @@ export interface WorldPlayerData {
      * before this field existed, which reads as older than any record that carries one.
      */
     savedAt?: number;
+}
+
+/** The live definition and value of one player attribute at save time. */
+export interface StoredPlayerAttribute {
+    readonly min: number;
+    readonly max: number;
+    readonly base: number;
+    readonly current: number;
 }

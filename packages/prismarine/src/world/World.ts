@@ -60,7 +60,13 @@ import Chunk from './chunk/Chunk';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 
-export type { FlatLayer, LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
+export type {
+    FlatLayer,
+    LevelData,
+    StoredPlayerAttribute,
+    WorldConfig,
+    WorldPlayerData
+} from '../config/JsonConfigTypes';
 
 /** How far out to look for dry land, and how coarsely, before giving up. */
 const SPAWN_SEARCH_RADIUS = 256;
@@ -2198,6 +2204,7 @@ export class World implements Service {
             uuid: player.getUUID().toString(),
             username: player.getName(),
             gamemode: getGametypeName(player.gamemode),
+            flying: player.isFlying(),
             position: {
                 x: player.getPosition().getX(),
                 y: player.getPosition().getY(),
@@ -2216,6 +2223,17 @@ export class World implements Service {
                 level: player.attributes.getValue(AttributeIds.PlayerLevel),
                 progress: player.attributes.getValue(AttributeIds.PlayerExperience)
             },
+            attributes: Object.fromEntries(
+                player.attributes.getAttributes().map((attribute) => [
+                    attribute.getName(),
+                    {
+                        min: attribute.getMin(),
+                        max: attribute.getMax(),
+                        base: attribute.getDefault(),
+                        current: attribute.getValue()
+                    }
+                ])
+            ),
             // Written whether or not the player has a spawn point of their own, because a
             // record is the whole state: leaving the field out of a save after `/kill` would
             // keep a bed this player no longer has.
