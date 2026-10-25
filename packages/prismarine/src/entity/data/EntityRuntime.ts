@@ -40,6 +40,7 @@ import { detonate } from './explosion';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
+import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
@@ -228,7 +229,7 @@ export class EntityRuntime implements EntityScene {
 
         this.spawning = undefined;
 
-        const brainMob = content.entities.brains.get(reference);
+        const brainMob = brainMobFor(content.entities.brains, reference);
         const brain = brainMob?.makeBrain({ baby: instance.hasComponent('minecraft:is_baby') });
         const entity = new DataEntity({ body, instance, brainMob, brain });
         this.entities.set(id, entity);
