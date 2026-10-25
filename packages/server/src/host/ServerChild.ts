@@ -45,6 +45,8 @@ export interface ServerChildOptions {
     killGraceMs?: number;
     /** Defaults to the global timers. */
     timers?: Timers;
+    /** Defaults to `process.platform`; tests pass `win32` to exercise the Windows stop path. */
+    platform?: NodeJS.Platform;
 }
 
 /** One generation of the server process, as the supervisor sees it. */
@@ -58,9 +60,10 @@ export interface ServerChild {
     /** Receives the exit code and signal once the child is gone. */
     onExit(listener: ExitListener): () => void;
     /**
-     * Asks the child to stop: first the `shutdown` message, which also works on Windows, then
-     * SIGTERM after the shutdown grace period, then SIGKILL after the kill grace period.
-     * Calling it again has no effect.
+     * Asks the child to stop: first the `shutdown` message, then SIGTERM after the shutdown
+     * grace period, then SIGKILL after the kill grace period. On Windows `kill('SIGTERM')`
+     * terminates the process outright, so there the message alone gets the whole kill grace
+     * period before SIGKILL. Calling it again has no effect.
      */
     stop(): void;
     /** Kills the child outright with SIGKILL. */
@@ -105,6 +108,7 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
     const timers = options.timers ?? globalThis;
     const shutdownGraceMs = options.shutdownGraceMs ?? 1000;
     const killGraceMs = options.killGraceMs ?? 10_000;
+    const platform = options.platform ?? process.platform;
 
     const child: ChildProcess = spawn(
         launch.execPath ?? process.execPath,
@@ -172,8 +176,9 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
                 if (alive) child.kill('SIGTERM');
                 killTimer = timers.setTimeout(kill, killGraceMs);
             };
-            if (asked) termTimer = timers.setTimeout(term, shutdownGraceMs);
-            else term();
+            if (!asked) term();
+            else if (platform === 'win32') killTimer = timers.setTimeout(kill, killGraceMs);
+            else termTimer = timers.setTimeout(term, shutdownGraceMs);
         },
         kill
     };
