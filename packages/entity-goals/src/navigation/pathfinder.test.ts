@@ -247,6 +247,21 @@ describe('findPath', () => {
         expect(reads()).toBeLessThan(20);
     });
 
+    it('reads each cell of a search once rather than once per neighbor that borders it', () => {
+        const { view, reads } = countingGrid(openFloor(48));
+
+        const path = findPath(view, navigationProfileOf({ height: 1 }), {
+            from: { x: 1, y: 1, z: 1 },
+            to: { x: 46, y: 1, z: 46 }
+        });
+
+        expect(path?.reachedGoal).toBe(true);
+        // A straight diagonal is the memo's worst case, because the search barely widens and so
+        // few cells are asked about twice. It still took 3240 reads before the memo and takes 1145
+        // now.
+        expect(reads()).toBeLessThan(2_000);
+    });
+
     it('still searches when the goal cell is blocked but the radius covers one that is not', () => {
         const view = voxelGrid([['#####'], ['...##']]);
 
