@@ -11,7 +11,7 @@ import type { Diagnostic } from './diagnostics';
 import type { FunctionReference } from './identifiers';
 import { parseFunctionReference } from './identifiers';
 import type { MacroArguments } from './macro';
-import type { CommandRunner } from './runner';
+import type { CommandOutcome, CommandRunner } from './runner';
 import type { FunctionTagLookup } from './tags';
 import { LOAD_FUNCTION_TAG, TICK_FUNCTION_TAG, resolveFunctionTag } from './tags';
 
@@ -95,6 +95,18 @@ export interface ExecutionReport {
     invocations: number;
     /** The deepest the frame stack got. A tail call does not deepen it. */
     maxDepth: number;
+    /**
+     * The values `/return` produced, one per function the entry point
+     * invoked directly that reached one.
+     *
+     * Empty when every function ran to its last line, which is the case Java
+     * calls "returned no value". A tag contributes one entry per member that
+     * returned, because `execute if function #tag` matches when any member
+     * did. A `/return` deeper in the call tree ends its own function and
+     * leaves nothing here, the way Java returns from one function rather
+     * than from its caller.
+     */
+    returnValues: readonly number[];
     /** Set when a limit stopped the run; the matching diagnostic carries the detail. */
     stopped?: ExecutionStop;
     diagnostics: readonly Diagnostic[];
@@ -105,6 +117,13 @@ interface Frame {
     functionId: string;
     commands: readonly InstantiatedCommand[];
     index: number;
+    /**
+     * Whether the entry point invoked this function itself, which is what
+     * decides whose `/return` the run reports. A tail call inherits it: the
+     * replacement runs in the frame it replaced, so its return is that
+     * function's last act.
+     */
+    root: boolean;
 }
 
 const CALL_PATTERN = /^function[ \t]+(\S+)[ \t]*([\s\S]*)$/;
@@ -132,6 +151,11 @@ const parseJsonArguments = (text: string): MacroArguments | undefined => {
  * itself, because a call is control flow rather than a command: handling it
  * here is what keeps nesting on the queue instead of on the JavaScript stack.
  * Every other line goes to the runner untouched.
+ *
+ * `/return` is the other half of that split. It is a command, so the runner
+ * implements it, but only the executor can act on it: a runner that reports
+ * {@link CommandOutcome.returned} ends the function the line came from and
+ * the loop carries on with its caller.
  */
 export class FunctionExecutor<TSource = unknown> {
     private readonly limits: ExecutionLimits;
@@ -167,6 +191,7 @@ export class FunctionExecutor<TSource = unknown> {
         const diagnostics: Diagnostic[] = [];
         const state = { operations: 0, forks: 0, commands: 0, invocations: 0, maxDepth: 0 };
         const stack: Frame[] = [];
+        const returnValues: number[] = [];
 
         const parsed = parseFunctionReference(reference);
         if (!parsed) {
@@ -175,7 +200,7 @@ export class FunctionExecutor<TSource = unknown> {
                 code: 'call.unknown-function',
                 message: `'${reference}' is not a valid function reference`
             });
-            return { ...state, diagnostics };
+            return { ...state, returnValues, diagnostics };
         }
 
         let stopped: ExecutionStop | undefined;
@@ -199,7 +224,8 @@ export class FunctionExecutor<TSource = unknown> {
         const invoke = (
             id: string,
             args: MacroArguments | undefined,
-            from: { functionId: string; line?: number }
+            from: { functionId: string; line?: number },
+            root = false
         ): boolean => {
             const compiled = this.options.functions.get(id);
             if (!compiled) {
@@ -232,9 +258,14 @@ export class FunctionExecutor<TSource = unknown> {
             // instead of stacking on it, so a tail-recursive function runs in
             // constant depth, as Java's rewrite made it in 23w44a.
             const top = stack.at(-1);
-            if (top && top.index >= top.commands.length) stack.pop();
+            const replaced = top && top.index >= top.commands.length ? stack.pop() : undefined;
 
-            stack.push({ functionId: id, commands: instantiated.commands, index: 0 });
+            stack.push({
+                functionId: id,
+                commands: instantiated.commands,
+                index: 0,
+                root: replaced?.root ?? root
+            });
             state.maxDepth = Math.max(state.maxDepth, stack.length);
             return true;
         };
@@ -244,7 +275,7 @@ export class FunctionExecutor<TSource = unknown> {
         // Frames run from the top of the stack, so the first function of a tag
         // is pushed last.
         for (const id of [...entries].reverse()) {
-            if (!invoke(id, options.arguments, { functionId: reference })) break;
+            if (!invoke(id, options.arguments, { functionId: reference }, true)) break;
         }
 
         while (stopped === undefined && stack.length > 0) {
@@ -268,6 +299,7 @@ export class FunctionExecutor<TSource = unknown> {
 
             state.commands += 1;
             let forks = 0;
+            let returned: CommandOutcome['returned'];
             try {
                 const outcome = this.options.runner.run(entry.command, {
                     source: options.source,
@@ -275,6 +307,7 @@ export class FunctionExecutor<TSource = unknown> {
                     line: entry.line
                 });
                 forks = outcome.forks ?? 0;
+                returned = outcome.returned;
             } catch (error) {
                 diagnostics.push({
                     severity: 'error',
@@ -283,6 +316,13 @@ export class FunctionExecutor<TSource = unknown> {
                     line: entry.line,
                     message: error instanceof Error ? error.message : String(error)
                 });
+            }
+
+            if (returned !== undefined) {
+                // `/return` ends this function and no other: its caller's
+                // frame is still below and runs on from where it called.
+                if (frame.root && returned.value !== undefined) returnValues.push(returned.value);
+                if (stack.at(-1) === frame) stack.pop();
             }
 
             state.forks += forks;
@@ -299,7 +339,7 @@ export class FunctionExecutor<TSource = unknown> {
             }
         }
 
-        return { ...state, ...(stopped ? { stopped } : {}), diagnostics };
+        return { ...state, returnValues, ...(stopped ? { stopped } : {}), diagnostics };
     }
 
     /** Expands a tag reference, reporting a tag no pack declared. */
