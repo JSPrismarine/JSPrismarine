@@ -28,6 +28,9 @@ jobs:
     release:
         name: 🚚 Release
         runs-on: ubuntu-latest
+        outputs:
+            published: ${{ steps.changesets.outputs.published }}
+            shared_version: ${{ steps.shared_version.outputs.version }}
         permissions:
             contents: write
             issues: write
@@ -73,6 +76,21 @@ jobs:
                   pr-title: 🚀 Release packages
                   github-token: ${{ secrets.MACHINE_USER }}
 
+            - name: 🔢 Capture shared version
+              id: shared_version
+              if: steps.changesets.outputs.published == 'true'
+              env:
+                  PUBLISHED_PACKAGES: ${{ steps.changesets.outputs.published-packages }}
+              run: |
+                  node --input-type=module <<'NODE' >> "$GITHUB_OUTPUT"
+                  const publishedPackages = JSON.parse(process.env.PUBLISHED_PACKAGES);
+                  const serverPackage = publishedPackages.find(({ name }) => name === '@jsprismarine/server');
+                  if (!serverPackage) {
+                      throw new Error('Published packages do not include @jsprismarine/server');
+                  }
+                  console.log(`version=${serverPackage.version}`);
+                  NODE
+
             - name: 📝 Create GitHub Releases
               if: steps.changesets.outputs.published == 'true'
               env:
@@ -85,3 +103,72 @@ jobs:
                   git checkout master
                   pnpm run version:unstable
                   pnpm run release:unstable
+
+    aot-release:
+        name: 📦 Release standalone executables
+        needs: release
+        if: ${{ always() && needs.release.result == 'success' && needs.release.outputs.published == 'true' }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        env:
+            GH_TOKEN: ${{ secrets.MACHINE_USER }}
+            RELEASE_VERSION: ${{ needs.release.outputs.shared_version }}
+        steps:
+            - name: 🕶️ Checkout repository
+              uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+              with:
+                  fetch-depth: 0
+                  submodules: 'recursive'
+                  token: ${{ secrets.MACHINE_USER }}
+
+            - name: 🧬 Update submodules
+              run: git submodule update --init --recursive
+
+            - name: 📦 Install
+              uses: ./.github/common/install
+
+            # Keep installation and the lockfile on pnpm; Bun only compiles the executables.
+            - name: 🐰 Setup Bun
+              uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+              with:
+                  bun-version: canary
+
+            - name: 🗃️ Compile Executables
+              run: |
+                  mkdir -p dist
+                  for target in \
+                      bun-linux-x64 \
+                      bun-linux-arm64 \
+                      bun-linux-x64-musl \
+                      bun-linux-arm64-musl \
+                      bun-darwin-x64 \
+                      bun-darwin-arm64 \
+                      bun-windows-x64 \
+                      bun-windows-arm64
+                  do
+                      bun build ./packages/server/src/Server.ts \
+                          --compile \
+                          --target="$target" \
+                          --outfile="dist/prismarine-${target#bun-}"
+                  done
+
+            - name: 📝 Generate release highlights
+              run: node .github/scripts/generate-release-highlights.mjs > dist/highlights.md
+
+            - name: 🚚 Publish standalone release
+              run: |
+                  tag="jsprismarine@${RELEASE_VERSION}"
+                  title="JSPrismarine ${RELEASE_VERSION}"
+                  if gh release view "$tag" >/dev/null 2>&1; then
+                      gh release edit "$tag" --title "$title" --notes-file dist/highlights.md --latest
+                      gh release upload "$tag" dist/prismarine-* dist/highlights.md --clobber
+                  else
+                      gh release create "$tag" \
+                          dist/prismarine-* \
+                          dist/highlights.md \
+                          --target "$GITHUB_SHA" \
+                          --title "$title" \
+                          --latest \
+                          --notes-file dist/highlights.md
+                  fi
