@@ -1108,5 +1108,12 @@ export const BLOCK_ENTITY_CONTENT_LOSSES = [
         kind: 'unrepresentable',
         reason: 'Bedrock draws banner patterns from its own client assets and names them by a short code, so a pattern a datapack shipped has no code to be named by and the layer is dropped. Every pattern Java 26.3 publishes has one; no template uses a pattern that does not.',
         reference: `${NOTE} section 5`
+    },
+    {
+        javaType: 'minecraft:brewing_stand',
+        field: 'Items[].components.minecraft:potion_contents',
+        kind: 'coarsened',
+        reason: "Bedrock tells its potions apart by the stack's data value rather than by name, and no pinned source publishes which number is which potion, so a stack of a named potion arrives as the plain bottle. Three stacks in the templates are potions: two of strong healing in an end city, one splash potion of weakness in an igloo.",
+        reference: `${NOTE} section 3`
     }
 ] as const satisfies readonly BlockEntityContentLoss[];
