@@ -1,4 +1,27 @@
+import {
+    BLOCK_LOSSES,
+    BLOCK_MERGES,
+    ENTITY_LOSSES,
+    ENTITY_MERGES,
+    ITEM_LOSSES,
+    ITEM_MERGES,
+    REGISTRY_LOSSES
+} from '@jsprismarine/mapping';
+
 import type { Family } from './families.ts';
+
+/** Why a comparison is allowed to report a gap. */
+export type GapKind =
+    /**
+     * The gap is correct behavior. Bedrock has no concept for the Java value, or the project
+     * decided against Java's rule for a reason written down in the research.
+     */
+    | 'accepted'
+    /**
+     * The gap is a defect this suite found and nobody has fixed. The row is not green; the
+     * dashboard counts these separately so a defect cannot pass for an accepted gap.
+     */
+    | 'defect';
 
 /**
  * One expected gap: a comparison the suite knows fails today, with the reason it is allowed
@@ -9,11 +32,72 @@ export interface AllowListEntry {
     family: Family;
     /** The gap id the comparison reports, for example `minecraft:zombie` or `item:minecraft:spear`. */
     id: string;
-    /** Why the gap is expected rather than a defect. */
+    /** Whether the gap is correct behavior or an unfixed defect. */
+    kind: GapKind;
+    /** Why the gap is expected rather than a defect, or what the defect is. */
     reason: string;
     /** A research note section or issue that records the gap, for example `docs/research/edition-behavior-differences.md section 2`. */
     reference: string;
 }
+
+/**
+ * The reviewed losses of `@jsprismarine/mapping`, as allow-list rows.
+ *
+ * Plan section 5 requires every mapping loss to be an allow-list row with a reason, counted on
+ * the dashboard. The rows come from the loss list itself rather than a second copy here, so a
+ * loss that lands in `@jsprismarine/mapping` lands on the dashboard in the same change.
+ */
+const mappingLossEntries = (): readonly AllowListEntry[] => [
+    ...BLOCK_LOSSES.map((loss) => ({
+        family: 'mapping.blocks' as const,
+        id: `loss:${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: loss.reason,
+        reference: loss.reference
+    })),
+    ...BLOCK_MERGES.map((merge) => ({
+        family: 'mapping.blocks' as const,
+        id: `merge:${merge.bedrockId}`,
+        kind: 'accepted' as const,
+        reason: merge.reason,
+        reference: merge.reference
+    })),
+    ...ITEM_LOSSES.map((loss) => ({
+        family: 'mapping.items' as const,
+        id: `loss:${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: loss.reason,
+        reference: loss.reference
+    })),
+    ...ITEM_MERGES.map((merge) => ({
+        family: 'mapping.items' as const,
+        id: `merge:${merge.bedrockId}`,
+        kind: 'accepted' as const,
+        reason: merge.recovery,
+        reference: merge.reference
+    })),
+    ...ENTITY_LOSSES.map((loss) => ({
+        family: 'mapping.entities' as const,
+        id: `loss:${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: loss.reason,
+        reference: loss.reference
+    })),
+    ...ENTITY_MERGES.map((merge) => ({
+        family: 'mapping.entities' as const,
+        id: `merge:${merge.bedrockId}`,
+        kind: 'accepted' as const,
+        reason: merge.recovery,
+        reference: merge.reference
+    })),
+    ...REGISTRY_LOSSES.map((loss) => ({
+        family: 'mapping.registries' as const,
+        id: `loss:${loss.registry}/${loss.javaId}`,
+        kind: 'accepted' as const,
+        reason: loss.reason,
+        reference: loss.reference
+    }))
+];
 
 /**
  * Every expected gap the suite carries. Entries land here when a comparison starts failing for
@@ -27,27 +111,33 @@ export const allowList: readonly AllowListEntry[] = [
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:evocation_illager',
+        kind: 'accepted',
         reason: 'The actor keeps the legacy id; the egg item is minecraft:evoker_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:tropicalfish',
+        kind: 'accepted',
         reason: 'The actor keeps the legacy id; the egg item is minecraft:tropical_fish_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:villager_v2',
+        kind: 'accepted',
         reason: 'The actor keeps the legacy _v2 id; the egg item is minecraft:villager_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
     },
     {
         family: 'registry.entities',
         id: 'spawn-egg:minecraft:zombie_villager_v2',
+        kind: 'accepted',
         reason: 'The actor keeps the legacy _v2 id; the egg item is minecraft:zombie_villager_spawn_egg.',
         reference: 'docs/research/java-to-bedrock-translation.md section 4'
-    }
+    },
+
+    ...mappingLossEntries()
 ];
 
 /** The allow-listed gap ids for one family. */
