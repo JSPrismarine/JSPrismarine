@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import type { AllowListEntry } from '../allowlist.ts';
-import { FAMILIES } from '../families.ts';
+import { ALL_FAMILIES, FAMILIES } from '../families.ts';
 import type { VitestJsonReport } from './render.ts';
-import { renderDashboard } from './render.ts';
+import { renderDashboard, statusOf } from './render.ts';
 
 const fixtureReport: VitestJsonReport = {
     testResults: [
@@ -14,7 +14,7 @@ const fixtureReport: VitestJsonReport = {
                 { ancestorTitles: ['registry.items'], status: 'failed', title: 'ships every item' },
                 { ancestorTitles: ['registry.items'], status: 'passed', title: 'no stale entries' },
                 { ancestorTitles: ['allow list'], status: 'passed', title: 'reports unexpected gaps' },
-                { ancestorTitles: ['registry.blocks'], status: 'skipped', title: 'skipped counts nowhere' }
+                { ancestorTitles: ['worldgen.features'], status: 'skipped', title: 'not measured: no distribution' }
             ]
         },
         {
@@ -27,40 +27,53 @@ const fixtureAllowList: AllowListEntry[] = [
     {
         family: FAMILIES.registryItems,
         id: 'sources-disagree:minecraft:fixture_item',
+        kind: 'accepted',
         reason: 'fixture',
         reference: 'this test'
     },
-    { family: FAMILIES.registryItems, id: 'table:minecraft:fixture_item', reason: 'fixture', reference: 'this test' }
+    {
+        family: FAMILIES.blocksProperties,
+        id: 'minecraft:fixture_block#hardness',
+        kind: 'defect',
+        reason: 'fixture',
+        reference: 'this test'
+    }
 ];
 
+/** The row for one family, without the trailing newline. */
+const rowFor = (markdown: string, family: string): string =>
+    markdown.split('\n').find((line) => line.startsWith(`| ${family} |`)) ?? `<no row for ${family}>`;
+
 describe('dashboard renderer', () => {
-    it('renders one row per family with passed, failed and allow-listed counts', () => {
-        expect(renderDashboard(fixtureReport, fixtureAllowList)).toBe(
-            [
-                '# Parity dashboard',
-                '',
-                '| Family | Passed | Failed | Allow-listed |',
-                '| --- | ---: | ---: | ---: |',
-                '| (other) | 1 | 0 | 0 |',
-                '| conformance.claim | 1 | 0 | 0 |',
-                '| registry.blocks | 2 | 0 | 0 |',
-                '| registry.items | 1 | 1 | 2 |',
-                '| **total** | 5 | 1 | 2 |',
-                ''
-            ].join('\n')
-        );
-    });
-
-    it('renders a family that only has allow-list entries', () => {
-        const markdown = renderDashboard({ testResults: [] }, fixtureAllowList);
-
-        expect(markdown).toContain('| registry.items | 0 | 0 | 2 |');
-    });
-
-    it('renders an empty report as a table with only the total row', () => {
+    it('gives every declared family a row, whether or not a test claimed it', () => {
         const markdown = renderDashboard({ testResults: [] }, []);
 
-        expect(markdown).toContain('| **total** | 0 | 0 | 0 |');
-        expect(markdown).not.toContain('| registry.');
+        for (const family of ALL_FAMILIES) expect(rowFor(markdown, family)).toContain('no tests');
+    });
+
+    it('counts passed, failed, not-measured, accepted and defect columns separately', () => {
+        const markdown = renderDashboard(fixtureReport, fixtureAllowList);
+
+        expect(rowFor(markdown, 'registry.blocks')).toBe('| registry.blocks | green | 2 | 0 | 0 | 0 | 0 |');
+        expect(rowFor(markdown, 'registry.items')).toBe('| registry.items | red | 1 | 1 | 0 | 1 | 0 |');
+        expect(rowFor(markdown, 'worldgen.features')).toBe('| worldgen.features | not measured | 0 | 0 | 1 | 0 | 0 |');
+        expect(rowFor(markdown, 'blocks.properties')).toBe('| blocks.properties | no tests | 0 | 0 | 0 | 0 | 1 |');
+        expect(rowFor(markdown, '(other)')).toBe('| (other) | green | 1 | 0 | 0 | 0 | 0 |');
+    });
+
+    it('explains what a not-measured row means, so green is not the only legible state', () => {
+        const markdown = renderDashboard(fixtureReport, fixtureAllowList);
+
+        expect(markdown).toContain('A row is green only when every one of its tests compared real reference data');
+        expect(markdown).toContain('`not measured` means a comparison found no reference data');
+    });
+
+    it('reads a defect-only family as defects rather than green', () => {
+        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 0, defects: 1 })).toBe('defects');
+        expect(statusOf({ passed: 3, failed: 0, notMeasured: 0, accepted: 2, defects: 0 })).toBe('green');
+    });
+
+    it('reads a failure as red even when something else was not measured', () => {
+        expect(statusOf({ passed: 1, failed: 1, notMeasured: 1, accepted: 0, defects: 0 })).toBe('red');
     });
 });

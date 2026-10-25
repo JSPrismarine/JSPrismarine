@@ -19,30 +19,64 @@ export const FAMILIES = {
     registryEntities: 'registry.entities',
     /** Biome names and numeric ids against the biome definitions golden. */
     registryBiomes: 'registry.biomes',
+
+    /** Chunker's totality property over all 35723 Java block states (plan section 5). */
+    mappingBlocks: 'mapping.blocks',
+    /** Chunker's totality property over Java's item registry. */
+    mappingItems: 'mapping.items',
+    /** Chunker's totality property over Java's entity type registry. */
+    mappingEntities: 'mapping.entities',
+    /** Chunker's totality property over the remaining mapped registries, biome and enchantment. */
+    mappingRegistries: 'mapping.registries',
+
+    /** The per-state block property table against the Java 26.3 jar dump (phase 1 exit). */
+    blocksProperties: 'blocks.properties',
+
+    /** The item type table's Java-sourced components against the Bedrock item capture (phase 1 exit). */
+    itemsComponents: 'items.components',
+
+    /** Java's vanilla recipe files, by recipe id, through the recipe evaluator (phase 2 exit). */
+    recipesRegistry: 'recipes.registry',
+
+    /** Java's vanilla loot tables, by structure, through the loot evaluator (phase 2 exit). */
+    lootTables: 'loot.tables',
+
+    /** Entity stats against the Java attribute dump over 93 entity types (phase 3 exit). */
+    entitiesStats: 'entities.stats',
+    /** The `AddActorPacket` payload per advertised actor type (phase 3 exit). */
+    entitiesAddActor: 'entities.addactor',
+
+    /** The multi-noise biome source against Java's biome parameter vectors (phase 4 exit). */
+    worldgenBiomes: 'worldgen.biomes',
+    /** Heightmap and terrain class for the reference region against Java's column dump (phase 4 exit). */
+    worldgenTerrain: 'worldgen.terrain',
+    /** Ore and feature counts against a measured distribution (phase 4 exit). */
+    worldgenFeatures: 'worldgen.features',
+
+    /** The command tree the server publishes against Mojang's Bedrock command metadata (phase 5). */
+    commandsTree: 'commands.tree',
+
     /** The public parity claim stays in step with the research note it cites. */
-    conformanceClaim: 'conformance.claim'
+    conformanceClaim: 'conformance.claim',
+    /** The classification table the claim counts stays in step with the research note. */
+    conformanceClassification: 'conformance.classification',
+    /** One negative check per excluded category: the project does not claim it. */
+    conformanceExclusions: 'conformance.exclusions'
 } as const;
 
 /** One of the family ids in {@link FAMILIES}. */
 export type Family = (typeof FAMILIES)[keyof typeof FAMILIES];
 
+/** Every declared family id, in declaration order. */
+export const ALL_FAMILIES: readonly Family[] = Object.values(FAMILIES);
+
 /**
- * Family groups later slices add rows under. Reserved here so the prefix scheme is fixed
- * before those slices exist: `mapping.*` for the Chunker-style property tests of
- * `@jsprismarine/mapping` (plan section 5), `blocks.*`, `items.*`, `recipes.*`, `loot.*`,
- * `entities.*`, `worldgen.*` and `commands.*` for the Java-golden comparisons of
- * docs/research/extraction-and-parity-verification.md section 5.
+ * The group each family id starts with, deduplicated and sorted. Derived from {@link FAMILIES}
+ * rather than written out, so a new family extends the group list by existing.
  */
-export const RESERVED_FAMILY_GROUPS = [
-    'mapping',
-    'blocks',
-    'items',
-    'recipes',
-    'loot',
-    'entities',
-    'worldgen',
-    'commands'
-] as const;
+export const FAMILY_GROUPS: readonly string[] = [
+    ...new Set(ALL_FAMILIES.map((family) => family.slice(0, family.indexOf('.'))))
+].sort();
 
 /** What a family id looks like: at least two dot-separated lowercase segments. */
 export const FAMILY_ID_PATTERN = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)+$/;
