@@ -43,8 +43,15 @@ const IMPULSE_FLOOR = 0.003;
  * and they have to agree about where the entity is.
  */
 export class MobBody {
-    /** Where the entity is now. */
-    public position: EntityPosition;
+    /**
+     * Told whenever the entity moves, so an index over positions can keep up.
+     *
+     * {@link EntityRuntime} sets it to refile the body in its spatial index.
+     * An accessor rather than a field because the index is wrong the instant
+     * it misses a move, and there are five places that write a position: the
+     * walk, the impulse, a knockback, a teleport and being carried.
+     */
+    public onMove: (() => void) | undefined;
 
     /** Where the entity faces, in degrees. */
     public yaw = 0;
@@ -100,6 +107,7 @@ export class MobBody {
      */
     public velocity: EntityPosition = { x: 0, y: 0, z: 0 };
 
+    private at: EntityPosition;
     private destination: EntityPosition | undefined;
     private speedMultiplier = 1;
     /** Ticks since the destination was set without the entity getting any closer. */
@@ -113,7 +121,17 @@ export class MobBody {
         /** The type's facts, of which `minecraft:movement` is what every goal multiplier scales. */
         public readonly facts: EntityFacts
     ) {
-        this.position = position;
+        this.at = position;
+    }
+
+    /** Where the entity is now. */
+    public get position(): EntityPosition {
+        return this.at;
+    }
+
+    public set position(position: EntityPosition) {
+        this.at = position;
+        this.onMove?.();
     }
 
     /** The namespaced identifier, such as `minecraft:zombie`. */

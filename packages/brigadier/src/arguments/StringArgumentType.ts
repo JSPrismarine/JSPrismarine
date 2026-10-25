@@ -8,6 +8,8 @@ export enum StringType {
     GREEDY_PHRASE = 'words with spaces'
 }
 
+const EXAMPLES = ['hello', 'school_project_final_v2', 'are you reading this'];
+
 export default class StringArgumentType implements ArgumentType<string> {
     private type: StringType;
 
@@ -73,5 +75,9 @@ export default class StringArgumentType implements ArgumentType<string> {
 
         result += '"';
         return result;
+    }
+
+    public getExamples(): Iterable<string> {
+        return EXAMPLES;
     }
 }
