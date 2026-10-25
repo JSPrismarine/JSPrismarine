@@ -140,13 +140,16 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', (
         // Mojang's own content has to load clean, so what is left is the
         // report doing its job: one line per entity component the server
         // leaves unregistered on purpose, the crafting item catalog that
-        // BDS ships as unreadable binary MCB, and the two `entities/npc.json`
-        // layer patches a later layer supersedes.
+        // BDS ships as unreadable binary MCB, the two `entities/npc.json`
+        // layer patches a later layer supersedes, and the reviewed gaps the
+        // Bedrock loot dialect names. The 1447 Java tables contribute none of
+        // those 1484: they compile clean, and the whole number is Bedrock's.
         expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
         expect(Object.fromEntries(remaining)).toEqual({
             'component.unknown': 45,
             'definition.mcb': 1,
-            'definition.missing-key': 1
+            'definition.missing-key': 1,
+            'loot.unapplied': 1484
         });
     });
 });
