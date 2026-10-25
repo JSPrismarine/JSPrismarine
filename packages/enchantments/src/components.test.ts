@@ -2,6 +2,18 @@ import { describe, expect, it } from 'vitest';
 
 import { EFFECT_COMPONENTS, EFFECT_COMPONENT_TYPES, parseEffects } from './components';
 import type { EffectComponentType } from './components';
+import type { ContextParameterSetName } from '@jsprismarine/predicates';
+
+/**
+ * The key set a component declares, or undefined for the ones that declare none.
+ *
+ * `EFFECT_COMPONENTS` keeps its literal shape, so the entries without a `parameterSet` have
+ * no such property at all rather than an optional one. Reading it has to ask first.
+ */
+const parameterSetOf = (component: EffectComponentType): ContextParameterSetName | undefined => {
+    const declaration = EFFECT_COMPONENTS[component];
+    return 'parameterSet' in declaration ? declaration.parameterSet : undefined;
+};
 
 const parse = (json: unknown) => {
     const { value, diagnostics } = parseEffects(json);
@@ -125,7 +137,7 @@ describe('the 31 effect component types', () => {
 
     it('gives the nine damage context components the enchanted_damage key set', () => {
         const damageContext = EFFECT_COMPONENT_TYPES.filter(
-            (component) => EFFECT_COMPONENTS[component].parameterSet === 'enchanted_damage'
+            (component) => parameterSetOf(component) === 'enchanted_damage'
         );
 
         expect(damageContext.toSorted()).toEqual([
@@ -143,7 +155,7 @@ describe('the 31 effect component types', () => {
 
     it('gives the five item context components the enchanted_item key set', () => {
         const itemContext = EFFECT_COMPONENT_TYPES.filter(
-            (component) => EFFECT_COMPONENTS[component].parameterSet === 'enchanted_item'
+            (component) => parameterSetOf(component) === 'enchanted_item'
         );
 
         expect(itemContext.toSorted()).toEqual([
@@ -156,9 +168,7 @@ describe('the 31 effect component types', () => {
     });
 
     it('leaves the seven unconditional components without a key set', () => {
-        const noContext = EFFECT_COMPONENT_TYPES.filter(
-            (component) => EFFECT_COMPONENTS[component].parameterSet === undefined
-        );
+        const noContext = EFFECT_COMPONENT_TYPES.filter((component) => parameterSetOf(component) === undefined);
 
         expect(noContext.toSorted()).toEqual([
             'attributes',
