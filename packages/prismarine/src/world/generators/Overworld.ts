@@ -44,9 +44,17 @@ const MOST_WORKERS = 6;
  * Building that pipeline reads about 1500 JSON documents, so it happens on the first chunk
  * rather than when the server registers its generators: a server configured for a flat world
  * should not pay for data it will not use.
+ *
+ * The `terrain` status runs in a pool of worker threads, sized from the core count. Nothing has
+ * to be built for that to work in a dev checkout, because a worker inherits this process's
+ * loader. A host that cannot run workers at all generates terrain on this thread and says so
+ * once, since a server that boots slowly beats one that does not boot.
  */
 export default class Overworld extends BaseGenerator {
     private generator: DataDrivenGenerator | null = null;
+
+    /** Whether the terrain pool is still expected to run, which only the log line reads. */
+    private pooled = true;
 
     /**
      * Generates one chunk.
@@ -86,10 +94,38 @@ export default class Overworld extends BaseGenerator {
         }
 
         const registries = loadJavaWorldgenRegistries(sources);
+        const terrain = this.terrainPool();
         this.generator = new DataDrivenGenerator({
             registries,
-            templates: findJavaTemplateSource(cacheRoot(), registries.processorLists)
+            templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
+            ...(terrain === undefined ? {} : { terrain })
         });
+        if (terrain !== undefined && this.pooled) {
+            this.getLogger()?.info(`Generating terrain in §b${terrain.workers}§r worker thread(s)`);
+        }
+
         return this.generator;
+    }
+
+    /**
+     * How the `terrain` bodies should run, or undefined when this host is too small to bother.
+     *
+     * The pipeline module is resolved rather than configured, and a worker inherits this
+     * process's loader, so a checkout run under `tsx` and a published install both work with
+     * nothing built first. A single executable keeps its modules in the binary, where no worker
+     * thread can import them, so there the generator says so once and runs terrain here.
+     */
+    private terrainPool(): TerrainPoolOptions | undefined {
+        const workers = Math.min(MOST_WORKERS, availableParallelism() - LEAVE_FREE);
+        if (workers < 1) return undefined;
+
+        return {
+            pipeline: defaultTerrainPipeline(),
+            workers,
+            onUnavailable: (reason) => {
+                this.pooled = false;
+                this.getLogger()?.warn(`Generating terrain on the server thread, because ${reason}`);
+            }
+        };
     }
 }
