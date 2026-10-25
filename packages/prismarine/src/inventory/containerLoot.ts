@@ -23,8 +23,8 @@ import { LegacyRandomSource } from '@jsprismarine/worldgen';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { RandomSource } from '@jsprismarine/predicates';
 
-import { BlockEntityRegistry } from '../blockentity/BlockEntityRegistry';
-import type { BlockEntity } from '../blockentity/BlockEntity';
+import { writeBlockEntity } from '../blockentity/blockEntityWrite';
+import type { BlockEntityChunk, BlockEntityWorld } from '../blockentity/blockEntityWrite';
 import { applyBlockEntityRecord, blockEntityRecord } from '../blockentity/contentRecord';
 import { bedrockItemDrops } from '../item/bedrockDrops';
 import { blockContainerOf } from './blockContainers';
@@ -38,16 +38,13 @@ const LOOT_TABLE_TAG = 'LootTable';
 const LOOT_SEED_TAG = 'LootTableSeed';
 
 /** A chunk as the fill reads and writes one, which is the little of `Chunk` it touches. */
-export interface ContainerLootChunk {
-    getBlockEntity(x: number, y: number, z: number): { toNBT(): NBTTagCompound } | null;
-    setBlockEntity(blockEntity: BlockEntity): void;
-}
+export type ContainerLootChunk = BlockEntityChunk;
 
-/** The little of a world the fill reads: the chunks, synchronously, as a right click can. */
-export interface ContainerLootWorld {
-    /** The chunk holding a column, or null when it is not in memory. */
-    getLoadedChunk(x: number, z: number): ContainerLootChunk | null;
-}
+/**
+ * The little of a world the fill reads: the chunks, synchronously, as a right click can, and
+ * somewhere to report the filled container to.
+ */
+export type ContainerLootWorld = BlockEntityWorld;
 
 /** The predicate grammar's stream over `java.util.Random`, which is what a stored seed names. */
 const seededRandom = (source: LegacyRandomSource): RandomSource => ({
@@ -173,7 +170,11 @@ const fillOne = (content: ServerContent, world: ContainerLootWorld, at: ContentP
     nbt.remove(LOOT_TABLE_TAG);
     nbt.remove(LOOT_SEED_TAG);
     applyBlockEntityRecord(nbt, { ...record, items, capacity: slots });
-    chunk.setBlockEntity(BlockEntityRegistry.fromNBT(nbt));
+
+    // Through the shared write, so the clients holding the chunk are told what the roll put
+    // in the chest. The screen the player is about to be shown is sent separately, but anyone
+    // else standing there would otherwise still be looking at an empty one.
+    writeBlockEntity(world, nbt);
     return true;
 };
 

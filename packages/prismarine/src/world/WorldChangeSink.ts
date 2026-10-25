@@ -1,5 +1,6 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 // TODO: `ActorEvent` belongs beside `LevelEvent` and `LevelSoundEvent` in
@@ -39,6 +40,23 @@ export interface WorldChangeSink {
      * @param {number} blockRuntimeId - What it is now.
      */
     blockChanged(position: Vector3, blockRuntimeId: number): void;
+
+    /**
+     * A block entity's data is not what it was: a sign's text, a chest's contents, a
+     * lectern's page, a flower pot's plant.
+     *
+     * A chunk carries its block entities in its own payload, so this covers the changes made
+     * after a client already has the chunk - which, before it existed, reached nobody at all.
+     *
+     * Recorded rather than sent, and put on the wire by
+     * {@link WorldChangeSink.flushBlockEntities}, which runs after
+     * {@link WorldChangeSink.flushBlockChanges}. The order is a correctness guarantee rather
+     * than an economy: a client drops a block entity update for a position it has no block
+     * entity at, so the block has to be announced first.
+     * @param {Vector3} position - The block the block entity sits in.
+     * @param {NBTTagCompound} tags - Its complete data, as the chunk would serialize it.
+     */
+    blockEntityChanged(position: Vector3, tags: NBTTagCompound): void;
 
     /**
      * A block made a noise - it was placed, or broken.
@@ -182,6 +200,16 @@ export interface WorldChangeSink {
     flushBlockChanges(): Promise<void>;
 
     /**
+     * Tick phase: send the block entity changes this tick produced, one packet per position.
+     *
+     * Runs after {@link WorldChangeSink.flushBlockChanges} so that a block entity placed and
+     * filled in the same tick is announced as a block before it is announced as a block
+     * entity - see {@link WorldChangeSink.blockEntityChanged}.
+     * @returns {Promise<void>} Resolves once they are on their way.
+     */
+    flushBlockEntities(): Promise<void>;
+
+    /**
      * Tick phase: send the movement this tick produced, as one batch each.
      * @returns {Promise<void>} Resolves once the batches are framed.
      */
@@ -197,6 +225,7 @@ export interface WorldChangeSink {
  */
 export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     blockChanged: () => {},
+    blockEntityChanged: () => {},
     blockSound: () => {},
     namedSound: () => {},
     namedParticle: () => {},
@@ -212,5 +241,6 @@ export const NULL_WORLD_CHANGE_SINK: WorldChangeSink = {
     gameRuleChanged: async () => {},
     reconcile: async () => {},
     flushBlockChanges: async () => {},
+    flushBlockEntities: async () => {},
     flushMovement: async () => {}
 };

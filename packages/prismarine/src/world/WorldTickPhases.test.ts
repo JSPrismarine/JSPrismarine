@@ -27,6 +27,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
 
     const sink: WorldChangeSink = {
         blockChanged: () => calls.push('blockChanged'),
+        blockEntityChanged: () => calls.push('blockEntityChanged'),
         blockSound: () => calls.push('blockSound'),
         namedSound: () => calls.push('namedSound'),
         namedParticle: () => calls.push('namedParticle'),
@@ -42,6 +43,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         gameRuleChanged: record('gameRuleChanged'),
         reconcile: record('reconcile'),
         flushBlockChanges: record('flushBlockChanges'),
+        flushBlockEntities: record('flushBlockEntities'),
         flushMovement: record('flushMovement')
     };
 
@@ -105,9 +107,22 @@ describe('world', () => {
                 'systems',
                 'reconcile',
                 'flushBlockChanges',
+                'flushBlockEntities',
                 'flushMovement',
                 'timeChanged'
             ]);
+        });
+
+        it("sends the tick's block changes before the block entities standing in them", async () => {
+            // A client drops a block entity update for a position it has no block entity at,
+            // and an `UpdateBlockPacket` arriving afterwards makes it rebuild the block entity
+            // from its own empty data. Either way round, a chest placed and filled in one tick
+            // would reach the player empty.
+            const { world, calls } = worldTicking();
+
+            await world.update(1);
+
+            expect(calls.indexOf('flushBlockChanges')).toBeLessThan(calls.indexOf('flushBlockEntities'));
         });
 
         it("sends the tick's block changes before the movement over them", async () => {
