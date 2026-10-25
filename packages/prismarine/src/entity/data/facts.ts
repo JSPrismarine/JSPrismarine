@@ -9,10 +9,19 @@
  * that reads them, so a figure is wrong in the pack or not at all.
  *
  * The attribute components write their values when a component initializes
- * rather than declaring them on the type, so the facts come from one throwaway
- * instance per type, built once and cached. That is also why the numbers here
- * are the base components' - a group an event adds later changes the live
- * entity's attributes and not the type's facts.
+ * rather than declaring them on the type, so the type's facts come from one
+ * throwaway instance per type, built once and cached by
+ * {@link EntityFactsLookup}.
+ *
+ * Those numbers are the base components' alone, and most of them are wrong for
+ * a live entity: of the 128 vanilla definitions, 15 declare
+ * `minecraft:movement` only inside a component group, 18 do the same with
+ * `minecraft:attack`, 29 with `minecraft:loot` and five with
+ * `minecraft:health`, so the type-level read finds nothing and the zombie, the
+ * slime and the skeleton come out with a speed, a loot table and a melee hit
+ * of zero. {@link liveFactsOf} is the answer: it reads whatever the entity's
+ * active components say now and falls back to the type's figure, so a group a
+ * spawn event adds counts.
  */
 import type { EntityType } from '@jsprismarine/entities';
 import { EntityInstance, collisionBox, loot, typeFamily } from '@jsprismarine/entities';
@@ -71,7 +80,15 @@ const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
 export const boxOf = (registry: Registry<EntityType>, identifier: string): EntityBox =>
     registry.get(identifier)?.params(collisionBox) ?? UNDECLARED_BOXES[identifier] ?? DEFAULT_BOX;
 
-/** Everything the server reads about an entity type that is a number or a name. */
+/**
+ * Everything the server reads about an entity that is a number or a name.
+ *
+ * Read off a type by {@link EntityFactsLookup}, which answers for the base
+ * components, and off a live entity by {@link liveFactsOf}, which answers for
+ * the components active now. Prefer the live reading anywhere an entity is to
+ * hand: the type's figures are a fallback, and for a mob that keeps its stats
+ * in a component group they are zero.
+ */
 export interface EntityFacts {
     /** The namespaced identifier, such as `minecraft:zombie`. */
     readonly identifier: string;
@@ -124,6 +141,10 @@ export const blocksPerTick = (movement: number): number => movement / MOVEMENT_U
  * type: the facts are cached, and a content reload replaces the whole registry
  * and so the whole lookup, which is the rule the content root sets for
  * anything keyed by a positional id.
+ *
+ * What a type declares in its base components, which is what a caller holding
+ * no entity can know. Wrap the answer in {@link liveFactsOf} wherever there is
+ * an entity to read instead.
  */
 export class EntityFactsLookup {
     private readonly cache = new Map<string, EntityFacts>();
@@ -176,6 +197,108 @@ const factsOf = (registry: Registry<EntityType>, identifier: string, type: Entit
         summonable: type.flags.summonable
     };
 };
+
+/**
+ * One entity's facts as its active components make them now.
+ *
+ * Every member reads through to the component state on each access, so a
+ * component group a spawn event adds, a stat a damage effect moves and a
+ * `minecraft:loot` that only exists on an adult all count the tick they
+ * happen. Accessors rather than a snapshot because a snapshot is a copy that
+ * goes stale, and the stale copy is the bug this replaces: every goal's walk
+ * scaled a `minecraft:movement` frozen at spawn, which was zero for the
+ * fifteen types that declare it in a group, so the zombie stood still.
+ *
+ * The type's facts stay underneath as the fallback, for the attributes no
+ * active component declares.
+ */
+class LiveFacts implements EntityFacts {
+    public constructor(
+        private readonly type: EntityFacts,
+        private readonly instance: EntityInstance
+    ) {}
+
+    public get identifier(): string {
+        return this.type.identifier;
+    }
+
+    public get box(): EntityBox {
+        return activeBox(this.instance) ?? this.type.box;
+    }
+
+    /**
+     * The maximum, which is the component's `max`, and not the health left.
+     *
+     * `Attributes.value` would answer with the current health, and this is the
+     * number a brain's `max_health` and a health bar divide by.
+     */
+    public get health(): number {
+        return this.instance.attributes.get('health')?.max ?? this.type.health;
+    }
+
+    public get attackDamage(): number {
+        return this.instance.attributes.value('attack_damage', this.type.attackDamage);
+    }
+
+    public get knockbackResistance(): number {
+        return this.instance.attributes.value('knockback_resistance', this.type.knockbackResistance);
+    }
+
+    public get followRange(): number {
+        return this.instance.attributes.value('follow_range', this.type.followRange);
+    }
+
+    public get movement(): number {
+        return this.instance.attributes.value('movement', this.type.movement);
+    }
+
+    public get underwaterMovement(): number {
+        return this.instance.attributes.value('underwater_movement', this.movement);
+    }
+
+    public get families(): readonly string[] {
+        const active = this.instance.families();
+        return active.length > 0 ? active : this.type.families;
+    }
+
+    public get lootTable(): string | undefined {
+        return this.instance.lootTable() ?? this.type.lootTable;
+    }
+
+    public get spawnable(): boolean {
+        return this.type.spawnable;
+    }
+
+    public get summonable(): boolean {
+        return this.type.summonable;
+    }
+}
+
+/**
+ * The hitbox of the active `minecraft:collision_box`, when one is active.
+ *
+ * `EntityInstance.componentParams` hands back what the component's schema
+ * parsed, which for this component is already a width and a height; the checks
+ * are what stands in for the type the untyped accessor cannot give back.
+ *
+ * @returns The box, or undefined when no active component declares one.
+ */
+const activeBox = (instance: EntityInstance): EntityBox | undefined => {
+    const params = instance.componentParams('minecraft:collision_box');
+    if (params === null || typeof params !== 'object') return undefined;
+    if (!('width' in params) || !('height' in params)) return undefined;
+    const { width, height } = params;
+    return typeof width === 'number' && typeof height === 'number' ? { width, height } : undefined;
+};
+
+/**
+ * The facts of one live entity, reading through to its components.
+ *
+ * @param type - The type's facts, from {@link EntityFactsLookup}, which every
+ *   member falls back to.
+ * @param instance - The entity's component state.
+ */
+export const liveFactsOf = (type: EntityFacts, instance: EntityInstance): EntityFacts => new LiveFacts(type, instance);
 
 /**
  * The Java loot table id for a Bedrock loot table path.

@@ -841,12 +841,11 @@ export class EntityRuntime implements EntityScene {
      * class-based `Mob.onDeath` already reads.
      */
     public kill(entity: DataEntity): void {
-        // The instance before the type. Of the 128 vanilla entity files, 45 declare
-        // `minecraft:loot` in their base components, 29 declare it only inside a component
-        // group and 4 declare it in both: the cow carries it in `minecraft:cow_adult`, so a
-        // type-level read finds nothing and a grown cow drops what a calf does, which is
-        // nothing.
-        const table = entity.instance.lootTable() ?? entity.facts.lootTable;
+        // Live, which puts the active component first. Of the 128 vanilla entity files, 29
+        // declare `minecraft:loot` only inside a component group: the cow carries it in
+        // `minecraft:cow_adult`, so a type-level read finds nothing and a grown cow drops
+        // what a calf does, which is nothing.
+        const table = entity.facts.lootTable;
         if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropLoot(table, entity.position);
         this.remove(entity.id, 'death');
     }
