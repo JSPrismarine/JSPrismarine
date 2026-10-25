@@ -16,6 +16,7 @@ import type { Generator } from './Generator';
 import { readLevelDat } from './providers/leveldb/LevelDat';
 import LevelDB from './providers/leveldb/LevelDB';
 import { World } from './World';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /**
  * Shutting a world down while its start region is still being generated.
@@ -57,7 +58,7 @@ const testServer = (): Server =>
             }),
         getConfig: () => stub<Config>({ getPreloadRadius: () => PRELOAD_RADIUS }),
         // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => undefined
+        getEntityRuntime: () => inertEntityRuntime()
     });
 
 /**

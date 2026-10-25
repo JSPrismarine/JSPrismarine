@@ -17,6 +17,7 @@ import { Item } from '../item/Item';
 import { createItemActorPort } from '../item/actorPort';
 import type { ContentEntityAccess } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
+import { testContent } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import { advancementsOf, loadAdvancements, storedAdvancements } from './progress';
 import {
@@ -240,8 +241,8 @@ const SOURCE = { identifier: 'minecraft:player', runtimeId: 7 };
  * The item actor port is the real one, built over the same player, so the two triggers whose
  * call site is inside it are driven by the call site rather than by the helper.
  */
-const scene = ({ withContent = true }: { withContent?: boolean } = {}) => {
-    const built = withContent ? content() : undefined;
+const scene = () => {
+    const built = content();
     const announced: Array<{ key: string; parameters: string[] }> = [];
     const inventory = new HumanInventory();
 
@@ -288,11 +289,11 @@ const mob = (type: string): Entity =>
         getType: () => type,
         getPosition: () => ({ getX: () => 0, getY: () => 64, getZ: () => 0 }) as never,
         getEquipment: () => ({}),
-        getServer: () => stub<Server>({ getContent: () => undefined })
+        getServer: () => stub<Server>({ getContent: () => testContent() })
     });
 
 const done = (player: Player, id: string): boolean => {
-    const advancement = player.getServer().getContent()?.advancements.get(id);
+    const advancement = player.getServer().getContent().advancements.get(id);
     return advancement !== undefined && advancementsOf(player).isDone(advancement);
 };
 
@@ -450,14 +451,6 @@ describe('earning vanilla advancements by playing', () => {
 
         advancementItemUsedOnBlock(player, { ...event, tool: new Item({ name: 'minecraft:diamond_pickaxe' }) });
         expect(done(player, 'minecraft:story/use_a_pickaxe_on_a_lamp')).toBe(true);
-    });
-
-    it('raises nothing at all when the server built no content', () => {
-        const { player, announced } = scene({ withContent: false });
-
-        advancementPickedUpItem(player, new Item({ name: 'minecraft:cobblestone' }));
-        advancementKill(mob('minecraft:zombie'), DamageSource.entity(player));
-        expect(announced).toEqual([]);
     });
 });
 

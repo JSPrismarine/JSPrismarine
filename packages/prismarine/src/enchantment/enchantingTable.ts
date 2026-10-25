@@ -184,8 +184,8 @@ export const showEnchantingTable = async (
     stack: Item | undefined,
     at: BlockPosition
 ): Promise<void> => {
-    const registry = player.getServer().getContent()?.enchantments;
-    if (!registry || !stack || stack.getName() === 'minecraft:air') {
+    const registry = player.getServer().getContent().enchantments;
+    if (!stack || stack.getName() === 'minecraft:air') {
         await sendEnchantOptions(player, []);
         return;
     }

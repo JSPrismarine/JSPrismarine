@@ -65,6 +65,8 @@ export class AdvancementEngine {
     private readonly byId = new Map<string, ParsedAdvancement>();
     private readonly byTrigger = new Map<TriggerName, IndexedCriterion[]>();
     private readonly byKey = new Map<string, IndexedCriterion[]>();
+    /** Every trigger at least one loaded criterion names; see {@link AdvancementEngine.listensFor}. */
+    private readonly listened = new Set<TriggerName>();
     private built: AdvancementTree = { roots: [], nodes: new Map() };
 
     public constructor(options: AdvancementEngineOptions = {}) {
@@ -88,6 +90,21 @@ export class AdvancementEngine {
     }
 
     /**
+     * Whether any loaded criterion is listening for one trigger.
+     *
+     * For the call site rather than for this class: building a trigger's event
+     * means reading a player's inventory, equipment, position and attributes,
+     * and that work is wasted when the loaded set has no criterion for the
+     * trigger. A stack with no advancements in it answers false to everything.
+     *
+     * @param trigger - The trigger name a caller is about to raise.
+     * @returns {boolean} Whether raising it could match anything.
+     */
+    public listensFor(trigger: TriggerName): boolean {
+        return this.listened.has(trigger);
+    }
+
+    /**
      * Replaces everything loaded with a new set, rebuilds the parent tree and
      * rebuilds the dispatch index. Tree faults go to the engine's collector.
      */
@@ -95,11 +112,13 @@ export class AdvancementEngine {
         this.byId.clear();
         this.byTrigger.clear();
         this.byKey.clear();
+        this.listened.clear();
 
         for (const advancement of advancements) {
             this.byId.set(advancement.id, advancement);
             for (const criterion of advancement.criteria.values()) {
                 const entry: IndexedCriterion = { advancement, criterion };
+                this.listened.add(criterion.trigger);
                 if (criterion.keys) {
                     for (const key of criterion.keys)
                         this.bucket(this.byKey, `${criterion.trigger}\u0000${key}`).push(entry);

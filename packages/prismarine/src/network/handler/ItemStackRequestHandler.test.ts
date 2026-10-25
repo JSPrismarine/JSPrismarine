@@ -24,6 +24,7 @@ import ItemStackResponsePacket, { ItemStackResponseResult } from '../packet/Item
 import type { ItemStackRequest, ItemStackRequestSlotInfo } from '../type/ItemStackRequest';
 import { ContainerUiId, ItemStackRequestActionType } from '../type/ItemStackRequest';
 import ItemStackRequestHandler from './ItemStackRequestHandler';
+import { testContent } from '../../testing/entityServer';
 
 /**
  * A slot of the inventory's own two by two grid, as the client numbers it.
@@ -71,7 +72,7 @@ const fakeServer = (creative: Item[], overrides: Partial<Server> = {}) => {
     // A refusal says why it refused, and says it through the logger.
     return stub<Server>({
         getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
-        getContent: () => undefined,
+        getContent: () => testContent(),
         getCreativeInventory: () => menu,
         ...overrides
     });
@@ -388,7 +389,7 @@ describe('network', () => {
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
                 getLogger: () => stub<Logger>({ debug: () => {} }),
-                getContent: () => undefined
+                getContent: () => testContent()
             });
             registry.registerRecipeStations(server);
 
@@ -443,7 +444,7 @@ describe('network', () => {
                 getRecipeManager: () => manager,
                 getStationRegistry: () => registry,
                 getLogger: () => stub<Logger>({ debug: () => {} }),
-                getContent: () => undefined
+                getContent: () => testContent()
             });
             registry.registerRecipeStations(server);
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
+import { testContent } from '../testing/entityServer';
 import { createItemActorPort } from './actorPort';
 import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
@@ -31,7 +32,7 @@ const playerDouble = (recorded: Recorded): Player =>
         // The two advancement triggers the port raises read these. With no content built there
         // is nothing listening, which is what `enabled` checks first.
         getInventory: () => new HumanInventory(),
-        getServer: () => ({ getContent: () => undefined })
+        getServer: () => ({ getContent: () => testContent() })
     });
 
 /** A world reduced to the entity lookup, the block read and the logger. */

@@ -74,9 +74,9 @@ export interface WorkstationCraft {
  * drawn from the same number rather than from two walks of the same bookshelves.
  */
 export const refreshEnchantOptions = async (player: Player, open: OpenBlockContainer): Promise<void> => {
-    const registry = player.getServer().getContent()?.enchantments;
+    const registry = player.getServer().getContent().enchantments;
     const stack = open.inputs[WORKSTATION_ITEM];
-    if (registry === undefined || stack === null || stack === undefined || stack.getName() === 'minecraft:air') {
+    if (stack === null || stack === undefined || stack.getName() === 'minecraft:air') {
         await sendEnchantOptions(player, []);
         return;
     }
@@ -110,10 +110,10 @@ export const takeEnchantOption = (
     open: OpenBlockContainer,
     enchantNetId: number
 ): WorkstationCraft | undefined => {
-    const registry = player.getServer().getContent()?.enchantments;
+    const registry = player.getServer().getContent().enchantments;
     const stack = open.inputs[WORKSTATION_ITEM];
     const row = enchantNetId - 1;
-    if (registry === undefined || stack === null || stack === undefined) return undefined;
+    if (stack === null || stack === undefined) return undefined;
     if (!Number.isInteger(row) || row < 0) return undefined;
 
     const result = takeEnchantingRow(registry, player, stack, enchantmentSeedOf(player), open.bookshelfPower, row);
@@ -137,9 +137,9 @@ export const takeAnvilResult = (
     open: OpenBlockContainer,
     name?: string
 ): WorkstationCraft | undefined => {
-    const registry = player.getServer().getContent()?.enchantments;
+    const registry = player.getServer().getContent().enchantments;
     const base = open.inputs[WORKSTATION_ITEM];
-    if (registry === undefined || base === null || base === undefined) return undefined;
+    if (base === null || base === undefined) return undefined;
 
     const addition = open.inputs[WORKSTATION_MATERIAL] ?? undefined;
     const outcome = takeFromAnvil(registry, player, { base, addition, name });

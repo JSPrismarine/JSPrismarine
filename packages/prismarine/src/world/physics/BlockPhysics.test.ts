@@ -11,6 +11,7 @@ import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../Dimension';
 import type { World } from '../World';
 import BlockPhysics from './BlockPhysics';
+import { testContent } from '../../testing/entityServer';
 
 /** A catalog entry for a block name, which is what the drop of a destroyed block reads. */
 const blockNamed = (name: string): Block =>
@@ -65,7 +66,7 @@ class TestWorld {
         getServer: () =>
             stub<Server>({
                 // No pack stack, so a destroyed block falls back to the catalog's own drop.
-                getContent: () => undefined,
+                getContent: () => testContent(),
                 getLogger: () => stub<Logger>({ error: () => {}, debug: () => {} }),
                 getBlockManager: () =>
                     stub<BlockManager>({

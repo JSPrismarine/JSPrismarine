@@ -18,6 +18,7 @@ import { CommandEnum } from '../type/CommandEnum';
 import CommandParameter, { CommandArgumentType, CommandParameterType } from '../type/CommandParameter';
 import AvailableCommandsPacket from './AvailableCommandsPacket';
 import type DataPacket from './DataPacket';
+import { testContent } from '../../testing/entityServer';
 
 /**
  * Reads the packet back the way a protocol 2193 client does, from the docs'
@@ -406,7 +407,7 @@ describe('AvailableCommandsPacket', () => {
             emit: async () => {},
             getLogger: () => logger,
             // No pack stack, so the command layer offers the commands a server without one has.
-            getContent: () => undefined,
+            getContent: () => testContent(),
             getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
             getPermissionManager: () =>
                 stub<PermissionManager>({

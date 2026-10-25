@@ -20,6 +20,7 @@ import PlayerSession from './PlayerSession';
 import AvailableCommandsPacket from './packet/AvailableCommandsPacket';
 import type DataPacket from './packet/DataPacket';
 import { CommandParameterType } from './type/CommandParameter';
+import { testContent } from '../testing/entityServer';
 
 /** What a fresh `permissions.json` grants everyone. */
 const DEFAULT_PERMISSIONS = ['minecraft.command.help', 'minecraft.command.list', 'minecraft.command.me'];
@@ -39,7 +40,7 @@ const commandsSentTo = async (
         emit: async () => {},
         getLogger: () => logger,
         // No pack stack, so the command layer offers the commands a server without one has.
-        getContent: () => undefined,
+        getContent: () => testContent(),
         getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => players }),
         getPermissionManager: () =>
             stub<PermissionManager>({

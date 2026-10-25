@@ -5,8 +5,8 @@
  * this is the whole of the server's side of it: find the content, find the
  * player's progress, raise, and announce whatever completed. Every trigger
  * helper in `triggers.ts` goes through here, so the questions that have one
- * answer - what happens with no pack stack loaded, what a completion is
- * announced as, what a player in spectator earns - are answered once.
+ * answer - what a completion is announced as, what a player in spectator
+ * earns - are answered once.
  *
  * Raising is synchronous and deliberately so. The engine evaluates in the
  * caller's tick and the biggest vanilla bucket is 1914 criteria at well under
@@ -20,16 +20,9 @@ import type Player from '../Player';
 import TextPacketType from '../network/type/TextPacketType';
 import { advancementsOf } from './progress';
 
-/**
- * Raises one trigger for one player and announces whatever it completed.
- *
- * A no-op when the server built no content, which is the default: with no
- * pack stack there are no advancements to earn.
- */
+/** Raises one trigger for one player and announces whatever it completed. */
 export const raiseAdvancement = <K extends TriggerName>(player: Player, trigger: K, event: TriggerEvents[K]): void => {
-    const engine = player.getServer().getContent()?.advancements;
-    if (!engine) return;
-
+    const engine = player.getServer().getContent().advancements;
     const completed = engine.raise(trigger, event, advancementsOf(player));
     for (const id of completed) void announce(player, id);
 };
@@ -47,7 +40,7 @@ export const raiseAdvancement = <K extends TriggerName>(player: Player, trigger:
  * keys in it, which is a different job from this one.
  */
 const announce = async (player: Player, id: string): Promise<void> => {
-    const advancement = player.getServer().getContent()?.advancements.get(id);
+    const advancement = player.getServer().getContent().advancements.get(id);
     const display = advancement?.display;
     if (display?.announceToChat === false || display === undefined) return;
 

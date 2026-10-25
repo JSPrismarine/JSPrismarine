@@ -17,6 +17,7 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import BlockPosition from '../../world/BlockPosition';
+import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
@@ -31,6 +32,9 @@ import InventoryTransactionPacket, {
     ItemUseOnActorActionType
 } from '../packet/InventoryTransactionPacket';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
+import type { ServerWorldHandle } from '../../content/world/serverSource';
+import type { ServerItemActorPort } from '../../item/actorPort';
+import { testContent } from '../../testing/entityServer';
 
 // The blow and the shot have modules and tests of their own. Here they are recorded, so a
 // test can say what the handler asked for without a world to fight in.
@@ -69,7 +73,8 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
             broken.push(BlockPosition.fromVector3(position));
             return true;
         },
-        getEntity: (runtimeId) => (runtimeId === 42n ? zombie : null)
+        getEntity: (runtimeId) => (runtimeId === 42n ? zombie : null),
+        getDimension: () => Dimensions.Overworld
     });
 
     const inventory = new HumanInventory();
@@ -99,14 +104,19 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     const server = stub<Server>({
         getTick: () => TICK,
-        // No content, which is `content-packs` off: every click goes down the legacy path,
-        // which is what the rest of this file is about.
-        getContent: () => undefined,
-        getContentWorld: () => undefined,
+        // The two-block fixture, which has a type for neither the block nor the item any
+        // test here clicks with, so the content path declines and the click falls through
+        // to the legacy one that the rest of this file is about.
+        getContent: () => testContent(),
+        getContentWorld: () =>
+            stub<ServerWorldHandle>({
+                actorsAt: () => stub<ServerItemActorPort>({ duringInteraction: (_source, _target, body) => body() })
+            }),
         getLogger: () =>
             stub<Logger>({
                 debug: (...message) => void logged.push(`debug: ${String(message[0] ?? '')}`),
-                verbose: (...message) => void logged.push(`verbose: ${String(message[0] ?? '')}`)
+                verbose: (...message) => void logged.push(`verbose: ${String(message[0] ?? '')}`),
+                error: (...message) => void logged.push(`error: ${String(message[0] ?? '')}`)
             })
     });
     const session = stub<PlayerSession>({ getPlayer: () => player });

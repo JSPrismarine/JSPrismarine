@@ -18,6 +18,7 @@ import { Dimensions } from './Dimension';
 import type { Generator } from './Generator';
 import LevelDB from './providers/leveldb/LevelDB';
 import { World } from './World';
+import { inertEntityRuntime } from '../testing/entityServer';
 
 /**
  * The autosave, and the fact that a tick must not wait for it.
@@ -60,7 +61,7 @@ const testServer = (): Server =>
         // interesting state is reached in milliseconds rather than in a start region.
         getConfig: () => stub<Config>({ getPreloadRadius: () => 0, getEntityTrackingInterval: () => 20 }),
         // No data-driven runtime: this world runs the written entity classes.
-        getEntityRuntime: () => undefined
+        getEntityRuntime: () => inertEntityRuntime()
     });
 
 /** A column of stone under a column of air, distinct per chunk so a mix-up would show. */

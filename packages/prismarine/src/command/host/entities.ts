@@ -358,12 +358,12 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             if (held.getName() === 'minecraft:air') refuse(`${ref.name} is not holding anything`);
 
             const id = enchantment.includes(':') ? enchantment : `minecraft:${enchantment}`;
-            // Java's three checks, made only when the enchantment definitions
-            // are loaded. Without them the level still lands on the stack and
-            // the combat and mining code reads it; what is missing is the
-            // refusal, not the effect.
-            const registry = server.getContent()?.enchantments;
-            if (registry?.get(id) !== undefined) {
+            // Java's three checks, made only for an enchantment the stack
+            // declares. For one it does not, the level still lands on the
+            // stack and the combat and mining code reads it; what is missing
+            // is the refusal, not the effect.
+            const registry = server.getContent().enchantments;
+            if (registry.get(id) !== undefined) {
                 if (!registry.supports(held.asPredicateStack(), id)) {
                     refuse(`${held.getName()} cannot carry ${id}`);
                 }

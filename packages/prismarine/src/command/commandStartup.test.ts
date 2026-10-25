@@ -16,14 +16,13 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import Server from '../Server';
 import { Config } from '../config/Config';
-import { CONTENT_ENABLED_ENV } from '../content/settings';
 import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
 import { stub } from '../testing/stub.test.helper';
 import type Player from '../Player';
 import type { World } from '../world/World';
 import type { CommandExecutor } from './CommandExecutor';
-import { unwiredCommands } from './vanillaCommands';
+import { UNWIRED_COMMANDS } from './vanillaCommands';
 
 vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
@@ -131,9 +130,7 @@ describe('the command layer on a booted server', () => {
         const registry = server.getCommandManager().getVanillaCommands();
 
         expect(registry.getNames().length).toBeGreaterThan(0);
-        // Booted with `content-packs` off, so the content-backed half is held
-        // back as well.
-        expect(registry.getExcludedNames().sort()).toEqual(Object.keys(unwiredCommands(false)).sort());
+        expect(registry.getExcludedNames().sort()).toEqual(Object.keys(UNWIRED_COMMANDS).sort());
     });
 
     it('places a block through /setblock', async () => {
@@ -384,22 +381,20 @@ describe('the command layer on a booted server', () => {
 });
 
 /**
- * The same server with `content-packs` on, which is the only configuration
- * three of these four behaviors exist in.
+ * The same server over a pack stack with two fixtures added to it.
  *
  * A pack-defined entity needs a pack to define it, `/loot` needs a table to
  * roll, and a container block needs the block entity records the content
  * world keeps. So this boots a second server over the real pack stack plus
- * two fixtures of its own: a behavior pack declaring one entity Mojang never
- * published, and a datapack declaring one loot table.
+ * a behavior pack declaring one entity Mojang never published and a datapack
+ * declaring one loot table.
  */
-describe('the command layer on a server with the pack stack on', () => {
+describe('the command layer on a server with packs of its own', () => {
     let root: string;
     let server: Server;
     let world: World;
     let sender: CommandExecutor;
     let previousDir: string | undefined;
-    let previousContent: string | undefined;
 
     const run = async (line: string) => server.getCommandManager().dispatchCommand(sender, sender, line);
 
@@ -457,7 +452,6 @@ describe('the command layer on a server with the pack stack on', () => {
         writeFileSync(
             path.join(root, 'config.yaml'),
             [
-                'content-packs: true',
                 'content-strict: false',
                 'content-world-packs:',
                 `    - ${path.join(root, 'behaviorpack')}`,
@@ -468,9 +462,7 @@ describe('the command layer on a server with the pack stack on', () => {
         );
 
         previousDir = process.env.JSP_DIR;
-        previousContent = process.env[CONTENT_ENABLED_ENV];
         process.env.JSP_DIR = root;
-        process.env[CONTENT_ENABLED_ENV] = '1';
 
         server = new Server({ logger: new Logger(), config: debugConfig('content-commands'), headless: true });
         vi.spyOn(server, 'shutdown').mockResolvedValue(undefined);
@@ -492,8 +484,6 @@ describe('the command layer on a server with the pack stack on', () => {
         rmSync(root, { recursive: true, force: true });
         if (previousDir === undefined) delete process.env.JSP_DIR;
         else process.env.JSP_DIR = previousDir;
-        if (previousContent === undefined) delete process.env[CONTENT_ENABLED_ENV];
-        else process.env[CONTENT_ENABLED_ENV] = previousContent;
     });
 
     /** The data-driven entity standing at a position, which is what a summon has to produce. */
@@ -506,9 +496,9 @@ describe('the command layer on a server with the pack stack on', () => {
     it('built its content from the pack stack, the fixtures included', () => {
         const content = server.getContent();
 
-        expect(content?.entities.registry.has('mypack:dragon')).toBe(true);
-        expect(content?.entities.registry.has('minecraft:villager_v2')).toBe(true);
-        expect(content?.loot.table('mypack:gifts')).toBeDefined();
+        expect(content.entities.registry.has('mypack:dragon')).toBe(true);
+        expect(content.entities.registry.has('minecraft:villager_v2')).toBe(true);
+        expect(content.loot.table('mypack:gifts')).toBeDefined();
     });
 
     it('summons a pack-defined entity by the name only the pack knows', async () => {

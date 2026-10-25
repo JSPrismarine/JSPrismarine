@@ -38,6 +38,7 @@
  * book, so `recipe_unlocked` has nothing to unlock, and no container loot
  * generation, so `player_generates_container_loot` has nothing to report.
  */
+import type { TriggerName } from '@jsprismarine/advancements';
 import type { ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
 
 import type Player from '../Player';
@@ -49,8 +50,15 @@ import { lootDamageSource } from '../entity/mobLoot';
 import { raiseAdvancement } from './raise';
 import { advancementSubject } from './subject';
 
-/** Whether anything at all is listening, so a call site pays nothing with the content off. */
-const enabled = (player: Player): boolean => player.getServer().getContent() !== undefined;
+/**
+ * Whether any loaded criterion is listening for one trigger.
+ *
+ * Every call site below builds its event out of the player's inventory,
+ * equipment, position and attributes, which is work a stack that declares no
+ * advancement for the trigger has no use for.
+ */
+const listening = (player: Player, trigger: TriggerName): boolean =>
+    player.getServer().getContent().advancements.listensFor(trigger);
 
 /** One entity as a trigger condition reads it, equipment included. */
 const viewOf = (entity: Entity) => entityPredicateView(entity, { equipment: entity.getEquipment() });
@@ -81,7 +89,7 @@ const inventoryOf = (player: Player): readonly (PredicateItemStack | undefined)[
  *   it out makes almost all of them unreachable.
  */
 export const advancementInventoryChanged = (player: Player, changed?: Item): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'inventory_changed')) return;
 
     raiseAdvancement(player, 'inventory_changed', {
         player: advancementSubject(player),
@@ -102,13 +110,13 @@ export const advancementItemCrafted = (
     ingredients: readonly Item[],
     result?: Item
 ): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'recipe_crafted', {
-        player: advancementSubject(player),
-        recipe,
-        ingredients: ingredients.map((stack) => stack.asPredicateStack())
-    });
+    if (listening(player, 'recipe_crafted')) {
+        raiseAdvancement(player, 'recipe_crafted', {
+            player: advancementSubject(player),
+            recipe,
+            ingredients: ingredients.map((stack) => stack.asPredicateStack())
+        });
+    }
     advancementInventoryChanged(player, result);
 };
 
@@ -123,7 +131,7 @@ export const advancementItemCrafted = (
 export const advancementKill = (victim: Entity, source: DamageSource): void => {
     const killer = source.attacker;
 
-    if (killer && isPlayer(killer) && enabled(killer)) {
+    if (killer && isPlayer(killer) && listening(killer, 'player_killed_entity')) {
         raiseAdvancement(killer, 'player_killed_entity', {
             player: advancementSubject(killer),
             entity: viewOf(victim),
@@ -133,7 +141,7 @@ export const advancementKill = (victim: Entity, source: DamageSource): void => {
 
     // Only with a killer, which is Java's own condition: `entity_killed_player`
     // names the entity that did it, and falling into a hole names nobody.
-    if (killer && isPlayer(victim) && enabled(victim)) {
+    if (killer && isPlayer(victim) && listening(victim, 'entity_killed_player')) {
         raiseAdvancement(victim, 'entity_killed_player', {
             player: advancementSubject(victim),
             entity: viewOf(killer),
@@ -158,7 +166,7 @@ export const advancementDamage = (
 ): void => {
     const attacker = source.attacker;
 
-    if (attacker && isPlayer(attacker) && enabled(attacker)) {
+    if (attacker && isPlayer(attacker) && listening(attacker, 'player_hurt_entity')) {
         raiseAdvancement(attacker, 'player_hurt_entity', {
             player: advancementSubject(attacker),
             entity: viewOf(victim),
@@ -169,7 +177,7 @@ export const advancementDamage = (
         });
     }
 
-    if (isPlayer(victim) && enabled(victim)) {
+    if (isPlayer(victim) && listening(victim, 'entity_hurt_player')) {
         raiseAdvancement(victim, 'entity_hurt_player', {
             player: advancementSubject(victim),
             damageSource: damageSourceView(victim, source),
@@ -200,7 +208,7 @@ export interface BlockUseEvent {
  * not something `@jsprismarine/mapping` does.
  */
 export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'placed_block')) return;
 
     raiseAdvancement(player, 'placed_block', {
         player: advancementSubject(player),
@@ -218,7 +226,7 @@ export const advancementPlacedBlock = (player: Player, event: BlockUseEvent): vo
  * branch of the tree.
  */
 export const advancementConsumedItem = (player: Player, item: Item): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'consume_item')) return;
 
     raiseAdvancement(player, 'consume_item', {
         player: advancementSubject(player),
@@ -235,7 +243,7 @@ export const advancementConsumedItem = (player: Player, item: Item): void => {
  *   convention for the field of the same name.
  */
 export const advancementDurabilityChanged = (player: Player, item: Item, remaining: number, delta: number): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'item_durability_changed')) return;
 
     raiseAdvancement(player, 'item_durability_changed', {
         player: advancementSubject(player),
@@ -257,11 +265,13 @@ export const advancementDurabilityChanged = (player: Player, item: Item, remaini
  * @param defaultUse - Whether the block's own behavior consumed the click.
  */
 export const advancementBlockUsed = (player: Player, event: Omit<BlockUseEvent, 'tool'>, defaultUse: boolean): void => {
-    if (!enabled(player)) return;
+    const any = listening(player, 'any_block_use');
+    const byDefault = defaultUse && listening(player, 'default_block_use');
+    if (!any && !byDefault) return;
 
     const raised = { player: advancementSubject(player), origin: event.origin, blockState: { name: event.block } };
-    raiseAdvancement(player, 'any_block_use', raised);
-    if (defaultUse) raiseAdvancement(player, 'default_block_use', raised);
+    if (any) raiseAdvancement(player, 'any_block_use', raised);
+    if (byDefault) raiseAdvancement(player, 'default_block_use', raised);
 };
 
 /**
@@ -272,7 +282,7 @@ export const advancementBlockUsed = (player: Player, event: Omit<BlockUseEvent, 
  * {@link advancementBlockUsed}, and the reason Java keeps them apart.
  */
 export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'item_used_on_block')) return;
 
     raiseAdvancement(player, 'item_used_on_block', {
         player: advancementSubject(player),
@@ -284,7 +294,7 @@ export const advancementItemUsedOnBlock = (player: Player, event: BlockUseEvent)
 
 /** An enchanting table gave a player an enchanted item, with what it cost. */
 export const advancementEnchantedItem = (player: Player, item: Item, levels: number): void => {
-    if (!enabled(player)) return;
+    if (!listening(player, 'enchanted_item')) return;
 
     raiseAdvancement(player, 'enchanted_item', {
         player: advancementSubject(player),
@@ -295,13 +305,13 @@ export const advancementEnchantedItem = (player: Player, item: Item, levels: num
 
 /** A player picked a dropped stack up off the ground. */
 export const advancementPickedUpItem = (player: Player, item: Item, thrower?: Entity): void => {
-    if (!enabled(player)) return;
-
-    raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
-        player: advancementSubject(player),
-        item: item.asPredicateStack(),
-        ...(thrower === undefined ? {} : { entity: viewOf(thrower) })
-    });
+    if (listening(player, 'thrown_item_picked_up_by_player')) {
+        raiseAdvancement(player, 'thrown_item_picked_up_by_player', {
+            player: advancementSubject(player),
+            item: item.asPredicateStack(),
+            ...(thrower === undefined ? {} : { entity: viewOf(thrower) })
+        });
+    }
     advancementInventoryChanged(player, item);
 };
 
@@ -314,16 +324,18 @@ export const advancementPickedUpItem = (player: Player, item: Item, thrower?: En
  * about anything that happened, so there is nothing else to hang them on.
  */
 export const advancementPlayerTick = (player: Player): void => {
-    if (!enabled(player)) return;
+    const location = listening(player, 'location');
+    const tick = listening(player, 'tick');
+    if (!location && !tick) return;
 
     const subject = advancementSubject(player);
-    raiseAdvancement(player, 'location', { player: subject });
-    raiseAdvancement(player, 'tick', { player: subject });
+    if (location) raiseAdvancement(player, 'location', { player: subject });
+    if (tick) raiseAdvancement(player, 'tick', { player: subject });
 };
 
 /** A player moved between dimensions. */
 export const advancementChangedDimension = (player: Player, from: string, to: string): void => {
-    if (!enabled(player) || from === to) return;
+    if (from === to || !listening(player, 'changed_dimension')) return;
 
     raiseAdvancement(player, 'changed_dimension', { player: advancementSubject(player), from, to });
 };
@@ -336,15 +348,14 @@ const isPlayer = (entity: Entity): entity is Player => entity.getType() === 'min
  *
  * The real type and its tags come from the content build, because `lootDamageSource`
  * is what resolves a `DamageCause` into a Java damage type and looks its
- * `damage_type` tags up. With no content there is nothing to resolve against,
- * and the catch-all keeps the required `damage_source` parameter present
- * rather than absent, which is the difference between a condition reporting
- * and a condition failing.
+ * `damage_type` tags up. A cause the stack declares no damage type for falls
+ * back to the catch-all, which keeps the required `damage_source` parameter
+ * present rather than absent, and that is the difference between a condition
+ * reporting and a condition failing.
  */
 const damageSourceView = (victim: Entity, source: DamageSource) => {
-    const content = victim.getServer().getContent();
     return (
-        (content && lootDamageSource(content, source)) ?? {
+        lootDamageSource(victim.getServer().getContent(), source) ?? {
             type: 'minecraft:generic',
             tags: [],
             position: vec3Of(victim.getPosition())

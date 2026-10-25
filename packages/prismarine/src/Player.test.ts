@@ -32,6 +32,7 @@ import type { ChunkScheduler } from './world/ChunkScheduler';
 import type GameRuleManager from './world/GameRuleManager';
 import { Position } from './world/Position';
 import type { World } from './world/World';
+import { testContent } from './testing/entityServer';
 
 /**
  * A player with just enough of a server, world and connection around it to move and tick.
@@ -60,7 +61,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getWorldManager: () => stub<WorldManager>({ getWorlds: () => [world] }),
         // No pack stack, so there are no advancements to raise and no
         // enchantment definitions to run.
-        getContent: () => undefined,
+        getContent: () => testContent(),
         getConfig: () =>
             stub<Config>({
                 getGamemode: () => 'survival',

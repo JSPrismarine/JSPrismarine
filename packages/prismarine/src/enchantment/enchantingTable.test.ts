@@ -114,7 +114,7 @@ const worldOf = (blocks: ReadonlyMap<string, string> = new Map()) =>
         getPlayers: () => []
     });
 
-const scene = (built: ServerContent | undefined, world = worldOf()) => {
+const scene = (built: ServerContent, world = worldOf()) => {
     const sent: DataPacket[] = [];
     const attributes = new Attributes(Attributes.getPlayerDefaults());
 
@@ -267,14 +267,6 @@ describe('the enchanting table', () => {
             const packet = sent.at(-1);
             expect(packet).toBeInstanceOf(PlayerEnchantOptionsPacket);
             expect((packet as PlayerEnchantOptionsPacket).options).toEqual([]);
-        });
-
-        it('clears the table on a server with no pack stack', async () => {
-            const { player, sent } = scene(undefined);
-
-            await showEnchantingTable(player, pickaxe(), { x: 0, y: 64, z: 0 });
-
-            expect((sent.at(-1) as PlayerEnchantOptionsPacket).options).toEqual([]);
         });
     });
 });

@@ -42,6 +42,7 @@ import type { GameRuleEntry } from '../../world/GameRuleManager';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import type WorldManager from '../../world/WorldManager';
+import { testContent } from '../../testing/entityServer';
 import { collectAsyncCommands } from '../Command';
 import { buildVanillaCommands } from '../vanillaCommands';
 import { serverCommandHost } from './serverCommandHost';
@@ -66,7 +67,7 @@ interface Fixture {
     /** Everything `World.dropContents` was asked to put on the ground. */
     readonly dropped: { position: Vector3; contents: unknown[] }[];
     /** Puts a content build behind the server, which is what `/loot` reads. */
-    useContent(built: ServerContent | undefined): void;
+    useContent(built: ServerContent): void;
 }
 
 const buildFixture = (): Fixture => {
@@ -185,9 +186,9 @@ const buildFixture = (): Fixture => {
                     })
             }),
         getConfig: () => stub<Config>({ getGamemode: () => 'survival' }),
-        // Undefined by default, which is the shape of a server running with
-        // `content-packs` off; `useContent` hands the fixture a real one.
-        getContent: () => content,
+        // The two-block fixture until `useContent` hands over a build with
+        // the loot tables or recipes the test is about.
+        getContent: () => content ?? testContent(),
         broadcastPacket: async (packet: unknown) => {
             sent.push(packet);
         }
@@ -1025,10 +1026,6 @@ describe('the server command host', () => {
             return stub<ServerContent>({ loot: new LootRegistry(definitions, { worldSeed: 1n }) });
         };
 
-        it('refuses to roll when no pack stack is loaded', async () => {
-            await expect(fixture.run('loot spawn 0 70 0 loot mypack:prize')).rejects.toThrow(/no loot tables/);
-        });
-
         it('names a table nobody registered rather than reporting an empty roll', async () => {
             fixture.useContent(lootContent());
 
@@ -1094,12 +1091,6 @@ describe('the server command host', () => {
             ]);
             return stub<ServerContent>({ recipes: loaded.book });
         };
-
-        it('refuses when no recipe book is loaded', async () => {
-            playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
-
-            await expect(fixture.run('recipe give @a mypack:cake')).rejects.toThrow(/no recipes/);
-        });
 
         it('names a recipe the book does not hold', async () => {
             playerAt(fixture, 1n, 'Steve', new Vector3(0, 64, 0));
