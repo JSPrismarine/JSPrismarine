@@ -7,5 +7,6 @@ import UUID from './UUID';
 
 export { ParseTargetSelector, ParseTildeCaretNotation, Seed, Timer, UUID };
 
+export * from './Random';
 export * from './Service';
 export * from './cwd';
