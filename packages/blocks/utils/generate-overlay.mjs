@@ -3,9 +3,17 @@
  * one Bedrock block definition per palette block, with the components filled
  * from `@jsprismarine/mapping`'s Java-sourced property table.
  *
- * Run as `pnpm --filter @jsprismarine/blocks run generate:overlay`. The
- * output is committed, so a palette or property-table bump shows up as a
- * reviewable diff rather than as a silent change at load.
+ * Run as `pnpm --filter @jsprismarine/blocks run generate:overlay`, which
+ * builds the package first. The output is committed, so a palette or
+ * property-table bump shows up as a reviewable diff rather than as a silent
+ * change at load.
+ *
+ * This is plain JavaScript over the built `dist/`, the way
+ * `packages/bedrock-data/utils/java-dump/run.mjs` is, so that nothing in
+ * `src/` has to be written for `node`'s resolver. An earlier version imported
+ * `../src/overlay.ts` directly, which forced `src/overlay.ts` to spell its own
+ * import `./families.ts`, and that in turn forced every package depending on
+ * `@jsprismarine/blocks` to set `allowImportingTsExtensions`.
  *
  * The property table is read as a file rather than imported, the way
  * `packages/mapping/utils/generate/generate-block-properties.ts` reads its
@@ -17,24 +25,17 @@ import { mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'nod
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 import { blockSchemas } from '@jsprismarine/minecraft/generated/block-schemas';
 
-import { OVERLAY_PACK_NAME, generateVanillaOverlay } from '../src/overlay.ts';
+import { OVERLAY_PACK_NAME, generateVanillaOverlay } from '../dist/overlay.es.js';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoRoot = resolve(packageDir, '../..');
 const target = join(packageDir, 'vanilla_overlay');
 
-interface PropertyTable {
-    blocks: Record<string, { base: BedrockBlockProperties }>;
-    bedrockOnly: string[];
-}
-
-// The generated table is parsed JSON; @jsprismarine/mapping's generator guarantees this shape.
-const table = JSON.parse(
-    readFileSync(join(repoRoot, 'packages/mapping/src/tables/blockProperties.json'), 'utf8')
-) as PropertyTable;
+// The generated table is parsed JSON; @jsprismarine/mapping's generator
+// guarantees the `blocks` and `bedrockOnly` shape this reads.
+const table = JSON.parse(readFileSync(join(repoRoot, 'packages/mapping/src/tables/blockProperties.json'), 'utf8'));
 
 const identifiers = Object.keys(blockSchemas.blocks).sort();
 

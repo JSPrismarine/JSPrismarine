@@ -1,9 +1,6 @@
 import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 
-// The extension is explicit because `utils/generate-overlay.ts` loads this
-// module under plain `node`, which does not resolve an extensionless
-// specifier. `./families` imports nothing, so the graph stops there.
-import { behaviorFor } from './families.ts';
+import { behaviorFor } from './families';
 
 /**
  * Where the generator reads a block's properties from.
