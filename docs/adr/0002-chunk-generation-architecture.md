@@ -170,10 +170,26 @@ function, which is the precondition for everything below it.
 candidates were assembled and then discarded by the biome check at
 `javaStructureStarts.ts:225`, consuming 87% of all layout time. Moving the check in front of the
 builder takes the front model from 310 ms per chunk of layout to about 40, and the fill model from
-9.4 to about 1.2. It is also the only item in this decision that deviates from Java's order, since
-Java filters after `findGenerationPoint` too, so it needs a parity ruling rather than just an
-implementation. Memoizing `jigsawBlocksOf`, which is 20.9% self time with no cache, is the same
-saving taken from the other side and needs no ruling at all.
+9.4 to about 1.2. Memoizing `jigsawBlocksOf`, which is 20.9% self time with no cache, is the same
+saving taken from the other side.
+
+This was written up as the one item here that deviates from Java's order, and it is the opposite.
+The jar settled it. `Structure.generate` calls `findValidGenerationPoint`, which is
+`findGenerationPoint(context).filter(context::isValidBiome)`, and `findGenerationPoint` returns a
+`GenerationStub` holding a position and an `Either<Consumer<StructurePiecesBuilder>,
+StructurePiecesBuilder>`. Thirteen of the fourteen structure types this server builds answer with
+the `Consumer` side, which has not run; `getPiecesBuilder()` runs it on the line after the filter.
+`JigsawPlacement.addPieces`, which is the expensive one, places only the start piece and defers the
+breadth-first walk into that consumer. Java checks the biome before it assembles. Our order was the
+deviation, and putting the check first ends it rather than introducing one.
+
+The one exception is the mineshaft, and Java agrees there too:
+`MineshaftStructure.findGenerationPoint` answers with `Either.right` of a built pieces list, because
+the settling move the tunnels make is what decides its own generation point. It stays eager.
+
+Measured at seed 1234 over the same 102 by 102 area: 356 candidates before and after, 47 assembled
+where 356 were, and the 37 kept starts identical in structure, set, chunk, step, terrain adaptation,
+generation point, bounding box and piece count. The generation golden corpus did not move.
 
 **The pool buys 4.7 times and no more.** That is measured, twice, on this machine, and it is a
 property of six performance cores and V8 isolates rather than of this code. More workers past six
