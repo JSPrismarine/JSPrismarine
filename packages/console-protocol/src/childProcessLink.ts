@@ -39,7 +39,10 @@ export interface ChildProcessLink<In, Out> extends MessageLink<In, Out> {
  *
  * `send` returns what `process.send` returns: `false` once the unsent backlog passes Node's
  * threshold or after the channel closed. The close listeners run when the channel disconnects,
- * whether through {@link MessageLink.close} or because the host went away.
+ * whether through {@link MessageLink.close} or because the host went away. A channel that is
+ * already disconnected when the link is built, because the host went away during startup, is
+ * reported the same way: the close listeners run on the next microtask, which leaves the
+ * caller its synchronous turn to register them, so the server still learns to shut down.
  *
  * @throws {Error} When the process has no IPC channel, which means it was not started by
  * `child_process.fork` or with an `'ipc'` stdio entry.
@@ -82,6 +85,13 @@ export function childProcessLink<In, Out>(options: ChildProcessLinkOptions<In>):
     if (open) {
         proc.on('message', onIpcMessage);
         proc.on('disconnect', onDisconnect);
+    } else {
+        // Born closed. No 'disconnect' will ever fire, so report the close ourselves, deferred
+        // one microtask so the listeners the caller registers right after this return still run.
+        queueMicrotask(() => {
+            events.emit('close');
+            events.removeAllListeners();
+        });
     }
 
     return {
