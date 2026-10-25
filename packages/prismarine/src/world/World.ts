@@ -190,7 +190,16 @@ export class World implements Service {
     private lastChunk: Chunk | null = null;
     private lastChunkSource: Map<number, Chunk> | null = null;
 
-    private readonly gameRuleManager: GameRuleManager | null = null;
+    /**
+     * The world's game rules, built before anything can ask for them.
+     *
+     * Assigned at the top of the constructor and never reassigned, so it is not optional: a
+     * world that exists has its rules. The declaration has been nullable twice, each time to
+     * accommodate a test double built with `Object.create(World.prototype)`, which skips the
+     * constructor. That costs every call site in the server a check for a case the server
+     * does not have; the doubles carry a manager of their own instead.
+     */
+    private readonly gameRuleManager: GameRuleManager;
     private currentTick = 0;
 
     /** Two minutes at the server's twenty ticks per second. */
@@ -280,7 +289,7 @@ export class World implements Service {
                 topOfColumn: (x, z) => this.topOfColumn(x, z),
                 loadedChunks: () => Array.from(this.chunks.values(), (chunk) => ({ x: chunk.getX(), z: chunk.getZ() })),
                 randomTickSpeed: () => {
-                    const [value] = this.gameRuleManager?.getGameRule(GameRules.RandomTickSpeed) ?? [];
+                    const [value] = this.gameRuleManager.getGameRule(GameRules.RandomTickSpeed) ?? [];
                     return typeof value === 'number' ? value : DEFAULT_RANDOM_TICK_SPEED;
                 },
                 randomTickChunks: () => this.randomTickChunks()
@@ -338,7 +347,7 @@ export class World implements Service {
         if (level.spawn) this.setSpawnPosition(Vector3.fromObject(level.spawn));
         if (level.gameRules) {
             level.gameRules.forEach(([name, [value, editable]]) =>
-                this.gameRuleManager?.setGameRule(name, value, editable)
+                this.gameRuleManager.setGameRule(name, value, editable)
             );
         }
         if (level.entities) {
@@ -1680,7 +1689,7 @@ export class World implements Service {
         await this.saveLevelData();
     }
 
-    public getGameRuleManager() {
+    public getGameRuleManager(): GameRuleManager {
         return this.gameRuleManager;
     }
 
@@ -1760,7 +1769,7 @@ export class World implements Service {
 
         const data = {
             ...(spawn ? { spawn: { x: spawn.getX(), y: spawn.getY(), z: spawn.getZ() } } : {}),
-            gameRules: Array.from(this.getGameRuleManager()?.getGameRules() || []),
+            gameRules: Array.from(this.getGameRuleManager().getGameRules()),
             entities: this.getEntities()
                 .filter((entity) => !(entity instanceof Player))
                 .map((entity) => ({
