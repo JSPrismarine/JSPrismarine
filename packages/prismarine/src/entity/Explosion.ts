@@ -29,7 +29,6 @@ import Tnt, { randomShortFuse } from './other/Tnt';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
-import { sizeOf } from './EntitySize';
 
 /**
  * Where an entity's eyes are, as a fraction of its height.
@@ -169,7 +168,7 @@ const entitiesNear = (world: World, at: Vector3): readonly CaughtEntity[] =>
         .near(at.getX(), at.getZ())
         .map((entity) => {
             const position = entity.getPosition();
-            const { width, height } = sizeOf(entity.getType());
+            const { width, height } = entity.getBox();
             const feet = { x: position.getX(), y: entity.getFeetY(), z: position.getZ() };
 
             return {

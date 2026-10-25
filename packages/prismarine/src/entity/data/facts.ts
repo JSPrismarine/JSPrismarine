@@ -37,6 +37,40 @@ export interface EntityBox {
  */
 export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
 
+/**
+ * The boxes of the two types the server models that no entity file declares.
+ *
+ * A dropped stack and a falling block are bodies the server makes rather than
+ * types a pack describes, so Mojang's behavior pack ships no `item.json` and
+ * no `falling_block.json` and the registry has nothing to read for either.
+ * The numbers are Java's, which is also what the Bedrock client draws for the
+ * two of them.
+ *
+ * Every other type comes from the registry. A row added here is a row the
+ * content no longer owns, so the table is meant to stay two rows long.
+ */
+const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
+    'minecraft:item': { width: 0.25, height: 0.25 },
+    'minecraft:falling_block': { width: 0.98, height: 0.98 }
+};
+
+/**
+ * The hitbox of one entity type, from its `minecraft:collision_box`.
+ *
+ * The server collides bodies against the world with these numbers and the
+ * client is told the same ones, so the hitbox it draws sits where the server
+ * thinks the body is. They used to disagree: every entity announced itself as
+ * the player's `0.6 x 1.8` while the server treated it as a point, so a sheep
+ * walked half way into a wall before anything stopped it.
+ *
+ * @param registry - The entity types of the running content build.
+ * @param identifier - The namespaced type, as `Entity.getType` reports it.
+ * @returns The declared box, one of {@link UNDECLARED_BOXES}, or
+ *   {@link DEFAULT_BOX} for a type nothing describes.
+ */
+export const boxOf = (registry: Registry<EntityType>, identifier: string): EntityBox =>
+    registry.get(identifier)?.params(collisionBox) ?? UNDECLARED_BOXES[identifier] ?? DEFAULT_BOX;
+
 /** Everything the server reads about an entity type that is a number or a name. */
 export interface EntityFacts {
     /** The namespaced identifier, such as `minecraft:zombie`. */
@@ -125,12 +159,11 @@ const factsOf = (registry: Registry<EntityType>, identifier: string, type: Entit
     // once. The instance is thrown away: nothing ticks it and nothing puts it in the world.
     const probe = new EntityInstance(registry.holder(identifier));
     const attributes = probe.attributes;
-    const box = type.params(collisionBox);
     const movement = attributes.value('movement', 0);
 
     return {
         identifier,
-        box: box === undefined ? DEFAULT_BOX : { width: box.width, height: box.height },
+        box: boxOf(registry, identifier),
         health: attributes.value('health', 0),
         attackDamage: attributes.value('attack_damage', 0),
         knockbackResistance: attributes.value('knockback_resistance', 0),

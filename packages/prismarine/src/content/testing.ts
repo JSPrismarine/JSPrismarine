@@ -70,7 +70,12 @@ export const fixtureDefinitions = (): Definitions =>
                     format_version: '1.21.0',
                     'minecraft:entity': {
                         description: { identifier: 'minecraft:cow', is_spawnable: true, is_summonable: true },
-                        components: { 'minecraft:health': { value: 10, max: 10 } }
+                        // The box is vanilla's. Declared because the server reads every hitbox
+                        // off the content now, so a fixture without one makes a cow a cube.
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 0.9, height: 1.3 }
+                        }
                     }
                 })
             ]

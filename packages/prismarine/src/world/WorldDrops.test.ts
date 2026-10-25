@@ -9,6 +9,7 @@ import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '../network/packet/AddItemActorPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
+import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -92,9 +93,10 @@ const fakeWorld = (initial: BlockState) => {
             }),
             getConfig: () => ({ getProximityBroadcast: () => true }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
-            // No content, which is `content-packs` off: the break takes the path this server
-            // has always had, and the block itself says what it drops.
-            getContent: () => undefined
+            // The two-block fixture, which covers neither the block broken here nor any
+            // family, so the break falls through to the block's own drops - which is the
+            // path these tests are about.
+            getContent: () => testContent()
         }
     });
 
@@ -123,7 +125,8 @@ const emptyWorld = () => {
         currentTick: 0,
         changes: NULL_WORLD_CHANGE_SINK,
         server: {
-            getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) })
+            getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),
+            getContent: () => testContent()
         }
     });
 

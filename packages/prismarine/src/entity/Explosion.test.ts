@@ -4,6 +4,7 @@ import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
+import { definitionsOf } from '../content/ContentOptions';
 import { fixtureContentOptions } from '../content/testing';
 import { unwiredWorld } from '../content/world/unwired';
 import { Dimensions } from '../world/Dimension';
@@ -15,6 +16,21 @@ import { explode } from './Explosion';
 import { Attribute, AttributeIds } from './Attribute';
 import { GenericEntity } from './GenericEntity';
 
+/** @see {@link emptyContent} */
+let bareBuild: ServerContent | undefined;
+
+/**
+ * A build that declares nothing: no block type, no loot table, no entity.
+ *
+ * Every scene needs one, because an entity reads its hitbox off the content, and most of the
+ * tests below want a server whose pack stack has nothing to say about the block that broke.
+ * Built once and shared; nothing mutates a resolved `ServerContent`.
+ */
+const emptyContent = (): ServerContent =>
+    (bareBuild ??= buildServerContent(
+        fixtureContentOptions({ load: () => ({ definitions: definitionsOf({}), diagnostics: [] }) })
+    ));
+
 /**
  * Blasts, over a world of one block repeated.
  *
@@ -22,12 +38,7 @@ import { GenericEntity } from './GenericEntity';
  * numbers. What is checked here is the translation: that the blast reads this server's chunks,
  * writes through them, hurts the entities in the grid, and rolls each broken block's loot table.
  */
-const scene = ({
-    griefing = true,
-    solid = false,
-    block = '',
-    content = undefined as ServerContent | undefined
-} = {}) => {
+const scene = ({ griefing = true, solid = false, block = '', content = emptyContent() } = {}) => {
     const blockName = block !== '' ? block : solid ? 'minecraft:stone' : 'minecraft:air';
     const nearby: Entity[] = [];
     const effects: LevelEvent[] = [];
@@ -251,7 +262,7 @@ describe('explosions', () => {
             expect(cow.getHealth()).toBeLessThan(10);
         });
 
-        it('drops nothing on a server with no pack stack to roll a table from', async () => {
+        it('drops nothing for a block the pack stack has no loot table for', async () => {
             const bare = scene({ solid: true });
             await explode(bare.world, new Vector3(0, 64, 0), { power: 3 });
 

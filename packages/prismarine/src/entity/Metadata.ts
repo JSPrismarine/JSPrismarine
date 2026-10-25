@@ -363,7 +363,7 @@ export class Metadata extends MetadataWriter {
         this.setLong(MetadataFlag.ENTITY_LEAD_HOLDER_ID, -1n);
 
         // A block, which is Mojang's own default for an entity that has not said - and the
-        // conservative one. `Entity` overwrites this with the real size from `EntitySize` as soon
+        // conservative one. `Entity` overwrites this with the type's own collision box as soon
         // as it is built; only metadata belonging to nothing in particular keeps it. It used to be
         // a player's 0.6 x 1.8, which is not a default so much as a wrong answer wearing one:
         // every chicken and every ghast announced itself as a person.

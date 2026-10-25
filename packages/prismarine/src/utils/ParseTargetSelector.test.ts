@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
 import Player from '../Player';
-import type Server from '../Server';
 import { Entity } from '../entity/Entity';
 import { GenericEntity } from '../entity/GenericEntity';
+import { testEntityServer } from '../testing/entityServer';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world';
 import { Position } from '../world/Position';
@@ -17,7 +17,7 @@ import ParseTargetSelector from './ParseTargetSelector';
  * that is nowhere is not a state the type system should have allowed.
  */
 const fakeWorld = () =>
-    stub<World>({ getName: () => 'test-world', getServer: () => stub<Server>(), getEntities: () => [] });
+    stub<World>({ getName: () => 'test-world', getServer: () => testEntityServer(), getEntities: () => [] });
 
 /** An entity somewhere, since where exactly does not matter to a selector. */
 const somewhere = () => new Position(0, 0, 0, fakeWorld());

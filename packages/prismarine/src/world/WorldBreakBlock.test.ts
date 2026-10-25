@@ -9,6 +9,7 @@ import BatchPacket from '../network/packet/BatchPacket';
 import LevelSoundEventPacket from '../network/packet/LevelSoundEventPacket';
 import UpdateBlockPacket, { UpdateBlockFlagsType } from '../network/packet/UpdateBlockPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
+import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
 import { World } from './World';
 
@@ -100,9 +101,10 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
             }),
             getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
-            // No content, which is `content-packs` off: no block family gets `onBreak` and the
-            // block itself says what it drops, which is the path these tests are about.
-            getContent: () => undefined
+            // The two-block fixture, which covers neither the block broken here nor any
+            // family, so no `onBreak` runs and the block itself says what it drops - which is
+            // the path these tests are about.
+            getContent: () => testContent()
         }
     });
 

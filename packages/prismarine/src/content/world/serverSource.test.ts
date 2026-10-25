@@ -85,7 +85,7 @@ interface Broadcasts {
  * writes, the light and the tick lists are the server's own rather than a stand-in. Only the
  * disk, the network and the server around it are replaced.
  */
-const liveWorld = (): { world: World; chunk: Chunk; broadcasts: Broadcasts } => {
+const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; broadcasts: Broadcasts } => {
     const chunk = new Chunk(0, 0);
     const broadcasts: Broadcasts = { sounds: [], particles: [] };
 
@@ -100,7 +100,10 @@ const liveWorld = (): { world: World; chunk: Chunk; broadcasts: Broadcasts } => 
         players: new Map(),
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} })
+            getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
+            // An entity reads its hitbox off the built content, and a spawn is what half of
+            // these tests are about, so the double answers the same build the world does.
+            getContent: content
         }
     });
 
@@ -170,9 +173,9 @@ describe('serverWorldSource', () => {
     let content: ServerContent;
 
     beforeEach(() => {
-        ({ world, chunk, broadcasts } = liveWorld());
-
         let built: ServerContent | undefined;
+        ({ world, chunk, broadcasts } = liveWorld(() => built!));
+
         content = buildServerContent({
             load: () => ({
                 definitions: definitionsOf({
