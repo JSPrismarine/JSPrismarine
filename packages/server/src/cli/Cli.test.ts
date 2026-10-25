@@ -13,13 +13,13 @@ describe('parseServerArgs', () => {
     });
 
     it('reads the mode flags and the hidden role', () => {
-        const args = parseServerArgs(['--watch', '--no-tui', '--headless', '--role', 'server', '--port', '19133']);
+        const args = parseServerArgs(['--watch', '--no-tui', '--role', 'server', '--port', '19133']);
 
         expect(args.watch).toBe(true);
         expect(args.noTui).toBe(true);
-        expect(args.headless).toBe(true);
         expect(args.role).toBe('server');
         expect(args.port).toBe(19133);
+        expect(parseServerArgs(['--headless']).headless).toBe(true);
     });
 
     it('rejects a role it does not know', () => {
@@ -39,6 +39,10 @@ describe('parseServerArgs', () => {
         const args = parseServerArgs(['--', '--port', '19134']);
 
         expect(args.port).toBe(19134);
+    });
+
+    it('refuses --watch together with --headless', () => {
+        expect(() => parseServerArgs(['--watch', '--headless'])).toThrow(/--watch.*--headless/);
     });
 
     it('still refuses a stray positional and a bad port', () => {
