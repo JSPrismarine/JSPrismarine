@@ -9,6 +9,7 @@ import PositionMode from '../../network/type/PositionMode';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { collectAsyncCommands } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 import TpCommand from './TpCommand';
 
@@ -62,8 +63,8 @@ describe('command', () => {
             });
 
             /** Runs a command the way `CommandManager` does, so a failing command rejects. */
-            const run = (input: string, source: CommandExecutor = self) =>
-                Promise.all(dispatcher.execute(input, source));
+            const run = async (input: string, source: CommandExecutor = self) =>
+                Promise.all(collectAsyncCommands(() => dispatcher.execute(input, source)));
 
             /** The destination of the one move a player made, with the coordinates spelled out. */
             const destination = (setPosition: SetPosition) => {

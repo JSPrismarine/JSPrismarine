@@ -1,6 +1,6 @@
 import type { CommandContext, CommandDispatcher } from '@jsprismarine/brigadier';
 
-import { Command, literal } from '../Command';
+import { Command, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class ReloadCommand extends Command {
@@ -28,6 +28,6 @@ export default class ReloadCommand extends Command {
             return 'Reloaded the server';
         };
 
-        dispatcher.register(literal('reload').executes(execute));
+        dispatcher.register(literal('reload').executes(asyncCommand(execute)));
     }
 }

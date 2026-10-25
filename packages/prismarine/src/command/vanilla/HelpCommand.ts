@@ -1,7 +1,7 @@
 import type { CommandContext, CommandDispatcher } from '@jsprismarine/brigadier';
 
 import Player from '../../Player';
-import { Command, literal } from '../Command';
+import { Command, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class HelpCommand extends Command {
@@ -36,6 +36,6 @@ export default class HelpCommand extends Command {
                 });
         };
 
-        dispatcher.register(literal('help').executes(execute));
+        dispatcher.register(literal('help').executes(asyncCommand(execute)));
     }
 }

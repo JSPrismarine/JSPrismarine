@@ -1,6 +1,6 @@
 import type { CommandDispatcher } from '@jsprismarine/brigadier';
 
-import { Command, literal } from '../Command';
+import { Command, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 export default class ListCommand extends Command {
@@ -14,17 +14,19 @@ export default class ListCommand extends Command {
 
     public async register(dispatcher: CommandDispatcher<CommandExecutor>) {
         dispatcher.register(
-            literal('list').executes(async (context) => {
-                const source = context.getSource();
-                const players = source.getServer().getSessionManager().getAllPlayers();
-                const playerArray = Array.from(players);
-                const maxPlayers = source.getServer().getConfig().getMaxPlayers();
-                const counter = playerArray.length;
-                const answer = playerArray.map((player) => player.getName()).join(', ');
+            literal('list').executes(
+                asyncCommand(async (context) => {
+                    const source = context.getSource();
+                    const players = source.getServer().getSessionManager().getAllPlayers();
+                    const playerArray = Array.from(players);
+                    const maxPlayers = source.getServer().getConfig().getMaxPlayers();
+                    const counter = playerArray.length;
+                    const answer = playerArray.map((player) => player.getName()).join(', ');
 
-                await source.sendMessage(`There are ${counter}/${maxPlayers} players online:`);
-                if (answer) await source.sendMessage(answer);
-            })
+                    await source.sendMessage(`There are ${counter}/${maxPlayers} players online:`);
+                    if (answer) await source.sendMessage(answer);
+                })
+            )
         );
     }
 }

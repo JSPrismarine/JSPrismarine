@@ -5,7 +5,7 @@ import { Vector3 } from '@jsprismarine/math';
 import Player from '../../Player';
 import type { Entity } from '../../entity/Entity';
 import PositionMode from '../../network/type/PositionMode';
-import { Command, argument, literal } from '../Command';
+import { Command, argument, asyncCommand, literal } from '../Command';
 import type { CommandExecutor } from '../CommandExecutor';
 
 /**
@@ -48,7 +48,7 @@ export default class TpCommand extends Command {
             literal('tp')
                 .then(
                     argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
-                        async (context) => {
+                        asyncCommand(async (context) => {
                             const source = context.getSource();
 
                             if (!(source instanceof Player))
@@ -58,14 +58,14 @@ export default class TpCommand extends Command {
 
                             await teleport(source, position);
                             return `Teleported ${source.getFormattedUsername()} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
-                        }
+                        })
                     )
                 )
                 .then(
                     argument('player', new CommandArgumentEntity({ name: 'victim' }))
                         .then(
                             argument('position', new CommandArgumentPosition({ name: 'destination' })).executes(
-                                async (context) => {
+                                asyncCommand(async (context) => {
                                     const targets = CommandArgumentEntity.getEntities(context, 'player');
                                     const position = toBlockCenter(
                                         CommandArgumentPosition.getPosition(context, 'position')
@@ -79,12 +79,12 @@ export default class TpCommand extends Command {
                                     return `Teleported ${targets
                                         .map((entity) => entity.getFormattedUsername())
                                         .join(', ')} to ${position.getX()} ${position.getY()} ${position.getZ()}`;
-                                }
+                                })
                             )
                         )
                         .then(
                             argument('target', new CommandArgumentEntity({ name: 'destination' })).executes(
-                                async (context) => {
+                                asyncCommand(async (context) => {
                                     const sources = CommandArgumentEntity.getEntities(context, 'player');
                                     const target = CommandArgumentEntity.getEntities(context, 'target')[0];
 
@@ -97,20 +97,22 @@ export default class TpCommand extends Command {
                                     return `Teleported ${sources
                                         .map((entity) => entity.getFormattedUsername())
                                         .join(', ')} to ${target.getFormattedUsername()}`;
-                                }
+                                })
                             )
                         )
-                        .executes(async (context) => {
-                            const source = context.getSource();
-                            const target = CommandArgumentEntity.getEntities(context, 'player')[0];
+                        .executes(
+                            asyncCommand(async (context) => {
+                                const source = context.getSource();
+                                const target = CommandArgumentEntity.getEntities(context, 'player')[0];
 
-                            if (!(source instanceof Player))
-                                throw new Error(`This command can't be run from the console`);
-                            if (!target) throw new Error(`Cannot find the destination player or entity`);
+                                if (!(source instanceof Player))
+                                    throw new Error(`This command can't be run from the console`);
+                                if (!target) throw new Error(`Cannot find the destination player or entity`);
 
-                            await teleport(source, target.getPosition());
-                            return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
-                        })
+                                await teleport(source, target.getPosition());
+                                return `Teleported ${source.getFormattedUsername()} to ${target.getFormattedUsername()}`;
+                            })
+                        )
                 )
         );
     }

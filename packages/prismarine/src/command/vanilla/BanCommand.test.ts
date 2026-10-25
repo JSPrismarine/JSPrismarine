@@ -8,6 +8,7 @@ import type SessionManager from '../../SessionManager';
 import { stub } from '../../testing/stub.test.helper';
 import type { CommandExecutor } from '../CommandExecutor';
 import BanCommand from './BanCommand';
+import { collectAsyncCommands } from '../Command';
 
 describe('command', () => {
     describe('vanilla', () => {
@@ -49,14 +50,14 @@ describe('command', () => {
             });
 
             it('should ban a player with reason', async () => {
-                await dispatcher.execute('ban testPlayer testReason', source);
+                await Promise.all(collectAsyncCommands(() => dispatcher.execute('ban testPlayer testReason', source)));
 
                 expect(kick).toHaveBeenCalledWith('You have been banned from the server due to: \n\ntestReason!');
                 expect(setBanned).toHaveBeenCalledWith('testPlayer', 'testReason');
             });
 
             it('should ban a player without reason', async () => {
-                await dispatcher.execute('ban testPlayer', source);
+                await Promise.all(collectAsyncCommands(() => dispatcher.execute('ban testPlayer', source)));
 
                 expect(kick).toHaveBeenCalledWith('You have been banned!');
                 expect(setBanned).toHaveBeenCalledWith('testPlayer');

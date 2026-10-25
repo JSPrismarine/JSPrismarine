@@ -5,7 +5,7 @@ import Player from '../../Player';
 import { Chat } from '../../chat/Chat';
 import type { Entity } from '../../entity/Entity';
 import ChatEvent from '../../events/chat/ChatEvent';
-import { Command, argument, literal } from '../Command';
+import { Command, argument, asyncCommand, literal } from '../Command';
 import { CommandArgumentEntity, CommandArgumentGamemode, getString } from '../CommandArguments';
 import type { CommandExecutor } from '../CommandExecutor';
 
@@ -50,7 +50,7 @@ export default class GamemodeCommand extends Command {
                 argument('gamemode', new CommandArgumentGamemode())
                     .then(
                         argument('player', new CommandArgumentEntity({ name: 'player', optional: true })).executes(
-                            async (context) => {
+                            asyncCommand(async (context) => {
                                 const source = context.getSource();
                                 const targets = CommandArgumentEntity.getEntities(context, 'player');
 
@@ -61,15 +61,17 @@ export default class GamemodeCommand extends Command {
                                 await Promise.all(
                                     targets.map(async (target) => await this.setGamemode(source, target, gamemode))
                                 );
-                            }
+                            })
                         )
                     )
-                    .executes(async (context) => {
-                        const source = context.getSource();
-                        const gamemode = getString(context, 'gamemode');
+                    .executes(
+                        asyncCommand(async (context) => {
+                            const source = context.getSource();
+                            const gamemode = getString(context, 'gamemode');
 
-                        await this.setGamemode(source, source, gamemode);
-                    })
+                            await this.setGamemode(source, source, gamemode);
+                        })
+                    )
             )
         );
     }
