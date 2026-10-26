@@ -22,14 +22,10 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
-import { isRecord } from '@jsprismarine/entities';
-import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { NBTTagCompound } from '@jsprismarine/nbt';
-import { navigationProfile } from '@jsprismarine/entity-goals';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { itemOfDrop } from '../../inventory/persistence';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '../Attribute';
@@ -37,9 +33,9 @@ import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
-import { MetadataFlag } from '../Metadata';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
+import { actorMetadataProjection, applyActorMetadataProjection, sameActorMetadataProjection } from './actorMetadata';
 import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
 
 /** How far an entity has to move before the movement is worth putting on the wire, in blocks. */
@@ -123,19 +119,8 @@ export class LiveBodies {
      * same thing back from reaching the wire.
      */
     private readonly equipped = new Map<number, number>();
-    /** Swimming flags last mirrored to each body's actor metadata. */
-    private readonly movementFlags = new Map<number, { readonly canSwim: boolean; readonly swimming: boolean }>();
-    /** Physics flags last mirrored to each body's actor metadata. */
-    private readonly physicsFlags = new Map<
-        number,
-        { readonly affectedByGravity: boolean; readonly collidable: boolean }
-    >();
-    /** Taming flags last mirrored to each body's actor metadata. */
-    private readonly tameFlags = new Map<number, boolean>();
-    /** Scale last mirrored to each body's actor metadata. */
-    private readonly scales = new Map<number, number>();
-    /** Baby state last mirrored to each body's actor flags. */
-    private readonly babyFlags = new Map<number, boolean>();
+    /** The data-derived actor metadata last mirrored to each body. */
+    private readonly actorMetadata = new Map<number, ReturnType<typeof actorMetadataProjection>>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -196,12 +181,9 @@ export class LiveBodies {
         // straight after the spawn, and a bow written a tick later would be a visible flicker of
         // an empty-handed skeleton.
         this.writeEquipment(entity, body);
-        this.writeMovementFlags(entity, body);
-        this.writePhysicsFlags(entity, body);
-        this.writeTameFlag(entity, body);
-        this.writeScale(entity, body);
-        this.writeBabyFlag(entity, body);
-        this.writeFallingBlockAppearance(entity, body);
+        const actorMetadata = actorMetadataProjection(entity);
+        applyActorMetadataProjection(body, actorMetadata);
+        this.actorMetadata.set(entity.id, actorMetadata);
 
         this.bodies.set(entity.id, body);
         this.idsByBody.set(body, entity.id);
@@ -216,11 +198,7 @@ export class LiveBodies {
         this.written.delete(entity.id);
         this.synced.delete(entity.id);
         this.equipped.delete(entity.id);
-        this.movementFlags.delete(entity.id);
-        this.physicsFlags.delete(entity.id);
-        this.tameFlags.delete(entity.id);
-        this.scales.delete(entity.id);
-        this.babyFlags.delete(entity.id);
+        this.actorMetadata.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -239,11 +217,7 @@ export class LiveBodies {
         this.written.delete(id);
         this.synced.delete(id);
         this.equipped.delete(id);
-        this.movementFlags.delete(id);
-        this.physicsFlags.delete(id);
-        this.tameFlags.delete(id);
-        this.scales.delete(id);
-        this.babyFlags.delete(id);
+        this.actorMetadata.delete(id);
         return id;
     }
 
@@ -271,20 +245,15 @@ export class LiveBodies {
 
             this.showHealth(entity, body);
             this.writeEquipment(entity, body);
-            const movementFlagsChanged = this.writeMovementFlags(entity, body);
-            const physicsFlagsChanged = this.writePhysicsFlags(entity, body);
-            const tameFlagChanged = this.writeTameFlag(entity, body);
-            const scaleChanged = this.writeScale(entity, body);
-            const babyFlagChanged = this.writeBabyFlag(entity, body);
+            const metadata = actorMetadataProjection(entity);
+            const actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
+            if (actorMetadataChanged) {
+                applyActorMetadataProjection(body, metadata);
+                this.actorMetadata.set(entity.id, metadata);
+            }
             const properties = this.showSyncedProperties(entity, body);
             if (properties !== undefined) moves.push(properties);
-            else if (
-                movementFlagsChanged ||
-                physicsFlagsChanged ||
-                tameFlagChanged ||
-                scaleChanged ||
-                babyFlagChanged
-            ) {
+            else if (actorMetadataChanged) {
                 const metadata = this.options.world()?.sendActorMetadata(body);
                 if (metadata !== undefined) moves.push(metadata);
             }
@@ -321,11 +290,7 @@ export class LiveBodies {
         this.written.clear();
         this.synced.clear();
         this.equipped.clear();
-        this.movementFlags.clear();
-        this.physicsFlags.clear();
-        this.tameFlags.clear();
-        this.scales.clear();
-        this.babyFlags.clear();
+        this.actorMetadata.clear();
     }
 
     /**
@@ -369,87 +334,6 @@ export class LiveBodies {
         this.synced.set(entity.id, current);
         const world = this.options.world();
         return world?.sendActorMetadata(body);
-    }
-
-    /** Writes data-driven swim capabilities and the current swimming state to the actor. */
-    private writeMovementFlags(entity: DataEntity, body: Entity): boolean {
-        const profile = navigationProfile(entity.instance);
-        const canSwim =
-            profile.canSwim ||
-            profile.canFloat ||
-            profile.isAmphibious ||
-            entity.instance.hasComponent('minecraft:behavior.float');
-        const next = { canSwim, swimming: canSwim && entity.body.conditions.has('in_water') };
-        const previous = this.movementFlags.get(entity.id);
-        if (previous?.canSwim === next.canSwim && previous.swimming === next.swimming) return false;
-
-        body.metadata.setGenericFlag(ActorFlags.CANSWIM, next.canSwim);
-        body.metadata.setGenericFlag(ActorFlags.SWIMMING, next.swimming);
-        this.movementFlags.set(entity.id, next);
-        return previous !== undefined;
-    }
-
-    /** Writes the active data-driven physics flags to the actor metadata. */
-    private writePhysicsFlags(entity: DataEntity, body: Entity): boolean {
-        const physics = entity.instance.componentParams('minecraft:physics');
-        const next = {
-            affectedByGravity: isRecord(physics) && physics.hasGravity === true,
-            collidable: !isRecord(physics) || physics.hasCollision !== false
-        };
-        const previous = this.physicsFlags.get(entity.id);
-        if (previous?.affectedByGravity === next.affectedByGravity && previous.collidable === next.collidable) {
-            return false;
-        }
-
-        body.metadata.setAffectedByGravity(next.affectedByGravity);
-        body.metadata.setCollidable(next.collidable);
-        this.physicsFlags.set(entity.id, next);
-        return previous !== undefined;
-    }
-
-    /** Writes the current tamed state to the client-facing actor. */
-    private writeTameFlag(entity: DataEntity, body: Entity): boolean {
-        const tamed = entity.body.owner !== undefined || entity.instance.hasComponent('minecraft:is_tamed');
-        const previous = this.tameFlags.get(entity.id);
-        if (previous === tamed) return false;
-
-        body.metadata.setGenericFlag(ActorFlags.TAMED, tamed);
-        this.tameFlags.set(entity.id, tamed);
-        return previous !== undefined;
-    }
-
-    /** Writes the entity's active data-driven scale to the client-facing actor. */
-    private writeScale(entity: DataEntity, body: Entity): boolean {
-        const component = entity.instance.componentParams('minecraft:scale');
-        const next = typeof component === 'number' ? component : 1;
-        const previous = this.scales.get(entity.id);
-        if (previous === next) return false;
-
-        body.metadata.setFloat(MetadataFlag.SCALE, next);
-        this.scales.set(entity.id, next);
-        return previous !== undefined;
-    }
-
-    /** Writes the active baby marker to the client-facing actor flags. */
-    private writeBabyFlag(entity: DataEntity, body: Entity): boolean {
-        const next = entity.instance.hasComponent('minecraft:is_baby');
-        const previous = this.babyFlags.get(entity.id);
-        if (previous === next) return false;
-
-        body.metadata.setGenericFlag(ActorFlags.BABY, next);
-        this.babyFlags.set(entity.id, next);
-        return previous !== undefined;
-    }
-
-    /** Sets the block variant a client draws for a falling-block component. */
-    private writeFallingBlockAppearance(entity: DataEntity, body: Entity): void {
-        if (!entity.instance.hasComponent('jsprismarine:falling_block')) return;
-
-        const blockName = entity.spawnData?.['block'];
-        if (typeof blockName !== 'string') return;
-
-        const runtimeId = BlockRuntimeIds.tryGetByName(blockName);
-        if (runtimeId !== null) body.metadata.setInt(MetadataFlag.VARIANT, runtimeId);
     }
 
     /**
