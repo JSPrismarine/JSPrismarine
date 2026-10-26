@@ -372,13 +372,19 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             // of items shared by every player, and putting one of them in an
                             // inventory would give everybody the same object to mutate. See
                             // `createdIsShared` for the case where that does not apply.
+                            //
+                            // With the server's content, which is where an item reads its tags:
+                            // without it a crafted or picked pickaxe matched no
+                            // `#minecraft:mineable/pickaxe` rule, so it did not harvest stone and
+                            // cracked it at a fist's pace.
                             const count = createdIsShared ? (action.count ?? 1) : created.getAmount();
                             const stack = createdIsShared
                                 ? new Item({
                                       id: created.getId(),
                                       name: created.getName(),
                                       meta: created.meta,
-                                      count
+                                      count,
+                                      content: server.getContent()
                                   })
                                 : created;
 
@@ -415,7 +421,14 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                                     held.getItem().meta === stack.meta;
 
                                 if (sameThing) {
-                                    held.setCount(Math.min(stack.getMaxAmount(), held.getCount() + count));
+                                    // A stack of the new size, not the entry's count raised: the
+                                    // answer and the wire both read the item's count, so a second
+                                    // craft onto the slot was reported as the first one's.
+                                    const total = Math.min(stack.getMaxAmount(), held.getCount() + count);
+                                    inventory.setItem(
+                                        to[1],
+                                        new ContainerEntry({ item: held.getItem().withCount(total), count: total })
+                                    );
                                 } else {
                                     inventory.setItem(to[1], new ContainerEntry({ item: stack, count }));
                                 }
@@ -747,10 +760,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             const left = item.getAmount() - 1;
             // A new stack rather than a decrement in place: the same item may be held
             // elsewhere, and lowering its count here would lower it there too.
-            craftingInput.set(
-                slot,
-                left > 0 ? new Item({ id: item.getId(), name: item.getName(), meta: item.meta, count: left }) : null
-            );
+            craftingInput.set(slot, left > 0 ? item.withCount(left) : null);
             spent.push(slot);
         }
 
@@ -893,27 +903,20 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
             const moved = Math.min(room, amount);
             if (moved <= 0) return null;
 
-            write(destination, this.withCount(held, held.getAmount() + moved));
+            // Copies at the new sizes rather than counts changed in place, because the same
+            // object may be held elsewhere. `withCount` keeps the rest of the stack: rebuilt from
+            // its name, a moved stack lost its enchantments, durability, name and content.
+            write(destination, held.withCount(held.getAmount() + moved));
             const remaining = moving.getAmount() - moved;
-            write(source, remaining > 0 ? this.withCount(moving, remaining) : null);
+            write(source, remaining > 0 ? moving.withCount(remaining) : null);
 
             return [source, destination];
         }
 
-        write(destination, amount === moving.getAmount() ? moving : this.withCount(moving, amount));
-        write(source, left > 0 ? this.withCount(moving, left) : null);
+        write(destination, amount === moving.getAmount() ? moving : moving.withCount(amount));
+        write(source, left > 0 ? moving.withCount(left) : null);
 
         return [source, destination];
-    }
-
-    /**
-     * The same item, in a different quantity.
-     *
-     * A new stack rather than a count changed in place: the same object may be held elsewhere,
-     * and moving half of it would move half of that too.
-     */
-    private withCount(item: Item, count: number): Item {
-        return new Item({ id: item.getId(), name: item.getName(), meta: item.meta, count });
     }
 
     /**

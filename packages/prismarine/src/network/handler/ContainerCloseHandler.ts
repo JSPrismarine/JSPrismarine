@@ -2,7 +2,7 @@ import type { PlayerSession } from '../../';
 import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
-import { Item } from '../../item/Item';
+import type { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import ContainerClosePacket from '../packet/ContainerClosePacket';
 import type PacketHandler from './PacketHandler';
@@ -72,9 +72,8 @@ export default class ContainerCloseHandler implements PacketHandler<ContainerClo
             if (!item) continue;
 
             const left = inventory.addItem(new ContainerEntry({ item, count: item.getAmount() }));
-            if (left > 0) {
-                overflow.push(new Item({ id: item.getId(), name: item.getName(), meta: item.meta, count: left }));
-            }
+            // A copy of the stack, so what falls keeps its enchantments, name and durability.
+            if (left > 0) overflow.push(item.withCount(left));
 
             craftingInput.set(slot, null);
         }

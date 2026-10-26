@@ -267,6 +267,66 @@ describe('network', () => {
             expect(inventory.getItem(0).getName()).toBe('minecraft:air');
         });
 
+        it('keeps what a stack carries when part of it moves and when it merges', async () => {
+            // Each part was rebuilt from the name, so a split or merged stack lost its
+            // enchantments, its name and the content it reads its components from.
+            const server = fakeServer([]);
+            const inventory = new HumanInventory();
+            const rock = new Item({ name: 'minecraft:stone', count: 10, customName: 'Rock', content: testContent() });
+            inventory.setItem(0, new ContainerEntry({ item: rock, count: 10 }));
+
+            const move = (count: number) => ({
+                requestId: -3,
+                actions: [{ type: ItemStackRequestActionType.PLACE, count, source: slot(0), destination: slot(5) }],
+                filterStrings: [],
+                filterStringCause: 0
+            });
+
+            await run([move(4)], inventory, server);
+
+            expect(inventory.getItem(5).getAmount()).toBe(4);
+            expect(inventory.getItem(5).getCustomName()).toBe('Rock');
+            expect(inventory.getItem(0).getAmount()).toBe(6);
+            expect(inventory.getItem(0).getCustomName()).toBe('Rock');
+
+            await run([move(2)], inventory, server);
+
+            expect(inventory.getItem(5).getAmount()).toBe(6);
+            expect(inventory.getItem(5).getCustomName()).toBe('Rock');
+        });
+
+        it('hands out a creative pick that reads its tags', async () => {
+            // Built without the server's content, a picked pickaxe matched no
+            // `#minecraft:mineable/pickaxe` rule: it did not harvest stone, and the crack
+            // animation ran at a fist's pace.
+            const server = fakeServer([new Item({ name: 'minecraft:diamond_pickaxe' })]);
+            const inventory = new HumanInventory();
+
+            await run(
+                [
+                    {
+                        requestId: -7,
+                        actions: [
+                            { type: ItemStackRequestActionType.CREATIVE_CREATE, creativeItemNetId: 1, repetitions: 1 },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0, ContainerUiId.CREATED_OUTPUT),
+                                destination: slot(3)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server
+            );
+
+            expect(inventory.getItem(3).getName()).toBe('minecraft:diamond_pickaxe');
+            expect(inventory.getItem(3).harvests('minecraft:stone')).toBe(true);
+        });
+
         it('reads a crafting table through its own slot numbers', async () => {
             // The same grid store, addressed from 32 rather than from 28. Both were rejected
             // outright before, so neither size of grid could craft anything.
@@ -426,6 +486,86 @@ describe('network', () => {
             expect(inventory.getItem(0).getName()).toBe('minecraft:stick');
             // Spent, and the client told so - otherwise it keeps showing what it used up.
             expect(craftingInput.isEmpty()).toBe(true);
+        });
+
+        describe('a crafted stack', () => {
+            /** A server that knows one recipe: a diamond in the grid makes `output`. */
+            const craftingServer = async (output: Item) => {
+                const recipe = new ShapelessRecipe(
+                    'test',
+                    'crafting_table',
+                    [new ItemIngredient('minecraft:diamond')],
+                    [output]
+                );
+                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
+                await manager.registerRecipe(recipe);
+                const registry = new StationRegistry();
+                const server = stub<Server>({
+                    getRecipeManager: () => manager,
+                    getStationRegistry: () => registry,
+                    getLogger: () => stub<Logger>({ debug: () => {} }),
+                    getContent: () => testContent()
+                });
+                registry.registerRecipeStations(server);
+                return server;
+            };
+
+            /** One craft, taken into inventory slot 0. */
+            const craftInto = async (server: Server, inventory: HumanInventory) => {
+                const craftingInput = new CraftingInput();
+                craftingInput.set(0, new Item({ name: 'minecraft:diamond' }));
+
+                return run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 },
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: craftSlot(0),
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+            };
+
+            it('reads its tags, so a crafted pickaxe harvests stone', async () => {
+                // A recipe's output is built from the catalog with no content behind it, and
+                // that is where an item reads its tags from.
+                const server = await craftingServer(new Item({ name: 'minecraft:diamond_pickaxe' }));
+                const inventory = new HumanInventory();
+
+                await craftInto(server, inventory);
+
+                expect(inventory.getItem(0).getName()).toBe('minecraft:diamond_pickaxe');
+                expect(inventory.getItem(0).harvests('minecraft:stone')).toBe(true);
+            });
+
+            it('adds a second craft to the stack the first one left', async () => {
+                // The slot's count was raised and its item's was not, and the answer reads the
+                // item's: the client was told the slot still held one.
+                const server = await craftingServer(new Item({ name: 'minecraft:stick' }));
+                const inventory = new HumanInventory();
+
+                await craftInto(server, inventory);
+                const response = await craftInto(server, inventory);
+
+                expect(inventory.getItem(0).getAmount()).toBe(2);
+                expect(inventory.getEntry(0)?.getCount()).toBe(2);
+                const answered = response.responses[0]?.containers.find(
+                    (container) => container.container.containerId === ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY
+                );
+                expect(answered?.slots[0]?.count).toBe(2);
+            });
         });
 
         it('refuses a recipe the grid does not actually hold', async () => {

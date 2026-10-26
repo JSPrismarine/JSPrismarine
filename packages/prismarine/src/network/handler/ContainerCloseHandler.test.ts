@@ -38,6 +38,7 @@ const run = async ({
 }: Scenario = {}) => {
     const sent: DataPacket[] = [];
     const dropped: string[] = [];
+    const droppedItems: Item[] = [];
     const closed: number[] = [];
     const windows = new Set(openWindows);
     const debug = vi.fn();
@@ -45,7 +46,9 @@ const run = async ({
     const world: World = stub<World>({
         dropContents: async (_position, contents) => {
             for (const drop of contents) {
-                if (drop instanceof Item) dropped.push(`${drop.getName()} x${drop.getAmount()}`);
+                if (!(drop instanceof Item)) continue;
+                dropped.push(`${drop.getName()} x${drop.getAmount()}`);
+                droppedItems.push(drop);
             }
         }
     });
@@ -78,7 +81,7 @@ const run = async ({
 
     await new ContainerCloseHandler().handle(packet, server, session);
 
-    return { sent, dropped, closed, debug };
+    return { sent, dropped, droppedItems, closed, debug };
 };
 
 describe('network', () => {
@@ -140,6 +143,30 @@ describe('network', () => {
 
             expect(dropped).toEqual(['minecraft:oak_planks x4']);
             expect(craftingInput.isEmpty()).toBe(true);
+        });
+
+        it('drops a copy of what did not fit, name and enchantments included', async () => {
+            // Rebuilt from its name, what fell was a plain stack of the same item.
+            const inventory = new HumanInventory();
+            for (let slot = 0; slot < 36; slot++) {
+                inventory.setItem(
+                    slot,
+                    new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone', count: 64 }), count: 64 })
+                );
+            }
+
+            const craftingInput = new CraftingInput();
+            craftingInput.set(
+                0,
+                new Item({ name: 'minecraft:oak_planks', count: 4, customName: 'Spare' }).withEnchantments({
+                    'minecraft:unbreaking': 1
+                })
+            );
+
+            const { droppedItems } = await run({ craftingInput, inventory });
+
+            expect(droppedItems.map((item) => item.getCustomName())).toEqual(['Spare']);
+            expect(droppedItems[0]?.getEnchantmentLevel('minecraft:unbreaking')).toBe(1);
         });
     });
 });
