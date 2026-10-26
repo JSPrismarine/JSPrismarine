@@ -84,6 +84,34 @@ describe('EntityRuntime', () => {
             ]);
             expect(reports).toEqual([]);
         });
+
+        it('drops the equipment slot an entity event names', () => {
+            const world = new TestEntityWorld();
+            const { runtime, reports } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:dropper': {
+                        components: { 'minecraft:health': { value: 20, max: 20 } },
+                        events: {
+                            'jsprismarine:drop_hand': {
+                                drop_item: { slot: 'slot.weapon.mainhand' }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:dropper', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with a drop event');
+            entity.body.setEquipment({ mainhand: { identifier: 'minecraft:stick', count: 1 } });
+
+            entity.instance.fire('jsprismarine:drop_hand');
+            runtime.tick(1);
+
+            expect(world.drops).toEqual([{ position: GROUND, item: { identifier: 'minecraft:stick', count: 1 } }]);
+            expect(entity.body.equipment.mainhand).toBeUndefined();
+            expect(reports).toEqual([]);
+        });
     });
 
     describe('entity facts', () => {

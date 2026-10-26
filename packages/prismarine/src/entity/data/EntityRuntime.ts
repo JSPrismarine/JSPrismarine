@@ -59,7 +59,7 @@ import { breedableOf, canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
-import { rollMobEquipment } from '../equipment';
+import { mobEquipmentSlotOf, rollMobEquipment } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
@@ -414,7 +414,21 @@ export class EntityRuntime implements EntityScene {
                     emitParticle: (_source, particle) =>
                         this.world.effects.spawnParticle(blockPositionOf(body.position), particle),
                     emitVibration: (_source, vibration) =>
-                        this.world.effects.emitGameEvent(`minecraft:${vibration}`, blockPositionOf(body.position), id)
+                        this.world.effects.emitGameEvent(`minecraft:${vibration}`, blockPositionOf(body.position), id),
+                    dropItem: (_source, slot) => {
+                        const equipmentSlot = mobEquipmentSlotOf(slot);
+                        if (equipmentSlot === undefined) {
+                            this.report(`entity ${id} asks to drop unsupported equipment slot ${slot}`);
+                            return;
+                        }
+                        const item = body.equipment[equipmentSlot];
+                        if (item === undefined) return;
+
+                        const equipment = { ...body.equipment };
+                        delete equipment[equipmentSlot];
+                        body.setEquipment(equipment);
+                        this.host.drop(blockPositionOf(body.position), item);
+                    }
                 } satisfies EntityEffects,
                 filterContext: (): FilterContext => entityFilterContextOf(body, this),
                 random: { next: () => this.world.random.nextFloat() },
