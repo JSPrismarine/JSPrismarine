@@ -6,7 +6,7 @@ import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty, Gametype } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -332,6 +332,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
 /** What the fixture records instead of putting it on a wire. */
 interface Broadcasts {
     readonly moved: string[];
+    readonly actorSounds: Array<{ identifier: string; entityId: bigint; sound: LevelSoundEvent }>;
 }
 
 /**
@@ -346,7 +347,7 @@ const liveWorld = (): {
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
-    const broadcasts: Broadcasts = { moved: [] };
+    const broadcasts: Broadcasts = { moved: [], actorSounds: [] };
     let content: ServerContent | undefined;
     // Keyed the way `World` keys its own map. A bigint here is not a type error, because
     // `pnpm typecheck` skips test files, and `getLoadedChunk` would answer null for every
@@ -390,7 +391,13 @@ const liveWorld = (): {
 
     world.attachChangeSink({
         ...NULL_WORLD_CHANGE_SINK,
-        entityMoved: (entity) => void broadcasts.moved.push(entity.getType())
+        entityMoved: (entity) => void broadcasts.moved.push(entity.getType()),
+        actorSound: (entity, sound) =>
+            void broadcasts.actorSounds.push({
+                identifier: entity.getType(),
+                entityId: entity.getRuntimeId(),
+                sound
+            })
     });
 
     Object.assign(world, {
@@ -731,6 +738,20 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             expect(cow.instance.attributes.get('health')?.current).toBe(6);
+        });
+
+        it('sends a data-driven mob hurt sound with the mob identity', async () => {
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            await run(1);
+
+            const body = live.bodies.bodyOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+            await body.damage(1);
+
+            expect(broadcasts.actorSounds).toEqual([
+                { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), sound: LevelSoundEvent.HURT }
+            ]);
         });
     });
 
