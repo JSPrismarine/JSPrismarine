@@ -20,16 +20,13 @@ describe('COMMAND_CATALOG', () => {
         }
     });
 
-    it('gives each key at most one command per input state', () => {
-        for (const inputEmpty of [true, false]) {
-            const seen = new Map<string, CommandId>();
-            for (const command of COMMAND_CATALOG) {
-                for (const binding of command.bindings) {
-                    if (binding.emptyLineOnly && !inputEmpty) continue;
-                    const label = formatBinding(binding);
-                    expect(seen.get(label), `${label} bound to ${seen.get(label)} and ${command.id}`).toBeUndefined();
-                    seen.set(label, command.id);
-                }
+    it('gives each key at most one command while the log has focus', () => {
+        const seen = new Map<string, CommandId>();
+        for (const command of COMMAND_CATALOG) {
+            for (const binding of command.bindings) {
+                const label = formatBinding(binding);
+                expect(seen.get(label), `${label} bound to ${seen.get(label)} and ${command.id}`).toBeUndefined();
+                seen.set(label, command.id);
             }
         }
     });
@@ -44,12 +41,13 @@ describe('formatBinding', () => {
         expect(formatBinding({ name: 'n', shift: true })).toBe('N');
         expect(formatBinding({ name: 'r', ctrl: true, shift: true })).toBe('Ctrl+Shift+R');
         expect(formatBinding({ name: '?' })).toBe('?');
+        expect(formatBinding({ name: 'escape' })).toBe('Esc');
     });
 });
 
 describe('resolveCommand', () => {
-    const empty = { inputEmpty: true };
-    const typing = { inputEmpty: false };
+    const inputFocused = { inputFocused: true };
+    const logFocused = { inputFocused: false };
 
     it.each([
         ['pageup', 'log.pageUp'],
@@ -63,10 +61,10 @@ describe('resolveCommand', () => {
         ['b', 'view.toggleSidePane'],
         ['k', 'view.palette'],
         ['r', 'input.historySearch']
-    ] as const)('resolves %s with or without input text', (name, expected) => {
+    ] as const)('resolves %s while the log has focus', (name, expected) => {
         const press = name.length === 1 ? ctrl(name) : key(name);
-        expect(resolveCommand(press, empty)).toBe(expected);
-        expect(resolveCommand(press, typing)).toBe(expected);
+        expect(resolveCommand(press, logFocused)).toBe(expected);
+        expect(resolveCommand(press, inputFocused)).toBeUndefined();
     });
 
     it.each([
@@ -79,14 +77,15 @@ describe('resolveCommand', () => {
         [key('n', { shift: true }), 'log.searchPrev'],
         [key('w'), 'log.toggleWrap'],
         [key('?'), 'view.help']
-    ] as const)('resolves %o only while the input line is empty', (press, expected) => {
-        expect(resolveCommand(press, empty)).toBe(expected);
-        expect(resolveCommand(press, typing)).toBeUndefined();
+    ] as const)('resolves %o only while the log has focus', (press, expected) => {
+        expect(resolveCommand(press, logFocused)).toBe(expected);
+        expect(resolveCommand(press, inputFocused)).toBeUndefined();
     });
 
     it('restarts on Ctrl+Shift+R and searches history on Ctrl+R', () => {
-        expect(resolveCommand(key('r', { ctrl: true, shift: true }), typing)).toBe('server.restart');
-        expect(resolveCommand(ctrl('r'), typing)).toBe('input.historySearch');
+        expect(resolveCommand(key('r', { ctrl: true, shift: true }), logFocused)).toBe('server.restart');
+        expect(resolveCommand(ctrl('r'), logFocused)).toBe('input.historySearch');
+        expect(resolveCommand(ctrl('r'), inputFocused)).toBeUndefined();
     });
 
     it('does not bind a key to stop the server', () => {
@@ -95,8 +94,8 @@ describe('resolveCommand', () => {
     });
 
     it('ignores unbound keys and extra modifiers', () => {
-        expect(resolveCommand(key('x'), empty)).toBeUndefined();
-        expect(resolveCommand(key('pageup', { meta: true }), empty)).toBeUndefined();
-        expect(resolveCommand(key('u', { ctrl: true, shift: true }), empty)).toBeUndefined();
+        expect(resolveCommand(key('x'), logFocused)).toBeUndefined();
+        expect(resolveCommand(key('pageup', { meta: true }), logFocused)).toBeUndefined();
+        expect(resolveCommand(key('u', { ctrl: true, shift: true }), logFocused)).toBeUndefined();
     });
 });

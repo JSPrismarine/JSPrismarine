@@ -45,6 +45,14 @@ async function setup(size: { width: number; height: number }, overrides: Partial
     return { ...test, dispose, app, store, history, commands, actions };
 }
 
+type AppHarness = Awaited<ReturnType<typeof setup>>;
+
+async function focusLog(t: AppHarness): Promise<void> {
+    t.mockInput.pressEscape();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    await t.waitForFrame((frame) => frame.includes('LOG · Esc input'));
+}
+
 describe('createApp', () => {
     let dispose: (() => Promise<void>) | undefined;
 
@@ -188,6 +196,17 @@ describe('createApp', () => {
         expect(t.commands).toEqual(['say hi']);
     });
 
+    it('types shortcut characters while the command input has focus', async () => {
+        const t = await setup({ width: 120, height: 40 });
+        dispose = t.dispose;
+
+        await t.mockInput.typeText('g/w?n?');
+        await t.renderOnce();
+
+        expect(t.captureCharFrame()).toContain('> g/w?n?');
+        expect(t.captureCharFrame()).toContain('INPUT · Esc log');
+    });
+
     it('shows a toast when the command fails', async () => {
         const t = await setup(
             { width: 120, height: 40 },
@@ -231,6 +250,7 @@ describe('createApp', () => {
     it('cycles the level filter with Ctrl+F', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
+        await focusLog(t);
 
         t.mockInput.pressKey('f', { ctrl: true });
         await t.renderOnce();
@@ -244,6 +264,7 @@ describe('createApp', () => {
     it('closes the help overlay with Esc', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
+        await focusLog(t);
 
         t.mockInput.pressKey('?');
         await t.renderOnce();
@@ -258,6 +279,7 @@ describe('createApp', () => {
     it('toggles the side pane back with a second Ctrl+B', async () => {
         const t = await setup({ width: 120, height: 40 });
         dispose = t.dispose;
+        await focusLog(t);
 
         t.mockInput.pressKey('b', { ctrl: true });
         await t.renderOnce();
@@ -329,7 +351,7 @@ describe('createApp', () => {
     });
 
     describe('command catalog', () => {
-        type Harness = Awaited<ReturnType<typeof setup>>;
+        type Harness = AppHarness;
         const NAMED_KEYS: Readonly<Record<string, string>> = {
             pageup: '\u001B[5~',
             pagedown: '\u001B[6~',
@@ -339,8 +361,14 @@ describe('createApp', () => {
 
         /** Ctrl+Shift+letter only exists in the kitty keyboard protocol; `CSI code;6u` is ctrl+shift. */
         const kittyCtrlShift = (letter: string): string => `\u001B[${letter.charCodeAt(0)};6u`;
+        /** `CSI code;9u` is a Super-modified key in the kitty keyboard protocol. */
+        const kittySuper = (letter: string): string => `\u001B[${letter.charCodeAt(0)};9u`;
 
         const press = (t: Harness, binding: KeyBinding): void => {
+            if (binding.name === 'escape') {
+                t.mockInput.pressEscape();
+                return;
+            }
             const named = NAMED_KEYS[binding.name];
             if (named !== undefined) {
                 t.mockInput.pressKey(named, { shift: binding.shift, ctrl: binding.ctrl, meta: binding.meta });
@@ -348,6 +376,10 @@ describe('createApp', () => {
             }
             if (binding.ctrl && binding.shift && !binding.meta) {
                 t.mockInput.pressKey(kittyCtrlShift(binding.name));
+                return;
+            }
+            if (binding.super) {
+                t.mockInput.pressKey(kittySuper(binding.name));
                 return;
             }
             t.mockInput.pressKey(binding.shift ? binding.name.toUpperCase() : binding.name, {
@@ -374,6 +406,9 @@ describe('createApp', () => {
             },
             'log.pageDown': async (t) => {
                 expect(topLogRow(t)).toContain('line 37');
+            },
+            'log.copySelection': async (t) => {
+                expect(count(t.captureCharFrame(), 'select text to copy')).toBe(1);
             },
             'log.top': async (t) => {
                 expect(topLogRow(t)).toContain('line 1 ');
@@ -419,6 +454,9 @@ describe('createApp', () => {
             'view.help': async (t) => {
                 expect(t.captureCharFrame()).toContain('Keyboard shortcuts');
             },
+            'view.toggleFocus': async (t) => {
+                await t.waitForFrame((frame) => frame.includes('LOG · Esc input'));
+            },
             'view.palette': async (t) => {
                 expect(count(t.captureCharFrame(), 'the command palette is not yet available')).toBe(1);
             },
@@ -456,9 +494,11 @@ describe('createApp', () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
 
+            if (id !== 'view.toggleFocus') await focusLog(t);
             await prepare[id]?.(t);
             await t.renderOnce();
             press(t, binding);
+            if (binding.name === 'escape') await new Promise((resolve) => setTimeout(resolve, 30));
             await t.renderOnce();
             await t.renderOnce();
 
@@ -471,6 +511,7 @@ describe('createApp', () => {
             const t = await setup({ width: 120, height: 40 });
             dispose = t.dispose;
 
+            await focusLog(t);
             t.app.applySupervisorEvent({ type: 'supervisor.watching', root: '/repo/packages', canRestart: false });
             t.mockInput.pressKey(kittyCtrlShift('r'));
             await t.renderOnce();
@@ -512,6 +553,7 @@ describe('createApp', () => {
             await t.renderOnce();
             expect(t.captureCharFrame()).not.toContain('boom');
 
+            await focusLog(t);
             t.mockInput.pressKey('e', { ctrl: true });
             await t.renderOnce();
             await t.renderOnce();

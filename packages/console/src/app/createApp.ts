@@ -112,6 +112,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let namespaceFilter: string | undefined;
     let search: string | undefined;
     let wrap = false;
+    let inputFocused = true;
     let sidePanePreference: boolean | undefined;
     /** Whether the host said a restart request will be acted on; only a watching host does. */
     let canRestart = false;
@@ -191,6 +192,23 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         serverStopping: () => state === 'stopping'
     });
 
+    function focusInput(): void {
+        inputFocused = true;
+        input.focus();
+        refreshStatus();
+    }
+
+    function focusLog(): void {
+        inputFocused = false;
+        input.blur();
+        refreshStatus();
+    }
+
+    function toggleFocus(): void {
+        if (inputFocused) focusLog();
+        else focusInput();
+    }
+
     logColumn.add(toasts.renderable);
     main.add(logColumn);
     main.add(sidePane.renderable);
@@ -233,10 +251,13 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             }
         }
         statusBar.setLeft(left);
+        const focusSegment: Segment = inputFocused
+            ? { id: 'focus', text: 'INPUT · Esc log', tone: 'accent', priority: 110 }
+            : { id: 'focus', text: 'LOG · Esc input', tone: 'accent', priority: 110 };
         statusBar.setRight(
             layout.compactStatus
-                ? [{ ...HELP_SEGMENT, text: '?' }]
-                : [{ id: 'filter', text: filterText(), tone: 'muted', priority: 10 }, HELP_SEGMENT]
+                ? [focusSegment, { ...HELP_SEGMENT, text: '?' }]
+                : [focusSegment, { id: 'filter', text: filterText(), tone: 'muted', priority: 10 }, HELP_SEGMENT]
         );
     }
 
@@ -351,6 +372,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         const body = line.slice(1).trim();
         if (body === '') {
             setSearch(undefined);
+            focusLog();
             return true;
         }
         if (commandNames.has(body.split(/\s+/, 1)[0] ?? '')) return false;
@@ -360,12 +382,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             namespaceFilter = pattern === '' ? undefined : `${invert}${pattern}`;
             store.setNamespaceFilter(namespaceFilter);
             refreshStatus();
+            focusLog();
             return true;
         }
         setSearch(body);
         const last = store.nextMatch(store.visible().length, -1);
         if (last === undefined) toasts.push({ tone: 'muted', text: `no matches for "${body}"` });
         else scrollToIndex(last);
+        focusLog();
         return true;
     }
 
@@ -405,6 +429,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     function run(id: CommandId): void {
         switch (id) {
             case 'input.historySearch': {
+                focusInput();
                 const match = history.search(input.getValue());
                 if (match === undefined) toasts.push({ tone: 'muted', text: 'no history entry matches' });
                 else input.setValue(match);
@@ -436,6 +461,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 view.toBottom();
                 return;
             case 'log.search':
+                focusInput();
                 input.setValue('/');
                 return;
             case 'log.searchNext':
@@ -459,6 +485,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'log.filter':
                 cycleLevelFilter();
                 return;
+            case 'view.toggleFocus':
+                toggleFocus();
+                return;
             case 'view.toggleSidePane':
                 toggleSidePane();
                 return;
@@ -479,6 +508,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     function escape(): boolean {
+        if (inputFocused && input.isCompleting()) return false;
         if (help.isVisible) {
             help.hide();
             return true;
@@ -492,19 +522,20 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             return true;
         }
         toasts.clear();
-        return false;
+        run('view.toggleFocus');
+        return true;
     }
 
     /**
-     * Runs before the input bar's handler: the catalog is the only key table, so a bound key is
-     * consumed here and never typed into the line.
+     * Runs before the input bar's handler. The catalog receives keys only while the log has
+     * focus, so shortcut letters remain available to the command editor.
      */
     const onKey = guard((key: KeyEvent) => {
         if (key.name === 'escape' && !key.ctrl && !key.meta && !key.shift) {
             if (escape()) key.preventDefault();
             return;
         }
-        const id = resolveCommand(key, { inputEmpty: input.getValue().length === 0 });
+        const id = resolveCommand(key, { inputFocused });
         if (id === undefined) return;
         key.preventDefault();
         run(id);

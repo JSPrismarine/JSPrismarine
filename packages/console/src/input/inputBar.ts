@@ -40,6 +40,10 @@ export interface InputBar {
     renderable: BoxRenderable;
     /** Gives the line keyboard focus. */
     focus(): void;
+    /** Removes keyboard focus from the line. */
+    blur(): void;
+    /** Whether the completion strip is open and Escape should close it first. */
+    isCompleting(): boolean;
     /**
      * Grays the prompt and refuses Enter and Tab, for example while the server is down.
      *
@@ -66,10 +70,11 @@ export const INTERRUPT_WINDOW_MS = 2000;
  * Builds the command input bar. The prompt takes the theme's `prompt` color, the line its `text`
  * color, and the placeholder, the completion strip, and the disabled prompt its `textMuted` color.
  *
- * Keys reach the bar only while its line is focused and after the app has had its turn: a key
- * the command catalog binds never arrives here. `keyToAction` decides what each remaining key
- * means; this function applies the action to the line, the history, and the completion strip
- * and calls the matching prop. Keys decoded as `edit` fall through to the line editor.
+ * Keys reach the bar only while its line is focused and after the app has had its turn. The app
+ * resolves catalog shortcuts only while this line is blurred, leaving every key available for
+ * editing here. `keyToAction` decides what each remaining key means; this function applies the
+ * action to the line, the history, and the completion strip and calls the matching prop. Keys
+ * decoded as `edit` fall through to the line editor.
  *
  * Completion is asynchronous. The newest Tab wins, and any key that edits or moves the line
  * cancels the pending request, so a late result never overwrites what was typed after Tab.
@@ -260,6 +265,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
     return {
         renderable: root,
         focus: () => input.focus(),
+        blur: () => input.blur(),
+        isCompleting: () => completion.isOpen,
         setDisabled: (flag, hint) => {
             disabled = flag;
             promptText.fg = flag ? theme.textMuted : theme.prompt;

@@ -18,8 +18,6 @@ export interface KeyBinding {
     meta?: boolean;
     /** OS Super key, such as Command on macOS. */
     super?: boolean;
-    /** The chord only fires while the input line is empty; otherwise it edits the line. */
-    emptyLineOnly?: boolean;
 }
 
 /**
@@ -38,13 +36,15 @@ export interface CommandSpec {
 export type CommandCatalog = readonly CommandSpec[];
 
 const plain = (name: string): KeyBinding => ({ name });
+const ctrl = (name: string): KeyBinding => ({ name, ctrl: true });
 const superKey = (name: string): KeyBinding => ({ name, super: true });
 const ctrlShift = (name: string): KeyBinding => ({ name, ctrl: true, shift: true });
-const empty = (name: string, shift = false): KeyBinding => ({ name, shift, emptyLineOnly: true });
+const plainShift = (name: string): KeyBinding => ({ name, shift: true });
 
 /**
  * Every console command with its default bindings from the UX design's shortcut table. This is
- * the only key table: the app resolves a key here before the input bar sees it.
+ * the only key table: the app resolves a key here before the input bar sees it when the log pane
+ * has focus.
  *
  * Enter, history, Tab, and bare Ctrl+C are line editing and are decoded by the input bar, so they
  * are not listed. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line reach
@@ -52,29 +52,30 @@ const empty = (name: string, shift = false): KeyBinding => ({ name, shift, empty
  * protocol: a legacy terminal sends the same byte for Ctrl+Shift+R as for Ctrl+R.
  */
 export const COMMAND_CATALOG = [
-    { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [] },
-    { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup')] },
-    { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown')] },
+    { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [ctrl('r')] },
+    { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup'), ctrl('u')] },
+    { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown'), ctrl('d')] },
     {
         id: 'log.copySelection',
         title: 'Copy selection',
         group: 'Log',
         bindings: [ctrlShift('c'), superKey('c')]
     },
-    { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [empty('home')] },
-    { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [empty('end')] },
-    { id: 'log.search', title: 'Search', group: 'Log', bindings: [] },
-    { id: 'log.searchNext', title: 'Next match', group: 'Log', bindings: [] },
-    { id: 'log.searchPrev', title: 'Previous match', group: 'Log', bindings: [] },
-    { id: 'log.nextError', title: 'Next error', group: 'Log', bindings: [] },
-    { id: 'log.nextWarning', title: 'Next warning', group: 'Log', bindings: [] },
-    { id: 'log.toggleWrap', title: 'Toggle wrap', group: 'Log', bindings: [] },
-    { id: 'log.clearView', title: 'Clear view', group: 'Log', bindings: [] },
-    { id: 'log.filter', title: 'Filter', group: 'Log', bindings: [] },
-    { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [] },
-    { id: 'view.help', title: 'Help', group: 'View', bindings: [] },
-    { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [] },
-    { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [] },
+    { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [plain('home'), plain('g')] },
+    { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [plain('end'), plainShift('g')] },
+    { id: 'log.search', title: 'Search', group: 'Log', bindings: [plain('/')] },
+    { id: 'log.searchNext', title: 'Next match', group: 'Log', bindings: [plain('n')] },
+    { id: 'log.searchPrev', title: 'Previous match', group: 'Log', bindings: [plainShift('n')] },
+    { id: 'log.nextError', title: 'Next error', group: 'Log', bindings: [ctrl('e')] },
+    { id: 'log.nextWarning', title: 'Next warning', group: 'Log', bindings: [ctrl('w')] },
+    { id: 'log.toggleWrap', title: 'Toggle wrap', group: 'Log', bindings: [plain('w')] },
+    { id: 'log.clearView', title: 'Clear view', group: 'Log', bindings: [ctrl('l')] },
+    { id: 'log.filter', title: 'Filter', group: 'Log', bindings: [ctrl('f')] },
+    { id: 'view.toggleSidePane', title: 'Toggle side pane', group: 'View', bindings: [ctrl('b')] },
+    { id: 'view.help', title: 'Help', group: 'View', bindings: [plain('?')] },
+    { id: 'view.palette', title: 'Command palette', group: 'View', bindings: [ctrl('k')] },
+    { id: 'view.toggleFocus', title: 'Toggle input/log focus', group: 'Input', bindings: [plain('escape')] },
+    { id: 'server.restart', title: 'Restart server', group: 'Server', bindings: [ctrlShift('r')] },
     { id: 'server.stop', title: 'Stop server', group: 'Server', bindings: [], hint: 'Ctrl+C twice' }
 ] as const satisfies CommandCatalog;
 
@@ -91,16 +92,17 @@ export interface CommandKey {
     super?: boolean;
 }
 
-/** Input bar state that gates the empty-line bindings. */
+/** Whether the input line has keyboard focus. */
 export interface ResolveContext {
-    inputEmpty: boolean;
+    inputFocused: boolean;
 }
 
 const KEY_LABELS: Readonly<Record<string, string>> = {
     pageup: 'PgUp',
     pagedown: 'PgDn',
     home: 'Home',
-    end: 'End'
+    end: 'End',
+    escape: 'Esc'
 };
 
 /**
@@ -130,13 +132,13 @@ const matches = (binding: KeyBinding, key: CommandKey): boolean =>
     (binding.super ?? false) === (key.super ?? false);
 
 /**
- * Returns the command the key runs, or `undefined` when no binding matches. Bindings marked
- * `emptyLineOnly` are skipped while the input line has text so the key edits the line instead.
+ * Returns the command the key runs, or `undefined` when the input has focus or no binding
+ * matches. Input focus leaves every key available for editing, including unmodified shortcuts.
  */
 export function resolveCommand(key: CommandKey, context: ResolveContext): CommandId | undefined {
+    if (context.inputFocused) return undefined;
     for (const command of COMMAND_CATALOG) {
         for (const binding of command.bindings) {
-            if (binding.emptyLineOnly && !context.inputEmpty) continue;
             if (matches(binding, key)) return command.id;
         }
     }
