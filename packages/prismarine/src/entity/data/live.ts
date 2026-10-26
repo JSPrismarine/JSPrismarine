@@ -17,6 +17,7 @@
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
 import type { EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import { ActorEvent } from '@jsprismarine/minecraft';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -282,14 +283,25 @@ export class LiveEntityRuntime {
     /** Applies a held item to a data-driven entity and returns any item result it declares. */
     public interactWithItem(target: Entity, player: Entity, itemIdentifier: string): EntityItemInteraction {
         const id = this.bodies.entityIdOf(target);
-        return id === undefined
-            ? { accepted: false }
-            : this.runtime.interactWithItem(
-                  id,
-                  Number(player.getRuntimeId()),
-                  itemIdentifier,
-                  player instanceof Player ? playerFilterView(player) : undefined
-              );
+        if (id === undefined) return { accepted: false };
+
+        const previousLoveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
+        const interaction = this.runtime.interactWithItem(
+            id,
+            Number(player.getRuntimeId()),
+            itemIdentifier,
+            player instanceof Player ? playerFilterView(player) : undefined
+        );
+        const loveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
+        if (interaction.accepted && previousLoveTicks <= 0 && loveTicks > 0) {
+            const world = this.options.liveWorld();
+            if (world !== undefined)
+                void world
+                    .sendActorEvent(target, ActorEvent.LOVE_HEARTS)
+                    .catch((error: unknown) => this.options.report(String(error)));
+        }
+
+        return interaction;
     }
 
     /**

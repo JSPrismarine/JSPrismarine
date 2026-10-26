@@ -8,7 +8,7 @@ import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
-import { Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -586,6 +586,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
 interface Broadcasts {
     readonly moved: string[];
     readonly actorSounds: Array<{ identifier: string; entityId: bigint; sound: LevelSoundEvent }>;
+    readonly actorEffects: Array<{ identifier: string; entityId: bigint; effect: ActorEvent }>;
 }
 
 /**
@@ -600,7 +601,7 @@ const liveWorld = (): {
     runtimes: EntityRuntimes;
     hold(content: ServerContent): void;
 } => {
-    const broadcasts: Broadcasts = { moved: [], actorSounds: [] };
+    const broadcasts: Broadcasts = { moved: [], actorSounds: [], actorEffects: [] };
     let content: ServerContent | undefined;
     // Keyed the way `World` keys its own map. A bigint here is not a type error, because
     // `pnpm typecheck` skips test files, and `getLoadedChunk` would answer null for every
@@ -650,7 +651,14 @@ const liveWorld = (): {
                 identifier: entity.getType(),
                 entityId: entity.getRuntimeId(),
                 sound
-            })
+            }),
+        actorEffect: async (entity, effect) => {
+            broadcasts.actorEffects.push({
+                identifier: entity.getType(),
+                entityId: entity.getRuntimeId(),
+                effect
+            });
+        }
     });
 
     Object.assign(world, {
@@ -1890,6 +1898,7 @@ describe('the data-driven entity runtime over a live world', () => {
         const useVanillaContent = (): void => {
             const setup = liveWorld();
             world = setup.world;
+            broadcasts = setup.broadcasts;
             runtimes = setup.runtimes;
             world.getGameRuleManager().setGameRule(GameRules.DoMobSpawning, false, true);
 
@@ -1910,6 +1919,41 @@ describe('the data-driven entity runtime over a live world', () => {
             if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
             live = opened;
         };
+
+        it('shows hearts when a vanilla animal accepts a breeding item', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 2 }));
+            const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (sheep === undefined) throw new Error('vanilla content declares no sheep');
+            const body = live.bodies.bodyOf(sheep.id);
+            if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
+            const actors = createItemActorPort({
+                world: () => world,
+                entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+                level: unwiredWorld().level,
+                interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+            });
+
+            const result = useItemOnEntity({
+                content: live.runtime.content(),
+                actors,
+                player,
+                target: { identifier: sheep.identifier, runtimeId: Number(body.getRuntimeId()) }
+            });
+
+            expect(result).toBe('handled');
+            expect(sheep.body.loveTicks).toBeGreaterThan(0);
+            expect(broadcasts.actorEffects).toContainEqual({
+                identifier: 'minecraft:sheep',
+                entityId: body.getRuntimeId(),
+                effect: ActorEvent.LOVE_HEARTS
+            });
+        });
 
         it('materializes every loaded entity definition through the live runtime', { timeout: 180_000 }, () => {
             useVanillaContent();
