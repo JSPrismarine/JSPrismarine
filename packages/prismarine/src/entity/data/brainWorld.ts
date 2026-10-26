@@ -25,7 +25,8 @@ import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
-import { actuatorOf, blockPositionOf, withinMeleeReach } from './goalWorld';
+import { actuatorOf, withinMeleeReach } from './goalWorld';
+import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
 
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */

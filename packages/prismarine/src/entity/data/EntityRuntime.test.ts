@@ -70,6 +70,45 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('position-dependent filter facts', () => {
+        it('feeds world light into brightness filters used by environment sensors', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld({ lightLevel: 15 }),
+                {},
+                {
+                    'jsprismarine:brightness_probe': {
+                        components: {
+                            'minecraft:environment_sensor': {
+                                triggers: {
+                                    event: 'jsprismarine:bright',
+                                    filters: {
+                                        all_of: [
+                                            { test: 'light_level', operator: '==', value: 15 },
+                                            { test: 'is_brightness', operator: '>', value: 0.49 }
+                                        ]
+                                    }
+                                }
+                            }
+                        },
+                        component_groups: { bright: { 'minecraft:persistent': {} } },
+                        events: { 'jsprismarine:bright': { add: { component_groups: ['bright'] } } }
+                    }
+                }
+            );
+            const probe = runtime.spawn('jsprismarine:brightness_probe', GROUND);
+            if (probe === undefined) throw new Error('the fixture declares no brightness probe');
+
+            const view = probe.instance.filterContext().self;
+            expect(view.measure?.('light_level')).toBe(15);
+            expect(view.measure?.('is_brightness')).toBe(1);
+
+            runtime.tick(1);
+            runtime.tick(2);
+
+            expect(probe.instance.hasComponent('minecraft:persistent')).toBe(true);
+        });
+    });
+
     describe('spawning', () => {
         it('runs the spawn event for the cause, and only that one', () => {
             const { runtime } = runtimeOf();

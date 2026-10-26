@@ -310,6 +310,8 @@ export interface TestWorldOptions {
     readonly random?: readonly number[];
     /** The players the host reports. */
     readonly players?: readonly ContentEntity[];
+    /** A fixed light level for the world, used by entity filter regressions. */
+    readonly lightLevel?: number;
     readonly dayTime?: number;
     readonly gameTime?: number;
     /**
@@ -378,7 +380,7 @@ export class TestEntityWorld {
                 notifyNeighbors: () => undefined,
                 data: () => undefined,
                 setData: () => undefined,
-                light: (at) => (at.y > FLOOR_Y ? 15 : 0),
+                light: (at) => this.options.lightLevel ?? (at.y > FLOOR_Y ? 15 : 0),
                 power: () => 0,
                 isLoaded: () => true,
                 surfaceY: () => FLOOR_Y + 1,

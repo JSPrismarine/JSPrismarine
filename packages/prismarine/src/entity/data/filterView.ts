@@ -5,8 +5,8 @@
  * properties, and leaves the rest to whatever the environment supplies. The
  * rest is all of the same kind: it is about where the entity is and who it is
  * with. Whether it is sitting, who it rides, who tamed it, how far away its
- * target is. The runtime is the only thing that knows any of that, so this is
- * the runtime's half of `FilterEntityView`.
+ * target is, and the light at its position. The runtime is the only thing that
+ * knows any of that, so this is the runtime's half of `FilterEntityView`.
  *
  * It matters to the goals and not only to the filters. `GoalSupport.flag`
  * reads `is_sitting` and `is_tamed` through the same view, so a sit goal that
@@ -17,6 +17,7 @@ import type { EntityFlag, EntityMeasure, FilterContext, FilterEntityView } from 
 
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
+import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
 
 /** The whole filter context for one entity: its own facts and the world's. */
@@ -77,6 +78,10 @@ const measureOf = (body: MobBody, scene: EntityScene, name: EntityMeasure): numb
             return awayFrom(body, scene, body.target);
         case 'distance_to_nearest_player':
             return nearestPlayerDistance(body, scene);
+        case 'is_brightness':
+            return scene.world.blocks.light(blockPositionOf(body.position)) / 15;
+        case 'light_level':
+            return scene.world.blocks.light(blockPositionOf(body.position));
         case 'y_rotation':
             return body.yaw;
         default:

@@ -17,6 +17,7 @@ import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/ent
 
 import type { DataEntity, MobBody } from './DataEntity';
 import { distance, squaredDistance } from './DataEntity';
+import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
 
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
@@ -254,13 +255,6 @@ export const playerGoalMob = (id: number, identifier: string, position: EntityPo
         names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : undefined)
     }),
     identifier: () => identifier
-});
-
-/** The block a position falls inside, which is the shape the world adapter takes. */
-export const blockPositionOf = (position: EntityPosition) => ({
-    x: Math.floor(position.x),
-    y: Math.floor(position.y),
-    z: Math.floor(position.z)
 });
 
 /** One item stack lying in the world, as the pickup goals read it. */
