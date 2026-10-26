@@ -333,6 +333,12 @@ export class TestEntityWorld {
     /** Everything played in this world, in the order it was played. */
     public readonly sounds: string[] = [];
 
+    /** Every particle emitted in this world, in the order it was emitted. */
+    public readonly particles: string[] = [];
+
+    /** Every game event the world received, in the order it was emitted. */
+    public readonly gameEvents: { event: string; at: ContentPosition; sourceId: number | undefined }[] = [];
+
     /** Every blow the host was asked to deal to something outside the entity index. */
     public readonly hits: { id: number; amount: number; cause: string; sourceId: number | undefined }[] = [];
 
@@ -389,8 +395,8 @@ export class TestEntityWorld {
             },
             effects: {
                 playSound: (_at, sound) => this.sounds.push(sound),
-                spawnParticle: () => undefined,
-                emitGameEvent: () => undefined
+                spawnParticle: (_at, particle) => this.particles.push(particle),
+                emitGameEvent: (event, at, sourceId) => this.gameEvents.push({ event, at, sourceId })
             },
             random: scriptedRandom(this.options.random ?? [0.5])
         };

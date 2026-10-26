@@ -22,6 +22,7 @@
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import type {
     EntityActuator,
+    EntityEffects,
     EntityPosition,
     EntitySpawnRequest,
     EventTarget,
@@ -408,6 +409,13 @@ export class EntityRuntime implements EntityScene {
             id,
             environment: {
                 actuator: actuatorOf(body, this),
+                effects: {
+                    playSound: (_source, sound) => this.world.effects.playSound(blockPositionOf(body.position), sound),
+                    emitParticle: (_source, particle) =>
+                        this.world.effects.spawnParticle(blockPositionOf(body.position), particle),
+                    emitVibration: (_source, vibration) =>
+                        this.world.effects.emitGameEvent(`minecraft:${vibration}`, blockPositionOf(body.position), id)
+                } satisfies EntityEffects,
                 filterContext: (): FilterContext => entityFilterContextOf(body, this),
                 random: { next: () => this.world.random.nextFloat() },
                 javaStats: content.entities.javaStats,

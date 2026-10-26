@@ -48,6 +48,44 @@ const moverRuntime = (world = new TestEntityWorld()) =>
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
 describe('EntityRuntime', () => {
+    describe('event effects', () => {
+        it('routes data-defined sounds, particles, and vibrations through the world', () => {
+            const world = new TestEntityWorld();
+            const { runtime, reports } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:effectful': {
+                        components: { 'minecraft:health': { value: 20, max: 20 } },
+                        events: {
+                            'jsprismarine:world_effects': {
+                                play_sound: { sound: 'mob.cow.say' },
+                                emit_particle: { particle: 'minecraft:entity_effect' },
+                                emit_vibration: { vibration: 'entity_interact' }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:effectful', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with world effects');
+
+            entity.instance.fire('jsprismarine:world_effects');
+            runtime.tick(1);
+
+            expect(world.sounds).toEqual(['mob.cow.say']);
+            expect(world.particles).toEqual(['minecraft:entity_effect']);
+            expect(world.gameEvents).toEqual([
+                {
+                    event: 'minecraft:entity_interact',
+                    at: { x: 0, y: FLOOR_Y + 1, z: 0 },
+                    sourceId: entity.id
+                }
+            ]);
+            expect(reports).toEqual([]);
+        });
+    });
+
     describe('entity facts', () => {
         it('reads a type’s stats off its definition rather than off a table', () => {
             const { runtime } = runtimeOf();
