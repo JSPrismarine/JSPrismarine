@@ -2,7 +2,8 @@
  * Measures one player's forward-view chunk delivery through the scheduler and shared stage pool.
  *
  * Run with `node --import tsx packages/prismarine/benchmarks/playerChunkDelivery.ts [workers] [chunks] [depth]`.
- * The seed and queue order are fixed so runs at different depths cover the same chunks.
+ * The default depth stages two requested chunks per worker; the seed and queue order stay fixed
+ * so runs at different depths cover the same positions.
  */
 import { availableParallelism } from 'node:os';
 
@@ -18,7 +19,7 @@ import {
 
 const workers = Number.parseInt(process.argv[2] ?? '4', 10);
 const chunks = Number.parseInt(process.argv[3] ?? '64', 10);
-const depth = Number.parseInt(process.argv[4] ?? '4', 10);
+const depth = Number.parseInt(process.argv[4] ?? String(workers * 2), 10);
 const seed = 1234n;
 
 if (

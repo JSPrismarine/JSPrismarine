@@ -24,13 +24,14 @@ export interface ChunkRecipient {
 export const DEFAULT_BUDGET_MS = 5;
 
 /**
- * How many chunks the server may generate at once.
+ * How many chunk requests the server may have in flight.
  *
- * Matches the Overworld worker count where workers are available. A host without spare cores
- * still keeps one request in flight, and a generator without a pool can queue those requests
- * behind its own single-threaded work.
+ * The generator has its own admission queue, sized to its worker count. Keeping a second set of
+ * requests here lets it know upcoming player targets early enough to prioritize their status
+ * tasks. A host without a worker still keeps two requests in flight; its generator serializes
+ * the work itself.
  */
-export const DEFAULT_DEPTH = Math.max(1, chunkWorkerCount());
+export const DEFAULT_DEPTH = Math.max(1, chunkWorkerCount()) * 2;
 
 /**
  * Told about a chunk that could not be produced or sent. `coord` is absent when the failure
