@@ -1,0 +1,1609 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta name="color-scheme" content="light" />
+        <title>JSPrismarine console design study</title>
+        <style>
+            :root {
+                font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                color: #202925;
+                background: #dce2de;
+                font-synthesis: none;
+                text-rendering: optimizeLegibility;
+                -webkit-font-smoothing: antialiased;
+                -moz-osx-font-smoothing: grayscale;
+                font-optical-sizing: auto;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            body {
+                margin: 0;
+                min-width: 320px;
+                min-height: 100vh;
+                background:
+                    linear-gradient(90deg, rgb(35 53 46 / 3%) 1px, transparent 1px),
+                    linear-gradient(rgb(35 53 46 / 3%) 1px, transparent 1px),
+                    #dce2de;
+                background-size: 32px 32px;
+            }
+
+            button,
+            input {
+                font: inherit;
+            }
+
+            button {
+                cursor: pointer;
+            }
+
+            button:focus-visible,
+            input:focus-visible {
+                outline: 3px solid #477e75;
+                outline-offset: 3px;
+            }
+
+            .page {
+                width: min(1420px, calc(100% - 64px));
+                margin: 0 auto;
+                padding: 46px 0 56px;
+            }
+
+            .masthead {
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                gap: 32px;
+                padding-bottom: 29px;
+                border-bottom: 1px solid #b9c2bc;
+            }
+
+            .eyebrow,
+            .micro-label {
+                margin: 0;
+                color: #65736b;
+                font: 600 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                letter-spacing: 0.09em;
+                text-transform: uppercase;
+            }
+
+            h1 {
+                max-width: 700px;
+                margin: 13px 0 0;
+                font-size: clamp(32px, 4.3vw, 54px);
+                font-weight: 590;
+                letter-spacing: -0.055em;
+                line-height: 1.02;
+            }
+
+            .intro {
+                max-width: 660px;
+                margin: 14px 0 0;
+                color: #55645c;
+                font-size: 15px;
+                line-height: 1.6;
+            }
+
+            .study-mark {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                margin-top: 3px;
+                padding: 9px 0 9px 14px;
+                border-left: 2px solid #bb794a;
+                color: #58665e;
+                font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                white-space: nowrap;
+            }
+
+            .study-mark b {
+                color: #26332d;
+                font-weight: 650;
+            }
+
+            .controls {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 20px;
+                padding: 22px 0 16px;
+            }
+
+            .directions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .direction {
+                display: inline-flex;
+                align-items: center;
+                gap: 9px;
+                min-height: 41px;
+                padding: 0 14px;
+                border: 1px solid #aeb9b1;
+                border-radius: 3px;
+                background: rgb(245 247 244 / 44%);
+                color: #526158;
+                font-size: 13px;
+                font-weight: 560;
+                transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+            }
+
+            .direction:hover {
+                border-color: #74857b;
+                color: #26352d;
+            }
+
+            .direction[aria-selected="true"] {
+                border-color: #25352e;
+                background: #25352e;
+                color: #edf0ea;
+            }
+
+            .direction .tab-index {
+                color: #819187;
+                font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+
+            .direction[aria-selected="true"] .tab-index {
+                color: #c88a58;
+            }
+
+            .viewport-control {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                color: #69766e;
+                font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                white-space: nowrap;
+            }
+
+            .size-switch {
+                display: inline-flex;
+                padding: 3px;
+                border: 1px solid #b8c1bb;
+                border-radius: 4px;
+                background: #cfd7d1;
+            }
+
+            .size-switch button {
+                padding: 6px 9px;
+                border: 0;
+                border-radius: 2px;
+                background: transparent;
+                color: #59675f;
+                font: 11px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+
+            .size-switch button[aria-pressed="true"] {
+                background: #f0f2ed;
+                color: #24322b;
+                box-shadow: 0 1px 2px rgb(29 43 35 / 12%);
+            }
+
+            .preview-frame {
+                position: relative;
+                overflow: visible;
+                padding: 1px;
+                border: 1px solid #aeb8b1;
+                background: #cbd3cd;
+                box-shadow: 0 18px 48px rgb(30 43 36 / 12%);
+            }
+
+            .terminal {
+                --bg: #171d20;
+                --panel: #202a30;
+                --raised: #28343a;
+                --rule: #3a4a50;
+                --text: #e7e1d7;
+                --muted: #8a9794;
+                --accent: #70bdb3;
+                --signal: #d9955c;
+                --error: #d06d69;
+                --warning: #e0b570;
+                --purple: #ac9abd;
+                --log-width: 1fr;
+                min-height: 588px;
+                overflow: hidden;
+                border: 1px solid rgb(255 255 255 / 7%);
+                background: var(--bg);
+                color: var(--text);
+                font: 12px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+                font-variant-ligatures: none;
+                box-shadow: inset 0 1px rgb(255 255 255 / 4%);
+            }
+
+            .terminal[data-theme="atlas"] {
+                --bg: #17211f;
+                --panel: #222f2a;
+                --raised: #2b3a32;
+                --rule: #435249;
+                --text: #e5dece;
+                --muted: #9baa99;
+                --accent: #a9bf78;
+                --signal: #74acb1;
+                --error: #cf776a;
+                --warning: #d3a65c;
+                --purple: #a99ac2;
+            }
+
+            .terminal[data-theme="ledger"] {
+                --bg: #1b1e26;
+                --panel: #242833;
+                --raised: #2d3340;
+                --rule: #424a59;
+                --text: #e5e7eb;
+                --muted: #949dac;
+                --accent: #a8b9d9;
+                --signal: #dfad64;
+                --error: #df7773;
+                --warning: #e0b666;
+                --purple: #c0a5dc;
+                --log-width: 1fr;
+            }
+
+            .terminal[data-width="compact"] {
+                min-height: 528px;
+            }
+
+            .terminal-header {
+                display: flex;
+                align-items: center;
+                gap: 13px;
+                min-height: 58px;
+                padding: 0 19px;
+                border-bottom: 1px solid var(--rule);
+                background: var(--panel);
+            }
+
+            .cube-mark {
+                display: grid;
+                width: 27px;
+                height: 27px;
+                place-items: center;
+                border: 1px solid color-mix(in srgb, var(--signal) 70%, var(--rule));
+                color: var(--signal);
+                font-size: 16px;
+                line-height: 1;
+            }
+
+            .identity {
+                display: flex;
+                align-items: baseline;
+                gap: 11px;
+                min-width: 0;
+            }
+
+            .identity strong {
+                color: var(--text);
+                font-size: 13px;
+                font-weight: 620;
+            }
+
+            .identity span {
+                overflow: hidden;
+                color: var(--muted);
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .server-state {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin-left: auto;
+                color: var(--text);
+                white-space: nowrap;
+            }
+
+            .server-state i {
+                color: var(--accent);
+                font-size: 11px;
+                font-style: normal;
+                text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 55%, transparent);
+            }
+
+            .server-state small {
+                margin-left: 6px;
+                color: var(--muted);
+            }
+
+            .context-band {
+                display: none;
+                align-items: center;
+                min-height: 48px;
+                padding: 0 20px;
+                border-bottom: 1px solid var(--rule);
+                background: color-mix(in srgb, var(--panel) 55%, var(--bg));
+            }
+
+            .terminal[data-theme="atlas"] .context-band {
+                display: flex;
+                gap: 24px;
+            }
+
+            .context-segment {
+                display: flex;
+                align-items: baseline;
+                gap: 8px;
+                color: var(--text);
+            }
+
+            .context-segment small {
+                color: var(--muted);
+            }
+
+            .context-segment strong {
+                font-weight: 560;
+            }
+
+            .context-segment .world-mark {
+                color: var(--accent);
+            }
+
+            .workspace {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) 232px;
+                min-height: 437px;
+            }
+
+            .terminal[data-theme="ledger"] .workspace {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .log-area {
+                min-width: 0;
+                padding: 19px 0 13px;
+            }
+
+            .log-toolbar {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 0 20px 13px;
+                color: var(--muted);
+                font-size: 11px;
+            }
+
+            .log-toolbar strong {
+                color: var(--text);
+                font-size: 12px;
+                font-weight: 570;
+            }
+
+            .log-toolbar span:last-child {
+                white-space: nowrap;
+            }
+
+            .log-table {
+                min-width: 0;
+            }
+
+            .log-row {
+                display: grid;
+                grid-template-columns: 72px 58px minmax(104px, 142px) minmax(0, 1fr);
+                align-items: baseline;
+                gap: 9px;
+                min-height: 39px;
+                padding: 8px 20px;
+                border-left: 2px solid transparent;
+                color: var(--text);
+                white-space: nowrap;
+            }
+
+            .log-row[hidden] {
+                display: none;
+            }
+
+            .log-row:hover {
+                background: color-mix(in srgb, var(--raised) 60%, transparent);
+            }
+
+            .log-row .time {
+                color: var(--muted);
+                font-variant-numeric: tabular-nums;
+            }
+
+            .level {
+                color: var(--accent);
+                font-size: 10px;
+                font-weight: 700;
+                letter-spacing: 0.035em;
+            }
+
+            .namespace {
+                overflow: hidden;
+                color: var(--muted);
+                text-overflow: ellipsis;
+            }
+
+            .message {
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .log-row[data-level="warn"] {
+                border-left-color: var(--warning);
+            }
+
+            .log-row[data-level="warn"] .level {
+                color: var(--warning);
+            }
+
+            .log-row[data-level="error"] {
+                border-left-color: var(--error);
+                background: color-mix(in srgb, var(--error) 7%, transparent);
+            }
+
+            .log-row[data-level="error"] .level {
+                color: var(--error);
+            }
+
+            .log-row[data-level="debug"] .level {
+                color: var(--purple);
+            }
+
+            .source-link {
+                display: inline;
+                padding: 0;
+                border: 0;
+                border-bottom: 1px dotted color-mix(in srgb, var(--accent) 70%, transparent);
+                background: transparent;
+                color: var(--accent);
+                font: inherit;
+            }
+
+            .source-link:hover {
+                color: var(--text);
+                border-bottom-style: solid;
+            }
+
+            .terminal[data-theme="ledger"] .log-row {
+                grid-template-columns: 72px 18px 57px 112px minmax(0, 1fr);
+                min-height: 43px;
+            }
+
+            .terminal[data-theme="ledger"] .log-row::before {
+                color: var(--rule);
+                content: "│";
+                font-size: 15px;
+                text-align: center;
+            }
+
+            .terminal[data-theme="ledger"] .log-row[data-level="warn"]::before {
+                color: var(--warning);
+                content: "!";
+            }
+
+            .terminal[data-theme="ledger"] .log-row[data-level="error"]::before {
+                color: var(--error);
+                content: "×";
+            }
+
+            .terminal[data-theme="ledger"] .log-row[data-level="debug"]::before {
+                color: var(--purple);
+                content: "·";
+            }
+
+            .terminal[data-theme="ledger"] .log-row .namespace {
+                color: color-mix(in srgb, var(--accent) 72%, var(--text));
+            }
+
+            .inspector {
+                padding: 19px 18px;
+                border-left: 1px solid var(--rule);
+                background: color-mix(in srgb, var(--panel) 58%, var(--bg));
+            }
+
+            .terminal[data-theme="ledger"] .inspector {
+                display: none;
+            }
+
+            .inspector-heading {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                margin-bottom: 17px;
+                color: var(--text);
+                font-size: 12px;
+                font-weight: 580;
+            }
+
+            .inspector-heading small {
+                color: var(--muted);
+                font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+
+            .metric {
+                display: flex;
+                justify-content: space-between;
+                align-items: baseline;
+                gap: 12px;
+                padding: 10px 0;
+                border-top: 1px solid var(--rule);
+                color: var(--muted);
+            }
+
+            .metric strong {
+                color: var(--text);
+                font-size: 13px;
+                font-weight: 570;
+                font-variant-numeric: tabular-nums;
+            }
+
+            .metric strong.good {
+                color: var(--accent);
+            }
+
+            .metric-foot {
+                margin: 13px 0 22px;
+                color: var(--muted);
+                font-size: 10px;
+                line-height: 1.6;
+            }
+
+            .inspector-rule {
+                height: 1px;
+                margin: 0 0 17px;
+                border: 0;
+                background: var(--rule);
+            }
+
+            .inspector-subhead {
+                margin: 0 0 11px;
+                color: var(--muted);
+                font-size: 10px;
+            }
+
+            .player-line {
+                display: flex;
+                justify-content: space-between;
+                margin: 8px 0;
+                color: var(--text);
+                font-size: 11px;
+            }
+
+            .player-line span:last-child {
+                color: var(--muted);
+            }
+
+            .terrain-strip {
+                display: none;
+                align-items: center;
+                gap: 7px;
+                margin: 12px 0 16px;
+                padding: 11px 0;
+                border-top: 1px solid var(--rule);
+                border-bottom: 1px solid var(--rule);
+                color: var(--muted);
+                font-size: 10px;
+            }
+
+            .terminal[data-theme="atlas"] .terrain-strip {
+                display: block;
+            }
+
+            .terrain-graphic {
+                display: flex;
+                align-items: end;
+                gap: 3px;
+                height: 39px;
+                margin: 0 0 8px;
+                overflow: hidden;
+            }
+
+            .terrain-graphic i {
+                display: block;
+                flex: 1;
+                border-top: 1px solid color-mix(in srgb, var(--accent) 80%, var(--signal));
+                background: linear-gradient(0deg, color-mix(in srgb, var(--accent) 17%, var(--bg)), transparent);
+            }
+
+            .terrain-graphic i:nth-child(1) { height: 36%; }
+            .terrain-graphic i:nth-child(2) { height: 48%; }
+            .terrain-graphic i:nth-child(3) { height: 42%; }
+            .terrain-graphic i:nth-child(4) { height: 76%; }
+            .terrain-graphic i:nth-child(5) { height: 62%; }
+            .terrain-graphic i:nth-child(6) { height: 90%; }
+            .terrain-graphic i:nth-child(7) { height: 68%; }
+            .terrain-graphic i:nth-child(8) { height: 44%; }
+            .terrain-graphic i:nth-child(9) { height: 59%; }
+
+            .ledger-summary {
+                display: none;
+                align-items: center;
+                gap: 18px;
+                margin-left: auto;
+                color: var(--muted);
+                font-size: 11px;
+            }
+
+            .terminal[data-theme="ledger"] .ledger-summary {
+                display: flex;
+            }
+
+            .ledger-summary b {
+                color: var(--warning);
+                font-weight: 560;
+            }
+
+            .command-row {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-height: 49px;
+                padding: 0 19px;
+                border-top: 1px solid var(--rule);
+                background: var(--panel);
+            }
+
+            .prompt {
+                color: var(--signal);
+                font-weight: 700;
+            }
+
+            .command-row input {
+                width: 100%;
+                padding: 8px 0;
+                border: 0;
+                outline: 0;
+                background: transparent;
+                color: var(--text);
+                font: inherit;
+            }
+
+            .command-row input::placeholder {
+                color: var(--muted);
+                opacity: 0.78;
+            }
+
+            .command-row kbd {
+                flex: 0 0 auto;
+                padding: 2px 5px;
+                border: 1px solid var(--rule);
+                border-radius: 2px;
+                color: var(--muted);
+                font: 10px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+
+            .statusbar {
+                position: relative;
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                min-height: 39px;
+                padding: 0 18px;
+                border-top: 1px solid var(--rule);
+                background: var(--bg);
+            }
+
+            .status-left,
+            .status-filters {
+                display: flex;
+                align-items: center;
+                gap: 17px;
+                min-width: 0;
+            }
+
+            .status-left {
+                overflow: hidden;
+                color: var(--muted);
+                white-space: nowrap;
+            }
+
+            .status-left .live {
+                color: var(--accent);
+            }
+
+            .status-left .live i {
+                margin-right: 5px;
+                font-style: normal;
+            }
+
+            .status-filters {
+                flex: 0 0 auto;
+                gap: 5px;
+            }
+
+            .filter-button,
+            .help-button {
+                min-height: 27px;
+                padding: 0 7px;
+                border: 1px solid transparent;
+                border-radius: 2px;
+                background: transparent;
+                color: var(--muted);
+                font: inherit;
+            }
+
+            .filter-button:hover,
+            .help-button:hover,
+            .filter-button[aria-expanded="true"],
+            .help-button[aria-expanded="true"] {
+                border-color: var(--rule);
+                background: var(--panel);
+                color: var(--text);
+            }
+
+            .filter-button b {
+                color: var(--accent);
+                font-weight: 570;
+            }
+
+            .help-button {
+                color: var(--signal);
+            }
+
+            .popover {
+                position: absolute;
+                right: 17px;
+                bottom: calc(100% + 8px);
+                z-index: 4;
+                display: none;
+                width: 216px;
+                max-block-size: min(16lh, 60vh);
+                overflow-y: auto;
+                overscroll-behavior: contain;
+                padding: 7px;
+                border: 1px solid var(--rule);
+                background: var(--panel);
+                box-shadow: 0 10px 30px rgb(0 0 0 / 32%);
+                scrollbar-color: var(--muted) var(--panel);
+                scrollbar-width: thin;
+            }
+
+            .popover[data-open="true"] {
+                display: block;
+            }
+
+            .popover-title {
+                position: sticky;
+                top: -3px;
+                z-index: 1;
+                margin: 3px 7px 7px;
+                color: var(--muted);
+                background: var(--panel);
+                font-size: 10px;
+            }
+
+            .popover button {
+                display: flex;
+                justify-content: space-between;
+                width: 100%;
+                padding: 7px;
+                border: 0;
+                background: transparent;
+                color: var(--text);
+                text-align: left;
+                font: inherit;
+            }
+
+            .popover button:hover,
+            .popover button[aria-checked="true"] {
+                background: var(--raised);
+            }
+
+            .popover button span:last-child {
+                color: var(--accent);
+            }
+
+            .help-overlay {
+                position: absolute;
+                inset: 0;
+                z-index: 5;
+                display: none;
+                place-items: center;
+                padding: 20px;
+                background: rgb(9 13 14 / 60%);
+                backdrop-filter: blur(2px);
+            }
+
+            .help-overlay[data-open="true"] {
+                display: grid;
+            }
+
+            .help-panel {
+                width: min(560px, 100%);
+                padding: 21px 22px 18px;
+                border: 1px solid var(--rule);
+                background: var(--panel);
+                box-shadow: 0 22px 70px rgb(0 0 0 / 42%);
+            }
+
+            .help-head {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                margin-bottom: 19px;
+            }
+
+            .help-head h2 {
+                margin: 0;
+                color: var(--text);
+                font: 560 15px ui-sans-serif, system-ui, sans-serif;
+            }
+
+            .help-head button {
+                width: 28px;
+                height: 28px;
+                border: 1px solid var(--rule);
+                background: transparent;
+                color: var(--muted);
+            }
+
+            .shortcut-list {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 0 24px;
+                margin: 0;
+            }
+
+            .shortcut-list div {
+                display: flex;
+                justify-content: space-between;
+                gap: 18px;
+                padding: 9px 0;
+                border-top: 1px solid var(--rule);
+                color: var(--text);
+                font-size: 11px;
+            }
+
+            .shortcut-list dt {
+                color: var(--muted);
+            }
+
+            .shortcut-list dd {
+                margin: 0;
+                color: var(--accent);
+                white-space: nowrap;
+            }
+
+            .help-footer {
+                margin: 18px 0 0;
+                color: var(--muted);
+                font-size: 10px;
+            }
+
+            .toast {
+                position: absolute;
+                right: 17px;
+                top: 70px;
+                z-index: 2;
+                display: none;
+                max-width: min(380px, calc(100% - 34px));
+                padding: 10px 13px;
+                border: 1px solid var(--signal);
+                background: var(--panel);
+                color: var(--text);
+                box-shadow: 0 8px 24px rgb(0 0 0 / 28%);
+                font-size: 11px;
+            }
+
+            .toast[data-open="true"] {
+                display: block;
+            }
+
+            .concept-note {
+                display: grid;
+                grid-template-columns: minmax(250px, 1fr) minmax(290px, 0.8fr);
+                gap: 34px;
+                align-items: center;
+                padding: 21px 2px 0;
+            }
+
+            .concept-note h2 {
+                margin: 0 0 6px;
+                color: #24322b;
+                font-size: 17px;
+                font-weight: 610;
+                letter-spacing: -0.025em;
+            }
+
+            .concept-note p {
+                max-width: 650px;
+                margin: 0;
+                color: #5d6a62;
+                font-size: 13px;
+                line-height: 1.55;
+            }
+
+            .swatches {
+                display: flex;
+                justify-content: flex-end;
+                gap: 7px;
+            }
+
+            .swatch {
+                position: relative;
+                width: 28px;
+                height: 28px;
+                border: 1px solid rgb(29 42 35 / 18%);
+                background: var(--swatch);
+            }
+
+            .swatch::after {
+                position: absolute;
+                top: 35px;
+                right: 0;
+                color: #647168;
+                content: attr(data-label);
+                font: 9px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+                white-space: nowrap;
+            }
+
+            .swatch-list {
+                display: flex;
+                justify-content: flex-end;
+                gap: 12px;
+                padding-bottom: 16px;
+            }
+
+            .interaction-note {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                margin-top: 29px;
+                padding-top: 14px;
+                border-top: 1px solid #b9c2bc;
+                color: #647168;
+                font: 11px/1.5 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            }
+
+            .interaction-note .note-mark {
+                color: #b87546;
+            }
+
+            .toast-demo {
+                position: absolute;
+                inset: 0;
+                z-index: 8;
+                display: none;
+                place-items: end center;
+                padding: 22px;
+                pointer-events: none;
+            }
+
+            .toast-demo[data-open="true"] {
+                display: grid;
+            }
+
+            .toast-demo span {
+                padding: 10px 14px;
+                border: 1px solid var(--signal);
+                background: var(--panel);
+                color: var(--text);
+                box-shadow: 0 8px 24px rgb(0 0 0 / 34%);
+                font-size: 11px;
+            }
+
+            .terminal[data-width="compact"] .workspace {
+                grid-template-columns: minmax(0, 1fr);
+            }
+
+            .terminal[data-width="compact"] .inspector {
+                display: none;
+            }
+
+            .terminal[data-width="compact"] .log-row {
+                grid-template-columns: 68px 54px minmax(0, 1fr);
+            }
+
+            .terminal[data-width="compact"] .namespace {
+                display: none;
+            }
+
+            .terminal[data-width="compact"] .terminal-header {
+                min-height: 52px;
+                padding-inline: 13px;
+            }
+
+            .terminal[data-width="compact"] .context-band {
+                min-height: 40px;
+                padding-inline: 14px;
+            }
+
+            .terminal[data-width="compact"] .log-row {
+                padding-inline: 13px;
+            }
+
+            .terminal[data-width="compact"] .statusbar {
+                padding-inline: 11px;
+            }
+
+            .terminal[data-width="compact"] .status-left .secondary {
+                display: none;
+            }
+
+            .terminal[data-width="compact"] .status-left,
+            .terminal[data-width="compact"] .status-filters {
+                gap: 4px;
+            }
+
+            .terminal[data-width="compact"][data-theme="ledger"] .log-row {
+                grid-template-columns: 68px 15px 52px minmax(0, 1fr);
+            }
+
+            .terminal[data-width="compact"][data-theme="ledger"] .log-row .namespace {
+                display: none;
+            }
+
+            @media (max-width: 900px) {
+                .page {
+                    width: min(100% - 36px, 760px);
+                    padding-top: 30px;
+                }
+
+                .study-mark {
+                    display: none;
+                }
+
+                .workspace {
+                    grid-template-columns: minmax(0, 1fr) 205px;
+                }
+
+                .log-row {
+                    grid-template-columns: 66px 54px minmax(85px, 108px) minmax(0, 1fr);
+                    gap: 6px;
+                    padding-inline: 13px;
+                }
+
+                .terminal {
+                    min-height: 560px;
+                }
+            }
+
+            @media (max-width: 650px) {
+                .page {
+                    width: calc(100% - 24px);
+                    padding-top: 23px;
+                }
+
+                .masthead {
+                    padding-bottom: 20px;
+                }
+
+                h1 {
+                    font-size: 35px;
+                }
+
+                .intro {
+                    font-size: 13px;
+                }
+
+                .controls {
+                    align-items: flex-start;
+                    flex-direction: column;
+                    gap: 13px;
+                }
+
+                .direction {
+                    min-height: 36px;
+                    padding-inline: 10px;
+                    font-size: 11px;
+                }
+
+                .viewport-control {
+                    width: 100%;
+                    justify-content: space-between;
+                }
+
+                .terminal {
+                    min-height: 520px;
+                    font-size: 10px;
+                }
+
+                .terminal-header {
+                    min-height: 49px;
+                    gap: 8px;
+                }
+
+                .cube-mark {
+                    width: 22px;
+                    height: 22px;
+                }
+
+                .identity {
+                    gap: 6px;
+                }
+
+                .identity span {
+                    display: none;
+                }
+
+                .server-state small {
+                    display: none;
+                }
+
+                .context-band {
+                    gap: 12px !important;
+                    padding-inline: 10px !important;
+                    font-size: 9px;
+                }
+
+                .log-toolbar {
+                    padding-inline: 11px;
+                }
+
+                .log-row,
+                .terminal[data-width="compact"] .log-row {
+                    grid-template-columns: 57px 39px minmax(0, 1fr);
+                    gap: 4px;
+                    min-height: 37px;
+                    padding-inline: 10px;
+                }
+
+                .log-row .namespace {
+                    display: none;
+                }
+
+                .terminal[data-theme="ledger"] .log-row,
+                .terminal[data-width="compact"][data-theme="ledger"] .log-row {
+                    grid-template-columns: 57px 13px 40px minmax(0, 1fr);
+                }
+
+                .terminal[data-width="compact"][data-theme="ledger"] .log-row .namespace {
+                    display: none;
+                }
+
+                .statusbar {
+                    min-height: 36px;
+                    padding-inline: 7px !important;
+                    font-size: 9px;
+                }
+
+                .status-left .players,
+                .status-left .secondary {
+                    display: none;
+                }
+
+                .filter-button,
+                .help-button {
+                    padding-inline: 3px;
+                }
+
+                .command-row {
+                    padding-inline: 11px;
+                }
+
+                .command-row kbd {
+                    display: none;
+                }
+
+                .concept-note {
+                    grid-template-columns: 1fr;
+                    gap: 18px;
+                }
+
+                .swatch-list {
+                    justify-content: flex-start;
+                }
+
+                .swatch::after {
+                    left: 0;
+                    right: auto;
+                }
+
+                .shortcut-list {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                *,
+                *::before,
+                *::after {
+                    scroll-behavior: auto !important;
+                    transition-duration: 0.01ms !important;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <main class="page">
+            <header class="masthead">
+                <div>
+                    <p class="eyebrow">JSPrismarine / console design study</p>
+                    <h1>A sharper console for a living world.</h1>
+                    <p class="intro">
+                        Three visual directions for the server TUI. Switch concepts, check the compact layout, open the
+                        filters, and try the help panel.
+                    </p>
+                </div>
+                <div class="study-mark"><b>Design review</b><span>Interactive preview</span></div>
+            </header>
+
+            <section aria-label="Choose a visual direction">
+                <div class="controls">
+                    <div class="directions" role="tablist" aria-label="Console visual direction">
+                        <button class="direction" id="tab-beacon" role="tab" aria-selected="true" aria-controls="terminal" data-theme-choice="beacon">
+                            <span class="tab-index">A</span> Copper Beacon
+                        </button>
+                        <button class="direction" id="tab-atlas" role="tab" aria-selected="false" aria-controls="terminal" data-theme-choice="atlas" tabindex="-1">
+                            <span class="tab-index">B</span> World Atlas
+                        </button>
+                        <button class="direction" id="tab-ledger" role="tab" aria-selected="false" aria-controls="terminal" data-theme-choice="ledger" tabindex="-1">
+                            <span class="tab-index">C</span> Incident Ledger
+                        </button>
+                    </div>
+                    <div class="viewport-control">
+                        <span>Preview size</span>
+                        <div class="size-switch" role="group" aria-label="Preview terminal size">
+                            <button type="button" data-width-choice="wide" aria-pressed="true">120 columns</button>
+                            <button type="button" data-width-choice="compact" aria-pressed="false">80 columns</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="preview-frame">
+                    <section class="terminal" id="terminal" data-theme="beacon" data-width="wide" aria-label="Interactive server console preview">
+                        <header class="terminal-header">
+                            <span class="cube-mark" aria-hidden="true">▰</span>
+                            <div class="identity">
+                                <strong>JSPrismarine</strong>
+                                <span>survival / server-01</span>
+                            </div>
+                            <div class="ledger-summary" aria-label="Incident summary"><span><b>1 warning</b></span><span>0 critical</span></div>
+                            <div class="server-state"><i aria-hidden="true">●</i> Running <small>since 14:02</small></div>
+                        </header>
+
+                        <div class="context-band" aria-label="Current world context">
+                            <span class="context-segment"><span class="world-mark" aria-hidden="true">◆</span><strong>Overworld</strong></span>
+                            <span class="context-segment"><small>Position</small><strong>128, 64, -34</strong></span>
+                            <span class="context-segment"><small>Time</small><strong>Day 04 · 10:28</strong></span>
+                        </div>
+
+                        <div class="workspace">
+                            <section class="log-area" aria-label="Server log">
+                                <div class="log-toolbar"><strong>Recent events</strong><span>follow is on</span></div>
+                                <div class="log-table" id="log-table" aria-live="polite">
+                                    <div class="log-row" data-level="info" data-namespace="Server">
+                                        <span class="time">14:08:52</span><span class="level">INFO</span><span class="namespace">Server</span><span class="message">Listening on 0.0.0.0:19132</span>
+                                    </div>
+                                    <div class="log-row" data-level="info" data-namespace="World">
+                                        <span class="time">14:08:53</span><span class="level">INFO</span><span class="namespace">World</span><span class="message">Loaded overworld spawn region</span>
+                                    </div>
+                                    <div class="log-row" data-level="info" data-namespace="Chat">
+                                        <span class="time">14:08:54</span><span class="level">INFO</span><span class="namespace">Chat</span><span class="message">[Server] Welcome back</span>
+                                    </div>
+                                    <div class="log-row" data-level="warn" data-namespace="Chunks">
+                                        <span class="time">14:08:56</span><span class="level">WARN</span><span class="namespace">Chunks</span><span class="message">Spawn region took 12.4 ms</span>
+                                    </div>
+                                    <div class="log-row" data-level="debug" data-namespace="Input">
+                                        <span class="time">14:08:58</span><span class="level">DEBUG</span><span class="namespace">Input</span><span class="message">Input accepted at <button class="source-link" type="button" title="Preview editor source link">PlayerAuthInputHandler.ts:284:17</button></span>
+                                    </div>
+                                    <div class="log-row" data-level="error" data-namespace="Packs">
+                                        <span class="time">14:09:02</span><span class="level">ERROR</span><span class="namespace">Packs</span><span class="message">Could not load optional pack metadata</span>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <aside class="inspector" aria-label="Server details">
+                                <div class="inspector-heading"><span class="inspector-title">Server health</span><small>LIVE</small></div>
+                                <div class="metric"><span>Tick rate</span><strong class="good">20.0 TPS</strong></div>
+                                <div class="metric"><span>Tick time</span><strong>12.4 ms</strong></div>
+                                <div class="metric"><span>Memory</span><strong>418 MB</strong></div>
+                                <p class="metric-foot">No backlog. Last status update 1 second ago.</p>
+                                <hr class="inspector-rule" />
+                                <p class="inspector-subhead">Players <span class="player-count">3 / 20</span></p>
+                                <div class="player-line"><span>Filip</span><span>Overworld</span></div>
+                                <div class="player-line"><span>Alex</span><span>Overworld</span></div>
+                                <div class="player-line"><span>Sam</span><span>Nether</span></div>
+                                <div class="terrain-strip">
+                                    <div class="terrain-graphic" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                                    <span>Spawn terrain profile · chunk 8, -3</span>
+                                </div>
+                            </aside>
+                        </div>
+
+                        <form class="command-row" id="command-form">
+                            <span class="prompt" aria-hidden="true">›</span>
+                            <input id="command-input" aria-label="Command input" autocomplete="off" placeholder="Type a command. Try /say hello" />
+                            <kbd>Enter</kbd>
+                        </form>
+
+                        <footer class="statusbar">
+                            <div class="status-left">
+                                <span class="live"><i aria-hidden="true">●</i>Running</span>
+                                <span class="secondary">TPS <b>20.0</b></span>
+                                <span class="players">Players <b>3 / 20</b></span>
+                            </div>
+                            <div class="status-filters">
+                                <button class="filter-button" type="button" data-menu-trigger="level" aria-expanded="false"><b id="level-value">info</b>⌄</button>
+                                <button class="filter-button" type="button" data-menu-trigger="namespace" aria-expanded="false"><b id="namespace-value">all</b>⌄</button>
+                                <button class="help-button" type="button" id="help-trigger" aria-expanded="false">? Help</button>
+                            </div>
+                            <div class="popover" id="level-menu" role="radiogroup" aria-label="Log level filter" data-open="false">
+                                <p class="popover-title">Show this level and above</p>
+                                <button type="button" data-filter-level="all" role="radio" aria-checked="false">All levels <span></span></button>
+                                <button type="button" data-filter-level="error" role="radio" aria-checked="false">Error <span></span></button>
+                                <button type="button" data-filter-level="warn" role="radio" aria-checked="false">Warning <span></span></button>
+                                <button type="button" data-filter-level="info" role="radio" aria-checked="true">Info <span>✓</span></button>
+                                <button type="button" data-filter-level="debug" role="radio" aria-checked="false">Debug <span></span></button>
+                            </div>
+                            <div class="popover" id="namespace-menu" role="radiogroup" aria-label="Namespace filter" data-open="false">
+                                <p class="popover-title">Choose a broad namespace</p>
+                                <button type="button" data-filter-namespace="all" role="radio" aria-checked="true">All namespaces <span>✓</span></button>
+                                <button type="button" data-filter-namespace="Server" role="radio" aria-checked="false">Server <span></span></button>
+                                <button type="button" data-filter-namespace="Commands" role="radio" aria-checked="false">Commands <span></span></button>
+                                <button type="button" data-filter-namespace="Players" role="radio" aria-checked="false">Players <span></span></button>
+                                <button type="button" data-filter-namespace="Chat" role="radio" aria-checked="false">Chat <span></span></button>
+                                <button type="button" data-filter-namespace="World" role="radio" aria-checked="false">World <span></span></button>
+                                <button type="button" data-filter-namespace="Chunks" role="radio" aria-checked="false">Chunks <span></span></button>
+                                <button type="button" data-filter-namespace="Blocks" role="radio" aria-checked="false">Blocks <span></span></button>
+                                <button type="button" data-filter-namespace="Items" role="radio" aria-checked="false">Items <span></span></button>
+                                <button type="button" data-filter-namespace="Network" role="radio" aria-checked="false">Network <span></span></button>
+                                <button type="button" data-filter-namespace="Input" role="radio" aria-checked="false">Input <span></span></button>
+                                <button type="button" data-filter-namespace="Packs" role="radio" aria-checked="false">Packs <span></span></button>
+                                <button type="button" data-filter-namespace="Storage" role="radio" aria-checked="false">Storage <span></span></button>
+                                <button type="button" data-filter-namespace="Scheduler" role="radio" aria-checked="false">Scheduler <span></span></button>
+                                <button type="button" data-filter-namespace="Configuration" role="radio" aria-checked="false">Configuration <span></span></button>
+                                <button type="button" data-filter-namespace="Resources" role="radio" aria-checked="false">Resources <span></span></button>
+                            </div>
+                        </footer>
+
+                        <div class="help-overlay" id="help-overlay" data-open="false" role="presentation">
+                            <section class="help-panel" role="dialog" aria-modal="true" aria-labelledby="help-title">
+                                <div class="help-head"><h2 id="help-title">Keyboard shortcuts</h2><button type="button" id="help-close" aria-label="Close help">×</button></div>
+                                <dl class="shortcut-list">
+                                    <div><dt>Search log</dt><dd>/</dd></div>
+                                    <div><dt>Move through history</dt><dd>↑ / ↓</dd></div>
+                                    <div><dt>Page through log</dt><dd>PgUp / PgDn</dd></div>
+                                    <div><dt>Next error</dt><dd>Ctrl+E</dd></div>
+                                    <div><dt>Toggle log focus</dt><dd>Esc</dd></div>
+                                    <div><dt>Open command help</dt><dd>?</dd></div>
+                                </dl>
+                                <p class="help-footer">Click outside this panel or press Escape to close.</p>
+                            </section>
+                        </div>
+
+                        <div class="toast-demo" id="toast-demo" data-open="false" aria-live="polite"><span id="toast-message">Preview only. No command was sent.</span></div>
+                    </section>
+                </div>
+
+                <section class="concept-note" aria-live="polite" aria-atomic="true">
+                    <div>
+                        <h2 id="concept-title">Copper Beacon</h2>
+                        <p id="concept-description">A quiet instrument panel with a copper beacon for server state. Health stays visible without competing with the log.</p>
+                    </div>
+                    <div class="swatch-list" id="swatches" aria-label="Current color palette">
+                        <span class="swatch" style="--swatch:#171d20" data-label="Basalt"></span>
+                        <span class="swatch" style="--swatch:#202a30" data-label="Slate"></span>
+                        <span class="swatch" style="--swatch:#e7e1d7" data-label="Chalk"></span>
+                        <span class="swatch" style="--swatch:#70bdb3" data-label="Copper oxide"></span>
+                        <span class="swatch" style="--swatch:#d9955c" data-label="Copper"></span>
+                    </div>
+                </section>
+            </section>
+
+            <p class="interaction-note"><span class="note-mark">●</span><span>Preview interactions: choose a level or namespace, open help, resize the terminal, and click the source location.</span></p>
+        </main>
+
+        <script>
+            const terminal = document.querySelector("#terminal");
+            const directionTabs = [...document.querySelectorAll("[data-theme-choice]")];
+            const levelTrigger = document.querySelector('[data-menu-trigger="level"]');
+            const namespaceTrigger = document.querySelector('[data-menu-trigger="namespace"]');
+            const levelMenu = document.querySelector("#level-menu");
+            const namespaceMenu = document.querySelector("#namespace-menu");
+            const helpOverlay = document.querySelector("#help-overlay");
+            const helpTrigger = document.querySelector("#help-trigger");
+            const toast = document.querySelector("#toast-demo");
+            let selectedLevel = "info";
+            let selectedNamespace = "all";
+            let toastTimer;
+
+            const concepts = {
+                beacon: {
+                    title: "Copper Beacon",
+                    description: "A quiet instrument panel with a copper beacon for server state. Health stays visible without competing with the log.",
+                    inspector: "Server health",
+                    count: "3 / 20",
+                    colors: [
+                        ["#171d20", "Basalt"],
+                        ["#202a30", "Slate"],
+                        ["#e7e1d7", "Chalk"],
+                        ["#70bdb3", "Copper oxide"],
+                        ["#d9955c", "Copper"]
+                    ]
+                },
+                atlas: {
+                    title: "World Atlas",
+                    description: "World and dimension context lead the screen. A small terrain profile and player list make the server feel tied to its running world.",
+                    inspector: "Terrain report",
+                    count: "3 / 20",
+                    colors: [
+                        ["#17211f", "Deep slate"],
+                        ["#222f2a", "Forest stone"],
+                        ["#e5dece", "Sandstone"],
+                        ["#a9bf78", "Moss"],
+                        ["#74acb1", "Water"]
+                    ]
+                },
+                ledger: {
+                    title: "Incident Ledger",
+                    description: "A full-width event ledger gives warnings and errors a clear scan path. Routine output stays quieter, and the header summarizes active problems.",
+                    inspector: "Incident summary",
+                    count: "1 warning",
+                    colors: [
+                        ["#1b1e26", "Ink"],
+                        ["#242833", "Panel"],
+                        ["#e5e7eb", "Paper"],
+                        ["#a8b9d9", "Periwinkle"],
+                        ["#dfad64", "Amber"]
+                    ]
+                }
+            };
+
+            function announce(message) {
+                document.querySelector("#toast-message").textContent = message;
+                toast.dataset.open = "true";
+                clearTimeout(toastTimer);
+                toastTimer = setTimeout(() => (toast.dataset.open = "false"), 2600);
+            }
+
+            function closeMenus() {
+                levelMenu.dataset.open = "false";
+                namespaceMenu.dataset.open = "false";
+                levelTrigger.setAttribute("aria-expanded", "false");
+                namespaceTrigger.setAttribute("aria-expanded", "false");
+            }
+
+            function openMenu(name) {
+                const showLevel = name === "level" && levelMenu.dataset.open !== "true";
+                const showNamespace = name === "namespace" && namespaceMenu.dataset.open !== "true";
+                closeMenus();
+                if (showLevel) {
+                    levelMenu.dataset.open = "true";
+                    levelTrigger.setAttribute("aria-expanded", "true");
+                    levelMenu.querySelector("button[role=radio]").focus();
+                } else if (showNamespace) {
+                    namespaceMenu.dataset.open = "true";
+                    namespaceTrigger.setAttribute("aria-expanded", "true");
+                    namespaceMenu.querySelector("button[role=radio]").focus();
+                }
+            }
+
+            function updateRows() {
+                const levels = ["error", "warn", "info", "debug"];
+                const minimum = selectedLevel === "all" ? levels.length : levels.indexOf(selectedLevel);
+                document.querySelectorAll(".log-row").forEach((row) => {
+                    const rowLevel = levels.indexOf(row.dataset.level);
+                    const levelVisible = rowLevel <= minimum;
+                    const namespaceVisible = selectedNamespace === "all" || row.dataset.namespace === selectedNamespace;
+                    row.hidden = !levelVisible || !namespaceVisible;
+                });
+            }
+
+            function updatePalette(theme) {
+                const concept = concepts[theme];
+                document.querySelector("#concept-title").textContent = concept.title;
+                document.querySelector("#concept-description").textContent = concept.description;
+                document.querySelector(".inspector-title").textContent = concept.inspector;
+                document.querySelector(".player-count").textContent = concept.count;
+                const swatches = document.querySelector("#swatches");
+                swatches.replaceChildren(
+                    ...concept.colors.map(([color, label]) => {
+                        const swatch = document.createElement("span");
+                        swatch.className = "swatch";
+                        swatch.style.setProperty("--swatch", color);
+                        swatch.dataset.label = label;
+                        return swatch;
+                    })
+                );
+            }
+
+            directionTabs.forEach((tab, index) => {
+                tab.addEventListener("click", () => {
+                    directionTabs.forEach((candidate) => {
+                        const selected = candidate === tab;
+                        candidate.setAttribute("aria-selected", String(selected));
+                        candidate.tabIndex = selected ? 0 : -1;
+                    });
+                    terminal.dataset.theme = tab.dataset.themeChoice;
+                    updatePalette(tab.dataset.themeChoice);
+                });
+                tab.addEventListener("keydown", (event) => {
+                    if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+                    event.preventDefault();
+                    const direction = event.key === "ArrowRight" ? 1 : -1;
+                    directionTabs[(index + direction + directionTabs.length) % directionTabs.length].focus();
+                    directionTabs[(index + direction + directionTabs.length) % directionTabs.length].click();
+                });
+            });
+
+            document.querySelectorAll("[data-width-choice]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    document.querySelectorAll("[data-width-choice]").forEach((candidate) => {
+                        candidate.setAttribute("aria-pressed", String(candidate === button));
+                    });
+                    terminal.dataset.width = button.dataset.widthChoice;
+                });
+            });
+
+            levelTrigger.addEventListener("click", () => openMenu("level"));
+            namespaceTrigger.addEventListener("click", () => openMenu("namespace"));
+
+            levelMenu.querySelectorAll("[data-filter-level]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    selectedLevel = button.dataset.filterLevel;
+                    document.querySelector("#level-value").textContent = selectedLevel;
+                    levelMenu.querySelectorAll("[role=radio]").forEach((candidate) => {
+                        const checked = candidate === button;
+                        candidate.setAttribute("aria-checked", String(checked));
+                        candidate.lastElementChild.textContent = checked ? "✓" : "";
+                    });
+                    updateRows();
+                    closeMenus();
+                });
+            });
+
+            namespaceMenu.querySelectorAll("[data-filter-namespace]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    selectedNamespace = button.dataset.filterNamespace;
+                    const label = selectedNamespace === "all" ? "all" : button.textContent.trim().replace("✓", "");
+                    document.querySelector("#namespace-value").textContent = label;
+                    namespaceMenu.querySelectorAll("[role=radio]").forEach((candidate) => {
+                        const checked = candidate === button;
+                        candidate.setAttribute("aria-checked", String(checked));
+                        candidate.lastElementChild.textContent = checked ? "✓" : "";
+                    });
+                    updateRows();
+                    closeMenus();
+                });
+            });
+
+            helpTrigger.addEventListener("click", () => {
+                closeMenus();
+                const open = helpOverlay.dataset.open !== "true";
+                helpOverlay.dataset.open = String(open);
+                helpTrigger.setAttribute("aria-expanded", String(open));
+                if (open) document.querySelector("#help-close").focus();
+            });
+
+            function closeHelp() {
+                helpOverlay.dataset.open = "false";
+                helpTrigger.setAttribute("aria-expanded", "false");
+                helpTrigger.focus();
+            }
+
+            document.querySelector("#help-close").addEventListener("click", closeHelp);
+            helpOverlay.addEventListener("click", (event) => {
+                if (event.target === helpOverlay) closeHelp();
+            });
+
+            document.addEventListener("pointerdown", (event) => {
+                if (event.target.closest(".status-filters") || event.target.closest(".popover")) return;
+                closeMenus();
+                if (helpOverlay.dataset.open === "true" && !event.target.closest(".help-panel")) closeHelp();
+            });
+
+            document.addEventListener("keydown", (event) => {
+                if (event.key === "Escape") {
+                    if (helpOverlay.dataset.open === "true") closeHelp();
+                    closeMenus();
+                }
+            });
+
+            document.querySelectorAll(".source-link").forEach((link) => {
+                link.addEventListener("click", () => {
+                    announce("Would open packages/prismarine/src/network/handler/PlayerAuthInputHandler.ts at line 284, column 17 in your selected editor.");
+                });
+            });
+
+            document.querySelector("#command-form").addEventListener("submit", (event) => {
+                event.preventDefault();
+                const input = document.querySelector("#command-input");
+                if (input.value.trim() === "") return;
+                announce(`Preview only. The command ${input.value.trim()} was not sent.`);
+                input.select();
+            });
+        </script>
+    </body>
+</html>
