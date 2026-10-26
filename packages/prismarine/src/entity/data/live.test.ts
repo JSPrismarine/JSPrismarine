@@ -720,6 +720,46 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(hits).toContain(3);
         });
 
+        it('moves overlapping zombies out of a crowd instead of piling up', async () => {
+            const player = addPlayer(8, 0);
+            const zombies = Array.from({ length: 18 }, (_, index) => {
+                const zombie = live.runtime.spawn('minecraft:zombie', {
+                    x: 0.5 + (index % 6) * 0.12,
+                    y: GROUND_Y,
+                    z: 0.5 + Math.floor(index / 6) * 0.12
+                });
+                if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+                return zombie;
+            });
+
+            await run(60);
+
+            const positions = new Set(
+                zombies.map(({ position }) => `${position.x.toFixed(2)},${position.z.toFixed(2)}`)
+            );
+            expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
+            expect(positions.size).toBeGreaterThan(12);
+            expect(zombies.some((zombie) => zombie.position.x > 4)).toBe(true);
+        });
+
+        it('separates zombies spawned at the exact same position', async () => {
+            const player = addPlayer(8, 0);
+            const zombies = Array.from({ length: 18 }, () => {
+                const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+                return zombie;
+            });
+
+            await run(60);
+
+            const positions = new Set(
+                zombies.map(({ position }) => `${position.x.toFixed(2)},${position.z.toFixed(2)}`)
+            );
+            expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
+            expect(positions.size).toBeGreaterThan(12);
+            expect(zombies.some((zombie) => zombie.position.x > 4)).toBe(true);
+        });
+
         it('drops Java’s loot when a mob is killed, and takes its body away', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
@@ -1243,9 +1283,9 @@ describe('the data-driven entity runtime over a live world', () => {
                 }
             }
 
-            const pig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: GROUND_Y, z: 5.5 });
+            const pig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: FLOOR_Y - 1, z: 5.5 });
             if (pig === undefined) throw new Error('the vanilla content declares no pig');
-            const zombie = live.runtime.spawn('minecraft:zombie', { x: 9.5, y: GROUND_Y, z: 5.5 });
+            const zombie = live.runtime.spawn('minecraft:zombie', { x: 9.5, y: FLOOR_Y - 1, z: 5.5 });
             if (zombie === undefined) throw new Error('the vanilla content declares no zombie');
 
             for (let tick = 1; tick <= 60; tick += 1) await live.tick(tick);
@@ -1258,11 +1298,10 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombie.position.y).toBeLessThan(FLOOR_Y + 0.5);
         });
 
-        it('does not treat water as walking support for a vanilla pig', { timeout: 180_000 }, async () => {
+        it('uses Java ground water costs without treating water as solid support', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
-            // Span every loaded z coordinate so a ground walker has no dry detour. The pig's
-            // vanilla `can_path_over_water` flag must not make these water blocks support it.
+            // Span every loaded z coordinate so a ground walker has no dry detour.
             for (let chunkZ = -LOADED_RADIUS; chunkZ <= LOADED_RADIUS; chunkZ += 1) {
                 for (let x = 4; x <= 8; x += 1) {
                     const chunk = world.getLoadedChunk(x >> 4, chunkZ);
@@ -1288,7 +1327,6 @@ describe('the data-driven entity runtime over a live world', () => {
             });
 
             expect(navigator.canReach({ x: 10.5, y: GROUND_Y, z: 2.5 })).toBe(false);
-            expect(pig.position).toEqual({ x: 2.5, y: GROUND_Y, z: 2.5 });
 
             const swimmingPig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: FLOOR_Y + 0.5, z: 5.5 });
             if (swimmingPig === undefined) throw new Error('the vanilla content declares no second pig');
@@ -1303,19 +1341,18 @@ describe('the data-driven entity runtime over a live world', () => {
             const player = addPlayer(10, 2);
             const zombieWalker = live.runtime.spawn('minecraft:zombie', { x: 2.5, y: GROUND_Y, z: 2.5 });
             if (zombieWalker === undefined) throw new Error('the vanilla content declares no zombie');
-            for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
+            expect(navigationProfile(zombieWalker.instance).isAmphibious).toBe(false);
+            expect(navigationProfile(zombieWalker.instance).canFloat).toBe(false);
+            for (let tick = 2; tick <= 60; tick += 1) await live.tick(tick);
 
             const body = live.bodies.bodyOf(zombieWalker.id);
             if (body === undefined) throw new Error('the zombie has no client-facing body');
             expect(zombieWalker.target).toBe(Number(player.getRuntimeId()));
-            expect(zombieWalker.position.x).toBeGreaterThan(4);
-            expect(zombieWalker.position.x).toBeLessThan(9);
-            expect(zombieWalker.position.y).toBeLessThan(FLOOR_Y);
-            expect(zombieWalker.body.conditions.has('in_water')).toBe(true);
-            // The pool is three blocks deep with stone below it. At this tick the zombie is
-            // still descending through water; the liquid itself does not support its body.
-            expect(body.isOnGround()).toBe(false);
-            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
+            expect(zombieWalker.position.x).toBeLessThan(4);
+            expect(zombieWalker.position.y).toBe(GROUND_Y);
+            expect(zombieWalker.body.conditions.has('in_water')).toBe(false);
+            expect(body.isOnGround()).toBe(true);
+            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(false);
         });
     });
 });

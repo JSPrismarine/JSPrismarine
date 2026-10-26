@@ -9,7 +9,7 @@
  * per-state columns, in the one order those steps allow.
  */
 import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
-import { java_entity_attributes } from '@jsprismarine/bedrock-data';
+import { java_entity_attributes, java_entity_navigation } from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
 import type { BlockHooks } from '@jsprismarine/blocks';
 import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
@@ -18,7 +18,7 @@ import { BehaviorRegistry, Registry } from '@jsprismarine/content';
 import type { Diagnostic } from '@jsprismarine/content';
 import { EnchantmentRegistry, createEnchantmentView, parseEnchantment } from '@jsprismarine/enchantments';
 import { EntityTypes } from '@jsprismarine/entities';
-import type { EntityType, JavaStatSource } from '@jsprismarine/entities';
+import type { EntityType, JavaNavigationSource, JavaStatSource } from '@jsprismarine/entities';
 import { BrainMobRegistry, registerBrainMobs } from '@jsprismarine/entity-brains';
 import { createGoalEntityRegistry } from '@jsprismarine/entity-goals';
 import type { EntityComponentRegistry } from '@jsprismarine/entities';
@@ -85,6 +85,8 @@ export interface ServerContentEntities {
     readonly brains: BrainMobRegistry;
     /** Java's attribute suppliers for the stats the server decides. */
     readonly javaStats?: JavaStatSource;
+    /** Java's navigation classes, path costs, and pushability for each mob. */
+    readonly javaNavigation?: JavaNavigationSource;
 }
 
 /**
@@ -366,7 +368,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             types: entityTypes,
             components: entityComponents,
             brains,
-            javaStats: java_entity_attributes
+            javaStats: java_entity_attributes,
+            javaNavigation: java_entity_navigation
         },
         recipes: recipes.book,
         loot,

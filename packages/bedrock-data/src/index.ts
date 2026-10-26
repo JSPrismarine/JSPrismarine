@@ -142,6 +142,7 @@ export const jigsaw_structure_data: Buffer = toBuffer(jigsaw_structure_data_data
 export const biome_definitions_network: Buffer = toBuffer(biome_definitions_network_data);
 
 import java_entity_attributes_data from './jsp/java/entity_attributes.json';
+import java_entity_navigation_data from './jsp/java/entity_navigation.json';
 
 /** One Java entity type's hitbox and the attributes its class declares. */
 export interface JavaEntityAttributes {
@@ -164,3 +165,20 @@ export interface JavaEntityAttributes {
  * differ on some of them, which is a finding rather than a defect.
  */
 export const java_entity_attributes: Record<string, JavaEntityAttributes> = java_entity_attributes_data;
+
+/** One Java mob's navigation, path costs, and entity-push behavior. */
+export interface JavaEntityNavigationEntry {
+    /** The Java path-navigation class instantiated for the entity type. */
+    navigationClass: string;
+    /** Whether Java's registered goals enabled floating through liquid. */
+    canFloat: boolean;
+    /** Whether Java's navigator can follow paths on solid ground. */
+    canNavigateGround: boolean;
+    /** Whether Java lets this living entity push and be pushed by other entities. */
+    pushable: boolean;
+    /** Java's per-`PathType` route cost, with negative values marking blocked terrain. */
+    pathfindingMalus: Record<string, number>;
+}
+
+/** The path navigation Java's mob classes construct, keyed by Java entity identifier. */
+export const java_entity_navigation: Record<string, JavaEntityNavigationEntry> = java_entity_navigation_data;

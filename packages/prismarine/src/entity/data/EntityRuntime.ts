@@ -26,7 +26,7 @@ import type {
     OutgoingTrigger,
     TransformRequest
 } from '@jsprismarine/entities';
-import { EntityInstance, isRecord, noEffects } from '@jsprismarine/entities';
+import { EntityInstance, isRecord, javaEntityNavigation, noEffects } from '@jsprismarine/entities';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
@@ -297,6 +297,7 @@ export class EntityRuntime implements EntityScene {
                 filterContext: (): FilterContext => entityFilterContextOf(body, this),
                 random: { next: () => this.world.random.nextFloat() },
                 javaStats: content.entities.javaStats,
+                javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
                 remove: (removed, reason) => this.removeInstance(removed, reason),
                 transform: (from, request) => this.transform(from, request),
                 route: (trigger, from) => this.route(trigger, from),
@@ -348,7 +349,15 @@ export class EntityRuntime implements EntityScene {
      *   per-pool cadence is measured against.
      */
     public tick(tick: number): void {
-        for (const entity of this.all()) {
+        const entities = this.all();
+        let widest = 0;
+        let tallest = 0;
+        for (const entity of entities) {
+            widest = Math.max(widest, entity.facts.box.width);
+            tallest = Math.max(tallest, entity.facts.box.height);
+        }
+
+        for (const entity of entities) {
             if (entity.removed !== undefined) continue;
             this.updateMedium(entity);
             this.tickTimers(entity.body);
@@ -360,6 +369,8 @@ export class EntityRuntime implements EntityScene {
             this.updateMedium(entity);
             this.updateGrounded(entity);
             this.carryRiders(entity);
+            if (entity.removed !== undefined) continue;
+            this.pushIntersectingEntity(entity, widest, tallest);
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle();
@@ -1079,6 +1090,65 @@ export class EntityRuntime implements EntityScene {
             stepHeight: profile.stepHeight,
             canOccupy: (position) => !hasCollision || bodyCanOccupy(position, entity.facts.box, navigation)
         });
+    }
+
+    /** Applies Java's horizontal push impulse after this entity has moved for the tick. */
+    private pushIntersectingEntity(first: DataEntity, widest: number, tallest: number): void {
+        if (!this.hasEntityCollision(first)) return;
+
+        const horizontalReach = (first.facts.box.width + widest) / 2;
+        const verticalReach = (first.facts.box.height + tallest) / 2;
+        const searchRadius = Math.hypot(horizontalReach * Math.SQRT2, verticalReach);
+        for (const second of this.grid.within(first.position, searchRadius)) {
+            if (first.id === second.id || !this.hasEntityCollision(second)) continue;
+            const firstVehicle = this.rides.vehicleOf(first.id);
+            const secondVehicle = this.rides.vehicleOf(second.id);
+            if (firstVehicle === second.id || secondVehicle === first.id) continue;
+            if (firstVehicle !== undefined && firstVehicle === secondVehicle) continue;
+
+            const dx = second.position.x - first.position.x;
+            const dz = second.position.z - first.position.z;
+            const collisionReach = (first.facts.box.width + second.facts.box.width) / 2;
+            if (
+                Math.abs(dx) >= collisionReach ||
+                Math.abs(dz) >= collisionReach ||
+                first.position.y >= second.position.y + second.facts.box.height ||
+                second.position.y >= first.position.y + first.facts.box.height
+            )
+                continue;
+
+            const pushableFirst = this.isPushable(first);
+            const pushableSecond = this.isPushable(second);
+            if (!pushableFirst && !pushableSecond) continue;
+            const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
+            if (largestDifference < 0.01) continue;
+
+            const root = Math.sqrt(largestDifference);
+            const scale = Math.min(1, 1 / root);
+            const impulse = {
+                x: (dx / root) * scale * 0.05,
+                y: 0,
+                z: (dz / root) * scale * 0.05
+            };
+            if (pushableFirst) first.body.push({ x: -impulse.x, y: 0, z: -impulse.z });
+            if (pushableSecond) second.body.push(impulse);
+        }
+    }
+
+    /** Whether the entity's active definition lets it collide with entities. */
+    private hasEntityCollision(entity: DataEntity): boolean {
+        const physics = entity.instance.componentParams('minecraft:physics');
+        return !isRecord(physics) || physics.hasCollision !== false;
+    }
+
+    /** Whether Java's entity type or its active custom component allows pushing. */
+    private isPushable(entity: DataEntity): boolean {
+        const java = entity.instance.javaNavigation;
+        if (java !== undefined) return java.pushable;
+
+        const component = entity.instance.componentParams('minecraft:pushable');
+        if (isRecord(component) && typeof component.isPushable === 'boolean') return component.isPushable;
+        return entity.instance.attributes.get('health') !== undefined;
     }
 
     /** Keeps every rider where its vehicle is, which is what being carried means. */

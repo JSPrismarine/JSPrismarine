@@ -22,6 +22,7 @@ import { evaluateFilter } from './filters';
 import { GoalScheduler } from './goals';
 import type { JavaStatSource } from './javaStats';
 import { javaAttributeBases } from './javaStats';
+import type { JavaEntityNavigation } from './javaNavigation';
 import type { EntityAction, EventTarget } from './events';
 import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
@@ -115,6 +116,8 @@ export interface EntityEnvironment {
      * @see {@link SHARED_STATS} for which stat each edition decides.
      */
     javaStats?: JavaStatSource;
+    /** Java's path navigator and collision behavior, when the host has the pinned class dump. */
+    javaNavigation?: JavaEntityNavigation;
 }
 
 /** Options for one {@link EntityInstance}. */
@@ -210,6 +213,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** The movement and look control the goals use, when the caller supplied one. */
     public get actuator(): EntityActuator | undefined {
         return this.environment.actuator;
+    }
+
+    /** Java's path-navigation and collision rules for this type, when the host supplied them. */
+    public get javaNavigation(): JavaEntityNavigation | undefined {
+        return this.environment.javaNavigation;
     }
 
     /** The random source this entity draws from. */

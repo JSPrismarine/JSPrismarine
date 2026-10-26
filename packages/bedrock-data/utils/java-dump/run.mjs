@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 import { findJdkHome } from '../java/jdk.ts';
 
 /**
- * Compiles and runs the Java property and attribute dumper against the pinned Java Edition
- * server jar, then writes the goldens under `src/jsp/java/`.
+ * Compiles and runs the Java property, attribute, and navigation dumper against the pinned Java
+ * Edition server jar, then writes the goldens under `src/jsp/java/`.
  *
  * This is a capture-time task, run on a Java version bump rather than on every build. The jar
  * and everything extracted from it are untrusted data and stay under the cache directory; the
@@ -137,3 +137,4 @@ const jdkHome = findJdkHome({ minimumMajor: REQUIRED_JDK_MAJOR, binaries: ['java
 const outputDir = runDumper(jdkHome, serverJar, librariesDir);
 writeGolden(outputDir, 'block_properties.json');
 writeGolden(outputDir, 'entity_attributes.json');
+writeGolden(outputDir, 'entity_navigation.json');

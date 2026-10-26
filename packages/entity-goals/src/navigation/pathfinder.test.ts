@@ -141,6 +141,30 @@ describe('findPath', () => {
         expect(findPath(view, sinker, request)).toBeUndefined();
     });
 
+    it('uses Java water malus for a ground path while requiring solid support', () => {
+        const submerged = voxelGrid([['#####'], ['.~~~.']]);
+        const surface = voxelGrid([['#~#'], ['...']]);
+        const javaWalker = navigationProfileOf({
+            height: 1,
+            canSwim: false,
+            canWalk: true,
+            pathfindingMalus: { water: 8 }
+        });
+
+        expect(
+            findPath(submerged, javaWalker, {
+                from: { x: 0, y: 1, z: 0 },
+                to: { x: 4, y: 1, z: 0 }
+            })?.reachedGoal
+        ).toBe(true);
+        expect(
+            findPath(surface, javaWalker, {
+                from: { x: 0, y: 1, z: 0 },
+                to: { x: 2, y: 1, z: 0 }
+            })
+        ).toBeUndefined();
+    });
+
     it('does not treat water as ground support when the profile can path over its surface', () => {
         const view = voxelGrid([['#~#'], ['...']]);
 

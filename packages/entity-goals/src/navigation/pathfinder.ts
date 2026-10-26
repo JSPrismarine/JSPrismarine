@@ -222,6 +222,13 @@ class CellReader {
         return this.cost(x, y, z) !== undefined;
     }
 
+    /** Whether Java's floating navigator can rise or sink from this liquid cell. */
+    public canFloatIn(x: number, y: number, z: number): boolean {
+        if (!this.profile.canFloat) return false;
+        const at = this.cell(x, y, z);
+        return this.view.isWater(at) || this.view.isLava(at);
+    }
+
     /** The view position for one cell, which is the same object every time. */
     private cell(x: number, y: number, z: number): EntityPosition {
         this.at.x = x;
@@ -263,12 +270,22 @@ class CellReader {
         let penalty = 0;
 
         if (view.isLava(this.cell(x, y, z))) {
-            if (!profile.canWalkInLava) return undefined;
+            const malus = profile.pathfindingMalus?.lava;
+            if (malus !== undefined) {
+                if (malus < 0) return undefined;
+                penalty += malus;
+            } else if (!profile.canWalkInLava) return undefined;
         } else if (view.isWater(this.cell(x, y, z))) {
-            const swims = profile.canSwim || profile.canFloat || profile.isAmphibious;
-            if (profile.avoidWater) {
-                if (!swims) return undefined;
-                penalty += AVOIDED_CELL_COST;
+            const malus = profile.pathfindingMalus?.water;
+            if (malus !== undefined) {
+                if (malus < 0) return undefined;
+                penalty += malus;
+            } else {
+                const swims = profile.canSwim || profile.canFloat || profile.isAmphibious;
+                if (profile.avoidWater) {
+                    if (!swims) return undefined;
+                    penalty += AVOIDED_CELL_COST;
+                }
             }
         }
 
@@ -378,7 +395,12 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
         }
     }
 
-    const vertical = profile.canFly || profile.canSwim || profile.isAmphibious || profile.kind === 'climb';
+    const vertical =
+        profile.canFly ||
+        profile.canSwim ||
+        profile.isAmphibious ||
+        profile.kind === 'climb' ||
+        cells.canFloatIn(node.x, node.y, node.z);
     if (vertical) {
         for (const dy of [1, -1]) {
             const y = node.y + dy;

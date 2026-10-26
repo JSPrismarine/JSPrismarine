@@ -45,6 +45,8 @@ export interface NavigationProfile {
     readonly avoidPortals: boolean;
     readonly avoidDamageBlocks: boolean;
     readonly isAmphibious: boolean;
+    /** Java's path-type costs, keyed by `PathType`; negative values are blocked. */
+    readonly pathfindingMalus?: Readonly<Record<string, number>>;
     /** Block identifiers the path refuses to enter, from `blocks_to_avoid`. */
     readonly blocksToAvoid: readonly string[];
 }
@@ -126,7 +128,7 @@ export const navigationProfile = (entity: EntityInstance): NavigationProfile => 
         if (!isRecord(body)) continue;
 
         const canJump = flag(body, 'canJump', true);
-        return {
+        return withJavaNavigation(entity, {
             kind,
             height: heightOf(entity),
             stepHeight: stepHeightOf(entity, canJump),
@@ -152,10 +154,34 @@ export const navigationProfile = (entity: EntityInstance): NavigationProfile => 
             avoidDamageBlocks: flag(body, 'avoidDamageBlocks', false),
             isAmphibious: flag(body, 'isAmphibious', false),
             blocksToAvoid: avoidedBlocks(body.blocksToAvoid)
-        };
+        });
     }
 
-    return { ...defaultNavigationProfile, height: heightOf(entity) };
+    return withJavaNavigation(entity, { ...defaultNavigationProfile, height: heightOf(entity) });
+};
+
+/** Lets the pinned Java navigator decide which media its path can enter and hold. */
+const withJavaNavigation = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => {
+    const java = entity.javaNavigation;
+    if (java === undefined) return profile;
+
+    const navigationClass = java.navigationClass;
+    const isWaterBound = navigationClass.endsWith('WaterBoundPathNavigation');
+    const isAmphibious = navigationClass.endsWith('AmphibiousPathNavigation');
+    const isClimber = navigationClass.endsWith('WallClimberNavigation');
+    const isFlying = navigationClass.endsWith('FlyingPathNavigation') || profile.canFly;
+    const kind: NavigationKind = isWaterBound ? 'swim' : isFlying ? 'fly' : isClimber ? 'climb' : 'walk';
+
+    return {
+        ...profile,
+        kind,
+        canFloat: java.canFloat,
+        canSwim: isWaterBound || isAmphibious,
+        canWalk: java.canNavigateGround,
+        canFly: isFlying,
+        isAmphibious,
+        pathfindingMalus: java.pathfindingMalus
+    };
 };
 
 /** Builds a profile for a test or a caller that has no entity, over the defaults. */

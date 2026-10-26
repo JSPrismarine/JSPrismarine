@@ -352,9 +352,14 @@ export class MobBody {
         )
             this.jump();
 
-        // A knockback impulse carries a grounded walker until it lands. A jump still
-        // advances horizontally, so it can clear the path step that caused it.
-        if (this.airborne && !this.conditions.has('jumping') && options?.allowVertical !== true) return;
+        // Vertical knockback carries a grounded walker until it lands. Horizontal entity
+        // pushes and knockback still combine with the navigation input, as they do in Java.
+        if (
+            Math.abs(this.velocity.y) > IMPULSE_FLOOR &&
+            !this.conditions.has('jumping') &&
+            options?.allowVertical !== true
+        )
+            return;
 
         const target = options?.allowVertical === false ? { ...destination, y: this.position.y } : destination;
         const remaining =
