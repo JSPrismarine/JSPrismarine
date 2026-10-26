@@ -1,15 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { allBlocks } from '../../block/Blocks';
-import type { Block } from '../../block/Block';
+import { Block } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { BlockStateSchema, BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import Chunk from './Chunk';
 
-const blockOf = (name: string): Block =>
-    allBlocks()
-        .map((B) => new B())
-        .find((block: Block) => block.getName() === name)!;
+const blockOf = (name: string): Block => new Block({ name });
 
 describe('world', () => {
     describe('chunk fast paths', () => {
