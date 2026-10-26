@@ -172,8 +172,9 @@ every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in a
 effect on the next restart.
 
 The host process watches workspace package sources and data files under every directory in the
-resolved content stack: the vanilla Bedrock pack, `packages/blocks/vanilla_overlay/`, the Java
-vanilla datapack, and packs configured through `content-world-packs` or `content-datapacks`.
+resolved content stack: the vanilla Bedrock pack, `packages/blocks/vanilla_overlay/`,
+`packages/entities/vanilla_overlay/`, the Java vanilla datapack, and packs configured through
+`content-world-packs` or `content-datapacks`.
 Explicit `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK` paths are included in that stack.
 Pack JSON, `pack.mcmeta`, `.mcfunction`, and `.brarchive` changes share one debounce, so a batch of
 edits causes one graceful server restart and rebuilds the registries from disk. Content registries

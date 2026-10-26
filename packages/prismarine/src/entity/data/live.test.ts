@@ -605,6 +605,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(1);
 
             expect(live.bodies.bodyOf(levitator.id)?.isOnGround()).toBe(false);
+            expect(live.bodies.bodyOf(levitator.id)?.metadata.affectedByGravity).toBe(false);
         });
 
         it('spawns nothing with nobody in the world to spawn around', async () => {
@@ -1241,7 +1242,7 @@ describe('the data-driven entity runtime over a live world', () => {
             live = opened;
         };
 
-        it('materializes every vanilla entity definition through the live runtime', { timeout: 180_000 }, () => {
+        it('materializes every loaded entity definition through the live runtime', { timeout: 180_000 }, () => {
             useVanillaContent();
 
             const failures: string[] = [];
@@ -1254,7 +1255,11 @@ describe('the data-driven entity runtime over a live world', () => {
                 };
                 index += 1;
 
-                const entity = live.runtime.spawn(identifier, position);
+                const entity = live.runtime.spawn(
+                    identifier,
+                    position,
+                    identifier === 'minecraft:falling_block' ? { data: { block: 'minecraft:stone' } } : undefined
+                );
                 if (entity === undefined) {
                     failures.push(`${identifier}: runtime did not create an entity`);
                     continue;
@@ -1263,6 +1268,30 @@ describe('the data-driven entity runtime over a live world', () => {
             }
 
             expect(failures).toEqual([]);
+        });
+
+        it('spawns and lands falling blocks through the live runtime', async () => {
+            useVanillaContent();
+
+            const id = live.runtime
+                .content()
+                .world.blockWorld.at(DIMENSION)
+                .spawnEntity({ x: 2, y: GROUND_Y + 4, z: 2 }, 'minecraft:falling_block', { block: 'minecraft:stone' });
+            const fallingBlock = live.runtime.byId(id);
+            const body = live.bodies.bodyOf(id);
+
+            expect(fallingBlock?.identifier).toBe('minecraft:falling_block');
+            expect(fallingBlock?.spawnData).toEqual({ block: 'minecraft:stone' });
+            expect(fallingBlock?.facts.box).toEqual({ width: 0.98, height: 0.98 });
+            expect(body?.metadata.affectedByGravity).toBe(true);
+            expect(body?.metadata.collidable).toBe(false);
+            expect(body?.metadata.getPropertyValue(MetadataFlag.VARIANT)).toBe(idOf('minecraft:stone'));
+
+            for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+            expect((await world.getBlockState(2, GROUND_Y, 2)).name).toBe('minecraft:stone');
+            expect(live.runtime.byId(id)).toBeUndefined();
+            expect(live.bodies.bodyOf(id)).toBeUndefined();
         });
 
         it(

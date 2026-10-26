@@ -6,7 +6,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { VANILLA_BEHAVIOR_PACK_UUID } from '@jsprismarine/packs';
 
 import { buildServerContent } from './ServerContent';
-import { PACK_STACK_ENV, overlayPackPath, resolvePackStack } from './packStack';
+import { entityOverlayPackPath, PACK_STACK_ENV, overlayPackPath, resolvePackStack } from './packStack';
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -29,6 +29,7 @@ describe('resolvePackStack', () => {
         expect(stack.map((source) => source.path)).toEqual([
             overlayPackPath(),
             overlayPackPath(),
+            entityOverlayPackPath(),
             '/worlds/one',
             '/plugins/two'
         ]);
@@ -42,11 +43,15 @@ describe('resolvePackStack', () => {
 
         expect(diagnostics.map((diagnostic) => diagnostic.code)).toEqual(['pack.missing', 'pack.missing']);
         expect(diagnostics.every((diagnostic) => diagnostic.severity === 'warning')).toBe(true);
-        expect(stack).toHaveLength(1);
+        expect(stack).toHaveLength(2);
     });
 
     it('always finds the overlay, which ships with @jsprismarine/blocks', () => {
         expect(existsSync(overlayPackPath())).toBe(true);
+    });
+
+    it('always finds the entity overlay, which ships with @jsprismarine/entities', () => {
+        expect(existsSync(entityOverlayPackPath())).toBe(true);
     });
 
     it('reads a path with a manifest at its root as one composed pack', () => {
@@ -122,13 +127,15 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', (
         expect(content.items.registry.size).toBeGreaterThan(1600);
     });
 
-    it('registers the 129 entities the vanilla pack defines and nothing else', { timeout: 180_000 }, () => {
+    it('registers vanilla entities and the internal falling-block definition', { timeout: 180_000 }, () => {
         const content = buildServerContent();
 
         // The composed vanilla pack ships 129 entity definitions. BDS keeps
         // the editor's five `editor:` entities and chemistry's balloon and
-        // ice bomb in the same folder, and a default build serves neither.
-        expect(content.entities.registry.size).toBe(129);
+        // ice bomb in the same folder, and a default build serves neither. The
+        // entity overlay adds Java's falling block, which Bedrock does not define.
+        expect(content.entities.registry.size).toBe(130);
+        expect(content.entities.registry.has('minecraft:falling_block')).toBe(true);
         expect(content.entities.registry.keys().filter((id) => !id.startsWith('minecraft:'))).toEqual([]);
     });
 

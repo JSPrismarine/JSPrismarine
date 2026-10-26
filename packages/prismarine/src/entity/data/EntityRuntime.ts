@@ -118,6 +118,11 @@ export class EntityRuntime implements EntityScene {
     private spawning: MobBody | undefined;
     /** The pool each entity's spawn counted against, for `SpawnWorld.poolCount`. */
     private readonly pools = new Map<number, string>();
+    /** The start height and pass-through blocks for each active falling-block entity. */
+    private readonly fallingBlocks = new Map<
+        number,
+        { readonly startY: number; readonly fallThrough: ReadonlySet<string> }
+    >();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
@@ -219,6 +224,10 @@ export class EntityRuntime implements EntityScene {
     public spawn(identifier: string, at: EntityPosition, options: SpawnOptions = {}): DataEntity | undefined {
         const entity = this.create(identifier, at, options);
         if (entity === undefined) return undefined;
+        if (!this.hasValidFallingBlockData(entity)) {
+            this.remove(entity.id, 'invalid_spawn_data');
+            return undefined;
+        }
 
         entity.instance.spawn(options.cause ?? 'spawned', options.event);
         // Between the spawn event and the body, for the same reason the body comes last. The
@@ -254,6 +263,10 @@ export class EntityRuntime implements EntityScene {
             data: record.spawnData
         });
         if (entity === undefined) return undefined;
+        if (!this.hasValidFallingBlockData(entity)) {
+            this.remove(entity.id, 'invalid_spawn_data');
+            return undefined;
+        }
 
         applyDataEntityRecord(entity, record);
         this.onSpawn(entity);
@@ -263,6 +276,17 @@ export class EntityRuntime implements EntityScene {
     /** The population pool one entity's spawn counted against, if any. */
     public poolOf(id: number): string | undefined {
         return this.pools.get(id);
+    }
+
+    /** A falling-block payload must name a block the active content stack knows. */
+    private hasValidFallingBlockData(entity: DataEntity): boolean {
+        if (!entity.instance.hasComponent('jsprismarine:falling_block')) return true;
+
+        const blockName = entity.spawnData?.['block'];
+        if (typeof blockName === 'string' && this.content().blocks.types.has(blockName)) return true;
+
+        this.report(`${entity.identifier} needs a known block identifier in its spawn data`);
+        return false;
     }
 
     /**
@@ -340,6 +364,7 @@ export class EntityRuntime implements EntityScene {
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
+        this.fallingBlocks.delete(id);
         this.rides.remove(id);
         this.onRemove(entity, reason);
     }
@@ -367,6 +392,7 @@ export class EntityRuntime implements EntityScene {
             this.tickBrain(entity);
             tickBrainNavigation(entity);
             this.coast(entity);
+            if (entity.removed !== undefined) continue;
             this.step(entity);
             this.updateMedium(entity);
             this.updateGrounded(entity);
@@ -1026,6 +1052,12 @@ export class EntityRuntime implements EntityScene {
      */
     private coast(entity: DataEntity): void {
         const { body, instance } = entity;
+        const fallingBlock = instance.componentParams('jsprismarine:falling_block');
+        if (isRecord(fallingBlock)) {
+            this.coastFallingBlock(entity, fallingBlock);
+            return;
+        }
+
         const buoyant = instance.componentParams('minecraft:buoyant');
         if (isRecord(buoyant)) {
             this.coastBuoyant(entity, buoyant);
@@ -1079,6 +1111,69 @@ export class EntityRuntime implements EntityScene {
         }
 
         body.position = next;
+    }
+
+    /** Applies the block's configured falling motion and turns it back into a block on landing. */
+    private coastFallingBlock(entity: DataEntity, params: Record<string, unknown>): void {
+        const blockName = entity.spawnData?.['block'];
+        if (typeof blockName !== 'string') {
+            this.report(`${entity.identifier} has no block payload and was removed`);
+            this.remove(entity.id, 'invalid_spawn_data');
+            return;
+        }
+
+        let state = this.fallingBlocks.get(entity.id);
+        if (state === undefined) {
+            const fallThrough = new Set(
+                Array.isArray(params['fall_through'])
+                    ? params['fall_through'].filter((name): name is string => typeof name === 'string')
+                    : []
+            );
+            state = { startY: entity.position.y, fallThrough };
+            this.fallingBlocks.set(entity.id, state);
+        }
+
+        const gravity = typeof params['gravity'] === 'number' ? params['gravity'] : 0.04;
+        const drag = typeof params['drag'] === 'number' ? params['drag'] : 0.02;
+        const maxFallDistance = typeof params['max_fall_distance'] === 'number' ? params['max_fall_distance'] : 512;
+        const position = entity.position;
+        const velocity = entity.body.velocity;
+        const fallingY = (velocity.y - gravity) * (1 - drag);
+        const nextY = position.y + fallingY;
+
+        if (position.y - state.startY < -maxFallDistance || nextY < this.world.level.minY) {
+            this.remove(entity.id, 'fell_out_of_world');
+            return;
+        }
+
+        const target = {
+            x: Math.floor(position.x),
+            y: Math.floor(nextY),
+            z: Math.floor(position.z)
+        };
+        const occupying = this.world.blocks.get(target);
+        if (occupying === undefined) return;
+
+        if (!state.fallThrough.has(occupying.identifier)) {
+            const landing = { ...target, y: target.y + 1 };
+            const resting = this.world.blocks.get(landing);
+            if (resting === undefined) return;
+
+            this.remove(entity.id, 'landed');
+            if (state.fallThrough.has(resting.identifier)) {
+                if (resting.identifier !== AIR) this.world.blocks.destroy?.(landing);
+                this.world.blocks.set(landing, { identifier: blockName, states: {} }, true);
+            } else {
+                this.host.drop(
+                    { x: landing.x + 0.5, y: landing.y + 0.5, z: landing.z + 0.5 },
+                    { identifier: blockName, count: 1 }
+                );
+            }
+            return;
+        }
+
+        entity.body.velocity = { x: velocity.x * (1 - drag), y: fallingY, z: velocity.z * (1 - drag) };
+        entity.body.position = { ...position, y: nextY };
     }
 
     /** Applies Java's boat float step when the active definition declares buoyancy. */

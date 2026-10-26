@@ -204,6 +204,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(jumpStatic);
     register(loot);
     register(physics);
+    register(dataComponent('jsprismarine:falling_block'));
     register(pushable);
     register(rideable);
     register(timer);

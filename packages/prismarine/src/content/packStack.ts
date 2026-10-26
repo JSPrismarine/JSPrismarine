@@ -2,11 +2,10 @@
  * Where the default pack stack comes from.
  *
  * The order is the one [the plan](../../../../docs/plans/data-driven-vanilla.md)
- * section 7 fixes: the composed vanilla Bedrock pack defines the content, this
- * project's `jsprismarine_vanilla` overlay declares every palette block with
- * the Java-sourced property table behind it, the Java vanilla datapack
- * configures what those two defined, and world and plugin packs come last so
- * they override both.
+ * section 7 fixes: the composed vanilla Bedrock pack defines the content,
+ * this project's block and entity overlays add definitions, the Java vanilla
+ * datapack configures those definitions, and world and plugin packs come last
+ * so they override the vanilla members.
  *
  * Mojang's two halves are fetched rather than published with this server, so
  * a member whose directory is not on disk is left out and reported. The
@@ -54,7 +53,7 @@ export interface PackStackRequest {
      * that does want it opts in.
      */
     readonly bedrockPacks?: readonly string[] | 'all';
-    /** Whether to include this project's `jsprismarine_vanilla` overlay. Defaults to true. */
+    /** Whether to include this project's block and entity vanilla overlays. Defaults to true. */
     readonly overlay?: boolean;
     /** Whether to include the Java vanilla datapack. Defaults to true. */
     readonly javaVanilla?: boolean;
@@ -196,6 +195,17 @@ export const overlayPackPath = (): string => {
     return searchUp(...OVERLAY_SEGMENTS) ?? join(process.cwd(), 'node_modules', ...OVERLAY_SEGMENTS);
 };
 
+/** The `@jsprismarine/entities` overlay, which declares entity types absent from Bedrock's pack. */
+export const entityOverlayPackPath = (): string => {
+    const manifest = resolveFrom('@jsprismarine/entities/package.json');
+    if (manifest !== undefined) return join(dirname(manifest), 'vanilla_overlay');
+
+    return (
+        searchUp('@jsprismarine', 'entities', 'vanilla_overlay') ??
+        join(process.cwd(), 'node_modules', '@jsprismarine', 'entities', 'vanilla_overlay')
+    );
+};
+
 /**
  * Assembles the default pack stack.
  *
@@ -235,6 +245,10 @@ export const resolvePackStack = (request: PackStackRequest = {}): ResolvedPackSt
         const overlay = overlayPackPath();
         if (existsSync(overlay)) stack.push({ kind: 'directory', path: overlay });
         else missing('the jsprismarine_vanilla overlay', 'reinstall @jsprismarine/blocks');
+
+        const entityOverlay = entityOverlayPackPath();
+        if (existsSync(entityOverlay)) stack.push({ kind: 'directory', path: entityOverlay });
+        else missing('the jsprismarine entity overlay', 'reinstall @jsprismarine/entities');
     }
 
     if (request.javaVanilla !== false) {

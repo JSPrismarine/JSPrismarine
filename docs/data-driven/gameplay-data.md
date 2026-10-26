@@ -77,10 +77,9 @@ in it. `content-strict` decides the softer half: with it on, a single pack that 
 fails the whole build too, where normally the error goes into the report and the rest of the stack
 loads.
 
-The stack is assembled in a fixed order: the vanilla Bedrock behavior pack, this project's
-`jsprismarine_vanilla` overlay, the Java vanilla datapack, then your `content-world-packs`, then
-your `content-datapacks`. Later members override earlier ones, which is why your datapacks come
-last.
+The stack is assembled in a fixed order: the vanilla Bedrock behavior pack, this project's block
+overlay, its entity overlay, the Java vanilla datapack, then your `content-world-packs`, then your
+`content-datapacks`. Later members override earlier ones, which is why your datapacks come last.
 
 ## Loot
 

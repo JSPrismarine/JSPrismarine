@@ -19,11 +19,9 @@ describe('the hitbox of an entity type', () => {
         expect(boxOf(registry(), 'minecraft:cow')).toStrictEqual({ width: 0.9, height: 1.3 });
     });
 
-    it('is Java’s for the two entities no behavior pack declares', () => {
-        // Mojang ships no `item.json` and no `falling_block.json`: both are bodies the server
-        // makes rather than types a pack describes, so there is nothing in the registry to read.
+    it('is Java’s for the item entity no behavior pack declares', () => {
+        // Mojang ships no `item.json`, so there is nothing in the registry to read for it.
         expect(boxOf(registry(), 'minecraft:item')).toStrictEqual({ width: 0.25, height: 0.25 });
-        expect(boxOf(registry(), 'minecraft:falling_block')).toStrictEqual({ width: 0.98, height: 0.98 });
     });
 
     it('is a block for a type nothing describes', () => {

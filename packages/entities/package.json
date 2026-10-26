@@ -24,6 +24,7 @@
     "type": "module",
     "files": [
         "dist",
+        "vanilla_overlay",
         "CHANGELOG.md",
         "README.md"
     ],

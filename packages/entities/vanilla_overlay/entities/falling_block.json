@@ -1,0 +1,46 @@
+{
+    "format_version": "1.26.20",
+    "minecraft:entity": {
+        "description": {
+            "identifier": "minecraft:falling_block",
+            "is_spawnable": false,
+            "is_summonable": false
+        },
+        "components": {
+            "minecraft:collision_box": {
+                "width": 0.98,
+                "height": 0.98
+            },
+            "minecraft:physics": {
+                "has_gravity": true,
+                "has_collision": false
+            },
+            "minecraft:type_family": {
+                "family": ["falling_block"]
+            },
+            "jsprismarine:falling_block": {
+                "gravity": 0.04,
+                "drag": 0.02,
+                "max_fall_distance": 512,
+                "fall_through": [
+                    "minecraft:air",
+                    "minecraft:short_grass",
+                    "minecraft:tall_grass",
+                    "minecraft:fern",
+                    "minecraft:large_fern",
+                    "minecraft:deadbush",
+                    "minecraft:dandelion",
+                    "minecraft:poppy",
+                    "minecraft:red_flower",
+                    "minecraft:yellow_flower",
+                    "minecraft:wheat",
+                    "minecraft:carrots",
+                    "minecraft:potatoes",
+                    "minecraft:beetroot",
+                    "minecraft:torch",
+                    "minecraft:snow_layer"
+                ]
+            }
+        }
+    }
+}

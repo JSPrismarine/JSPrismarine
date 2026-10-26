@@ -47,20 +47,18 @@ export interface EntityBox {
 export const DEFAULT_BOX: EntityBox = { width: 1, height: 1 };
 
 /**
- * The boxes of the two types the server models that no entity file declares.
+ * The box of the type the server models that no entity file declares.
  *
- * A dropped stack and a falling block are bodies the server makes rather than
- * types a pack describes, so Mojang's behavior pack ships no `item.json` and
- * no `falling_block.json` and the registry has nothing to read for either.
- * The numbers are Java's, which is also what the Bedrock client draws for the
- * two of them.
+ * A dropped stack is a body the server makes rather than a type a pack
+ * describes, so Mojang's behavior pack ships no `item.json`. The number is
+ * Java's, which is also what the Bedrock client draws for it. The falling
+ * block's box comes from the entities package overlay.
  *
  * Every other type comes from the registry. A row added here is a row the
- * content no longer owns, so the table is meant to stay two rows long.
+ * content no longer owns, so the table is meant to stay one row long.
  */
 const UNDECLARED_BOXES: Readonly<Record<string, EntityBox>> = {
-    'minecraft:item': { width: 0.25, height: 0.25 },
-    'minecraft:falling_block': { width: 0.98, height: 0.98 }
+    'minecraft:item': { width: 0.25, height: 0.25 }
 };
 
 /**

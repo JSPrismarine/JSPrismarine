@@ -14,14 +14,14 @@ single pack that reports an error also fails the build; `content-world-packs` an
 
 ## What one build produces
 
-Against the pinned BDS 1.26.51 pack, the `jsprismarine_vanilla` overlay and the Java 26.3 vanilla
-datapack, `buildServerContent()` takes about 3.6 seconds and reports no errors:
+Against the pinned BDS 1.26.51 pack, the block and entity overlays and the Java 26.3 vanilla datapack,
+`buildServerContent()` takes about 3.6 seconds and reports no errors:
 
 | Registry | Count |
 | --- | --- |
 | Blocks, and palette states | 1477, 22079 |
 | Items | 1613 |
-| Entity types, of which brain mobs | 129, 20 |
+| Entity types, of which brain mobs | 130 (129 vanilla + falling block), 20 |
 | Recipes | 2042 |
 | Loot tables | 1447 |
 | Enchantments | 43 |
@@ -42,10 +42,11 @@ The order is forced. Each step needs the one before it, and three of the depende
 which is why the code looks the way it does.
 
 1. **Resolve the pack stack.** `resolvePackStack` assembles the composed vanilla Bedrock pack, this
-   project's `jsprismarine_vanilla` overlay from `@jsprismarine/blocks`, the Java vanilla datapack,
-   then the world's packs and the plugins', in that order. Mojang's two halves are fetched rather
-   than published with this server, so a member whose directory is not on disk is reported as a
-   `pack.missing` warning and left out. `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK`
+   project's block overlay from `@jsprismarine/blocks`, its entity overlay from
+   `@jsprismarine/entities`, the Java vanilla datapack, then the world's packs and the plugins', in
+   that order. Mojang's two halves are fetched rather than published with this server, so a member
+   whose directory is not on disk is reported as a `pack.missing` warning and left out.
+   `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK`
    point at local copies, and an override that points at nothing is an omission rather than a
    fallback to the cache.
 

@@ -22,12 +22,14 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
+import { isRecord } from '@jsprismarine/entities';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
+import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { itemOfDrop } from '../../inventory/persistence';
 import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '../Attribute';
@@ -35,6 +37,7 @@ import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
 import type { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
+import { MetadataFlag } from '../Metadata';
 import type { DataEntity } from './DataEntity';
 import type { EntityRuntime } from './EntityRuntime';
 import { dataEntityRecordOf, writeDataEntityRecord } from './persistence';
@@ -112,6 +115,11 @@ export class LiveBodies {
     private readonly equipped = new Map<number, number>();
     /** Swimming flags last mirrored to each body's actor metadata. */
     private readonly movementFlags = new Map<number, { readonly canSwim: boolean; readonly swimming: boolean }>();
+    /** Physics flags last mirrored to each body's actor metadata. */
+    private readonly physicsFlags = new Map<
+        number,
+        { readonly affectedByGravity: boolean; readonly collidable: boolean }
+    >();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -168,6 +176,8 @@ export class LiveBodies {
         // an empty-handed skeleton.
         this.writeEquipment(entity, body);
         this.writeMovementFlags(entity, body);
+        this.writePhysicsFlags(entity, body);
+        this.writeFallingBlockAppearance(entity, body);
 
         this.bodies.set(entity.id, body);
         this.idsByBody.set(body, entity.id);
@@ -183,6 +193,7 @@ export class LiveBodies {
         this.synced.delete(entity.id);
         this.equipped.delete(entity.id);
         this.movementFlags.delete(entity.id);
+        this.physicsFlags.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -202,6 +213,7 @@ export class LiveBodies {
         this.synced.delete(id);
         this.equipped.delete(id);
         this.movementFlags.delete(id);
+        this.physicsFlags.delete(id);
         return id;
     }
 
@@ -230,9 +242,10 @@ export class LiveBodies {
             this.showHealth(entity, body);
             this.writeEquipment(entity, body);
             const movementFlagsChanged = this.writeMovementFlags(entity, body);
+            const physicsFlagsChanged = this.writePhysicsFlags(entity, body);
             const properties = this.showSyncedProperties(entity, body);
             if (properties !== undefined) moves.push(properties);
-            else if (movementFlagsChanged) {
+            else if (movementFlagsChanged || physicsFlagsChanged) {
                 const metadata = this.options.world()?.sendActorMetadata(body);
                 if (metadata !== undefined) moves.push(metadata);
             }
@@ -270,6 +283,7 @@ export class LiveBodies {
         this.synced.clear();
         this.equipped.clear();
         this.movementFlags.clear();
+        this.physicsFlags.clear();
     }
 
     /**
@@ -331,6 +345,35 @@ export class LiveBodies {
         body.metadata.setGenericFlag(ActorFlags.SWIMMING, next.swimming);
         this.movementFlags.set(entity.id, next);
         return previous !== undefined;
+    }
+
+    /** Writes the active data-driven physics flags to the actor metadata. */
+    private writePhysicsFlags(entity: DataEntity, body: Entity): boolean {
+        const physics = entity.instance.componentParams('minecraft:physics');
+        const next = {
+            affectedByGravity: isRecord(physics) && physics.hasGravity === true,
+            collidable: !isRecord(physics) || physics.hasCollision !== false
+        };
+        const previous = this.physicsFlags.get(entity.id);
+        if (previous?.affectedByGravity === next.affectedByGravity && previous.collidable === next.collidable) {
+            return false;
+        }
+
+        body.metadata.setAffectedByGravity(next.affectedByGravity);
+        body.metadata.setCollidable(next.collidable);
+        this.physicsFlags.set(entity.id, next);
+        return previous !== undefined;
+    }
+
+    /** Sets the block variant a client draws for a falling-block component. */
+    private writeFallingBlockAppearance(entity: DataEntity, body: Entity): void {
+        if (!entity.instance.hasComponent('jsprismarine:falling_block')) return;
+
+        const blockName = entity.spawnData?.['block'];
+        if (typeof blockName !== 'string') return;
+
+        const runtimeId = BlockRuntimeIds.tryGetByName(blockName);
+        if (runtimeId !== null) body.metadata.setInt(MetadataFlag.VARIANT, runtimeId);
     }
 
     /**
