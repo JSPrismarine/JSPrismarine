@@ -30,6 +30,8 @@ export interface SpawnOptions {
      */
     readonly yaw?: number;
     readonly pitch?: number;
+    /** Entity-specific fields supplied by the spawn source, preserved across saves. */
+    readonly data?: Readonly<Record<string, unknown>>;
 }
 
 /** The runtime as the AI projections read it. */

@@ -75,11 +75,8 @@ const entityAccessOf = (runtime: EntityRuntime): ContentEntityAccess => ({
             .map(contentEntityOf),
     near: (center, radius) => runtime.near(center, radius).map(contentEntityOf),
     players: () => runtime.host.players(),
-    // The block entity data a falling block carries has no place in a component set yet, so a
-    // spawn that supplies it is reported rather than silently dropping it.
     spawn: (identifier, at, data) => {
-        if (data !== undefined) runtime.report(`${identifier} was spawned with data nothing reads`);
-        return runtime.spawn(identifier, at)?.id ?? 0;
+        return runtime.spawn(identifier, at, data === undefined ? undefined : { data })?.id ?? 0;
     },
     remove: (id) => runtime.remove(id, 'removed'),
     drop: (at, item) => runtime.host.drop(at, item),

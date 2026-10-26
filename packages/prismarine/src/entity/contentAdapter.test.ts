@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { contentWorldViews } from '../content/world/views';
 import { singleDimension } from '../content/world/adapter';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './data/testing';
+import { dataEntityRecordOf } from './data/persistence';
 
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
@@ -18,6 +19,17 @@ describe('entityContentGroups', () => {
             const id = fixture.adapter.entities.spawn('minecraft:cow', GROUND);
 
             expect(fixture.runtime.byId(id)?.identifier).toBe('minecraft:cow');
+        });
+
+        it('carries the entity payload through the runtime into its saved record', () => {
+            const fixture = entityFixture();
+            const data = { variant: 'warm', fuse: 37 };
+
+            const id = fixture.adapter.entities.spawn('minecraft:cow', GROUND, data);
+            const spawned = fixture.runtime.byId(id);
+            if (spawned === undefined) throw new Error('the data-driven cow was not spawned');
+
+            expect(dataEntityRecordOf(spawned, undefined).spawnData).toEqual(data);
         });
 
         it('finds what stands in one block and what stands near it', () => {

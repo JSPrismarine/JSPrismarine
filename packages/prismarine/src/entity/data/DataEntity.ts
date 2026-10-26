@@ -410,6 +410,8 @@ export class MobBody {
 export interface DataEntityOptions {
     readonly body: MobBody;
     readonly instance: EntityInstance;
+    /** Entity-specific fields supplied by the source that spawned it. */
+    readonly spawnData?: Readonly<Record<string, unknown>>;
     /** The brain definition for one of the twenty Java brain mobs, when the type is one. */
     readonly brainMob?: BrainMobDefinition;
     /** The brain itself, built from {@link DataEntityOptions.brainMob}. */
@@ -424,6 +426,9 @@ export class DataEntity {
     /** The component state machine, which owns the events, properties and goals. */
     public readonly instance: EntityInstance;
 
+    /** Entity-specific fields supplied by the source that spawned it. */
+    public readonly spawnData: Readonly<Record<string, unknown>> | undefined;
+
     /** The brain definition, for one of the twenty mobs Bedrock's JSON cannot express. */
     public readonly brainMob: BrainMobDefinition | undefined;
 
@@ -436,6 +441,7 @@ export class DataEntity {
     public constructor(options: DataEntityOptions) {
         this.body = options.body;
         this.instance = options.instance;
+        this.spawnData = options.spawnData;
         this.brainMob = options.brainMob;
         this.brain = options.brain;
         this.body.watch(this.instance);

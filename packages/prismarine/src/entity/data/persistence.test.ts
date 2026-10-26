@@ -50,6 +50,19 @@ describe('the data entity record', () => {
         expect(nbt.getLong('UniqueID', 0n)).toBe(7n);
     });
 
+    it('restores entity-specific spawn data from the saved record', () => {
+        const { runtime } = entityFixture();
+        const data = { variant: 'warm', fuse: 37 };
+        const original = runtime.spawn('minecraft:cow', GROUND, { data });
+        if (original === undefined) throw new Error('the fixture declares no minecraft:cow');
+        const record = dataEntityRecordIn(written(dataEntityRecordOf(original, undefined)));
+        if (record === undefined) throw new Error('the cow record could not be read back');
+
+        const restored = runtime.restore(record, GROUND);
+
+        expect(restored?.spawnData).toEqual(data);
+    });
+
     it('reports no record for an actor the written classes saved', () => {
         const nbt = new NBTTagCompound('');
         nbt.addValue('identifier', new Types.StringVal('minecraft:item'));

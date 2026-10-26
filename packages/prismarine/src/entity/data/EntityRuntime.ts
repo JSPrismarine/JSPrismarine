@@ -250,7 +250,8 @@ export class EntityRuntime implements EntityScene {
         const entity = this.create(record.identifier, at, {
             pool: record.pool,
             yaw: record.yaw,
-            pitch: record.pitch
+            pitch: record.pitch,
+            data: record.spawnData
         });
         if (entity === undefined) return undefined;
 
@@ -310,7 +311,7 @@ export class EntityRuntime implements EntityScene {
 
         const brainMob = brainMobFor(content.entities.brains, reference);
         const brain = brainMob?.makeBrain({ baby: instance.hasComponent('minecraft:is_baby') });
-        const entity = new DataEntity({ body, instance, brainMob, brain });
+        const entity = new DataEntity({ body, instance, brainMob, brain, spawnData: options.data });
         this.entities.set(id, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the

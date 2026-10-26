@@ -56,6 +56,8 @@ export interface DataEntityRecord {
     readonly sleeping: boolean;
     readonly loveTicks: number;
     readonly breedCooldown: number;
+    /** Entity-specific fields supplied by the source that spawned it. */
+    readonly spawnData?: Readonly<Record<string, unknown>>;
 }
 
 /** The record of one live entity, ready to be written. */
@@ -88,7 +90,8 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
         sitting: body.sitting,
         sleeping: body.sleeping,
         loveTicks: body.loveTicks,
-        breedCooldown: body.breedCooldown
+        breedCooldown: body.breedCooldown,
+        ...(entity.spawnData === undefined ? {} : { spawnData: entity.spawnData })
     };
 };
 
@@ -165,6 +168,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     if (typeof identifier !== 'string' || identifier === '') return undefined;
 
     const home = positionOf(parsed['home']);
+    const spawnData = isObject(parsed['spawnData']) ? parsed['spawnData'] : undefined;
 
     return {
         identifier,
@@ -180,7 +184,8 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         sitting: parsed['sitting'] === true,
         sleeping: parsed['sleeping'] === true,
         loveTicks: numberOf(parsed['loveTicks'], 0),
-        breedCooldown: numberOf(parsed['breedCooldown'], 0)
+        breedCooldown: numberOf(parsed['breedCooldown'], 0),
+        ...(spawnData === undefined ? {} : { spawnData })
     };
 };
 

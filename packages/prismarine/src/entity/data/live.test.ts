@@ -45,6 +45,7 @@ import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
+import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
 
@@ -525,6 +526,23 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     describe('spawning', () => {
+        it('restores entity-specific spawn data from the live actor record', () => {
+            const data = { variant: 'warm', fuse: 37 };
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 }, { data });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const body = live.bodies.bodyOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+
+            live.bodies.persist(live.runtime);
+            if (body.persistentNbt === null) throw new Error('the cow has no saved actor data');
+            const record = dataEntityRecordIn(body.persistentNbt);
+            if (record === undefined) throw new Error('the saved cow record could not be read back');
+
+            const restored = live.runtime.restore(record, cow.position);
+
+            expect(restored?.spawnData).toEqual(data);
+        });
+
         it('routes spawn egg entity actions through the live data runtime', async () => {
             for (const [identifier, x] of [
                 ['minecraft:zombie', 2],
