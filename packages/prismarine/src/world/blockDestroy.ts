@@ -16,7 +16,6 @@
  * and fire writes fire, and only the caller knows which; what it has to do is call this
  * first, because a family reads the block entity it is about to lose.
  */
-import { Vector3 } from '@jsprismarine/math';
 
 import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
@@ -41,8 +40,8 @@ export interface DestroyWorld extends BreakWorld {
         getLogger(): { error(error: unknown): void };
         getBlockManager(): { findBlock(name: string): Block | null };
     };
-    /** Puts the drops on the ground, one item entity each. */
-    dropContents(position: Vector3, contents: Array<Block | Item | null>): Promise<void>;
+    /** Puts the drops on the ground, one item entity each, popping out of the block. */
+    dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): Promise<void>;
 }
 
 /** One block being taken out of the world by something that is not a player. */
@@ -66,9 +65,6 @@ export interface BlockDestruction {
      */
     readonly dropsBlock?: boolean;
 }
-
-/** Where a drop lands: the middle of the block, not its corner. */
-const centerOf = (at: ContentPosition): Vector3 => new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5);
 
 /**
  * The drop for a block the content build has no type for, which is what the block catalog says.
@@ -121,7 +117,7 @@ export const destroyBlock = (destruction: BlockDestruction): void => {
     const drops = destroyedBlockDrops(destruction);
     if (drops.length === 0) return;
 
-    void world.dropContents(centerOf(position), drops).catch((error: unknown) => {
+    void world.dropFromBlock(position, drops).catch((error: unknown) => {
         world.getServer().getLogger().error(error);
     });
 };

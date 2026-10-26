@@ -4,6 +4,7 @@ import { Difficulty, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
+import type { ContentPosition } from '../content/world/adapter';
 import { definitionsOf } from '../content/ContentOptions';
 import { fixtureContentOptions } from '../content/testing';
 import { unwiredWorld } from '../content/world/unwired';
@@ -43,7 +44,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
     const nearby: Entity[] = [];
     const effects: LevelEvent[] = [];
     const cleared: string[] = [];
-    const dropped: Array<{ at: Vector3; names: string[] }> = [];
+    const dropped: Array<{ at: ContentPosition; names: string[] }> = [];
 
     const world: any = {
         getName: () => 'test',
@@ -74,7 +75,7 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
             cleared.push(`${x},${y},${z}`);
             return true;
         },
-        dropContents: async (at: Vector3, contents: Array<{ getName(): string }>) =>
+        dropFromBlock: async (at: ContentPosition, contents: Array<{ getName(): string }>) =>
             void dropped.push({ at, names: contents.map((item) => item.getName()) }),
         getLoadedChunk: () => null
     };

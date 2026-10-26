@@ -139,7 +139,7 @@ class BenchWorld {
         return this.writeBlock(x, y, z, runtimeId, this.currentTick, 1, notifyNeighbors);
     }
 
-    public async dropContents(): Promise<void> {}
+    public async dropFromBlock(): Promise<void> {}
     public async addEntity(): Promise<void> {}
     public async removeEntity(): Promise<void> {}
 

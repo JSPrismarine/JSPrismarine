@@ -1,5 +1,5 @@
 import type Player from '../../Player';
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import { ActorEvent } from '@jsprismarine/minecraft';
 import { advancementPickedUpItem } from '../../advancement/triggers';
 import type ContainerEntry from '../../inventory/ContainerEntry';
@@ -7,12 +7,33 @@ import type PlayerSession from '../../network/PlayerSession';
 import { TakeItemActorPacket } from '../../network/Packets';
 import { Entity } from '../Entity';
 
-/** Blocks per tick an item gains falling, and what it keeps of its speed. Vanilla's figures. */
+/**
+ * How an item moves, as a Bedrock Dedicated Server 1.26.52 moves one.
+ *
+ * Measured from the positions it sent for dropped and thrown items, tick by tick: each tick the
+ * item gains {@link GRAVITY} downward, moves, then keeps {@link AIR_DRAG} of its speed, or
+ * sideways and on the ground {@link GROUND_DRAG}. A fall from rest covers 0.04, 0.0792, 0.1176
+ * blocks, each step 0.98 of the last plus 0.04.
+ */
 const GRAVITY = 0.04;
-const DRAG = 0.02;
+const AIR_DRAG = 0.98;
+const GROUND_DRAG = 0.588;
+
+/** Sideways speed below which an item has stopped sliding. */
+const SLIDE_STOP = 1e-4;
 
 /**
- * How far below itself an item looks to decide it has landed. Small enough that it never
+ * How far above where an item lies its position is, as BDS reports it.
+ *
+ * Every position BDS sent for an item, spawn and movement alike, was this much higher than where
+ * the item rests: one lying on a block at y = 63 is reported at 64.125. The position held here is
+ * the reported one, so it goes on the wire and into the saved `Pos` as it is, and
+ * {@link Item.getFeetY} is where the item lies.
+ */
+export const ITEM_POSITION_OFFSET = 0.125;
+
+/**
+ * How far below its feet an item looks to decide it has landed. Small enough that it never
  * reaches into the block it is standing on top of, big enough to survive the rounding of a
  * position that arrived as a float.
  */
@@ -33,18 +54,14 @@ const DESPAWN_AGE = 6000;
 const PICKUP_RANGE = 1.5;
 
 /**
- * How near two stacks of the same thing have to be to become one.
+ * How near two stacks of the same thing have to be to become one, in blocks.
  *
- * Wider than vanilla's, and deliberately. Vanilla merges stacks that are nearly touching, but
- * its dropped items are given a little horizontal speed and shove each other about, so two
- * from neighboring blocks drift together within a second. This server drops items straight
- * down and leaves them where they land, so they sit exactly one block apart - for ever, at
- * half a block's reach. Until they move, the reach has to cover the spacing they are dropped
- * at, which is one block square and 1.41 diagonally.
- *
- * TODO: give a drop some horizontal motion and take this back to vanilla's half a block.
+ * Half a block: on a Bedrock Dedicated Server 1.26.52 two dropped stacks merged once they had
+ * slid to within about 0.3 of each other. Stacks from neighboring blocks get that close because
+ * a drop leaves its block at a random spot with a little sideways speed; see
+ * `World.dropFromBlock`.
  */
-const MERGE_RANGE = 1.5;
+const MERGE_RANGE = 0.5;
 
 /**
  * How tall a player's body is.
@@ -60,8 +77,8 @@ export class Item extends Entity {
     public static MOB_ID = 'minecraft:item';
     private item?: ContainerEntry;
 
-    /** Downward speed. Zero once it has settled, which is also how it knows it has. */
-    private motionY = 0;
+    /** Speed in blocks per tick. All zero once it has settled, which is also how it knows it has. */
+    private motion: Vector3;
 
     /** Ticks since it appeared, counted only for {@link PICKUP_DELAY}. */
     private age = 0;
@@ -69,18 +86,40 @@ export class Item extends Entity {
     /** Set the moment a player takes it, so two ticks cannot both collect the same stack. */
     private taken = false;
 
+    /**
+     * @param options - The entity's options, and the stack's own.
+     * @param options.item - The stack it is.
+     * @param options.age - Ticks it has already lain in the world, for a stack read from a save.
+     * @param options.motion - The speed it starts with, in blocks per tick; still by default.
+     */
     public constructor({
         item,
         age = 0,
+        motion = new Vector3(0, 0, 0),
         ...options
     }: ConstructorParameters<typeof Entity>[0] & {
         item?: ContainerEntry;
         age?: number;
+        motion?: Vector3;
     }) {
         super(options);
 
         this.item = item;
         this.age = age;
+        this.motion = motion;
+    }
+
+    /** The speed it is moving at, in blocks per tick, which the client is told when it appears. */
+    public getMotion(): Vector3 {
+        return this.motion;
+    }
+
+    /**
+     * Where the item lies, {@link ITEM_POSITION_OFFSET} below the position it reports.
+     * @returns {number} The height of the bottom of the stack.
+     */
+    public override getFeetY(): number {
+        return this.getPosition().getY() - ITEM_POSITION_OFFSET;
     }
 
     /** What this entity is on the ground: the stack a player picks up. */
@@ -106,7 +145,8 @@ export class Item extends Entity {
     }
 
     /**
-     * An item moves once, when it drops, and then lies still.
+     * An item moves for about a second after it drops, sliding a block or so, and then lies
+     * still.
      * @returns {number} The interval in ticks.
      */
     public override getTrackingInterval(): number {
@@ -128,7 +168,7 @@ export class Item extends Entity {
             return;
         }
 
-        await this.fall();
+        await this.move();
         await this.tryMerge();
         await this.tryPickup();
     }
@@ -186,36 +226,57 @@ export class Item extends Entity {
     }
 
     /**
-     * Brings the item down to the first solid block under it, then leaves it alone.
+     * Moves the item one tick, in the order BDS does: gravity, then the move, then drag.
      *
+     * It stops against a block sideways and comes to rest on top of the first solid block below.
      * An item at rest does no work and sends nothing: without that check every stack ever
      * dropped would go on broadcasting its unchanged position to every player, forever.
      */
-    private async fall(): Promise<void> {
-        if (this.motionY === 0 && (await this.isSolidAt(this.getPosition().getY() - GROUND_PROBE))) return;
+    private async move(): Promise<void> {
+        const position = this.getPosition();
+        const feet = this.getFeetY();
+        const still = this.motion.getX() === 0 && this.motion.getY() === 0 && this.motion.getZ() === 0;
+        if (still && (await this.isSolidAt(position.getX(), feet - GROUND_PROBE, position.getZ()))) return;
 
-        this.motionY = (this.motionY - GRAVITY) * (1 - DRAG);
-        const next = this.getPosition().getY() + this.motionY;
+        let motionX = this.motion.getX();
+        let motionY = this.motion.getY() - GRAVITY;
+        let motionZ = this.motion.getZ();
 
-        if (await this.isSolidAt(next)) {
+        let x = position.getX() + motionX;
+        if (await this.isSolidAt(x, feet, position.getZ())) {
+            x = position.getX();
+            motionX = 0;
+        }
+        let z = position.getZ() + motionZ;
+        if (await this.isSolidAt(x, feet, z)) {
+            z = position.getZ();
+            motionZ = 0;
+        }
+
+        let nextFeet = feet + motionY;
+        const landed = await this.isSolidAt(x, nextFeet, z);
+        if (landed) {
             // The step would end inside a block, so it comes to rest on top of that one
             // instead - landing on the surface rather than at wherever the step happened to
             // finish, which at this speed could be some way into the ground.
-            this.motionY = 0;
-            await this.setY(Math.floor(next) + 1);
-            return;
+            nextFeet = Math.floor(nextFeet) + 1;
+            motionY = 0;
         }
 
-        await this.setY(next);
+        const sideways = landed ? GROUND_DRAG : AIR_DRAG;
+        motionX *= sideways;
+        motionZ *= sideways;
+        if (Math.abs(motionX) < SLIDE_STOP) motionX = 0;
+        if (Math.abs(motionZ) < SLIDE_STOP) motionZ = 0;
+        this.motion = new Vector3(motionX, motionY * AIR_DRAG, motionZ);
+
+        const next = new Vector3(x, nextFeet + ITEM_POSITION_OFFSET, z);
+        if (next.equals(position)) return;
+        await this.setPosition({ position: next });
     }
 
-    private async isSolidAt(y: number): Promise<boolean> {
-        const position = this.getPosition();
-        const block = await this.getWorld().getBlock(
-            Math.floor(position.getX()),
-            Math.floor(y),
-            Math.floor(position.getZ())
-        );
+    private async isSolidAt(x: number, y: number, z: number): Promise<boolean> {
+        const block = await this.getWorld().getBlock(Math.floor(x), Math.floor(y), Math.floor(z));
 
         return block.isSolid();
     }
@@ -298,13 +359,14 @@ export class Item extends Entity {
      */
     private reaches(player: Player): boolean {
         const position = this.getPosition();
+        const lying = this.getFeetY();
         const eyes = player.getPosition();
 
         const feet = player.getFeetY();
         const head = feet + BODY_HEIGHT;
 
         // Zero while the stack is beside the body; only what lies beyond it counts.
-        const dy = position.getY() < feet ? feet - position.getY() : Math.max(0, position.getY() - head);
+        const dy = lying < feet ? feet - lying : Math.max(0, lying - head);
 
         return Math.hypot(position.getX() - eyes.getX(), dy, position.getZ() - eyes.getZ()) <= PICKUP_RANGE;
     }

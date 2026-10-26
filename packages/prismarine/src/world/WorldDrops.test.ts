@@ -9,6 +9,7 @@ import { Item as ItemEntity } from '../entity/other/Item';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '../network/packet/AddItemActorPacket';
+import PlayerSession from '../network/PlayerSession';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
 import { testContent } from '../testing/entityServer';
 import Chunk from './chunk/Chunk';
@@ -47,20 +48,19 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
 
     // A session that shows what it is given, rather than recording that it was asked. The
     // spawn goes through `Entity.spawnTo`, which is what picks `AddItemActor` over the
-    // generic `AddActor` - a choice no test covered.
+    // generic `AddActor` - a choice no test covered. The packet is the session's own, encoded
+    // as it would be for the wire.
     const session: any = {
         send: async (packet: any) => void sent.push(packet),
         sendDataPacket: async (packet: any) => void sent.push(packet),
+        connection: {
+            sendDataPacket: async (packet: any) => {
+                packet.encode();
+                sent.push(packet);
+            }
+        },
         considerEntity: async (entity: any) => entity.spawnTo(session),
-        sendAddItemActor: async (item: any) => {
-            const packet = new AddItemActorPacket();
-            packet.runtimeEntityId = item.getRuntimeId();
-            packet.position = item.getPosition();
-            packet.item = item.getItem()!.getItem();
-            packet.metadata = item.metadata;
-            packet.encode();
-            sent.push(packet);
-        }
+        sendAddItemActor: PlayerSession.prototype.sendAddItemActor
     };
 
     const player: any = {
@@ -94,6 +94,9 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
             }),
             getConfig: () => ({ getProximityBroadcast: () => true }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
+            // Every roll in the middle, so the drop starts at the middle of the block, still
+            // pushed 0.2 upward.
+            getRandom: () => () => 0.5,
             // The two-block fixture, which covers neither the block broken here nor any
             // family, so the break falls through to the block's own drops - which is the
             // path these tests are about.
@@ -116,6 +119,8 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
 const emptyWorld = () => {
     const warnings: string[] = [];
     const entities = new Map<bigint, Entity>();
+    // Counted, so a test can say how many rolls the drops took. Each is the middle of its range.
+    let rolls = 0;
 
     const world: World = Object.assign(Object.create(World.prototype), {
         name: 'flooded',
@@ -127,11 +132,15 @@ const emptyWorld = () => {
         changes: NULL_WORLD_CHANGE_SINK,
         server: {
             getLogger: () => ({ debug: () => {}, warn: (message: string) => void warnings.push(message) }),
-            getContent: () => testContent()
+            getContent: () => testContent(),
+            getRandom: () => () => {
+                rolls += 1;
+                return 0.5;
+            }
         }
     });
 
-    return { world, entities, warnings };
+    return { world, entities, warnings, rolls: () => rolls };
 };
 
 describe('world', () => {
@@ -148,14 +157,18 @@ describe('world', () => {
             expect(spawn!.item.getNetworkId()).toBeGreaterThan(0);
         });
 
-        it('lands the drop at the center of the block that broke', async () => {
+        it('starts the drop inside the block that broke, and tells the client how fast it leaves', async () => {
             const { world, player, sent } = fakeWorld(new BlockState('minecraft:cobblestone'));
 
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             const spawn = sent.find((packet) => packet instanceof AddItemActorPacket)!;
-            // Off-center and the stack visibly sits inside the neighboring block.
-            expect([spawn.position.getX(), spawn.position.getY(), spawn.position.getZ()]).toEqual([10.5, 64.5, -19.5]);
+            // Outside it and the stack visibly sits inside the neighboring block. The 0.125 is
+            // how far above where it lies BDS reports an item.
+            expect([spawn.position.getX(), spawn.position.getY(), spawn.position.getZ()]).toEqual([
+                10.5, 64.625, -19.5
+            ]);
+            expect([spawn.motion.getX(), spawn.motion.getY(), spawn.motion.getZ()]).toEqual([0, 0.2, 0]);
         });
 
         it('adds the drop to the world, so it ticks and can be picked up', async () => {
@@ -218,6 +231,45 @@ describe('world', () => {
             ]);
 
             expect(entities.size).toBe(0);
+        });
+
+        it('pops every stack out of the block it came from, and rolls none for a stack turned away', async () => {
+            // An explosion, a falling block with nowhere to land and a block behavior's drop
+            // all go through here. Without the push their stacks lie a whole block apart, where
+            // the half-block merge reach never joins them.
+            const { world, entities, rolls } = emptyWorld();
+            const cobblestone = () => new Item({ id: 4, name: 'minecraft:cobblestone', meta: 0 });
+
+            await world.dropFromBlock({ x: 3, y: 70, z: -4 }, [cobblestone(), null, cobblestone()]);
+
+            const dropped = [...entities.values()].filter((entity) => entity instanceof ItemEntity);
+            expect(dropped).toHaveLength(2);
+            for (const entity of dropped) {
+                expect([entity.getPosition().getX(), entity.getFeetY(), entity.getPosition().getZ()]).toEqual([
+                    3.5, 70.5, -3.5
+                ]);
+                expect(entity.getMotion().getY()).toBe(0.2);
+            }
+            expect(rolls()).toBe(10);
+
+            // The limit takes its slice before the spot is rolled.
+            const full = emptyWorld();
+            const flood = Array.from({ length: World.ITEM_ENTITY_LIMIT + 3 }, cobblestone);
+            await full.world.dropFromBlock({ x: 0, y: 64, z: 0 }, flood);
+            expect(full.rolls()).toBe(World.ITEM_ENTITY_LIMIT * 5);
+        });
+
+        it('leaves a stack it is told where to put still, lying at that spot', async () => {
+            const { world, entities, rolls } = emptyWorld();
+
+            await world.dropContents(new Vector3(1.5, 65, 2.5), [new Item({ name: 'minecraft:cobblestone' })]);
+
+            const [dropped] = entities.values();
+            if (!(dropped instanceof ItemEntity)) throw new Error('no item entity was added');
+            expect(dropped.getFeetY()).toBe(65);
+            expect(dropped.getPosition().getY()).toBe(65.125);
+            expect(dropped.getMotion().getY()).toBe(0);
+            expect(rolls()).toBe(0);
         });
 
         it('puts a stack on the ground without the stack network id it had', async () => {

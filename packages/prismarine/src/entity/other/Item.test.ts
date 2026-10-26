@@ -13,10 +13,11 @@ import { Position } from '../../world/Position';
 import { Item } from './Item';
 
 /**
- * A world with a floor: everything at or below `groundY` is solid, everything above is air.
- * Enough for an item to have somewhere to land.
+ * A world with a floor: everything at or below `groundY` is solid, everything above is air,
+ * except the columns `walls` names, which are solid all the way up. Enough for an item to have
+ * somewhere to land and something to slide into.
  */
-const fakeWorld = (groundY: number) => {
+const fakeWorld = (groundY: number, walls: (x: number, z: number) => boolean = () => false) => {
     const players: any[] = [];
     const removed: any[] = [];
     const events: Array<{ event: number; data: number }> = [];
@@ -33,7 +34,7 @@ const fakeWorld = (groundY: number) => {
         getName: () => 'test',
         // An entity takes its server from the world its position names.
         getServer: () => testEntityServer(),
-        getBlock: async (_x: number, y: number) => ({ isSolid: () => y <= groundY }),
+        getBlock: async (x: number, y: number, z: number) => ({ isSolid: () => y <= groundY || walls(x, z) }),
         getPlayers: () => players,
         removeEntity: async (entity: any) => void removed.push(entity),
         // How a merge reaches the client: there is no packet that updates a dropped stack,
@@ -82,10 +83,12 @@ const fakePlayer = (x: number, y: number, z: number) => {
     };
 };
 
-const droppedAt = (world: any, y: number) =>
+/** A dirt item lying at `y`, reported 0.125 higher as BDS reports one. */
+const droppedAt = (world: any, y: number, motion?: Vector3) =>
     new Item({
         item: new ContainerEntry({ item: new ItemStack({ id: 1, name: 'minecraft:dirt' }), count: 1 }),
-        position: new Position(0.5, y, 0.5, world)
+        position: new Position(0.5, y + 0.125, 0.5, world),
+        motion
     });
 
 /** Runs `n` ticks, the way the world does. */
@@ -103,7 +106,36 @@ describe('entity', () => {
 
                 await tick(item, 60);
 
-                expect(item.getPosition().getY()).toBe(64);
+                // Lying on the surface, and reported 0.125 above it, as BDS reports an item
+                // lying on a block.
+                expect(item.getFeetY()).toBe(64);
+                expect(item.getPosition().getY()).toBe(64.125);
+            });
+
+            it('falls the distances BDS made an item fall, tick by tick', async () => {
+                // From a Bedrock Dedicated Server 1.26.52 recording of a dropped item: each
+                // tick it gains 0.04 downward, moves, then keeps 0.98 of its speed.
+                const world = fakeWorld(0);
+                const item = droppedAt(world, 70);
+                const steps: number[] = [];
+
+                for (let i = 0; i < 4; i++) {
+                    const before = item.getPosition().getY();
+                    await item.update(i);
+                    steps.push(before - item.getPosition().getY());
+                }
+
+                [0.04, 0.0792, 0.117616, 0.15526368].forEach((step, i) => expect(steps[i]).toBeCloseTo(step, 6));
+            });
+
+            it('rises first when it leaves with upward speed', async () => {
+                // BDS pops a block's drop out at 0.2 blocks a tick upward.
+                const world = fakeWorld(0);
+                const item = droppedAt(world, 70, new Vector3(0, 0.2, 0));
+
+                await item.update(0);
+
+                expect(item.getPosition().getY()).toBeCloseTo(70.125 + 0.16, 6);
             });
 
             it('lands on the surface rather than wherever the last step happened to end', async () => {
@@ -114,7 +146,7 @@ describe('entity', () => {
 
                 await tick(item, 200);
 
-                expect(item.getPosition().getY()).toBe(64);
+                expect(item.getPosition().getY()).toBe(64.125);
             });
 
             it('says nothing once it has settled', async () => {
@@ -134,6 +166,46 @@ describe('entity', () => {
             });
         });
 
+        describe('sliding', () => {
+            it('slows sideways by 0.98 a tick in the air and 0.588 on the ground', async () => {
+                const world = fakeWorld(63);
+                const flying = droppedAt(world, 80, new Vector3(0.1, 0, 0));
+                const lying = droppedAt(world, 64, new Vector3(0.1, 0, 0));
+
+                await flying.update(0);
+                await lying.update(0);
+
+                expect(flying.getMotion().getX()).toBeCloseTo(0.098, 6);
+                expect(lying.getMotion().getX()).toBeCloseTo(0.0588, 6);
+                expect(lying.getPosition().getX()).toBeCloseTo(0.6, 6);
+            });
+
+            it('stops against a block in its way', async () => {
+                const world = fakeWorld(63, (x) => x >= 1);
+                const item = droppedAt(world, 64, new Vector3(0.6, 0, 0));
+
+                await item.update(0);
+
+                expect(item.getPosition().getX()).toBe(0.5);
+                expect(item.getMotion().getX()).toBe(0);
+            });
+
+            it('comes to rest, and then says nothing', async () => {
+                const world = fakeWorld(63);
+                const player = fakePlayer(100, 64, 100); // too far away to take it
+                world.players.push(player);
+                const item = droppedAt(world, 64, new Vector3(0.1, 0, -0.1));
+
+                await tick(item, 30);
+                const sent = player.sent.length;
+                await tick(item, 30);
+
+                expect(item.getMotion().getX()).toBe(0);
+                expect(item.getMotion().getZ()).toBe(0);
+                expect(player.sent).toHaveLength(sent);
+            });
+        });
+
         describe('merging', () => {
             /** Two stacks side by side on the floor, and a grid that knows where they are. */
             const lying = (world: any, items: Array<{ name: string; count: number; x: number }>) => {
@@ -141,7 +213,7 @@ describe('entity', () => {
                     ({ name, count, x }) =>
                         new Item({
                             item: new ContainerEntry({ item: new ItemStack({ id: 0, name, count }), count }),
-                            position: new Position(x, 64, 0.5, world)
+                            position: new Position(x, 64.125, 0.5, world)
                         })
                 );
                 world.grid.rebuild(entities);
@@ -180,11 +252,10 @@ describe('entity', () => {
                 expect(world.removed).not.toContain(dirt);
             });
 
-            it('reaches across the gap two neighboring blocks drop at', async () => {
-                // Where the reach has to be. Breaking two blocks side by side leaves the drops
-                // exactly one block apart, and this server does not give them the horizontal
-                // drift that would bring them together - so at vanilla's half a block they
-                // would lie there separately for ever.
+            it('leaves a stack a block away until it has slid within half a block', async () => {
+                // Half a block, as on a Bedrock Dedicated Server 1.26.52, where two drops merged
+                // once they had slid to about 0.3 apart. Drops from neighboring blocks get there
+                // because each leaves its block with a little sideways speed.
                 const world = fakeWorld(63);
                 const [first, second] = lying(world, [
                     { name: 'minecraft:cobblestone', count: 1, x: 10.5 },
@@ -193,8 +264,8 @@ describe('entity', () => {
 
                 await first!.update(1);
 
-                expect(first!.getItem()!.getItem().getAmount()).toBe(2);
-                expect(world.removed).toContain(second);
+                expect(first!.getItem()!.getItem().getAmount()).toBe(1);
+                expect(world.removed).not.toContain(second);
             });
 
             it('leaves one out of reach alone', async () => {
@@ -296,7 +367,8 @@ describe('entity', () => {
                 world.players.push(player);
                 const item = droppedAt(world, 64);
 
-                expect(player.getPosition().getY() - item.getPosition().getY()).toBeGreaterThan(1.5);
+                // Measured from where the item lies, 0.125 below where it is reported.
+                expect(player.getPosition().getY() - item.getFeetY()).toBeGreaterThan(1.5);
 
                 await tick(item, 20);
 

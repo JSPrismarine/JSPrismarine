@@ -77,7 +77,7 @@ class TestWorld {
                         }
                     })
             }),
-        dropContents: async (_position, contents) => {
+        dropFromBlock: async (_block, contents) => {
             for (const drop of contents) if (drop) this.dropped.push(drop.getName());
         },
         addEntity: async (entity) => {

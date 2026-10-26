@@ -237,8 +237,9 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             const stack = itemOfDrop({ meta: registered.getMeta(), ...item }, content());
             if (stack === null) return;
 
-            const position = Position.fromVector3(new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5), loaded);
-            void loaded.dropContents(position, [stack]).catch((error: unknown) => {
+            // Out of the block it names, as a block's own drop leaves it, so it can merge with
+            // one from the block beside it.
+            void loaded.dropFromBlock(at, [stack]).catch((error: unknown) => {
                 loaded.getServer().getLogger().error(error);
             });
         },

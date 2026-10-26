@@ -1761,6 +1761,9 @@ export default class PlayerSession {
         const packet = new AddItemActorPacket();
         packet.runtimeEntityId = item.getRuntimeId();
         packet.position = item.getPosition();
+        // Sent as BDS sends it, so the client draws the drop leaving its block rather than hanging
+        // still until the first movement packet arrives.
+        packet.motion = item.getMotion();
         packet.item = stack.getItem();
         // The packet writes this unconditionally, so leaving it unset threw on the first
         // dropped item rather than at the point the field was forgotten.

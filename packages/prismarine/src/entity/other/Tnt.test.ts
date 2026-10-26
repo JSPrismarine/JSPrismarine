@@ -103,7 +103,7 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
         spawnNamedParticle: () => {},
         broadcastMove: async () => {},
         addEntity: async (entity: Entity) => void spawned.push(entity),
-        dropContents: async () => {},
+        dropFromBlock: async () => {},
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
@@ -309,7 +309,7 @@ describe('lit TNT', () => {
 
         it('drops no TNT item, because Java refuses the roll before the table is reached', async () => {
             place(chunk, { x: 8, y: 65, z: 8 }, 'minecraft:tnt');
-            const dropped = vi.spyOn(world, 'dropContents');
+            const dropped = vi.spyOn(world, 'dropFromBlock');
 
             await tick(lit({ x: 8, y: 64, z: 8 }), DEFAULT_FUSE_TICKS);
 

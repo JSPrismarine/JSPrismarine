@@ -105,7 +105,8 @@ export interface LiveEntityOptions {
  *
  * The server's item entities are `minecraft:item` bodies with a
  * `ContainerEntry` on them. One that has lost its stack - taken this tick by
- * somebody else - is left out rather than reported as an empty pile.
+ * somebody else - is left out rather than reported as an empty pile. The
+ * height is where the stack lies, 0.125 below the position a client is told.
  */
 const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] => {
     if (world === undefined) return [];
@@ -119,7 +120,7 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
         const at = entity.getPosition();
         found.push({
             id: Number(entity.getRuntimeId()),
-            position: { x: at.getX(), y: at.getY(), z: at.getZ() },
+            position: { x: at.getX(), y: entity.getFeetY(), z: at.getZ() },
             item: { identifier: held.getItem().getName(), count: held.getCount() }
         });
     }

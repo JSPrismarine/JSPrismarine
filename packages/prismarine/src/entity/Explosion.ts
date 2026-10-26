@@ -15,7 +15,7 @@
  */
 import type { BlockPosition, ExplosionEntity, ExplosionWorld } from '@jsprismarine/engine-systems';
 import { explode as castBlast } from '@jsprismarine/engine-systems';
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import type { Block } from '../block/Block';
@@ -109,11 +109,7 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
         })
     );
 
-    await Promise.all(
-        drops.map(async (drop) =>
-            world.dropContents(new Vector3(drop.at.x + 0.5, drop.at.y + 0.5, drop.at.z + 0.5), [drop.item])
-        )
-    );
+    await Promise.all(drops.map(async (drop) => world.dropFromBlock(drop.at, [drop.item])));
 };
 
 /**

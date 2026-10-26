@@ -101,6 +101,11 @@ const fakeWorld = (initial: BlockState, broken = fakeBlock(initial.name)) => {
             }),
             getConfig: () => ({ getProximityBroadcast: () => true, getPacketCompressionLevel: () => 7 }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {} }),
+            // Rolls taken in turn, so where a drop lands can be said exactly.
+            getRandom: () => {
+                const rolls = [0, 1, 0.5, 0, 1];
+                return () => rolls.shift() ?? 0.5;
+            },
             // The two-block fixture, which covers neither the block broken here nor any
             // family, so no `onBreak` runs and the block itself says what it drops - which is
             // the path these tests are about.
@@ -203,7 +208,7 @@ describe('world', () => {
             expect(world.events).toHaveLength(1);
         });
 
-        it('drops what the block yields, on the ground where it stood', async () => {
+        it('drops what the block yields, from inside the block it was, as BDS does', async () => {
             const world = fakeWorld(new BlockState('minecraft:oak_log', { pillar_axis: 'x' }));
 
             await world.break(new Vector3(10, 64, -20), fakePlayer(Gametype.SURVIVAL));
@@ -212,9 +217,15 @@ describe('world', () => {
             const [drop] = world.spawned;
             expect(drop.getType()).toBe('minecraft:item');
             expect(drop.getItem()!.getItem().getName()).toBe('minecraft:oak_log');
-            // Center of the block, so it does not land inside the one next door.
+            // Within the middle 70% of the block on each axis, reported 0.125 higher, and pushed
+            // out a little sideways and 0.2 up: what a Bedrock Dedicated Server 1.26.52 did
+            // with 18 drops.
             const at = drop.getPosition();
-            expect([at.getX(), at.getY(), at.getZ()]).toEqual([10.5, 64.5, -19.5]);
+            expect(at.getX()).toBeCloseTo(10.15);
+            expect(at.getY()).toBeCloseTo(64.85 + 0.125);
+            expect(at.getZ()).toBeCloseTo(-19.5);
+            const motion = drop.getMotion();
+            expect([motion.getX(), motion.getY(), motion.getZ()]).toEqual([-0.1, 0.2, 0.1]);
         });
 
         it('drops nothing in creative', async () => {
