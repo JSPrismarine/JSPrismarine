@@ -146,6 +146,8 @@ export interface EntityItemInteractionEffect {
     readonly resultItemData?: number;
     /** Whether the live inventory should consume one item from the held stack. */
     readonly consumeItem?: boolean;
+    /** Sounds the world plays when this interaction succeeds. */
+    readonly playSounds?: readonly string[];
 }
 
 /**

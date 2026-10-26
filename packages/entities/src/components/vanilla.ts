@@ -1005,6 +1005,7 @@ interface InteractEntry {
     readonly onInteract?: SensorTrigger;
     readonly useItem: boolean;
     readonly transformedItem?: TransformedItem;
+    readonly playSounds: readonly string[];
     readonly unsupportedFields: readonly string[];
 }
 
@@ -1017,17 +1018,17 @@ export interface InteractParams {
 /**
  * The held-item behavior currently implemented for `minecraft:interact`.
  *
- * It evaluates each entry's `on_interact.filters`, queues its event, and
- * applies `transform_to_item` and `use_item` to the live held stack. Other
- * interaction fields remain visible as a one-time runtime report so incomplete
- * behavior is not silently treated as vanilla.
+ * It evaluates each entry's `on_interact.filters`, queues its event, plays
+ * `play_sounds`, and applies `transform_to_item` and `use_item` to the live
+ * held stack. Other interaction fields remain visible as a one-time runtime
+ * report so incomplete behavior is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
     hooks: ['onInitialize', 'onInteractWithItem'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
-        const supportedFields = new Set(['on_interact', 'use_item', 'transform_to_item']);
+        const supportedFields = new Set(['on_interact', 'use_item', 'transform_to_item', 'play_sounds']);
         const interactions: InteractEntry[] = [];
         for (const [index, raw] of asList(value.interactions).entries()) {
             if (!isRecord(raw)) return rejected(`interactions[${index}] must be an object`);
@@ -1051,9 +1052,23 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            let playSounds: readonly string[] = [];
+            if (typeof raw.play_sounds === 'string') playSounds = [raw.play_sounds];
+            else if (raw.play_sounds !== undefined) {
+                if (!Array.isArray(raw.play_sounds))
+                    return rejected(`interactions[${index}].play_sounds must be a string or an array of strings`);
+                const sounds: string[] = [];
+                for (const sound of raw.play_sounds) {
+                    if (typeof sound !== 'string')
+                        return rejected(`interactions[${index}].play_sounds must be a string or an array of strings`);
+                    sounds.push(sound);
+                }
+                playSounds = sounds;
+            }
             interactions.push({
                 onInteract,
                 useItem: booleanAt(raw, 'use_item', false),
+                playSounds,
                 ...(typeof raw.transform_to_item === 'string'
                     ? { transformedItem: transformedItemOf(raw.transform_to_item) }
                     : {}),
@@ -1080,11 +1095,17 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 for (const entry of params.interactions) {
                     if (entry.onInteract?.filters !== undefined && !evaluateFilter(entry.onInteract.filters, context))
                         continue;
-                    if (entry.onInteract?.event === undefined && entry.transformedItem === undefined && !entry.useItem)
+                    if (
+                        entry.onInteract?.event === undefined &&
+                        entry.transformedItem === undefined &&
+                        !entry.useItem &&
+                        entry.playSounds.length === 0
+                    )
                         continue;
                     if (entry.onInteract?.event !== undefined)
                         entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
                     return {
+                        ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.transformedItem === undefined
                             ? {}
                             : {

@@ -243,6 +243,16 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(turtle.hasComponent('minecraft:is_baby')).toBe(false);
     });
 
+    it('parses the vanilla cow interaction sound from its adult component group', () => {
+        const cow = types.registry.get('minecraft:cow');
+        if (cow === undefined) throw new Error('the vanilla pack declares no cow');
+        const interaction = cow.groups
+            .get('minecraft:cow_adult')
+            ?.components.find((component) => component.name === 'minecraft:interact')?.params;
+
+        expect(interaction).toMatchObject({ interactions: [expect.objectContaining({ playSounds: ['milk'] })] });
+    });
+
     it('covers the components the research note predicts and reports what it does not', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();

@@ -1183,7 +1183,11 @@ export class EntityRuntime implements EntityScene {
             other ?? this.mobById(owner)?.view()
         );
         if (interaction === false) return { accepted: false };
-        if (typeof interaction === 'object') return { accepted: true, ...interaction };
+        if (typeof interaction === 'object') {
+            const { playSounds, ...itemEffect } = interaction;
+            for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
+            return { accepted: true, ...itemEffect };
+        }
         const ageable = entity.instance.componentParams('minecraft:ageable');
         const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
         const resultItem = resultItemOf(feedItem);

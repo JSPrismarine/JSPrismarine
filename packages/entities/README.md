@@ -211,7 +211,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
-| `minecraft:interact` | Applies `on_interact.filters` and events, `use_item`, and `transform_to_item` through the live player's inventory; other fields still report as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
+| `minecraft:interact` | Applies `on_interact.filters` and events, plays `play_sounds`, and applies `use_item` and `transform_to_item` through the live player's inventory; other fields still report as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
 | `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta` and raises `calm_event` |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
@@ -328,8 +328,8 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **The components and fields that still need behavior.** The remaining `minecraft:interact`
-  effects (cooldowns, item drops, sounds, spawned items and health changes), `minecraft:inventory`,
+  effects (cooldowns, item drops, spawned items and health changes), `minecraft:inventory`,
   `minecraft:equipment`, `minecraft:explode` and the rest need item use or world effects.
-  `minecraft:interact` currently runs item filters, entity events, held-item consumption and item
-  transformation. The load report and `EntityType.unimplementedComponents` name the 44 non-goal keys
+  `minecraft:interact` currently runs item filters, entity events, `play_sounds`, held-item
+  consumption and item transformation. The load report and `EntityType.unimplementedComponents` name the 44 non-goal keys
   that remain unregistered.

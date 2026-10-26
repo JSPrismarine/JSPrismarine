@@ -521,33 +521,48 @@ describe('EntityRuntime', () => {
         });
 
         it('matches data-defined entity interactions, fires their event, and transforms the held item', () => {
+            const world = new TestEntityWorld();
             const { runtime } = entityFixture(
-                new TestEntityWorld(),
+                world,
                 {},
                 {
                     'jsprismarine:interactable': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
                             'minecraft:interact': {
-                                interactions: {
-                                    on_interact: {
-                                        filters: {
-                                            all_of: [
-                                                { test: 'is_family', subject: 'other', value: 'player' },
-                                                {
-                                                    test: 'has_equipment',
-                                                    subject: 'other',
-                                                    domain: 'hand',
-                                                    value: 'bucket:0'
-                                                }
-                                            ]
+                                interactions: [
+                                    {
+                                        on_interact: {
+                                            filters: {
+                                                all_of: [
+                                                    { test: 'is_family', subject: 'other', value: 'player' },
+                                                    {
+                                                        test: 'has_equipment',
+                                                        subject: 'other',
+                                                        domain: 'hand',
+                                                        value: 'bucket:0'
+                                                    }
+                                                ]
+                                            },
+                                            event: 'jsprismarine:interacted',
+                                            target: 'self'
                                         },
-                                        event: 'jsprismarine:interacted',
-                                        target: 'self'
+                                        use_item: true,
+                                        transform_to_item: 'bucket:1',
+                                        play_sounds: 'milk'
                                     },
-                                    use_item: true,
-                                    transform_to_item: 'bucket:1'
-                                }
+                                    {
+                                        on_interact: {
+                                            filters: {
+                                                test: 'has_equipment',
+                                                subject: 'other',
+                                                domain: 'hand',
+                                                value: 'stick:0'
+                                            }
+                                        },
+                                        play_sounds: ['armor.equip_generic', 'saddle']
+                                    }
+                                ]
                             }
                         },
                         component_groups: { interacted: { 'minecraft:persistent': {} } },
@@ -571,8 +586,13 @@ describe('EntityRuntime', () => {
                 }
             );
             expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick', playerView('minecraft:stick'))).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:apple', playerView('minecraft:apple'))).toEqual({
                 accepted: false
             });
+            expect(world.sounds).toEqual(['milk', 'armor.equip_generic', 'saddle']);
 
             runtime.tick(1);
 
