@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { java_entity_attributes } from '@jsprismarine/bedrock-data';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
@@ -1208,6 +1209,18 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(typesIn(world)).toContain('minecraft:villager_v2');
             }
         );
+
+        it('uses Java-owned attributes when the live runtime builds vanilla entities', () => {
+            useVanillaContent();
+
+            const wither = live.runtime.spawn('minecraft:wither', { x: 2.5, y: GROUND_Y, z: 2.5 });
+            if (wither === undefined) throw new Error('the vanilla content declares no wither');
+
+            expect(wither.facts.health).toBe(
+                java_entity_attributes['minecraft:wither']?.attributes['minecraft:max_health']
+            );
+            expect(wither.facts.health).toBe(300);
+        });
 
         it('does not treat water as walking support for a vanilla pig', { timeout: 180_000 }, async () => {
             useVanillaContent();

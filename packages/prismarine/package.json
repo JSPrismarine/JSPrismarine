@@ -80,6 +80,7 @@
     },
     "dependencies": {
         "@jsprismarine/advancements": "workspace:*",
+        "@jsprismarine/bedrock-data": "workspace:*",
         "@jsprismarine/binaryutils": "workspace:*",
         "@jsprismarine/block-behaviors": "workspace:*",
         "@jsprismarine/blocks": "workspace:*",

@@ -9,6 +9,7 @@
  * per-state columns, in the one order those steps allow.
  */
 import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
+import { java_entity_attributes } from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
 import type { BlockHooks } from '@jsprismarine/blocks';
 import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
@@ -17,7 +18,7 @@ import { BehaviorRegistry, Registry } from '@jsprismarine/content';
 import type { Diagnostic } from '@jsprismarine/content';
 import { EnchantmentRegistry, createEnchantmentView, parseEnchantment } from '@jsprismarine/enchantments';
 import { EntityTypes } from '@jsprismarine/entities';
-import type { EntityType } from '@jsprismarine/entities';
+import type { EntityType, JavaStatSource } from '@jsprismarine/entities';
 import { BrainMobRegistry, registerBrainMobs } from '@jsprismarine/entity-brains';
 import { createGoalEntityRegistry } from '@jsprismarine/entity-goals';
 import type { EntityComponentRegistry } from '@jsprismarine/entities';
@@ -82,6 +83,8 @@ export interface ServerContentEntities {
     readonly components: EntityComponentRegistry;
     /** The twenty Java brain mobs, whose behavior has no data form in either edition. */
     readonly brains: BrainMobRegistry;
+    /** Java's attribute suppliers for the stats the server decides. */
+    readonly javaStats?: JavaStatSource;
 }
 
 /**
@@ -362,7 +365,8 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
             registry: entityTypes.registry,
             types: entityTypes,
             components: entityComponents,
-            brains
+            brains,
+            javaStats: java_entity_attributes
         },
         recipes: recipes.book,
         loot,

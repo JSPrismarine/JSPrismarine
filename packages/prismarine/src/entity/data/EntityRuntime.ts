@@ -296,6 +296,7 @@ export class EntityRuntime implements EntityScene {
                 actuator: actuatorOf(body, this),
                 filterContext: (): FilterContext => entityFilterContextOf(body, this),
                 random: { next: () => this.world.random.nextFloat() },
+                javaStats: content.entities.javaStats,
                 remove: (removed, reason) => this.removeInstance(removed, reason),
                 transform: (from, request) => this.transform(from, request),
                 route: (trigger, from) => this.route(trigger, from),

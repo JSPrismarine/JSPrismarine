@@ -1281,6 +1281,9 @@ importers:
       '@jsprismarine/advancements':
         specifier: workspace:*
         version: link:../advancements
+      '@jsprismarine/bedrock-data':
+        specifier: workspace:*
+        version: link:../bedrock-data
       '@jsprismarine/binaryutils':
         specifier: workspace:*
         version: link:../binaryutils
