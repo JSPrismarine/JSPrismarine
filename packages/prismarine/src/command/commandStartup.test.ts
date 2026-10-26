@@ -74,6 +74,37 @@ const debugConfig = (levelName: string) =>
         }
     })();
 
+/** Writes the entity definitions this command integration test exercises. */
+const writeBehaviorPack = (at: string, identifiers: readonly string[]): void => {
+    const files: Record<string, unknown> = {
+        'manifest.json': {
+            format_version: 2,
+            header: {
+                name: 'commandfixture',
+                uuid: '2f3c1f00-0000-4000-8000-0000000000a1',
+                version: [1, 0, 0],
+                min_engine_version: [1, 26, 50]
+            },
+            modules: [{ type: 'data', uuid: '2f3c1f00-0000-4000-8001-0000000000a1', version: [1, 0, 0] }]
+        }
+    };
+    for (const [index, identifier] of identifiers.entries()) {
+        files[`entities/${index}-${identifier.replace(':', '_')}.json`] = {
+            format_version: '1.21.0',
+            'minecraft:entity': {
+                description: { identifier, is_spawnable: true, is_summonable: true },
+                components: { 'minecraft:health': { value: 40, max: 40 } }
+            }
+        };
+    }
+
+    for (const [relative, data] of Object.entries(files)) {
+        const absolute = path.join(at, ...relative.split('/'));
+        mkdirSync(path.dirname(absolute), { recursive: true });
+        writeFileSync(absolute, JSON.stringify(data));
+    }
+};
+
 describe('the command layer on a booted server', () => {
     let root: string;
     let server: Server;
@@ -93,6 +124,17 @@ describe('the command layer on a booted server', () => {
 
     beforeAll(async () => {
         root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-startup-'));
+        writeBehaviorPack(path.join(root, 'behaviorpack'), ['minecraft:pig', 'minecraft:cow', 'minecraft:sheep']);
+        writeFileSync(
+            path.join(root, 'config.yaml'),
+            [
+                'content-strict: false',
+                'content-world-packs:',
+                `    - ${path.join(root, 'behaviorpack')}`,
+                'content-datapacks: []',
+                ''
+            ].join('\n')
+        );
         previousDir = process.env.JSP_DIR;
         process.env.JSP_DIR = root;
 
@@ -386,8 +428,8 @@ describe('the command layer on a booted server', () => {
  * A pack-defined entity needs a pack to define it, `/loot` needs a table to
  * roll, and a container block needs the block entity records the content
  * world keeps. So this boots a second server over the real pack stack plus
- * a behavior pack declaring one entity Mojang never published and a datapack
- * declaring one loot table.
+ * a behavior pack declaring the entity types this test exercises and a
+ * datapack declaring one loot table.
  */
 describe('the command layer on a server with packs of its own', () => {
     let root: string;
@@ -397,34 +439,6 @@ describe('the command layer on a server with packs of its own', () => {
     let previousDir: string | undefined;
 
     const run = async (line: string) => server.getCommandManager().dispatchCommand(sender, sender, line);
-
-    /** A behavior pack whose one entity is a mob no Mojang enum lists. */
-    const writeBehaviorPack = (at: string): void => {
-        const files: Record<string, unknown> = {
-            'manifest.json': {
-                format_version: 2,
-                header: {
-                    name: 'commandfixture',
-                    uuid: '2f3c1f00-0000-4000-8000-0000000000a1',
-                    version: [1, 0, 0],
-                    min_engine_version: [1, 26, 50]
-                },
-                modules: [{ type: 'data', uuid: '2f3c1f00-0000-4000-8001-0000000000a1', version: [1, 0, 0] }]
-            },
-            'entities/dragon.json': {
-                format_version: '1.21.0',
-                'minecraft:entity': {
-                    description: { identifier: 'mypack:dragon', is_spawnable: true, is_summonable: true },
-                    components: { 'minecraft:health': { value: 40, max: 40 } }
-                }
-            }
-        };
-        for (const [relative, data] of Object.entries(files)) {
-            const absolute = path.join(at, ...relative.split('/'));
-            mkdirSync(path.dirname(absolute), { recursive: true });
-            writeFileSync(absolute, JSON.stringify(data));
-        }
-    };
 
     /** A datapack whose one loot table rolls a fixed, countable stack. */
     const writeDatapack = (at: string): void => {
@@ -444,7 +458,7 @@ describe('the command layer on a server with packs of its own', () => {
 
     beforeAll(async () => {
         root = mkdtempSync(path.join(tmpdir(), 'jsprismarine-command-content-'));
-        writeBehaviorPack(path.join(root, 'behaviorpack'));
+        writeBehaviorPack(path.join(root, 'behaviorpack'), ['mypack:dragon', 'minecraft:villager_v2']);
         writeDatapack(path.join(root, 'datapack'));
         // `readContentSettings` reads this file out of `JSP_DIR`, before the
         // `Config` the server was handed is enabled, so the two fixtures go in

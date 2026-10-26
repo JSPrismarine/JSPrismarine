@@ -218,7 +218,11 @@ describe('createApp', () => {
         t.mockInput.pressEnter();
         await t.renderOnce();
 
-        expect(t.captureCharFrame()).toContain('console error: handler exploded');
+        const frame = t.captureCharFrame();
+        // The translucent toast lets cells from the log behind it appear in the character frame.
+        expect(frame).toContain('[x]');
+        expect(frame).toContain('handler');
+        expect(frame).toContain('exploded');
         expect(
             t.store.visible().some((record) => record.kind === 'raw' && record.message.includes('handler exploded'))
         ).toBe(true);
