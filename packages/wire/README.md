@@ -160,8 +160,10 @@ leaves out anything Java cannot decide. This package supplies the rest:
   `minecraft:max_stack_size.value` is a **byte** while `item_properties.max_stack_size` is an int,
   and `minecraft:use_modifiers.use_duration` is seconds as a float while
   `item_properties.use_duration` is ticks as an int.
-- `minecraft:icon`, present with an empty `textures` compound. The texture name is a resource pack
-  fact, so guessing one would only replace a missing icon with a wrong one.
+- `minecraft:icon`, present with a `textures` compound. Twelve vanilla items need a `default` atlas
+  key because the client cannot infer their icons from their internal item names. Those keys come
+  from Mojang's pinned `bedrock-samples` item atlas; other items keep an empty map when no verified
+  key is available.
 
 An item the captured table does not name is treated as one this server invented: component based,
 `Item Version` `DataDriven`, and an id allocated from 10000. Those are listed in `allocated`.

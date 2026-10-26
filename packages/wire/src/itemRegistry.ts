@@ -137,9 +137,35 @@ export interface ItemRegistryResult {
     readonly allocated: readonly AllocatedItemId[];
 }
 
+/**
+ * Bedrock item atlas keys for vanilla component-based items whose internal
+ * item names do not resolve to a client icon by themselves. The keys come
+ * from Mojang/bedrock-samples v1.26.50.4's
+ * `resource_pack/textures/item_texture.json`.
+ */
+const ITEM_ICON_TEXTURES: Readonly<Partial<Record<string, string>>> = {
+    'minecraft:brewing_stand': 'brewing_stand',
+    'minecraft:cauldron': 'cauldron',
+    'minecraft:comparator': 'comparator',
+    'minecraft:flower_pot': 'flower_pot',
+    'minecraft:frame': 'item_frame',
+    'minecraft:glow_frame': 'glow_item_frame',
+    'minecraft:hopper': 'hopper',
+    'minecraft:kelp': 'kelp',
+    'minecraft:nether_sprouts': 'nether_sprouts',
+    'minecraft:repeater': 'repeater',
+    'minecraft:string': 'string',
+    'minecraft:sugar_cane': 'reeds'
+} satisfies Readonly<Record<string, string>>;
+
 /** Writes `item_properties`, whose keys are flat and whose tag types do not follow from the values. */
-const itemProperties = (projected: BedrockItemComponents, bedrockOnly: BedrockOnlyItemProperties): NBTTagCompound => {
+const itemProperties = (
+    projected: BedrockItemComponents,
+    bedrockOnly: BedrockOnlyItemProperties,
+    identifier?: string
+): NBTTagCompound => {
     const source = projected.item_properties;
+    const iconTexture = identifier === undefined ? undefined : ITEM_ICON_TEXTURES[identifier];
 
     return nbtCompound({
         allow_off_hand: nbtByte(source.allow_off_hand ?? false),
@@ -155,10 +181,11 @@ const itemProperties = (projected: BedrockItemComponents, bedrockOnly: BedrockOn
         hidden_in_commands: nbtByte(bedrockOnly.hidden_in_commands),
         liquid_clipped: nbtByte(bedrockOnly.liquid_clipped),
         max_stack_size: nbtInt(source.max_stack_size ?? 64),
-        // The texture name is a resource pack fact, so the compound is
-        // present and empty rather than guessed. An item with no icon falls
-        // back to the missing-texture checkerboard, the same way a block does.
-        'minecraft:icon': nbtCompound({ textures: nbtCompound({}) }),
+        // Most items resolve through the client's own registry. These twelve
+        // component-based entries need their vanilla item atlas key explicitly.
+        'minecraft:icon': nbtCompound({
+            textures: nbtCompound({ default: iconTexture === undefined ? undefined : nbtString(iconTexture) })
+        }),
         mining_speed: nbtFloat(source.mining_speed ?? 1),
         should_despawn: nbtByte(bedrockOnly.should_despawn),
         stacked_by_data: nbtByte(bedrockOnly.stacked_by_data),
@@ -270,19 +297,31 @@ const namedComponents = (projected: BedrockItemComponents): Readonly<Record<stri
  * `components` key, as every third-party implementation and the capture
  * agree.
  */
-export const buildItemComponentData = (
+const itemComponentData = (
     projected: BedrockItemComponents,
-    bedrockOnly: BedrockOnlyItemProperties = BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS
+    bedrockOnly: BedrockOnlyItemProperties,
+    identifier?: string
 ): NBTTagCompound =>
     nbtCompound({
         components: nbtCompound({
             ...namedComponents(projected),
-            item_properties: itemProperties(projected, bedrockOnly),
+            item_properties: itemProperties(projected, bedrockOnly, identifier),
             // Present and empty: Bedrock item tags are their own registry and
             // `@jsprismarine/items` will not translate a Java tag into one.
             item_tags: nbtList([])
         })
     });
+
+/**
+ * Builds the whole `Item Component Data` compound for one projected item.
+ *
+ * @param projected - The Java-derived components to write.
+ * @param bedrockOnly - The item properties Bedrock supplies outside Java data.
+ */
+export const buildItemComponentData = (
+    projected: BedrockItemComponents,
+    bedrockOnly: BedrockOnlyItemProperties = BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS
+): NBTTagCompound => itemComponentData(projected, bedrockOnly);
 
 /**
  * Builds the `Item Data` array.
@@ -325,10 +364,14 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
             version,
             ...(withComponents
                 ? {
-                      componentData: buildItemComponentData(projectItemToBedrock(type, options.projection), {
-                          ...BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS,
-                          ...options.bedrockOnly?.(type.identifier)
-                      })
+                      componentData: itemComponentData(
+                          projectItemToBedrock(type, options.projection),
+                          {
+                              ...BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS,
+                              ...options.bedrockOnly?.(type.identifier)
+                          },
+                          type.identifier
+                      )
                   }
                 : {})
         });
