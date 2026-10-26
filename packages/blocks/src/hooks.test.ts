@@ -37,6 +37,7 @@ describe('the block hook map', () => {
             [
                 'onBlockStateChange',
                 'onBreak',
+                'onEntity',
                 'onEntityFallOn',
                 'onNeighborChanged',
                 'onPlace',
@@ -60,6 +61,19 @@ describe('the block hook map', () => {
 
         expect(calls).toEqual(['component', 'behavior']);
         expect(table.contributors('onTick')).toEqual(['minecraft:tick', 'jsprismarine:crops']);
+    });
+
+    it('dispatches a named event an entity executed on a block', () => {
+        const seen: unknown[] = [];
+        const table = new HookTable<BlockHooks>([
+            { source: 'jsprismarine:kennel', handlers: { onEntity: (event) => seen.push(event) } }
+        ]);
+        const entitySource = { identifier: 'minecraft:wolf', position: { x: 4, y: 5, z: 6 } };
+
+        table.dispatch('onEntity', { block, entitySource, name: 'kennel:upgrade' });
+
+        expect(seen).toEqual([{ block, entitySource, name: 'kennel:upgrade' }]);
+        expect(table.contributors('onEntity')).toEqual(['jsprismarine:kennel']);
     });
 
     it('stops onPlayerInteract at the first handler that consumes it', () => {

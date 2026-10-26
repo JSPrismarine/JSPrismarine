@@ -405,6 +405,7 @@ export class EntityRuntime implements EntityScene {
         body.yaw = options.yaw ?? 0;
         body.pitch = options.pitch ?? 0;
         this.spawning = body;
+        const executeEntityEvent = this.world.blocks.executeEntityEvent;
         const instance = new EntityInstance(registry.holder(reference), {
             id,
             environment: {
@@ -415,6 +416,17 @@ export class EntityRuntime implements EntityScene {
                         this.world.effects.spawnParticle(blockPositionOf(body.position), particle),
                     emitVibration: (_source, vibration) =>
                         this.world.effects.emitGameEvent(`minecraft:${vibration}`, blockPositionOf(body.position), id),
+                    ...(executeEntityEvent === undefined
+                        ? {}
+                        : {
+                              executeEventOnBlock: (_source, position, event) =>
+                                  executeEntityEvent.call(
+                                      this.world.blocks,
+                                      blockPositionOf(position),
+                                      { id, identifier: reference, position: body.position },
+                                      event
+                                  )
+                          }),
                     dropItem: (_source, slot) => {
                         const equipmentSlot = mobEquipmentSlotOf(slot);
                         if (equipmentSlot === undefined) {

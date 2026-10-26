@@ -54,4 +54,20 @@ describe('defineFamily', () => {
         expect(harness.dimension.sounds).toEqual([{ position: { x: 1, y: 2, z: 3 }, name: 'test.use' }]);
         expect(harness.world.overworld.sounds).toEqual([]);
     });
+
+    it('routes named entity events through the family and its block dimension', () => {
+        const family = defineFamily('jsprismarine:home_block', 'Handles entity events on the block.', {
+            onEntity: (event, world) => world.playSound(event.block.position, event.name)
+        });
+        const harness = bindFamily(family, 'minecraft:stone', { dimension: 'minecraft:nether' });
+        harness.dimension.set({ x: 1, y: 2, z: 3 }, 'minecraft:stone');
+
+        harness.entityEvent({ x: 1, y: 2, z: 3 }, 'kennel:upgrade', {
+            identifier: 'minecraft:wolf',
+            position: { x: 1, y: 2, z: 3 }
+        });
+
+        expect(harness.dimension.sounds).toEqual([{ position: { x: 1, y: 2, z: 3 }, name: 'kennel:upgrade' }]);
+        expect(harness.world.overworld.sounds).toEqual([]);
+    });
 });

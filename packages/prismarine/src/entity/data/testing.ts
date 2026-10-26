@@ -339,6 +339,13 @@ export class TestEntityWorld {
     /** Every game event the world received, in the order it was emitted. */
     public readonly gameEvents: { event: string; at: ContentPosition; sourceId: number | undefined }[] = [];
 
+    /** Every event an entity executed on its home block. */
+    public readonly entityEvents: {
+        at: ContentPosition;
+        source: ContentEntity;
+        name: string;
+    }[] = [];
+
     /** Every blow the host was asked to deal to something outside the entity index. */
     public readonly hits: { id: number; amount: number; cause: string; sourceId: number | undefined }[] = [];
 
@@ -386,6 +393,7 @@ export class TestEntityWorld {
                 notifyNeighbors: () => undefined,
                 data: () => undefined,
                 setData: () => undefined,
+                executeEntityEvent: (at, source, name) => this.entityEvents.push({ at, source, name }),
                 light: (at) => this.options.lightLevel ?? (at.y > FLOOR_Y ? 15 : 0),
                 power: () => 0,
                 isLoaded: () => true,

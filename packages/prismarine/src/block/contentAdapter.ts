@@ -2,12 +2,12 @@
  * The `blocks` group of `ServerWorldAdapter`, as the block and item
  * subsystem owes it.
  *
- * Six of the eleven members of `ContentBlockAccess` belong here: the two that
- * read and write a block, the two that read and write a block entity record,
- * the neighbor notification, and the redstone power reaching a position. The
- * other five - light, chunk loading, the surface column and the two biome
- * reads - belong to the world subsystem, which is why this exports the six as
- * their own type rather than the whole interface.
+ * Eight of the thirteen members of `ContentBlockAccess` belong here: reading,
+ * writing, and destroying a block; reading and writing block entity records;
+ * neighbor notification; redstone power; and entity-event dispatch. The other
+ * five - light, chunk loading, the surface column, and two biome reads - belong
+ * to the world subsystem, which is why this exports the eight as their own
+ * type rather than the whole interface.
  *
  * It is a factory rather than a wired-in object because the composition root
  * assembles the four subsystems' groups into one adapter; this module only
@@ -20,10 +20,10 @@ import { MAX_CHAINED_NEIGHBOR_UPDATES, bestNeighborSignal, opposite, relative } 
 import type { ContentLookup } from '../content/world/views';
 import type { BlockEntityData, ContentBlock, ContentBlockAccess, ContentPosition } from '../content/world/adapter';
 
-/** The six members of `ContentBlockAccess` the block and item subsystem implements. */
+/** The eight members of `ContentBlockAccess` the block and item subsystem implements. */
 export type ContentBlockGroup = Pick<
     ContentBlockAccess,
-    'get' | 'set' | 'destroy' | 'data' | 'setData' | 'notifyNeighbors' | 'power'
+    'get' | 'set' | 'destroy' | 'data' | 'setData' | 'notifyNeighbors' | 'power' | 'executeEntityEvent'
 >;
 
 /**
@@ -141,7 +141,7 @@ const reactsToNeighbors = (content: ContentLookup, identifier: string): boolean 
 };
 
 /**
- * Builds the six block adapter members over one dimension's storage.
+ * Builds the eight block adapter members over one dimension's storage.
  *
  * `set` commits the write before it raises `onPlace`, because the hook is
  * documented to run with the new state already readable, and notifies the
@@ -228,6 +228,15 @@ export const createContentBlockGroup = (options: ContentBlockGroupOptions): Cont
         // belong to the world the storage is over. Absent when the storage cannot do it,
         // which is what makes a family fall back to its own drop.
         destroy: destroy && ((at) => destroy(at)),
+        executeEntityEvent: (at, entity, name) => {
+            const block = hookBlockAt(storage, dimension, at);
+            if (block === undefined) return;
+            hooksOf(content, block.identifier, block.states)?.dispatch('onEntity', {
+                block,
+                entitySource: entity,
+                name
+            });
+        },
         set: (at, block, withNeighbors) => {
             const previous = hookBlockAt(storage, dimension, at);
             storage.write(at, block);

@@ -168,6 +168,14 @@ export interface BlockEntityFallOnEvent extends BlockEvent {
     readonly fallDistance: number;
 }
 
+/** An entity executed a named event on this block. */
+export interface BlockEntityEvent extends BlockEvent {
+    /** The entity that executed the event. */
+    readonly entitySource: HookActor;
+    /** The event name the entity executed. */
+    readonly name: string;
+}
+
 /** The redstone power reaching the block changed. */
 export interface BlockRedstoneUpdateEvent extends BlockEvent {
     /** The power now reaching the block, 0 to 15. */
@@ -211,6 +219,8 @@ export interface BlockHooks {
     onStepOn: (event: BlockStepOnEvent) => void;
     /** Runs when an entity lands on the block, for a block with `minecraft:entity_fall_on`. */
     onEntityFallOn: (event: BlockEntityFallOnEvent) => void;
+    /** Runs when an entity executes a named event on the block. */
+    onEntity: (event: BlockEntityEvent) => void;
     /** Runs when the redstone power reaching the block changes. */
     onRedstoneUpdate: (event: BlockRedstoneUpdateEvent) => void;
     /** Runs when one of the block's own state values changes in place. */
@@ -231,6 +241,7 @@ export const BLOCK_HOOK_NAMES = [
     'onPlayerInteract',
     'onStepOn',
     'onEntityFallOn',
+    'onEntity',
     'onRedstoneUpdate',
     'onBlockStateChange'
 ] as const satisfies readonly (keyof BlockHooks)[];

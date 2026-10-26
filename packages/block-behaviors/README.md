@@ -57,7 +57,7 @@ package depends only on `@jsprismarine/blocks` and `@jsprismarine/content`.
 `VoxelWorld` is a real implementation of the interface over a map of positions, not a mock: writes
 read back, and every drop, sound, particle, scheduled tick, spawned entity and neighbor notice is
 recorded in order. `bindFamily` binds one family to one identifier through the same `create` path the
-registry runs, and gives a method per hook:
+registry runs, and gives a method per hook, including `entityEvent(position, name, source)`:
 
 ```typescript
 const harness = bindFamily(doorFamily, 'minecraft:wooden_door');

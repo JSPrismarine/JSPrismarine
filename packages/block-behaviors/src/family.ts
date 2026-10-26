@@ -9,6 +9,7 @@
  */
 import type {
     BlockBreakEvent,
+    BlockEntityEvent,
     BlockEntityFallOnEvent,
     BlockEvent,
     BlockHookName,
@@ -57,6 +58,7 @@ export interface FamilyHandlers {
     ) => boolean | undefined;
     readonly onStepOn?: (event: BlockStepOnEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onEntityFallOn?: (event: BlockEntityFallOnEvent, world: WorldActions, context: FamilyContext) => void;
+    readonly onEntity?: (event: BlockEntityEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onRedstoneUpdate?: (event: BlockRedstoneUpdateEvent, world: WorldActions, context: FamilyContext) => void;
     readonly onBlockStateChange?: (event: BlockStateChangeEvent, world: WorldActions, context: FamilyContext) => void;
 }
@@ -140,6 +142,7 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
         onPlayerInteract,
         onStepOn,
         onEntityFallOn,
+        onEntity,
         onRedstoneUpdate,
         onBlockStateChange
     } = handlers;
@@ -156,6 +159,7 @@ const bindHandlers = (handlers: FamilyHandlers, context: FamilyContext): Partial
     }
     if (onStepOn !== undefined) bound.onStepOn = (event) => onStepOn(event, actions(event), context);
     if (onEntityFallOn !== undefined) bound.onEntityFallOn = (event) => onEntityFallOn(event, actions(event), context);
+    if (onEntity !== undefined) bound.onEntity = (event) => onEntity(event, actions(event), context);
     if (onRedstoneUpdate !== undefined) {
         bound.onRedstoneUpdate = (event) => onRedstoneUpdate(event, actions(event), context);
     }

@@ -16,7 +16,7 @@ const key = (at: ContentPosition) => `${at.x},${at.y},${at.z}`;
 const stone: ContentBlock = { identifier: 'minecraft:stone', states: {} };
 const lamp: ContentBlock = { identifier: 'minecraft:redstone_lamp', states: { lit: false } };
 
-/** A world of a handful of blocks, which is all the six adapter members read. */
+/** A world of a handful of blocks, which is all the eight adapter members read. */
 const mapStorage = (initial: Record<string, ContentBlock> = {}) => {
     const blocks = new Map(Object.entries(initial));
     const written: string[] = [];
@@ -92,6 +92,33 @@ describe('block', () => {
             const { blocks } = harness();
 
             expect(blocks.get({ x: 4, y: 4, z: 4 })).toBeUndefined();
+        });
+
+        it('dispatches a named entity event to the block at the requested position', () => {
+            const at = { x: 1, y: 2, z: 3 };
+            const source = { id: 17, identifier: 'minecraft:zombie', position: { x: 1.5, y: 2, z: 3.5 } };
+            const { blocks } = harness({ '1,2,3': stone });
+            const seen: unknown[] = [];
+            vi.spyOn(HookTable.prototype, 'dispatch').mockImplementation(function (hook, ...args) {
+                if (hook === 'onEntity') seen.push(args[0]);
+            });
+            const executeEntityEvent = blocks.executeEntityEvent;
+            if (executeEntityEvent === undefined) throw new Error('the block adapter cannot dispatch entity events');
+
+            executeEntityEvent(at, source, 'kennel:upgrade');
+
+            expect(seen).toEqual([
+                {
+                    block: {
+                        identifier: 'minecraft:stone',
+                        position: at,
+                        dimension: 'minecraft:overworld',
+                        states: {}
+                    },
+                    entitySource: source,
+                    name: 'kennel:upgrade'
+                }
+            ]);
         });
 
         it('commits a write before anything can read it back', () => {

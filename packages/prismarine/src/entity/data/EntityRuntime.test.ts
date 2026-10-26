@@ -112,6 +112,38 @@ describe('EntityRuntime', () => {
             expect(entity.body.equipment.mainhand).toBeUndefined();
             expect(reports).toEqual([]);
         });
+
+        it('executes a data-defined event on the entity’s home block', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:home_block_sender': {
+                        components: { 'minecraft:health': { value: 20, max: 20 } },
+                        events: {
+                            'jsprismarine:touch_home': {
+                                set_home_position: {},
+                                execute_event_on_home_block: { event: 'jsprismarine:on_touch' }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:home_block_sender', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with a home-block event');
+
+            entity.instance.fire('jsprismarine:touch_home');
+            runtime.tick(1);
+
+            expect(world.entityEvents).toEqual([
+                {
+                    at: GROUND,
+                    source: { id: entity.id, identifier: 'jsprismarine:home_block_sender', position: GROUND },
+                    name: 'jsprismarine:on_touch'
+                }
+            ]);
+        });
     });
 
     describe('entity facts', () => {

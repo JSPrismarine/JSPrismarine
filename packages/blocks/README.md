@@ -94,7 +94,8 @@ writes them under this project's namespace:
 
 Every factory returns `{}`. A component's `hooks` list is the upper bound of what its parameters
 let a block reach, which is how the server finds the blocks that can ever see `onTick`,
-`onRandomTick`, `onEntityFallOn` or `onRedstoneUpdate` without running anything:
+`onRandomTick`, `onEntityFallOn` or `onRedstoneUpdate` without running anything. `onEntity` is
+raised by an entity executing a named event on its home block:
 
 ```typescript
 registry.hooksOf('minecraft:tick'); // Set { 'onTick' }
@@ -180,6 +181,7 @@ straight to a pack's JavaScript without a translation table:
 | `onPlayerInteract` | `BlockPlayerInteractEvent` | `boolean \| undefined` |
 | `onStepOn` | `BlockStepOnEvent` | `void` |
 | `onEntityFallOn` | `BlockEntityFallOnEvent` | `void` |
+| `onEntity` | `BlockEntityEvent` | `void` |
 | `onRedstoneUpdate` | `BlockRedstoneUpdateEvent` | `void` |
 | `onBlockStateChange` | `BlockStateChangeEvent` | `void` |
 

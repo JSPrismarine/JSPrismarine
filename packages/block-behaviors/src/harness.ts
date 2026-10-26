@@ -244,6 +244,11 @@ export class FamilyHarness {
         this.handlers.onEntityFallOn?.({ block: this.block(position), entity, fallDistance });
     }
 
+    /** Dispatches a named entity event on the block. */
+    public entityEvent(position: BlockPosition, name: string, entitySource: HookActor = TEST_PLAYER): void {
+        this.handlers.onEntity?.({ block: this.block(position), entitySource, name });
+    }
+
     /** Dispatches `onRedstoneUpdate` with the power now reaching the block. */
     public redstone(position: BlockPosition, power: number): void {
         this.handlers.onRedstoneUpdate?.({ block: this.block(position), power });

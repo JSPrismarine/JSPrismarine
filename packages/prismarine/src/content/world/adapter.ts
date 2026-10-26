@@ -111,6 +111,8 @@ export interface ContentBlockAccess {
     data(at: ContentPosition): BlockEntityData | undefined;
     /** Replaces a block entity's data whole. */
     setData(at: ContentPosition, data: BlockEntityData): void;
+    /** Executes a named event on the block at a position, with the entity that raised it. */
+    executeEntityEvent?(at: ContentPosition, entity: ContentEntity, name: string): void;
     /** The light level at a position, 0 to 15, as the growth, melt and spawn rules read it. */
     light(at: ContentPosition): number;
     /** The redstone power reaching a position, 0 to 15. */
