@@ -38,12 +38,16 @@ import { buildVanillaCommands, contentRegistryIds, UNWIRED_COMMANDS } from './va
  * is read off the root node's API.
  */
 export type CommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandExecutor>['getChild']>>;
+type VanillaCommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandSource>['getChild']>>;
 
 /**
  * A registered command: its name, its node, and each overload's arguments in input order. A
  * command that runs without arguments has an empty overload for that form.
  */
 export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
+
+const HELP_PAGE_SIZE = 10;
+const MAX_HELP_SYNTAX_LINES = 18;
 
 /** A literal encoded as a one-value hard enum for the Bedrock command packet. */
 class LiteralCommandArgument extends CommandArgument {
@@ -436,24 +440,172 @@ export class CommandManager implements Service {
     }
 
     /**
-     * The usage lines `/help` prints.
+     * Builds a help page or describes a command route from the Java-shaped tree.
      *
-     * @param {string} [command] - One command's name, or undefined for the whole list.
-     * @returns {string[]} One line per command, or per overload for a named command.
+     * A numeric target selects a list page. Any other target is a command name
+     * followed by zero or more literal subcommands, such as `locate structure`.
+     * This walks the source tree directly, so recursive routes such as
+     * `/execute` do not need to be expanded into Bedrock overloads first.
+     *
+     * @param target - A page number or command route, or undefined for page 1.
+     * @returns Formatted help lines for the requested page or route.
      */
-    public usageLines(command?: string): readonly string[] {
-        const flattened = this.getVanillaCommandList();
-        if (command === undefined) {
-            return flattened.map((entry) => `/${entry.name} - ${entry.description}`);
+    public usageLines(target?: string): readonly string[] {
+        const request = target?.trim();
+        if (request === undefined || request.length === 0) return this.helpPage(1);
+        if (/^[+-]?\d+$/.test(request)) return this.helpPage(Number(request));
+
+        return this.commandHelp(request);
+    }
+
+    private helpPage(page: number): readonly string[] {
+        const names = this.vanilla.getNames().sort((left, right) => left.localeCompare(right));
+        const pageCount = Math.max(1, Math.ceil(names.length / HELP_PAGE_SIZE));
+        if (!Number.isSafeInteger(page) || page < 1) {
+            return ['§cHelp page numbers start at 1. Use /help to open the first page.'];
+        }
+        if (page > pageCount) {
+            return [`§cThere are ${pageCount} help pages. Use /help ${pageCount} for the last page.`];
         }
 
-        const owner = this.vanillaName(command);
-        const entry = flattened.find((candidate) => candidate.name === owner);
-        if (entry === undefined) return [];
+        const start = (page - 1) * HELP_PAGE_SIZE;
+        const lines = [`§6Commands §7(${page}/${pageCount})§r`];
+        for (const name of names.slice(start, start + HELP_PAGE_SIZE)) {
+            const description = this.helpDescription(name);
+            lines.push(`§e/${name}§r${description === undefined ? '' : ` §7— ${description}§r`}`);
+        }
 
-        return entry.overloads.map((overload) =>
-            [`/${entry.name}`, ...overload.parameters.map((parameter) => `<${parameter.name}>`)].join(' ')
-        );
+        lines.push('§7Use /help <command> for details, or /help <page> to browse.');
+        const navigation: { label: string; command: string }[] = [];
+        if (page > 1) navigation.push({ label: '‹ Previous', command: `/help ${page - 1}` });
+        if (page < pageCount) navigation.push({ label: 'Next ›', command: `/help ${page + 1}` });
+        if (navigation.length > 0) {
+            // Bedrock chat text has no click action, so keep each destination visible for now.
+            lines.push(navigation.map(({ label, command }) => `§b[${label}]§r ${command}`).join('   '));
+        }
+        return lines;
+    }
+
+    private commandHelp(request: string): readonly string[] {
+        const [typedName, ...requestedRoute] = request.split(/\s+/);
+        if (typedName === undefined) return this.helpPage(1);
+        const owner = this.vanillaName(typedName.toLowerCase());
+        if (owner === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
+
+        const commandRoot = this.vanilla.getRoot().getChild(owner);
+        if (commandRoot === undefined) return [`§cNo help found for /${typedName}. Use /help to browse commands.`];
+
+        let node = commandRoot;
+        const route: string[] = [];
+        let unknownRoute: string | undefined;
+        for (const part of requestedRoute) {
+            const child = [...node.getChildren()].find(
+                (candidate) =>
+                    candidate.getNodeType() === 'literal' && candidate.getName().toLowerCase() === part.toLowerCase()
+            );
+            if (child === undefined) {
+                unknownRoute = part;
+                break;
+            }
+            node = child;
+            route.push(child.getUsageText());
+        }
+
+        const name = `/${owner}${route.length === 0 ? '' : ` ${route.join(' ')}`}`;
+        const lines: string[] = [];
+        if (unknownRoute !== undefined) {
+            lines.push(`§cNo literal route '${unknownRoute}' under ${name}; showing help for ${name}.`);
+        }
+        lines.push(`§6${name}§r`);
+        if (typedName.toLowerCase() !== owner) lines.push(`§7Alias for /${owner}.`);
+
+        const description = this.helpDescription(owner);
+        if (description !== undefined) lines.push(`§7${description}`);
+
+        const metadata = this.vanilla.getMetadata(owner);
+        if (metadata !== undefined && metadata.aliases.length > 0 && route.length === 0) {
+            lines.push(`§7Aliases: ${metadata.aliases.map((alias) => `/${alias}`).join(', ')}`);
+        }
+
+        const children = [...node.getChildren()];
+        const subcommands = children
+            .filter((child) => child.getNodeType() === 'literal')
+            .map((child) => child.getName());
+        if (subcommands.length > 0) lines.push(`§eSubcommands: §f${subcommands.join(', ')}`);
+
+        const argumentNames = [
+            ...new Set(
+                children.filter((child) => child.getNodeType() === 'argument').map((child) => child.getUsageText())
+            )
+        ];
+        if (argumentNames.length > 0) lines.push(`§eArguments: §f${argumentNames.join(', ')}`);
+
+        const syntax = this.commandSyntax(node, commandRoot, [name]);
+        if (syntax.lines.length > 0) {
+            lines.push('§eUsage:');
+            for (const line of syntax.lines) lines.push(`§f${line}`);
+            if (syntax.hasMore) {
+                lines.push(`§7More forms exist. Narrow the route with /help ${name.slice(1)} <subcommand>.`);
+            }
+        }
+
+        if (lines.length === 1) lines.push('§7No syntax is registered for this route yet.');
+        return lines;
+    }
+
+    private commandSyntax(
+        start: VanillaCommandTreeNode,
+        commandRoot: VanillaCommandTreeNode,
+        prefix: readonly string[]
+    ): { lines: readonly string[]; hasMore: boolean } {
+        const lines: string[] = [];
+        const seen = new Set<string>();
+        let hasMore = false;
+
+        const add = (parts: readonly string[]): boolean => {
+            const line = parts.join(' ');
+            if (seen.has(line)) return false;
+            seen.add(line);
+            if (lines.length === MAX_HELP_SYNTAX_LINES) {
+                hasMore = true;
+                return true;
+            }
+            lines.push(line);
+            return false;
+        };
+
+        const visit = (
+            node: VanillaCommandTreeNode,
+            parts: readonly string[],
+            ancestors: ReadonlySet<VanillaCommandTreeNode>
+        ): void => {
+            if (hasMore) return;
+            if (node.getCommand() !== null) add(parts);
+
+            const redirect = node.getRedirect();
+            if (redirect !== null) {
+                if (redirect === commandRoot) add([...parts, '…']);
+                else if (redirect.getNodeType() === 'root') add(parts);
+                return;
+            }
+
+            for (const child of node.getChildren()) {
+                if (ancestors.has(child)) continue;
+                const childParts = [...parts, child.getUsageText()];
+                const nextAncestors = new Set(ancestors);
+                nextAncestors.add(child);
+                visit(child, childParts, nextAncestors);
+                if (hasMore) return;
+            }
+        };
+
+        visit(start, prefix, new Set([start]));
+        return { lines, hasMore };
+    }
+
+    private helpDescription(name: string): string | undefined {
+        const description = this.vanilla.getMetadata(name)?.description;
+        return description === undefined || description.startsWith('commands.') ? undefined : description;
     }
 
     /**

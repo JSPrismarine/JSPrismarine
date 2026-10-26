@@ -180,7 +180,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                 })
             )
             .then(
-                arg('command', stringArgument()).executes(
+                arg('command', messageArgument()).executes(
                     command((context) => {
                         const current = source(context);
                         const lines = current.host.server.usage(value(context, 'command'));
@@ -189,7 +189,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                     })
                 )
             ),
-        { description: 'Lists the commands you may run.' }
+        { description: 'Shows paged command listings and command syntax.' }
     );
 
     registry.register(

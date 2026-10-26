@@ -461,8 +461,13 @@ export interface ServerCommandHost {
      * @returns How many entities were asked to play it.
      */
     playAnimation(entities: readonly EntityRef[], request: AnimationRequest): number;
-    /** The usage lines `/help` prints. */
-    usage(command?: string): readonly string[];
+    /**
+     * Builds the paged list or command-route help `/help` prints.
+     *
+     * @param target - A page number or command route, or undefined for page 1.
+     * @returns The formatted help lines.
+     */
+    usage(target?: string): readonly string[];
 }
 
 /** Everything a command in this package can ask the server to do. */

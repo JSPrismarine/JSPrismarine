@@ -88,6 +88,8 @@ interface LegacyExecutor {
     readonly execute: CommandExecutor;
 }
 
+type JavaArgumentType = ArgumentType<unknown> & { readonly bedrockGap?: string };
+
 type ArgumentBinding =
     { readonly kind: 'literal'; readonly value: string } | { readonly kind: 'argument'; readonly name: string };
 
@@ -205,7 +207,7 @@ const javaArgumentType = (
     parser: string,
     properties: Readonly<Record<string, unknown>>,
     commands: CommandRegistry<CommandSource>
-): ArgumentType<unknown> => {
+): JavaArgumentType => {
     const numberProperty = (name: string): number | undefined => {
         const property = properties[name];
         return typeof property === 'number' ? property : undefined;
@@ -230,7 +232,7 @@ const javaArgumentType = (
             return IntegerArgumentType.integer(numberProperty('min') ?? -Infinity, numberProperty('max') ?? Infinity);
         case 'brigadier:string': {
             const type = stringProperty('type');
-            if (type === 'greedy') return StringArgumentType.greedyString();
+            if (type === 'greedy') return messageArgument();
             if (type === 'phrase') return StringArgumentType.string();
             return StringArgumentType.word();
         }
