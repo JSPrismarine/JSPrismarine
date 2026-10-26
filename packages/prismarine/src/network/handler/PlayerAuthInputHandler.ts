@@ -34,10 +34,8 @@ const FLAG_ACTIONS: ReadonlyArray<readonly [PlayerAuthInputData, PlayerActionTyp
 /**
  * The actions `Player Block Actions` may carry.
  *
- * The docs' constraint on the field: "Verify block actions are one of StartDestroyBlock,
- * AbortDestroyBlock, StopDestroyBlock, CrackBlock, PredictDestroyBlock, or
- * ContinueDestroyBlock". Anything else, a respawn or a creative break for instance, has a
- * packet of its own and is not accepted from here.
+ * Block actions the server handles from `PlayerAuthInput`. The client can send a creative
+ * break here as well as in its standalone `PlayerActionPacket`.
  */
 const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
     PlayerActionType.StartDestroyBlock,
@@ -45,7 +43,8 @@ const BLOCK_ACTIONS: ReadonlySet<number> = new Set([
     PlayerActionType.StopDestroyBlock,
     PlayerActionType.CrackBlock,
     PlayerActionType.PredictDestroyBlock,
-    PlayerActionType.ContinueDestroyBlock
+    PlayerActionType.ContinueDestroyBlock,
+    PlayerActionType.CreativeDestroyBlock
 ]);
 
 /** Where an action that concerns no block says it happened. */
