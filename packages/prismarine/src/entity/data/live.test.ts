@@ -1241,6 +1241,30 @@ describe('the data-driven entity runtime over a live world', () => {
             live = opened;
         };
 
+        it('materializes every vanilla entity definition through the live runtime', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const failures: string[] = [];
+            let index = 0;
+            for (const [identifier] of live.runtime.content().entities.registry) {
+                const position = {
+                    x: 4.5 + (index % 12) * 4,
+                    y: GROUND_Y,
+                    z: 4.5 + Math.floor(index / 12) * 4
+                };
+                index += 1;
+
+                const entity = live.runtime.spawn(identifier, position);
+                if (entity === undefined) {
+                    failures.push(`${identifier}: runtime did not create an entity`);
+                    continue;
+                }
+                if (live.bodies.bodyOf(entity.id) === undefined) failures.push(`${identifier}: no live actor body`);
+            }
+
+            expect(failures).toEqual([]);
+        });
+
         it(
             'runs spawn egg actions for water, ground, and brain mobs with vanilla components',
             { timeout: 180_000 },
