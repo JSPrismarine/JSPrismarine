@@ -39,6 +39,12 @@ interface OpenedContainer {
     readonly contents: ContainerEntry[];
 }
 
+/** The part of a session's open-window state the block interaction reads. */
+interface OpenWindow {
+    readonly identifier: string;
+    readonly position: Vector3;
+}
+
 /** The blocks the fixture declares, which are also the whole of its palette. */
 const BLOCKS = [
     'minecraft:air',
@@ -153,11 +159,25 @@ const liveWorld = (
 const playerHolding = (world: World, holding: string | Item, sneaking = false): Player => {
     const item = typeof holding === 'string' ? new Item({ id: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = { getItemInHand: () => item };
+    let openWindow: OpenWindow | undefined;
     const session = {
         opened: [] as { identifier: string; at: Vector3; contents: ContainerEntry[] }[],
+        getOpenBlockContainer: () => openWindow,
         openBlockContainer: async (at: Vector3, blockIdentifier: string, contents: ContainerEntry[] = []) => {
+            const current = openWindow;
+            if (
+                current?.identifier === blockIdentifier &&
+                current.position.getX() === at.getX() &&
+                current.position.getY() === at.getY() &&
+                current.position.getZ() === at.getZ()
+            ) {
+                return current;
+            }
+
+            const opened: OpenWindow = { identifier: blockIdentifier, position: at };
             session.opened.push({ identifier: blockIdentifier, at, contents });
-            return undefined;
+            openWindow = opened;
+            return openWindow;
         },
         send: async () => {}
     };

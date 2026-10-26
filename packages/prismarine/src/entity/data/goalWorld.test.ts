@@ -26,6 +26,7 @@ const mobBase = {
     'minecraft:movement': { value: 10 },
     'minecraft:follow_range': { value: 24 },
     'minecraft:collision_box': { width: 0.6, height: 1.8 },
+    'minecraft:physics': {},
     'minecraft:navigation.walk': { can_walk: true },
     'minecraft:type_family': { family: ['mob'] }
 };

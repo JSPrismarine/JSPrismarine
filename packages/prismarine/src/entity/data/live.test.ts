@@ -19,6 +19,7 @@ import { serverWorldSource } from '../../content/world/serverSource';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { Item } from '../../item/Item';
 import type ItemManager from '../../item/ItemManager';
+import ContainerEntry from '../../inventory/ContainerEntry';
 import { testEntityServer } from '../../testing/entityServer';
 import { stub } from '../../testing/stub.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
@@ -423,13 +424,6 @@ const buildOver = (world: World, runtimes: EntityRuntimes): ServerContent => {
     });
     built = content;
     return content;
-};
-
-/** The whole fixture, for the benchmark beside this file. */
-export const fixtureForBench = () => {
-    const { world, runtimes } = liveWorld();
-    buildOver(world, runtimes);
-    return { world, live: runtimes.at(DIMENSION)! };
 };
 
 /** The identifiers of everything in the world, which is what a client would be sent. */
@@ -886,7 +880,7 @@ describe('the data-driven entity runtime over a live world', () => {
             await first.world.addEntity(
                 new ItemEntity({
                     position: new Position(2.5, GROUND_Y, 3.5, first.world),
-                    item: undefined
+                    item: new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }), count: 1 })
                 })
             );
 
