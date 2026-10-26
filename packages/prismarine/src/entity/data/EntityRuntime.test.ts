@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Activities } from '@jsprismarine/entity-brains';
 
 import { brainMobOf, tickBrainNavigation } from './brainWorld';
+import { dataEntityRecordOf } from './persistence';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
 /** A runtime over the entity fixture, with the world a test can poke at. */
@@ -152,7 +153,12 @@ describe('EntityRuntime', () => {
             );
             const zombieStart = { ...GROUND, y: GROUND.y + 0.5 };
             const villagerStart = { ...zombieStart, x: 5.5 };
-            const zombie = runtime.spawn('minecraft:zombie', zombieStart);
+            const previouslySpawnedZombie = runtime.spawn('minecraft:zombie', zombieStart);
+            if (previouslySpawnedZombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+            const savedZombie = dataEntityRecordOf(previouslySpawnedZombie, undefined);
+            runtime.remove(previouslySpawnedZombie.id, 'test restore');
+            const zombie = runtime.restore(savedZombie, zombieStart);
+            if (zombie === undefined) throw new Error('the fixture could not restore minecraft:zombie');
             const villager = runtime.spawn('minecraft:villager_v2', villagerStart);
 
             for (let tick = 1; tick <= 200; tick += 1) runtime.tick(tick);
