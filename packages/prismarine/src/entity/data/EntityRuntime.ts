@@ -173,6 +173,8 @@ export class EntityRuntime implements EntityScene {
     public readonly host: EntityHostFacts;
 
     private readonly entities = new Map<number, DataEntity>();
+    /** Lethal hits waiting for their queued `minecraft:on_death` events to apply. */
+    private readonly pendingDeaths = new Set<number>();
     /** Where each of them stands, which is what makes a neighbor search cheaper than a scan. */
     private readonly grid = new EntityGrid();
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
@@ -469,6 +471,7 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined) return;
         entity.removed = reason;
         this.entities.delete(id);
+        this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
         this.grid.remove(entity);
         entity.body.onMove = undefined;
@@ -497,6 +500,14 @@ export class EntityRuntime implements EntityScene {
 
         for (const entity of entities) {
             if (entity.removed !== undefined) continue;
+            if (this.pendingDeaths.delete(entity.id)) {
+                entity.instance.applyQueuedEvents();
+                if (entity.removed !== undefined) continue;
+                if (!entity.instance.hasComponent('minecraft:behavior.dragondeath')) {
+                    this.kill(entity);
+                    continue;
+                }
+            }
             this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
@@ -759,12 +770,16 @@ export class EntityRuntime implements EntityScene {
      * here rather than writing the attribute itself.
      */
     public hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): void {
+        if (this.pendingDeaths.has(entity.id)) return;
         if (entity.instance.attributes.get('health') === undefined) return;
 
         const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
         const result = entity.instance.damage({ cause, amount, damager });
         if (result.amount > 0) entity.body.damage.record(sourceId, cause, result.amount);
-        if (result.died) this.kill(entity);
+        if (result.died) {
+            if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
+            else this.kill(entity);
+        }
     }
 
     /** Knocks a mob away from the entity, scaled by what the target resists. */

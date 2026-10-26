@@ -171,7 +171,7 @@ entity's next tick like every other event.
 | `goals/social.ts` | 26 | Breeding, tempting, owners, mounting, trading and gifts |
 | `goals/work.ts` | 14 | Jobs, farming, item pickup and placing blocks |
 | `goals/environment.ts` | 17 | Sleeping, hiding, sitting and eating a block |
-| `goals/specials.ts` | 24 | The dragon phases, the squid states, the slime and the timer flags |
+| `goals/specials.ts` | 24 | The dragon phases and 200-tick death animation, the squid states, the slime and the timer flags |
 
 ## Testing
 

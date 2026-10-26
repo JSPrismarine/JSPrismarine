@@ -127,6 +127,8 @@ export interface GoalWorld {
     push?(velocity: EntityPosition): void;
     /** Moves the entity at once, for the teleport goals. */
     teleportTo?(position: EntityPosition): void;
+    /** Removes the entity, for the timed end of the dragon death animation. */
+    removeSelf?(): void;
     /** Puts the entity on the mob as a rider. */
     mount?(mob: GoalMob): void;
     /** Takes the entity off whatever it rides. */

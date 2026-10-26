@@ -384,6 +384,17 @@ describe('EntityRuntime', () => {
             expect(victim!.instance.attributes.get('health')?.current).toBe(8);
             expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
         });
+
+        it('removes a lethal hit immediately when no death event was queued', () => {
+            const { runtime, world } = runtimeOf();
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no cow');
+
+            runtime.hurt(cow, undefined, 'entity_attack', 10);
+
+            expect(runtime.all()).not.toContain(cow);
+            expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:leather']);
+        });
     });
 
     describe('the goal scheduler', () => {

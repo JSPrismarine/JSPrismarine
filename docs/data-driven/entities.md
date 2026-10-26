@@ -211,6 +211,10 @@ an event take a mob out of the world, add a component group carrying `minecraft:
 which removes it without rolling its loot table. To kill it properly, deal the damage from the
 code that fired the event.
 
+When lethal damage queues a self event, the runtime leaves one tick for it to apply before
+removing the entity. That lets the Ender Dragon's data-defined death event activate
+`minecraft:behavior.dragondeath`; the goal holds its controls for 200 ticks, then removes it.
+
 ## Filters
 
 Filters are the shared condition language, and the same evaluator answers them for entity

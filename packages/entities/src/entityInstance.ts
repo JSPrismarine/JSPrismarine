@@ -281,14 +281,19 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return this.pending;
     }
 
+    /** Applies the events already queued without advancing component or goal ticks. */
+    public applyQueuedEvents(): void {
+        const pending = this.pending;
+        this.pending = [];
+        for (const effects of pending) this.applyEffects(effects);
+    }
+
     /**
      * Runs one server tick: applies the queued events, then the active
      * components' tick handlers, then the goal scheduler.
      */
     public tick(): void {
-        const pending = this.pending;
-        this.pending = [];
-        for (const effects of pending) this.applyEffects(effects);
+        this.applyQueuedEvents();
 
         this.dispatch('onTick', this);
         this.goals.tick();

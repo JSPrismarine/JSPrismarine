@@ -152,6 +152,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             entity.position = position;
             entity.stopMoving();
         },
+        removeSelf: () => scene.remove(entity.id, 'death_behavior'),
         mount: (mob) => scene.mount(entity, mob),
         dismount: () => scene.dismount(entity),
         pickUp: (item) => scene.pickUp(entity, item),

@@ -235,6 +235,19 @@ const ENTITIES = new Map([
         })
     ],
     [
+        'jsprismarine:dragon_death_fixture',
+        entityFile('jsprismarine:dragon_death_fixture', {
+            components: {
+                'minecraft:health': { value: 200, max: 200 },
+                'minecraft:collision_box': { width: 3, height: 3 },
+                'minecraft:physics': { has_gravity: false, has_collision: false },
+                'minecraft:on_death': { event: 'jsprismarine:start_death', target: 'self' }
+            },
+            component_groups: { death: { 'minecraft:behavior.dragondeath': { priority: 0 } } },
+            events: { 'jsprismarine:start_death': { add: { component_groups: ['death'] } } }
+        })
+    ],
+    [
         'jsprismarine:egg_layer',
         entityFile('jsprismarine:egg_layer', {
             components: {
@@ -1071,6 +1084,27 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(dropped).toEqual(['minecraft:leather']);
             expect(live.bodies.bodyOf(cow.id)).toBeUndefined();
             expect(typesIn(world)).not.toContain('minecraft:cow');
+        });
+
+        it('runs a data-defined death event before removing the entity after its death behavior', async () => {
+            const dragon = live.runtime.spawn('jsprismarine:dragon_death_fixture', {
+                x: 8.5,
+                y: GROUND_Y + 20,
+                z: 8.5
+            });
+            if (dragon === undefined) throw new Error('the fixture declares no death animator');
+
+            live.runtime.hurt(dragon, undefined, 'entity_attack', 200);
+            await run(1);
+
+            expect(dragon.instance.hasComponent('minecraft:behavior.dragondeath')).toBe(true);
+            expect(live.runtime.all()).toContain(dragon);
+
+            await run(198);
+            expect(live.runtime.all()).toContain(dragon);
+
+            await run(1);
+            expect(live.runtime.all()).not.toContain(dragon);
         });
 
         it('shoves the mob away from whoever hit it', async () => {

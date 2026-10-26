@@ -78,8 +78,32 @@ export const dragonTakeoff = dragonPhase('dragontakeoff', ['move']);
 /** `minecraft:behavior.dragonflaming`, the dragon's breath attack from the portal. */
 export const dragonFlaming = dragonPhase('dragonflaming', ['move', 'look']);
 
-/** `minecraft:behavior.dragondeath`, the dragon's death animation, which blocks everything else. */
-export const dragonDeath = dragonPhase('dragondeath', ['move', 'look', 'jump']);
+/** How long Java's Ender Dragon death animation takes, in server ticks. */
+const DRAGON_DEATH_TICKS = 200;
+
+/** `minecraft:behavior.dragondeath`, which holds the dragon still until its death animation ends. */
+export const dragonDeath = goal<GoalBody>({
+    name: 'minecraft:behavior.dragondeath',
+    controlFlags: ['move', 'look', 'jump'],
+    schema: bodySchema((body) => body),
+    create: (_params, support) => {
+        let remaining = 0;
+        return {
+            canStart: () => true,
+            canContinue: () => remaining > 0,
+            start: () => {
+                remaining = DRAGON_DEATH_TICKS;
+            },
+            tick: () => {
+                remaining -= 1;
+                if (remaining === 0) support.world.removeSelf?.();
+            },
+            stop: () => {
+                remaining = 0;
+            }
+        };
+    }
+});
 
 /**
  * Builds one of the squid's five swimming states.
