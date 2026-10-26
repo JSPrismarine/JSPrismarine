@@ -1,6 +1,7 @@
 ---
 '@jsprismarine/entities': patch
+'@jsprismarine/item-behaviors': patch
 '@jsprismarine/prismarine': patch
 ---
 
-Route brain movement with each entity's navigation capabilities so walkers avoid blocks and unsupported heights while flyers retain flight.
+Use each entity's navigation and physics data, and place spawned mobs at their correct feet positions.

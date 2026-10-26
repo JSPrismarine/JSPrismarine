@@ -31,6 +31,12 @@ export const againstFace = (block: BlockReference, face: BlockFace): BlockPositi
     return { x: block.position.x + dx, y: block.position.y + dy, z: block.position.z + dz };
 };
 
+/** The center of the cell beyond a block's face, where an entity fits. */
+const spawnPositionAgainstFace = (block: BlockReference, face: BlockFace): BlockPosition => {
+    const adjacent = againstFace(block, face);
+    return { x: adjacent.x + 0.5, y: adjacent.y, z: adjacent.z + 0.5 };
+};
+
 /** Items whose entity is not simply the identifier with its suffix removed. */
 const ENTITY_OVERRIDES: Readonly<Record<string, string>> = {
     'minecraft:minecart': 'minecraft:minecart',
@@ -75,7 +81,7 @@ export const spawnEggBehavior: ItemBehaviorSpec = {
             context.world.perform({
                 kind: 'spawn-entity',
                 identifier,
-                position: againstFace(block, blockFace),
+                position: spawnPositionAgainstFace(block, blockFace),
                 ...(data === undefined ? {} : { data })
             });
             return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };

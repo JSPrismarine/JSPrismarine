@@ -18,11 +18,14 @@ import Server from '../Server';
 import { Config } from '../config/Config';
 import { buildContentTags } from '../content/tags';
 import { openContainerContents } from '../inventory/containerStore';
+import { EYE_HEIGHT } from '../entity/Human';
 import { stub } from '../testing/stub.test.helper';
-import type Player from '../Player';
+import Player from '../Player';
 import type { World } from '../world/World';
+import { Position } from '../world/Position';
 import type { CommandExecutor } from './CommandExecutor';
 import { UNWIRED_COMMANDS } from './vanillaCommands';
+import { stubOf } from '../testing/stub.test.helper';
 
 vi.mock('@jsprismarine/raknet', async (importActual) => {
     const MockRakNetListener = vi.fn(function (this: Record<string, unknown>) {
@@ -195,6 +198,29 @@ describe('the command layer on a booted server', () => {
 
         expect(world.getEntities().length).toBe(before + 1);
         expect(world.getEntities().at(-1)?.getType()).toBe('minecraft:pig');
+    });
+
+    it('uses a player’s feet when /summon has no coordinates', async () => {
+        const player = stubOf(Player, {
+            getRuntimeId: () => 99n,
+            getType: () => 'minecraft:player',
+            getName: () => 'TestPlayer',
+            getPosition: () => new Position(11.5, 70 + EYE_HEIGHT, 12.5, world),
+            getFeetY: () => 70,
+            getWorld: () => world,
+            yaw: 0,
+            pitch: 0
+        });
+
+        await expect(
+            server.getCommandManager().dispatchCommand(sender, player, '/summon minecraft:pig ~ ~ ~')
+        ).resolves.toBe(true);
+
+        const summoned = world
+            .dataEntities()
+            ?.runtime.all()
+            .find((entity) => entity.identifier === 'minecraft:pig' && entity.position.x === 11.5);
+        expect(summoned?.position).toEqual({ x: 11.5, y: 70, z: 12.5 });
     });
 
     it('kills what it summoned through /kill', async () => {

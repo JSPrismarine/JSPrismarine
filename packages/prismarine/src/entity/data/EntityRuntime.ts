@@ -351,7 +351,7 @@ export class EntityRuntime implements EntityScene {
             entity.instance.tick();
             this.tickBrain(entity);
             tickBrainNavigation(entity);
-            this.coast(entity.body);
+            this.coast(entity);
             entity.step();
             this.carryRiders(entity);
         }
@@ -969,33 +969,49 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Spends one tick of whatever impulse a leap, a charge or a ram gave the
-     * entity.
+     * Spends one tick of an entity's impulse and configured gravity.
      *
      * The numbers are Java's `LivingEntity.travel`: 0.08 of gravity a tick
-     * and 0.91 of horizontal drag. The entity lands when the cell it is
-     * falling into is not passable, which is the only ground model this
-     * runtime has.
+     * and 0.91 of horizontal drag. Gravity and collision follow the active
+     * `minecraft:physics` component, and the entity lands on a non-passable
+     * cell, which is the ground model this runtime has.
      */
-    private coast(body: MobBody): void {
-        if (!body.airborne) return;
+    private coast(entity: DataEntity): void {
+        const { body, instance } = entity;
+        const physics = instance.componentParams('minecraft:physics');
+        const hasGravity = isRecord(physics) && physics.hasGravity === true;
+        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const position = body.position;
+        const navigation = this.navigation();
+        const feet = blockPositionOf(position);
+        const grounded =
+            hasGravity &&
+            hasCollision &&
+            Math.abs(position.y - feet.y) < 1e-6 &&
+            navigation.isSolid({ x: feet.x, y: feet.y - 1, z: feet.z });
+
+        if (!body.airborne && (!hasGravity || grounded)) return;
 
         const velocity = body.velocity;
+        const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - (hasGravity ? GRAVITY : 0);
         const next = {
-            x: body.position.x + velocity.x,
-            y: body.position.y + velocity.y,
-            z: body.position.z + velocity.z
+            x: position.x + velocity.x,
+            y: position.y + (grounded && velocity.y <= 0 ? 0 : fallingY),
+            z: position.z + velocity.z
         };
 
-        const navigation = this.navigation();
-        if (velocity.y <= 0 && !navigation.isPassable(blockPositionOf(next))) {
+        if (hasCollision && fallingY <= 0 && !navigation.isPassable(blockPositionOf(next))) {
             body.position = { x: next.x, y: Math.floor(next.y) + 1, z: next.z };
             body.land();
             return;
         }
 
         body.position = next;
-        body.velocity = { x: velocity.x * DRAG, y: velocity.y - GRAVITY, z: velocity.z * DRAG };
+        body.velocity = {
+            x: velocity.x * DRAG,
+            y: fallingY,
+            z: velocity.z * DRAG
+        };
     }
 
     /** Keeps every rider where its vehicle is, which is what being carried means. */

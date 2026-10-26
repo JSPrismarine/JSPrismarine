@@ -116,6 +116,75 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('physics', () => {
+        it('lets a zombie and villager fall onto solid ground and run their AI', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld({ dayTime: 2000, random: [0.61, 0.5, 0.5] }),
+                {},
+                {
+                    'minecraft:zombie': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 2 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': {},
+                            'minecraft:type_family': { family: ['zombie', 'monster', 'mob'] },
+                            'minecraft:behavior.random_stroll': {
+                                priority: 6,
+                                interval: 1,
+                                speed_multiplier: 1,
+                                xz_dist: 5,
+                                y_dist: 1
+                            }
+                        }
+                    },
+                    'minecraft:villager_v2': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 2 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.9 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': {}
+                        }
+                    }
+                }
+            );
+            const zombieStart = { ...GROUND, y: GROUND.y + 0.5 };
+            const villagerStart = { ...zombieStart, x: 5.5 };
+            const zombie = runtime.spawn('minecraft:zombie', zombieStart);
+            const villager = runtime.spawn('minecraft:villager_v2', villagerStart);
+
+            for (let tick = 1; tick <= 200; tick += 1) runtime.tick(tick);
+
+            expect(zombie?.position.y).toBe(GROUND.y);
+            expect(villager?.position.y).toBe(GROUND.y);
+            expect(zombie?.position).not.toMatchObject({ x: zombieStart.x, z: zombieStart.z });
+            expect(villager?.position).not.toMatchObject({ x: villagerStart.x, z: villagerStart.z });
+        });
+
+        it('respects entity data that disables gravity', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:buoyant': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:physics': { has_gravity: false }
+                        }
+                    }
+                }
+            );
+            const spawnPosition = { ...GROUND, y: GROUND.y + 0.5 };
+            const buoyant = runtime.spawn('jsprismarine:buoyant', spawnPosition);
+
+            for (let tick = 1; tick <= 10; tick += 1) runtime.tick(tick);
+
+            expect(buoyant?.position.y).toBe(spawnPosition.y);
+        });
+    });
+
     describe('combat', () => {
         it('sends a blow at a player out through the host', () => {
             const player = { id: 99, identifier: 'minecraft:player', position: { x: 1, y: FLOOR_Y + 1, z: 0 } };

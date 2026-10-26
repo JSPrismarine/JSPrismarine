@@ -113,7 +113,7 @@ export const entityRefOf = (entity: Entity): EntityRef => ({
     type: entity.getType(),
     name: entity.getName(),
     isPlayer: entity instanceof Player,
-    position: { x: entity.getPosition().getX(), y: entity.getPosition().getY(), z: entity.getPosition().getZ() },
+    position: { x: entity.getPosition().getX(), y: entity.getFeetY(), z: entity.getPosition().getZ() },
     rotation: { yaw: entity.yaw, pitch: entity.pitch },
     dimension: dimensionIdOf(entity.getWorld())
 });

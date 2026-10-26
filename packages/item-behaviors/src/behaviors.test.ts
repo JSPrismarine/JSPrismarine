@@ -644,7 +644,7 @@ describe('placement', () => {
         const result = useOn(stackOf('minecraft:zombie_spawn_egg', 5));
         expect(recording.performed('spawn-entity')[0]).toMatchObject({
             identifier: 'minecraft:zombie',
-            position: { x: 0, y: 65, z: 0 }
+            position: { x: 0.5, y: 65, z: 0.5 }
         });
         expect(result?.stack?.count).toBe(4);
     });
