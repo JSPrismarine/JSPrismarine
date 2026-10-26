@@ -70,8 +70,8 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  * `minecraft:shareables` is.
  *
  * The line this list draws is every non-goal key that two or more of the 129
- * vanilla entities use, plus `minecraft:cannot_be_attacked`, whose singleton
- * marker changes target selection and damage. The 44 other keys only one
+ * vanilla entities use, plus the singleton markers that change target
+ * selection, damage, or persistence. The other 43 keys only one
  * entity uses remain unregistered, so the load report names them.
  */
 export const DATA_COMPONENTS: readonly string[] = [
@@ -162,6 +162,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:tameable',
     'minecraft:tamemount',
     'minecraft:target_nearby_sensor',
+    'minecraft:transient',
     'minecraft:underwater_mount_breathing',
     'minecraft:uses_legacy_friction',
     'minecraft:variable_max_auto_step',

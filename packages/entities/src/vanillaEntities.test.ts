@@ -102,6 +102,7 @@ const RESOLVED_TO_JAVA = 33;
  */
 const MARKER_COMPONENTS = [
     'minecraft:persistent',
+    'minecraft:transient',
     'minecraft:fire_immune',
     'minecraft:freezing_immune',
     'minecraft:cannot_be_attacked'
@@ -292,7 +293,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // Behavior is a hook, or a body the entity reads back itself: the
         // eleven triggers, which fire at a point the engine reaches rather
-        // than on a schedule, and the three empty immunity and persistence
+        // than on a schedule, and the five empty immunity and persistence
         // markers, whose name is the whole of what each one means.
         const withHooks = registry
             .names()
@@ -315,13 +316,13 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use, 158 of the 202, which covers 103, and every
+        // or more entities use, 159 of the 202, which covers 104, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(158);
-        expect(withBehavior).toHaveLength(39);
-        expect(componentCovered).toBeGreaterThanOrEqual(103);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(159);
+        expect(withBehavior).toHaveLength(40);
+        expect(componentCovered).toBeGreaterThanOrEqual(104);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
     });

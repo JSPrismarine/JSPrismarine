@@ -153,7 +153,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the vanilla content build', (
         // those 1484: they compile clean, and the whole number is Bedrock's.
         expect(diagnostics.filter((diagnostic) => diagnostic.severity === 'error')).toEqual([]);
         expect(Object.fromEntries(remaining)).toEqual({
-            'component.unknown': 45,
+            'component.unknown': 43,
             'definition.mcb': 1,
             'definition.missing-key': 1,
             'loot.unapplied': 1484

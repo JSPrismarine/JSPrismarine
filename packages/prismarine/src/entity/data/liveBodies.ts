@@ -82,6 +82,11 @@ class DataEntityBody extends GenericEntity {
     }
 
     /** @inheritdoc */
+    public override shouldPersist(): boolean {
+        return !this.driver.instance.hasComponent('minecraft:transient');
+    }
+
+    /** @inheritdoc */
     public override applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
         // The damping first, because vanilla's rule is that each shove halves whatever motion
         // the last one left before adding its own - which is what makes a sprint hit both throw
@@ -284,7 +289,7 @@ export class LiveBodies {
     public persist(runtime: EntityRuntime): void {
         for (const entity of runtime.all()) {
             const body = this.bodies.get(entity.id);
-            if (body === undefined) continue;
+            if (body === undefined || !body.shouldPersist()) continue;
 
             body.persistentNbt ??= new NBTTagCompound('');
             writeDataEntityRecord(body.persistentNbt, dataEntityRecordOf(entity, runtime.poolOf(entity.id)));

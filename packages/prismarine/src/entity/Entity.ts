@@ -474,6 +474,17 @@ export class Entity {
     }
 
     /**
+     * Whether the world should include this entity in saved actor records.
+     *
+     * Most entities survive a world save. A data-driven entity can opt out
+     * with Bedrock's `minecraft:transient` component.
+     * @returns Whether this entity should be persisted.
+     */
+    public shouldPersist(): boolean {
+        return true;
+    }
+
+    /**
      * The entity's health, out of {@link Entity.getMaxHealth}.
      *
      * Health is an attribute, not a field beside one: it is the same number the client draws

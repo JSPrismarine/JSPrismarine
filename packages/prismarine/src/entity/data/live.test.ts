@@ -358,6 +358,12 @@ const ENTITIES = new Map([
         })
     ],
     [
+        'jsprismarine:transient_fixture',
+        entityFile('jsprismarine:transient_fixture', {
+            components: { ...MOB_BASE, 'minecraft:transient': {} }
+        })
+    ],
+    [
         'jsprismarine:pet_fixture',
         entityFile('jsprismarine:pet_fixture', {
             components: {
@@ -1152,6 +1158,22 @@ describe('the data-driven entity runtime over a live world', () => {
             const restored = live.runtime.restore(record, cow.position);
 
             expect(restored?.spawnData).toEqual(data);
+        });
+
+        it('does not persist a data-defined transient entity', () => {
+            const transient = live.runtime.spawn('jsprismarine:transient_fixture', {
+                x: 0.5,
+                y: GROUND_Y,
+                z: 0.5
+            });
+            if (transient === undefined) throw new Error('the fixture declares no transient entity');
+            const body = live.bodies.bodyOf(transient.id);
+            if (body === undefined) throw new Error('the transient entity has no client-facing body');
+
+            live.bodies.persist(live.runtime);
+
+            expect(body.shouldPersist()).toBe(false);
+            expect(body.persistentNbt).toBeNull();
         });
 
         it('routes spawn egg entity actions through the live data runtime', async () => {

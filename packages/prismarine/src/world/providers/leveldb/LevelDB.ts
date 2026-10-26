@@ -333,7 +333,7 @@ export default class LevelDB extends BaseProvider {
         const previousActorIds = existingDigest === null ? [] : decodeDigest(existingDigest);
         const entities = this.getWorld()
             .getEntities()
-            .filter((entity) => this.belongsToChunk(entity, chunk));
+            .filter((entity) => entity.shouldPersist() && this.belongsToChunk(entity, chunk));
         const usedActorIds = this.actorIdsInWorld();
         const actorIds: Buffer[] = [];
         const actorIdsInChunk = new Set<string>();
@@ -385,7 +385,7 @@ export default class LevelDB extends BaseProvider {
     private actorIdsInWorld(): Set<string> {
         const actorIds = new Set<string>();
         for (const entity of this.getWorld().getEntities()) {
-            if (entity instanceof Player || !entity.persistentNbt?.has('UniqueID')) continue;
+            if (entity instanceof Player || !entity.shouldPersist() || !entity.persistentNbt?.has('UniqueID')) continue;
 
             actorIds.add(actorIdBytes(entity.persistentNbt.getLong('UniqueID', 0n)).toString('hex'));
         }

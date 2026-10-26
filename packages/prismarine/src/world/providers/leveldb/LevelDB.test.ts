@@ -8,6 +8,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../../blockentity/BlockEntityRegistry';
 import { BlockRuntimeIds } from '../../../block/state/BlockRuntimeIds';
+import type { Entity } from '../../../entity/Entity';
 import { ChunkTag, encodeChunkKey, encodePlayerServerKey } from './LevelDBKeys';
 import { Database } from '@jsprismarine/leveldb';
 import { decodeLevelDat } from './LevelDat';
@@ -15,6 +16,7 @@ import { Dimensions } from '../../Dimension';
 import type { StoredItemStack } from '../../../inventory/persistence';
 import { stub } from '../../../testing/stub.test.helper';
 import Chunk from '../../chunk/Chunk';
+import type { Position } from '../../Position';
 import LevelDB, { CHUNK_VERSION } from './LevelDB';
 import type { Logger } from '@jsprismarine/logger';
 import type Server from '../../../Server';
@@ -44,7 +46,7 @@ const DEEP_DARK = 190;
  * The pieces of `Server` and `World` a provider touches. Hand-rolled rather than mocked, so what
  * the provider actually depends on stays visible.
  */
-const harness = (worldPath: string, name = 'testworld', seed = 1234n) => {
+const harness = (worldPath: string, name = 'testworld', seed = 1234n, entities: Entity[] = []) => {
     const warnings: string[] = [];
     const logger = stub<Logger>({
         warn: (message: string) => {
@@ -61,7 +63,7 @@ const harness = (worldPath: string, name = 'testworld', seed = 1234n) => {
         getName: () => name,
         getSeed: () => seed,
         getDimension: () => Dimensions.Overworld,
-        getEntities: () => [],
+        getEntities: () => entities,
         getServer: () => server
     });
 
@@ -300,6 +302,32 @@ describe('world', () => {
         });
 
         describe('round trip', () => {
+            it('does not save entities whose data says they are transient', async () => {
+                const worldPath = scratch();
+                let persistent = true;
+                const transient = stub<Entity>({
+                    getType: () => 'minecraft:fishing_hook',
+                    getPosition: () => stub<Position>({ getX: () => 1, getY: () => 64, getZ: () => 1 }),
+                    shouldPersist: () => persistent,
+                    yaw: 0,
+                    pitch: 0
+                });
+                const first = harness(worldPath, 'testworld', 1234n, [transient]);
+                await first.provider.enable();
+                const chunk = buildChunk();
+                await first.provider.writeChunk(chunk);
+                persistent = false;
+                await first.provider.writeChunk(chunk);
+                await first.provider.disable();
+
+                const reopened = harness(worldPath);
+                await reopened.provider.enable();
+                const restored = await reopened.provider.readChunk(0, 0, 1234n, generator());
+
+                expect(restored.takeStoredEntities()).toEqual([]);
+                await reopened.provider.disable();
+            });
+
             it('reads back every block it wrote, across the full height', async () => {
                 const worldPath = scratch();
                 const first = harness(worldPath);
