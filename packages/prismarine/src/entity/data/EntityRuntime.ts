@@ -1019,6 +1019,12 @@ export class EntityRuntime implements EntityScene {
         const position = body.position;
         const navigation = this.navigation();
         const grounded = hasCollision && body.velocity.y <= 0 && isSupported(position, entity.facts.box, navigation);
+        const inWater = body.conditions.has('in_water');
+        const inLava = body.conditions.has('in_lava');
+        const inFluid = inWater || inLava;
+        const horizontalDrag = inWater ? WATER_DRAG : inLava ? LAVA_DRAG : DRAG;
+        const verticalDrag = inFluid ? FLUID_DRAG : DRAG;
+        const gravity = hasGravity ? (inFluid ? FLUID_GRAVITY : GRAVITY) : 0;
 
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
@@ -1026,7 +1032,7 @@ export class EntityRuntime implements EntityScene {
         if (!body.airborne && (!hasGravity || grounded)) return;
 
         const velocity = body.velocity;
-        const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - (hasGravity ? GRAVITY : 0);
+        const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - gravity;
         const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
         const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation);
         let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
@@ -1043,13 +1049,13 @@ export class EntityRuntime implements EntityScene {
             }
 
             next = nextVertical;
-            body.velocity = { x: velocity.x * DRAG, y: 0, z: velocity.z * DRAG };
+            body.velocity = { x: velocity.x * horizontalDrag, y: 0, z: velocity.z * horizontalDrag };
         } else {
             next = nextVertical;
             body.velocity = {
-                x: Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON ? 0 : velocity.x * DRAG,
-                y: fallingY,
-                z: Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON ? 0 : velocity.z * DRAG
+                x: Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON ? 0 : velocity.x * horizontalDrag,
+                y: fallingY * verticalDrag,
+                z: Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON ? 0 : velocity.z * horizontalDrag
             };
         }
 
@@ -1143,6 +1149,18 @@ const GRAVITY = 0.08;
 
 /** Java's horizontal drag on an airborne entity, applied once a tick. */
 const DRAG = 0.91;
+
+/** Java's horizontal drag in water, applied once per tick. */
+const WATER_DRAG = 0.8;
+
+/** Java's horizontal drag in lava, applied once per tick. */
+const LAVA_DRAG = 0.5;
+
+/** Java's vertical drag in either liquid, applied once per tick. */
+const FLUID_DRAG = 0.8;
+
+/** Java reduces downward acceleration to one sixteenth in a liquid. */
+const FLUID_GRAVITY = GRAVITY / 16;
 
 /** The `power` a `minecraft:explode` with none declared uses, which is the creeper's. */
 const DEFAULT_EXPLOSION_POWER = 3;

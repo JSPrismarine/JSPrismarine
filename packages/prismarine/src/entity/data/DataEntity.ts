@@ -48,6 +48,9 @@ interface MobBodyStepOptions {
 /** Java's default jump power for an entity without a jump component or attribute. */
 const DEFAULT_JUMP_POWER = 0.42;
 
+/** Java's `LivingEntity.jumpInLiquid` upward impulse, in blocks per tick. */
+const FLUID_JUMP_IMPULSE = 0.04;
+
 /**
  * Everything about a live entity that exists before its components do.
  *
@@ -279,10 +282,17 @@ export class MobBody {
         this.conditions.add('on_ground');
     }
 
-    /** Starts a data-driven jump when the entity is standing on the ground. */
+    /** Jumps from the ground or applies Java's upward fluid impulse while swimming. */
     public jump(): void {
         const instance = this.instance;
-        if (instance === undefined || !this.conditions.has('on_ground') || this.airborne) return;
+        if (instance === undefined) return;
+
+        if (this.conditions.has('in_water') || this.conditions.has('in_lava')) {
+            this.push({ x: 0, y: FLUID_JUMP_IMPULSE, z: 0 });
+            return;
+        }
+
+        if (!this.conditions.has('on_ground') || this.airborne) return;
 
         const navigation = instance.activeComponents().find((name) => name.startsWith('minecraft:navigation.'));
         if (navigation !== undefined) {

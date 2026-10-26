@@ -1223,6 +1223,41 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(wither.facts.health).toBe(300);
         });
 
+        it('uses each vanilla mob’s float goal with liquid physics', async () => {
+            useVanillaContent();
+
+            const chunk = world.getLoadedChunk(0, 0);
+            if (chunk === null) throw new Error('the vanilla water test chunk was not loaded');
+            for (let x = 4; x <= 6; x += 1) {
+                for (let z = 4; z <= 6; z += 1) {
+                    for (let y = FLOOR_Y - 2; y <= FLOOR_Y; y += 1) {
+                        chunk.setBlockRuntimeId(x, y, z, idOf('minecraft:water'));
+                    }
+                }
+            }
+            for (let x = 8; x <= 10; x += 1) {
+                for (let z = 4; z <= 6; z += 1) {
+                    for (let y = FLOOR_Y - 2; y <= FLOOR_Y; y += 1) {
+                        chunk.setBlockRuntimeId(x, y, z, idOf('minecraft:water'));
+                    }
+                }
+            }
+
+            const pig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: GROUND_Y, z: 5.5 });
+            if (pig === undefined) throw new Error('the vanilla content declares no pig');
+            const zombie = live.runtime.spawn('minecraft:zombie', { x: 9.5, y: GROUND_Y, z: 5.5 });
+            if (zombie === undefined) throw new Error('the vanilla content declares no zombie');
+
+            for (let tick = 1; tick <= 60; tick += 1) await live.tick(tick);
+
+            expect(pig.body.conditions.has('in_water')).toBe(true);
+            expect(pig.instance.goals.names()).toContain('minecraft:behavior.float');
+            expect(pig.position.y).toBeGreaterThan(FLOOR_Y + 0.5);
+            expect(zombie.body.conditions.has('in_water')).toBe(true);
+            expect(zombie.instance.goals.names()).not.toContain('minecraft:behavior.float');
+            expect(zombie.position.y).toBeLessThan(FLOOR_Y + 0.5);
+        });
+
         it('does not treat water as walking support for a vanilla pig', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
@@ -1277,9 +1312,9 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombieWalker.position.x).toBeLessThan(9);
             expect(zombieWalker.position.y).toBeLessThan(FLOOR_Y);
             expect(zombieWalker.body.conditions.has('in_water')).toBe(true);
-            // The pool is three blocks deep with stone below it; the mob is supported by the
-            // stone bed, not by the water.
-            expect(body.isOnGround()).toBe(true);
+            // The pool is three blocks deep with stone below it. At this tick the zombie is
+            // still descending through water; the liquid itself does not support its body.
+            expect(body.isOnGround()).toBe(false);
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
         });
     });
