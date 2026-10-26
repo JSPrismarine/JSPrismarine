@@ -69,9 +69,26 @@ export const placedEntityOf = (identifier: string): { readonly entity: string; r
 /** The 88 spawn eggs, which spawn what `minecraft:entity_data` names. */
 export const spawnEggBehavior: ItemBehaviorSpec = {
     name: 'vanilla:spawn_egg',
-    hooks: ['onUseOn'],
+    hooks: ['onUse', 'onUseOn'],
     create: (context) => {
         if (!('minecraft:entity_data' in context.components)) return {};
+
+        const onUse: ItemHooks['onUse'] = ({ itemStack, source }) => {
+            const target = context.world.targetOf(source);
+            if (target?.position === undefined) return undefined;
+
+            const data = itemStack.params(entityData);
+            const identifier = stringField(data, 'id');
+            if (identifier === undefined) return undefined;
+
+            context.world.perform({
+                kind: 'spawn-entity',
+                identifier,
+                position: target.position,
+                ...(data === undefined ? {} : { data })
+            });
+            return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
+        };
 
         const onUseOn: ItemHooks['onUseOn'] = ({ itemStack, source, block, blockFace }) => {
             const data = itemStack.params(entityData);
@@ -87,7 +104,7 @@ export const spawnEggBehavior: ItemBehaviorSpec = {
             return { stack: consumeOne(itemStack, context.world.stateOf(source).creative) };
         };
 
-        return { onUseOn };
+        return { onUse, onUseOn };
     }
 };
 

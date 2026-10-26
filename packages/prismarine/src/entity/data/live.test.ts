@@ -9,7 +9,7 @@ import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
-import { vanillaItemDefinitions } from '@jsprismarine/items';
+import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { EYE_HEIGHT } from '../../entity/Human';
@@ -22,6 +22,7 @@ import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
 import type { ContentEntityAccess } from '../../content/world/adapter';
 import { serverWorldSource } from '../../content/world/serverSource';
+import type { ServerWorldHandle } from '../../content/world/serverSource';
 import { unwiredWorld } from '../../content/world/unwired';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { Item } from '../../item/Item';
@@ -687,8 +688,23 @@ const liveWorld = (): {
 };
 
 /** Builds the content over the live world, the way `Server.enableContent` does. */
-const buildOver = (world: World, runtimes: EntityRuntimes): ServerContent => {
+const buildOver = (
+    world: World,
+    runtimes: EntityRuntimes,
+    keepWorld?: (world: ServerWorldHandle) => void
+): ServerContent => {
     let built: ServerContent | undefined;
+    const worldSource = serverWorldSource({
+        worldFor: () => world,
+        content: () => built!,
+        seed: 1234n,
+        difficulty: () => Difficulty.NORMAL,
+        // The seeded source the server itself uses, left alone: a constant draw sends
+        // every wander at the same unreachable cell and measures the path finder's
+        // failure case rather than the goal.
+        entityRuntimes: runtimes
+    });
+    keepWorld?.(worldSource);
     const content = buildServerContent({
         load: () => ({
             definitions: definitionsOf({
@@ -711,16 +727,7 @@ const buildOver = (world: World, runtimes: EntityRuntimes): ServerContent => {
             ].includes(definition.identifier)
         ),
         seed: 1234n,
-        world: serverWorldSource({
-            worldFor: () => world,
-            content: () => built!,
-            seed: 1234n,
-            difficulty: () => Difficulty.NORMAL,
-            // The seeded source the server itself uses, left alone: a constant draw sends
-            // every wander at the same unreachable cell and measures the path finder's
-            // failure case rather than the goal.
-            entityRuntimes: runtimes
-        })
+        world: worldSource
     });
     built = content;
     return content;
@@ -734,11 +741,12 @@ describe('the data-driven entity runtime over a live world', () => {
     let broadcasts: Broadcasts;
     let runtimes: EntityRuntimes;
     let live: LiveEntityRuntime;
+    let worldSource: ServerWorldHandle;
 
     beforeEach(() => {
         let hold: (built: ServerContent) => void;
         ({ world, broadcasts, runtimes, hold } = liveWorld());
-        hold(buildOver(world, runtimes));
+        hold(buildOver(world, runtimes, (source) => (worldSource = source)));
 
         const opened = runtimes.at(DIMENSION);
         if (opened === undefined) throw new Error('the content world opened no entity runtime');
@@ -1920,15 +1928,16 @@ describe('the data-driven entity runtime over a live world', () => {
             world.getGameRuleManager().setGameRule(GameRules.DoMobSpawning, false, true);
 
             let built: ServerContent | undefined;
+            worldSource = serverWorldSource({
+                worldFor: () => world,
+                content: () => built!,
+                seed: 1234n,
+                difficulty: () => Difficulty.NORMAL,
+                entityRuntimes: runtimes
+            });
             built = buildServerContent({
                 seed: 1234n,
-                world: serverWorldSource({
-                    worldFor: () => world,
-                    content: () => built!,
-                    seed: 1234n,
-                    difficulty: () => Difficulty.NORMAL,
-                    entityRuntimes: runtimes
-                })
+                world: worldSource
             });
             setup.hold(built);
 
@@ -2182,6 +2191,119 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(droppedItem?.getMeta()).toBe(0);
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHEARED))).toBe(true);
         });
+
+        it('spawns a spawn egg mob inside the entity it is used on', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:creeper_spawn_egg' }), count: 1 })
+                );
+            const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (pig === undefined) throw new Error('vanilla content declares no pig');
+            const body = live.bodies.bodyOf(pig.id);
+            if (body === undefined) throw new Error('the vanilla pig has no client-facing actor');
+            const actors = worldSource.actorsAt(DIMENSION);
+            const target = {
+                identifier: pig.identifier,
+                runtimeId: Number(body.getRuntimeId()),
+                position: pig.position
+            };
+
+            expect(
+                useItemOnEntity({
+                    content: live.runtime.content(),
+                    actors,
+                    player,
+                    target
+                })
+            ).toBe('handled');
+
+            const creeper = live.runtime.all().find((entity) => entity.identifier === 'minecraft:creeper');
+            expect(creeper?.position).toEqual(pig.position);
+            expect(creeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);
+        });
+
+        it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:sheep_spawn_egg' }), count: 1 }));
+            expect(live.runtime.content().items.types.get('minecraft:sheep_spawn_egg')?.params(entityData)).toEqual({
+                id: 'minecraft:sheep'
+            });
+            const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (sheep === undefined) throw new Error('vanilla content declares no sheep');
+            expect(sheep.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
+            const body = live.bodies.bodyOf(sheep.id);
+            if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
+            const actors = worldSource.actorsAt(DIMENSION);
+
+            expect(
+                useItemOnEntity({
+                    content: live.runtime.content(),
+                    actors,
+                    player,
+                    target: {
+                        identifier: sheep.identifier,
+                        runtimeId: Number(body.getRuntimeId()),
+                        position: sheep.position
+                    }
+                })
+            ).toBe('handled');
+
+            const lamb = live.runtime
+                .all()
+                .find((entity) => entity.identifier === 'minecraft:sheep' && entity.id !== sheep.id);
+            expect(lamb?.position).toEqual(sheep.position);
+            expect(lamb?.instance.hasComponent('minecraft:is_baby')).toBe(true);
+        });
+
+        it(
+            'uses adult spawning for matching eggs when the entity data has no baby interaction',
+            { timeout: 180_000 },
+            () => {
+                useVanillaContent();
+
+                const player = addPlayer(2, 2);
+                Object.assign(player, { inventory: new HumanInventory() });
+                player
+                    .getInventory()
+                    .setItemInHand(
+                        new ContainerEntry({ item: new Item({ name: 'minecraft:creeper_spawn_egg' }), count: 1 })
+                    );
+                const creeper = live.runtime.spawn('minecraft:creeper', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (creeper === undefined) throw new Error('vanilla content declares no creeper');
+                expect(creeper.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(false);
+                const body = live.bodies.bodyOf(creeper.id);
+                if (body === undefined) throw new Error('the vanilla creeper has no client-facing actor');
+
+                expect(
+                    useItemOnEntity({
+                        content: live.runtime.content(),
+                        actors: worldSource.actorsAt(DIMENSION),
+                        player,
+                        target: {
+                            identifier: creeper.identifier,
+                            runtimeId: Number(body.getRuntimeId()),
+                            position: creeper.position
+                        }
+                    })
+                ).toBe('handled');
+
+                const newCreeper = live.runtime
+                    .all()
+                    .find((entity) => entity.identifier === 'minecraft:creeper' && entity.id !== creeper.id);
+                expect(newCreeper?.position).toEqual(creeper.position);
+                expect(newCreeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);
+            }
+        );
 
         it('uses Java-owned attributes when the live runtime builds vanilla entities', () => {
             useVanillaContent();

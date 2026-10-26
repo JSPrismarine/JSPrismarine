@@ -42,6 +42,7 @@ import {
     noEffects
 } from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
+import { entityData } from '@jsprismarine/items';
 import { parseFilter } from '@jsprismarine/packs';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
@@ -1151,6 +1152,16 @@ export class EntityRuntime implements EntityScene {
     ): EntityItemInteraction {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
+
+        const spawnEggData = this.content().items.types.get(itemIdentifier)?.params(entityData);
+        if (
+            entity.instance.hasComponent('minecraft:spawn_egg_interaction') &&
+            isRecord(spawnEggData) &&
+            spawnEggData.id === entity.identifier
+        ) {
+            const baby = this.spawn(entity.identifier, entity.position, { cause: 'born', data: spawnEggData });
+            if (baby !== undefined) return { accepted: true };
+        }
 
         const tameable = entity.instance.componentParams('minecraft:tameable');
         const tameItem = isRecord(tameable) ? componentItem(tameable.tame_items, itemIdentifier) : undefined;

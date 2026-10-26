@@ -76,7 +76,11 @@ const entityAccessOf = (runtime: EntityRuntime): ContentEntityAccess => ({
     near: (center, radius) => runtime.near(center, radius).map(contentEntityOf),
     players: () => runtime.host.players(),
     spawn: (identifier, at, data) => {
-        return runtime.spawn(identifier, at, data === undefined ? undefined : { data })?.id ?? 0;
+        return (
+            runtime.spawn(identifier, at, {
+                ...(data === undefined ? {} : { data })
+            })?.id ?? 0
+        );
     },
     remove: (id) => runtime.remove(id, 'removed'),
     drop: (at, item) => runtime.host.drop(at, item),

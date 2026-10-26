@@ -80,13 +80,18 @@ const contentUseOnEntity = (server: Server, player: Player, data: UseItemOnEntit
 
     const target = player.getWorld().getEntity(data.entityRuntimeId);
     if (target === null) return 'declined';
+    const position = target.getPosition();
 
     try {
         return useItemOnEntity({
             content,
             actors,
             player,
-            target: { identifier: target.getType(), runtimeId: Number(target.getRuntimeId()) }
+            target: {
+                identifier: target.getType(),
+                runtimeId: Number(target.getRuntimeId()),
+                position: { x: position.getX(), y: position.getY(), z: position.getZ() }
+            }
         });
     } catch (error: unknown) {
         server.getLogger().error(error);

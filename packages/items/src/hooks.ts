@@ -26,6 +26,8 @@ export interface ItemSource {
     readonly identifier: string;
     /** The entity's runtime id, unique for the length of the session. */
     readonly runtimeId: number;
+    /** The entity's exact position in world coordinates, when the caller has it. */
+    readonly position?: BlockPosition;
 }
 
 /** The block a hook acts on, named the way Bedrock names one. */
