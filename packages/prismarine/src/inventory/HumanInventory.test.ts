@@ -97,6 +97,48 @@ describe('Inventory.addItem', () => {
         expect(inventory.getItems()[0]!.getCount()).toBe(64);
     });
 
+    it('grows the stack the client is shown, not only the slot', () => {
+        // The wire writes the item's count, not the entry's. Raising only the entry's left two
+        // dirt picked up one at a time showing as one on the retail client.
+        const inventory = new HumanInventory();
+        inventory.addItem(stack('minecraft:dirt', 1));
+
+        inventory.addItem(stack('minecraft:dirt', 1));
+
+        expect(inventory.getEntry(0)?.getCount()).toBe(2);
+        expect(inventory.getItem(0).getAmount()).toBe(2);
+    });
+
+    it('keeps what the stack carries when it grows', () => {
+        // No stackable vanilla item wears, so the durability here only stands for state on the
+        // stack: the top-up copies the stack it grows rather than building a bare one.
+        const inventory = new HumanInventory();
+        const named = new Item({ name: 'minecraft:stone', count: 1, customName: 'Keepsake' }).withEnchantments({
+            'minecraft:unbreaking': 2
+        });
+        named.durability = 7;
+        inventory.setItem(0, new ContainerEntry({ item: named, count: 1 }));
+
+        inventory.addItem(stack('minecraft:stone', 3));
+
+        const grown = inventory.getItem(0);
+        expect(grown.getAmount()).toBe(4);
+        expect(grown.getCustomName()).toBe('Keepsake');
+        expect(grown.getEnchantmentLevel('minecraft:unbreaking')).toBe(2);
+        expect(grown.getDurability()).toBe(7);
+    });
+
+    it('keeps what a split stack carries', () => {
+        // A stack larger than one slot holds is split, and each part is a copy of it.
+        const inventory = new HumanInventory();
+        const pearls = new Item({ name: 'minecraft:ender_pearl', count: 20, customName: 'Spares' });
+
+        expect(inventory.addItem(new ContainerEntry({ item: pearls, count: 20 }))).toBe(0);
+
+        expect(inventory.getItems().map((entry) => entry.getItem().getAmount())).toEqual([16, 4]);
+        expect(inventory.getItems().map((entry) => entry.getItem().getCustomName())).toEqual(['Spares', 'Spares']);
+    });
+
     it('overflows into the next slot at the stack limit', () => {
         const inventory = new HumanInventory();
 

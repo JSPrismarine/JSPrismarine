@@ -22,14 +22,14 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
  * replicator, and told to show itself. Everything in that chain was correct on its own while
  * no floating item ever appeared, so the value here is that it is one test rather than five.
  */
-const fakeWorld = (initial: BlockState) => {
+const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}) => {
     let current = initial;
     const sent: any[] = [];
 
     const block: any = {
-        getName: () => initial.name,
+        getName: () => dropName,
         getStateName: () => initial.name,
-        getId: () => 1,
+        getId: () => id,
         getMeta: () => 0,
         getDrops: () => [block]
     };
@@ -163,6 +163,19 @@ describe('world', () => {
             await world.breakBlock(new Vector3(10, 64, -20), player);
 
             expect(entities.size).toBe(1);
+        });
+
+        it('drops nothing for a block whose drop has no item id, rather than air', async () => {
+            // On the wire it was an item actor holding air: an empty item on the ground.
+            const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'), {
+                id: 0,
+                dropName: 'minecraft:not_an_item'
+            });
+
+            await world.breakBlock(new Vector3(10, 64, -20), player);
+
+            expect(sent.some((packet) => packet instanceof AddItemActorPacket)).toBe(false);
+            expect(entities.size).toBe(0);
         });
 
         it('stops at the item entity limit however much is dropped at once', async () => {

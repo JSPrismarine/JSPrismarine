@@ -385,6 +385,21 @@ export class Item {
         return this.copyWith({ customName, lore });
     }
 
+    /**
+     * A copy of this stack holding a different number of items.
+     *
+     * Everything else comes along: the enchantments, the durability spent, the name, the lore,
+     * the contents and the content the stack reads its components from. A slot that changes
+     * size goes through here, because the wire writes the item's count and not the slot's.
+     *
+     * @param count - How many the copy holds. Set after construction, so zero stays zero.
+     */
+    public withCount(count: number): Item {
+        const copy = this.copyWith({});
+        copy.count = count;
+        return copy;
+    }
+
     /** One copy constructor for the `with*` methods, so each states only what it changes. */
     private copyWith(changes: Partial<ItemProps>): Item {
         const copy = new Item({

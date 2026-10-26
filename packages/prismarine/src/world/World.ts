@@ -1999,6 +1999,19 @@ export class World implements Service {
         const item =
             drop instanceof Item ? drop : new Item({ id: drop.getId(), name: drop.getName(), meta: drop.getMeta() });
 
+        // A stack with no wire id goes out as air, and the client draws an item actor holding
+        // air as an empty item on the ground. That is an unknown Java id `bedrockDrops` kept, or
+        // a block whose drop names no item. Logged, so the block that made it can be found.
+        if (item.getName() === 'minecraft:air' || item.getNetworkId() === 0) {
+            this.server
+                .getLogger()
+                .debug(
+                    `Dropped nothing for ${item.getName()} at ${position.toString()}: it has no item id`,
+                    'World/dropItem'
+                );
+            return;
+        }
+
         // Built where it lands, so nothing has to be moved into place afterwards and no
         // client is told about a position the entity never actually held.
         const entity = new ItemEntity({

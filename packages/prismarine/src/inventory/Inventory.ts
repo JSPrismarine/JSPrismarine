@@ -144,7 +144,11 @@ export default class Inventory {
             if (room <= 0) continue;
 
             const moved = Math.min(room, remaining);
-            held.setCount(held.getCount() + moved);
+            // A stack of the new size rather than the entry's count raised. A slot holds its
+            // count twice, on the entry and on the item, and the wire writes the item's: raising
+            // only the entry's left a stack picked up onto showing the count it had before.
+            const count = held.getCount() + moved;
+            this.setItem(slot, new ContainerEntry({ item: held.getItem().withCount(count), count }));
             remaining -= moved;
         }
 
@@ -152,20 +156,12 @@ export default class Inventory {
             if (!this.isEmpty(slot)) continue;
 
             const moved = Math.min(max, remaining);
-            // The entry itself when the whole thing goes in, so a tool keeps its class and
-            // everything a subclass carries. Only a split needs a new stack built.
+            // The entry itself when the whole thing goes in. A split is a copy of the incoming
+            // stack, so its enchantments, durability and name go with it.
             const placed =
                 moved === entry.getCount()
                     ? entry
-                    : new ContainerEntry({
-                          item: new Item({
-                              id: incoming.getId(),
-                              name: incoming.getName(),
-                              meta: incoming.meta,
-                              count: moved
-                          }),
-                          count: moved
-                      });
+                    : new ContainerEntry({ item: incoming.withCount(moved), count: moved });
 
             this.setItem(slot, placed);
             remaining -= moved;
