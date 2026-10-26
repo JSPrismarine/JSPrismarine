@@ -48,6 +48,12 @@ import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
+import type PlayerSession from '../../network/PlayerSession';
+import InventoryTransactionPacket, {
+    ItemUseOnActorActionType,
+    TransactionType
+} from '../../network/packet/InventoryTransactionPacket';
+import InventoryTransactionHandler from '../../network/handler/InventoryTransactionHandler';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
@@ -771,6 +777,34 @@ describe('the data-driven entity runtime over a live world', () => {
             entities: new Map([[player.getRuntimeId(), player]])
         });
         return player;
+    };
+
+    /** Uses the player's held item on an entity through its real inventory transaction path. */
+    const useHeldItemOnEntity = async (player: Player, targetRuntimeId: bigint): Promise<void> => {
+        const server = player.getServer();
+        Object.assign(server, { getContentWorld: () => worldSource });
+        const position = player.getPosition();
+        const packet = Object.assign(new InventoryTransactionPacket(), {
+            legacyRequestId: 0,
+            legacySlotChanges: [],
+            transactionType: TransactionType.USE_ITEM_ON_ENTITY,
+            inventoryActions: [],
+            transactionData: {
+                kind: 'useItemOnEntity' as const,
+                entityRuntimeId: targetRuntimeId,
+                actionType: ItemUseOnActorActionType.ITEM_INTERACT,
+                hotbarSlot: player.getInventory().getHandSlotIndex(),
+                itemInHand: Item.air(),
+                playerPosition: new Vector3(position.getX(), position.getY(), position.getZ()),
+                clickPosition: new Vector3(0, 0, 0)
+            }
+        });
+
+        await new InventoryTransactionHandler().handle(
+            packet,
+            server,
+            stub<PlayerSession>({ getPlayer: () => player })
+        );
     };
 
     it('wires the entity subsystem’s two groups into the content world', () => {
@@ -2326,7 +2360,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHEARED))).toBe(true);
         });
 
-        it('spawns a spawn egg mob inside the entity it is used on', { timeout: 180_000 }, () => {
+        it('spawns a spawn egg mob inside the entity it is used on', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
             const player = addPlayer(2, 2);
@@ -2340,28 +2374,14 @@ describe('the data-driven entity runtime over a live world', () => {
             if (pig === undefined) throw new Error('vanilla content declares no pig');
             const body = live.bodies.bodyOf(pig.id);
             if (body === undefined) throw new Error('the vanilla pig has no client-facing actor');
-            const actors = worldSource.actorsAt(DIMENSION);
-            const target = {
-                identifier: pig.identifier,
-                runtimeId: Number(body.getRuntimeId()),
-                position: pig.position
-            };
-
-            expect(
-                useItemOnEntity({
-                    content: live.runtime.content(),
-                    actors,
-                    player,
-                    target
-                })
-            ).toBe('handled');
+            await useHeldItemOnEntity(player, body.getRuntimeId());
 
             const creeper = live.runtime.all().find((entity) => entity.identifier === 'minecraft:creeper');
             expect(creeper?.position).toEqual(pig.position);
             expect(creeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);
         });
 
-        it('maps a spawn egg entity id before spawning inside another mob', { timeout: 180_000 }, () => {
+        it('maps a spawn egg entity id before spawning inside another mob', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
             const player = addPlayer(2, 2);
@@ -2376,25 +2396,14 @@ describe('the data-driven entity runtime over a live world', () => {
             const pigBody = live.bodies.bodyOf(pig.id);
             if (pigBody === undefined) throw new Error('the vanilla pig has no client-facing actor');
 
-            expect(
-                useItemOnEntity({
-                    content: live.runtime.content(),
-                    actors: worldSource.actorsAt(DIMENSION),
-                    player,
-                    target: {
-                        identifier: pig.identifier,
-                        runtimeId: Number(pigBody.getRuntimeId()),
-                        position: pig.position
-                    }
-                })
-            ).toBe('handled');
+            await useHeldItemOnEntity(player, pigBody.getRuntimeId());
 
             const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
             expect(villager?.position).toEqual(pig.position);
             expect(villager && live.bodies.bodyOf(villager.id)).toBeDefined();
         });
 
-        it('matches renamed entity ids when a spawn egg creates a baby', { timeout: 180_000 }, () => {
+        it('matches renamed entity ids when a spawn egg creates a baby', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
             const player = addPlayer(2, 2);
@@ -2410,18 +2419,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const body = live.bodies.bodyOf(villager.id);
             if (body === undefined) throw new Error('the vanilla villager has no client-facing actor');
 
-            expect(
-                useItemOnEntity({
-                    content: live.runtime.content(),
-                    actors: worldSource.actorsAt(DIMENSION),
-                    player,
-                    target: {
-                        identifier: villager.identifier,
-                        runtimeId: Number(body.getRuntimeId()),
-                        position: villager.position
-                    }
-                })
-            ).toBe('handled');
+            await useHeldItemOnEntity(player, body.getRuntimeId());
 
             const child = live.runtime
                 .all()
@@ -2431,7 +2429,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(child && live.bodies.bodyOf(child.id)).toBeDefined();
         });
 
-        it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, () => {
+        it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
             const player = addPlayer(2, 2);
@@ -2447,20 +2445,7 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(sheep.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
             const body = live.bodies.bodyOf(sheep.id);
             if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
-            const actors = worldSource.actorsAt(DIMENSION);
-
-            expect(
-                useItemOnEntity({
-                    content: live.runtime.content(),
-                    actors,
-                    player,
-                    target: {
-                        identifier: sheep.identifier,
-                        runtimeId: Number(body.getRuntimeId()),
-                        position: sheep.position
-                    }
-                })
-            ).toBe('handled');
+            await useHeldItemOnEntity(player, body.getRuntimeId());
 
             const lamb = live.runtime
                 .all()
@@ -2472,7 +2457,7 @@ describe('the data-driven entity runtime over a live world', () => {
         it(
             'uses adult spawning for matching eggs when the entity data has no baby interaction',
             { timeout: 180_000 },
-            () => {
+            async () => {
                 useVanillaContent();
 
                 const player = addPlayer(2, 2);
@@ -2488,18 +2473,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const body = live.bodies.bodyOf(creeper.id);
                 if (body === undefined) throw new Error('the vanilla creeper has no client-facing actor');
 
-                expect(
-                    useItemOnEntity({
-                        content: live.runtime.content(),
-                        actors: worldSource.actorsAt(DIMENSION),
-                        player,
-                        target: {
-                            identifier: creeper.identifier,
-                            runtimeId: Number(body.getRuntimeId()),
-                            position: creeper.position
-                        }
-                    })
-                ).toBe('handled');
+                await useHeldItemOnEntity(player, body.getRuntimeId());
 
                 const newCreeper = live.runtime
                     .all()

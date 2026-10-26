@@ -273,10 +273,12 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      * From Position the client sent.
      */
     private async handleUseItemOnEntity(data: UseItemOnEntityData, server: Server, player: Player): Promise<void> {
-        if (data.actionType === ItemUseOnActorActionType.INTERACT) {
-            // Shearing a sheep, dyeing one, putting a name tag on a pig. The item behavior reads
-            // what the click landed on through `targetOf` rather than through a hook of its own,
-            // so the content path is given the target and runs the item's `onUse`.
+        if (
+            data.actionType === ItemUseOnActorActionType.INTERACT ||
+            data.actionType === ItemUseOnActorActionType.ITEM_INTERACT
+        ) {
+            // Entity interactions and targeted item uses both enter the content path. The latter
+            // includes spawn eggs; the item's `onUse` reads the clicked entity through `targetOf`.
             contentUseOnEntity(server, player, data);
             return;
         }

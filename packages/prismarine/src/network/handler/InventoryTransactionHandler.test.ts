@@ -61,9 +61,10 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
     const broken: BlockPosition[] = [];
     const logged: string[] = [];
     const itemUse: string[] = [];
+    const entityInteractions: number[] = [];
     let exhaustion = 0;
 
-    const zombie = stub<Entity>({ getRuntimeId: () => 42n });
+    let zombie: Entity;
     const world = stub<World>({
         useItemOn: async (item, position, face) => {
             const name = item === null ? 'nothing' : item.getName();
@@ -76,6 +77,11 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
         getEntity: (runtimeId) => (runtimeId === 42n ? zombie : null),
         getDimension: () => Dimensions.Overworld
     });
+    zombie = stub<Entity>({
+        getRuntimeId: () => 42n,
+        getType: () => 'minecraft:zombie',
+        getPosition: () => new Position(0, 64, 0, world)
+    });
 
     const inventory = new HumanInventory();
     inventory.setItem(2, new ContainerEntry({ item: held, count: 1 }));
@@ -83,6 +89,7 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     const player = stub<Player>({
         isOnline: () => true,
+        getRuntimeId: () => 1n,
         gamemode,
         getName: () => 'tester',
         getPosition: () => new Position(0, 64, 0, world),
@@ -110,7 +117,14 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
         getContent: () => testContent(),
         getContentWorld: () =>
             stub<ServerWorldHandle>({
-                actorsAt: () => stub<ServerItemActorPort>({ duringInteraction: (_source, _target, body) => body() })
+                actorsAt: () =>
+                    stub<ServerItemActorPort>({
+                        duringInteraction: (_source, _target, body) => body(),
+                        interactWithEntity: () => {
+                            entityInteractions.push(42);
+                            return true;
+                        }
+                    })
             }),
         getLogger: () =>
             stub<Logger>({
@@ -126,6 +140,7 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
         broken,
         logged,
         itemUse,
+        entityInteractions,
         exhaustion: () => exhaustion,
         zombie,
         player,
@@ -378,6 +393,22 @@ describe('InventoryTransactionHandler', () => {
             world
         );
 
+        expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
+    });
+
+    it('routes an item interaction on an entity through content', async () => {
+        const world = fake(Gametype.SURVIVAL, new Item({ id: 2, name: 'minecraft:sheep_spawn_egg' }));
+
+        await handle(
+            transaction(
+                TransactionType.USE_ITEM_ON_ENTITY,
+                useItemOnEntity({ actionType: ItemUseOnActorActionType.ITEM_INTERACT })
+            ),
+            world
+        );
+
+        expect(world.logged).toEqual([]);
+        expect(world.entityInteractions).toEqual([42]);
         expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
     });
 

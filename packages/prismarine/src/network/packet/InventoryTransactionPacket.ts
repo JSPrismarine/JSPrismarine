@@ -26,11 +26,11 @@ export enum ItemUseActionType {
  * something comes through this transaction.
  */
 export enum ItemUseOnActorActionType {
-    /** Right-clicked it: shearing, saddling, trading, leading. */
+    /** Right-clicked the entity for its regular interaction. */
     INTERACT,
     /** Hit it. */
     ATTACK,
-    /** Used the held item on it specifically, rather than interacting with the entity itself. */
+    /** Used the held item directly on the entity, as with spawn eggs. */
     ITEM_INTERACT
 }
 
