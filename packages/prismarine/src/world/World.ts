@@ -902,7 +902,7 @@ export class World implements Service {
     }
 
     /**
-     * Hands a saved mob back to the data-driven runtime, when it was one.
+     * Hands a saved entity back to the data-driven runtime when its pack type is available.
      *
      * Without this a mob that was running its components, goals and brain came
      * back as a body with none of them behind it, and the spawn loop counted
@@ -912,8 +912,8 @@ export class World implements Service {
      * @param stored - The body built from the actor NBT, which the runtime
      *   reads the position and the untouched tags off and then replaces.
      * @returns Whether the runtime took it. False means this world runs the
-     *   written entity classes, or the actor was saved by one of them, and the
-     *   caller adds the body it built.
+     *   written entity classes, the actor is a dropped item, or no loaded pack declares its
+     *   type, and the caller adds the body it built.
      */
     private restoreDataEntity(stored: Entity): boolean {
         const live = this.dataEntities();
@@ -922,7 +922,7 @@ export class World implements Service {
         const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
         if (record !== undefined) return live.restore(record, stored) !== undefined;
 
-        return stored instanceof GenericEntity && live.restoreGeneric(stored) !== undefined;
+        return !(stored instanceof ItemEntity) && live.restoreExisting(stored) !== undefined;
     }
 
     private isLegacyEntity(candidate: Entity, stored: Entity): boolean {

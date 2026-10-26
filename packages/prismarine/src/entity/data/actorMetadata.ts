@@ -55,6 +55,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             value: isRecord(physics) && physics.hasGravity === true
         },
         { flag: MetadataFlag.HAS_COLLISION, value: !isRecord(physics) || physics.hasCollision !== false },
+        { flag: MetadataFlag.IGNITED, value: body.fuseTicks !== undefined },
         {
             flag: ActorFlags.TAMED,
             value: body.owner !== undefined || instance.hasComponent('minecraft:is_tamed')
@@ -63,7 +64,8 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         { flag: ActorFlags.SHEARED, value: instance.hasComponent('minecraft:is_sheared') }
     ];
     const properties: ActorPropertyProjection[] = [
-        { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 }
+        { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 },
+        { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 }
     ];
 
     if (instance.hasComponent('jsprismarine:falling_block')) {

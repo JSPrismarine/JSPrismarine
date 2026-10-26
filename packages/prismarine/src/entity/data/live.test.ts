@@ -53,6 +53,7 @@ import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
+import Tnt from '../other/Tnt';
 import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
@@ -71,7 +72,7 @@ import type { Generator } from '../../world/Generator';
  */
 
 /** The blocks this fixture declares, which are also the whole of its palette. */
-const BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:water'] as const;
+const BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:water', 'minecraft:tnt'] as const;
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -1973,6 +1974,90 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(arrow.position.z).toBeGreaterThan(2);
             expect(body.getPosition().getZ()).toBeCloseTo(arrow.position.z, 5);
+        });
+
+        it('counts down and detonates primed TNT from its active explode component', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            world.getGameRuleManager().setGameRule(GameRules.MobGriefing, false, true);
+            await world.setBlockByName(1, GROUND_Y, 0, 'minecraft:tnt');
+            const tnt = live.runtime.spawn('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (tnt === undefined) throw new Error('vanilla content declares no TNT');
+            const body = live.bodies.bodyOf(tnt.id);
+            if (body === undefined) throw new Error('the primed TNT has no client-facing body');
+
+            expect(body.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(80);
+
+            for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+            expect(body.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(40);
+            live.persist();
+            const record = body.persistentNbt === null ? undefined : dataEntityRecordIn(body.persistentNbt);
+            if (record === undefined) throw new Error('the primed TNT did not persist its fuse');
+
+            live.runtime.remove(tnt.id, 'test_restore');
+            const restored = live.runtime.restore(record, tnt.position);
+            if (restored === undefined) throw new Error('the saved TNT could not be restored');
+            const restoredBody = live.bodies.bodyOf(restored.id);
+            if (restoredBody === undefined) throw new Error('the restored TNT has no client-facing body');
+
+            expect(restored.body.fuseTicks).toBe(40);
+
+            for (let tick = 41; tick < 80; tick += 1) await live.tick(tick);
+
+            expect(live.runtime.byId(restored.id)).toBeDefined();
+            expect(restoredBody.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(1);
+
+            await live.tick(80);
+
+            expect(live.runtime.byId(restored.id)).toBeUndefined();
+            expect(live.bodies.bodyOf(restored.id)).toBeUndefined();
+            expect((await world.getBlockState(0, FLOOR_Y, 0)).name).toBe('minecraft:air');
+            expect((await world.getBlockState(1, GROUND_Y, 0)).name).toBe('minecraft:air');
+            const chained = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tnt');
+            expect(chained?.body.fuseTicks).toBeGreaterThanOrEqual(10);
+            expect(chained?.body.fuseTicks).toBeLessThanOrEqual(29);
+            expect(chained?.body.owner).toBe(restored.id);
+        });
+
+        it('migrates an existing legacy TNT body with its remaining metadata fuse', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const stored = new Tnt({ position: new Position(0.5, GROUND_Y, 0.5, world), fuse: 37 });
+            const migrated = live.restoreExisting(stored);
+            if (migrated === undefined)
+                throw new Error('the vanilla TNT definition could not restore the existing body');
+
+            expect(migrated.identifier).toBe('minecraft:tnt');
+            expect(migrated.body.fuseTicks).toBe(37);
+            expect(live.bodies.bodyOf(migrated.id)).toBeDefined();
+        });
+
+        it('removes a primed TNT without a blast when tntExplodes is disabled', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+            world.getGameRuleManager().setGameRule(GameRules.TNTExplodes, false, true);
+
+            const tnt = live.runtime.spawn('minecraft:tnt', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (tnt === undefined) throw new Error('vanilla content declares no TNT');
+            for (let tick = 1; tick <= 80; tick += 1) await live.tick(tick);
+
+            expect(live.runtime.byId(tnt.id)).toBeUndefined();
+            expect((await world.getBlockState(0, FLOOR_Y, 0)).name).toBe('minecraft:stone');
+        });
+
+        it('starts a creeper fuse when its data adds the exploding component group', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const creeper = live.runtime.spawn('minecraft:creeper', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (creeper === undefined) throw new Error('vanilla content declares no creeper');
+            expect(creeper.body.fuseTicks).toBeUndefined();
+
+            live.runtime.trigger(creeper.body, 'minecraft:start_exploding', 'self');
+            await live.tick(1);
+
+            expect(creeper.body.fuseTicks).toBe(29);
+            for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
+            expect(live.runtime.byId(creeper.id)).toBeUndefined();
         });
 
         it('keeps a grounded mob level when it looks at a player', async () => {

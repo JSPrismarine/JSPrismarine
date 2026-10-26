@@ -30,6 +30,8 @@ export interface SpawnOptions {
      */
     readonly yaw?: number;
     readonly pitch?: number;
+    /** The entity responsible for this spawn, such as the owner of chained TNT. */
+    readonly ownerId?: number;
     /** Entity-specific fields supplied by the spawn source, preserved across saves. */
     readonly data?: Readonly<Record<string, unknown>>;
 }

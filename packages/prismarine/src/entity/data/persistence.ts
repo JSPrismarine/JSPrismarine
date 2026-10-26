@@ -56,6 +56,8 @@ export interface DataEntityRecord {
     readonly sleeping: boolean;
     readonly loveTicks: number;
     readonly breedCooldown: number;
+    /** Remaining ticks on an active component-defined explosion fuse. */
+    readonly fuseTicks?: number;
     /** Entity-specific fields supplied by the source that spawned it. */
     readonly spawnData?: Readonly<Record<string, unknown>>;
 }
@@ -91,6 +93,7 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
         sleeping: body.sleeping,
         loveTicks: body.loveTicks,
         breedCooldown: body.breedCooldown,
+        ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
         ...(entity.spawnData === undefined ? {} : { spawnData: entity.spawnData })
     };
 };
@@ -185,6 +188,9 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         sleeping: parsed['sleeping'] === true,
         loveTicks: numberOf(parsed['loveTicks'], 0),
         breedCooldown: numberOf(parsed['breedCooldown'], 0),
+        ...(typeof parsed['fuseTicks'] === 'number' && Number.isFinite(parsed['fuseTicks'])
+            ? { fuseTicks: Math.max(0, Math.trunc(parsed['fuseTicks'])) }
+            : {}),
         ...(spawnData === undefined ? {} : { spawnData })
     };
 };
@@ -222,4 +228,5 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.sleeping = record.sleeping;
     body.loveTicks = record.loveTicks;
     body.breedCooldown = record.breedCooldown;
+    body.fuseTicks = record.fuseTicks;
 };

@@ -25,7 +25,8 @@ import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import Tnt, { randomShortFuse } from './other/Tnt';
+import Tnt from './other/Tnt';
+import { DEFAULT_FUSE_TICKS, randomShortFuse } from './fuse';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import type { Entity } from './Entity';
@@ -140,10 +141,31 @@ const primeTnt = async (world: World, at: BlockPosition, source: Entity | null):
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
     if (!allowed) return;
 
+    let runtime: ReturnType<World['dataEntities']>['runtime'] | undefined;
+    try {
+        runtime = world.dataEntities().runtime;
+    } catch {
+        // A standalone world without a live entity runtime still uses the legacy body below.
+    }
+    if (runtime?.content().entities.registry.has(Tnt.MOB_ID)) {
+        runtime.spawn(
+            Tnt.MOB_ID,
+            { x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
+            {
+                cause: 'primed',
+                event: 'from_explosion',
+                data: { fuse: randomShortFuse(DEFAULT_FUSE_TICKS, runtime.world.random.nextFloat()) },
+                ...(source === null ? {} : { ownerId: Number(source.getRuntimeId()) })
+            }
+        );
+        return;
+    }
+
+    const random = world.getServer().getRandom?.();
     await world.addEntity(
         new Tnt({
             position: new Position(at.x + 0.5, at.y, at.z + 0.5, world),
-            fuse: randomShortFuse(),
+            fuse: randomShortFuse(DEFAULT_FUSE_TICKS, random?.() ?? Math.random()),
             source
         })
     );

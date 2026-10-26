@@ -85,6 +85,9 @@ export class MobBody {
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
     public target: number | undefined;
 
+    /** Ticks remaining on an active `minecraft:explode` fuse, if this component is lit. */
+    public fuseTicks: number | undefined;
+
     /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
     public home: EntityPosition | undefined;
 

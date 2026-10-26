@@ -28,9 +28,10 @@ import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
+import { GenericEntity } from '../GenericEntity';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
-import type { GenericEntity } from '../GenericEntity';
+import { MetadataFlag } from '../Metadata';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
@@ -380,23 +381,33 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Migrates a generic body without runtime state when its pack type is available.
+     * Migrates an existing body without runtime state when its pack type is available.
      *
-     * This covers actor records from earlier server versions and copies rebuilt from `level.json`.
-     * Their type's spawn event initializes current components, goals, and physics, while the
-     * original actor tags stay on the replacement body for fields the runtime does not model yet.
+     * This covers entities saved by an older class-based runtime as well as generic actors rebuilt
+     * from `level.json`. The type's spawn event initializes current components, goals, and physics,
+     * while the original actor tags stay on the replacement body for fields the runtime does not
+     * model yet.
      */
-    public restoreGeneric(stored: GenericEntity): DataEntity | undefined {
+    public restoreExisting(stored: Entity): DataEntity | undefined {
         const identifier = stored.getType();
         if (!this.runtime.content().entities.registry.has(identifier)) return undefined;
 
         const position = stored.getPosition();
+        const fuse = stored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
+        if (!(stored instanceof GenericEntity) && typeof fuse !== 'number') return undefined;
         const entity = this.runtime.spawn(
             identifier,
             { x: position.getX(), y: position.getY(), z: position.getZ() },
-            { yaw: stored.yaw, pitch: stored.pitch }
+            {
+                yaw: stored.yaw,
+                pitch: stored.pitch,
+                ...(typeof fuse === 'number' ? { data: { fuse } } : {})
+            }
         );
         if (entity === undefined) return undefined;
+
+        const health = entity.instance.attributes.get('health');
+        if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, stored.getHealth()));
 
         const body = this.bodies.bodyOf(entity.id);
         if (body !== undefined) body.persistentNbt = stored.persistentNbt;

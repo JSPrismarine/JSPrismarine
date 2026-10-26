@@ -33,6 +33,9 @@ export const BLOCK_DROPS = idOf('doTileDrops');
 /** `minecraft:mob_drops`: whether a dead mob leaves its loot behind. */
 export const MOB_DROPS = idOf('doMobLoot');
 
+/** `minecraft:tnt_explodes`: whether primed TNT detonates and chains. */
+export const TNT_EXPLODES = idOf('tntExplodes');
+
 /** `minecraft:spawn_mobs`: whether the natural spawn cycle runs. */
 export const SPAWN_MOBS = idOf('doMobSpawning');
 

@@ -101,6 +101,8 @@ export interface ContentBlastResult {
     readonly hits: readonly ContentBlastHit[];
     /** How many blocks were cleared. */
     readonly broken: number;
+    /** The blocks the ray cleared, used to prime TNT in the chain. */
+    readonly destroyedBlocks: readonly { readonly identifier: string; readonly position: BlockPosition }[];
 }
 
 /** An entity as the ray math reads it, with the runtime entity carried through. */
@@ -164,16 +166,21 @@ const dropBlock = (options: ContentBlastOptions, at: BlockPosition, block: Block
  * ```
  */
 export const detonate = (world: EntityWorldFacts, options: ContentBlastOptions): ContentBlastResult => {
+    const destroyedBlocks: Array<{ identifier: string; position: BlockPosition }> = [];
     const blast = explode<Caught>(contentExplosionWorld(world), {
         center: options.center,
         radius: options.power,
         entities: options.candidates.map(caughtFrom),
         breaksBlocks: options.breaksBlocks ?? true,
-        onBlockDestroyed: (at, block) => dropBlock(options, at, block)
+        onBlockDestroyed: (at, block) => {
+            destroyedBlocks.push({ identifier: block.name, position: at });
+            dropBlock(options, at, block);
+        }
     });
 
     return {
         broken: blast.broken,
+        destroyedBlocks,
         hits: blast.hits.map((hit) => ({
             entity: hit.entity.carried,
             damage: hit.damage,

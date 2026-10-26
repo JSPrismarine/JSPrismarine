@@ -2,6 +2,9 @@ import { GameRules } from '../../world/GameRuleManager';
 import { Entity } from '../Entity';
 import { explode } from '../Explosion';
 import { MetadataFlag } from '../Metadata';
+import { DEFAULT_FUSE_TICKS } from '../fuse';
+
+export { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 
 /**
  * Lit TNT on its fuse.
@@ -17,9 +20,6 @@ import { MetadataFlag } from '../Metadata';
  * and then kills you.
  */
 
-/** Java's `PrimedTnt.DEFAULT_FUSE_TIME`: four seconds. */
-export const DEFAULT_FUSE_TICKS = 80;
-
 /** Java's `PrimedTnt.DEFAULT_EXPLOSION_POWER`, which is the blast radius. */
 export const TNT_EXPLOSION_POWER = 4;
 
@@ -33,19 +33,6 @@ export const TNT_EXPLOSION_POWER = 4;
 const LAUNCH_SPEED = 0.2;
 const GRAVITY = 0.04;
 const AIR_DRAG = 0.98;
-
-/**
- * Java's `PrimedTnt.getRandomShortFuse`, which is the fuse a blast gives the TNT it catches.
- *
- * `nextInt(max(1, fuse / 4)) + fuse / 8`, so a default fuse of 80 becomes 10 to 29 ticks. The
- * spread is what makes a chain ripple outward instead of going off as one blast.
- *
- * @param fuse - The fuse the TNT would otherwise have had.
- * @param random - A draw in `[0, 1)`.
- * @returns The shortened fuse, in ticks.
- */
-export const randomShortFuse = (fuse: number = DEFAULT_FUSE_TICKS, random: number = Math.random()): number =>
-    Math.floor(random * Math.max(1, Math.floor(fuse / 4))) + Math.floor(fuse / 8);
 
 export default class Tnt extends Entity {
     public static MOB_ID = 'minecraft:tnt';

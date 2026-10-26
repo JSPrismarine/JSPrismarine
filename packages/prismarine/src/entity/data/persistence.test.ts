@@ -24,6 +24,7 @@ describe('the data entity record', () => {
         hatchling.body.carried = 'minecraft:wheat';
         hatchling.body.sitting = true;
         hatchling.body.loveTicks = 300;
+        hatchling.body.fuseTicks = 41;
 
         const record = dataEntityRecordOf(hatchling, 'animal');
 
@@ -34,7 +35,8 @@ describe('the data entity record', () => {
             attributes: { health: 1 },
             carried: 'minecraft:wheat',
             sitting: true,
-            loveTicks: 300
+            loveTicks: 300,
+            fuseTicks: 41
         });
     });
 

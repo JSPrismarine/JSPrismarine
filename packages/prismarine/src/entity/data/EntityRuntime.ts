@@ -52,7 +52,14 @@ import type { Merchant } from '@jsprismarine/trading';
 import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
-import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../../content/world/gameRules';
+import {
+    BLOCK_DROPS,
+    MOB_DROPS,
+    MOB_GRIEFING,
+    SPAWN_MOBS,
+    TNT_EXPLODES,
+    ruleIsOn
+} from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
@@ -80,6 +87,7 @@ import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
 import { bedrockEntityIdentifierOf } from '../identifierMapping';
+import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -94,6 +102,10 @@ const PROJECTILE_KNOCKBACK = 0.4;
 const PROJECTILE_KNOCKBACK_LIFT = 0.1;
 const PLAYER_WIDTH = 0.6;
 const PLAYER_HEIGHT = 1.8;
+const TICKS_PER_SECOND = 20;
+const TNT_LAUNCH_SPEED = 0.2;
+const TNT_GRAVITY = 0.04;
+const TNT_DRAG = 0.98;
 
 /** The default eye position as a fraction of a non-player entity's hitbox height. */
 export const PROJECTILE_EYE_HEIGHT_FRACTION = 0.85;
@@ -104,6 +116,22 @@ interface ProjectileState {
     stuck: boolean;
     readonly hitEntities: Set<number>;
 }
+
+/** The component instance that owns an entity's current fuse. */
+interface FuseState {
+    readonly params: unknown;
+}
+
+/** The fuse length in seconds, sampled when a component declares a range. */
+const fuseLengthSeconds = (params: Record<string, unknown>, random: () => number): number => {
+    const length = params['fuse_length'];
+    if (typeof length === 'number') return length;
+    if (!isRecord(length)) return 0;
+
+    const minimum = typeof length.range_min === 'number' ? length.range_min : 0;
+    const maximum = typeof length.range_max === 'number' ? length.range_max : minimum;
+    return minimum + (maximum - minimum) * Math.max(0, Math.min(1, random()));
+};
 
 /** Whether a point along a projectile's path overlaps a target's data-driven box. */
 const projectileOverlaps = (
@@ -215,6 +243,8 @@ export class EntityRuntime implements EntityScene {
     >();
     /** Flight age and impacts already passed through for each active projectile. */
     private readonly projectiles = new Map<number, ProjectileState>();
+    /** The active explode component instance behind each body's ticking fuse. */
+    private readonly fuses = new Map<number, FuseState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
@@ -322,6 +352,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         entity.instance.spawn(options.cause ?? 'spawned', options.event);
+        this.startFuse(entity);
         // Between the spawn event and the body, for the same reason the body comes last. The
         // event is what activates the component group a mob's `minecraft:equipment` usually
         // sits in - a piglin's weapon depends on whether `melee_unit` or `ranged_unit` was
@@ -361,6 +392,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        this.startFuse(entity);
         this.onSpawn(entity);
         return entity;
     }
@@ -407,6 +439,7 @@ export class EntityRuntime implements EntityScene {
         const body = new MobBody(id, at, facts);
         body.yaw = options.yaw ?? 0;
         body.pitch = options.pitch ?? 0;
+        body.owner = options.ownerId;
         this.spawning = body;
         const executeEntityEvent = this.world.blocks.executeEntityEvent;
         const instance = new EntityInstance(registry.holder(reference), {
@@ -531,6 +564,7 @@ export class EntityRuntime implements EntityScene {
         this.merchants.delete(id);
         this.fallingBlocks.delete(id);
         this.projectiles.delete(id);
+        this.fuses.delete(id);
         this.rides.remove(id);
         this.onRemove(entity, reason);
     }
@@ -570,6 +604,7 @@ export class EntityRuntime implements EntityScene {
             this.step(entity);
             this.updateMedium(entity);
             this.updateGrounded(entity);
+            if (this.tickFuse(entity)) continue;
             this.carryRiders(entity);
             if (entity.removed !== undefined) continue;
             this.pushIntersectingEntity(entity, widest, tallest);
@@ -946,7 +981,16 @@ export class EntityRuntime implements EntityScene {
      * about the damage.
      */
     public explode(source: MobBody): void {
-        const params = this.entities.get(source.id)?.instance.componentParams('minecraft:explode');
+        const self = this.entities.get(source.id);
+        if (self === undefined) return;
+
+        const isTnt = self.instance.families().includes('tnt');
+        if (isTnt && !ruleIsOn(this.world.level, TNT_EXPLODES)) {
+            this.remove(self.id, 'tnt_explodes_disabled');
+            return;
+        }
+
+        const params = self.instance.componentParams('minecraft:explode');
         const power = isRecord(params) && typeof params.power === 'number' ? params.power : DEFAULT_EXPLOSION_POWER;
 
         this.world.effects.playSound(blockPositionOf(source.position), 'random.explode');
@@ -955,7 +999,7 @@ export class EntityRuntime implements EntityScene {
             center: source.position,
             power,
             candidates: this.all().filter((caught) => caught.id !== source.id),
-            breaksBlocks: ruleIsOn(this.world.level, MOB_GRIEFING),
+            breaksBlocks: isTnt || ruleIsOn(this.world.level, MOB_GRIEFING),
             content: this.content(),
             // The blocks a blast breaks are still blocks, so `doTileDrops` decides whether they
             // leave anything behind. No sink, and `detonate` rolls no loot at all.
@@ -969,13 +1013,29 @@ export class EntityRuntime implements EntityScene {
                 }) ?? false
         });
 
+        const sourceId = isTnt ? (self.body.owner ?? self.id) : self.id;
         for (const hit of blast.hits) {
-            this.hurt(hit.entity, source.id, 'entity_explosion', hit.damage);
+            this.hurt(hit.entity, sourceId, 'entity_explosion', hit.damage);
             hit.entity.body.push(hit.knockback);
         }
 
-        const self = this.entities.get(source.id);
-        if (self !== undefined) this.remove(self.id, 'explosion');
+        this.remove(self.id, 'explosion');
+
+        if (ruleIsOn(this.world.level, TNT_EXPLODES)) {
+            for (const block of blast.destroyedBlocks) {
+                if (block.identifier !== 'minecraft:tnt') continue;
+                this.spawn(
+                    'minecraft:tnt',
+                    { x: block.position.x + 0.5, y: block.position.y, z: block.position.z + 0.5 },
+                    {
+                        cause: 'primed',
+                        event: 'from_explosion',
+                        ownerId: sourceId,
+                        data: { fuse: randomShortFuse(DEFAULT_FUSE_TICKS, this.world.random.nextFloat()) }
+                    }
+                );
+            }
+        }
     }
 
     /** Puts an entity on a mob as a rider, if the mob has a seat free for it. */
@@ -1401,6 +1461,56 @@ export class EntityRuntime implements EntityScene {
         if (body.breedCooldown > 0) body.breedCooldown -= 1;
     }
 
+    /** Starts, pauses, or advances the active fuse declared by `minecraft:explode`. */
+    private tickFuse(entity: DataEntity): boolean {
+        const params = entity.instance.componentParams('minecraft:explode');
+        if (!isRecord(params) || params.fuse_lit !== true) {
+            entity.body.fuseTicks = undefined;
+            this.fuses.delete(entity.id);
+            return false;
+        }
+
+        if (this.fuses.get(entity.id)?.params !== params) this.startFuse(entity);
+        if (entity.body.fuseTicks === undefined) return false;
+
+        entity.body.fuseTicks = Math.max(0, entity.body.fuseTicks - 1);
+        if (entity.body.fuseTicks > 0) return false;
+
+        this.explode(entity.body);
+        return true;
+    }
+
+    /** Activates a newly spawned or restored fuse without spending its first tick. */
+    private startFuse(entity: DataEntity): void {
+        const params = entity.instance.componentParams('minecraft:explode');
+        if (!isRecord(params) || params.fuse_lit !== true) {
+            entity.body.fuseTicks = undefined;
+            this.fuses.delete(entity.id);
+            return;
+        }
+
+        const previous = this.fuses.get(entity.id);
+        if (previous?.params === params) return;
+        this.fuses.set(entity.id, { params });
+        const starting = previous === undefined && entity.body.fuseTicks === undefined;
+
+        if (starting && entity.instance.families().includes('tnt')) {
+            entity.body.velocity = { ...entity.body.velocity, y: TNT_LAUNCH_SPEED };
+        }
+        if (entity.body.fuseTicks !== undefined && previous === undefined) return;
+
+        const saved = entity.spawnData?.['fuse'];
+        if (typeof saved === 'number' && Number.isFinite(saved)) {
+            entity.body.fuseTicks = Math.max(0, Math.trunc(saved));
+            return;
+        }
+
+        entity.body.fuseTicks = Math.max(
+            0,
+            Math.round(fuseLengthSeconds(params, () => this.world.random.nextFloat()) * TICKS_PER_SECOND)
+        );
+    }
+
     /**
      * Spends one tick of an entity's impulse and configured gravity.
      *
@@ -1438,9 +1548,10 @@ export class EntityRuntime implements EntityScene {
         const inWater = body.conditions.has('in_water');
         const inLava = body.conditions.has('in_lava');
         const inFluid = inWater || inLava;
-        const horizontalDrag = inWater ? WATER_DRAG : inLava ? LAVA_DRAG : DRAG;
-        const verticalDrag = inFluid ? FLUID_DRAG : DRAG;
-        const gravity = hasGravity ? (inFluid ? FLUID_GRAVITY : GRAVITY) : 0;
+        const primedTnt = body.fuseTicks !== undefined && instance.families().includes('tnt');
+        const horizontalDrag = inWater ? WATER_DRAG : inLava ? LAVA_DRAG : primedTnt ? TNT_DRAG : DRAG;
+        const verticalDrag = inFluid ? FLUID_DRAG : primedTnt ? TNT_DRAG : DRAG;
+        const gravity = hasGravity ? (inFluid ? FLUID_GRAVITY : primedTnt ? TNT_GRAVITY : GRAVITY) : 0;
 
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
