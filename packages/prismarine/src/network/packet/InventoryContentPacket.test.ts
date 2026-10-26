@@ -185,6 +185,56 @@ describe('InventoryContentPacket', () => {
         expect(read.dynamicId).toBe(0x01020304);
     });
 
+    it('writes the stack network id a stack has, and none for a stack without one', () => {
+        const inventory = new Inventory(3);
+        const planks = new Item({ name: 'minecraft:oak_planks', count: 12 });
+        planks.stackNetworkId = 7;
+        inventory.setItem(0, new ContainerEntry({ item: planks, count: 12 }));
+        inventory.setItem(1, new ContainerEntry({ item: new Item({ name: 'minecraft:stone' }) }));
+
+        // A ZigZag varint after the presence byte; slot 2 is empty and has none.
+        expect(readBack(encoded(inventory.getItems(true))).slots.map((slot) => slot.netId)).toEqual([7, null, null]);
+    });
+
+    it('reads back what it writes', () => {
+        const planks = new Item({ name: 'minecraft:oak_planks', count: 12 });
+        planks.stackNetworkId = 7;
+        const helmet = new Item({ name: 'minecraft:iron_helmet' });
+        const inventory = new Inventory(3);
+        inventory.setItem(0, new ContainerEntry({ item: planks, count: 12 }));
+        inventory.setItem(2, new ContainerEntry({ item: helmet, count: 1 }));
+
+        const packet = new InventoryContentPacket();
+        packet.windowId = 120;
+        packet.containerId = ContainerUiId.ARMOR_CONTAINER;
+        packet.dynamicId = 9;
+        packet.items = inventory.getItems(true);
+        packet.encode();
+        const written = packet.getBuffer();
+
+        const decoded = new InventoryContentPacket(written);
+        decoded.decode();
+
+        expect(decoded.windowId).toBe(120);
+        expect(decoded.containerId).toBe(ContainerUiId.ARMOR_CONTAINER);
+        expect(decoded.dynamicId).toBe(9);
+        expect(
+            decoded.items.map((entry) => ({
+                name: entry.getItem().getName(),
+                count: entry.getCount(),
+                stackNetworkId: entry.getItem().stackNetworkId
+            }))
+        ).toEqual([
+            { name: 'minecraft:oak_planks', count: 12, stackNetworkId: 7 },
+            { name: 'minecraft:air', count: 0, stackNetworkId: 0 },
+            { name: 'minecraft:iron_helmet', count: 1, stackNetworkId: 0 }
+        ]);
+        expect(decoded.feof()).toBe(true);
+
+        decoded.encode();
+        expect([...decoded.getBuffer()]).toEqual([...written]);
+    });
+
     it('writes a shield with its blocking tick at the end of the blob', () => {
         const inventory = new Inventory(1);
         inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:shield' }) }));

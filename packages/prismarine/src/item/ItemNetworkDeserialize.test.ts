@@ -36,13 +36,14 @@ describe('item', () => {
             expect(stream.feof()).toBe(true);
         });
 
-        it('reads a stack that carries a net id', () => {
+        it('reads a stack that carries a net id, and keeps the id', () => {
             const written = descriptorBytes(new NetworkItemStackDescriptor(7, 1, 0, true, 99, { netIdVariant: 42 }));
 
             const stream = new NetworkBinaryStream(written);
             const item = Item.networkDeserialize(stream);
 
             expect(item.getNetworkId()).toBe(7);
+            expect(item.stackNetworkId).toBe(42);
             expect(stream.feof()).toBe(true);
         });
 

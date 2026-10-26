@@ -57,7 +57,27 @@ export default class InventorySlotPacket extends DataPacket {
         // Air is a whole item instance - eight bytes - not a bare zero. Writing one byte here
         // ended the packet seven bytes early, which a real client reads as a malformed packet
         // and hangs up on; this fires on every craft, where a spent grid slot is emptied.
-        if (this.item) this.item.networkSerialize(this);
+        //
+        // A stack goes out with the id the client will name it by, when it has one.
+        if (this.item) this.item.networkSerialize(this, this.item.stackNetworkId > 0 ? this.item.stackNetworkId : null);
         else Item.air().networkSerialize(this);
+    }
+
+    /** Reads the five fields in docs order, as {@link InventorySlotPacket.encodePayload} writes them. */
+    public decodePayload(): void {
+        this.windowId = this.readUnsignedVarInt();
+        this.inventorySlot = this.readUnsignedVarInt();
+
+        if (this.readBoolean()) {
+            this.containerId = this.readByte();
+            this.dynamicId = this.readBoolean() ? this.readIntLE() : null;
+        }
+
+        // The storage item. Nothing here is held in one, so it is read past and not kept.
+        if (this.readBoolean()) Item.networkDeserialize(this);
+
+        // An emptied slot arrives as a whole air stack, and an empty slot is `null` here.
+        const item = Item.networkDeserialize(this);
+        this.item = item.getName() === 'minecraft:air' ? null : item;
     }
 }

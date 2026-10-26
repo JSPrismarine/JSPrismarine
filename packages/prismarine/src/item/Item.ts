@@ -125,6 +125,15 @@ export class Item {
     public count = 1;
 
     /**
+     * The stack network id the client knows this stack by, or 0 before it has one.
+     *
+     * The inventory packets write it, so that a client and the server name a stack by the same
+     * number in an `ItemStackRequest` and in its answer. A stack read off the wire keeps the id
+     * it came with.
+     */
+    public stackNetworkId = 0;
+
+    /**
      * The stack's `minecraft:enchantments`, by namespaced id.
      *
      * Held here rather than in a general component bag because this is the one
@@ -720,9 +729,8 @@ export class Item {
         const count = stream.readUnsignedShortLE();
         const meta = stream.readUnsignedVarInt();
 
-        if (hasStackIdFlag && stream.readBoolean()) {
-            stream.readVarInt(); // Stack net id, only present when the flag above says so.
-        }
+        // Stack net id, only present when the flag above says so.
+        const stackNetworkId = hasStackIdFlag && stream.readBoolean() ? stream.readVarInt() : 0;
 
         // Block runtime id, for the block this item places. Unsigned in the tracked form.
         if (hasStackIdFlag) stream.readUnsignedVarInt();
@@ -738,6 +746,8 @@ export class Item {
         // The id is carried as well as resolved, so a stack whose id the item
         // table does not name still goes back out under the number it came in
         // under.
-        return new Item({ id, name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
+        const item = new Item({ id, name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
+        item.stackNetworkId = stackNetworkId;
+        return item;
     }
 }

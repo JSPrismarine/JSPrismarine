@@ -122,5 +122,46 @@ describe('network', () => {
             // A non-empty stack carries the ten-byte empty user data: no NBT, no block lists.
             expect(item.userData).toEqual(Buffer.alloc(10));
         });
+
+        it('writes the stack network id the item has', () => {
+            const planks = new Item({ name: 'minecraft:oak_planks', count: 3 });
+            planks.stackNetworkId = 21;
+            const packet = Object.assign(new InventorySlotPacket(), { windowId: 0, inventorySlot: 4, item: planks });
+            packet.encode();
+
+            expect(readBack(packet.getBuffer()).item.netId).toBe(21);
+        });
+
+        it('reads back what it writes', () => {
+            const planks = new Item({ name: 'minecraft:oak_planks', count: 3 });
+            planks.stackNetworkId = 21;
+
+            for (const item of [planks, null]) {
+                const packet = Object.assign(new InventorySlotPacket(), {
+                    windowId: 7,
+                    inventorySlot: 26,
+                    containerId: ContainerUiId.LEVEL_ENTITY_CONTAINER,
+                    dynamicId: 3,
+                    item
+                });
+                packet.encode();
+                const written = packet.getBuffer();
+
+                const decoded = new InventorySlotPacket(written);
+                decoded.decode();
+
+                expect(decoded.windowId).toBe(7);
+                expect(decoded.inventorySlot).toBe(26);
+                expect(decoded.containerId).toBe(ContainerUiId.LEVEL_ENTITY_CONTAINER);
+                expect(decoded.dynamicId).toBe(3);
+                expect(decoded.item?.getName()).toBe(item?.getName());
+                expect(decoded.item?.getAmount()).toBe(item?.getAmount());
+                expect(decoded.item?.stackNetworkId).toBe(item?.stackNetworkId);
+                expect(decoded.feof()).toBe(true);
+
+                decoded.encode();
+                expect([...decoded.getBuffer()]).toEqual([...written]);
+            }
+        });
     });
 });
