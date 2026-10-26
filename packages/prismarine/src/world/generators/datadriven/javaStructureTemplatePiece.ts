@@ -224,6 +224,8 @@ export interface TemplatePieceOptions {
     readonly groundLevelDelta?: number;
     /** Whether the terrain adaptation leaves this piece alone, as it does a terrain-matching one. */
     readonly ignoresTerrainAdaptation?: boolean;
+    /** Jigsaw junctions Java stores on this pool element piece. */
+    readonly junctions?: StructurePiece['junctions'];
     /**
      * Handles one data marker, which is how a legacy structure fills in a chest, a spawner or a
      * decoration from code. Java's `TemplateStructurePiece.handleDataMarker`.
@@ -276,10 +278,13 @@ export class TemplatePiece implements StructurePiece {
 
     /** @inheritDoc */
     public readonly ignoresTerrainAdaptation: boolean;
+    /** @inheritDoc */
+    public readonly junctions: StructurePiece['junctions'];
 
     public constructor(private readonly options: TemplatePieceOptions) {
         this.groundLevelDelta = options.groundLevelDelta ?? 0;
         this.ignoresTerrainAdaptation = options.ignoresTerrainAdaptation ?? false;
+        this.junctions = options.junctions;
         const size = options.store.size(options.template, options.placement) ?? [0, 0, 0];
         this.boundingBox = boxFromSize(
             options.position[0],

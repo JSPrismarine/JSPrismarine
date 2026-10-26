@@ -96,7 +96,8 @@ export const createGenerationPipeline = (setup: unknown): WorkerPipeline => {
                 task.chunkX,
                 task.chunkZ,
                 BigInt(task.input.seed),
-                task.input.beard
+                task.input.beard,
+                task.input.junctions
             );
             return { payload: tile.payload, transferList: tile.transferList };
         }

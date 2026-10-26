@@ -88,9 +88,10 @@ that function, and the generator fills it from the structure starts before the c
 sampled. The starts are laid out against the bare noise, which carries no contribution of its
 own, so reading them first is not circular.
 
-Java also adds a contribution at each jigsaw junction, the point where two village pieces meet,
-at half the weight of a piece. The assembler does not record junctions, so a village street
-flattens its own footprint and not the seam between two of them.
+Java adds a contribution at each jigsaw junction, the connection between two pool pieces, at
+0.4 times the piece kernel. The assembler records both endpoint junctions with their source
+ground heights. The beardifier sums every piece contribution first, then these junction
+contributions in piece and connection order.
 
 ## Where this differs from Java
 

@@ -117,6 +117,20 @@ export interface PlacedPiece {
     readonly boundingBox: BoundingBox;
     /** How many jigsaw connections away from the start piece this piece sits. */
     readonly depth: number;
+    /** Java's `PoolElementStructurePiece.getGroundLevelDelta`. */
+    readonly groundLevelDelta?: number;
+    /** Java's terrain adaptation points created by accepted connections to this piece. */
+    readonly junctions?: JigsawJunction[];
+}
+
+/** The source coordinates Java's beardifier reads from a jigsaw junction. */
+export interface JigsawJunction {
+    /** The source x coordinate Java records for this endpoint. */
+    readonly sourceX: number;
+    /** The source ground y coordinate Java records for this endpoint. */
+    readonly sourceGroundY: number;
+    /** The source z coordinate Java records for this endpoint. */
+    readonly sourceZ: number;
 }
 
 /** The result of an assembly, with the count of candidates the boxes rejected. */
@@ -630,7 +644,9 @@ export const startJigsaw = (config: JigsawConfig, sources: JigsawSources): Jigsa
         position: startPosition,
         rotation: startRotation,
         boundingBox: boxOf(startPosition, startSize),
-        depth: 0
+        depth: 0,
+        groundLevelDelta: GROUND_LEVEL_DELTA,
+        junctions: []
     };
     const origin: TemplatePosition = [centerX, settledY, centerZ];
 
@@ -747,14 +763,37 @@ const expandJigsaw = (
                             continue;
                         }
 
+                        const sourceGroundLevelDelta = current.piece.groundLevelDelta ?? GROUND_LEVEL_DELTA;
+                        const deltaY = parent.pos[1] - current.piece.position[1] - child.pos[1] + step[1];
+                        const targetGroundLevelDelta = childRigid
+                            ? sourceGroundLevelDelta - deltaY
+                            : GROUND_LEVEL_DELTA;
+                        const junctionY = parentRigid
+                            ? current.piece.boundingBox.minY + (parent.pos[1] - current.piece.position[1])
+                            : childRigid
+                              ? box.minY + child.pos[1]
+                              : terrainY() + Math.trunc(deltaY / 2);
                         const piece: PlacedPiece = {
                             location: candidate.location,
                             element,
                             position,
                             rotation,
                             boundingBox: box,
-                            depth: current.depth + 1
+                            depth: current.depth + 1,
+                            groundLevelDelta: targetGroundLevelDelta,
+                            junctions: []
                         };
+                        current.piece.junctions?.push({
+                            sourceX: attachAt[0],
+                            sourceGroundY:
+                                junctionY - (parent.pos[1] - current.piece.position[1]) + sourceGroundLevelDelta,
+                            sourceZ: attachAt[2]
+                        });
+                        piece.junctions?.push({
+                            sourceX: parent.pos[0],
+                            sourceGroundY: junctionY - child.pos[1] + targetGroundLevelDelta,
+                            sourceZ: parent.pos[2]
+                        });
                         space.taken.push(box);
                         pieces.push(piece);
                         queue.push({ piece, template: candidate.template, depth: current.depth + 1, space });

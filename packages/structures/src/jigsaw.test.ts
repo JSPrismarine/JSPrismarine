@@ -558,7 +558,51 @@ describe('assembleJigsaw', () => {
         for (const street of streets) expect(street.position[1]).toBe(40);
         expect(streets[0]?.junctions).toEqual([
             { sourceX: 0, sourceGroundY: 64, sourceZ: 1 },
-            { sourceX: -4, sourceGroundY: 41, sourceZ: 1 }
+            { sourceX: -4, sourceGroundY: 41, sourceZ: 1 },
+            { sourceX: 0, sourceGroundY: 41, sourceZ: 1 }
+        ]);
+    });
+
+    it('uses the sampled terrain height when both connected elements match terrain', () => {
+        const terrainPools: Record<string, TemplatePool> = {
+            ...POOLS,
+            'test:centers': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:center',
+                            projection: 'terrain_matching'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            }),
+            'test:streets': parseTemplatePool({
+                elements: [
+                    {
+                        element: {
+                            element_type: 'minecraft:single_pool_element',
+                            location: 'test:street',
+                            projection: 'terrain_matching'
+                        },
+                        weight: 1
+                    }
+                ],
+                fallback: 'test:empty'
+            })
+        };
+        const { pieces } = assembleJigsaw(
+            config,
+            sources(2024, { pool: (identifier) => terrainPools[identifier], terrainHeight: () => 40 })
+        );
+
+        expect(pieces[0]?.junctions).toEqual([
+            { sourceX: -1, sourceGroundY: 41, sourceZ: 1 },
+            { sourceX: 1, sourceGroundY: 41, sourceZ: -1 },
+            { sourceX: 1, sourceGroundY: 41, sourceZ: 3 },
+            { sourceX: 3, sourceGroundY: 41, sourceZ: 1 }
         ]);
     });
 

@@ -80,7 +80,7 @@ import { GenerationRegion } from './GenerationRegion';
 import type { GenerationRegionPayload, GenerationRegionTransfer, RegionChunkPatch } from './GenerationRegion';
 import { createJavaBlockOracle } from './javaBlockOracle';
 import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
-import type { BeardPiece } from './javaStructureBeard';
+import type { BeardJunction, BeardPiece } from './javaStructureBeard';
 import { BEARD_RADIUS, createBeardifier } from './javaStructureBeard';
 import { createNoiseStructureLevel } from './javaStructureLevel';
 import { asStructureRandom } from './javaStructureRandom';
@@ -243,6 +243,8 @@ export interface TerrainTaskInput {
     readonly seed: string;
     /** The structure pieces that push this chunk's terrain around, laid out on the main thread. */
     readonly beard: readonly BeardPiece[];
+    /** The junction points that contribute after the pieces, in Java's order. */
+    readonly junctions: readonly BeardJunction[];
 }
 
 /** What the generator built for one seed, which every chunk of that world shares. */
@@ -723,6 +725,7 @@ export class DataDrivenGenerator implements Generator {
      * @param cz - Chunk z.
      * @param seed - The world seed, which pins this generator's pipeline.
      * @param beard - The structure pieces that push this chunk's terrain around.
+     * @param junctions - The jigsaw junctions to add after all piece contributions.
      * @returns The tile and the buffers to transfer. The tile is spent: its bytes belong to the
      * receiving thread.
      */
@@ -730,10 +733,11 @@ export class DataDrivenGenerator implements Generator {
         cx: number,
         cz: number,
         seed: bigint,
-        beard: readonly BeardPiece[]
+        beard: readonly BeardPiece[],
+        junctions: readonly BeardJunction[] = []
     ): Promise<GenerationRegionTransfer> {
         const pipeline = this.pipelineFor(seed);
-        return (await this.buildTerrain(cx, cz, pipeline, beard)).transfer();
+        return (await this.buildTerrain(cx, cz, pipeline, beard, junctions)).transfer();
     }
 
     /** @inheritDoc */
@@ -841,9 +845,9 @@ export class DataDrivenGenerator implements Generator {
      * worker is there to do.
      */
     private async terrainTileFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
-        const beard = this.beardPieces(cx, cz, pipeline);
+        const beard = this.beardInputs(cx, cz, pipeline);
         const pool = this.pool;
-        if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard);
+        if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
 
         let result;
         try {
@@ -852,7 +856,11 @@ export class DataDrivenGenerator implements Generator {
                     status: 'terrain',
                     chunkX: cx,
                     chunkZ: cz,
-                    input: { seed: pipeline.randomState.seed.toString(), beard } satisfies TerrainTaskInput
+                    input: {
+                        seed: pipeline.randomState.seed.toString(),
+                        beard: beard.pieces,
+                        junctions: beard.junctions
+                    } satisfies TerrainTaskInput
                 },
                 this.urgencyOf(cx, cz)
             );
@@ -860,7 +868,7 @@ export class DataDrivenGenerator implements Generator {
         } catch (error) {
             if (!this.abandonPool(error)) throw error;
 
-            return this.buildTerrain(cx, cz, pipeline, beard);
+            return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
         }
 
         // The worker's own payload, arriving across a thread boundary the compiler cannot
@@ -964,12 +972,14 @@ export class DataDrivenGenerator implements Generator {
      *
      * @param beard - The structure pieces that push this chunk's terrain around, laid out by
      * whichever thread owns the structure starts.
+     * @param junctions - Their Java junction contributions, in the order structure pieces expose them.
      */
     private async buildTerrain(
         cx: number,
         cz: number,
         pipeline: SeededPipeline,
-        beard: readonly BeardPiece[]
+        beard: readonly BeardPiece[],
+        junctions: readonly BeardJunction[] = []
     ): Promise<GenerationRegion> {
         const region = this.createRegion(cx, cz, 0, pipeline);
 
@@ -977,7 +987,7 @@ export class DataDrivenGenerator implements Generator {
         // Java reads the structure starts before it samples the terrain, so a village flattens
         // the hillside it is about to stand on. The starts are laid out against the bare noise,
         // which has no beard of its own, so there is no circle here.
-        sampler.context.beardifier = createBeardifier(beard);
+        sampler.context.beardifier = createBeardifier(beard, junctions);
         const floor = Math.max(this.dimension.minY, pipeline.settings.noiseSettings.minY);
         const ceiling = Math.min(
             this.dimension.minY + this.dimension.height - 1,
@@ -1022,15 +1032,18 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
-     * The structure pieces close enough to a chunk to push its terrain around.
+     * The structure pieces and jigsaw junctions close enough to affect a chunk's terrain.
      *
-     * Java's filter is the same: a start whose structure asks for no adaptation is skipped
-     * outright, and a piece further than twelve blocks from the chunk contributes nothing at
-     * any position in it.
+     * Java skips starts whose structure asks for no adaptation. A piece or junction more than
+     * twelve blocks from the chunk contributes nothing at any position in it.
      */
-    private beardPieces(cx: number, cz: number, pipeline: SeededPipeline): BeardPiece[] {
+    private beardInputs(
+        cx: number,
+        cz: number,
+        pipeline: SeededPipeline
+    ): { readonly pieces: BeardPiece[]; readonly junctions: BeardJunction[] } {
         const structures = pipeline.structures;
-        if (structures === undefined) return [];
+        if (structures === undefined) return { pieces: [], junctions: [] };
 
         const minX = cx * 16 - BEARD_RADIUS;
         const maxX = cx * 16 + 15 + BEARD_RADIUS;
@@ -1038,14 +1051,26 @@ export class DataDrivenGenerator implements Generator {
         const maxZ = cz * 16 + 15 + BEARD_RADIUS;
 
         const nearby: BeardPiece[] = [];
+        const nearbyJunctions: BeardJunction[] = [];
         for (const start of structures.startsFor(cx, cz)) {
             if (start.terrainAdaptation === 'none') continue;
 
             for (const piece of start.pieces) {
-                if (piece.ignoresTerrainAdaptation === true) continue;
-
                 const box = piece.boundingBox;
                 if (box.minX > maxX || box.maxX < minX || box.minZ > maxZ || box.maxZ < minZ) continue;
+
+                for (const junction of piece.junctions ?? []) {
+                    if (
+                        junction.sourceX > minX &&
+                        junction.sourceX < maxX &&
+                        junction.sourceZ > minZ &&
+                        junction.sourceZ < maxZ
+                    ) {
+                        nearbyJunctions.push(junction);
+                    }
+                }
+
+                if (piece.ignoresTerrainAdaptation === true) continue;
 
                 nearby.push({
                     box,
@@ -1055,7 +1080,7 @@ export class DataDrivenGenerator implements Generator {
             }
         }
 
-        return nearby;
+        return { pieces: nearby, junctions: nearbyJunctions };
     }
 
     /**

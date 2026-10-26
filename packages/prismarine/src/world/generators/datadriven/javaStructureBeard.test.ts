@@ -1,7 +1,7 @@
 import { SampleContext } from '@jsprismarine/worldgen';
 import { describe, expect, it } from 'vitest';
 
-import type { BeardPiece, TerrainAdaptation } from './javaStructureBeard';
+import type { BeardJunction, BeardPiece, TerrainAdaptation } from './javaStructureBeard';
 import { BEARD_RADIUS, createBeardifier, terrainAdaptationOf } from './javaStructureBeard';
 
 /** A ten by five by ten piece whose floor is at y 64, which is the shape a village house is. */
@@ -13,12 +13,49 @@ const pieceAt = (adaptation: TerrainAdaptation, groundLevelDelta = 1): BeardPiec
 
 const context = new SampleContext();
 
-const densityAt = (pieces: readonly BeardPiece[], x: number, y: number, z: number): number =>
-    createBeardifier(pieces)?.(context, x, y, z) ?? 0;
+const densityAt = (
+    pieces: readonly BeardPiece[],
+    x: number,
+    y: number,
+    z: number,
+    junctions: readonly BeardJunction[] = []
+): number => createBeardifier(pieces, junctions)?.(context, x, y, z) ?? 0;
 
 describe('createBeardifier', () => {
     it('answers nothing when no structure reaches the chunk', () => {
         expect(createBeardifier([])).toBeUndefined();
+    });
+
+    it('adds each Java junction at 0.4 of a piece contribution', () => {
+        const junction = { sourceX: 5, sourceGroundY: 64, sourceZ: 5 };
+        const equivalentPiece: BeardPiece = {
+            box: { minX: 5, minY: 63, minZ: 5, maxX: 5, maxY: 63, maxZ: 5 },
+            groundLevelDelta: 1,
+            adaptation: 'beard_thin'
+        };
+
+        const junctionValue = densityAt([], 5, 64, 5, [junction]);
+        const pieceValue = densityAt([equivalentPiece], 5, 64, 5);
+
+        expect(junctionValue).toBeCloseTo(pieceValue * 0.5, 15);
+        expect(densityAt([], 5 + BEARD_RADIUS + 1, 64, 5, [junction])).toBe(0);
+    });
+
+    it('sums all pieces before junctions and keeps each input order', () => {
+        const pieces = [pieceAt('beard_thin'), pieceAt('beard_box')];
+        const junctions = [
+            { sourceX: 6, sourceGroundY: 64, sourceZ: 4 },
+            { sourceX: 1, sourceGroundY: 63, sourceZ: 8 }
+        ];
+        const x = 5;
+        const y = 64;
+        const z = 5;
+        const piecesThenJunctions =
+            densityAt(pieces, x, y, z) +
+            densityAt([], x, y, z, [junctions[0]!]) +
+            densityAt([], x, y, z, [junctions[1]!]);
+
+        expect(densityAt(pieces, x, y, z, junctions)).toBe(piecesThenJunctions);
     });
 
     it('fills under a bearded piece and opens the space above it', () => {

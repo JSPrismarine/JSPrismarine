@@ -11,7 +11,7 @@
  * A {@link StructurePiece} is the join: it is built from a level and it writes into a writer.
  */
 import type { BlockEntityRequest, BlockState, HeightmapType } from '@jsprismarine/features';
-import type { BedrockBlockState, BoundingBox, RandomSource } from '@jsprismarine/structures';
+import type { BedrockBlockState, BoundingBox, JigsawJunction, RandomSource } from '@jsprismarine/structures';
 
 /** What laying a structure out needs to know about the world, before any chunk exists. */
 export interface StructureLevel {
@@ -84,6 +84,8 @@ export interface StructurePiece {
      * `terrain_matching` one is already following the ground it stands on.
      */
     readonly ignoresTerrainAdaptation?: boolean;
+    /** The source positions Java's beardifier reads from this jigsaw piece's junctions. */
+    readonly junctions?: readonly JigsawJunction[];
     /**
      * Writes the piece.
      *

@@ -87,6 +87,7 @@ export {
     type BoundingBox,
     type Direction,
     type JigsawAssembly,
+    type JigsawJunction,
     type JigsawBlockInfo,
     type JigsawConfig,
     type JigsawSources,

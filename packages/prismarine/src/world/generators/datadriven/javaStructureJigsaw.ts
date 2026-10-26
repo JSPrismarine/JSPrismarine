@@ -92,11 +92,13 @@ export const buildJigsawStructure: StructureBuilder = (context): StructureLayout
  * and a feature element is not placed here: it names a `placed_feature`, which the decoration
  * pass runs rather than the structure.
  */
-const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): StructurePiece[] =>
-    membersOf(placed.element).flatMap((element) => {
+const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): StructurePiece[] => {
+    let junctionsAttached = false;
+    return membersOf(placed.element).flatMap((element) => {
         const location = element.location;
         if (location === undefined) return [];
 
+        const carriesJunctions = !junctionsAttached && placed.junctions !== undefined;
         const piece = new TemplatePiece({
             store: context.templates,
             template: location,
@@ -104,7 +106,8 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
             placement: { rotation: placed.rotation },
             // Java's `StructurePoolElement.getGroundLevelDelta` answers 1 for every element
             // type the vanilla pools use, and only a rigid element is bearded.
-            groundLevelDelta: GROUND_LEVEL_DELTA,
+            groundLevelDelta: placed.groundLevelDelta ?? GROUND_LEVEL_DELTA,
+            ...(carriesJunctions ? { junctions: placed.junctions } : {}),
             ignoresTerrainAdaptation: element.projection !== 'rigid',
             // Java places a legacy element through `BlockIgnoreProcessor.STRUCTURE_AND_AIR`,
             // so the air inside a village house leaves the ground under it alone instead of
@@ -115,8 +118,11 @@ const piecesOf = (placed: PlacedPiece, context: StructureBuildContext): Structur
                 : { processors: element.processors satisfies ProcessorsReference })
         });
 
-        return piece.isPresent ? [piece] : [];
+        if (!piece.isPresent) return [];
+        junctionsAttached ||= carriesJunctions;
+        return [piece];
     });
+};
 
 /** A list element's members in order, or the element itself for every other type. */
 const membersOf = (element: PoolElement): readonly PoolElement[] =>

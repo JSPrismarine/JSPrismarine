@@ -10,10 +10,9 @@
  * 2 `bury`, one `beard_box` and one `encapsulate`.
  *
  * Java also beards the jigsaw junctions, the points where two village pieces meet, at 0.4 of a
- * piece's weight. The assembler does not record them, so a village street flattens its own
- * footprint and not the seam between two of them.
+ * piece's weight.
  */
-import type { BoundingBox } from '@jsprismarine/structures';
+import type { BoundingBox, JigsawJunction } from '@jsprismarine/structures';
 import type { DensitySampler } from '@jsprismarine/worldgen';
 
 /** The four `terrain_adaptation` values Java registers, plus the `none` every other structure has. */
@@ -26,6 +25,9 @@ export interface BeardPiece {
     readonly groundLevelDelta: number;
     readonly adaptation: TerrainAdaptation;
 }
+
+/** A jigsaw junction Java includes as a smaller beard contribution. */
+export type BeardJunction = JigsawJunction;
 
 /** How far from a piece the adaptation reaches. */
 export const BEARD_RADIUS = 12;
@@ -121,53 +123,82 @@ const BUCKET_SIZE = 1 << BUCKET_SHIFT;
  * @param pieces - Every piece whose box comes within {@link BEARD_RADIUS} of the chunk. Pieces
  *   further away contribute nothing, so filtering before building this is what keeps the per
  *   block cost proportional to what is actually nearby.
+ * @param junctions - Junction source positions in Java's structure-piece and connection order.
  * @returns The sampler to install as `SampleContext.beardifier`, or undefined when no structure
  *   reaches the chunk, which is the common case and the one worth not paying for.
  */
-export const createBeardifier = (pieces: readonly BeardPiece[]): DensitySampler | undefined => {
-    if (pieces.length === 0) return undefined;
+export const createBeardifier = (
+    pieces: readonly BeardPiece[],
+    junctions: readonly BeardJunction[] = []
+): DensitySampler | undefined => {
+    if (pieces.length === 0 && junctions.length === 0) return undefined;
 
-    const index = indexByColumn(pieces);
-    const { minX, minZ, bucketsZ, starts, members } = index;
+    const pieceIndex = pieces.length === 0 ? undefined : indexByColumn(pieces.map((piece) => piece.box));
+    const junctionIndex =
+        junctions.length === 0
+            ? undefined
+            : indexByColumn(
+                  junctions.map((junction) => ({
+                      minX: junction.sourceX,
+                      maxX: junction.sourceX,
+                      minZ: junction.sourceZ,
+                      maxZ: junction.sourceZ
+                  }))
+              );
 
     return (_context, x, y, z) => {
-        const bucketX = (x - minX) >> BUCKET_SHIFT;
-        const bucketZ = (z - minZ) >> BUCKET_SHIFT;
-        if (bucketX < 0 || bucketX >= index.bucketsX || bucketZ < 0 || bucketZ >= bucketsZ) return 0;
-
-        const bucket = bucketX * bucketsZ + bucketZ;
-        const end = starts[bucket + 1] ?? 0;
         let density = 0;
 
-        for (let slot = starts[bucket] ?? 0; slot < end; slot++) {
-            const piece = pieces[members[slot] ?? 0];
-            if (piece === undefined) continue;
+        if (pieceIndex !== undefined) {
+            const bucket = bucketAt(pieceIndex, x, z);
+            if (bucket !== undefined) {
+                const end = pieceIndex.starts[bucket + 1] ?? 0;
+                for (let slot = pieceIndex.starts[bucket] ?? 0; slot < end; slot++) {
+                    const piece = pieces[pieceIndex.members[slot] ?? 0];
+                    if (piece === undefined) continue;
 
-            const box = piece.box;
-            const dx = Math.max(0, Math.max(box.minX - x, x - box.maxX));
-            const dz = Math.max(0, Math.max(box.minZ - z, z - box.maxZ));
-            const aboveGround = y - (box.minY + piece.groundLevelDelta);
+                    const box = piece.box;
+                    const dx = Math.max(0, Math.max(box.minX - x, x - box.maxX));
+                    const dz = Math.max(0, Math.max(box.minZ - z, z - box.maxZ));
+                    const aboveGround = y - (box.minY + piece.groundLevelDelta);
 
-            switch (piece.adaptation) {
-                case 'none':
-                    break;
-                case 'bury':
-                    density += buryContribution(dx, aboveGround, dz);
-                    break;
-                case 'beard_thin':
-                    density += beardContribution(dx, aboveGround, dz) * 0.8;
-                    break;
-                case 'beard_box':
-                    density += beardContribution(dx, Math.max(0, Math.max(box.minY - y, y - box.maxY)), dz) * 0.8;
-                    break;
-                case 'encapsulate':
+                    switch (piece.adaptation) {
+                        case 'none':
+                            break;
+                        case 'bury':
+                            density += buryContribution(dx, aboveGround, dz);
+                            break;
+                        case 'beard_thin':
+                            density += beardContribution(dx, aboveGround, dz) * 0.8;
+                            break;
+                        case 'beard_box':
+                            density +=
+                                beardContribution(dx, Math.max(0, Math.max(box.minY - y, y - box.maxY)), dz) * 0.8;
+                            break;
+                        case 'encapsulate':
+                            density +=
+                                buryContribution(
+                                    dx / 2,
+                                    Math.max(0, Math.max(box.minY + 1 - y, y - box.maxY + 1)) / 2,
+                                    dz / 2
+                                ) * 0.8;
+                            break;
+                    }
+                }
+            }
+        }
+
+        if (junctionIndex !== undefined) {
+            const bucket = bucketAt(junctionIndex, x, z);
+            if (bucket !== undefined) {
+                const end = junctionIndex.starts[bucket + 1] ?? 0;
+                for (let slot = junctionIndex.starts[bucket] ?? 0; slot < end; slot++) {
+                    const junction = junctions[junctionIndex.members[slot] ?? 0];
+                    if (junction === undefined) continue;
+
                     density +=
-                        buryContribution(
-                            dx / 2,
-                            Math.max(0, Math.max(box.minY + 1 - y, y - box.maxY + 1)) / 2,
-                            dz / 2
-                        ) * 0.8;
-                    break;
+                        beardContribution(x - junction.sourceX, y - junction.sourceGroundY, z - junction.sourceZ) * 0.4;
+                }
             }
         }
 
@@ -189,23 +220,39 @@ interface BeardColumnIndex {
     readonly members: Int32Array;
 }
 
+/** The horizontal bounds used to put a piece or point into nearby column buckets. */
+interface ColumnBounds {
+    readonly minX: number;
+    readonly maxX: number;
+    readonly minZ: number;
+    readonly maxZ: number;
+}
+
+/** Returns the bucket that contains a sample, or undefined when it lies outside the index. */
+const bucketAt = (index: BeardColumnIndex, x: number, z: number): number | undefined => {
+    const bucketX = (x - index.minX) >> BUCKET_SHIFT;
+    const bucketZ = (z - index.minZ) >> BUCKET_SHIFT;
+    if (bucketX < 0 || bucketX >= index.bucketsX || bucketZ < 0 || bucketZ >= index.bucketsZ) return undefined;
+    return bucketX * index.bucketsZ + bucketZ;
+};
+
 /**
- * Buckets the pieces by the columns they reach.
+ * Buckets piece bounds or junction points by the columns their kernels reach.
  *
- * A piece's reach is its box grown by {@link BEARD_RADIUS} horizontally, which bounds every
- * adaptation: the beard kernel is zero outside that cube, and both `bury` and `encapsulate`
- * fall to zero at a shorter distance than it.
+ * A piece's reach is its box grown by {@link BEARD_RADIUS} horizontally; a junction's reach is
+ * the same radius around its source point. The beard kernel is zero outside that cube, and both
+ * `bury` and `encapsulate` fall to zero at a shorter distance than it.
  */
-const indexByColumn = (pieces: readonly BeardPiece[]): BeardColumnIndex => {
+const indexByColumn = (bounds: readonly ColumnBounds[]): BeardColumnIndex => {
     let minX = Number.POSITIVE_INFINITY;
     let maxX = Number.NEGATIVE_INFINITY;
     let minZ = Number.POSITIVE_INFINITY;
     let maxZ = Number.NEGATIVE_INFINITY;
-    for (const piece of pieces) {
-        minX = Math.min(minX, piece.box.minX - BEARD_RADIUS);
-        maxX = Math.max(maxX, piece.box.maxX + BEARD_RADIUS);
-        minZ = Math.min(minZ, piece.box.minZ - BEARD_RADIUS);
-        maxZ = Math.max(maxZ, piece.box.maxZ + BEARD_RADIUS);
+    for (const bound of bounds) {
+        minX = Math.min(minX, bound.minX - BEARD_RADIUS);
+        maxX = Math.max(maxX, bound.maxX + BEARD_RADIUS);
+        minZ = Math.min(minZ, bound.minZ - BEARD_RADIUS);
+        maxZ = Math.max(maxZ, bound.maxZ + BEARD_RADIUS);
     }
 
     const originX = Math.floor(minX / BUCKET_SIZE) * BUCKET_SIZE;
@@ -214,15 +261,15 @@ const indexByColumn = (pieces: readonly BeardPiece[]): BeardColumnIndex => {
     const bucketsZ = ((maxZ - originZ) >> BUCKET_SHIFT) + 1;
 
     const starts = new Int32Array(bucketsX * bucketsZ + 1);
-    const span = (piece: BeardPiece): readonly [number, number, number, number] => [
-        (piece.box.minX - BEARD_RADIUS - originX) >> BUCKET_SHIFT,
-        (piece.box.maxX + BEARD_RADIUS - originX) >> BUCKET_SHIFT,
-        (piece.box.minZ - BEARD_RADIUS - originZ) >> BUCKET_SHIFT,
-        (piece.box.maxZ + BEARD_RADIUS - originZ) >> BUCKET_SHIFT
+    const span = (bound: ColumnBounds): readonly [number, number, number, number] => [
+        (bound.minX - BEARD_RADIUS - originX) >> BUCKET_SHIFT,
+        (bound.maxX + BEARD_RADIUS - originX) >> BUCKET_SHIFT,
+        (bound.minZ - BEARD_RADIUS - originZ) >> BUCKET_SHIFT,
+        (bound.maxZ + BEARD_RADIUS - originZ) >> BUCKET_SHIFT
     ];
 
-    for (const piece of pieces) {
-        const [firstX, lastX, firstZ, lastZ] = span(piece);
+    for (const bound of bounds) {
+        const [firstX, lastX, firstZ, lastZ] = span(bound);
         for (let bucketX = firstX; bucketX <= lastX; bucketX++) {
             for (let bucketZ = firstZ; bucketZ <= lastZ; bucketZ++) {
                 const next = bucketX * bucketsZ + bucketZ + 1;
@@ -236,8 +283,8 @@ const indexByColumn = (pieces: readonly BeardPiece[]): BeardColumnIndex => {
 
     const cursor = Int32Array.from(starts.subarray(0, starts.length - 1));
     const members = new Int32Array(starts[starts.length - 1] ?? 0);
-    for (const [order, piece] of pieces.entries()) {
-        const [firstX, lastX, firstZ, lastZ] = span(piece);
+    for (const [order, bound] of bounds.entries()) {
+        const [firstX, lastX, firstZ, lastZ] = span(bound);
         for (let bucketX = firstX; bucketX <= lastX; bucketX++) {
             for (let bucketZ = firstZ; bucketZ <= lastZ; bucketZ++) {
                 const bucket = bucketX * bucketsZ + bucketZ;
