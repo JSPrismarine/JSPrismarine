@@ -29,6 +29,7 @@ The first nine notes, written 2026-10-24, asked how a Bedrock server becomes dat
 
 ## Method and prior art
 
+- [packet-codec-enforcement.md](packet-codec-enforcement.md): existing one-way packet codecs, enforcement options, and a fingerprinted legacy baseline.
 - [prior-art-data-driven-servers.md](prior-art-data-driven-servers.md): how seventeen servers, engines and data projects model blocks, items and entities as data plus code, load packs and verify parity, with a pattern recommendation and reusable pieces.
 - [engine-behavior-inventory.md](engine-behavior-inventory.md): the behaviors a server must implement for 1463 blocks, 1623 items, 129 entities and the world, grouped into families with sizing.
 - [extraction-and-parity-verification.md](extraction-and-parity-verification.md): what the Script API and Endstone DevTools can dump, the extended packet capture, reference worlds, the parity test suite and caching.

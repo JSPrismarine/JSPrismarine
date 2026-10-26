@@ -54,6 +54,16 @@ Use American English spelling in prose and documentation. Do not use British spe
   `as const` is fine. Reserve other `as` casts for boundaries the compiler cannot see, such as
   parsed JSON or untyped third-party APIs, and comment why. In tests, build typed doubles instead
   of reaching for `as any`.
+- Every packet with a payload must support both wire directions. Implement serialization and
+  deserialization together with `encodePayload`/`decodePayload` for Prismarine, the matching
+  payload or top-level encoder and decoder for RakNet, and `serializePayload`/`deserializePayload`
+  for `NetworkPacket` classes. RakNet frame codecs use `toBinary`/`fromBinary`. Payload-free
+  packets may inherit the base class's empty payload methods. `pnpm run lint:packets` checks
+  Prismarine and RakNet packets; `NetworkPacket`'s abstract methods enforce the same contract at
+  typecheck time. A fingerprinted legacy entry permits an existing one-way packet only while its
+  source file stays unchanged. When editing one, implement both directions before updating the
+  baseline with `node scripts/check-packet-codecs.mts --update`. Add round-trip coverage when
+  adding a packet or changing its wire layout.
 - Choose the smallest design that meets the request. Trace affected callers, package dependents, and
   failure paths before changing shared behavior.
 

@@ -35,6 +35,7 @@
         "release:unstable": "changeset publish --no-git-tag --tag unstable",
         "changeset": "changeset",
         "lint:custom": "node scripts/check-american-filenames.mts",
+        "lint:packets": "node scripts/check-packet-codecs.mts",
         "lint:biome": "biome check --reporter=concise . || biome check . ",
         "format:biome": "biome lint --write .",
         "package:scriptc": "scriptc build ./packages/server/src/Server.ts --npm-static auto --out ./dist/prismarine-scriptc",

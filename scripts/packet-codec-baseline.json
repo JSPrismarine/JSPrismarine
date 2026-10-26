@@ -1,0 +1,18 @@
+{
+    "packages/prismarine/src/network/packet/AddActorPacket.ts": "b27cfccd2e6db82a1be9c8ece6db736cc06478af221afc1108e9d8c7dfd2d192",
+    "packages/prismarine/src/network/packet/AddItemActorPacket.ts": "103de6a98d6c22f97e8498a99d7062d74692e328976dee093a6bede3496720ea",
+    "packages/prismarine/src/network/packet/AddPlayerPacket.ts": "0a228d48de78b653379f8dbc7e6e669c7b44a3caca7de2b7bf456802e0e8575d",
+    "packages/prismarine/src/network/packet/AvailableCommandsPacket.ts": "4d74334050134b74b0b47622b4c9f599e9642906f5aeaf0d042c884cea29e430",
+    "packages/prismarine/src/network/packet/CraftingDataPacket.ts": "817f844f088eefab9e9d0d3610c63cd27c5210cf5e05d2965a7daef2aa2071fd",
+    "packages/prismarine/src/network/packet/InventoryContentPacket.ts": "026f6a22839c593d881cd35400594a624a517dc59abbd11b26e49291d0a4788b",
+    "packages/prismarine/src/network/packet/InventorySlotPacket.ts": "a5a71e02efd1c7892c8b275bbbd95b0b8f973202b8e6309aa256368a19718105",
+    "packages/prismarine/src/network/packet/ItemRegistryPacket.ts": "d58934f78d513f9413391a42b34b845ab4044a5c84a5d2256cacb9939760fd73",
+    "packages/prismarine/src/network/packet/ItemStackRequestPacket.ts": "b29a7feb23f934c3912ee109d4613eb127e997c3e89e58ffdc078f71e2bd2d60",
+    "packages/prismarine/src/network/packet/ItemStackResponsePacket.ts": "8e826e72a03d604fc2cafbbbc9461c30df4b6f5f7c98243faf3497a6fab22152",
+    "packages/prismarine/src/network/packet/LevelChunkPacket.ts": "ed600fd5c924ca923f5bced4a3100df0c85ae5753d841b401b6abdbe1daf5212",
+    "packages/prismarine/src/network/packet/NetworkChunkPublisherUpdatePacket.ts": "fc70a1a9e5bbb8dc620aa9d83a55a31cde928aaf61f87346975edf407bad41dd",
+    "packages/prismarine/src/network/packet/PlayerListPacket.ts": "ff1191296a84beb9a7e31af46cdc2f93cea30111377aeb751569ebf0e73e10de",
+    "packages/prismarine/src/network/packet/SetActorDataPacket.ts": "4b1c239569ec18cc47902e70c626ed297670f4791c2126f53818d676189df937",
+    "packages/prismarine/src/network/packet/StartGamePacket.ts": "b7f3b89f4c02aedb62e2089b39285d9f172cea42374c04cf8de2aedf350bb720",
+    "packages/prismarine/src/network/packet/UpdateSoftEnumPacket.ts": "f4271f3aabc721b2dad2032e6b90bda110af9ee2ed433ad2ee79c0fdebc280a0"
+}
