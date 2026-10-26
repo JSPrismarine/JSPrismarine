@@ -74,7 +74,7 @@ export class Watcher {
     public constructor(private readonly options: WatcherOptions) {
         this.timers = options.timers ?? globalThis;
         this.watchDirectory = options.watch ?? watch;
-        this.debounceMs = options.debounceMs ?? 150;
+        this.debounceMs = options.debounceMs ?? 250;
         this.generate = options.generate ?? (() => runBedrockDataGenerator(this.bedrockDataDir));
     }
 
