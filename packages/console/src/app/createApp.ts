@@ -416,6 +416,19 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'log.pageDown':
                 view.pageDown();
                 return;
+            case 'log.copySelection': {
+                const selectedText = renderer.getSelection()?.getSelectedText() ?? '';
+                if (selectedText.length === 0) {
+                    toasts.push({ tone: 'muted', text: 'select text to copy' });
+                    return;
+                }
+                if (!renderer.copyToClipboardOSC52(selectedText)) {
+                    toasts.push({ tone: 'muted', text: 'clipboard copy is unavailable in this terminal' });
+                    return;
+                }
+                toasts.push({ tone: 'muted', text: 'copied selection to clipboard' });
+                return;
+            }
             case 'log.top':
                 view.toTop();
                 return;

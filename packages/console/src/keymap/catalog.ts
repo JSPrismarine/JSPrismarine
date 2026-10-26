@@ -16,6 +16,8 @@ export interface KeyBinding {
     ctrl?: boolean;
     shift?: boolean;
     meta?: boolean;
+    /** OS Super key, such as Command on macOS. */
+    super?: boolean;
     /** The chord only fires while the input line is empty; otherwise it edits the line. */
     emptyLineOnly?: boolean;
 }
@@ -36,7 +38,7 @@ export interface CommandSpec {
 export type CommandCatalog = readonly CommandSpec[];
 
 const plain = (name: string): KeyBinding => ({ name });
-const ctrl = (name: string): KeyBinding => ({ name, ctrl: true });
+const superKey = (name: string): KeyBinding => ({ name, super: true });
 const ctrlShift = (name: string): KeyBinding => ({ name, ctrl: true, shift: true });
 const empty = (name: string, shift = false): KeyBinding => ({ name, shift, emptyLineOnly: true });
 
@@ -44,15 +46,21 @@ const empty = (name: string, shift = false): KeyBinding => ({ name, shift, empty
  * Every console command with its default bindings from the UX design's shortcut table. This is
  * the only key table: the app resolves a key here before the input bar sees it.
  *
- * Enter, history, Tab, and Ctrl+C are line editing and are decoded by the input bar, so they are
- * not listed. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line reach it
- * through the input bar. `server.restart` needs a terminal that speaks the kitty keyboard
+ * Enter, history, Tab, and bare Ctrl+C are line editing and are decoded by the input bar, so they
+ * are not listed. `server.stop` has no chord of its own; two Ctrl+C presses on an empty line reach
+ * it through the input bar. `server.restart` needs a terminal that speaks the kitty keyboard
  * protocol: a legacy terminal sends the same byte for Ctrl+Shift+R as for Ctrl+R.
  */
 export const COMMAND_CATALOG = [
     { id: 'input.historySearch', title: 'Search history', group: 'Input', bindings: [] },
     { id: 'log.pageUp', title: 'Page up', group: 'Log', bindings: [plain('pageup')] },
     { id: 'log.pageDown', title: 'Page down', group: 'Log', bindings: [plain('pagedown')] },
+    {
+        id: 'log.copySelection',
+        title: 'Copy selection',
+        group: 'Log',
+        bindings: [ctrlShift('c'), superKey('c')]
+    },
     { id: 'log.top', title: 'Jump to top', group: 'Log', bindings: [empty('home')] },
     { id: 'log.bottom', title: 'Jump to bottom', group: 'Log', bindings: [empty('end')] },
     { id: 'log.search', title: 'Search', group: 'Log', bindings: [] },
@@ -79,6 +87,8 @@ export interface CommandKey {
     ctrl: boolean;
     shift: boolean;
     meta: boolean;
+    /** OS Super key, such as Command on macOS. */
+    super?: boolean;
 }
 
 /** Input bar state that gates the empty-line bindings. */
@@ -102,10 +112,11 @@ export function formatBinding(binding: KeyBinding): string {
     const isLetter = /^[a-z]$/.test(binding.name);
     const base =
         KEY_LABELS[binding.name] ??
-        (isLetter && (binding.ctrl || binding.shift) ? binding.name.toUpperCase() : binding.name);
+        (isLetter && (binding.ctrl || binding.shift || binding.super) ? binding.name.toUpperCase() : binding.name);
     const parts: string[] = [];
     if (binding.ctrl) parts.push('Ctrl');
     if (binding.meta) parts.push('Alt');
+    if (binding.super) parts.push('Super');
     if (binding.shift && (!isLetter || binding.ctrl)) parts.push('Shift');
     parts.push(base);
     return parts.join('+');
@@ -115,7 +126,8 @@ const matches = (binding: KeyBinding, key: CommandKey): boolean =>
     binding.name === key.name &&
     (binding.ctrl ?? false) === key.ctrl &&
     (binding.shift ?? false) === key.shift &&
-    (binding.meta ?? false) === key.meta;
+    (binding.meta ?? false) === key.meta &&
+    (binding.super ?? false) === (key.super ?? false);
 
 /**
  * Returns the command the key runs, or `undefined` when no binding matches. Bindings marked
