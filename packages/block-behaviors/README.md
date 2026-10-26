@@ -27,7 +27,7 @@ one. It is a `BlockWorld`, described below.
 
 | Group | Methods |
 | --- | --- |
-| Blocks | `getBlock`, `setBlock`, `propertiesOf` |
+| Blocks | `getBlock`, `setBlock`, `propertiesOf`, `lightDampeningOf` |
 | Items and entities | `dropItem`, `destroyBlock`, `spawnEntity`, `removeEntity`, `entitiesAt` |
 | Effects | `playSound`, `spawnParticle` |
 | Scheduling | `scheduleTick` |
@@ -35,7 +35,7 @@ one. It is a `BlockWorld`, described below.
 | Updates | `notifyNeighbors`, `redstonePower`, `lightLevel` |
 | Chance | `random` |
 
-Three of those are there for reasons worth stating. `propertiesOf` returns another block's
+Four of those are there for reasons worth stating. `propertiesOf` returns another block's
 `jsprismarine:block_properties`, which is how the piston and the falling blocks read `push_reaction`
 instead of carrying a list. `random` is on the interface rather than inside the families so a test
 drives a probabilistic rule to either outcome without patching a global. `destroyBlock` is how a
@@ -44,6 +44,10 @@ Java's loot table for it, where this package would otherwise have to guess that 
 of itself. It is optional, and a host that leaves it out gets that guess, which is what the test
 voxel world does. `popBlock` is the one rule that uses it, and the piston's popped block, a block
 that lost its support and a block a falling anvil cleared out of the way all go through it.
+
+`lightDampeningOf` can read a block state's vanilla `minecraft:light_dampening` value, so rules can
+check how much light a cover blocks without treating every support block as opaque. When a host
+cannot report dampening, the shared rule treats it as unknown and does not convert the ground block.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never
@@ -104,8 +108,8 @@ structurally.
 
 ## The shared rules
 
-Twelve mechanics cut across families, so they live in `src/rules/` and the families compose them.
-Copper weathering is the clearest case: the identifier rules send a copper door to
+Reusable decisions live in `src/rules/` and the families compose them. Copper weathering is the
+clearest case: identifier rules send a copper door to
 `jsprismarine:door` and a copper slab to `jsprismarine:slab`, so six families run the same random
 tick.
 
@@ -121,6 +125,7 @@ tick.
 | `fluid` | Spread depth and rate, and the stone, cobblestone and obsidian reactions |
 | `container` | Slot counts and the comparator's fill-level formula |
 | `growth` | Crop chance from farmland moisture, and the leaf distance search |
+| `light` | Whether a block state dampens more light than a supplied cutoff |
 | `heldItem` | What the item in the hand is: an axe, shears, honeycomb, an igniter, a bucket, a bottle, silk touch |
 | `placement` | What the clicked face and the click position say: a pillar's axis, a slab's half |
 
@@ -157,7 +162,7 @@ fails when a name in `BLOCK_BEHAVIOR_NAMES` has no behavior, so the table cannot
 | `utility` | 47 | onPlace, onBreak, onNeighborChanged, onTick, onStepOn, onEntityFallOn | Counts a beacon pyramid, falls when it is an anvil, runs the spawner timer, and hurts an entity standing on magma. The screens the workstations open belong to the item runtime. |
 | `flora` | 46 | onBreak, onNeighborChanged, onStepOn | Pops without soil below, keeps the two halves of a tall plant together, and marks an entity that walks into a wither rose. The effect itself is the entity runtime. |
 | `sign` | 39 | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Keeps the sign text in a block entity, seals it against edits when honeycomb waxes it, and pops a wall sign whose backing block goes. |
-| `soil` | 39 | onPlace, onBreak, onNeighborChanged, onRandomTick, onTick, onEntityFallOn | Falls when it is sand, gravel or a suspicious block, keeps farmland moisture from nearby water, turns farmland back to dirt when something lands on it, and spreads grass onto dirt. |
+| `soil` | 39 | onPlace, onBreak, onNeighborChanged, onRandomTick, onTick, onEntityFallOn | Falls when it is sand, gravel or a suspicious block, keeps farmland moisture from nearby water, turns farmland back to dirt when something lands on it, spreads grass onto dirt, and turns grass or mycelium to dirt under a dark cover that blocks light. |
 | `glass` | 35 | onBreak | Drops itself to a silk touch tool and shatters into nothing otherwise. |
 | `candle` | 34 | onPlace, onBreak, onNeighborChanged, onPlayerInteract | Stacks up to four candles in one block, lights to flint and steel, snuffs to a bare hand, and goes out when water reaches it. |
 | `wall` | 32 | onPlace, onBreak, onNeighborChanged | Recomputes the four wall_connection_type states and wall_post_bit from its neighbors and what sits on it. |

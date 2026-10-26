@@ -203,6 +203,9 @@ export const friction = define('minecraft:friction', decimal(0, 0.9));
 /** `minecraft:light_emission`, 0 to 15. */
 export const lightEmission = define('minecraft:light_emission', integer(0, 15));
 
+/** The light dampening of a block that omits `minecraft:light_dampening`. */
+export const DEFAULT_LIGHT_DAMPENING = 15;
+
 /** `minecraft:light_dampening`, how much light the block swallows, 0 to 15. */
 export const lightDampening = define('minecraft:light_dampening', integer(0, 15));
 

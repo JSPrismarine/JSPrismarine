@@ -4,6 +4,7 @@ export * from './fluid';
 export * from './gravity';
 export * from './growth';
 export * from './heldItem';
+export * from './light';
 export * from './piston';
 export * from './placement';
 export * from './redstone';

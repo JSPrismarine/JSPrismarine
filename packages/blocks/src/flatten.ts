@@ -5,6 +5,7 @@ import {
     blockProperties,
     destructibleByExplosion,
     destructibleByMining,
+    DEFAULT_LIGHT_DAMPENING,
     friction as frictionComponent,
     lightDampening,
     lightEmission
@@ -46,7 +47,7 @@ const COLUMNS = {
     lightFilter: {
         kind: 'u8',
         read: (state: BlockState) => state.content.params(lightDampening),
-        default: 15
+        default: DEFAULT_LIGHT_DAMPENING
     },
     blastResistance: {
         kind: 'f32',

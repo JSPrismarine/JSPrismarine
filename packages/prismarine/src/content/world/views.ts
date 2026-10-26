@@ -10,7 +10,7 @@
  */
 import { DEFAULT_BLOCK_PROPERTIES } from '@jsprismarine/block-behaviors';
 import type { BlockWorld, WorldActions as BlockWorldActions, WorldEntity } from '@jsprismarine/block-behaviors';
-import { blockProperties } from '@jsprismarine/blocks';
+import { DEFAULT_LIGHT_DAMPENING, blockProperties } from '@jsprismarine/blocks';
 import type { HookBlock } from '@jsprismarine/blocks';
 import { AIR } from '@jsprismarine/engine-systems';
 import type { BlockRef, Dimension, WorldAccess } from '@jsprismarine/engine-systems';
@@ -108,6 +108,12 @@ const runtimeIdOf = (content: ServerContent, block: ContentBlock): number | unde
 const propertiesOf = (content: ServerContent, identifier: string) =>
     content.blocks.types.get(identifier)?.state().content.params(blockProperties) ?? DEFAULT_BLOCK_PROPERTIES;
 
+/** The `minecraft:light_dampening` value for one block state. */
+const lightDampeningOf = (content: ServerContent, block: HookBlock): number => {
+    const runtimeId = runtimeIdOf(content, block);
+    return runtimeId === undefined ? DEFAULT_LIGHT_DAMPENING : content.blocks.table.lightFilter[runtimeId]!;
+};
+
 /** `WorldActions` as `@jsprismarine/block-behaviors` declares it, for one dimension. */
 const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): BlockWorldActions => {
     const dimension = adapter.level.dimension;
@@ -123,6 +129,7 @@ const blockActionsOf = (adapter: ServerWorldAdapter, content: ContentLookup): Bl
         getBlock: hookBlock,
         setBlock: (position, identifier, states = {}) => adapter.blocks.set(position, { identifier, states }, true),
         propertiesOf: (identifier) => propertiesOf(content(), identifier),
+        lightDampeningOf: (block) => lightDampeningOf(content(), block),
         dropItem: (position, drop) => adapter.entities.drop(position, drop),
         // Left out rather than made to throw when the adapter cannot destroy, because a
         // family that cannot reach the table still has its own drop to fall back on.

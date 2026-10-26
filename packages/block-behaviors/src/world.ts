@@ -117,6 +117,8 @@ export interface WorldActions {
     setBlock(position: BlockPosition, identifier: string, states?: BlockStates): void;
     /** The `jsprismarine:block_properties` of a block type, defaults included. */
     propertiesOf(identifier: string): BlockProperties;
+    /** The block state's vanilla `minecraft:light_dampening` value, when the host can report it. */
+    lightDampeningOf?(block: HookBlock): number;
     /** Drops an item stack as an entity at a position. */
     dropItem(position: BlockPosition, drop: ItemDrop): void;
     /**

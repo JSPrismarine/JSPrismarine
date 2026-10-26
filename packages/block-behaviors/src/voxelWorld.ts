@@ -9,6 +9,7 @@
  * either outcome without patching a global.
  */
 import type { BlockPosition, BlockStateValue, HookBlock } from '@jsprismarine/blocks';
+import { DEFAULT_LIGHT_DAMPENING } from '@jsprismarine/blocks';
 
 import { AIR } from './identifiers';
 import type {
@@ -88,6 +89,7 @@ export class VoxelDimension implements WorldActions {
     private readonly blockData = new Map<string, BlockEntityData>();
     private readonly power = new Map<string, number>();
     private readonly light = new Map<string, number>();
+    private readonly lightDampening = new Map<string, number>();
     private readonly properties = new Map<string, BlockProperties>();
     private readonly randoms: number[] = [];
     private seed = 1;
@@ -161,6 +163,11 @@ export class VoxelDimension implements WorldActions {
         this.light.set(keyOf(position), level);
     }
 
+    /** Sets the `minecraft:light_dampening` value a block type reports. */
+    public defineLightDampening(identifier: string, value: number): void {
+        this.lightDampening.set(identifier, value);
+    }
+
     /** Gives a block type the `jsprismarine:block_properties` the world reports for it. */
     public defineProperties(identifier: string, properties: Partial<BlockProperties>): void {
         this.properties.set(identifier, { ...DEFAULT_BLOCK_PROPERTIES, ...properties });
@@ -185,6 +192,11 @@ export class VoxelDimension implements WorldActions {
     /** The properties a test gave a block type, or the component defaults. */
     public propertiesOf(identifier: string): BlockProperties {
         return this.properties.get(identifier) ?? DEFAULT_BLOCK_PROPERTIES;
+    }
+
+    /** The light dampening a test gave a block type, or the vanilla default. */
+    public lightDampeningOf(block: HookBlock): number {
+        return this.lightDampening.get(block.identifier) ?? (block.identifier === AIR ? 0 : DEFAULT_LIGHT_DAMPENING);
     }
 
     /** Records a drop. */

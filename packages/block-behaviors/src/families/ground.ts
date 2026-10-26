@@ -10,6 +10,7 @@ import { offset, opposite } from '../geometry';
 import { AIR, isWater, WATER } from '../identifiers';
 import { fallOneStep, isFallingBlock, scheduleFall } from '../rules/gravity';
 import { hasSilkTouch } from '../rules/heldItem';
+import { dampensLightMoreThan } from '../rules/light';
 import { breakBlock, isSolidSupport, popWithoutSupport } from '../rules/support';
 import { bareName, hasState, setStates, sibling, stateNumber, stateString } from '../state';
 import type { WorldActions } from '../world';
@@ -78,7 +79,9 @@ export const soilFamily = defineFamily(
             }
 
             if (name !== 'grass_block' && name !== 'mycelium') return;
-            if (isSolidSupport(world, offset(event.block.position, 'up'))) {
+            const coverPosition = offset(event.block.position, 'up');
+            const cover = world.getBlock(coverPosition);
+            if (cover !== undefined && world.lightLevel(coverPosition) < 4 && dampensLightMoreThan(world, cover, 2)) {
                 world.setBlock(event.block.position, sibling(event.block.identifier, 'dirt'));
                 return;
             }
