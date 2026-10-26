@@ -1,4 +1,4 @@
-import { f32, floor, lerp3F, smoothstep } from '../math';
+import { f32, floor, smoothstep } from '../math';
 import type { RandomSource } from '../random/RandomSource';
 import { GradientNoise, wrap } from './GradientNoise';
 
@@ -71,18 +71,16 @@ export class PerlinNoise extends GradientNoise {
         const d101 = GradientNoise.gradDot(perms[(xy10 + 1) & 0xff] ?? 0, relativeX1, relativeY, relativeZ1);
         const d011 = GradientNoise.gradDot(perms[(xy01 + 1) & 0xff] ?? 0, relativeX, relativeY1, relativeZ1);
         const d111 = GradientNoise.gradDot(perms[(xy11 + 1) & 0xff] ?? 0, relativeX1, relativeY1, relativeZ1);
-        return lerp3F(
-            smoothstep(relativeX),
-            smoothstep(originalRelativeY),
-            smoothstep(relativeZ),
-            d000,
-            d100,
-            d010,
-            d110,
-            d001,
-            d101,
-            d011,
-            d111
-        );
+        // `lerp3F` spelled out. Its helper calls are not inlined on this hot path; these
+        // seven operations retain the same x-then-y-then-z order and f32 rounding as lerp3F.
+        const alphaX = smoothstep(relativeX);
+        const alphaY = smoothstep(originalRelativeY);
+        const p0 = f32(d000 + f32(alphaX * f32(d100 - d000)));
+        const p1 = f32(d010 + f32(alphaX * f32(d110 - d010)));
+        const q0 = f32(p0 + f32(alphaY * f32(p1 - p0)));
+        const p2 = f32(d001 + f32(alphaX * f32(d101 - d001)));
+        const p3 = f32(d011 + f32(alphaX * f32(d111 - d011)));
+        const q1 = f32(p2 + f32(alphaY * f32(p3 - p2)));
+        return f32(q0 + f32(smoothstep(relativeZ) * f32(q1 - q0)));
     }
 }
