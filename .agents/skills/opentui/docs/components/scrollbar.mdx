@@ -1,0 +1,90 @@
+---
+title: ScrollBar
+description: Control a scroll position with a standalone bar
+---
+
+# ScrollBar
+
+`ScrollBar` controls a scroll position with optional arrows, keyboard input, and a draggable thumb. Use [ScrollBox](/docs/components/scrollbox) when the component must also own and clip scrollable children.
+
+## Availability
+
+| Field           | Availability             |
+| --------------- | ------------------------ |
+| Package         | `@opentui/core`          |
+| Core renderable | `ScrollBarRenderable`    |
+| React           | Unavailable              |
+| Solid           | Unavailable              |
+| Status          | Built-in Core renderable |
+
+## Basic usage
+
+### Renderable API
+
+```typescript
+import { ScrollBarRenderable, createCliRenderer } from "@opentui/core"
+
+const renderer = await createCliRenderer()
+
+const scrollbar = new ScrollBarRenderable(renderer, {
+  id: "scrollbar",
+  orientation: "vertical",
+  height: 10,
+  showArrows: true,
+  trackOptions: {
+    backgroundColor: "#222222",
+    foregroundColor: "#888888",
+  },
+  onChange: (position) => {
+    console.log("Scroll position:", position)
+  },
+})
+
+// Connect the scrollbar to your content
+scrollbar.scrollSize = 200
+scrollbar.viewportSize = 20
+scrollbar.scrollPosition = 0
+
+renderer.root.add(scrollbar)
+scrollbar.focus()
+```
+
+```text terminal=scrollbar-arrows
+position: 0 / 180  ▲
+                   ▀
+
+
+
+
+
+
+
+viewport: 20 / 200 ▼
+```
+
+## Keyboard controls
+
+When focused, the scrollbar responds to:
+
+- `Up`/`Down` or `k`/`j` for vertical bars
+- `Left`/`Right` or `h`/`l` for horizontal bars
+- `PageUp`/`PageDown` to move by half the viewport
+- `Home`/`End` to jump to start/end
+
+## Properties
+
+| Property         | Type                           | Default | Description                            |
+| ---------------- | ------------------------------ | ------- | -------------------------------------- |
+| `orientation`    | `"vertical"` or `"horizontal"` | -       | Scrollbar direction                    |
+| `showArrows`     | `boolean`                      | `false` | Show arrow buttons                     |
+| `arrowOptions`   | `ArrowOptions`                 | -       | Styling for arrow buttons              |
+| `trackOptions`   | `Partial<SliderOptions>`       | -       | Styling for the track and thumb        |
+| `scrollSize`     | `number`                       | `0`     | Total scrollable size                  |
+| `viewportSize`   | `number`                       | `0`     | Visible size of the viewport           |
+| `scrollPosition` | `number`                       | `0`     | Current scroll position                |
+| `scrollStep`     | `number`                       | -       | Step size when `scrollBy(..., "step")` |
+| `onChange`       | `(position: number) => void`   | -       | Fired when scroll position changes     |
+
+## Related concepts
+
+Read [Layout](/docs/core-concepts/layout) for viewport dimensions. Read [Interaction, focus, and selection](/docs/core-concepts/interaction) for keyboard and pointer behavior. [Slider](/docs/components/slider) exposes the underlying continuous-value control without scroll semantics.

@@ -1,0 +1,176 @@
+---
+title: Colors
+description: Parse everyday colors and understand palette-relative color intent
+---
+
+# Colors
+
+Most color options accept `ColorInput`, which is `string | RGBA`. Use a string for ordinary component styling and `RGBA` for computed values.
+
+```typescript
+import { BoxRenderable, TextRenderable, createCliRenderer, parseColor } from "@opentui/core"
+
+const accent = parseColor("#22c55e")
+const renderer = await createCliRenderer()
+
+const content = new BoxRenderable(renderer, {
+  backgroundColor: "#101418",
+  borderColor: "gray",
+  border: true,
+})
+content.add(new TextRenderable(renderer, { content: "Ready", fg: accent }))
+renderer.root.add(content)
+```
+
+## Parse everyday colors
+
+`parseColor()` accepts an `RGBA` unchanged. String matching is case-insensitive.
+
+Hex strings can use `#RGB`, `#RGBA`, `#RRGGBB`, or `#RRGGBBAA`. Alpha is last and defaults to `255`.
+
+`"transparent"` produces `[0, 0, 0, 0]`.
+
+Besides `"transparent"`, `parseColor()` accepts only these color names:
+
+- `black`, `white`, `red`, `green`, `blue`, `yellow`, `cyan`, and `magenta`
+- `silver`, `gray`, `grey`, `maroon`, `olive`, `lime`, `aqua`, `teal`, `navy`, `fuchsia`, `purple`, and `orange`
+- `brightBlack`, `brightRed`, `brightGreen`, `brightBlue`, `brightYellow`, `brightCyan`, `brightMagenta`, and `brightWhite`
+
+An invalid string logs a warning and returns opaque magenta. `parseColor()` does not support arbitrary CSS color syntax.
+
+## Create `RGBA` values
+
+`RGBA` stores four 8-bit channels. The class exposes normalized channel getters from `0` to `1`.
+
+```typescript
+import { RGBA } from "@opentui/core"
+
+const fromBytes = RGBA.fromInts(34, 197, 94)
+const fromFloats = RGBA.fromValues(0.13, 0.77, 0.37, 0.5)
+const fromHex = RGBA.fromHex("#22c55e80")
+```
+
+`fromInts()` defaults alpha to `255`. It clamps each channel to `0..255` and rounds to the nearest integer.
+
+`fromValues()` defaults alpha to `1`. It clamps each channel to `0..1`, multiplies by `255`, and rounds.
+
+Both constructors convert a non-finite channel to `0`. Channel setters apply the same normalized float conversion as `fromValues()`.
+
+`RGBA.clone()` copies all channels and metadata. `equals()` compares the complete packed value, including color intent.
+
+## Update retained colors
+
+Built-in renderables copy a color when you assign it. Color getters return copies.
+Changes to an input `RGBA`, a getter result, or its `buffer` do not change what the native scene draws.
+This remains true when another property change causes a redraw.
+
+Assign the property again to send a new value:
+
+```typescript
+const accent = RGBA.fromHex("#22c55e")
+box.backgroundColor = accent
+accent.r = 1
+box.backgroundColor = accent
+```
+
+The second assignment copies the color again, even though it receives the same object.
+The same rule applies to retained text styles, selections, placeholders, and gutter colors.
+Buffer draw calls also copy the color at each call. You can reuse and change one `RGBA` between draw calls.
+
+## Use alpha
+
+An alpha value of zero is transparent. Intermediate alpha values blend during supported buffer-composition operations.
+
+```typescript
+const overlay = RGBA.fromHex("#22c55e")
+overlay.a = 0.5
+buffer.fillRect(x, y, width, height, overlay)
+```
+
+These tiles draw the same green over a checkerboard. Only alpha changes:
+
+```text terminal=color-alpha
+
+
+
+ 0.00   0.25   0.50   0.75   1.00
+```
+
+After a blend, the result is a literal RGB color. It no longer identifies a terminal default or indexed palette slot.
+
+See [FrameBuffer](/docs/components/frame-buffer) and the [Buffer API](/docs/reference/buffer-api) for direct alpha drawing.
+
+## Preserve terminal palette intent
+
+Every `RGBA` also carries one color intent:
+
+| Intent      | Constructor                                                      | Terminal meaning                                                            |
+| ----------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `"rgb"`     | `fromInts()`, `fromValues()`, or `fromHex()`                     | Emit or approximate the stored RGB value.                                   |
+| `"indexed"` | `fromIndex(index, snapshot?)`                                    | Use ANSI palette slot `0..255`.                                             |
+| `"default"` | `defaultForeground(snapshot?)` or `defaultBackground(snapshot?)` | Use the terminal's default foreground or background for the target channel. |
+
+```typescript
+import { RGBA } from "@opentui/core"
+
+const warning = RGBA.fromIndex(3)
+const foreground = RGBA.defaultForeground()
+const background = RGBA.defaultBackground("#101418")
+
+console.log(warning.intent, warning.slot)
+console.log(foreground.intent, background.intent)
+```
+
+`fromIndex()` requires an integer from `0` through `255` and throws `RangeError` otherwise. Its default RGB snapshot comes from the built-in ANSI 256-color table.
+
+The fallback palette contains 16 terminal colors, a 216-color RGB cube, and 24 grays. Within each cube slice, blue increases to the right and green increases downward:
+
+```text terminal=color-palette
+0-15    terminal colors
+████████████████████████████████
+
+16-231  RGB cube
+R=0          R=95         R=135
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+
+R=175        R=215        R=255
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+████████████ ████████████ ████████████
+
+232-255 grayscale
+████████████████████████
+```
+
+Default foreground uses `[255, 255, 255]` as its snapshot. Default background uses `[0, 0, 0]`.
+
+An optional snapshot supplies RGBA data for blending and early frames. It does not change the indexed or default intent.
+
+Detected palette changes can alter terminal output for indexed and default intent. Read [Terminal capabilities](/docs/reference/terminal-capabilities) for detection timing.
+
+Cursor color controls use the RGB snapshot. Passing default foreground intent as a cursor color does not request
+a terminal cursor-color reset.
+
+## Understand packed transport
+
+`RGBA.buffer` is a `Uint16Array(4)`. The low byte of each element stores one RGBA channel.
+
+The four high bytes store 32 bits of metadata. Indexed intent includes its palette slot in that metadata.
+
+Core sends this packed form to native code. Native code compares all of it when it compares frame cells. Two colors with equal RGBA channels can still differ by intent.
+
+Use this representation only for low-level transport. Everyday component code should use `ColorInput`, `parseColor()`, and the constructors.
+
+See [Text and terminal cells](/docs/core-concepts/text-and-cells) for the attributes and cell data that travel with colors.
+
+## Next
+
+See [Text](/docs/components/text), [Box](/docs/components/box), and [FrameBuffer](/docs/components/frame-buffer) for color options. See [`FrameBuffer` color matrices](/docs/reference/color-matrix) for post-processing.

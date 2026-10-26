@@ -1,0 +1,213 @@
+---
+title: Select
+description: Choose one option from a vertical list
+---
+
+# Select
+
+`Select` shows discrete choices in a vertical list. Use [TabSelect](/docs/components/tab-select) for a horizontal set of peer views or [Slider](/docs/components/slider) for a continuous value.
+
+Focus the select to enable keyboard input.
+
+## Availability
+
+| Field           | Availability           |
+| --------------- | ---------------------- |
+| Package         | `@opentui/core`        |
+| Core renderable | `SelectRenderable`     |
+| React           | `<select>` (automatic) |
+| Solid           | `<select>` (automatic) |
+| Status          | Built in               |
+
+## Basic usage
+
+### Renderable API
+
+```typescript
+import { SelectRenderable, SelectRenderableEvents, createCliRenderer } from "@opentui/core"
+
+const renderer = await createCliRenderer()
+
+const menu = new SelectRenderable(renderer, {
+  id: "menu",
+  width: 32,
+  height: 6,
+  options: [
+    { name: "New file", description: "Create a document" },
+    { name: "Open file", description: "Browse existing files" },
+    { name: "Save", description: "Write current changes" },
+  ],
+})
+
+menu.on(SelectRenderableEvents.ITEM_SELECTED, (index, option) => {
+  console.log("Selected:", option.name)
+})
+
+menu.focus()
+renderer.root.add(menu)
+```
+
+After pressing Down, the next option is selected:
+
+```text terminal=select-options surface
+   New file
+   Create a document
+ ▶ Open file
+   Browse existing files
+   Save
+   Write current changes
+```
+
+## Keyboard navigation
+
+When focused, the select responds to these keys:
+
+| Key                       | Action                |
+| ------------------------- | --------------------- |
+| `Up` / `k`                | Move selection up     |
+| `Down` / `j`              | Move selection down   |
+| `Shift+Up` / `Shift+Down` | Fast scroll (5 items) |
+| `Enter`                   | Select current item   |
+
+## Events
+
+### Item selected
+
+Fires when the user presses Enter on an option:
+
+```typescript
+import { SelectRenderableEvents, type SelectOption } from "@opentui/core"
+
+menu.on(SelectRenderableEvents.ITEM_SELECTED, (index: number, option: SelectOption) => {
+  console.log(`Selected index ${index}: ${option.name}`)
+})
+```
+
+### Selection update
+
+Fires after each movement attempt and each valid `setSelectedIndex()` call:
+
+```typescript
+menu.on(SelectRenderableEvents.SELECTION_CHANGED, (index: number, option: SelectOption | null) => {
+  console.log(`Highlighted: ${option?.name ?? "none"}`)
+  // Update a preview pane, for example
+})
+```
+
+`SELECTION_CHANGED` can pass `null` as the option when the list is empty. `ITEM_SELECTED` does not fire without an option.
+The event can fire when the index does not change. This occurs at a movement boundary or when you assign the current
+index.
+
+## Option structure
+
+```typescript
+interface SelectOption {
+  name: string // Display text
+  description: string // Displays below the name when showDescription is true
+  value?: any // Optional value
+}
+```
+
+## Styling
+
+```typescript
+const styledMenu = new SelectRenderable(renderer, {
+  id: "styled-menu",
+  width: 40,
+  height: 10,
+  options: [...],
+  backgroundColor: "#1a1a1a",
+  selectedBackgroundColor: "#333366",
+  selectedTextColor: "#FFFFFF",
+  textColor: "#AAAAAA",
+  descriptionColor: "#666666",
+})
+```
+
+## Properties
+
+| Property                   | Type                                   | Default       | Description                          |
+| -------------------------- | -------------------------------------- | ------------- | ------------------------------------ |
+| `width`                    | number, `"auto"`, or percentage string | -             | Component width                      |
+| `height`                   | number, `"auto"`, or percentage string | -             | Component height                     |
+| `options`                  | `SelectOption[]`                       | `[]`          | Available options                    |
+| `selectedIndex`            | `number`                               | `0`           | Initially selected index             |
+| `backgroundColor`          | `string \| RGBA`                       | `transparent` | Background color                     |
+| `textColor`                | `string \| RGBA`                       | `#FFFFFF`     | Normal text color                    |
+| `focusedBackgroundColor`   | `string \| RGBA`                       | `#1a1a1a`     | Background when focused              |
+| `focusedTextColor`         | `string \| RGBA`                       | `#FFFFFF`     | Text color when focused              |
+| `selectedBackgroundColor`  | `string \| RGBA`                       | `#334455`     | Selected item background             |
+| `selectedTextColor`        | `string \| RGBA`                       | `#FFFF00`     | Selected item text color             |
+| `descriptionColor`         | `string \| RGBA`                       | `#888888`     | Description text color               |
+| `selectedDescriptionColor` | `string \| RGBA`                       | `#CCCCCC`     | Selected item description color      |
+| `showDescription`          | `boolean`                              | `true`        | Show option descriptions             |
+| `showScrollIndicator`      | `boolean`                              | `false`       | Show scroll position indicator       |
+| `showSelectionIndicator`   | `boolean`                              | `true`        | Show the selection marker and gutter |
+| `wrapSelection`            | `boolean`                              | `false`       | Wrap selection at list boundaries    |
+| `itemSpacing`              | `number`                               | `0`           | Spacing between items                |
+| `fastScrollStep`           | `number`                               | `5`           | Items to skip with Shift+Up/Down     |
+
+## Example: file menu
+
+```typescript
+import { BoxRenderable, SelectRenderable, createCliRenderer } from "@opentui/core"
+
+const renderer = await createCliRenderer()
+
+const fileMenu = new SelectRenderable(renderer, {
+  width: 25,
+  height: 12,
+  options: [
+    { name: "New", description: "Create new file (Ctrl+N)" },
+    { name: "Open...", description: "Open file (Ctrl+O)" },
+    { name: "Save", description: "Save file (Ctrl+S)" },
+    { name: "Save As...", description: "Save with new name" },
+    { name: "---", description: "" }, // Separator (visual only)
+    { name: "Exit", description: "Quit application (Ctrl+Q)" },
+  ],
+})
+
+const menuPanel = new BoxRenderable(renderer, {
+  borderStyle: "single",
+  borderColor: "#666",
+})
+menuPanel.add(fileMenu)
+
+fileMenu.focus()
+renderer.root.add(menuPanel)
+```
+
+## Programmatic control
+
+```typescript
+// Get current selection index
+const currentIndex = menu.getSelectedIndex()
+
+// Get currently selected option
+const option = menu.getSelectedOption()
+
+// Set selection programmatically
+menu.setSelectedIndex(2)
+
+// Navigate programmatically
+menu.moveUp() // Move up one item
+menu.moveDown() // Move down one item
+menu.moveUp(3) // Move up multiple items
+menu.selectCurrent() // Trigger selection of current item
+
+// Update options dynamically
+menu.options = [
+  { name: "New Option 1", description: "First" },
+  { name: "New Option 2", description: "Second" },
+]
+
+// Toggle display options
+menu.showDescription = false
+menu.showScrollIndicator = true
+menu.showSelectionIndicator = false
+menu.wrapSelection = true
+```
+
+## Related concepts
+
+Read [Interaction, focus, and selection](/docs/core-concepts/interaction) for focus, keyboard, mouse, and event behavior. Use [ScrollBox](/docs/components/scrollbox) when you need to scroll arbitrary child content instead of options managed by Select.

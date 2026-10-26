@@ -1,0 +1,249 @@
+---
+title: Plugin slots
+description: Shared slot registry API used by Core, React, and Solid
+skill:
+  entry: true
+  intents: [plugins, plugin, slots, registry, extensions]
+---
+
+# Plugin slots
+
+Plugin slots let a host define typed layout regions and let registered plugins contribute UI to those regions. The host
+controls layout, slot modes, context, and prop types.
+
+This page owns the shared registry, slot, contribution, mode, and error model. Use the integration for your node type:
+
+- [Core plugin slots](/docs/plugins/core) use `BaseRenderable` nodes.
+- [React plugin slots](/docs/plugins/react) use `ReactNode` values.
+- [Solid plugin slots](/docs/plugins/solid) use `JSX.Element` values.
+
+Slots do not discover packages, read manifests, sandbox code, grant permissions, or manage a complete application
+plugin lifecycle. Runtime module loading is a separate concern. See
+[Load plugins and modules at runtime](/docs/extend/runtime-plugins).
+
+## Concepts
+
+- **Host**: Defines slot names, slot prop types, and shared context.
+- **Registry**: Stores plugins for one renderer and resolves their contributions.
+- **Slot**: A named region that receives typed props from the host.
+- **Contribution**: A synchronous callback that returns the node type for one slot.
+- **Slot mode**: Combines contribution output with host fallback UI.
+
+## Define slots and host context
+
+Slot names map to the props that each slot receives. The registry passes one shared host context to each contribution.
+
+```typescript
+import type { PluginContext } from "@opentui/core"
+
+type AppSlots = {
+  statusbar: { user: string }
+  sidebar: { section: "left" | "right" }
+}
+
+interface AppContext extends PluginContext {
+  appName: string
+  version: string
+}
+```
+
+The context can be any object. `PluginContext` is an alias for `object`. Extending it is optional, but a named context
+type gives every contribution the same contract.
+
+## Create a registry
+
+```typescript
+import { createSlotRegistry } from "@opentui/core"
+
+type AppSlots = {
+  statusbar: { user: string }
+  sidebar: { section: "left" | "right" }
+}
+
+const context = { appName: "my-app", version: "1.0.0" }
+
+const registry = createSlotRegistry<string, AppSlots, typeof context>(renderer, "my-app:plugins", context)
+```
+
+The first type parameter, `TNode`, is the host node type. Use `BaseRenderable` for Core, `ReactNode` for React, or
+`JSX.Element` for Solid. The framework integrations supply this type.
+
+`createSlotRegistry` is renderer-scoped. A `(renderer, key)` pair always returns the same registry. The key lets one
+renderer contain independent registries.
+
+Another call with the same pair returns the existing registry and applies the new options through `configure()`. The
+`context` argument must use the same object reference. A different reference throws, even when its fields are equal.
+
+```typescript
+// Correct: reuse the same object reference.
+const context = { appName: "my-app" }
+const reg1 = createSlotRegistry(renderer, "my-key", context)
+const reg2 = createSlotRegistry(renderer, "my-key", context) // returns reg1
+
+// Throws: this is a different object reference.
+const reg3 = createSlotRegistry(renderer, "my-key", { appName: "my-app" })
+```
+
+Create a renderer-scoped registry while the renderer is live. The factory does not reject a destroyed renderer, and a
+destroy listener added after destruction does not replay. After asynchronous module loading, check
+`renderer.isDestroyed` before you create a registry or register a contribution.
+
+Renderer destruction clears registries that were created before destruction. Clearing a registry calls each registered
+plugin's `dispose()` hook.
+
+`createCoreSlotRegistry`, `createReactSlotRegistry`, and `createSolidSlotRegistry` each use a fixed key. Call
+`createSlotRegistry` directly when one renderer needs more than one registry for the same node type.
+
+### Registry options
+
+All `create*SlotRegistry` functions accept an optional `SlotRegistryOptions` object:
+
+| Option              | Type                                | Default | Description                                                  |
+| ------------------- | ----------------------------------- | ------- | ------------------------------------------------------------ |
+| `onPluginError`     | `(event: PluginErrorEvent) => void` | none    | Receives every reported plugin error                         |
+| `debugPluginErrors` | `boolean`                           | `false` | Also writes reported errors through `console.debug`          |
+| `maxPluginErrors`   | `number`                            | `100`   | Maximum buffered errors before the registry drops the oldest |
+
+## Register plugins
+
+```typescript
+const unregister = registry.register({
+  id: "clock-plugin",
+  order: 0,
+  setup(ctx, renderer) {
+    // Initialize resources during registration.
+  },
+  dispose() {
+    // Release plugin resources during unregistration or registry clearing.
+  },
+  slots: {
+    statusbar(ctx, props) {
+      return `${ctx.appName}:${props.user}`
+    },
+  },
+})
+
+// Later, remove this plugin.
+unregister()
+```
+
+`register()` returns an unregister function. Calling it removes the plugin and calls its `dispose` hook. A duplicate
+`id` throws. If `setup` throws, the registry reports the error, returns a no-op unregister function, and does not add
+the plugin.
+
+### Plugin interface
+
+| Field     | Type                                    | Required | Description                                                                  |
+| --------- | --------------------------------------- | -------- | ---------------------------------------------------------------------------- |
+| `id`      | `string`                                | yes      | Unique identifier. Duplicate IDs throw.                                      |
+| `order`   | `number`                                | no       | Ascending sort priority. The default is `0`.                                 |
+| `setup`   | `(ctx, renderer) => void`               | no       | Runs once during registration. A failure prevents registration.              |
+| `dispose` | `() => void`                            | no       | Runs during unregistration or registry clearing.                             |
+| `slots`   | `{ [slotName]: (ctx, props) => TNode }` | yes      | Contributions that receive the host context and props for their named slots. |
+
+The Core integration also supports [managed slot contributions](/docs/plugins/core#managed-slot-contributions) with
+node ownership hooks.
+
+### Ordering
+
+Plugins are resolved in this order:
+
+1. `order` ascending (lower numbers first)
+2. Registration order (earlier registrations first)
+3. `id` lexicographic (tie-breaker)
+
+## Slot modes
+
+Every slot mount or `<Slot>` component accepts a mode.
+
+| Mode            | Behavior                                                                     |
+| --------------- | ---------------------------------------------------------------------------- |
+| `append`        | Show the fallback first, then all contribution output. This is the default.  |
+| `replace`       | Show contribution output. Show the fallback when no contribution has output. |
+| `single_winner` | Show only the first contribution. Show the fallback when it has no output.   |
+
+```text terminal=plugin-slot-modes
+append         host clock sync
+replace        clock sync
+single_winner  clock
+```
+
+## Resolve contributions
+
+```typescript
+const entries = registry.resolveEntries("statusbar")
+// Array<{ id: string, renderer: (ctx, props) => TNode }>
+
+const slotRenderers = registry.resolve("statusbar")
+// Array<(ctx, props) => TNode>
+```
+
+In this result, `renderer` means the slot contribution callback. It does not mean the `CliRenderer` instance.
+
+Use `resolveEntries` when you need plugin ids alongside the callbacks. Use `resolve` when you only need the callbacks.
+
+## Registry methods
+
+| Method                      | Description                                                              |
+| --------------------------- | ------------------------------------------------------------------------ |
+| `register(plugin)`          | Add a plugin and return its unregister function.                         |
+| `unregister(id)`            | Remove a plugin by ID. Return `true` when it existed.                    |
+| `updateOrder(id, order)`    | Change sort order. Return `true` when the plugin existed.                |
+| `clear()`                   | Remove and dispose all plugins.                                          |
+| `resolve(slot)`             | Return ordered contribution callbacks.                                   |
+| `resolveEntries(slot)`      | Return ordered `{ id, renderer }` entries.                               |
+| `subscribe(listener)`       | Listen for registry changes and return an unsubscribe function.          |
+| `batch(run)`                | Delay registry-change notifications until the outermost batch completes. |
+| `configure(options)`        | Update `SlotRegistryOptions`.                                            |
+| `onPluginError(listener)`   | Listen for plugin errors and return an unsubscribe function.             |
+| `getPluginErrors()`         | Return the buffered `PluginErrorEvent` values.                           |
+| `clearPluginErrors()`       | Clear the error buffer.                                                  |
+| `reportPluginError(report)` | Normalize, store, and publish an error from an integration.              |
+| `renderer`                  | Get the `CliRenderer` that owns this registry.                           |
+| `context`                   | Get the read-only host context object.                                   |
+
+## Error handling
+
+Registries expose plugin error events:
+
+```typescript
+registry.onPluginError((event) => {
+  console.error(event.pluginId, event.phase, event.source, event.error.message)
+})
+```
+
+You can also read and clear buffered errors:
+
+```typescript
+const history = registry.getPluginErrors()
+registry.clearPluginErrors()
+```
+
+### `PluginErrorReport`
+
+The `reportPluginError` method accepts a `PluginErrorReport`:
+
+| Field      | Type                  | Required | Description                                                  |
+| ---------- | --------------------- | -------- | ------------------------------------------------------------ |
+| `pluginId` | `string`              | yes      | Plugin that caused the error                                 |
+| `slot`     | `string \| undefined` | no       | Slot name when the error belongs to one slot                 |
+| `phase`    | `PluginErrorPhase`    | yes      | `"setup"`, `"render"`, `"dispose"`, or `"error_placeholder"` |
+| `source`   | `PluginErrorSource`   | no       | Error source. The default is `"registry"`.                   |
+| `error`    | `unknown`             | yes      | Raw error. The registry normalizes it to `Error`.            |
+
+### `PluginErrorEvent`
+
+| Field       | Type                  | Description                                                  |
+| ----------- | --------------------- | ------------------------------------------------------------ |
+| `pluginId`  | `string`              | The plugin that caused the error                             |
+| `slot`      | `string \| undefined` | The slot name, if the error is slot-specific                 |
+| `phase`     | `PluginErrorPhase`    | `"setup"`, `"render"`, `"dispose"`, or `"error_placeholder"` |
+| `source`    | `PluginErrorSource`   | `"registry"`, `"core"`, or a framework-defined source string |
+| `error`     | `Error`               | The normalized error object                                  |
+| `timestamp` | `number`              | `Date.now()` at the time of the error                        |
+
+## Next
+
+- [Core plugin slots](/docs/plugins/core) define Core node ownership and managed contributions.
+- [React plugin slots](/docs/plugins/react) define React reconciliation and failure boundaries.
+- [Solid plugin slots](/docs/plugins/solid) define Solid ownership and disposal.

@@ -1,0 +1,229 @@
+---
+title: Box
+description: Group and lay out child content with borders and backgrounds
+---
+
+# Box
+
+`Box` lays out child renderables and can draw a background, border, and title. Use [ScrollBox](/docs/components/scrollbox) when the children must scroll.
+
+## Availability
+
+| Field           | Availability        |
+| --------------- | ------------------- |
+| Package         | `@opentui/core`     |
+| Core renderable | `BoxRenderable`     |
+| React           | `<box>` (automatic) |
+| Solid           | `<box>` (automatic) |
+| Status          | Built in            |
+
+## Basic usage
+
+### Renderable API
+
+```typescript
+import { BoxRenderable, TextRenderable, createCliRenderer } from "@opentui/core"
+
+const renderer = await createCliRenderer()
+
+const panel = new BoxRenderable(renderer, {
+  id: "panel",
+  width: 30,
+  height: 10,
+  backgroundColor: "#333366",
+  borderStyle: "double",
+  borderColor: "#FFFFFF",
+})
+
+renderer.root.add(panel)
+```
+
+## Border styles
+
+```typescript
+// No border
+{
+  border: false
+}
+
+// Simple border (default style)
+{
+  border: true
+}
+
+// Specific border styles
+{
+  borderStyle: "single"
+} // Single line: ┌─┐│└─┘
+{
+  borderStyle: "double"
+} // Double line: ╔═╗║╚═╝
+{
+  borderStyle: "rounded"
+} // Rounded corners: ╭─╮│╰─╯
+{
+  borderStyle: "heavy"
+} // Heavy lines: ┏━┓┃┗━┛
+```
+
+```text terminal=box-borders
+┌─────single─────┐  ╔═════double═════╗
+│ single line    │  ║ double lines   ║
+└────────────────┘  ╚════════════════╝
+
+╭────rounded─────╮  ┏━━━━━heavy━━━━━━┓
+│ round corners  │  ┃ heavy strokes  ┃
+╰────────────────╯  ┗━━━━━━━━━━━━━━━━┛
+```
+
+## Titles
+
+Add a title and bottom title to the box border:
+
+```typescript
+const panel = new BoxRenderable(renderer, {
+  id: "settings",
+  width: 40,
+  height: 15,
+  borderStyle: "rounded",
+  title: "Settings",
+  titleColor: "yellow",
+  titleAlignment: "center",
+  bottomTitle: "Footer",
+  bottomTitleAlignment: "center",
+})
+```
+
+### Title alignment (both top and bottom titles)
+
+```typescript
+{
+  titleAlignment: "left"
+} // ┌─ Title ────────┐
+{
+  titleAlignment: "center"
+} // ┌──── Title ─────┐
+{
+  titleAlignment: "right"
+} // ┌────────── Title ┐
+
+{
+  bottomTitleAlignment: "left"
+} // └─ Title ────────┘
+{
+  bottomTitleAlignment: "center"
+} // └──── Title ─────┘
+{
+  bottomTitleAlignment: "right"
+} // └────────── Title ┘
+```
+
+```text terminal=box-title-alignment
+┌───────────settings───────────┐
+│ Top and bottom titles        │
+└────────────────────────close─┘
+```
+
+## Layout container
+
+Box works as a flex container for child elements:
+
+```typescript
+const container = new BoxRenderable(renderer, {
+  flexDirection: "column",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+  width: 50,
+  height: 20,
+  padding: 1,
+  gap: 1,
+})
+const content = new BoxRenderable(renderer, { flexGrow: 1, backgroundColor: "#222" })
+
+content.add(new TextRenderable(renderer, { content: "Content area" }))
+container.add(new TextRenderable(renderer, { content: "Header" }))
+container.add(content)
+container.add(new TextRenderable(renderer, { content: "Footer" }))
+```
+
+## Mouse events
+
+Handle mouse interactions on the box:
+
+```typescript
+const button = new BoxRenderable(renderer, {
+  id: "button",
+  width: 12,
+  height: 3,
+  border: true,
+  backgroundColor: "#444",
+  onMouseDown: () => {
+    console.log("Button clicked!")
+  },
+  onMouseOver: () => {
+    button.backgroundColor = "#666"
+  },
+  onMouseOut: () => {
+    button.backgroundColor = "#444"
+  },
+})
+```
+
+## Properties
+
+| Property               | Type               | Default        | Description                             |
+| ---------------------- | ------------------ | -------------- | --------------------------------------- |
+| `width`                | `number \| string` | -              | Width in terminal columns or percentage |
+| `height`               | `number \| string` | -              | Height in rows or percentage            |
+| `backgroundColor`      | `string \| RGBA`   | `transparent`  | Background fill color                   |
+| `border`               | `boolean`          | `false`        | Show border                             |
+| `borderStyle`          | `string`           | `"single"`     | Border style                            |
+| `borderColor`          | `string \| RGBA`   | `#FFFFFF`      | Border color                            |
+| `title`                | `string`           | -              | Title text in border                    |
+| `titleColor`           | `string \| RGBA`   | `borderColor`  | Color of the title text                 |
+| `titleAlignment`       | `string`           | `"left"`       | Title position                          |
+| `bottomTitle`          | `string`           | -              | Bottom title text in border             |
+| `bottomTitleAlignment` | `string`           | `"left"`       | Bottom title position                   |
+| `padding`              | `number`           | `0`            | Internal padding                        |
+| `gap`                  | `number \| string` | -              | Gap between children                    |
+| `flexDirection`        | `string`           | `"column"`     | Child layout direction                  |
+| `justifyContent`       | `string`           | `"flex-start"` | Main axis alignment                     |
+| `alignItems`           | `string`           | `"stretch"`    | Cross axis alignment                    |
+
+## Example: card component
+
+```typescript
+import { BoxRenderable, TextRenderable, t, bold, fg } from "@opentui/core"
+
+function Card(props: { title: string; description: string }) {
+  const card = new BoxRenderable(renderer, {
+    width: 40,
+    borderStyle: "rounded",
+    borderColor: "#666",
+    padding: 1,
+    margin: 1,
+  })
+  card.add(
+    new TextRenderable(renderer, {
+      content: t`${bold(fg("#00FFFF")(props.title))}`,
+    }),
+  )
+  card.add(
+    new TextRenderable(renderer, {
+      content: props.description,
+      fg: "#AAAAAA",
+    }),
+  )
+  return card
+}
+
+const cards = new BoxRenderable(renderer, { flexDirection: "row", flexWrap: "wrap" })
+cards.add(Card({ title: "Feature 1", description: "Description of feature 1" }))
+cards.add(Card({ title: "Feature 2", description: "Description of feature 2" }))
+cards.add(Card({ title: "Feature 3", description: "Description of feature 3" }))
+renderer.root.add(cards)
+```
+
+## Related concepts
+
+Read [Layout](/docs/core-concepts/layout) for sizing and flex behavior. See [Colors](/docs/core-concepts/colors) for color formats and [Interaction, focus, and selection](/docs/core-concepts/interaction) for mouse event propagation. Use [Text](/docs/components/text) for labels and other text content.
