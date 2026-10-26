@@ -30,7 +30,7 @@ import { storedInventory } from '../inventory/persistence';
 import { Item } from '../item/Item';
 import type { ActorEvent } from '../network/packet/ActorEventPacket';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
-import { breakBlockWithContent, collectBreakDrops } from './blockBreak';
+import { breakBlockWithContent, collectBreakDrops, wearBreakingTool } from './blockBreak';
 import { notifyContentNeighbors } from './neighborContent';
 import CoordinateUtils from './CoordinateUtils';
 import EntityGrid from './EntityGrid';
@@ -1536,6 +1536,19 @@ export class World implements Service {
             // `None` - so a block that needs one drops nothing however good the pickaxe is.
             // The item is passed all the same, so that fixing the item side fixes this too.
             const itemInHand = player?.getInventory().getItemInHand() ?? null;
+
+            // What the break cost the tool. After the block is gone and before what it drops,
+            // which is Java's order. `itemInHand` is read first, so a tool that breaks here
+            // still decides what falls.
+            if (player !== undefined && itemInHand !== null) {
+                wearBreakingTool({
+                    world: this,
+                    source: { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) },
+                    tool: itemInHand,
+                    block: { identifier: state.name, states: state.properties, position: { x, y, z } }
+                });
+            }
+
             await this.dropContents(
                 new Vector3(x + 0.5, y + 0.5, z + 0.5),
                 contentDrops ?? broken.getDrops(itemInHand, this.server)

@@ -16,6 +16,7 @@ import { dropOfRolledStack } from './lootStack';
 
 /** The tag type bytes the expected buffer below spells out, as `NBTDefinitions` numbers them. */
 const TAG_END = 0x00;
+const TAG_INT = 0x03;
 const TAG_STRING = 0x08;
 const TAG_COMPOUND = 0x0a;
 
@@ -81,6 +82,12 @@ describe('an item stack on the wire', () => {
                 0x01, // User data version.
                 TAG_COMPOUND,
                 ...text(''), // The root compound is unnamed.
+                TAG_INT,
+                ...text('Damage'),
+                0x00,
+                0x00,
+                0x00,
+                0x00, // A sword wears, so it carries Damage, 0 while unused.
                 TAG_COMPOUND,
                 ...text('display'),
                 TAG_STRING,
@@ -91,6 +98,25 @@ describe('an item stack on the wire', () => {
                 ...NO_LISTS
             ])
         );
+    });
+
+    it('writes the Damage of a worn tool as the bytes BDS sends', () => {
+        // A Bedrock Dedicated Server 1.26.52's user data for a wooden pickaxe that had mined
+        // three blocks, recorded through the proxy.
+        const BDS_WORN_PICKAXE = 'ffff010a000003060044616d61676503000000000000000000000000';
+        const pickaxe = new Item({ name: 'minecraft:wooden_pickaxe', count: 1 });
+        pickaxe.durability = pickaxe.getMaxDurability() - 3;
+
+        const stream = new NetworkBinaryStream();
+        new ItemInstanceUserData(pickaxe.userDataTag()).serialize(stream);
+
+        expect(stream.getBuffer().toString('hex')).toBe(BDS_WORN_PICKAXE);
+    });
+
+    it('writes Damage 0 for an unused tool, and nothing for an item that does not wear', () => {
+        // BDS sent the unused pickaxe with `Damage` 0 rather than with no compound at all.
+        expect(new Item({ name: 'minecraft:wooden_pickaxe', count: 1 }).userDataTag()?.getNumber('Damage', -1)).toBe(0);
+        expect(new Item({ name: 'minecraft:dirt', count: 1 }).userDataTag()).toBeNull();
     });
 
     it('carries the enchantments a Bedrock client has numbers for', () => {

@@ -10,7 +10,9 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Entity } from '../entity/Entity';
 import { Item as ItemEntity } from '../entity/other/Item';
-import type Player from '../Player';
+import ContainerEntry from '../inventory/ContainerEntry';
+import HumanInventory from '../inventory/HumanInventory';
+import Player from '../Player';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
 import { buildServerContent } from '../content/ServerContent';
@@ -22,7 +24,6 @@ import BlockUpdateScheduler from './BlockUpdateScheduler';
 import Chunk from './chunk/Chunk';
 import { Dimensions } from './Dimension';
 import { createEngineWorld } from './EngineWorld';
-import type { Breaker } from './blockBreak';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
@@ -31,6 +32,8 @@ import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
 const BLOCKS = [
     'minecraft:air',
     'minecraft:stone',
+    'minecraft:cobblestone',
+    'minecraft:short_grass',
     'minecraft:dirt',
     'minecraft:farmland',
     'minecraft:wheat',
@@ -38,7 +41,7 @@ const BLOCKS = [
     'minecraft:chest'
 ] as const;
 
-/** The items the breaks below yield, plus the two tools that do the breaking. */
+/** The items the breaks below yield, plus the tools that do the breaking. */
 const ITEMS = [
     'minecraft:stone',
     'minecraft:cobblestone',
@@ -48,6 +51,8 @@ const ITEMS = [
     'minecraft:diamond',
     'minecraft:diamond_ore',
     'minecraft:diamond_pickaxe',
+    'minecraft:wooden_pickaxe',
+    'minecraft:wooden_sword',
     'minecraft:chest',
     'minecraft:stick'
 ];
@@ -203,9 +208,13 @@ const XP_ORB = {
     }
 };
 
-const liveWorld = (content: () => ServerContent | undefined): { world: World; chunk: Chunk; spawned: Entity[] } => {
+const liveWorld = (
+    content: () => ServerContent | undefined
+): { world: World; chunk: Chunk; spawned: Entity[]; entities: Map<bigint, Entity> } => {
     const chunk = new Chunk(0, 0);
     const spawned: Entity[] = [];
+    // Where the item actor port finds the breaking player, which is how a tool wears.
+    const entities = new Map<bigint, Entity>();
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -213,7 +222,7 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
         spawn: new Vector3(8, 64, 8),
         dimension: Dimensions.Overworld,
         blockUpdates: new BlockUpdateScheduler(),
-        entities: new Map(),
+        entities,
         entityChunkIndices: new Map(),
         players: new Map(),
         getChunkAt: async () => chunk,
@@ -247,7 +256,7 @@ const liveWorld = (content: () => ServerContent | undefined): { world: World; ch
         })
     });
 
-    return { world, chunk, spawned };
+    return { world, chunk, spawned, entities };
 };
 
 /** Writes a block straight into the chunk, which is the ground the break then happens on. */
@@ -261,13 +270,14 @@ describe('breakBlockWithContent', () => {
     let world: World;
     let chunk: Chunk;
     let spawned: Entity[];
+    let entities: Map<bigint, Entity>;
     let content: ServerContent;
 
     beforeEach(() => {
         // The content is built around the world and the world reads the content back, so both
         // sides reach for it through the same closure.
         let built: ServerContent | undefined;
-        ({ world, chunk, spawned } = liveWorld(() => built));
+        ({ world, chunk, spawned, entities } = liveWorld(() => built));
 
         content = buildServerContent({
             load: () => ({
@@ -302,20 +312,33 @@ describe('breakBlockWithContent', () => {
         built = content;
     });
 
+    /** The runtime id the player below goes by. */
+    const PLAYER_ID = 7n;
+
     /**
      * A player holding one item, standing beside the block they break.
      *
-     * A `Breaker` is the whole of what the break reads off one, and `World.breakBlock` asks
-     * for the class, which needs a network session before it exists at all.
+     * On the real prototype and in the world's entity map, because a tool wears through the
+     * item actor port, which finds the player by runtime id and acts only on a `Player`. A real
+     * one needs a network session before it exists at all, so only what the break and the port
+     * read is filled in.
      */
     const player = (held: Item | null = null, gamemode = Gametype.SURVIVAL): Player => {
-        const breaker: Breaker = {
-            gamemode,
-            getInventory: () => ({ getItemInHand: () => held ?? Item.air() }),
-            getPosition: () => new Vector3(3, 64, 3)
-        };
+        const inventory = new HumanInventory();
+        if (held !== null) inventory.setItemInHand(new ContainerEntry({ item: held, count: held.getAmount() }));
 
-        return breaker as unknown as Player;
+        const breaker: Player = Object.assign(Object.create(Player.prototype), {
+            gamemode,
+            getInventory: () => inventory,
+            getPosition: () => new Vector3(3, 64, 3),
+            getRuntimeId: () => PLAYER_ID,
+            getServer: () => world.getServer(),
+            getFallDistance: () => 0,
+            getFood: () => 20,
+            isOnGround: () => true
+        });
+        entities.set(PLAYER_ID, breaker);
+        return breaker;
     };
 
     /**
@@ -438,5 +461,65 @@ describe('breakBlockWithContent', () => {
 
         expect(drops()).toEqual([]);
         expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:air');
+    });
+
+    /**
+     * What a break costs the tool, against a Bedrock Dedicated Server 1.26.52 recorded side by
+     * side with this server through the proxy. Nothing raised `onMineBlock` before, so no tool
+     * ever wore.
+     */
+    describe('tool wear', () => {
+        /** Durability spent, which is what both servers write as `Damage`. */
+        const damageOf = (item: Item): number => item.getMaxDurability() - item.getDurability();
+
+        it.each([
+            ['minecraft:wooden_pickaxe', 'minecraft:cobblestone', 1],
+            ['minecraft:wooden_pickaxe', 'minecraft:dirt', 1],
+            // Short grass breaks at once, and a block with no hardness costs nothing.
+            ['minecraft:wooden_pickaxe', 'minecraft:short_grass', 0],
+            // A sword is not made for digging: its `damage_per_block` is two.
+            ['minecraft:wooden_sword', 'minecraft:dirt', 2]
+        ])('wears a %s on %s by %i, as BDS did', async (tool, block, wear) => {
+            place(chunk, { x: 5, y: 64, z: 5 }, block);
+            const breaker = player(new Item({ name: tool, content }));
+
+            await world.breakBlock(new Vector3(5, 64, 5), breaker);
+
+            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(wear);
+        });
+
+        it('wears a wooden pickaxe to Damage 3 over three cobblestone, as BDS did', async () => {
+            const breaker = player(new Item({ name: 'minecraft:wooden_pickaxe', content }));
+
+            for (const x of [1, 2, 3]) {
+                place(chunk, { x, y: 64, z: 9 }, 'minecraft:cobblestone');
+                await world.breakBlock(new Vector3(x, 64, 9), breaker);
+            }
+
+            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(3);
+        });
+
+        it('empties the hand when the tool runs out', async () => {
+            // The entry's count went to zero and the item's stayed at one, and the item's is
+            // what the client is sent, so a broken pickaxe stayed in the hand.
+            const worn = new Item({ name: 'minecraft:wooden_pickaxe', content });
+            worn.durability = 1;
+            const breaker = player(worn);
+            place(chunk, { x: 5, y: 64, z: 7 }, 'minecraft:cobblestone');
+
+            await world.breakBlock(new Vector3(5, 64, 7), breaker);
+
+            expect(breaker.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+            expect(breaker.getInventory().getItems()).toHaveLength(0);
+        });
+
+        it('wears nothing in creative', async () => {
+            place(chunk, { x: 5, y: 64, z: 5 }, 'minecraft:cobblestone');
+            const breaker = player(new Item({ name: 'minecraft:wooden_pickaxe', content }), Gametype.CREATIVE);
+
+            await world.breakBlock(new Vector3(5, 64, 5), breaker);
+
+            expect(damageOf(breaker.getInventory().getItemInHand())).toBe(0);
+        });
     });
 });

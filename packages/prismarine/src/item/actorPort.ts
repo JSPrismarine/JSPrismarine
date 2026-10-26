@@ -272,7 +272,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const held = inventory.getItemInHand();
         held.durability = Math.max(0, held.durability - amount);
 
-        if (broke) inventory.setItemInHand(new ContainerEntry({ item: held, count: 0 }));
+        // Emptied to air. Setting the entry's count to zero left the item's count at one, and
+        // the client is sent the item's, so a tool that broke stayed in the hand.
+        if (broke) inventory.removeItem(inventory.getHandSlotIndex());
 
         // After the write, so what the trigger reports is the stack as it now
         // stands rather than as it stood before the hit.

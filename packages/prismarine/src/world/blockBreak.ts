@@ -24,7 +24,7 @@
  */
 import type { HookActor, HookBlock, HookItem } from '@jsprismarine/blocks';
 import { Gametype } from '@jsprismarine/minecraft';
-import { ItemStack } from '@jsprismarine/items';
+import type { BlockReference, ItemSource } from '@jsprismarine/items';
 import type { ItemDrop } from '@jsprismarine/block-behaviors';
 
 import { blockLootTableOf, rollBlockDrops } from '../block/blockLoot';
@@ -32,6 +32,7 @@ import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import { itemOfDrop } from '../inventory/persistence';
+import { contentStackOf } from '../item/contentStack';
 import { Item } from '../item/Item';
 import { lootLevelOf } from './lootLevel';
 import type { SystemBlock } from './WorldSystems';
@@ -151,15 +152,14 @@ const countOf = (drop: Block | Item): number => (drop instanceof Item ? drop.get
  *
  * The stack's own enchantments come first and the item type answers the rest, so a pickaxe's
  * silk touch is the one this player's pickaxe carries rather than the component the type
- * declares for every pickaxe on the server.
+ * declares for every pickaxe on the server. The type is read through the stack as it stands,
+ * so `minecraft:damage` is the durability this one has spent.
  */
 const brokenWith = (content: ServerContent, item: Item | null): HookItem | undefined => {
     if (item === null || item.getName() === 'minecraft:air') return undefined;
 
     const identifier = item.getName();
-    const type = content.items.registry.has(identifier)
-        ? new ItemStack(content.items.registry.holder(identifier), item.getAmount())
-        : undefined;
+    const type = contentStackOf(content, item);
     const levels = item.getEnchantments();
     const enchantments = Object.fromEntries(levels);
 
@@ -293,5 +293,40 @@ export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item>
         // reaches the log.
         server.getLogger().error(error);
         return undefined;
+    }
+};
+
+/** What {@link wearBreakingTool} is given about one break. */
+export interface ToolWear {
+    readonly world: BreakWorld;
+    /** The player who broke the block, as the item runtime names one. */
+    readonly source: ItemSource;
+    /** What they broke it with, read before the break. */
+    readonly tool: Item;
+    /** The block as it stood before it broke. */
+    readonly block: BlockReference;
+}
+
+/**
+ * Wears the tool a player broke a block with, through the item's own `onMineBlock`.
+ *
+ * That hook is Java's `Item.mineBlock`, which `@jsprismarine/item-behaviors` implements: a tool
+ * spends its `damage_per_block`, one unless the item says otherwise and two for a sword, and
+ * nothing on a block that breaks at once. The four cases measured on a Bedrock Dedicated Server
+ * 1.26.52 agree: a wooden pickaxe wore by one a block on cobblestone and on dirt and by none on
+ * short grass, and a wooden sword wore by two a block on dirt. Nothing raised the hook before,
+ * so no tool wore.
+ *
+ * Nothing is sent. The client wears its own copy as it predicts the break, and BDS sent no
+ * inventory while a pickaxe mined. A behavior that throws is logged and costs the player nothing.
+ */
+export const wearBreakingTool = ({ world, source, tool, block }: ToolWear): void => {
+    const server = world.getServer();
+
+    try {
+        const stack = contentStackOf(server.getContent(), tool);
+        stack?.dispatch('onMineBlock', { itemStack: stack, source, block });
+    } catch (error: unknown) {
+        server.getLogger().error(error);
     }
 };

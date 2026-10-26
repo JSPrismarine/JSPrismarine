@@ -31,11 +31,10 @@ const readDescriptor = (stream: BinaryStream) => {
 };
 
 /**
- * Reads the `ItemInstanceUserData` blob of a non-empty stack: an int16 marker that is `-1`
- * before NBT and `0` otherwise, then the can-place-on and can-destroy lists, each an int32
- * count of strings, and for a shield an int64 blocking tick.
+ * Reads the `ItemInstanceUserData` blob of a non-empty stack with no NBT: an int16 marker of
+ * `0`, then the can-place-on and can-destroy lists, each an int32 count of strings.
  */
-const readUserData = (blob: Buffer, shield = false) => {
+const readUserData = (blob: Buffer) => {
     const stream = new BinaryStream(blob);
     const marker = stream.readShortLE();
     const readList = (): string[] => {
@@ -47,10 +46,9 @@ const readUserData = (blob: Buffer, shield = false) => {
     };
     const canPlaceOn = readList();
     const canDestroy = readList();
-    const blockingTick = shield ? stream.readLongLE() : null;
 
     expect(stream.feof()).toBe(true);
-    return { marker, canPlaceOn, canDestroy, blockingTick };
+    return { marker, canPlaceOn, canDestroy };
 };
 
 /** Reads the whole packet in docs order and insists on reaching the last byte. */
@@ -107,12 +105,7 @@ describe('InventoryContentPacket', () => {
         expect(planks.count).toBe(12);
         expect(planks.netId).toBeNull();
         expect(planks.blockRuntimeId).not.toBe(0);
-        expect(readUserData(planks.userData)).toEqual({
-            marker: 0,
-            canPlaceOn: [],
-            canDestroy: [],
-            blockingTick: null
-        });
+        expect(readUserData(planks.userData)).toEqual({ marker: 0, canPlaceOn: [], canDestroy: [] });
 
         const sword = read.slots[5]!;
         expect(sword.id).toBe(ItemIdMap['minecraft:diamond_sword']);
@@ -146,9 +139,22 @@ describe('InventoryContentPacket', () => {
             0x00, // Aux value: varuint32 0.
             0x00, // Net Id Variant: absent.
             0x00, // Block Runtime Id: varuint32 0, a sword places nothing.
-            0x0a, // User Data Buffer: 10 bytes follow.
+            0x1c, // User Data Buffer: 28 bytes follow.
+            0xff,
+            0xff, // NBT marker: int16 LE -1, a compound follows.
+            0x01, // User data version.
+            0x0a,
             0x00,
-            0x00, // No NBT marker: int16 LE 0.
+            0x00, // An unnamed compound.
+            0x03,
+            0x06,
+            0x00,
+            ...Buffer.from('Damage'),
+            0x00,
+            0x00,
+            0x00,
+            0x00, // An int named Damage, 0. A sword wears, and BDS 1.26.52 sends Damage 0 unused.
+            0x00, // End of the compound.
             0x00,
             0x00,
             0x00,
@@ -184,8 +190,16 @@ describe('InventoryContentPacket', () => {
         inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:shield' }) }));
 
         const shield = readBack(encoded(inventory.getItems(true))).slots[0]!;
-        expect(shield.userData).toHaveLength(18);
-        expect(readUserData(shield.userData, true).blockingTick).toBe(0n);
+        // A shield wears, so its blob holds the 28 bytes of a `Damage` 0 compound and two
+        // empty lists, and then the eight-byte tick.
+        expect(shield.userData).toHaveLength(36);
+        const blob = new NetworkBinaryStream(shield.userData);
+        const userData = new ItemInstanceUserData();
+        userData.deserialize(blob, true);
+
+        expect(blob.feof()).toBe(true);
+        expect(userData.userDataTag?.getNumber('Damage', -1)).toBe(0);
+        expect(userData.blockingTick).toBe(0n);
     });
 
     it('carries an enchanted, renamed stack without losing the rest of the packet', () => {

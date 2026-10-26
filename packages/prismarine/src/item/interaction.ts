@@ -24,7 +24,6 @@
 import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { relative } from '@jsprismarine/engine-systems';
-import { ItemStack } from '@jsprismarine/items';
 import type { ItemSource } from '@jsprismarine/items';
 import { Vector3 } from '@jsprismarine/math';
 import { WindowTypes } from '@jsprismarine/minecraft';
@@ -40,6 +39,7 @@ import { openContainerContents, restorePlacedContents } from '../inventory/conta
 import type { ContentPosition } from '../content/world/adapter';
 import type { ServerContent } from '../content/ServerContent';
 import type { ServerItemActorPort } from './actorPort';
+import { contentStackOf } from './contentStack';
 import type { Item } from './Item';
 import type Player from '../Player';
 
@@ -73,12 +73,6 @@ export interface EntityInteraction {
     /** The entity the click landed on, which is what `targetOf` answers with. */
     readonly target: ItemSource;
 }
-
-/** The item in hand as the item runtime's own stack, or undefined when no type covers it. */
-const heldStack = (content: ServerContent, identifier: string, count: number): ItemStack | undefined =>
-    content.items.registry.has(identifier)
-        ? new ItemStack(content.items.registry.holder(identifier), count)
-        : undefined;
 
 /** The block a hook reads, out of the live world, or undefined when its chunk is not loaded. */
 const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): HookBlock | undefined => {
@@ -243,7 +237,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
     if (block === undefined) return 'declined';
 
     const held = player.getInventory().getItemInHand();
-    const stack = heldStack(content, held.getName(), held.getAmount());
+    const stack = contentStackOf(content, held);
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
     const position = player.getPosition();
 
@@ -318,7 +312,7 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
     const handSlot = inventory.getHandSlotIndex();
     const heldEntry = inventory.getEntry(handSlot);
     const held = inventory.getItemInHand();
-    const stack = heldStack(content, held.getName(), heldEntry?.getCount() ?? held.getAmount());
+    const stack = contentStackOf(content, held, heldEntry?.getCount() ?? held.getAmount());
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
     return actors.duringInteraction(source, target, () => {

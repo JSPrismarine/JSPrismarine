@@ -48,9 +48,12 @@ export interface ItemUserData {
     readonly lore: readonly string[];
     /**
      * Durability spent, which is Java's `minecraft:damage` and Bedrock's `tag.Damage`. The
-     * client draws the damage bar from it; zero writes nothing.
+     * client draws the damage bar from it.
+     *
+     * Undefined for an item with no durability, which writes nothing. Zero is written: a Bedrock
+     * Dedicated Server 1.26.52 sends `Damage` 0 with every unused item that has durability.
      */
-    readonly damage: number;
+    readonly damage: number | undefined;
     /**
      * What a container item holds, one entry per slot and null for an empty one.
      *
@@ -119,14 +122,14 @@ const enchantmentEntry = (id: number, level: number): NBTTagCompound => {
  *
  * The plain stack returns before anything is allocated, which is the case that runs most:
  * 36 inventory slots on every join and 1980 creative entries behind them, almost none of
- * them enchanted, named or damaged.
+ * them enchanted, named or able to wear.
  */
 export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
     if (
         stack.enchantments.size === 0 &&
         stack.customName === undefined &&
         stack.lore.length === 0 &&
-        stack.damage <= 0 &&
+        stack.damage === undefined &&
         stack.contents.length === 0
     ) {
         return null;
@@ -152,7 +155,7 @@ export const itemUserDataTag = (stack: ItemUserData): NBTTagCompound | null => {
     const tag = new NBTTagCompound('');
     let anything = false;
 
-    if (stack.damage > 0) {
+    if (stack.damage !== undefined) {
         tag.addValue('Damage', new Types.NumberVal(stack.damage));
         anything = true;
     }

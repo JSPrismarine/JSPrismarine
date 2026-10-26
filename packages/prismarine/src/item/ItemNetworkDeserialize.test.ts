@@ -1,4 +1,5 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream, NetworkItemStackDescriptor } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
@@ -72,9 +73,21 @@ describe('item', () => {
         };
 
         /** The empty `ItemInstanceUserData` a stack without NBT or block lists carries. */
-        const emptyUserData = (shield = false): Buffer => {
+        const emptyUserData = (): Buffer => {
             const stream = new NetworkBinaryStream();
-            new ItemInstanceUserData(null, shield ? { blockingTick: 0n } : {}).serialize(stream);
+            new ItemInstanceUserData(null).serialize(stream);
+            return stream.getBuffer();
+        };
+
+        /**
+         * The `ItemInstanceUserData` of an unused item that has durability: a compound holding
+         * only `Damage` 0, which a Bedrock Dedicated Server 1.26.52 sends for every such item.
+         */
+        const unusedUserData = (shield = false): Buffer => {
+            const tag = new NBTTagCompound('');
+            tag.addValue('Damage', new Types.NumberVal(0));
+            const stream = new NetworkBinaryStream();
+            new ItemInstanceUserData(tag, shield ? { blockingTick: 0n } : {}).serialize(stream);
             return stream.getBuffer();
         };
 
@@ -93,7 +106,7 @@ describe('item', () => {
         it('ends a shield with its blocking tick', () => {
             const shield = new Item({ id: 355, name: 'minecraft:shield', meta: 0 });
             const descriptor = new NetworkItemStackDescriptor(shield.getNetworkId(), 1, 0, false, 0, {
-                userDataBuffer: emptyUserData(true)
+                userDataBuffer: unusedUserData(true)
             });
 
             expect(serialized(shield)).toEqual(descriptorBytes(descriptor));
@@ -116,7 +129,7 @@ describe('item', () => {
             // whole packet, and so the entire inventory, down with it.
             const sword = new Item({ id: 308, name: 'minecraft:diamond_sword', meta: 0 });
             const descriptor = new NetworkItemStackDescriptor(sword.getNetworkId(), 1, 0, false, 0, {
-                userDataBuffer: emptyUserData()
+                userDataBuffer: unusedUserData()
             });
 
             expect(() => serialized(sword)).not.toThrow();

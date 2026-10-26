@@ -629,17 +629,20 @@ export class Item {
      * What the client is told about this stack beyond its id, count and aux value.
      *
      * The enchantments, the name, the lore and the durability spent, in the shape
-     * {@link itemUserDataTag} lays out. Null for a stack with none of them, which is most of
-     * them and every slot of an untouched inventory.
+     * {@link itemUserDataTag} lays out. Null for a stack with none of them and no durability,
+     * which is most of them and every slot of an untouched inventory.
      */
     public userDataTag(): NBTTagCompound | null {
+        const limit = this.getMaxDurability();
+
         return itemUserDataTag({
             enchantments: this.enchantmentLevels,
             customName: this.customName,
             lore: this.loreLines,
             // Spent rather than remaining, which is what both editions store and what the
-            // client draws the damage bar from.
-            damage: Math.max(0, this.getMaxDurability() - this.durability),
+            // client draws the damage bar from. Written for every item that has durability,
+            // zero included, as a Bedrock Dedicated Server 1.26.52 writes it.
+            damage: limit > 0 ? Math.max(0, limit - this.durability) : undefined,
             // Through the stored form, so the `Items` list the client previews a shulker box
             // from is the same list the world record keeps.
             contents: this.heldContents.map((held) => (held === null ? null : storedItem(held))),
