@@ -846,8 +846,10 @@ export default class PlayerSession {
      *
      * The contents follow the open for the same reason they do there: a window whose contents
      * never arrive is one the client has no reason to keep. A workstation stores nothing of its
-     * own, so nothing follows its open. Repeated requests for the same open block return the
-     * current window without sending another open packet.
+     * own, so no contents follow its open. A crafting table is followed by the player's own
+     * inventory under window 0 instead, which is what a Bedrock Dedicated Server 1.26.52 sent
+     * after a click on one. Repeated requests for the same open block return the current window
+     * without sending another open packet.
      *
      * @param at - The block position, which is what `ContainerOpen` carries for a block.
      * @param identifier - The block standing there, which decides the screen.
@@ -903,6 +905,11 @@ export default class PlayerSession {
                 content.items = contents;
                 await this.connection.sendDataPacket(content);
             }
+
+            // What a Bedrock Dedicated Server 1.26.52 sent after a click on a crafting table: the
+            // open, then the player's inventory under window 0. The other workstations were not
+            // recorded, and send nothing more until they are.
+            if (container.screen === WindowTypes.WORKBENCH) await this.sendInventory();
         } catch (error) {
             this.openWindows.delete(packet.windowId);
             if (this.blockContainer === opened) this.blockContainer = current;

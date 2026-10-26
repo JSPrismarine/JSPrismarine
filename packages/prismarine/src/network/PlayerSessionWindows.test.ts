@@ -16,9 +16,13 @@ import PlayerSession from './PlayerSession';
  * The windows a session has opened on the client, and which `ContainerClose` it accepts for them.
  */
 
-/** A session with the window state its constructor would give it, and a connection that records sends. */
+/**
+ * A session with the window state its constructor would give it, and a connection that records
+ * sends. The player's inventory is recorded by window, with how many packets had gone before it.
+ */
 const sessionFor = () => {
     const sent: DataPacket[] = [];
+    const inventories: Array<{ windowId: number; after: number }> = [];
     const connection = stub<ClientConnection>({
         sendDataPacket: async (packet) => void sent.push(packet)
     });
@@ -30,10 +34,11 @@ const sessionFor = () => {
         windowId: 0,
         openWindows: new Map<number, number>(),
         blockContainer: undefined,
-        sendInventory: async () => {}
+        sendInventory: async (windowId: number = WindowIds.INVENTORY) =>
+            void inventories.push({ windowId, after: sent.length })
     });
 
-    return { session, sent };
+    return { session, sent, inventories };
 };
 
 describe('network', () => {
@@ -80,12 +85,24 @@ describe('network', () => {
         });
 
         it('opens a workstation without a contents packet, since it stores nothing', async () => {
-            const { session, sent } = sessionFor();
+            const { session, sent, inventories } = sessionFor();
 
             const opened = await session.openBlockContainer(new Vector3(0, 64, 0), 'minecraft:enchanting_table');
 
             expect(opened).toMatchObject({ screen: WindowTypes.ENCHANTMENT, inputs: [null, null] });
             expect(sent).toHaveLength(1);
+            // Not measured against BDS, unlike the crafting table, so nothing more is sent.
+            expect(inventories).toEqual([]);
+        });
+
+        it("follows a crafting table's open with the player's inventory under window 0, as BDS did", async () => {
+            const { session, sent, inventories } = sessionFor();
+
+            await session.openBlockContainer(new Vector3(3, 64, 3), 'minecraft:crafting_table');
+
+            expect(sent).toHaveLength(1);
+            expect(sent[0]).toMatchObject({ containerType: WindowTypes.WORKBENCH, containerEntityId: -1n });
+            expect(inventories).toEqual([{ windowId: WindowIds.INVENTORY, after: 1 }]);
         });
 
         it.each(['minecraft:anvil', 'minecraft:chipped_anvil', 'minecraft:damaged_anvil'])(
