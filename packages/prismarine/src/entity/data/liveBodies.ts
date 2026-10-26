@@ -22,7 +22,9 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
+import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { NBTTagCompound } from '@jsprismarine/nbt';
+import { navigationProfile } from '@jsprismarine/entity-goals';
 
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
@@ -108,6 +110,8 @@ export class LiveBodies {
      * same thing back from reaching the wire.
      */
     private readonly equipped = new Map<number, number>();
+    /** Swimming flags last mirrored to each body's actor metadata. */
+    private readonly movementFlags = new Map<number, { readonly canSwim: boolean; readonly swimming: boolean }>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -163,6 +167,7 @@ export class LiveBodies {
         // straight after the spawn, and a bow written a tick later would be a visible flicker of
         // an empty-handed skeleton.
         this.writeEquipment(entity, body);
+        this.writeMovementFlags(entity, body);
 
         this.bodies.set(entity.id, body);
         this.idsByBody.set(body, entity.id);
@@ -177,6 +182,7 @@ export class LiveBodies {
         this.written.delete(entity.id);
         this.synced.delete(entity.id);
         this.equipped.delete(entity.id);
+        this.movementFlags.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -195,6 +201,7 @@ export class LiveBodies {
         this.written.delete(id);
         this.synced.delete(id);
         this.equipped.delete(id);
+        this.movementFlags.delete(id);
         return id;
     }
 
@@ -222,8 +229,13 @@ export class LiveBodies {
 
             this.showHealth(entity, body);
             this.writeEquipment(entity, body);
+            const movementFlagsChanged = this.writeMovementFlags(entity, body);
             const properties = this.showSyncedProperties(entity, body);
             if (properties !== undefined) moves.push(properties);
+            else if (movementFlagsChanged) {
+                const metadata = this.options.world()?.sendActorMetadata(body);
+                if (metadata !== undefined) moves.push(metadata);
+            }
             const move = this.showPosition(entity, body);
             if (move !== undefined) moves.push(move);
         }
@@ -257,6 +269,7 @@ export class LiveBodies {
         this.written.clear();
         this.synced.clear();
         this.equipped.clear();
+        this.movementFlags.clear();
     }
 
     /**
@@ -300,6 +313,24 @@ export class LiveBodies {
         this.synced.set(entity.id, current);
         const world = this.options.world();
         return world?.sendActorMetadata(body);
+    }
+
+    /** Writes data-driven swim capabilities and the current swimming state to the actor. */
+    private writeMovementFlags(entity: DataEntity, body: Entity): boolean {
+        const profile = navigationProfile(entity.instance);
+        const canSwim =
+            profile.canSwim ||
+            profile.canFloat ||
+            profile.isAmphibious ||
+            entity.instance.hasComponent('minecraft:behavior.float');
+        const next = { canSwim, swimming: canSwim && entity.body.conditions.has('in_water') };
+        const previous = this.movementFlags.get(entity.id);
+        if (previous?.canSwim === next.canSwim && previous.swimming === next.swimming) return false;
+
+        body.metadata.setGenericFlag(ActorFlags.CANSWIM, next.canSwim);
+        body.metadata.setGenericFlag(ActorFlags.SWIMMING, next.swimming);
+        this.movementFlags.set(entity.id, next);
+        return previous !== undefined;
     }
 
     /**
@@ -351,7 +382,7 @@ export class LiveBodies {
         // Before the early return, because a mob that landed this tick without moving far
         // enough to be worth a packet is still a mob that is now on the ground, and the next
         // move packet is the one that has to say so.
-        body.setGrounded(!entity.body.airborne);
+        body.setGrounded(entity.body.conditions.has('on_ground'));
 
         const at = entity.position;
         const here = body.getPosition();

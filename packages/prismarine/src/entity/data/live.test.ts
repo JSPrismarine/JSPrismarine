@@ -6,6 +6,7 @@ import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
+import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -41,6 +42,7 @@ import { WorldSystems } from '../../world/WorldSystems';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
+import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
@@ -203,6 +205,15 @@ const ENTITIES = new Map([
             },
             component_groups: { settled: { 'minecraft:type_family': { family: ['dustling', 'settled'] } } },
             events: { 'minecraft:entity_spawned': { add: { component_groups: ['settled'] } } }
+        })
+    ],
+    [
+        'jsprismarine:levitator',
+        entityFile('jsprismarine:levitator', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:physics': { has_gravity: false }
+            }
         })
     ]
 ]);
@@ -562,6 +573,19 @@ describe('the data-driven entity runtime over a live world', () => {
             const cows = live.runtime.all().length;
             expect(typesIn(world).filter((type) => type === 'minecraft:cow')).toHaveLength(cows);
             expect(live.bodies.size).toBe(cows);
+        });
+
+        it('does not report an unsupported gravity-free mob as grounded', async () => {
+            const levitator = live.runtime.spawn('jsprismarine:levitator', {
+                x: 2.5,
+                y: GROUND_Y + 4,
+                z: 2.5
+            });
+            if (levitator === undefined) throw new Error('the fixture declares no gravity-free mob');
+
+            await run(1);
+
+            expect(live.bodies.bodyOf(levitator.id)?.isOnGround()).toBe(false);
         });
 
         it('spawns nothing with nobody in the world to spawn around', async () => {
@@ -1213,6 +1237,31 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(navigator.canReach({ x: 10.5, y: GROUND_Y, z: 2.5 })).toBe(false);
             expect(pig.position).toEqual({ x: 2.5, y: GROUND_Y, z: 2.5 });
+
+            const swimmingPig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: FLOOR_Y + 0.5, z: 5.5 });
+            if (swimmingPig === undefined) throw new Error('the vanilla content declares no second pig');
+            await live.tick(1);
+
+            const pigBody = live.bodies.bodyOf(swimmingPig.id);
+            if (pigBody === undefined) throw new Error('the swimming pig has no client-facing body');
+            expect(swimmingPig.body.conditions.has('in_water')).toBe(true);
+            expect(swimmingPig.instance.goals.runningGoals()).toContain('minecraft:behavior.float');
+            expect(pigBody.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
+
+            const player = addPlayer(10, 2);
+            const zombieWalker = live.runtime.spawn('minecraft:zombie', { x: 2.5, y: GROUND_Y, z: 2.5 });
+            if (zombieWalker === undefined) throw new Error('the vanilla content declares no zombie');
+            for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
+
+            const body = live.bodies.bodyOf(zombieWalker.id);
+            if (body === undefined) throw new Error('the zombie has no client-facing body');
+            expect(zombieWalker.target).toBe(Number(player.getRuntimeId()));
+            expect(zombieWalker.position.x).toBeGreaterThan(4);
+            expect(zombieWalker.position.x).toBeLessThan(9);
+            expect(zombieWalker.position.y).toBeLessThan(GROUND_Y);
+            expect(zombieWalker.body.conditions.has('in_water')).toBe(true);
+            expect(body.isOnGround()).toBe(false);
+            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
         });
     });
 });

@@ -136,6 +136,15 @@ describe('the facts of a type that declares them in a component group', () => {
         expect(entity.position.x).toBeCloseTo(BLOOMED.movement, 6);
     });
 
+    it('uses the live underwater movement value while in water', () => {
+        const { entity } = bloomed();
+        entity.body.conditions.add('in_water');
+        entity.body.moveTo({ x: 8, y: SPAWN.y, z: 0 }, 1);
+        entity.step();
+
+        expect(entity.position.x).toBeCloseTo(BLOOMED.underwaterMovement, 6);
+    });
+
     it('follow the entity when the group goes away again', () => {
         const { entity } = bloomed();
         entity.instance.raise('jsprismarine:wilt', 'self', 'the test');

@@ -323,9 +323,10 @@ export class MobBody {
     /**
      * Advances the walk by one tick.
      *
-     * The step is the entity's own `minecraft:movement` scaled by whatever the
-     * goal asked for, so a goal's `speed_multiplier` means the same thing here
-     * as it does in the behavior pack.
+     * The step uses the entity's `minecraft:movement` on land and
+     * `minecraft:underwater_movement` in water, scaled by whatever the goal
+     * asked for, so a goal's `speed_multiplier` means the same thing here as it
+     * does in the behavior pack.
      */
     public step(options?: MobBodyStepOptions): void {
         const destination = this.destination;
@@ -362,7 +363,8 @@ export class MobBody {
             this.idleTicks += 1;
         }
 
-        const speed = this.facts.movement * this.speedMultiplier;
+        const movement = this.conditions.has('in_water') ? this.facts.underwaterMovement : this.facts.movement;
+        const speed = movement * this.speedMultiplier;
         if (speed <= 0) return;
 
         const scale = Math.min(speed, remaining) / remaining;

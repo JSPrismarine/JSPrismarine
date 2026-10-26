@@ -46,7 +46,7 @@ import { detonate } from './explosion';
 import { rollMobEquipment } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
-import { bodyCanOccupy, isSupported, moveOnAxis } from './collision';
+import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
@@ -349,12 +349,15 @@ export class EntityRuntime implements EntityScene {
     public tick(tick: number): void {
         for (const entity of this.all()) {
             if (entity.removed !== undefined) continue;
+            this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
             this.tickBrain(entity);
             tickBrainNavigation(entity);
             this.coast(entity);
             this.step(entity);
+            this.updateMedium(entity);
+            this.updateGrounded(entity);
             this.carryRiders(entity);
         }
         this.runSpawnCycle(tick);
@@ -415,6 +418,35 @@ export class EntityRuntime implements EntityScene {
             const reason = despawnReason({ position: blockPositionOf(entity.position) }, world);
             if (reason !== undefined) this.remove(entity.id, reason);
         }
+    }
+
+    /** Updates the liquid conditions every entity's components read this tick. */
+    private updateMedium(entity: DataEntity): void {
+        const { body, facts } = entity;
+        const navigation = this.navigation();
+        const inWater = bodyIntersectsMedium(body.position, facts.box, navigation.isWater);
+        const inLava = bodyIntersectsMedium(body.position, facts.box, navigation.isLava);
+        const head = blockPositionOf({
+            x: body.position.x,
+            y: body.position.y + facts.box.height - MOVEMENT_EPSILON,
+            z: body.position.z
+        });
+
+        setCondition(body.conditions, 'in_water', inWater);
+        setCondition(body.conditions, 'in_contact_with_water', inWater);
+        setCondition(body.conditions, 'in_lava', inLava);
+        setCondition(body.conditions, 'is_underwater', navigation.isWater(head));
+    }
+
+    /** Rechecks support after AI movement, so packets describe the position clients receive. */
+    private updateGrounded(entity: DataEntity): void {
+        const physics = entity.instance.componentParams('minecraft:physics');
+        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const grounded =
+            hasCollision &&
+            entity.body.velocity.y <= 0 &&
+            isSupported(entity.position, entity.facts.box, this.navigation());
+        setCondition(entity.body.conditions, 'on_ground', grounded);
     }
 
     /** Runs one brain mob's activity update and then its brain. */
@@ -1089,6 +1121,12 @@ export class EntityRuntime implements EntityScene {
 
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
+
+/** Adds or clears one environmental condition on an entity's body. */
+const setCondition = (conditions: Set<string>, name: string, active: boolean): void => {
+    if (active) conditions.add(name);
+    else conditions.delete(name);
+};
 
 /** Where an entity's eyes are up its hitbox, which is Java's 0.85 for a standing mob. */
 const EYE_HEIGHT = 0.85;

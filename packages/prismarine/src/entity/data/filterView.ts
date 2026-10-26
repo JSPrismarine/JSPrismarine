@@ -55,7 +55,7 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
         case 'is_navigating':
             return body.walking;
         case 'on_ground':
-            return !body.airborne;
+            return body.conditions.has('on_ground');
         default:
             // Everything else is either the entity's own (`is_baby`, `is_tamed`) or a fact
             // about the blocks the runtime does not track yet, and an unanswered flag makes

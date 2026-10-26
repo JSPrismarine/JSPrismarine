@@ -29,6 +29,30 @@ export const bodyCanOccupy = (position: EntityPosition, box: EntityBox, navigati
     return true;
 };
 
+/** Whether any block under a body's box belongs to the requested medium. */
+export const bodyIntersectsMedium = (
+    position: EntityPosition,
+    box: EntityBox,
+    contains: (block: EntityPosition) => boolean
+): boolean => {
+    const minX = Math.floor(position.x - box.width / 2 + COLLISION_EPSILON);
+    const maxX = Math.floor(position.x + box.width / 2 - COLLISION_EPSILON);
+    const minY = Math.floor(position.y + COLLISION_EPSILON);
+    const maxY = Math.floor(position.y + box.height - COLLISION_EPSILON);
+    const minZ = Math.floor(position.z - box.width / 2 + COLLISION_EPSILON);
+    const maxZ = Math.floor(position.z + box.width / 2 - COLLISION_EPSILON);
+
+    for (let x = minX; x <= maxX; x += 1) {
+        for (let y = minY; y <= maxY; y += 1) {
+            for (let z = minZ; z <= maxZ; z += 1) {
+                if (contains({ x, y, z })) return true;
+            }
+        }
+    }
+
+    return false;
+};
+
 /** Whether an entity with level feet is supported by at least one solid block. */
 export const isSupported = (position: EntityPosition, box: EntityBox, navigation: NavigationView): boolean => {
     const feetY = Math.floor(position.y);
