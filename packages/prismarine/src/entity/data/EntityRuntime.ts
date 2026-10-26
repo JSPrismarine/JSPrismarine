@@ -47,7 +47,7 @@ import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { brainMobFor } from './brainIdentifiers';
-import { brainMobOf, brainWorldOf } from './brainWorld';
+import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
@@ -350,6 +350,7 @@ export class EntityRuntime implements EntityScene {
             this.tickTimers(entity.body);
             entity.instance.tick();
             this.tickBrain(entity);
+            tickBrainNavigation(entity);
             this.coast(entity.body);
             entity.step();
             this.carryRiders(entity);

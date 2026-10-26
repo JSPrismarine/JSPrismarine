@@ -2,10 +2,27 @@ import { describe, expect, it } from 'vitest';
 
 import { Activities } from '@jsprismarine/entity-brains';
 
+import { brainMobOf, tickBrainNavigation } from './brainWorld';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
 /** A runtime over the entity fixture, with the world a test can poke at. */
 const runtimeOf = (world = new TestEntityWorld()) => entityFixture(world);
+
+const brainGoatRuntime = (navigation: 'walk' | 'fly', world = new TestEntityWorld()) =>
+    entityFixture(
+        world,
+        {},
+        {
+            'minecraft:goat': {
+                components: {
+                    'minecraft:health': { value: 10, max: 10 },
+                    'minecraft:movement': { value: 2 },
+                    'minecraft:collision_box': { width: 0.9, height: 1.3 },
+                    [`minecraft:navigation.${navigation}`]: {}
+                }
+            }
+        }
+    );
 
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
@@ -187,6 +204,56 @@ describe('EntityRuntime', () => {
 
             expect(runtime.spawn('minecraft:cow', GROUND)?.runsGoals).toBe(true);
             expect(runtime.spawn('minecraft:goat', GROUND)?.runsGoals).toBe(false);
+        });
+
+        it('routes a walking brain mob around solid blocks', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 1, y: FLOOR_Y + 2, z: 0 }, 'minecraft:stone');
+            const { runtime } = brainGoatRuntime('walk', world);
+            const goat = runtime.spawn('minecraft:goat', GROUND);
+            if (goat?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:goat');
+
+            const mob = brainMobOf(goat, goat.brain, runtime);
+            const target = { x: 2.5, y: FLOOR_Y + 1, z: 0.5 };
+            expect(mob.navigation.moveTo(target, 1)).toBe(true);
+            for (let tick = 0; tick < 30; tick += 1) {
+                expect(mob.navigation.moveTo(target, 1)).toBe(true);
+                tickBrainNavigation(goat);
+                goat.body.step();
+                expect(Math.floor(goat.position.x) === 1 && Math.floor(goat.position.z) === 0).toBe(false);
+            }
+        });
+
+        it('does not let a walking brain mob fly to a position without ground support', () => {
+            const { runtime } = brainGoatRuntime('walk');
+            const goat = runtime.spawn('minecraft:goat', GROUND);
+            if (goat?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:goat');
+
+            const mob = brainMobOf(goat, goat.brain, runtime);
+            const target = { x: 0.5, y: FLOOR_Y + 5, z: 0.5 };
+            expect(mob.navigation.canReach(target)).toBe(false);
+            expect(mob.navigation.moveTo(target, 1)).toBe(false);
+            for (let tick = 0; tick < 30; tick += 1) goat.body.step();
+
+            expect(goat.position.y).toBe(GROUND.y);
+        });
+
+        it('lets a brain mob fly when its navigation component allows it', () => {
+            const { runtime } = brainGoatRuntime('fly');
+            const goat = runtime.spawn('minecraft:goat', GROUND);
+            if (goat?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:goat');
+
+            const mob = brainMobOf(goat, goat.brain, runtime);
+            const target = { x: 0.5, y: FLOOR_Y + 5, z: 0.5 };
+            expect(mob.navigation.moveTo(target, 1)).toBe(true);
+            for (let tick = 0; tick < 10; tick += 1) {
+                expect(mob.navigation.moveTo(target, 1)).toBe(true);
+                tickBrainNavigation(goat);
+                goat.body.step();
+            }
+
+            expect(goat.position.y).toBeGreaterThan(GROUND.y);
         });
     });
 

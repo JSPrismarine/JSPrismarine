@@ -19,10 +19,12 @@ import type {
 } from '@jsprismarine/entity-brains';
 import { blockContaining, distanceSquared } from '@jsprismarine/entity-brains';
 import type { Brain } from '@jsprismarine/entity-brains';
+import type { EntityPosition } from '@jsprismarine/entities';
+import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
-import { blockPositionOf, withinMeleeReach } from './goalWorld';
+import { actuatorOf, blockPositionOf, withinMeleeReach } from './goalWorld';
 import type { EntityScene } from './scene';
 
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */
@@ -48,18 +50,77 @@ const itemTags = (identifier: string, scene: EntityScene): ReadonlySet<string> =
     return new Set(tags.tags('item').filter((tag) => tags.members('item', tag).includes(identifier)));
 };
 
+interface BrainNavigationState {
+    readonly navigator: Navigator;
+    destination: EntityPosition | undefined;
+    speedModifier: number | undefined;
+    stuck: boolean;
+}
+
+const brainNavigations = new WeakMap<DataEntity, BrainNavigationState>();
+
+/** The path state one brain mob keeps while its behavior ticks. */
+const brainNavigationStateOf = (entity: DataEntity, scene: EntityScene): BrainNavigationState => {
+    const known = brainNavigations.get(entity);
+    if (known !== undefined) return known;
+
+    const state: BrainNavigationState = {
+        navigator: new Navigator({
+            actuator: actuatorOf(entity.body, scene),
+            navigation: () => scene.navigation(),
+            profile: () => navigationProfile(entity.instance)
+        }),
+        destination: undefined,
+        speedModifier: undefined,
+        stuck: false
+    };
+    brainNavigations.set(entity, state);
+    return state;
+};
+
 /** Path following for one brain mob, over the same body the goals walk. */
-const brainNavigationOf = (entity: DataEntity, scene: EntityScene): BrainNavigation => ({
-    moveTo: (target, speedModifier) => {
-        if (!scene.navigation().isPassable(blockPositionOf(target))) return false;
-        entity.body.moveTo(target, speedModifier);
-        return true;
-    },
-    isDone: () => !entity.body.walking,
-    isStuck: () => entity.body.stuck,
-    canReach: (target) => scene.navigation().isPassable(blockPositionOf(target)),
-    stop: () => entity.body.stopMoving()
-});
+const brainNavigationOf = (entity: DataEntity, scene: EntityScene): BrainNavigation => {
+    const state = brainNavigationStateOf(entity, scene);
+    return {
+        moveTo: (target, speedModifier) => {
+            const targetBlock = blockPositionOf(target);
+            const currentBlock = state.destination === undefined ? undefined : blockPositionOf(state.destination);
+            if (
+                currentBlock?.x === targetBlock.x &&
+                currentBlock.y === targetBlock.y &&
+                currentBlock.z === targetBlock.z &&
+                state.speedModifier === speedModifier &&
+                state.navigator.walking
+            )
+                return true;
+
+            state.destination = targetBlock;
+            state.speedModifier = speedModifier;
+            state.stuck = false;
+            const started = state.navigator.moveTo(target, speedModifier, 0.5);
+            if (!started) state.destination = undefined;
+            return started;
+        },
+        isDone: () => !state.navigator.walking || state.navigator.arrived(),
+        isStuck: () => state.stuck,
+        canReach: (target) => state.navigator.canReach(target, 0.5),
+        stop: () => {
+            state.navigator.stop();
+            state.destination = undefined;
+            state.stuck = false;
+        }
+    };
+};
+
+/** Advances the cached brain path by one tick. */
+export const tickBrainNavigation = (entity: DataEntity): void => {
+    const state = brainNavigations.get(entity);
+    if (state === undefined || !state.navigator.walking) return;
+
+    const arrived = state.navigator.arrived();
+    state.navigator.tick();
+    if (!state.navigator.walking && !arrived && !state.navigator.arrived()) state.stuck = true;
+};
 
 /** The body one brain drives. */
 export const brainMobOf = (entity: DataEntity, brain: Brain, scene: EntityScene): BrainMob => ({
