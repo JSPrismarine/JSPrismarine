@@ -1,6 +1,6 @@
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -94,6 +94,10 @@ describe('against a real server', () => {
     beforeAll(async () => {
         stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-cli-'));
         vi.stubEnv('JSP_DIR', stateRoot);
+        writeFileSync(
+            path.join(stateRoot, 'config.json'),
+            JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+        );
 
         server = new Server({ logger: new Logger('error'), config: new Config(), headless: true });
         await server.bootstrap('127.0.0.1', port);

@@ -1,7 +1,7 @@
 import { OfflineAuthProvider } from '@jsprismarine/auth';
 import { Logger } from '@jsprismarine/logger';
 import { Config, Server } from '@jsprismarine/prismarine';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -27,6 +27,10 @@ beforeAll(async () => {
     // LevelDB takes a directory lock, so a world of our own is not optional either.
     stateRoot = mkdtempSync(path.join(tmpdir(), 'jsprismarine-client-login-'));
     vi.stubEnv('JSP_DIR', stateRoot);
+    writeFileSync(
+        path.join(stateRoot, 'config.json'),
+        JSON.stringify({ 'online-mode': false, worlds: { world: { generator: 'Flat' } } })
+    );
 
     const logger = new Logger('error');
     server = new Server({ logger, config: new Config(), headless: true });
