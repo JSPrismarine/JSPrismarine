@@ -150,7 +150,7 @@ export const brainMobOf = (entity: DataEntity, brain: Brain, scene: EntityScene)
         else entity.conditions.delete(condition);
     },
     lookAt: (position) => entity.body.lookAt(position),
-    jump: () => undefined,
+    jump: () => entity.body.jump(),
     attack: (target) => {
         const other = scene.byId(Number(target.id));
         if (other === undefined) return;

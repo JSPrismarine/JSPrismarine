@@ -25,6 +25,24 @@ const brainGoatRuntime = (navigation: 'walk' | 'fly', world = new TestEntityWorl
         }
     );
 
+const moverRuntime = (world = new TestEntityWorld()) =>
+    entityFixture(
+        world,
+        {},
+        {
+            'jsprismarine:mover': {
+                components: {
+                    'minecraft:health': { value: 20, max: 20 },
+                    'minecraft:movement': { value: 0.25 },
+                    'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                    'minecraft:physics': {},
+                    'minecraft:navigation.walk': { can_walk: true },
+                    'minecraft:jump.static': { jump_power: 0.8 }
+                }
+            }
+        }
+    );
+
 const GROUND = { x: 0, y: FLOOR_Y + 1, z: 0 };
 
 describe('EntityRuntime', () => {
@@ -118,6 +136,58 @@ describe('EntityRuntime', () => {
     });
 
     describe('physics', () => {
+        it('keeps a walking entity from following a path vertically into the air', () => {
+            const { runtime } = moverRuntime();
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            mover.body.moveTo({ x: 0.5, y: GROUND.y + 4, z: 0.5 }, 1);
+
+            runtime.tick(1);
+
+            expect(mover.position.y).toBe(GROUND.y);
+        });
+
+        it('stops a walking entity at the collision box of a solid wall', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 2, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 1, y: FLOOR_Y + 2, z: 0 }, 'minecraft:stone');
+            const { runtime } = moverRuntime(world);
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            mover.body.moveTo({ x: 3.5, y: GROUND.y, z: 0.5 }, 1);
+
+            for (let tick = 1; tick <= 10; tick += 1) runtime.tick(tick);
+
+            expect(mover.position.x).toBeLessThan(1);
+        });
+
+        it('jumps onto a one-block step instead of moving upward through it', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            world.setBlock({ x: 2, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
+            const { runtime } = moverRuntime(world);
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            mover.body.moveTo({ x: 2.5, y: GROUND.y + 1, z: 0.5 }, 1);
+
+            for (let tick = 1; tick <= 40; tick += 1) runtime.tick(tick);
+
+            expect(mover.position.x).toBeGreaterThan(1.5);
+            expect(mover.position.y).toBe(GROUND.y + 1);
+        });
+
+        it('uses the active jump component when the entity actuator jumps', () => {
+            const { runtime } = moverRuntime();
+            const mover = runtime.spawn('jsprismarine:mover', GROUND);
+            if (mover === undefined) throw new Error('the fixture declares no mover');
+            runtime.tick(1);
+
+            mover.instance.actuator?.jump();
+
+            expect(mover.body.velocity.y).toBe(0.8);
+        });
+
         it('lets a zombie and villager fall onto solid ground and run their AI', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld({ dayTime: 2000, random: [0.61, 0.5, 0.5] }),

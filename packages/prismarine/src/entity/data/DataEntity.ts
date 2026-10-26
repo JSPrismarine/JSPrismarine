@@ -14,6 +14,7 @@
  * wraps it, and the entity is the pair.
  */
 import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
+import { isRecord } from '@jsprismarine/entities';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 
 import { DamageLog } from './damageLog';
@@ -21,6 +22,7 @@ import type { MobEquipmentSet } from '../equipment';
 import { NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
+import { moveOnAxis } from './collision';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
 const ARRIVAL_RADIUS = 0.25;
@@ -30,6 +32,21 @@ const STUCK_TICKS = 100;
 
 /** Below this many blocks per tick an impulse has spent itself, so the body stops. */
 const IMPULSE_FLOOR = 0.003;
+
+/** The movement rules the world supplies when a body takes its step. */
+interface MobBodyStepOptions {
+    /** Whether this entity's active navigation may move freely on the vertical axis. */
+    readonly allowVertical: boolean;
+    /** Whether the active navigation component permits a jump. */
+    readonly canJump: boolean;
+    /** The height of one step the entity may jump, in blocks. */
+    readonly stepHeight: number;
+    /** Whether the entity's collision box fits at the proposed position. */
+    readonly canOccupy: (position: EntityPosition) => boolean;
+}
+
+/** Java's default jump power for an entity without a jump component or attribute. */
+const DEFAULT_JUMP_POWER = 0.42;
 
 /**
  * Everything about a live entity that exists before its components do.
@@ -169,6 +186,7 @@ export class MobBody {
     public velocity: EntityPosition = { x: 0, y: 0, z: 0 };
 
     private at: EntityPosition;
+    private instance: EntityInstance | undefined;
     private destination: EntityPosition | undefined;
     private speedMultiplier = 1;
     /** Ticks since the destination was set without the entity getting any closer. */
@@ -210,6 +228,7 @@ export class MobBody {
      * entity exist, so no caller has to remember to.
      */
     public watch(instance: EntityInstance): void {
+        this.instance = instance;
         this.live = liveFactsOf(this.typeFacts, instance);
     }
 
@@ -256,6 +275,27 @@ export class MobBody {
     /** Drops the impulse, which is what landing does. */
     public land(): void {
         this.velocity = { x: 0, y: 0, z: 0 };
+        this.conditions.delete('jumping');
+        this.conditions.add('on_ground');
+    }
+
+    /** Starts a data-driven jump when the entity is standing on the ground. */
+    public jump(): void {
+        const instance = this.instance;
+        if (instance === undefined || !this.conditions.has('on_ground') || this.airborne) return;
+
+        const navigation = instance.activeComponents().find((name) => name.startsWith('minecraft:navigation.'));
+        if (navigation !== undefined) {
+            const params = instance.componentParams(navigation);
+            if (isRecord(params) && params.canJump === false) return;
+        }
+
+        const params = instance.componentParams('minecraft:jump.static');
+        const jumpPower =
+            isRecord(params) && typeof params.jumpPower === 'number' ? params.jumpPower : DEFAULT_JUMP_POWER;
+        this.push({ x: 0, y: jumpPower, z: 0 });
+        this.conditions.delete('on_ground');
+        this.conditions.add('jumping');
     }
 
     /** Starts walking towards a position at a multiple of the entity's own speed. */
@@ -287,15 +327,29 @@ export class MobBody {
      * goal asked for, so a goal's `speed_multiplier` means the same thing here
      * as it does in the behavior pack.
      */
-    public step(): void {
-        // A leaping entity goes where the leap sends it, which is Java's rule too: the path
-        // resumes once the mob is back on the ground.
-        if (this.airborne) return;
-
+    public step(options?: MobBodyStepOptions): void {
         const destination = this.destination;
         if (destination === undefined) return;
 
-        const remaining = distance(this.position, destination);
+        if (
+            options !== undefined &&
+            !options.allowVertical &&
+            options.canJump &&
+            destination.y > this.position.y + ARRIVAL_RADIUS &&
+            destination.y <= this.position.y + options.stepHeight + ARRIVAL_RADIUS &&
+            !this.airborne
+        )
+            this.jump();
+
+        // A knockback impulse carries a grounded walker until it lands. A jump still
+        // advances horizontally, so it can clear the path step that caused it.
+        if (this.airborne && !this.conditions.has('jumping') && options?.allowVertical !== true) return;
+
+        const target = options?.allowVertical === false ? { ...destination, y: this.position.y } : destination;
+        const remaining =
+            options?.allowVertical === false
+                ? horizontalDistance(this.position, target)
+                : distance(this.position, target);
         if (remaining <= ARRIVAL_RADIUS) {
             this.destination = undefined;
             return;
@@ -312,11 +366,25 @@ export class MobBody {
         if (speed <= 0) return;
 
         const scale = Math.min(speed, remaining) / remaining;
-        this.position = {
+        const proposed = {
             x: this.position.x + (destination.x - this.position.x) * scale,
-            y: this.position.y + (destination.y - this.position.y) * scale,
+            y: this.position.y + (target.y - this.position.y) * scale,
             z: this.position.z + (destination.z - this.position.z) * scale
         };
+
+        if (options === undefined) {
+            this.position = proposed;
+        } else {
+            let resolved = this.position;
+            if (options.allowVertical) {
+                resolved = moveOnAxis(resolved, proposed.y, 'y', options.canOccupy);
+            }
+
+            resolved = moveOnAxis(resolved, proposed.x, 'x', options.canOccupy);
+            resolved = moveOnAxis(resolved, proposed.z, 'z', options.canOccupy);
+
+            this.position = resolved;
+        }
         this.lookAt(destination);
     }
 }
@@ -420,14 +488,18 @@ export class DataEntity {
     }
 
     /** Advances the walk by one tick. */
-    public step(): void {
-        this.body.step();
+    public step(options?: MobBodyStepOptions): void {
+        this.body.step(options);
     }
 }
 
 /** The straight-line distance between two positions. */
 export const distance = (from: EntityPosition, to: EntityPosition): number =>
     Math.hypot(to.x - from.x, to.y - from.y, to.z - from.z);
+
+/** The horizontal distance between two positions, ignoring height. */
+const horizontalDistance = (from: EntityPosition, to: EntityPosition): number =>
+    Math.hypot(to.x - from.x, to.z - from.z);
 
 /**
  * The square of the straight-line distance between two positions.

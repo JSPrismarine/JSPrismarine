@@ -28,6 +28,7 @@ import type {
 } from '@jsprismarine/entities';
 import { EntityInstance, isRecord, noEffects } from '@jsprismarine/entities';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
+import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
@@ -45,6 +46,7 @@ import { detonate } from './explosion';
 import { rollMobEquipment } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
+import { bodyCanOccupy, isSupported, moveOnAxis } from './collision';
 import { actuatorOf, blockPositionOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
@@ -352,7 +354,7 @@ export class EntityRuntime implements EntityScene {
             this.tickBrain(entity);
             tickBrainNavigation(entity);
             this.coast(entity);
-            entity.step();
+            this.step(entity);
             this.carryRiders(entity);
         }
         this.runSpawnCycle(tick);
@@ -983,35 +985,61 @@ export class EntityRuntime implements EntityScene {
         const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
         const position = body.position;
         const navigation = this.navigation();
-        const feet = blockPositionOf(position);
-        const grounded =
-            hasGravity &&
-            hasCollision &&
-            Math.abs(position.y - feet.y) < 1e-6 &&
-            navigation.isSolid({ x: feet.x, y: feet.y - 1, z: feet.z });
+        const grounded = hasCollision && body.velocity.y <= 0 && isSupported(position, entity.facts.box, navigation);
+
+        if (grounded) body.conditions.add('on_ground');
+        else body.conditions.delete('on_ground');
 
         if (!body.airborne && (!hasGravity || grounded)) return;
 
         const velocity = body.velocity;
         const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - (hasGravity ? GRAVITY : 0);
-        const next = {
-            x: position.x + velocity.x,
-            y: position.y + (grounded && velocity.y <= 0 ? 0 : fallingY),
-            z: position.z + velocity.z
-        };
+        const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
+        const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation);
+        let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
+        next = moveOnAxis(next, position.z + velocity.z, 'z', canOccupy);
+        const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
+        const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
 
-        if (hasCollision && fallingY <= 0 && !navigation.isPassable(blockPositionOf(next))) {
-            body.position = { x: next.x, y: Math.floor(next.y) + 1, z: next.z };
-            body.land();
-            return;
+        if (hitVerticalCollision) {
+            if (fallingY <= 0) {
+                const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
+                body.position = landed;
+                body.land();
+                return;
+            }
+
+            next = nextVertical;
+            body.velocity = { x: velocity.x * DRAG, y: 0, z: velocity.z * DRAG };
+        } else {
+            next = nextVertical;
+            body.velocity = {
+                x: Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON ? 0 : velocity.x * DRAG,
+                y: fallingY,
+                z: Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON ? 0 : velocity.z * DRAG
+            };
         }
 
         body.position = next;
-        body.velocity = {
-            x: velocity.x * DRAG,
-            y: fallingY,
-            z: velocity.z * DRAG
-        };
+    }
+
+    /** Moves a body along its current waypoint using its active navigation rules. */
+    private step(entity: DataEntity): void {
+        const navigation = this.navigation();
+        const profile = navigationProfile(entity.instance);
+        const feet = blockPositionOf(entity.position);
+        const inLiquid = navigation.isWater(feet) || navigation.isLava(feet);
+        const swims = inLiquid && (profile.canSwim || profile.canFloat || profile.isAmphibious);
+        const climbs = profile.kind === 'climb' && navigation.isClimbable?.(feet) === true;
+        const physics = entity.instance.componentParams('minecraft:physics');
+        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+
+        entity.step({
+            allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
+            canJump: profile.canJump,
+            stepHeight: profile.stepHeight,
+            canOccupy: (position) => !hasCollision || bodyCanOccupy(position, entity.facts.box, navigation)
+        });
     }
 
     /** Keeps every rider where its vehicle is, which is what being carried means. */
@@ -1064,6 +1092,9 @@ const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'),
 
 /** Where an entity's eyes are up its hitbox, which is Java's 0.85 for a standing mob. */
 const EYE_HEIGHT = 0.85;
+
+/** Epsilon for checking whether a collision sweep reached its requested coordinate. */
+const MOVEMENT_EPSILON = 1e-7;
 
 /** How fast a fired projectile leaves the shooter, from Java's `AbstractArrow` launch velocity. */
 const PROJECTILE_SPEED = 1.6;

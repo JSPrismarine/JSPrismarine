@@ -51,11 +51,7 @@ export const actuatorOf = (body: MobBody, scene: EntityScene): EntityActuator =>
     moveTo: (position, speedMultiplier) => body.moveTo(position, speedMultiplier),
     stopMoving: () => body.stopMoving(),
     lookAt: (position) => body.lookAt(position),
-    // Nothing in the data-driven body leaves the ground yet, so a jump is the one actuator
-    // member with no effect. It is here rather than absent because `EntityActuator` has no
-    // optional members: a goal holding the `jump` control flag still runs, it just does not
-    // leave the ground.
-    jump: () => undefined,
+    jump: () => body.jump(),
     randomTarget: (xzDistance, yDistance) => randomTarget(body.position, scene, xzDistance, yDistance),
     nearestPlayer: (maxDistance) => nearestPlayerTo(body.position, scene, maxDistance)?.position
 });
