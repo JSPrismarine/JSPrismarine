@@ -207,7 +207,7 @@ member of the player sub-predicate, which that package does not implement. The t
 that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources` populates, so it only runs with
 `JSP_VANILLA_DATAPACK` set and CI without the cache skips it.
 
-The ungated tests run against twelve of the 43 files, copied verbatim into `fixtures.test.ts`. The
+The ungated tests run against twelve of the 43 files, copied verbatim into `test/fixtures.ts`. The
 vanilla data is a cached input this repository regenerates rather than a snapshot it vendors, so
 only the subset the behavior tests need lives in the package.
 

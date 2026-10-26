@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ItemStack } from '@jsprismarine/predicates';
 
-import { vanillaRegistry } from './fixtures.test';
+import { vanillaRegistry } from '../test/fixtures';
 import { javaRandom } from './random';
 import {
     ENCHANTING_SLOTS,

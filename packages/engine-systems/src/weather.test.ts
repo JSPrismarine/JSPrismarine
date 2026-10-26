@@ -22,7 +22,7 @@ const lowest = (): number => 0;
 const highest = (bound: number): number => bound - 1;
 
 /** Runs the cycle `ticks` times and answers where it ended up. */
-const after = (state: WeatherState, ticks: number, randomInt = lowest): WeatherState => {
+const afterTicks = (state: WeatherState, ticks: number, randomInt = lowest): WeatherState => {
     let current = state;
     for (let tick = 0; tick < ticks; tick += 1) current = advanceWeatherCycle(current, randomInt);
     return current;
@@ -73,12 +73,12 @@ describe('advanceWeatherCycle', () => {
 
         // One tick to book the shortest delay, then that many to run it down. The flag flips
         // on the tick the counter reaches zero, which is the last of them.
-        expect(weatherOf(after(quiet, RAIN_DELAY.min))).toBe('clear');
-        expect(weatherOf(after(quiet, RAIN_DELAY.min + 1))).toBe('rain');
+        expect(weatherOf(afterTicks(quiet, RAIN_DELAY.min))).toBe('clear');
+        expect(weatherOf(afterTicks(quiet, RAIN_DELAY.min + 1))).toBe('rain');
     });
 
     it('books a shower when the rain starts and stops when it runs out', () => {
-        const starting = after({ ...CLEAR_WEATHER, thunderTime: 1_000_000 }, RAIN_DELAY.min + 1);
+        const starting = afterTicks({ ...CLEAR_WEATHER, thunderTime: 1_000_000 }, RAIN_DELAY.min + 1);
         expect(starting.rainTime).toBe(0);
 
         // Zero means "book the next stretch", and since it is now raining the stretch booked
@@ -86,8 +86,8 @@ describe('advanceWeatherCycle', () => {
         const booked = advanceWeatherCycle(starting, lowest);
         expect(booked.rainTime).toBe(RAIN_DURATION.min);
 
-        expect(weatherOf(after(booked, RAIN_DURATION.min - 1))).toBe('rain');
-        expect(weatherOf(after(booked, RAIN_DURATION.min))).toBe('clear');
+        expect(weatherOf(afterTicks(booked, RAIN_DURATION.min - 1))).toBe('rain');
+        expect(weatherOf(afterTicks(booked, RAIN_DURATION.min))).toBe('clear');
     });
 
     it('runs the thunder counter beside the rain one rather than inside it', () => {
@@ -97,7 +97,7 @@ describe('advanceWeatherCycle', () => {
         const storm = firstTickWhere(CLEAR_WEATHER, (state) => state.thundering, RAIN_DELAY.min + 2);
 
         expect(storm).toBe(THUNDER_DELAY.min + 1);
-        expect(weatherOf(after(CLEAR_WEATHER, storm))).toBe('thunder');
+        expect(weatherOf(afterTicks(CLEAR_WEATHER, storm))).toBe('thunder');
     });
 
     it('lets the thundering flag come up on its own and still reads it as clear', () => {
@@ -108,7 +108,7 @@ describe('advanceWeatherCycle', () => {
         // Six minutes of thunder over a dry spell long enough to outlast it.
         const quiet = { ...CLEAR_WEATHER, rainTime: 100_000, thunderTime: 7200 };
 
-        const storming = after(quiet, 7200);
+        const storming = afterTicks(quiet, 7200);
 
         expect(storming.thundering).toBe(true);
         expect(storming.raining).toBe(false);
@@ -138,7 +138,7 @@ describe('advanceWeatherCycle', () => {
     it('pins both counters and holds the sky clear while a clear spell runs', () => {
         const forced = setWeatherParameters(100, 0, false, false);
 
-        const held = after(forced, 99);
+        const held = afterTicks(forced, 99);
         expect(held.clearWeatherTime).toBe(1);
         expect(weatherOf(held)).toBe('clear');
         // Pinned to one rather than to zero, so the tick after the spell ends flips them both
@@ -150,7 +150,7 @@ describe('advanceWeatherCycle', () => {
     it('lets the rain back in the moment a clear spell ends', () => {
         const forced = setWeatherParameters(1, 0, false, false);
 
-        const ended = after(forced, 1);
+        const ended = afterTicks(forced, 1);
         expect(ended.clearWeatherTime).toBe(0);
 
         expect(weatherOf(advanceWeatherCycle(ended, lowest))).toBe('thunder');
@@ -216,7 +216,7 @@ describe('weatherCommandState', () => {
     it('lasts as long as it says', () => {
         const rain = weatherCommandState('rain', lowest, 300);
 
-        expect(weatherOf(after(rain, 299))).toBe('rain');
-        expect(weatherOf(after(rain, 300))).toBe('clear');
+        expect(weatherOf(afterTicks(rain, 299))).toBe('rain');
+        expect(weatherOf(afterTicks(rain, 300))).toBe('clear');
     });
 });

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { SWEEPING_EDGE, projectToBedrock, romanNumeral } from './bedrock';
 import type { EnchantmentIdentifierMapper } from './bedrock';
-import { vanillaRegistry } from './fixtures.test';
+import { vanillaRegistry } from '../test/fixtures';
 
 /**
  * A stand-in for `javaIdentifierToBedrock('enchantment', id)`. The two ids

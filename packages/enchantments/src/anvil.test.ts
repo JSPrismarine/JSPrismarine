@@ -2,11 +2,11 @@ import type { ItemStack } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
 import { ANVIL_COST_LIMIT, ANVIL_RENAME_COST_LIMIT, combineInAnvil, increasedRepairCost } from './anvil';
-import { vanillaDefinitions } from './fixtures.test';
+import { vanillaDefinitions } from '../test/fixtures';
 import { enchantmentsOf } from './item';
 import type { ItemView } from './item';
 import { EnchantmentRegistry } from './registry';
-import { VANILLA_ENCHANTMENT_TAGS } from './fixtures.test';
+import { VANILLA_ENCHANTMENT_TAGS } from '../test/fixtures';
 
 /** Durability of the diamond tools the cases use, as vanilla gives them. */
 const DIAMOND_SWORD_DURABILITY = 1561;

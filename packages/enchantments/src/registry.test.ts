@@ -2,7 +2,7 @@ import { constantRandom, scriptedRandom } from '@jsprismarine/predicates';
 import type { DamageSource, EntityView, ItemStack, LootContextParameters } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
-import { vanillaRegistry } from './fixtures.test';
+import { vanillaRegistry } from '../test/fixtures';
 import { ENCHANTMENT_TAGS, EnchantmentRegistry } from './registry';
 import type { EffectRun } from './registry';
 

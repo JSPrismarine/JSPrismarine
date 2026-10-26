@@ -2,7 +2,7 @@ import { PredicateContext, parseItemModifier, parsePredicate, scriptedRandom } f
 import type { ItemStack } from '@jsprismarine/predicates';
 import { describe, expect, it } from 'vitest';
 
-import { VANILLA_ENCHANTMENT_TAGS, vanillaDefinitions, vanillaRegistry } from './fixtures.test';
+import { VANILLA_ENCHANTMENT_TAGS, vanillaDefinitions, vanillaRegistry } from '../test/fixtures';
 import { createEnchantmentView } from './lootview';
 import { EnchantmentRegistry } from './registry';
 
