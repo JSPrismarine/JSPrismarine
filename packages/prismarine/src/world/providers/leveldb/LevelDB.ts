@@ -171,14 +171,16 @@ export default class LevelDB extends BaseProvider {
 
         const digestKey = encodeDigestKey(cx, cz, dimension.id);
         const digest = database.get(digestKey);
+        let repairActorDigest = false;
         if (digest === null) {
             this.readLegacyEntities(database.get(key(ChunkTag.Entity)), chunk);
         } else {
-            this.readActorDigest(digest, chunk);
+            repairActorDigest = this.readActorDigest(digest, chunk);
         }
 
         // Loaded, not changed: a chunk read from disk and never touched must not be written back.
         chunk.markSaved();
+        if (repairActorDigest) chunk.markChanged();
         return chunk;
     }
 
@@ -266,22 +268,41 @@ export default class LevelDB extends BaseProvider {
 
     // ----------------------------------------------------------------------- entities
 
-    private readActorDigest(digest: Buffer, chunk: Chunk): void {
+    /**
+     * Loads each distinct actor in a chunk digest and reports whether the chunk needs repair.
+     *
+     * Duplicate references, missing records, malformed actor NBT, and an invalid digest all mark
+     * the chunk dirty. Its next save writes a digest from the actors that could be loaded.
+     */
+    private readActorDigest(digest: Buffer, chunk: Chunk): boolean {
         let actorIds: Buffer[];
         try {
             actorIds = decodeDigest(digest);
         } catch (error) {
             const reason = error instanceof Error ? error.message : String(error);
             this.getServer().getLogger().warn(`Stopped reading chunk actors: ${reason}`);
-            return;
+            return true;
         }
 
+        let repairNeeded = false;
+        const seenActorIds = new Set<string>();
         for (const actorId of actorIds) {
+            const actorIdHex = actorId.toString('hex');
+            if (seenActorIds.has(actorIdHex)) {
+                this.getServer()
+                    .getLogger()
+                    .warn(`Skipped duplicate actor ${actorIdHex} listed by chunk ${chunk.getX()},${chunk.getZ()}`);
+                repairNeeded = true;
+                continue;
+            }
+            seenActorIds.add(actorIdHex);
+
             const value = this.requireDatabase().get(encodeActorKey(actorId));
             if (value === null) {
                 this.getServer()
                     .getLogger()
-                    .warn(`Missing actor ${actorId.toString('hex')} listed by a chunk digest`);
+                    .warn(`Missing actor ${actorIdHex} listed by chunk ${chunk.getX()},${chunk.getZ()}`);
+                repairNeeded = true;
                 continue;
             }
 
@@ -289,11 +310,12 @@ export default class LevelDB extends BaseProvider {
                 chunk.addStoredEntity(this.readActorNbt(value));
             } catch (error) {
                 const reason = error instanceof Error ? error.message : String(error);
-                this.getServer()
-                    .getLogger()
-                    .warn(`Skipped malformed actor ${actorId.toString('hex')}: ${reason}`);
+                this.getServer().getLogger().warn(`Skipped malformed actor ${actorIdHex}: ${reason}`);
+                repairNeeded = true;
             }
         }
+
+        return repairNeeded;
     }
 
     /** Reads legacy 0x32 entity data, which is a run of NBT compounds without a count. */
@@ -321,6 +343,14 @@ export default class LevelDB extends BaseProvider {
         return reader.parse();
     }
 
+    /**
+     * Writes this chunk's persistent actors and gives duplicate identities fresh, stable IDs.
+     *
+     * The first world entity with an existing ID keeps it. Later entities with that ID receive a
+     * new ID that is absent from both the loaded world and the database, and the new value is
+     * stored on the entity so later saves keep using it. An unreadable digest is rebuilt from the
+     * actors currently in the world.
+     */
     private writeEntities(
         database: Database,
         batch: WriteBatch,
@@ -330,10 +360,31 @@ export default class LevelDB extends BaseProvider {
         const dimension = chunk.getDimension();
         const digestKey = encodeDigestKey(chunk.getX(), chunk.getZ(), dimension.id);
         const existingDigest = database.get(digestKey);
-        const previousActorIds = existingDigest === null ? [] : decodeDigest(existingDigest);
-        const entities = this.getWorld()
+        let previousActorIds: Buffer[] = [];
+        if (existingDigest !== null) {
+            try {
+                previousActorIds = decodeDigest(existingDigest);
+            } catch (error) {
+                const reason = error instanceof Error ? error.message : String(error);
+                this.getServer()
+                    .getLogger()
+                    .warn(`Rebuilding invalid actor digest for chunk ${chunk.getX()},${chunk.getZ()}: ${reason}`);
+            }
+        }
+
+        const worldEntities = this.getWorld()
             .getEntities()
-            .filter((entity) => entity.shouldPersist() && this.belongsToChunk(entity, chunk));
+            .filter((entity) => !(entity instanceof Player) && entity.shouldPersist());
+        const entities = worldEntities.filter((entity) => this.belongsToChunk(entity, chunk));
+        const firstEntityByActorId = new Map<string, Entity>();
+        for (const entity of worldEntities) {
+            const persistentNbt = entity.persistentNbt;
+            if (!persistentNbt?.has('UniqueID')) continue;
+
+            const actorIdHex = actorIdBytes(persistentNbt.getLong('UniqueID', 0n)).toString('hex');
+            if (!firstEntityByActorId.has(actorIdHex)) firstEntityByActorId.set(actorIdHex, entity);
+        }
+
         const usedActorIds = this.actorIdsInWorld();
         const actorIds: Buffer[] = [];
         const actorIdsInChunk = new Set<string>();
@@ -346,10 +397,23 @@ export default class LevelDB extends BaseProvider {
                 entity.persistentNbt = nbt;
             }
 
-            const actorId = actorIdBytes(nbt.getLong('UniqueID', 0n));
-            const actorIdHex = actorId.toString('hex');
-            if (actorIdsInChunk.has(actorIdHex)) {
-                throw new Error(`Duplicate actor id ${actorIdHex} in chunk ${chunk.getX()},${chunk.getZ()}`);
+            let actorId = actorIdBytes(nbt.getLong('UniqueID', 0n));
+            let actorIdHex = actorId.toString('hex');
+            if (
+                (firstEntityByActorId.has(actorIdHex) && firstEntityByActorId.get(actorIdHex) !== entity) ||
+                actorIdsInChunk.has(actorIdHex)
+            ) {
+                const duplicateActorIdHex = actorIdHex;
+                const uniqueId = this.generateActorId(database, usedActorIds);
+                nbt.addValue('UniqueID', new Types.LongVal(uniqueId));
+                entity.persistentNbt = nbt;
+                actorId = actorIdBytes(uniqueId);
+                actorIdHex = actorId.toString('hex');
+                this.getServer()
+                    .getLogger()
+                    .warn(
+                        `Reassigned duplicate actor id ${duplicateActorIdHex} to ${actorIdHex} in chunk ${chunk.getX()},${chunk.getZ()}`
+                    );
             }
 
             actorIdsInChunk.add(actorIdHex);

@@ -2232,6 +2232,9 @@ export class World implements Service {
      * uninterrupted run of work. The first autosave after a start region preload has all 441
      * chunks to write and held the event loop for ten seconds - the server froze solid, and
      * the tick loop came back announcing it had skipped two hundred ticks.
+     *
+     * A failed chunk write is logged and left dirty for retry. Other chunks in the pass still
+     * save, and the next pass tries the failed chunk again.
      */
     public async saveChunks(): Promise<void> {
         const timer = new Timer();
@@ -2246,7 +2249,19 @@ export class World implements Service {
             (chunk) => chunk.getHasChanged() || entityChunks.has(Chunk.packXZ(chunk.getX(), chunk.getZ()))
         );
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
-            for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) await this.provider.writeChunk(chunk);
+            for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) {
+                try {
+                    await this.provider.writeChunk(chunk);
+                } catch (error: unknown) {
+                    chunk.markChanged();
+                    this.server
+                        .getLogger()
+                        .error(
+                            `Failed to save chunk ${chunk.getX()},${chunk.getZ()}; it remains dirty for a later retry`
+                        );
+                    this.server.getLogger().error(error);
+                }
+            }
 
             if (i + SAVE_BATCH_SIZE < changed.length) await new Promise((resolve) => setImmediate(resolve));
         }
