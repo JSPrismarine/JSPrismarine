@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Activities } from '@jsprismarine/entity-brains';
 
-import { brainMobOf, tickBrainNavigation } from './brainWorld';
+import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
 import { entityFixture, FLOOR_Y, TestEntityWorld } from './testing';
 
@@ -188,6 +188,80 @@ describe('EntityRuntime', () => {
             for (let tick = 1; tick <= 10; tick += 1) runtime.tick(tick);
 
             expect(buoyant?.position.y).toBe(spawnPosition.y);
+        });
+    });
+
+    describe('player targeting', () => {
+        it('updates brain combat targetability immediately when a player changes game mode', () => {
+            const player = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 2.5, y: FLOOR_Y + 1, z: 0.5 },
+                creative: false,
+                spectator: false
+            };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = entityFixture(world);
+            const cow = runtime.spawn('minecraft:cow', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const brainWorld = runtime.brainWorld();
+            const brainBody = brainEntityOf(cow, runtime);
+            const brainPlayer = brainWorld.players()[0];
+            if (brainPlayer === undefined) throw new Error('the test world has no player');
+
+            expect(brainWorld.isAttackable(brainBody, brainPlayer)).toBe(true);
+
+            world.players = [{ ...player, creative: true }];
+
+            expect(brainWorld.isTargetable(brainBody, brainPlayer)).toBe(true);
+            expect(brainWorld.isAttackable(brainBody, brainPlayer)).toBe(false);
+        });
+
+        it('ignores creative players and drops a target when a player switches to creative', () => {
+            const player = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 8.5, y: FLOOR_Y + 1, z: 0.5 },
+                creative: true,
+                spectator: false
+            };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'minecraft:zombie': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 1 },
+                            'minecraft:follow_range': { value: 24 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:navigation.walk': {},
+                            'minecraft:type_family': { family: ['zombie', 'monster', 'mob'] },
+                            'minecraft:behavior.nearest_attackable_target': {
+                                priority: 1,
+                                within_radius: 24,
+                                entity_types: [
+                                    { filters: { test: 'is_family', subject: 'other', value: 'player' }, max_dist: 24 }
+                                ]
+                            }
+                        }
+                    }
+                }
+            );
+            const zombie = runtime.spawn('minecraft:zombie', GROUND);
+
+            for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+            expect(zombie?.target).toBeUndefined();
+
+            world.players = [{ ...player, creative: false }];
+            for (let tick = 21; tick <= 40; tick += 1) runtime.tick(tick);
+            expect(zombie?.target).toBe(player.id);
+
+            world.players = [player];
+            runtime.tick(41);
+            expect(zombie?.target).toBeUndefined();
         });
     });
 

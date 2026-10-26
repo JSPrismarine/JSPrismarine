@@ -160,6 +160,24 @@ export class GoalSupport {
         return this.world.canSee?.(mob) ?? true;
     }
 
+    /** Whether Java's combat target rules allow this mob to be selected or retained. */
+    public isAttackable(mob: GoalMob): boolean {
+        return this.world.isAttackable?.(mob) ?? true;
+    }
+
+    /** The nearest entry accepted target, after applying Java's combat target rules. */
+    public findAttackTarget(
+        entries: readonly TargetEntityType[],
+        radius: number,
+        candidates: readonly GoalMob[] = this.mobs(radius)
+    ): GoalMob | undefined {
+        for (const mob of candidates) {
+            if (!this.isAttackable(mob)) continue;
+            if (this.entryFor(entries, mob) !== undefined) return mob;
+        }
+        return undefined;
+    }
+
     /**
      * Finds the first mob an `entity_types` table accepts.
      *

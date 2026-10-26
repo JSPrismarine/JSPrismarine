@@ -74,7 +74,7 @@ const holdTarget = (support: GoalSupport, options: TargetHold): Goal => {
             if (!options.reselect && support.target() !== undefined) return false;
             if (!support.chance(options.probability)) return false;
             const candidate = options.find();
-            if (candidate === undefined) return false;
+            if (candidate === undefined || !support.isAttackable(candidate)) return false;
             if (options.mustReach && !support.navigator.canReach(candidate.position(), 1)) return false;
             held = candidate;
             return true;
@@ -82,6 +82,7 @@ const holdTarget = (support: GoalSupport, options: TargetHold): Goal => {
         canContinue: () => {
             const current = support.target();
             if (current === undefined || held === undefined || current.id !== held.id) return false;
+            if (!support.isAttackable(current)) return false;
             if (support.distanceTo(current.position()) > options.radius) return false;
             if (options.mustSee) {
                 if (support.canSee(current)) unseen = 0;
@@ -158,7 +159,8 @@ export const nearestAttackableTarget = goal<NearestAttackableTargetParams>({
     schema: readNearestAttackableTarget,
     create: (params, support) =>
         holdTarget(support, {
-            find: () => support.findTarget(params.entityTypes, searchRadius(params.entityTypes, params.withinRadius)),
+            find: () =>
+                support.findAttackTarget(params.entityTypes, searchRadius(params.entityTypes, params.withinRadius)),
             radius: searchRadius(params.entityTypes, params.withinRadius),
             mustSee: params.mustSee,
             forgetTicks: params.mustSeeForgetDuration,
@@ -189,7 +191,9 @@ export const nearestPrioritizedAttackableTarget = goal<NearestAttackableTargetPa
             find: () => {
                 const mobs = support.mobs(radius);
                 for (const entry of params.entityTypes) {
-                    const match = mobs.find((mob) => support.entryFor([entry], mob) !== undefined);
+                    const match = mobs.find(
+                        (mob) => support.isAttackable(mob) && support.entryFor([entry], mob) !== undefined
+                    );
                     if (match !== undefined) return match;
                 }
                 return undefined;
@@ -237,6 +241,7 @@ export const hurtByTarget = goal<HurtByTargetParams>({
             find: () => {
                 const damager = support.world.damagers?.().at(-1)?.mob;
                 if (damager === undefined) return undefined;
+                if (!support.isAttackable(damager)) return undefined;
                 if (!params.hurtOwner && support.world.owner?.()?.id === damager.id) return undefined;
                 if (params.entityTypes.length > 0 && !support.accepts(params.entityTypes, damager)) return undefined;
                 return damager;
@@ -267,6 +272,7 @@ export const ownerHurtByTarget = goal<readonly TargetEntityType[]>({
             find: () => {
                 const candidate = support.world.owner?.()?.lastDamager?.();
                 if (candidate === undefined) return undefined;
+                if (!support.isAttackable(candidate)) return undefined;
                 if (entries.length > 0 && !support.accepts(entries, candidate)) return undefined;
                 return candidate;
             },
@@ -297,6 +303,7 @@ export const ownerHurtTarget = goal<readonly TargetEntityType[]>({
             find: () => {
                 const candidate = support.world.owner?.()?.target?.();
                 if (candidate === undefined) return undefined;
+                if (!support.isAttackable(candidate)) return undefined;
                 if (entries.length > 0 && !support.accepts(entries, candidate)) return undefined;
                 return candidate;
             },
@@ -343,6 +350,7 @@ export const defendTrustedTarget = goal<DefendTrustedTargetParams>({
             find: () => {
                 const candidates = support.mobs(params.withinRadius);
                 return candidates.find((mob) => {
+                    if (!support.isAttackable(mob)) return false;
                     const trusted = mob.view().attackTarget?.();
                     if (trusted === undefined) return false;
                     if (support.entity.filterContext().self.trusts?.(trusted) !== true) return false;
@@ -396,7 +404,7 @@ export const defendVillageTarget = goal<DefendVillageTargetParams>({
     })),
     create: (params, support) =>
         holdTarget(support, {
-            find: () => support.findTarget(params.entityTypes, VILLAGE_DEFENSE_RADIUS),
+            find: () => support.findAttackTarget(params.entityTypes, VILLAGE_DEFENSE_RADIUS),
             radius: VILLAGE_DEFENSE_RADIUS,
             mustSee: false,
             forgetTicks: FORGET_TICKS,
@@ -433,6 +441,7 @@ export const targetWhenPushed = goal<TargetWhenPushedParams>({
             find: () => {
                 const pusher = support.world.lastPusher?.();
                 if (pusher === undefined) return undefined;
+                if (!support.isAttackable(pusher)) return undefined;
                 if (params.entityTypes.length > 0 && !support.accepts(params.entityTypes, pusher)) return undefined;
                 return pusher;
             },
@@ -465,6 +474,7 @@ export const witherTargetHighestDamage = goal<readonly TargetEntityType[]>({
                 let highest = 0;
                 for (const record of records) {
                     if (record.mob === undefined || record.total <= highest) continue;
+                    if (!support.isAttackable(record.mob)) continue;
                     if (entries.length > 0 && !support.accepts(entries, record.mob)) continue;
                     best = record.mob;
                     highest = record.total;

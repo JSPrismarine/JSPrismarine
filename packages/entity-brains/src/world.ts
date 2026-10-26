@@ -142,6 +142,8 @@ export interface BrainEntity {
     readonly alive: boolean;
     readonly baby: boolean;
     readonly spectator: boolean;
+    /** A live check for whether combat AI may choose this entity as a target. */
+    canBeTargeted?(): boolean;
     /** See {@link EntityConditions}. */
     readonly conditions: EntityConditions;
     readonly mainHandItem?: BrainItem;

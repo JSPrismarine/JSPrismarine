@@ -22,6 +22,7 @@ import type { Brain } from '@jsprismarine/entity-brains';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 
+import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
 import { actuatorOf, blockPositionOf, withinMeleeReach } from './goalWorld';
@@ -39,9 +40,26 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
     alive: entity.removed === undefined,
     baby: entity.instance.hasComponent('minecraft:is_baby'),
     spectator: false,
+    canBeTargeted: () => entity.removed === undefined,
     conditions: entity.conditions,
     mainHandItem:
         entity.carried === undefined ? undefined : { id: entity.carried, tags: itemTags(entity.carried, scene) }
+});
+
+/** A live player as a brain sees one, including its current combat eligibility. */
+const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity => ({
+    id: String(player.id),
+    type: player.identifier,
+    typeTags: new Set(),
+    position: player.position,
+    alive: true,
+    baby: false,
+    spectator: player.spectator === true,
+    canBeTargeted: () => {
+        const current = scene.host.players().find((candidate) => candidate.id === player.id);
+        return current !== undefined && current.creative !== true && current.spectator !== true;
+    },
+    conditions: new Set()
 });
 
 /** The item tags of one item identifier, which is what a piglin's `piglin_loved` test reads. */
@@ -164,11 +182,20 @@ const attributeOf = (entity: DataEntity, attribute: string): number => {
 
 /** Builds the one `BrainWorld` for a dimension. */
 export const brainWorldOf = (scene: EntityScene): BrainWorld => {
-    const livingNear = (center: Vec3, radius: number, exclude: BrainEntity) =>
-        scene
-            .near(center, radius)
-            .filter((candidate) => String(candidate.id) !== exclude.id && candidate.removed === undefined)
-            .sort((a, b) => distance(center, a.position) - distance(center, b.position));
+    const livingNear = (center: Vec3, radius: number, exclude: BrainEntity): readonly BrainEntity[] => {
+        const found = new Map<string, BrainEntity>();
+        for (const candidate of scene.near(center, radius)) {
+            if (String(candidate.id) === exclude.id || candidate.removed !== undefined) continue;
+            const entity = brainEntityOf(candidate, scene);
+            found.set(entity.id, entity);
+        }
+        for (const player of scene.host.players()) {
+            const id = String(player.id);
+            if (id === exclude.id || found.has(id) || distance(center, player.position) > radius) continue;
+            found.set(id, brainPlayerOf(player, scene));
+        }
+        return [...found.values()].sort((a, b) => distance(center, a.position) - distance(center, b.position));
+    };
 
     return {
         dimension: scene.world.level.dimension,
@@ -176,19 +203,8 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         dayTime: () => scene.world.level.dayTime(),
         random: () => scene.world.random.nextFloat(),
         randomInt: (bound) => scene.world.random.nextInt(bound),
-        livingEntitiesNear: (center, radius, exclude) =>
-            livingNear(center, radius, exclude).map((candidate) => brainEntityOf(candidate, scene)),
-        players: () =>
-            scene.host.players().map((player): BrainEntity => ({
-                id: String(player.id),
-                type: player.identifier,
-                typeTags: new Set(),
-                position: player.position,
-                alive: true,
-                baby: false,
-                spectator: false,
-                conditions: new Set()
-            })),
+        livingEntitiesNear: livingNear,
+        players: () => scene.host.players().map((player) => brainPlayerOf(player, scene)),
         // Nothing indexes dropped items as brain entities yet, so the item sensors find none
         // rather than finding a guess. An allay with no item in range simply waits.
         itemEntitiesNear: (): readonly BrainItemEntity[] => [],
@@ -196,7 +212,10 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
         isTargetable: (body, target) =>
             target.alive && !target.spectator && distanceSquared(body.position, target.position) <= SIGHT_RANGE_SQUARED,
         isAttackable: (body, target) =>
-            target.alive && !target.spectator && distanceSquared(body.position, target.position) <= SIGHT_RANGE_SQUARED,
+            target.alive &&
+            !target.spectator &&
+            target.canBeTargeted?.() !== false &&
+            distanceSquared(body.position, target.position) <= SIGHT_RANGE_SQUARED,
         isWithinMeleeRange: (body, target) => withinMeleeReach(body.position, target.position),
         blockAt: (pos) => scene.world.blocks.get(pos)?.identifier ?? 'minecraft:air',
         blockTagsAt: (pos) => {

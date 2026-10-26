@@ -92,6 +92,8 @@ export interface GoalWorld {
     blocks?(query: BlockQuery): readonly GoalBlock[];
     /** Whether the entity has line of sight to the mob, for `must_see`. */
     canSee?(mob: GoalMob): boolean;
+    /** Whether Java's combat target rules allow this mob to be selected or retained. */
+    isAttackable?(mob: GoalMob): boolean;
     /** The entity's current attack target. */
     target?(): GoalMob | undefined;
     /** Sets or clears the attack target, which is what the targeting goals exist to do. */

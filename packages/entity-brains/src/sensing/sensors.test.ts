@@ -151,6 +151,21 @@ describe('PlayerSensor', () => {
         scan(sensor, context);
         expect(context.body.brain.hasMemoryValue(MemoryModuleTypes.NEAREST_PLAYERS)).toBe(false);
     });
+
+    it('keeps creative players visible but removes them from attackable memories', () => {
+        const sensor = new PlayerSensor();
+        const { world, context } = scene(sensor);
+        const player = world.place('minecraft:player', { x: 1, y: 64, z: 0 });
+        scan(sensor, context);
+        expect(context.body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_ATTACKABLE_PLAYER)).toBe(player);
+
+        player.creative = true;
+        scan(sensor, context);
+
+        expect(context.body.brain.getMemory(MemoryModuleTypes.NEAREST_VISIBLE_PLAYER)).toBe(player);
+        expect(context.body.brain.hasMemoryValue(MemoryModuleTypes.NEAREST_VISIBLE_ATTACKABLE_PLAYER)).toBe(false);
+        expect(context.body.brain.hasMemoryValue(MemoryModuleTypes.NEAREST_VISIBLE_ATTACKABLE_PLAYERS)).toBe(false);
+    });
 });
 
 describe('NearestItemSensor', () => {

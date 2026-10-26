@@ -626,6 +626,10 @@ export function makeWardenBrain(anger: AngerManagement, canTargetEntity: (entity
     });
 }
 
+/** A warden's live combat target rule, including player game-mode immunity. */
+const canTargetWardenSuspect = (entity: BrainEntity): boolean =>
+    entity.alive && !entity.spectator && entity.canBeTargeted?.() !== false;
+
 /**
  * The warden's registry entry. `initMemories` holds `DIG_COOLDOWN` for 1200 ticks, so a warden that
  * has just emerged does not burrow straight back down.
@@ -640,7 +644,7 @@ export const WARDEN_BRAIN: BrainMobDefinition = {
     ],
     sensorTypes: ['nearest_players', 'warden_entity_sensor'],
     alsoRunsGoals: false,
-    makeBrain: () => makeWardenBrain(new AngerManagement(() => true), () => true),
+    makeBrain: () => makeWardenBrain(new AngerManagement(canTargetWardenSuspect), canTargetWardenSuspect),
     /**
      * Java's `Warden.finalizeSpawn`: a fresh warden holds `DIG_COOLDOWN` for 1200 ticks, which is
      * what stops it from immediately burrowing back out of sight.

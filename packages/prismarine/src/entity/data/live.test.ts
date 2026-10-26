@@ -3,8 +3,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Vector3 } from '@jsprismarine/math';
-import { Difficulty } from '@jsprismarine/minecraft';
+import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -37,6 +38,7 @@ import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
 import { DamageSource } from '../DamageSource';
+import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { Item as ItemEntity } from '../other/Item';
 import { EntityRuntimes } from './live';
@@ -98,7 +100,7 @@ const MOB_BASE = {
     'minecraft:type_family': { family: ['mob'] }
 };
 
-/** The four mobs under test, each carrying exactly the components its behavior needs. */
+/** The test entities, each carrying the components its behavior needs. */
 const ENTITIES = new Map([
     [
         'minecraft:cow',
@@ -131,6 +133,24 @@ const ENTITIES = new Map([
                     entity_types: [{ filters: { test: 'is_family', subject: 'other', value: 'player' }, max_dist: 24 }]
                 },
                 'minecraft:behavior.melee_box_attack': { priority: 2, speed_multiplier: 1, track_target: true }
+            }
+        })
+    ],
+    [
+        'minecraft:warden',
+        entityFile('minecraft:warden', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:type_family': { family: ['warden', 'monster', 'mob'] }
+            }
+        })
+    ],
+    [
+        'minecraft:piglin',
+        entityFile('minecraft:piglin', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:type_family': { family: ['piglin', 'monster', 'mob'] }
             }
         })
     ],
@@ -290,20 +310,22 @@ const flatChunk = (x: number, z: number): Chunk => {
     return chunk;
 };
 
-/** A player standing at a position, with everything but its body replaced. */
-const playerAt = (world: World, x: number, z: number): Player =>
-    Object.assign(Object.create(Player.prototype), {
+/** A player standing at a position, reserving its id from the server's shared counter. */
+const playerAt = (world: World, x: number, z: number): Player => {
+    Entity.runtimeIdCount += 1n;
+    return Object.assign(Object.create(Player.prototype), {
         position: new Position(x, GROUND_Y, z, world),
         pitch: 0,
         yaw: 0,
         headYaw: 0,
-        runtimeId: 1n,
+        runtimeId: Entity.runtimeIdCount,
         // The world only hands out players it believes are still connected.
         connected: true,
         server: world.getServer(),
         metadata: { sprinting: false },
         attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
     });
+};
 
 /** What the fixture records instead of putting it on a wire. */
 interface Broadcasts {
@@ -516,6 +538,94 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     describe('combat', () => {
+        it('keeps creative players out of zombie combat targets across game-mode changes', async () => {
+            const player = addPlayer(1, 0);
+            player.gamemode = Gametype.CREATIVE;
+            const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+
+            await run(20);
+            expect(zombie.target).toBeUndefined();
+
+            player.gamemode = Gametype.SURVIVAL;
+            await run(20);
+            expect(zombie.target).toBe(Number(player.getRuntimeId()));
+
+            player.gamemode = Gametype.CREATIVE;
+            await run(20);
+            const playerView = live.runtime.mobById(Number(player.getRuntimeId()));
+            if (playerView === undefined) throw new Error('the live runtime cannot see its player');
+            expect(playerView.identifier?.()).toBe('minecraft:player');
+            expect(zombie.target).toBeUndefined();
+        });
+
+        it('drops a piglin combat target when its player switches to creative', async () => {
+            const player = addPlayer(12, 0);
+            player.gamemode = Gametype.SURVIVAL;
+            const piglin = live.runtime.spawn('minecraft:piglin', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (piglin?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:piglin');
+
+            let tick = 0;
+            const runUntil = async (predicate: () => boolean): Promise<boolean> => {
+                for (let attempt = 0; attempt < 100; attempt += 1) {
+                    await live.tick(++tick);
+                    if (predicate()) return true;
+                }
+                return false;
+            };
+
+            expect(
+                await runUntil(
+                    () => piglin.brain?.getMemory(MemoryModuleTypes.ATTACK_TARGET)?.id === String(player.getRuntimeId())
+                )
+            ).toBe(true);
+
+            player.gamemode = Gametype.CREATIVE;
+            expect(await runUntil(() => piglin.brain?.getMemory(MemoryModuleTypes.ATTACK_TARGET) === undefined)).toBe(
+                true
+            );
+        });
+
+        it('keeps a warden from targeting a creative player through its entity sensor', async () => {
+            const player = addPlayer(1, 0);
+            player.gamemode = Gametype.CREATIVE;
+            const warden = live.runtime.spawn('minecraft:warden', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (warden?.brain === undefined) throw new Error('the fixture declares no brain for minecraft:warden');
+
+            let tick = 0;
+            const seesPlayer = () =>
+                warden.brain
+                    ?.getMemory(MemoryModuleTypes.NEAREST_LIVING_ENTITIES)
+                    ?.some((entity) => entity.id === String(player.getRuntimeId())) === true;
+            const runUntil = async (predicate: () => boolean): Promise<boolean> => {
+                for (let attempt = 0; attempt < 100; attempt += 1) {
+                    await live.tick(++tick);
+                    if (predicate()) return true;
+                }
+                return false;
+            };
+
+            expect(await runUntil(seesPlayer)).toBe(true);
+            expect(warden.brain.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE)).toBeUndefined();
+
+            player.gamemode = Gametype.SURVIVAL;
+            expect(
+                await runUntil(
+                    () =>
+                        warden.brain?.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE)?.id ===
+                        String(player.getRuntimeId())
+                )
+            ).toBe(true);
+
+            player.gamemode = Gametype.CREATIVE;
+            expect(
+                await runUntil(
+                    () => seesPlayer() && warden.brain?.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE) === undefined
+                )
+            ).toBe(true);
+            expect(warden.brain.getMemory(MemoryModuleTypes.ATTACK_TARGET)).toBeUndefined();
+        });
+
         it('walks a zombie to a player and hurts them', async () => {
             const player = addPlayer(8, 0);
             const hits: number[] = [];

@@ -16,6 +16,7 @@ const targetingWorld = (
         readonly owner?: GoalMob;
         readonly pusher?: GoalMob;
         readonly unseen?: ReadonlySet<string | number>;
+        readonly isAttackable?: (mob: GoalMob) => boolean;
     } = {}
 ): GoalWorld & { readonly writes: (string | undefined)[]; current(): GoalMob | undefined } => {
     let current: GoalMob | undefined;
@@ -32,7 +33,8 @@ const targetingWorld = (
         setTarget: (mob) => {
             current = mob;
             writes.push(mob === undefined ? undefined : String(mob.id));
-        }
+        },
+        ...(options.isAttackable === undefined ? {} : { isAttackable: options.isAttackable })
     };
 };
 
@@ -78,6 +80,44 @@ describe('minecraft:behavior.nearest_attackable_target', () => {
         harness.tick();
 
         expect(world.writes).toEqual([]);
+    });
+
+    it('skips a closer player Java marks unavailable and takes the next target', () => {
+        const creative = testMob('creative-player', { x: 1, y: 0, z: 0 }, { families: ['player'] });
+        const survival = testMob('survival-player', { x: 4, y: 0, z: 0 }, { families: ['player'] });
+        const world = targetingWorld({
+            mobs: [creative, survival],
+            isAttackable: (mob) => mob.id !== creative.id
+        });
+        const harness = new GoalHarness({ goals: { 'minecraft:behavior.nearest_attackable_target': body }, world });
+
+        harness.tick();
+
+        expect(world.current()?.id).toBe(survival.id);
+    });
+
+    it('clears a held target as soon as Java marks it unavailable', () => {
+        const player = testMob('player', { x: 4, y: 0, z: 0 }, { families: ['player'] });
+        let attackable = true;
+        const world = targetingWorld({ mobs: [player], isAttackable: () => attackable });
+        const harness = new GoalHarness({
+            goals: {
+                'minecraft:behavior.nearest_attackable_target': {
+                    ...body,
+                    must_see: false,
+                    reselect_targets: false
+                }
+            },
+            world
+        });
+
+        harness.tick();
+        expect(world.current()?.id).toBe(player.id);
+
+        attackable = false;
+        harness.tick();
+
+        expect(world.current()).toBeUndefined();
     });
 
     it('drops the target after must_see_forget_duration out of sight', () => {

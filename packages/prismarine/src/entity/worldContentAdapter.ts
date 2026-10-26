@@ -15,6 +15,7 @@
  * a stand-in. An identifier no registry carries is reported and nothing is spawned.
  */
 import { Vector3 } from '@jsprismarine/math';
+import { Gametype } from '@jsprismarine/minecraft';
 
 import type { BlockEntityData, ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
 import type { ContentLookup } from '../content/world/views';
@@ -170,7 +171,12 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
         players: () =>
             live()
                 .getPlayers()
-                .map((player) => ({ ...contentEntityOf(player), identifier: PLAYER_IDENTIFIER })),
+                .map((player) => ({
+                    ...contentEntityOf(player),
+                    identifier: PLAYER_IDENTIFIER,
+                    creative: player.gamemode === Gametype.CREATIVE,
+                    spectator: player.gamemode === Gametype.SPECTATOR
+                })),
         spawn: (identifier, at, data) => {
             const loaded = live();
             // The middle of the block, which is where Bedrock puts a mob it spawns and what

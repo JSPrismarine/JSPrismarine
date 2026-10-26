@@ -116,6 +116,11 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             appendPlayers(found, here, radius, scene);
             return nearestFirst(found);
         },
+        isAttackable: (mob) => {
+            if (mob.identifier?.() !== 'minecraft:player' || typeof mob.id !== 'number') return true;
+            const player = scene.host.players().find((candidate) => candidate.id === mob.id);
+            return player !== undefined && player.creative !== true && player.spectator !== true;
+        },
         players: (radius) => {
             const found: Ranked[] = [];
             appendPlayers(found, entity.position, radius, scene);

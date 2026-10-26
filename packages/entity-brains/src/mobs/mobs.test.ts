@@ -614,6 +614,18 @@ describe('the warden', () => {
         expect(anger.getActiveEntity()).toBe(player);
     });
 
+    it('forgets a player target when the player switches to creative', () => {
+        const { world, body, brain } = spawn(WARDEN_BRAIN);
+        const player = world.place('minecraft:player', { x: 3, y: 64, z: 0 });
+
+        run(body, WARDEN_BRAIN);
+        expect(brain.getMemory(MemoryModuleTypes.NEAREST_ATTACKABLE)).toBe(player);
+
+        player.creative = true;
+        run(body, WARDEN_BRAIN);
+        expect(brain.hasMemoryValue(MemoryModuleTypes.NEAREST_ATTACKABLE)).toBe(false);
+    });
+
     it('investigates a vibration, with the 100-tick DISTURBANCE_LOCATION_EXPIRY_TIME', () => {
         const { body, brain } = spawn(WARDEN_BRAIN);
         setDisturbanceLocation(body.context, { x: 10, y: 64, z: 0 });

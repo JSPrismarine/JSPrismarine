@@ -37,6 +37,7 @@ export interface TestEntityOptions {
     readonly alive?: boolean;
     readonly baby?: boolean;
     readonly spectator?: boolean;
+    readonly creative?: boolean;
     readonly typeTags?: readonly string[];
     readonly conditions?: readonly string[];
     readonly mainHandItem?: BrainItem;
@@ -53,6 +54,7 @@ export class TestEntity implements BrainEntity {
     public alive: boolean;
     public baby: boolean;
     public spectator: boolean;
+    public creative: boolean;
     public typeTags: Set<string>;
     public conditions: Set<string>;
     public mainHandItem: BrainItem | undefined;
@@ -66,11 +68,17 @@ export class TestEntity implements BrainEntity {
         this.alive = options.alive ?? true;
         this.baby = options.baby ?? false;
         this.spectator = options.spectator ?? false;
+        this.creative = options.creative ?? false;
         this.typeTags = new Set(options.typeTags ?? []);
         this.conditions = new Set(options.conditions ?? []);
         this.mainHandItem = options.mainHandItem;
         this.offHandItem = options.offHandItem;
         this.armorItems = [...(options.armorItems ?? [])];
+    }
+
+    /** Whether combat AI may choose this test entity as a target. */
+    public canBeTargeted(): boolean {
+        return this.alive && !this.spectator && !this.creative;
     }
 }
 
@@ -370,7 +378,7 @@ export class TestWorld implements BrainWorld {
 
     /** Targetable, and allowed by the attackable predicate a test passed in. */
     public isAttackable(body: BrainEntity, target: BrainEntity): boolean {
-        return this.isTargetable(body, target) && this.attackable(body, target);
+        return this.isTargetable(body, target) && target.canBeTargeted?.() !== false && this.attackable(body, target);
     }
 
     /** Compares the straight-line distance against the melee range a test set. */
