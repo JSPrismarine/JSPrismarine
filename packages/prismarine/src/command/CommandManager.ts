@@ -1,7 +1,7 @@
 import type { RootCommandNode } from '@jsprismarine/brigadier';
 import { ArgumentCommandNode, CommandDispatcher, CommandSyntaxException } from '@jsprismarine/brigadier';
 import type { CommandHost, CommandRegistry, CommandSource, FlattenedCommand } from '@jsprismarine/commands';
-import { createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
+import { bedrockCommand, createCommandSource, flattenCommandTree } from '@jsprismarine/commands';
 import {
     CommandRegisterClassMalformedOrMissingError,
     CommandUnknownCommandError,
@@ -46,7 +46,7 @@ type VanillaCommandTreeNode = NonNullable<ReturnType<RootCommandNode<CommandSour
  */
 export type CommandListEntry = [name: string, node: CommandTreeNode, overloads: CommandArgumentType[][]];
 
-const HELP_PAGE_SIZE = 10;
+const HELP_PAGE_SIZE = 7;
 const MAX_HELP_SYNTAX_LINES = 18;
 
 /** A literal encoded as a one-value hard enum for the Bedrock command packet. */
@@ -469,21 +469,39 @@ export class CommandManager implements Service {
         }
 
         const start = (page - 1) * HELP_PAGE_SIZE;
-        const lines = [`§6Commands §7(${page}/${pageCount})§r`];
-        for (const name of names.slice(start, start + HELP_PAGE_SIZE)) {
-            const description = this.helpDescription(name);
-            lines.push(`§e/${name}§r${description === undefined ? '' : ` §7— ${description}§r`}`);
-        }
+        const entries = names.slice(start, start + HELP_PAGE_SIZE).flatMap((name) => {
+            const description = this.helpDescription(name) ?? 'See syntax below.';
+            return [`§6/${name}§r §f- ${description}`, `   §eUsage: §f${this.helpUsage(name)}`];
+        });
 
-        lines.push('§7Use /help <command> for details, or /help <page> to browse.');
-        const navigation: { label: string; command: string }[] = [];
-        if (page > 1) navigation.push({ label: '‹ Previous', command: `/help ${page - 1}` });
-        if (page < pageCount) navigation.push({ label: 'Next ›', command: `/help ${page + 1}` });
-        if (navigation.length > 0) {
-            // Bedrock chat text has no click action, so keep each destination visible for now.
-            lines.push(navigation.map(({ label, command }) => `§b[${label}]§r ${command}`).join('   '));
-        }
-        return lines;
+        const previous = page > 1 ? `§b‹ /help ${page - 1}§r   ` : '';
+        const next = page < pageCount ? `   §b/help ${page + 1} ›§r` : '';
+        const title = `${previous}§fHelp - Page ${page}/${pageCount}${next}`;
+        const border = this.helpBorder(title, entries);
+        return [border, ...entries, border];
+    }
+
+    private helpUsage(name: string): string {
+        const root = this.vanilla.getRoot().getChild(name);
+        if (root === undefined) return `/${name}`;
+
+        const syntax = this.commandSyntax(root, root, [`/${name}`]);
+        const primary = syntax.lines[0] ?? `/${name}`;
+        return syntax.lines.length > 1 || syntax.hasMore ? `${primary}${primary.endsWith('…') ? '' : ' …'}` : primary;
+    }
+
+    private helpBorder(title: string, content: readonly string[]): string {
+        const middle = ` §7<<< ${title}§7 >>> §r`;
+        const middleWidth = this.visibleTextLength(middle);
+        const width = Math.max(60, middleWidth + 12, ...content.map((line) => this.visibleTextLength(line)));
+        const fill = width - middleWidth;
+        const left = Math.floor(fill / 2);
+        const right = fill - left;
+        return `§e${'-'.repeat(left)}${middle}§e${'-'.repeat(right)}§r`;
+    }
+
+    private visibleTextLength(text: string): number {
+        return Array.from(text.replace(/§./g, '')).length;
     }
 
     private commandHelp(request: string): readonly string[] {
@@ -605,7 +623,8 @@ export class CommandManager implements Service {
 
     private helpDescription(name: string): string | undefined {
         const description = this.vanilla.getMetadata(name)?.description;
-        return description === undefined || description.startsWith('commands.') ? undefined : description;
+        if (description !== undefined && !description.startsWith('commands.')) return description;
+        return bedrockCommand(name)?.description;
     }
 
     /**

@@ -245,11 +245,12 @@ describe('the command layer on a booted server', () => {
         expect(world.getGameRuleManager()?.getGameRule('fallDamage')?.[0]).toBe(false);
     });
 
-    it('answers /help with the first page of the wired set', async () => {
+    it('answers /help with a bordered page of the wired set', async () => {
         await expect(run('/help')).resolves.toBe(true);
 
-        expect(answers.some((line) => line.includes('Commands') && line.includes('(1/'))).toBe(true);
+        expect(answers.some((line) => line.includes('<<<') && line.includes('Help - Page 1/'))).toBe(true);
         expect(answers.some((line) => line.includes('/attribute'))).toBe(true);
+        expect(answers.some((line) => line.includes('Usage:'))).toBe(true);
     });
 
     it('runs a chain through /execute', async () => {
