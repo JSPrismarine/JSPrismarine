@@ -27,6 +27,7 @@ import type {
     TransformRequest
 } from '@jsprismarine/entities';
 import { EntityInstance, isRecord, javaEntityNavigation, noEffects } from '@jsprismarine/entities';
+import { fluidStateOf } from '@jsprismarine/engine-systems';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
@@ -1024,6 +1025,12 @@ export class EntityRuntime implements EntityScene {
      */
     private coast(entity: DataEntity): void {
         const { body, instance } = entity;
+        const buoyant = instance.componentParams('minecraft:buoyant');
+        if (isRecord(buoyant)) {
+            this.coastBuoyant(entity, buoyant);
+            return;
+        }
+
         const physics = instance.componentParams('minecraft:physics');
         const hasGravity = isRecord(physics) && physics.hasGravity === true;
         const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
@@ -1071,6 +1078,99 @@ export class EntityRuntime implements EntityScene {
         }
 
         body.position = next;
+    }
+
+    /** Applies Java's boat float step when the active definition declares buoyancy. */
+    private coastBuoyant(entity: DataEntity, buoyant: Record<string, unknown>): void {
+        const { body } = entity;
+        const position = body.position;
+        const box = entity.facts.box;
+        const names = new Set(
+            Array.isArray(buoyant.liquid_blocks)
+                ? buoyant.liquid_blocks.filter((name): name is string => typeof name === 'string')
+                : []
+        );
+        const minX = Math.floor(position.x - box.width / 2 + MOVEMENT_EPSILON);
+        const maxX = Math.floor(position.x + box.width / 2 - MOVEMENT_EPSILON);
+        const minZ = Math.floor(position.z - box.width / 2 + MOVEMENT_EPSILON);
+        const maxZ = Math.floor(position.z + box.width / 2 - MOVEMENT_EPSILON);
+        const minY = Math.floor(position.y);
+        const maxY = Math.floor(position.y + box.height);
+        let liquidSurface: number | undefined;
+        let underwaterSource = false;
+        let underwaterFlowing = false;
+
+        for (let x = minX; x <= maxX; x += 1) {
+            for (let z = minZ; z <= maxZ; z += 1) {
+                for (let y = minY; y <= maxY; y += 1) {
+                    const block = this.world.blocks.get({ x, y, z });
+                    if (block === undefined || !names.has(block.identifier)) continue;
+                    const fluid = fluidStateOf({ name: block.identifier, states: block.states });
+                    if (fluid === undefined) continue;
+
+                    const surface = y + (fluid.source || fluid.falling ? 1 : fluid.amount / 9);
+                    if (surface > position.y && y < position.y + box.height) {
+                        liquidSurface = Math.max(liquidSurface ?? Number.NEGATIVE_INFINITY, surface);
+                    }
+                    if (surface > position.y + box.height + MOVEMENT_EPSILON) {
+                        if (fluid.source) underwaterSource = true;
+                        else underwaterFlowing = true;
+                    }
+                }
+            }
+        }
+
+        const physics = entity.instance.componentParams('minecraft:physics');
+        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        const grounded = hasCollision && body.velocity.y <= 0 && isSupported(position, box, this.navigation());
+        if (grounded) body.conditions.add('on_ground');
+        else body.conditions.delete('on_ground');
+
+        const applyGravity = buoyant.apply_gravity !== false;
+        const baseBuoyancy = typeof buoyant.base_buoyancy === 'number' ? buoyant.base_buoyancy : 1;
+        const submerged = underwaterFlowing ? 'flowing' : underwaterSource ? 'source' : undefined;
+        const inLiquid = submerged === undefined && liquidSurface !== undefined;
+        const gravity =
+            !applyGravity || (grounded && !submerged && !inLiquid)
+                ? 0
+                : submerged === 'flowing'
+                  ? -0.0007
+                  : -BUOYANT_GRAVITY;
+        const horizontalDrag = submerged === 'source' ? 0.45 : BUOYANT_DRAG;
+        const verticalDrag = inLiquid || submerged === 'source' ? BUOYANT_WATER_VERTICAL_DRAG : 1;
+        const buoyancy =
+            submerged === 'source'
+                ? 0.01
+                : inLiquid && liquidSurface !== undefined
+                  ? ((liquidSurface - position.y) / box.height) * baseBuoyancy
+                  : 0;
+        const velocity = body.velocity;
+        const fallingY = grounded ? 0 : velocity.y + gravity + buoyancy * (BUOYANT_GRAVITY / BUOYANT_STEADY_FRACTION);
+        const nextVelocity = {
+            x: velocity.x * horizontalDrag,
+            y: fallingY * verticalDrag,
+            z: velocity.z * horizontalDrag
+        };
+        const nextY = position.y + nextVelocity.y;
+        const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, box, this.navigation());
+        let next = moveOnAxis(position, position.x + nextVelocity.x, 'x', canOccupy);
+        next = moveOnAxis(next, position.z + nextVelocity.z, 'z', canOccupy);
+        const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
+        const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
+
+        if (hitVerticalCollision && fallingY <= 0) {
+            const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
+            body.position = landed;
+            body.land();
+            return;
+        }
+
+        body.velocity = {
+            x: Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON ? 0 : nextVelocity.x,
+            y: hitVerticalCollision ? 0 : fallingY * verticalDrag,
+            z: Math.abs(next.z - (position.z + nextVelocity.z)) > MOVEMENT_EPSILON ? 0 : nextVelocity.z
+        };
+        body.position = nextVertical;
     }
 
     /** Moves a body along its current waypoint using its active navigation rules. */
@@ -1231,6 +1331,18 @@ const FLUID_DRAG = 0.8;
 
 /** Java reduces downward acceleration to one sixteenth in a liquid. */
 const FLUID_GRAVITY = GRAVITY / 16;
+
+/** Java's `AbstractBoat.getDefaultGravity`. */
+const BUOYANT_GRAVITY = 0.04;
+
+/** Java's boat horizontal damping outside a water column. */
+const BUOYANT_DRAG = 0.9;
+
+/** Java damps vertical velocity after applying the water surface impulse. */
+const BUOYANT_WATER_VERTICAL_DRAG = 0.75;
+
+/** The waterline fraction `AbstractBoat.floatBoat` uses to counter gravity. */
+const BUOYANT_STEADY_FRACTION = 0.65;
 
 /** The `power` a `minecraft:explode` with none declared uses, which is the creeper's. */
 const DEFAULT_EXPLOSION_POWER = 3;

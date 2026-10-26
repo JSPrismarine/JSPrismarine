@@ -136,6 +136,33 @@ describe('EntityRuntime', () => {
     });
 
     describe('physics', () => {
+        it('floats a vanilla-shaped buoyant entity at the water surface', () => {
+            const { runtime, world } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:buoyant': {
+                        components: {
+                            'minecraft:collision_box': { width: 1.4, height: 0.455 },
+                            'minecraft:physics': {},
+                            'minecraft:buoyant': { liquid_blocks: ['minecraft:water', 'minecraft:flowing_water'] }
+                        }
+                    }
+                }
+            );
+            for (let x = -1; x <= 1; x += 1) {
+                for (let z = -1; z <= 1; z += 1) world.setBlock({ x, y: FLOOR_Y + 1, z }, 'minecraft:water');
+            }
+            const boat = runtime.spawn('jsprismarine:buoyant', { x: 0.5, y: FLOOR_Y + 1.7, z: 0.5 });
+            if (boat === undefined) throw new Error('the fixture declares no buoyant entity');
+
+            for (let tick = 1; tick <= 200; tick += 1) runtime.tick(tick);
+
+            expect(boat.body.conditions.has('in_water')).toBe(true);
+            expect(boat.position.y).toBeGreaterThan(FLOOR_Y + 1.6);
+            expect(boat.position.y).toBeLessThan(FLOOR_Y + 1.8);
+        });
+
         it('keeps a walking entity from following a path vertically into the air', () => {
             const { runtime } = moverRuntime();
             const mover = runtime.spawn('jsprismarine:mover', GROUND);

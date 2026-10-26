@@ -1335,6 +1335,30 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombie.position.y).toBeLessThan(FLOOR_Y + 0.5);
         });
 
+        it('floats the vanilla boat through its buoyancy component', async () => {
+            useVanillaContent();
+
+            const chunk = world.getLoadedChunk(0, 0);
+            if (chunk === null) throw new Error('the vanilla boat test chunk was not loaded');
+            for (let x = 4; x <= 6; x += 1) {
+                for (let z = 4; z <= 6; z += 1) {
+                    chunk.setBlockRuntimeId(x, FLOOR_Y + 1, z, idOf('minecraft:water'));
+                }
+            }
+            const boat = live.runtime.spawn('minecraft:boat', {
+                x: 5.5,
+                y: FLOOR_Y + 1.7,
+                z: 5.5
+            });
+            if (boat === undefined) throw new Error('the vanilla content declares no boat');
+
+            for (let tick = 1; tick <= 200; tick += 1) await live.tick(tick);
+
+            expect(boat.body.conditions.has('in_water')).toBe(true);
+            expect(boat.position.y).toBeGreaterThan(FLOOR_Y + 1.6);
+            expect(boat.position.y).toBeLessThan(FLOOR_Y + 1.8);
+        });
+
         it('uses Java ground water costs without treating water as solid support', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
