@@ -1,3 +1,5 @@
+import { chunkWorkerCount } from './generators/chunkConcurrency';
+
 /** A queue the scheduler can drain: one player's outstanding chunks. */
 export interface SchedulableSender {
     isEmpty(): boolean;
@@ -18,18 +20,17 @@ export interface ChunkRecipient {
     isConnected(): boolean;
 }
 
-/** How long a tick may spend sending chunks, out of the 50 ms a tick has. */
+/** How long a tick may spend starting chunk deliveries, out of the 50 ms a tick has. */
 export const DEFAULT_BUDGET_MS = 5;
 
 /**
- * How many chunks a tick asks for before it waits for one.
+ * How many chunks the server may generate at once.
  *
- * One while the generator builds one chunk at a time, because asking for more only parks them in
- * the generator's own queue and makes the tick wait for all of them rather than for one. Raise it
- * with the generator's depth, not on its own: awaiting each delivery in turn is what holds a pool
- * of any size at a depth of one.
+ * Matches the Overworld worker count where workers are available. A host without spare cores
+ * still keeps one request in flight, and a generator without a pool can queue those requests
+ * behind its own single-threaded work.
  */
-export const DEFAULT_DEPTH = 1;
+export const DEFAULT_DEPTH = Math.max(1, chunkWorkerCount());
 
 /**
  * Told about a chunk that could not be produced or sent. `coord` is absent when the failure
@@ -42,23 +43,30 @@ export type ChunkFailureHandler = (error: unknown, coord?: { x: number; z: numbe
  *
  * Two properties matter here, and both come from the same loop:
  *
- * - **It never blocks.** Work stops once the tick's time budget is spent and resumes on the
- *   next tick, so a player with six hundred chunks queued costs the same per tick as one
- *   with six. Before this, joining meant a single loop that ran to completion - hundreds of
- *   milliseconds during which the socket answered nothing and every other player froze.
+ * - **It never waits for generation.** A tick starts work within its time budget and returns;
+ *   deliveries continue in the background, up to the configured depth. A player with six
+ *   hundred chunks queued costs the same per tick as one with six.
  * - **It is fair.** Players are served round robin, one chunk each per pass, so ten people
  *   joining at once all start seeing terrain rather than the first in the list getting
  *   everything and the rest waiting their turn.
  *
- * The budget is checked against elapsed time rather than a chunk count on purpose: a chunk
- * that has to be generated costs an order of magnitude more than one already in memory, and
- * counting chunks would let a run of the expensive kind blow far past the intended slice.
+ * The budget is checked against elapsed time rather than a chunk count on purpose: even starting
+ * a delivery has variable cost, and counting chunks could spend too long in a tick.
  */
 export class ChunkScheduler {
     private readonly recipients = new Set<ChunkRecipient>();
 
     /** Where the last pass stopped, so the next one does not always start at the same player. */
     private cursor = 0;
+
+    /** Deliveries still generating, shared across ticks so the server loop never waits for them. */
+    private readonly inFlight = new Set<Promise<void>>();
+
+    /** Recipients with completed chunks that need their partial batch dispatched. */
+    private readonly readyToFlush = new Set<ChunkRecipient>();
+
+    /** Recipients whose current batch flush is still in progress. */
+    private readonly flushing = new Set<ChunkRecipient>();
 
     public constructor(
         private budgetMs: number = DEFAULT_BUDGET_MS,
@@ -72,13 +80,14 @@ export class ChunkScheduler {
 
     public remove(recipient: ChunkRecipient): void {
         this.recipients.delete(recipient);
+        this.readyToFlush.delete(recipient);
     }
 
     public setBudget(budgetMs: number): void {
         this.budgetMs = Math.max(0, budgetMs);
     }
 
-    /** How many chunks a tick asks for before it waits for one. Clamped to at least one. */
+    /** How many chunk deliveries may be generating at once. Clamped to at least one. */
     public setDepth(depth: number): void {
         this.depth = Math.max(1, Math.trunc(depth));
     }
@@ -91,14 +100,14 @@ export class ChunkScheduler {
     }
 
     /**
-     * Sends what fits in this tick's budget.
+     * Starts chunk deliveries that fit in this tick's budget and in-flight depth.
      *
      * @param now - injectable clock, so tests can drive the budget deterministically.
-     * @returns how many chunks went out.
+     * @returns How many deliveries started.
      */
-    public async tick(now: () => number = () => Date.now()): Promise<number> {
+    public tick(now: () => number = () => Date.now()): Promise<number> {
         const started = now();
-        let sent = 0;
+        let deliveriesStarted = 0;
 
         // Snapshot: delivering can disconnect a player, and mutating the set mid-pass would
         // invalidate the rotation.
@@ -110,50 +119,39 @@ export class ChunkScheduler {
         // is explicit, from `remove` when the session ends.
         const active = [...this.recipients].filter((recipient) => recipient.isConnected());
 
-        if (active.length === 0) return 0;
+        if (active.length === 0) return Promise.resolve(0);
         if (this.cursor >= active.length) this.cursor = 0;
+        for (const recipient of active) {
+            if (this.readyToFlush.has(recipient)) this.flushRecipient(recipient);
+        }
 
-        // Several chunks are asked for at once and the tick waits only when it already has
-        // `depth` of them outstanding. Awaiting each one in turn held the generator at a depth
-        // of one, which is what kept a worker pool from ever having more than one worker busy;
-        // it also meant a player received one chunk per await however much budget was left.
-        //
-        // A delivery that is still running when the budget expires is finished rather than
-        // abandoned, so the budget bounds how much a tick starts rather than how long it takes.
-        const outstanding = new Set<Promise<void>>();
-
-        // One chunk that cannot be produced must not take the tick with it.
-        //
-        // This is awaited from `Server.tick`, so a rejection escaping here rejects the tick
-        // itself - and the next timer is only installed after that await, so the server would
-        // stop ticking altogether and never start again. A failed chunk is a hole in one
-        // player's terrain; a failed tick is the whole server. The recipient is left to undo its
-        // own bookkeeping so the coordinate can be queued again, and the failure is reported
-        // rather than swallowed.
         const begin = (recipient: ChunkRecipient, coord: { x: number; z: number }): void => {
-            const task: Promise<void> = recipient
-                .deliver(coord.x, coord.z)
+            let delivery: Promise<void>;
+            try {
+                delivery = recipient.deliver(coord.x, coord.z);
+            } catch (error: unknown) {
+                delivery = Promise.reject(error);
+            }
+
+            let task: Promise<void>;
+            task = delivery
                 .then(
                     () => {
-                        sent++;
+                        if (this.recipients.has(recipient)) this.readyToFlush.add(recipient);
                     },
                     (error: unknown) => {
                         this.onFailure(error, coord);
                     }
                 )
-                // Removed inside the handler, so by the time `task` settles it is out of the
-                // set and a race over the set never sees a finished delivery.
-                .then(() => {
-                    outstanding.delete(task);
-                });
+                .finally(() => this.inFlight.delete(task));
 
-            outstanding.add(task);
+            this.inFlight.add(task);
         };
 
         // One chunk per player per turn - that is the fairness - until either the budget
         // runs out or a full lap finds nobody with anything left to send.
         let emptyInARow = 0;
-        while (emptyInARow < active.length && now() - started < this.budgetMs) {
+        while (emptyInARow < active.length && now() - started < this.budgetMs && this.inFlight.size < this.depth) {
             const recipient = active[this.cursor]!;
             this.cursor = (this.cursor + 1) % active.length;
 
@@ -165,27 +163,31 @@ export class ChunkScheduler {
 
             emptyInARow = 0;
             begin(recipient, next);
-            if (outstanding.size >= this.depth) await Promise.race(outstanding);
+            deliveriesStarted++;
         }
 
-        await Promise.all(outstanding);
+        return Promise.resolve(deliveriesStarted);
+    }
 
-        // A partial batch would otherwise wait for the next tick. This is bounded - one
-        // short batch per player - and deliberately outside the budget check: refusing to
-        // flush would only push the same work into the following tick.
-        if (sent > 0) {
-            await Promise.all(
-                active.map(async (recipient) => {
-                    try {
-                        await recipient.flush();
-                    } catch (error: unknown) {
-                        this.onFailure(error);
-                    }
-                })
-            );
-        }
+    /** Flushes ready chunks in order without making a server tick wait for the network. */
+    private flushRecipient(recipient: ChunkRecipient): void {
+        if (this.flushing.has(recipient)) return;
+        this.flushing.add(recipient);
 
-        return sent;
+        const flush = async (): Promise<void> => {
+            while (this.readyToFlush.delete(recipient)) {
+                try {
+                    await recipient.flush();
+                } catch (error: unknown) {
+                    this.onFailure(error);
+                }
+            }
+        };
+
+        void flush().finally(() => {
+            this.flushing.delete(recipient);
+            if (this.readyToFlush.has(recipient)) this.flushRecipient(recipient);
+        });
     }
 }
 

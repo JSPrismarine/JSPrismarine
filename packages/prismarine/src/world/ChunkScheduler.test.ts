@@ -44,10 +44,9 @@ describe('world', () => {
             // The property the whole design rests on: a long queue costs a bounded amount
             // per tick instead of running to completion and freezing the server.
             const clock = { now: 0 };
-            const scheduler = new ChunkScheduler(5);
-
             const queued: Array<[number, number]> = [];
             for (let i = 0; i < 100; i++) queued.push([i, 0]);
+            const scheduler = new ChunkScheduler(5, () => {}, queued.length);
             const { recipient, delivered } = fakeRecipient(queued, 1, clock);
             scheduler.add(recipient);
 
@@ -64,7 +63,7 @@ describe('world', () => {
         it('shares the budget between players instead of draining one', async () => {
             // Ten players joining together must all start seeing terrain.
             const clock = { now: 0 };
-            const scheduler = new ChunkScheduler(10);
+            const scheduler = new ChunkScheduler(10, () => {}, 10);
 
             const players = Array.from({ length: 10 }, () =>
                 fakeRecipient(
@@ -248,23 +247,90 @@ describe('world', () => {
                 isConnected: () => true
             });
 
-            const tick = scheduler.tick(() => 0);
-            // Let every delivery that is going to start, start.
-            for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+            const settle = async (): Promise<void> => {
+                for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+            };
+
+            let started = await scheduler.tick(() => 0);
+            await settle();
             expect(peak).toBe(4);
 
-            // Finishing one lets the next in, and so on until the queue is drained.
             for (let served = 0; served < 20; served++) {
                 release.shift()?.();
-                for (let turn = 0; turn < 8; turn++) await Promise.resolve();
+                await settle();
+                started += await scheduler.tick(() => 0);
+                await settle();
             }
-            while (release.length > 0) release.shift()?.();
 
-            expect(await tick).toBe(20);
+            expect(started).toBe(20);
             expect(peak).toBe(4);
         });
 
-        it('finishes a delivery that was still running when the budget expired', async () => {
+        it('returns while a chunk is still being generated', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+
+            let finish: () => void = () => {};
+            const generation = new Promise<void>((resolve) => {
+                finish = resolve;
+            });
+            let returned = false;
+            let generated = false;
+            scheduler.add({
+                sender,
+                deliver: async () => {
+                    await generation;
+                    generated = true;
+                },
+                flush: async () => {},
+                isConnected: () => true
+            });
+
+            const tick = scheduler.tick().then(() => {
+                returned = true;
+            });
+            await Promise.resolve();
+            await Promise.resolve();
+            const returnedBeforeGeneration = returned;
+
+            finish();
+            await tick;
+
+            expect(returnedBeforeGeneration).toBe(true);
+            expect(generated).toBe(true);
+        });
+
+        it('does not flush a delivery after its recipient is removed', async () => {
+            const scheduler = new ChunkScheduler(1000, () => {}, 1);
+            const sender = new ChunkSender();
+            sender.enqueue(0, 0);
+
+            let finish: () => void = () => {};
+            const generation = new Promise<void>((resolve) => {
+                finish = resolve;
+            });
+            let flushed = 0;
+            const recipient: ChunkRecipient = {
+                sender,
+                deliver: () => generation,
+                flush: async () => {
+                    flushed++;
+                },
+                isConnected: () => true
+            };
+            scheduler.add(recipient);
+
+            await scheduler.tick();
+            scheduler.remove(recipient);
+            finish();
+            for (let turn = 0; turn < 4; turn++) await Promise.resolve();
+            await scheduler.tick();
+
+            expect(flushed).toBe(0);
+        });
+
+        it('starts only deliveries that fit the tick budget', async () => {
             const clock = { now: 0 };
             const scheduler = new ChunkScheduler(5, () => {}, 4);
             const sender = new ChunkSender();
@@ -282,11 +348,10 @@ describe('world', () => {
                 isConnected: () => true
             });
 
-            const sent = await scheduler.tick(() => clock.now);
+            const started = await scheduler.tick(() => clock.now);
 
-            // The budget bounds what the tick starts, and everything it started is counted.
-            expect(sent).toBe(finished);
-            expect(finished).toBeGreaterThan(0);
+            expect(started).toBe(2);
+            expect(finished).toBe(started);
             expect(finished).toBeLessThan(20);
         });
 
@@ -304,6 +369,9 @@ describe('world', () => {
                 },
                 isConnected: () => true
             });
+
+            await scheduler.tick();
+            expect(flushed).toBe(0);
 
             await scheduler.tick();
             expect(flushed).toBe(1);
@@ -326,10 +394,7 @@ describe('world', () => {
         });
 
         it('survives a chunk that cannot be produced, and reports it', async () => {
-            // This is awaited from the server's tick, and the timer for the next tick is
-            // installed only after that await. A rejection escaping here therefore did not
-            // cost one chunk, it stopped the server ticking - permanently, while it went on
-            // accepting connections.
+            // A broken chunk is reported without making the scheduler's tick fail.
             const failures: Array<{ x: number; z: number } | undefined> = [];
             const scheduler = new ChunkScheduler(1000, (_error, coord) => failures.push(coord));
 
@@ -337,14 +402,14 @@ describe('world', () => {
             sender.enqueue(0, 0);
             scheduler.add({
                 sender,
-                deliver: async () => {
+                deliver: () => {
                     throw new Error('generation failed');
                 },
                 flush: async () => {},
                 isConnected: () => true
             });
 
-            await expect(scheduler.tick()).resolves.toBe(0);
+            await expect(scheduler.tick()).resolves.toBe(1);
             expect(failures).toEqual([{ x: 0, z: 0 }]);
         });
 
@@ -368,7 +433,7 @@ describe('world', () => {
             ]);
             scheduler.add(healthy.recipient);
 
-            expect(await scheduler.tick()).toBe(2);
+            expect(await scheduler.tick()).toBe(3);
             expect(healthy.delivered.length).toBe(2);
         });
 
@@ -388,6 +453,7 @@ describe('world', () => {
             });
 
             await expect(scheduler.tick()).resolves.toBe(1);
+            await scheduler.tick();
             expect(failures.length).toBe(1);
         });
 

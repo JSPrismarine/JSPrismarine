@@ -400,13 +400,12 @@ template string at 108 ns against 3 ns for a flat `Float64Array` lattice.
 `Anvil.readChunk`, `LevelDB.readChunk` and `ChunkScheduler` are unaffected. `DataDrivenGenerator`
 becomes an adapter that asks the generation service for a chunk at `full`.
 
-`ChunkScheduler.tick` awaits one chunk at a time inside a 5 ms per-tick budget
-(`ChunkScheduler.ts:83`). That was the right shape for a generator that blocked the loop and it
-is the wrong one for a pool that can hold six chunks in flight, because it keeps the pool at a
-depth of one and caps delivery to a player at one chunk per await. It has to ask for several at
-once, which the plan does in the slice that lands the pool. `World.preload` already batches 32
-through `Promise.all` (`World.ts:759`), so the preload path does not need the change and the
-per-player path does.
+`ChunkScheduler.tick` starts deliveries within its 5 ms per-tick budget and returns without
+waiting for generation. It keeps up to the host's Overworld worker count in flight, capped at six,
+so player requests use the same pool as the start-region preload. Completed chunks are flushed on
+a later tick, with each player's batches sent in order. This lets the server keep ticking while
+workers build chunks. `World.preload` continues to batch 32 requests through `Promise.all`
+(`World.ts:759`).
 
 A request carries how badly its chunk is wanted, because a pool with a backlog has to be told
 what to serve first. A chunk a player is standing next to is `immediate`, one inside half their

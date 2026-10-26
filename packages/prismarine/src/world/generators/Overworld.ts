@@ -1,10 +1,9 @@
-import { availableParallelism } from 'node:os';
-
 import BaseGenerator from '../BaseGenerator';
 import type { StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 import type { ChunkPoolOptions } from './datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from './datadriven/DataDrivenGenerator';
+import { chunkWorkerCount } from './chunkConcurrency';
 import { findJavaTemplateSource } from './datadriven/javaStructureTemplates';
 import {
     JAVA_WORLDGEN_ENV,
@@ -12,26 +11,6 @@ import {
     findJavaWorldgenSources,
     loadJavaWorldgenRegistries
 } from './datadriven/javaWorldgenData';
-
-/**
- * How many cores to leave for everything that is not chunk generation.
- *
- * The main thread keeps the Bedrock translation and the tick loop, and the server still has a
- * network thread and a disk to serve. A host with fewer than `LEAVE_FREE + 1` cores gets no
- * pool, because one worker costs about 80 MiB of its own and buys nothing over doing the work
- * here.
- */
-const LEAVE_FREE = 2;
-
-/**
- * The most workers worth starting.
- *
- * Six on an Apple M1 Pro, where six of the eight cores are performance cores and every worker
- * is a whole V8 isolate with its own garbage collector. Measured over a 24 by 24 block of
- * overworld chunks: 427.8 ms a chunk on one thread, 124.7 with six workers. See
- * [the architecture decision](../../../../../docs/adr/0002-chunk-generation-architecture.md).
- */
-const MOST_WORKERS = 6;
 
 /**
  * The overworld, generated from Java Edition's published world generation data.
@@ -122,7 +101,7 @@ export default class Overworld extends BaseGenerator {
      * thread can import them, so there the generator says so once and builds chunks here.
      */
     private chunkPool(): ChunkPoolOptions | undefined {
-        const workers = Math.min(MOST_WORKERS, availableParallelism() - LEAVE_FREE);
+        const workers = chunkWorkerCount();
         if (workers < 1) return undefined;
 
         return {

@@ -176,6 +176,9 @@ export default class PlayerSession {
 
     private readonly chunkSendQueue: Chunk[] = [];
 
+    /** Serializes sends when several generated chunks complete at the same time. */
+    private chunkBatchFlush: Promise<void> = Promise.resolve();
+
     /** What this player still has to receive, nearest first. Drained by the server's scheduler. */
     private readonly chunkSender = new ChunkSender();
     private readonly loadedChunks: Set<number> = new Set();
@@ -467,7 +470,14 @@ export default class PlayerSession {
      * it happened outside the measured window the scheduler was timing `deliver` - nearly
      * free for a cached chunk - and believing it had spent almost nothing.
      */
-    private async flushChunkBatch(): Promise<void> {
+    private flushChunkBatch(): Promise<void> {
+        const flush = this.chunkBatchFlush.then(() => this.flushQueuedChunks());
+        this.chunkBatchFlush = flush.catch(() => {});
+        return flush;
+    }
+
+    /** Sends one queued batch after any earlier batch has finished. */
+    private async flushQueuedChunks(): Promise<void> {
         const chunksToSend = this.chunkSendQueue.splice(0, this.chunkSendQueue.length);
         if (chunksToSend.length === 0) return;
 

@@ -70,6 +70,8 @@ for (let z = 0; queued < chunks; z++) {
 let firstGeneratedMs: number | undefined;
 let firstFlushMs: number | undefined;
 let delivered = 0;
+let schedulerTicks = 0;
+let maxSchedulerTickMs = 0;
 const started = performance.now();
 const scheduler = new ChunkScheduler(
     5,
@@ -91,13 +93,24 @@ scheduler.add({
     }
 });
 
-while (!sender.isEmpty()) await scheduler.tick(() => performance.now());
+while (delivered < chunks) {
+    const tickStarted = performance.now();
+    await scheduler.tick(() => performance.now());
+    maxSchedulerTickMs = Math.max(maxSchedulerTickMs, performance.now() - tickStarted);
+    schedulerTicks++;
+    await new Promise<void>((resolve) => setTimeout(resolve, 50));
+}
+// Let the last completed delivery queue and flush its partial batch.
+await scheduler.tick(() => performance.now());
+await new Promise<void>((resolve) => setImmediate(resolve));
 const elapsed = performance.now() - started;
 generator.stopGenerating();
 process.stdout.write(
     `${workers} workers, ${chunks} chunks, depth ${depth}: first generated ` +
         `${firstGeneratedMs?.toFixed(0) ?? 'n/a'} ms, first flush ` +
         `${firstFlushMs?.toFixed(0) ?? 'n/a'} ms, ` +
-        `${elapsed.toFixed(0)} ms total, ${((delivered / elapsed) * 1000).toFixed(1)} chunks/s ` +
+        `${elapsed.toFixed(0)} ms total, ${((delivered / elapsed) * 1000).toFixed(1)} chunks/s, ` +
+        `${((schedulerTicks / elapsed) * 1000).toFixed(1)} scheduler ticks/s, ` +
+        `${maxSchedulerTickMs.toFixed(1)} ms max scheduler pass ` +
         `(${availableParallelism()} cores)\n`
 );
