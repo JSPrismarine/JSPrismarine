@@ -981,7 +981,6 @@
     "packages/prismarine/src/world/World.ts public method `World.savePlayerData`",
     "packages/prismarine/src/world/World.ts public method `World.save`",
     "packages/prismarine/src/world/World.ts public method `World.setTicks`",
-    "packages/prismarine/src/world/World.ts public method `World.useItemOn`",
     "packages/prismarine/src/world/WorldManager.ts public method `WorldManager.getGeneratorManager`",
     "packages/prismarine/src/world/chunk/BlockStorage.ts exported class `BlockStorage`",
     "packages/prismarine/src/world/chunk/BlockStorage.ts public method `BlockStorage.getBlock`",

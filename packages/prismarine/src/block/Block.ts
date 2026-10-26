@@ -1,7 +1,7 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
 import { isFullCube } from '@jsprismarine/engine-systems';
 import type { BlockStateValue } from '@jsprismarine/blocks';
-import { bedrockBlockPropertiesOf } from '@jsprismarine/mapping';
+import { bedrockBlockPropertiesOf, bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 
 import type { ServerContent } from '../content/ServerContent';
 import { Item } from '../item/Item';
@@ -56,6 +56,9 @@ export interface BlockProps {
     /** The content the block's drops are rolled against, when the server built one. */
     content?: ServerContent;
 }
+
+/** Java's block tag for what a placement overwrites; see {@link Block.canBeReplaced}. */
+const REPLACEABLE_TAG = 'minecraft:replaceable';
 
 /** The facts of a block the Java property table does not know, which is a Bedrock-only block. */
 const UNKNOWN_FACTS = {
@@ -229,9 +232,33 @@ export class Block {
         return this.facts.solid;
     }
 
-    /** Whether the block gives way to a placement rather than blocking it. */
+    /**
+     * Whether the block gives way to a placement rather than blocking it.
+     *
+     * Java's `#minecraft:replaceable` block tag answers: short grass, leaf litter, a snow layer,
+     * water and the rest of what a placed block goes into instead of on top of. The client makes
+     * the same call when it predicts a placement, so a server that answered no for leaf litter put
+     * the block above it while the client showed it in the litter's place.
+     *
+     * The tag names Java blocks, so the state goes through `@jsprismarine/mapping` first: Bedrock's
+     * `snow_layer` is Java's `snow` and its `deadbush` is Java's `dead_bush`. A block built without
+     * content has no tags to read, and only air gives way.
+     *
+     * Snow is in the tag at every depth, but Java's snow layer block overrides it: only a single
+     * layer gives way to a placed block. Not yet measured against BDS.
+     */
     public canBeReplaced(): boolean {
-        return this.name === 'minecraft:air';
+        if (this.name === 'minecraft:air') return true;
+
+        const tags = this.content?.tags;
+        if (tags === undefined) return false;
+
+        const exact = bedrockBlockStateToJava(this.getStateName(), this.states);
+        if (exact.kind === 'mapped' && exact.java.name === 'minecraft:snow')
+            return exact.java.properties.layers === '1';
+
+        const javaBlocks = exact.kind === 'mapped' ? [exact.java.name] : bedrockBlockToJava(this.getStateName());
+        return javaBlocks.some((javaBlock) => tags.includes('block', REPLACEABLE_TAG, javaBlock));
     }
 
     /** Whether the block can be placed at all. */

@@ -188,12 +188,13 @@ Each owns part of one object. Build it per dimension and hand a `ServerWorldSour
   has 43 optional members, and a goal whose world cannot answer one refuses to start rather than
   throwing, so this can come up a member at a time.
 
-A player's right click goes through [`item/interaction.ts`](../item/interaction.ts) before it
-reaches `World.useItemOn`. The block the player clicked gets `onPlayerInteract`, unless the player
-is sneaking with something in hand; then the item gets `onUseOn`; and only when both decline does
-the item place the block it names, through the adapter, so `onPlace` runs and a container gets its
-record. The path declines for a block and an item the stack has no type for, and `World.useItemOn`
-runs as it always has.
+A player's right click goes through [`item/interaction.ts`](../item/interaction.ts). The block the
+player clicked gets `onPlayerInteract`, unless the player is sneaking with something in hand; then
+the item gets `onUseOn`; and only when both decline does the item place the block it names, through
+the adapter, so `onPlace` runs and a container gets its record. A placement that goes through costs
+a survival player one from the hand, and one that is refused sends the client the blocks and the
+inventory as they are. An item that places no block, and a block or an item the stack has no type
+for, gets nothing.
 
 ### Network (`src/network/`)
 

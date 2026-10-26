@@ -37,7 +37,8 @@ const FACE_COUNT = 6;
 /**
  * One right click on a block, offered to the content hooks.
  *
- * @returns Whether a behavior family or a content placement consumed the click.
+ * @returns Whether a behavior family or a placement consumed the click. A behavior that throws
+ *   is logged and declines.
  */
 const contentUse = (server: Server, player: Player, data: UseItemData): InteractionResult => {
     const content = server.getContent();
@@ -61,8 +62,8 @@ const contentUse = (server: Server, player: Player, data: UseItemData): Interact
             }
         });
     } catch (error: unknown) {
-        // A behavior that throws must not cost the player the click, and it must not go
-        // unreported either. The legacy path runs and the throw reaches the log.
+        // A behavior that throws must not take the packet handler down with it, and it must
+        // not go unreported either. The throw reaches the log and the click goes unanswered.
         server.getLogger().error(error);
         return 'declined';
     }
@@ -341,12 +342,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
      *
      * The block the client names has to be within {@link MAX_BLOCK_TARGET_DISTANCE} of where the
      * server has the player, or the transaction is dropped at verbose level. What is placed is
-     * the item the server has in the player's hand, not the Item the client sent: the client's
-     * copy says what it believes it holds, and the server's inventory is the one that decides.
+     * the item the server has in the player's hand, which `useItemOnBlock` reads for itself,
+     * not the Item the client sent: the client's copy says what it believes it holds, and the
+     * server's inventory is the one that decides.
      */
     private async handleUseItem(data: UseItemData, server: Server, player: Player): Promise<void> {
-        const world = player.getWorld();
-
         switch (data.actionType) {
             case ItemUseActionType.PLACE:
             case ItemUseActionType.DESTROY: {
@@ -362,25 +362,17 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 }
 
                 if (data.actionType === ItemUseActionType.PLACE) {
-                    // The content path first, where the block's and the item's behavior families
-                    // get the click. It declines when nothing in the content wanted the click and
-                    // when a behavior threw, and the path this server has always had runs.
-                    if (contentUse(server, player, data) === 'handled') return;
-
-                    await world.useItemOn(
-                        player.getInventory().getItemInHand(),
-                        data.blockPosition,
-                        data.blockFace,
-                        data.clickPosition,
-                        player
-                    );
+                    // The block's and the item's behavior families get the click, and the block
+                    // in hand goes down when neither takes it. What a click they all decline
+                    // gets is nothing: the item places no block, so the client predicted none.
+                    contentUse(server, player, data);
                     return;
                 }
 
                 // Survival's route into a break. Creative announces the same thing through
                 // PlayerAction instead, and both end up in `breakBlock`, which does nothing the
                 // second time round.
-                await world.breakBlock(data.blockPosition, player);
+                await player.getWorld().breakBlock(data.blockPosition, player);
                 return;
             }
 

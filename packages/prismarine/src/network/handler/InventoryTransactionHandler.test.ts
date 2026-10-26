@@ -32,6 +32,8 @@ import InventoryTransactionPacket, {
     ItemUseOnActorActionType
 } from '../packet/InventoryTransactionPacket';
 import InventoryTransactionHandler, { rejectionReason } from './InventoryTransactionHandler';
+import { useItemOnBlock } from '../../item/interaction';
+import type { InteractionResult } from '../../item/interaction';
 import type { ServerWorldHandle } from '../../content/world/serverSource';
 import type { ServerItemActorPort } from '../../item/actorPort';
 import { testContent } from '../../testing/entityServer';
@@ -46,18 +48,23 @@ vi.mock('../../entity/Archery', async (importActual) => ({
     ...(await importActual<typeof import('../../entity/Archery')>()),
     loose: vi.fn(async () => true)
 }));
+// So is the click on a block, which `item/interaction.test.ts` places against a real world.
+vi.mock('../../item/interaction', async (importActual) => ({
+    ...(await importActual<typeof import('../../item/interaction')>()),
+    useItemOnBlock: vi.fn((): InteractionResult => 'handled')
+}));
 
 const TICK = 400;
 
 /**
  * A player standing at (0, 64, 0) holding stone in hotbar slot 2, in a world that records
- * what it is asked to place and break and knows one entity, runtime id 42.
+ * what it is asked to break and knows one entity, runtime id 42. The clicks passed on to
+ * `useItemOnBlock` are read back from its mock, as what the hand held at each.
  *
  * The inventory is a real one, because the point of half these tests is that the server's
  * copy of the hand decides what happens and not the item the client sent.
  */
 const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name: 'minecraft:stone' })) => {
-    const placed: string[] = [];
     const broken: BlockPosition[] = [];
     const logged: string[] = [];
     const itemUse: string[] = [];
@@ -66,10 +73,6 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     let zombie: Entity;
     const world = stub<World>({
-        useItemOn: async (item, position, face) => {
-            const name = item === null ? 'nothing' : item.getName();
-            placed.push(`${name} at ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
-        },
         breakBlock: async (position) => {
             broken.push(BlockPosition.fromVector3(position));
             return true;
@@ -111,9 +114,8 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     const server = stub<Server>({
         getTick: () => TICK,
-        // The two-block fixture, which has a type for neither the block nor the item any
-        // test here clicks with, so the content path declines and the click falls through
-        // to the legacy one that the rest of this file is about.
+        // The two-block fixture. Nothing here reads it, since the click itself is recorded
+        // rather than run, but the handler hands it on.
         getContent: () => testContent(),
         getContentWorld: () =>
             stub<ServerWorldHandle>({
@@ -136,7 +138,15 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
     const session = stub<PlayerSession>({ getPlayer: () => player });
 
     return {
-        placed,
+        get clicked() {
+            return vi
+                .mocked(useItemOnBlock)
+                .mock.calls.filter(([interaction]) => interaction.player === player)
+                .map(([{ player: clicker, position, face }]) => {
+                    const held = clicker.getInventory().getItemInHand().getName();
+                    return `${held} at ${position.x},${position.y},${position.z} face ${face}`;
+                });
+        },
         broken,
         logged,
         itemUse,
@@ -282,15 +292,15 @@ describe('InventoryTransactionHandler', () => {
         expect(world.logged).toEqual([
             'debug: Dropped an inventory transaction from tester: transaction type 9 is not one the packet may carry'
         ]);
-        expect(world.placed).toEqual([]);
+        expect(world.clicked).toEqual([]);
     });
 
-    it("places what the server has in the player's hand, not what the client said it held", async () => {
+    it("passes a click on to the content path with the server's hand, not what the client said it held", async () => {
         const world = fake();
 
         await handle(transaction(TransactionType.USE_ITEM, useItem()), world);
 
-        expect(world.placed).toEqual(['minecraft:stone at 0,62,0 face 1']);
+        expect(world.clicked).toEqual(['minecraft:stone at 0,62,0 face 1']);
     });
 
     it('refuses a face a block does not have before the world can trip on it', async () => {
@@ -298,7 +308,7 @@ describe('InventoryTransactionHandler', () => {
 
         await handle(transaction(TransactionType.USE_ITEM, useItem({ blockFace: 6 })), world);
 
-        expect(world.placed).toEqual([]);
+        expect(world.clicked).toEqual([]);
         expect(world.logged[0]).toContain("face 6 is not one of a block's six");
     });
 
@@ -315,7 +325,7 @@ describe('InventoryTransactionHandler', () => {
             world
         );
 
-        expect(world.placed).toEqual([]);
+        expect(world.clicked).toEqual([]);
         expect(world.broken).toEqual([]);
         expect(world.logged).toEqual([
             'verbose: Dropped item use PLACE from tester on a block 8.0 away',
@@ -328,7 +338,7 @@ describe('InventoryTransactionHandler', () => {
 
         await handle(transaction(TransactionType.USE_ITEM, useItem({ hotbarSlot: 3 })), world);
 
-        expect(world.placed).toEqual([]);
+        expect(world.clicked).toEqual([]);
         expect(world.logged).toEqual([
             'verbose: Dropped an inventory transaction from tester: it names hotbar slot 3 and the server has 2 selected'
         ]);
@@ -433,7 +443,7 @@ describe('InventoryTransactionHandler', () => {
         await handle(transaction(TransactionType.USE_ITEM, useItem()), world);
         await handle(transaction(TransactionType.USE_ITEM_ON_ENTITY, useItemOnEntity()), world);
 
-        expect(world.placed).toEqual([]);
+        expect(world.clicked).toEqual([]);
         expect(vi.mocked(meleeAttack)).not.toHaveBeenCalled();
     });
 

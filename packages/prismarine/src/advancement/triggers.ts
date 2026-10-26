@@ -21,7 +21,7 @@
  * | `recipe_crafted` | `ItemStackRequestHandler`'s crafting action |
  * | `player_killed_entity`, `entity_killed_player` | `Entity.onDeath` |
  * | `player_hurt_entity`, `entity_hurt_player` | `Entity.damage` |
- * | `placed_block` | `World.useItemOn` |
+ * | `placed_block` | `useItemOnBlock`, when the block in hand went down |
  * | `enchanted_item` | a row taken at an enchanting table |
  * | `location`, `tick` | `Player.update`, every second |
  * | `changed_dimension` | `Player.setWorld` |

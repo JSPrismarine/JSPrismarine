@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
+import { definitionOf } from '../content/ContentOptions';
 import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
-import { fixtureContentOptions } from '../content/testing';
+import { fixtureContentOptions, fixtureDefinitions } from '../content/testing';
 import { Item } from '../item/Item';
 import { Block, javaBlockFactsOf } from './Block';
 
@@ -120,6 +121,56 @@ describe('block', () => {
             // would mean nothing that needs one ever dropped.
             it('lets anything harvest when the server loaded no tags to check against', () => {
                 expect(needsATool('minecraft:stone').isCompatibleWithTool(null)).toBe(true);
+            });
+        });
+
+        describe('replacing', () => {
+            /** The fixture build with Java's `#minecraft:replaceable`, cut down to three blocks. */
+            const withReplaceableTag = () =>
+                buildServerContent(
+                    fixtureContentOptions({
+                        load: () => ({
+                            definitions: {
+                                ...fixtureDefinitions(),
+                                tags: new Map([
+                                    [
+                                        'block/minecraft:replaceable',
+                                        definitionOf('tags', 'block/minecraft:replaceable', {
+                                            values: ['minecraft:leaf_litter', 'minecraft:snow', 'minecraft:dead_bush']
+                                        })
+                                    ]
+                                ])
+                            },
+                            diagnostics: []
+                        })
+                    })
+                );
+
+            it("gives way where Java's replaceable tag says, under the Java name", () => {
+                const content = withReplaceableTag();
+                const replaced = (name: string) => new Block({ name, content }).canBeReplaced();
+
+                expect(replaced('minecraft:leaf_litter')).toBe(true);
+                // Bedrock's snow_layer and deadbush are Java's snow and dead_bush.
+                expect(replaced('minecraft:snow_layer')).toBe(true);
+                expect(replaced('minecraft:deadbush')).toBe(true);
+                expect(replaced('minecraft:stone')).toBe(false);
+            });
+
+            it('gives way under a single snow layer and not under a deeper one', () => {
+                const content = withReplaceableTag();
+                const snow = (height: number) =>
+                    new Block({ name: 'minecraft:snow_layer', states: { height }, content }).canBeReplaced();
+
+                // Bedrock counts layers from 0, Java from 1: height 0 is Java's `layers=1`.
+                expect(snow(0)).toBe(true);
+                expect(snow(1)).toBe(false);
+                expect(snow(7)).toBe(false);
+            });
+
+            it('lets only air give way when the server loaded no tags', () => {
+                expect(named('minecraft:air').canBeReplaced()).toBe(true);
+                expect(named('minecraft:leaf_litter').canBeReplaced()).toBe(false);
             });
         });
 

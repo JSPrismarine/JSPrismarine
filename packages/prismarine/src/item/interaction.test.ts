@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
+import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
@@ -10,8 +11,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import { advancementsOf } from '../advancement/progress';
 import BlockManager from '../block/BlockManager';
+import type { BlockManagerServer } from '../block/BlockManager';
 import { Attributes } from '../entity/Attribute';
-import type ContainerEntry from '../inventory/ContainerEntry';
+import ContainerEntry from '../inventory/ContainerEntry';
+import HumanInventory from '../inventory/HumanInventory';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
 import { overlayPackPath } from '../content/packStack';
@@ -31,6 +34,7 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import type Player from '../Player';
+import { stub } from '../testing/stub.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -54,7 +58,10 @@ const BLOCKS = [
     'minecraft:wheat',
     'minecraft:wooden_door',
     'minecraft:chest',
-    'minecraft:black_shulker_box'
+    'minecraft:black_shulker_box',
+    'minecraft:crafting_table',
+    'minecraft:leaf_litter',
+    'minecraft:snow_layer'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -64,13 +71,14 @@ const ITEMS = [
     'minecraft:chest',
     'minecraft:stick',
     'minecraft:black_shulker_box',
-    'minecraft:diamond_pickaxe'
+    'minecraft:diamond_pickaxe',
+    'minecraft:crafting_table'
 ];
 
 const DIMENSION = 'minecraft:overworld';
 
 /**
- * Three advancements, one per block-use trigger the click path raises.
+ * Four advancements, one per block trigger the click path raises.
  *
  * Trigger only and no conditions: `location_check` resolves the block out of the live world
  * through the level rather than out of the event, and what is under test here is that the call
@@ -98,6 +106,27 @@ const blockUseAdvancements = () =>
                 criteria: { used: { trigger: 'minecraft:item_used_on_block' } },
                 requirements: [['used']]
             })
+        ],
+        [
+            'test:placed',
+            definitionOf('advancements', 'test:placed', {
+                criteria: { placed: { trigger: 'minecraft:placed_block' } },
+                requirements: [['placed']]
+            })
+        ]
+    ]);
+
+/**
+ * Java's `#minecraft:replaceable`, cut down to what the fixture holds. Java names the snow layer
+ * `snow`, which is what the block's own answer has to translate `minecraft:snow_layer` to.
+ */
+const replaceableTag = () =>
+    new Map([
+        [
+            'block/minecraft:replaceable',
+            definitionOf('tags', 'block/minecraft:replaceable', {
+                values: ['minecraft:air', 'minecraft:leaf_litter', 'minecraft:snow']
+            })
         ]
     ]);
 
@@ -111,9 +140,10 @@ const overlayBlock = (identifier: string) => {
 const liveWorld = (
     blockManager: BlockManager,
     content: () => ServerContent
-): { world: World; chunk: Chunk; sounds: string[] } => {
+): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
+    const changed: string[] = [];
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -135,7 +165,12 @@ const liveWorld = (
         }
     });
 
-    world.attachChangeSink({ ...NULL_WORLD_CHANGE_SINK, namedSound: (_at, name) => void sounds.push(name) });
+    world.attachChangeSink({
+        ...NULL_WORLD_CHANGE_SINK,
+        namedSound: (_at, name) => void sounds.push(name),
+        blockChanged: (at, runtimeId) =>
+            void changed.push(`${at.getX()},${at.getY()},${at.getZ()} ${BlockRuntimeIds.getState(runtimeId)?.name}`)
+    });
     Object.assign(world, {
         systems: new WorldSystems({
             view: {
@@ -147,21 +182,31 @@ const liveWorld = (
         })
     });
 
-    return { world, chunk, sounds };
+    return { world, chunk, sounds, changed };
 };
 
 /**
  * A player reduced to what {@link useItemOnBlock} reads off one.
  *
  * Built as the members the path calls rather than on the real prototype, because a `Player` is
- * a network session and this is a test about what a click does to the world.
+ * a network session and this is a test about what a click does to the world. The inventory is a
+ * real one with the stack in hotbar slot 0, because a placement takes from it.
  */
-const playerHolding = (world: World, holding: string | Item, sneaking = false): Player => {
+const playerHolding = (
+    world: World,
+    holding: string | Item,
+    sneaking = false,
+    gamemode: Gametype = Gametype.SURVIVAL
+): Player => {
     const item = typeof holding === 'string' ? new Item({ id: 1, name: holding, meta: 0, count: 1 }) : holding;
-    const inventory = { getItemInHand: () => item };
+    const inventory = new HumanInventory();
+    inventory.setItem(0, new ContainerEntry({ item, count: item.count }));
+    inventory.setHandSlot(0);
     let openWindow: OpenWindow | undefined;
     const session = {
         opened: [] as { identifier: string; at: Vector3; contents: ContainerEntry[] }[],
+        inventoriesSent: 0,
+        sendInventory: async () => void session.inventoriesSent++,
         getOpenBlockContainer: () => openWindow,
         openBlockContainer: async (at: Vector3, blockIdentifier: string, contents: ContainerEntry[] = []) => {
             const current = openWindow;
@@ -200,9 +245,12 @@ const playerHolding = (world: World, holding: string | Item, sneaking = false): 
         getFood: () => 20,
         isOnGround: () => true,
         isSneaking: () => sneaking,
-        gamemode: Gametype.SURVIVAL
+        gamemode
     } as unknown as Player;
 };
+
+/** The inventory sends {@link playerHolding}'s session counted, which the double alone carries. */
+const sessionOf = (player: Player) => player.getNetworkSession() as unknown as { inventoriesSent: number };
 
 /** Writes a block straight into the chunk, which is the ground the click then acts on. */
 const place = (chunk: Chunk, at: ContentPosition, identifier: string, states: Record<string, unknown> = {}): void => {
@@ -233,13 +281,18 @@ describe('useItemOnBlock', () => {
     let world: World;
     let chunk: Chunk;
     let sounds: string[];
+    let changed: string[];
     let content: ServerContent;
     let handle: ServerWorldHandle;
 
     beforeEach(() => {
-        const blockManager = new BlockManager({ getLogger: () => ({ verbose: () => {} }) } as never);
         let built: ServerContent | undefined;
-        ({ world, chunk, sounds } = liveWorld(blockManager, () => built!));
+        // Over the content, as a running server's is, so a block's answer to whether it can be
+        // replaced comes out of the fixture's tags.
+        const blockManager = new BlockManager(
+            stub<BlockManagerServer>({ getLogger: () => stub<Logger>({ verbose: () => {} }), getContent: () => built })
+        );
+        ({ world, chunk, sounds, changed } = liveWorld(blockManager, () => built!));
 
         handle = serverWorldSource({
             worldFor: () => world,
@@ -255,6 +308,7 @@ describe('useItemOnBlock', () => {
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
                     advancements: blockUseAdvancements(),
+                    tags: replaceableTag(),
                     lootTablesJava: new Map([[IGLOO_TABLE, definitionOf('lootTablesJava', IGLOO_TABLE, IGLOO_LOOT)]])
                 }),
                 diagnostics: []
@@ -430,11 +484,14 @@ describe('useItemOnBlock', () => {
         expect((player.getNetworkSession() as unknown as { opened: OpenedContainer[] }).opened).toHaveLength(0);
     });
 
-    it('leaves the click to the legacy path when nothing in the content wants it', () => {
+    it('declines a click nothing wants with an item that places no block, and sends nothing', () => {
         place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:stone');
+        const player = playerHolding(world, 'minecraft:stick');
 
-        expect(click(playerHolding(world, 'minecraft:stick'), { x: 8, y: 64, z: 8 })).toBe('declined');
+        expect(click(player, { x: 8, y: 64, z: 8 })).toBe('declined');
         expect(world.loadedBlockAt(8, 65, 8)?.name).toBe('minecraft:air');
+        expect(changed).toEqual([]);
+        expect(sessionOf(player).inventoriesSent).toBe(0);
     });
 
     it('does not open a door for a sneaking player holding a block', () => {
@@ -444,8 +501,117 @@ describe('useItemOnBlock', () => {
 
         // Vanilla's rule, which is what lets a player build against a block that would
         // otherwise take the click. The upper half is where the chest would go and it is
-        // occupied, so nothing is placed either.
-        expect(click(playerHolding(world, 'minecraft:chest', true), { x: 2, y: 64, z: 2 })).toBe('declined');
+        // occupied, so nothing is placed either, and the client is told so.
+        expect(click(playerHolding(world, 'minecraft:chest', true), { x: 2, y: 64, z: 2 })).toBe('handled');
         expect(world.loadedBlockAt(2, 64, 2)?.states['open_bit']).toBe(0);
+        expect(world.loadedBlockAt(2, 65, 2)?.name).toBe('minecraft:wooden_door');
+    });
+
+    describe('placing', () => {
+        /** A survival player holding `count` crafting tables, the stack the client knows as id 1. */
+        const holdingTables = (count: number, gamemode: Gametype = Gametype.SURVIVAL) => {
+            const tables = new Item({ name: 'minecraft:crafting_table', count, content });
+            tables.stackNetworkId = 1;
+            return playerHolding(world, tables, false, gamemode);
+        };
+
+        it('puts the block against the clicked face of one that cannot be built over', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+
+            expect(click(holdingTables(3), { x: 4, y: 63, z: 4 })).toBe('handled');
+
+            expect(world.loadedBlockAt(4, 63, 4)?.name).toBe('minecraft:stone');
+            expect(world.loadedBlockAt(4, 64, 4)?.name).toBe('minecraft:crafting_table');
+            expect(sounds).toContain('place');
+        });
+
+        it('replaces leaf litter rather than building on top of it', () => {
+            // A Bedrock Dedicated Server 1.26.52 put a crafting table clicked onto leaf litter
+            // where the litter was, which is also where the client drew it.
+            place(chunk, { x: 5, y: 62, z: 5 }, 'minecraft:stone');
+            place(chunk, { x: 5, y: 63, z: 5 }, 'minecraft:leaf_litter');
+
+            expect(click(holdingTables(3), { x: 5, y: 63, z: 5 })).toBe('handled');
+
+            expect(world.loadedBlockAt(5, 63, 5)?.name).toBe('minecraft:crafting_table');
+            expect(world.loadedBlockAt(5, 64, 5)?.name).toBe('minecraft:air');
+        });
+
+        it('replaces a snow layer, which Java names snow', () => {
+            place(chunk, { x: 6, y: 62, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:snow_layer');
+
+            click(holdingTables(3), { x: 6, y: 63, z: 6 });
+
+            expect(world.loadedBlockAt(6, 63, 6)?.name).toBe('minecraft:crafting_table');
+        });
+
+        it('takes the block from a survival hand, keeping the stack id, and resends the inventory', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = holdingTables(3);
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            const held = player.getInventory().getEntry(0);
+            expect(held?.getCount()).toBe(2);
+            expect(held?.getItem().getAmount()).toBe(2);
+            expect(held?.getItem().stackNetworkId).toBe(1);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('empties the hand with the last block', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = holdingTables(1);
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+        });
+
+        it('leaves a creative hand as it was, and still resends the inventory', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = holdingTables(3, Gametype.CREATIVE);
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+        });
+
+        it('raises placed_block for the block that went down', () => {
+            place(chunk, { x: 4, y: 63, z: 4 }, 'minecraft:stone');
+            const player = holdingTables(3);
+
+            click(player, { x: 4, y: 63, z: 4 });
+
+            expect(earned(player, 'test:placed')).toBe(true);
+        });
+
+        it('refuses a face that is taken, and sends back what is really there', () => {
+            // Stone on the face: nothing is overwritten, and the client is told the blocks and
+            // the stack it really has, rather than keeping the table it predicted.
+            place(chunk, { x: 7, y: 63, z: 7 }, 'minecraft:stone');
+            place(chunk, { x: 7, y: 64, z: 7 }, 'minecraft:stone');
+            const player = holdingTables(3);
+
+            expect(click(player, { x: 7, y: 63, z: 7 })).toBe('handled');
+
+            expect(world.loadedBlockAt(7, 64, 7)?.name).toBe('minecraft:stone');
+            expect(changed).toEqual(['7,63,7 minecraft:stone', '7,64,7 minecraft:stone']);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+            expect(sessionOf(player).inventoriesSent).toBe(1);
+            expect(earned(player, 'test:placed')).toBe(false);
+        });
+
+        it('refuses a placement above the top of the world', () => {
+            const top = Dimensions.Overworld.minY + Dimensions.Overworld.height - 1;
+            place(chunk, { x: 9, y: top, z: 9 }, 'minecraft:stone');
+            const player = holdingTables(3);
+
+            expect(click(player, { x: 9, y: top, z: 9 })).toBe('handled');
+
+            expect(changed).toEqual([`9,${top},9 minecraft:stone`]);
+            expect(player.getInventory().getEntry(0)?.getCount()).toBe(3);
+        });
     });
 });

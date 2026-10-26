@@ -12,7 +12,6 @@ import UUID from '../utils/UUID';
 // `./world/` before `Player`, so reaching for it via '../' lands back in a module that is
 // still initializing and the binding is not a constructor yet when `instanceof` runs.
 import Player from '../Player';
-import { advancementPlacedBlock } from '../advancement/triggers';
 import { storedAdvancements } from '../advancement/progress';
 import { enchantmentSeedOf } from '../enchantment/enchantingTable';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -174,19 +173,6 @@ interface PlayerChunkPosition {
 
 /** Sky light at a position nothing stands over, which is what `Level.canSeeSky` answers. */
 const FULL_SKY_LIGHT = 15;
-
-/**
- * Which way a block goes when placed against each face, indexed by the face the client sent:
- * bottom, top, front, back, right, left.
- */
-const FACE_OFFSETS: ReadonlyArray<readonly [number, number, number]> = [
-    [0, -1, 0],
-    [0, 1, 0],
-    [0, 0, -1],
-    [0, 0, 1],
-    [-1, 0, 0],
-    [1, 0, 0]
-];
 
 /**
  * The crack particles, indexed by the face that was struck.
@@ -1369,102 +1355,22 @@ export class World implements Service {
         this.changes.namedParticle(new Vector3(x + 0.5, y + 0.5, z + 0.5), particle);
     }
 
-    // TODO: move this?
-    public async useItemOn(
-        itemInHand: Item | Block | null,
-        blockPosition: Vector3,
-        face: number,
-        _clickPosition: Vector3,
-        player: Player
-    ): Promise<void> {
-        // TODO: checks
-        // TODO: canInteract
+    /**
+     * Tells the players who can see a block what is there, without changing it.
+     *
+     * For a client that predicted a change the server did not make: a refused placement leaves
+     * the block that client drew on its screen until something else happens at the position.
+     * Nothing is sent for a position whose chunk is not in memory or that lies outside the
+     * dimension.
+     * @param {number} x - Block x.
+     * @param {number} y - Block y.
+     * @param {number} z - Block z.
+     */
+    public resendBlock(x: number, y: number, z: number): void {
+        const runtimeId = this.loadedBlockRuntimeIdAt(x, y, z);
+        if (runtimeId === undefined) return;
 
-        // An item that names a block is resolved to that block, rather than refused for being
-        // an item. Everything a player holds is an `Item` - a creative pick, a stack out of
-        // the inventory, a drop picked up off the ground - so returning early here meant the
-        // server placed nothing at all, ever. The client predicts the placement and plays the
-        // sound locally, which is why a block appeared to go down and then was not there.
-        //
-        // A name the block registry does not know still places nothing: the state catalog
-        // has all 1219 blocks, but only the 260 with a class of their own can be given
-        // behavior, and the creative menu now offers every one of the 1919 items.
-        const blockManager = this.server.getBlockManager();
-        const block = itemInHand instanceof Item ? blockManager.findBlock(itemInHand.getName()) : itemInHand;
-        const clickedState = (await this.getChunkAt(blockPosition)).getBlock(blockPosition);
-        const clickedBlock = blockManager.findBlock(clickedState.name);
-
-        if (!block || !clickedBlock) return;
-        if (clickedBlock.getName() === 'minecraft:air' || !block.canBePlaced()) return;
-
-        let placedPosition = new Vector3(blockPosition.getX(), blockPosition.getY(), blockPosition.getZ());
-
-        // Only set correct face if the block can't be replaced
-        if (!clickedBlock.canBeReplaced()) {
-            const offset: readonly [number, number, number] | undefined = FACE_OFFSETS[face];
-            if (!offset) throw new Error('Invalid Face');
-
-            const [dx, dy, dz] = offset;
-            placedPosition = new Vector3(
-                placedPosition.getX() + dx,
-                placedPosition.getY() + dy,
-                placedPosition.getZ() + dz
-            );
-        }
-
-        if (blockPosition.getY() < 0 || blockPosition.getY() > 255) return;
-
-        // Through `setBlockRuntimeId`, so a placed block sets off the same physics a broken one
-        // does: sand placed in mid air falls, a block dropped into a stream dams it, and a block
-        // put under a flower holds it up.
-        const success: boolean = await new Promise(async (resolve) => {
-            try {
-                await this.setBlockRuntimeId(
-                    placedPosition.getX(),
-                    placedPosition.getY(),
-                    placedPosition.getZ(),
-                    BlockRuntimeIds.getByName(block.getStateName())
-                );
-                resolve(true);
-            } catch (error: unknown) {
-                player.getServer().getLogger().warn(`${player.getName()} failed to place block due to ${error}`);
-                await player.sendMessage(error instanceof Error ? error.message : String(error));
-
-                resolve(false);
-            }
-        });
-
-        if (!success) {
-            // TODO: tell the client the placement did not happen.
-            //
-            // A client shows the block the moment it asks for it, so a refused placement
-            // leaves a ghost block on screen until something else happens to that position.
-            // The revert used to be built here as an `UpdateBlockPacket` carrying
-            // `clickedBlock`'s state - and then dropped on the floor, never sent, for as long
-            // as the code has existed. The packet is gone rather than the intent: what belongs
-            // here is `this.changes.blockChanged(placedPosition, ...)`, which would actually
-            // send it, and turning that on is a behavior change rather than a move.
-            return;
-        }
-
-        const runtimeId = BlockRuntimeIds.getByName(block.getStateName());
-
-        // To the players who can see the block. This went through the session manager, so a
-        // block placed here was announced to every player on the server - including those in
-        // other worlds entirely.
-        this.changes.blockChanged(placedPosition, runtimeId);
-
-        this.changes.blockSound(placedPosition, LevelSoundEvent.PLACE, runtimeId);
-
-        advancementPlacedBlock(player, {
-            origin: {
-                x: placedPosition.getX(),
-                y: placedPosition.getY(),
-                z: placedPosition.getZ()
-            },
-            block: block.getName(),
-            tool: itemInHand instanceof Item ? itemInHand : Item.air()
-        });
+        this.changes.blockChanged(new Vector3(x, y, z), runtimeId);
     }
 
     /**
