@@ -132,6 +132,10 @@ export default class PlayerActionHandler implements PacketHandler<PlayerActionPa
             // block merely swept over.
             case PlayerActionType.StartDestroyBlock:
             case PlayerActionType.ContinueDestroyBlock: {
+                // Creative breaks are immediate. Sending survival crack timing here makes
+                // blocks such as bamboo visibly mine at a survival speed in creative mode.
+                if (player.gamemode === Gametype.CREATIVE) return;
+
                 // The only action here that needs the block. Reading it up front, as this
                 // used to, meant every jump, sprint and sneak - which carry no block position
                 // and so ask for (0, 0, 0) - loaded, and on a fresh world generated, the

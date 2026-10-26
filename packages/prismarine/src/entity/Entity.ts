@@ -7,6 +7,7 @@ import type PlayerSession from '../network/PlayerSession';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
+import { SyncedProperties } from '../network/type/SyncedProperties';
 import type { Attribute } from './Attribute';
 import { AttributeIds, Attributes } from './Attribute';
 import { reduceDamage } from './Damage';
@@ -705,6 +706,17 @@ export class Entity {
      */
     public getEquipment(): ViewableEquipment {
         return this.equipment;
+    }
+
+    /**
+     * The properties this actor sends alongside its metadata.
+     *
+     * Most entities do not have data-driven properties. Data-driven entity bodies override
+     * this with their current client-synced values.
+     * @returns The actor's current property snapshot.
+     */
+    public getSyncedProperties(): SyncedProperties {
+        return new SyncedProperties();
     }
 
     /**

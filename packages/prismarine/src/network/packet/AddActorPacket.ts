@@ -1,6 +1,7 @@
 import { Vector3 } from '@jsprismarine/math';
 import type { Attribute } from '../../entity/Attribute';
 import type { Metadata } from '../../entity/Metadata';
+import { SyncedProperties } from '../type/SyncedProperties';
 import Identifiers from '../Identifiers';
 import { NetworkUtil } from '../NetworkUtil';
 import DataPacket from './DataPacket';
@@ -49,7 +50,7 @@ export interface ActorLink {
  * | Y Body Rotation | float | Written from `yaw`; the server keeps no separate body yaw |
  * | Attributes List | SyncedAttribute[] | varuint32 count; see {@link Attribute.networkSerializeInitial} |
  * | Actor Data | SynchedActorDataList | See {@link Metadata.networkSerialize} |
- * | Synched Properties | PropertySyncData | Two varuint32 counts, both zero: no entity properties are defined |
+ * | Synched Properties | PropertySyncData | Client-synced entity property values |
  * | Actor Links | ActorLink[] | varuint32 count, then each {@link ActorLink} |
  */
 export default class AddActorPacket extends DataPacket {
@@ -73,6 +74,8 @@ export default class AddActorPacket extends DataPacket {
      */
     public attributes: Attribute[] = [];
     public metadata!: Metadata;
+    /** Client-synced entity properties, indexed by the actor type's definition packet. */
+    public syncedProperties = new SyncedProperties();
     /** Riding relationships to announce with the entity. The server tracks none yet, so this stays empty. */
     public links: ActorLink[] = [];
 
@@ -97,9 +100,7 @@ export default class AddActorPacket extends DataPacket {
 
         this.metadata.networkSerialize(this);
 
-        // Synched Properties: the int entries list and the float entries list, both empty.
-        this.writeUnsignedVarInt(0);
-        this.writeUnsignedVarInt(0);
+        this.syncedProperties.networkSerialize(this);
 
         this.writeUnsignedVarInt(this.links.length);
         for (const link of this.links) {

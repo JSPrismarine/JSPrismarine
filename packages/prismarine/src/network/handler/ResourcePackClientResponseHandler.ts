@@ -6,6 +6,7 @@ import type { Vector3 } from '@jsprismarine/math';
 import { DisconnectReason, Generator, getGametypeId } from '@jsprismarine/minecraft';
 import type { Player, PlayerSession } from '../../';
 import { eyePositionAt } from '../../entity/Human';
+import { syncActorPropertyPacket } from '../actorProperties';
 import type Server from '../../Server';
 import ChatEvent from '../../events/chat/ChatEvent';
 import PlayerSpawnEvent from '../../events/player/PlayerSpawnEvent';
@@ -240,6 +241,12 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         const itemRegistry = new ItemRegistryPacket();
         itemRegistry.entries = payloads?.items ?? null;
         await connection.sendDataPacket(itemRegistry);
+
+        // Register each type's render-facing properties before any actor of that type spawns.
+        for (const type of server.getContent().entities.registry.values()) {
+            const propertyPacket = syncActorPropertyPacket(type.identifier, type.entity.description.properties);
+            if (propertyPacket !== undefined) await connection.sendDataPacket(propertyPacket);
+        }
 
         await connection.sendDataPacket(new AvailableActorIdentifiersPacket());
         await connection.sendDataPacket(new BiomeDefinitionListPacket());

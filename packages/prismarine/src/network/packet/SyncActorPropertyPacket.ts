@@ -10,8 +10,9 @@ import DataPacket from './DataPacket';
  * data, and this packet carries the ones flagged for client sync.
  *
  * Wire order at protocol 2193: Property Data as one network NBT compound and nothing else.
- * The compound holds `type`, the hash of the actor identifier, and `properties`, a
- * sub-compound of the properties themselves.
+ * The compound holds `type`, the actor identifier, and `properties`, a list of property
+ * definitions flagged for client sync. Each definition carries its name, type, and enum values
+ * or numeric range when applicable.
  * @see https://mojang.github.io/bedrock-protocol-docs/1.26.51/packets/sync-actor-property-packet/
  */
 export default class SyncActorPropertyPacket extends DataPacket {

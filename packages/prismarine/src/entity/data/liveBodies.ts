@@ -27,6 +27,7 @@ import { NBTTagCompound } from '@jsprismarine/nbt';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import { itemOfDrop } from '../../inventory/persistence';
+import { sameSyncedProperties, syncedPropertiesOf } from '../../network/actorProperties';
 import { Attribute, AttributeIds } from '../Attribute';
 import { MOB_EQUIPMENT_SLOTS, sameEquipmentItems } from '../equipment';
 import type { ViewableEquipment } from '../predicateView';
@@ -66,6 +67,11 @@ class DataEntityBody extends GenericEntity {
     }
 
     /** @inheritdoc */
+    public override getSyncedProperties() {
+        return syncedPropertiesOf(this.driver.instance.properties);
+    }
+
+    /** @inheritdoc */
     public override applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
         // The damping first, because vanilla's rule is that each shove halves whatever motion
         // the last one left before adding its own - which is what makes a sprint hit both throw
@@ -90,6 +96,8 @@ export class LiveBodies {
     private readonly bodies = new Map<number, Entity>();
     /** The health last written onto each body, which is how a legacy blow is noticed. */
     private readonly written = new Map<number, number>();
+    /** The property values last sent for each body. */
+    private readonly synced = new Map<number, ReturnType<Entity['getSyncedProperties']>>();
     /**
      * The value of `MobBody.equipmentRevision` last mirrored onto each body.
      *
@@ -156,6 +164,7 @@ export class LiveBodies {
         this.writeEquipment(entity, body);
 
         this.bodies.set(entity.id, body);
+        this.synced.set(entity.id, body.getSyncedProperties());
         void world.addEntity(body).catch((error: unknown) => this.failed('add', error));
     }
 
@@ -164,6 +173,7 @@ export class LiveBodies {
         const body = this.bodies.get(entity.id);
         this.bodies.delete(entity.id);
         this.written.delete(entity.id);
+        this.synced.delete(entity.id);
         if (body === undefined) return;
 
         const world = this.options.world();
@@ -195,6 +205,8 @@ export class LiveBodies {
 
             this.showHealth(entity, body);
             this.writeEquipment(entity, body);
+            const properties = this.showSyncedProperties(entity, body);
+            if (properties !== undefined) moves.push(properties);
             const move = this.showPosition(entity, body);
             if (move !== undefined) moves.push(move);
         }
@@ -225,6 +237,7 @@ export class LiveBodies {
     public clear(): void {
         this.bodies.clear();
         this.written.clear();
+        this.synced.clear();
     }
 
     /**
@@ -257,6 +270,17 @@ export class LiveBodies {
 
         body.attributes.setValue(AttributeIds.Health, health.current);
         this.written.set(entity.id, health.current);
+    }
+
+    /** Sends a property delta when the runtime changed a client-synced value. */
+    private showSyncedProperties(entity: DataEntity, body: Entity): Promise<void> | undefined {
+        const current = body.getSyncedProperties();
+        const previous = this.synced.get(entity.id);
+        if (previous !== undefined && sameSyncedProperties(previous, current)) return undefined;
+
+        this.synced.set(entity.id, current);
+        const world = this.options.world();
+        return world?.sendActorMetadata(body);
     }
 
     /**

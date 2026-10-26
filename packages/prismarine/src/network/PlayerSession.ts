@@ -1411,6 +1411,7 @@ export default class PlayerSession {
         const packet = new SetActorDataPacket();
         packet.runtimeEntityId = entity.getRuntimeId();
         packet.metadata = metadata ?? entity.metadata;
+        packet.syncedProperties = entity.getSyncedProperties();
         // `PlayerInputTick`: the client's last input tick for its own player, zero for anything
         // that is not the player, as the docs ask. See {@link PlayerSession.recordInputTick}.
         packet.tick = entity === this.player ? this.lastInputTick : 0n;
@@ -1621,6 +1622,7 @@ export default class PlayerSession {
         packet.yaw = entity.yaw;
         packet.headYaw = entity.headYaw;
         packet.metadata = entity.metadata;
+        packet.syncedProperties = entity.getSyncedProperties();
         // Health, speed and reach arrive with the entity rather than in a packet of their
         // own afterwards, which is the difference between a mob that is right from its first
         // frame and one that is briefly a default.

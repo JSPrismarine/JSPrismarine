@@ -21,7 +21,7 @@ export default class SetActorDataPacket extends DataPacket {
     /** Actor Data: the metadata entries to send. Only the entries present in the map are written. */
     public metadata!: Metadata;
 
-    /** Synched Properties. Empty until the server defines entity properties. */
+    /** Client-synced entity property values, indexed by the actor type's definition packet. */
     public syncedProperties = new SyncedProperties();
 
     /**
