@@ -448,13 +448,20 @@ export class World implements Service {
                 const { x, y, z } = entityData.position;
                 const position = new Position(x, y, z, this);
                 const Written = writtenEntities().get(entityData.type);
+                const placement = {
+                    position,
+                    pitch: entityData.position.pitch,
+                    yaw: entityData.position.yaw,
+                    headYaw: entityData.position.headYaw
+                };
+                const body = Written
+                    ? new Written(placement)
+                    : new GenericEntity({ identifier: entityData.type, ...placement });
 
-                // A body either way, and the identifier is kept either way, because the chunk's
-                // own actor record is what carries a mob's components and it displaces this copy
-                // as soon as the chunk loads - see `createStoredEntities`.
-                await this.addEntity(
-                    Written ? new Written({ position }) : new GenericEntity({ identifier: entityData.type, position })
-                );
+                // The level file has no component state, but a declared type can still resume
+                // from its spawn event here. A chunk actor record replaces this body with the
+                // saved runtime state when that chunk loads.
+                if (!this.restoreDataEntity(body)) await this.addEntity(body);
             }
         }
 
@@ -1953,6 +1960,8 @@ export class World implements Service {
      * @param {Entity} entity - The entity to remove.
      */
     public async removeEntity(entity: Entity): Promise<void> {
+        this.server.getEntityRuntime?.(this.dimension.name)?.removeBody?.(entity);
+
         const runtimeId = entity.getRuntimeId();
         const chunkIndex = this.entityChunkIndices.get(runtimeId);
         if (chunkIndex !== undefined) this.chunks.get(chunkIndex)?.markChanged();

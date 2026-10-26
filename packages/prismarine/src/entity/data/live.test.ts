@@ -1110,6 +1110,47 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
         });
 
+        it('restores level.json mobs into the runtime before their chunks are loaded', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-level-migrate-'));
+            folders.push(folder);
+
+            const setup = liveWorld();
+            setup.hold(buildOver(setup.world, setup.runtimes));
+            const provider = new LevelDB(folder, setup.world.getServer());
+            providers.push(provider);
+
+            Object.assign(setup.world, {
+                name: 'roundtrip',
+                seed: 1234n,
+                generator: { generateChunk: (x: number, z: number) => new Chunk(x, z) },
+                provider,
+                getLevelData: async () => ({
+                    entities: [
+                        {
+                            type: 'minecraft:zombie',
+                            position: { x: 2.5, y: GROUND_Y + 4, z: 3.5, yaw: 90, pitch: 12 }
+                        }
+                    ]
+                }),
+                prepareStartRegion: async () => {}
+            });
+
+            await setup.world.enable();
+
+            const zombie = setup.runtimes.at(DIMENSION)?.runtime.all()[0];
+            expect(zombie?.identifier).toBe('minecraft:zombie');
+            expect(zombie?.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
+            expect(zombie?.body.yaw).toBe(90);
+            expect(zombie?.body.pitch).toBe(12);
+
+            const live = setup.runtimes.at(DIMENSION);
+            if (live === undefined) throw new Error('the content world opened no entity runtime');
+            for (let tick = 1; tick <= 30; tick += 1) await live.tick(tick);
+
+            expect(zombie?.position.y).toBe(GROUND_Y);
+            expect(typesIn(setup.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
+        });
+
         it('displaces the copy level.json rebuilt rather than standing beside it', async () => {
             const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-duplicate-'));
             folders.push(folder);
@@ -1121,19 +1162,15 @@ describe('the data-driven entity runtime over a live world', () => {
             await first.provider.disable();
 
             const second = await session(folder);
-            // What `World.enable` rebuilds out of `level.json`: the same mob at the same spot,
-            // as a body with no actor NBT behind it. Before the actor record displaced it, the
-            // world ended up with two cows and only one of them driven by anything.
-            await second.world.addEntity(
-                new GenericEntity({
-                    identifier: 'minecraft:cow',
-                    position: new Position(2.5, GROUND_Y, 3.5, second.world)
-                })
-            );
+            // What `World.enable` rebuilds from `level.json`: a data-driven copy at the same
+            // spot, without the actor record's saved component state. Loading the chunk must
+            // replace both its body and its runtime entity with the persisted one.
+            second.live.runtime.spawn('minecraft:cow', { x: 2.5, y: GROUND_Y, z: 3.5 });
             await second.world.loadChunk(0, 0);
 
             expect(typesIn(second.world).filter((type) => type === 'minecraft:cow')).toHaveLength(1);
             expect(second.live.runtime.all()).toHaveLength(1);
+            expect(second.live.bodies.size).toBe(1);
         });
 
         it('leaves an actor the data path never wrote to the written classes', async () => {

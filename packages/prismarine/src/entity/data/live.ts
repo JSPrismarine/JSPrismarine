@@ -216,14 +216,30 @@ export class LiveEntityRuntime {
      * runtime instance here does not make it a death or a despawn.
      */
     public unload(body: Entity): boolean {
-        const id = this.bodies.detach(body);
-        if (id === undefined) return false;
-
-        this.runtime.remove(id, 'chunk unload');
+        if (!this.removeBody(body, 'chunk unload')) return false;
         void body
             .getWorld()
             .removeEntity(body)
             .catch((error: unknown) => this.options.report(String(error)));
+        return true;
+    }
+
+    /**
+     * Removes a body's data entity when the world removes the body directly.
+     *
+     * Detaching first lets the runtime's removal callback run without asking the world to remove
+     * the same body recursively. This covers copies from `level.json` that a chunk actor record
+     * replaces, and explicit world removals such as `/kill`.
+     *
+     * @param body - The body being removed from its world.
+     * @param reason - Why the runtime entity is being removed.
+     * @returns Whether this runtime owned the body.
+     */
+    public removeBody(body: Entity, reason = 'body removed'): boolean {
+        const id = this.bodies.detach(body);
+        if (id === undefined) return false;
+
+        this.runtime.remove(id, reason);
         return true;
     }
 
@@ -251,12 +267,11 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Migrates an older generic actor into the data runtime when its pack type is available.
+     * Migrates a generic body without runtime state when its pack type is available.
      *
-     * Earlier server versions serialized mob bodies without the runtime state tag. Rebuilding
-     * those bodies as generic actors left them with no component set, goals, or gravity. Their
-     * type's spawn event initializes the current data state, while the original actor tags stay
-     * on the replacement body for fields the runtime does not model yet.
+     * This covers actor records from earlier server versions and copies rebuilt from `level.json`.
+     * Their type's spawn event initializes current components, goals, and physics, while the
+     * original actor tags stay on the replacement body for fields the runtime does not model yet.
      */
     public restoreGeneric(stored: GenericEntity): DataEntity | undefined {
         const identifier = stored.getType();
