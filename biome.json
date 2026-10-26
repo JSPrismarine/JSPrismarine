@@ -9,6 +9,9 @@
         "includes": [
             "packages/*/src/**",
             "scripts/**",
+            "packages/mapping/utils/generate/**",
+            "packages/structures/utils/generate/**",
+            "packages/parity/src/generation/capture.ts",
             "packages/*/scripts/**",
             "*.ts",
             "*.mts",
@@ -110,12 +113,20 @@
                 "packages/features/src/**",
                 "packages/structures/src/**",
                 "packages/worldgen/src/**",
-                "packages/prismarine/src/world/generators/**"
+                "packages/prismarine/src/world/generators/**",
+                "packages/mapping/utils/generate/**",
+                "packages/structures/utils/generate/**",
+                "packages/parity/src/generation/capture.ts"
             ],
             "plugins": ["./.biome/no-nondeterministic-generation.grit"]
         },
         {
-            "includes": ["scripts/**", "packages/*/scripts/**"],
+            "includes": [
+                "scripts/**",
+                "packages/*/scripts/**",
+                "packages/mapping/utils/generate/**",
+                "packages/structures/utils/generate/**"
+            ],
             "linter": {
                 "rules": {
                     "suspicious": {

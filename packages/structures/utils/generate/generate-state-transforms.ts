@@ -35,6 +35,9 @@ if (!existsSync(mappingDist)) {
 const { javaBlockStateToBedrock } = await import(`${mappingDist}/index.es.js`);
 const { blocksTable } = await import(`${mappingDist}/tables.es.js`);
 
+/** Compares strings by code unit so generated keys do not depend on the host locale. */
+const compareCodeUnits = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+
 /** The dumper's output shape; it is this repository's own JSON, not a third-party format. */
 interface BlockTransformDump {
     javaVersion: string;
@@ -62,7 +65,7 @@ for (const [name, keys, tuples] of blocksTable.statePalette) {
     const identifier = `minecraft:${name}`;
     if (shapes.has(identifier)) throw new Error(`${identifier} appears twice in the mapping state palette`);
 
-    const order = keys.map((key, axis) => [key, axis] as const).sort(([a], [b]) => a.localeCompare(b));
+    const order = keys.map((key, axis) => [key, axis] as const).sort(([a], [b]) => compareCodeUnits(a, b));
     const domains = order.map(([, axis]) => {
         const seen: (string | number)[] = [];
         for (const values of tuples) {
@@ -153,7 +156,7 @@ for (const [javaId, block] of Object.entries(dump.blocks)) {
 }
 
 const identifiers: Record<string, unknown> = {};
-for (const [identifier, perIdentifier] of [...transforms].sort(([a], [b]) => a.localeCompare(b))) {
+for (const [identifier, perIdentifier] of [...transforms].sort(([a], [b]) => compareCodeUnits(a, b))) {
     const shape = shapes.get(identifier);
     if (shape === undefined) continue;
     const moving: Record<string, number[]> = {};
@@ -167,7 +170,8 @@ for (const [identifier, perIdentifier] of [...transforms].sort(([a], [b]) => a.l
 }
 
 const ambiguous = [...conflicts.values()].sort(
-    (a, b) => a.identifier.localeCompare(b.identifier) || a.transform.localeCompare(b.transform) || a.state - b.state
+    (a, b) =>
+        compareCodeUnits(a.identifier, b.identifier) || compareCodeUnits(a.transform, b.transform) || a.state - b.state
 );
 
 const table = {

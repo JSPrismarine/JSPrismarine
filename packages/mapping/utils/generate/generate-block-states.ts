@@ -204,6 +204,9 @@ for (const key of lossKeys) {
 // Output
 // ---------------------------------------------------------------------------
 
+/** Compares strings by code unit so generated keys do not depend on the host locale. */
+const compareCodeUnits = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+
 /** The distinct per-block vocabularies, which 310 blocks share between about thirty of them. */
 const distinct: Record<string, Record<string, string | number>>[] = [];
 const indexOfVocabulary = new Map<string, number>();
@@ -212,7 +215,7 @@ for (const name of [...vocabularies.keys()].sort()) {
     const byKey = vocabularies.get(name)!;
     const record = Object.fromEntries(
         [...byKey]
-            .sort(([left], [right]) => left.localeCompare(right))
+            .sort(([left], [right]) => compareCodeUnits(left, right))
             .map(([key, words]) => [key, Object.fromEntries(words)])
     );
     const form = JSON.stringify(record);

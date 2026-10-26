@@ -22,7 +22,8 @@ import { fileURLToPath } from 'node:url';
 
 import { BEDROCK_BIOME_LOSSES, ENTITY_LOSSES, REGISTRY_LOSSES, UNTRANSLATED_REGISTRIES } from '../../src/lossList.ts';
 import { SERVER_SIDE_REGISTRIES } from '../../src/packRegistries.ts';
-import { type JavaNbtCompound, readGzippedJavaNbt } from './java-nbt.ts';
+import type { JavaNbtCompound } from './java-nbt.ts';
+import { readGzippedJavaNbt } from './java-nbt.ts';
 
 const packageDir = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const repoRoot = resolve(packageDir, '../..');
@@ -558,7 +559,8 @@ for (const [javaId, bedrockName] of Object.entries(biomesTable)) {
 
 const bedrockBiomeLossIds = new Set(BEDROCK_BIOME_LOSSES.map((loss) => loss.bedrockId));
 const bedrockBiomeTable: Record<string, { id: number; java?: string }> = {};
-for (const [id, bedrockName] of [...biomeIdToName].sort(([, left], [, right]) => left.localeCompare(right))) {
+const compareCodeUnits = (left: string, right: string): number => (left < right ? -1 : left > right ? 1 : 0);
+for (const [id, bedrockName] of [...biomeIdToName].sort(([, left], [, right]) => compareCodeUnits(left, right))) {
     if (id === undefined) throw new Error(`Bedrock biome ${bedrockName} has no id`);
     const java = javaByBedrockBiome.get(bedrockName);
     if (java === undefined && !bedrockBiomeLossIds.has(bedrockName)) {

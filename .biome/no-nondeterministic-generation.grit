@@ -1,8 +1,9 @@
 language js
 
 // Chunk generation must be a pure function of the world seed and the chunk position, because
-// the same chunk is generated on a worker pool whose size and scheduling order vary. Two calls
-// break that silently rather than loudly, so they are banned under the generation packages.
+// the same chunk is generated on a worker pool whose size and scheduling order vary. Host-dependent
+// sources break that silently rather than loudly, so they are banned under generation code and
+// the generators that write its committed tables.
 //
 // `Math.random` is seeded per V8 isolate. A main thread and six workers measured seven different
 // sequences, and no digest tells you which one produced a block.
@@ -10,12 +11,17 @@ language js
 // `localeCompare` does not agree with a plain `<` comparison: it orders `minecraft:Oak` before
 // `minecraft:_oak` where `<` does the reverse. Sorting a palette or a feature list with it moves
 // an index, and the index is an input to the feature seed.
+// `performance.now` is allowed for cooperative scheduling only; it must not feed a generated value.
 or {
     `Math.random` as $token,
-    `$_.localeCompare($...)` as $token
+    `$_.localeCompare($...)` as $token,
+    `Date.now()` as $token,
+    `new Date()` as $token,
+    `crypto.getRandomValues($...)` as $token,
+    `crypto.randomUUID()` as $token
 } where {
     register_diagnostic(
         span = $token,
-        message = "Chunk generation must be reproducible across workers: `Math.random` is seeded per isolate and `localeCompare` disagrees with a plain comparison. Reseed from the world seed, a position and a fixed index, and sort with `<`."
+        message = "Generation and its committed tables must be reproducible: `Math.random` is seeded per isolate; `localeCompare`, wall-clock reads, and crypto randomness can vary. Derive randomness from the seed and position, use `<` for ordering, and keep time out of generated values."
     )
 }
