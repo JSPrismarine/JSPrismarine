@@ -1341,7 +1341,10 @@ export class DataDrivenGenerator implements Generator {
     private buildSubChunks(region: GenerationRegion, pipeline: SeededPipeline): Map<number, SubChunk> {
         const { palette, slots, columnTops } = region.centerBlockSlots();
         const air = BlockRuntimeIds.getByName('minecraft:air');
+        const water = BlockRuntimeIds.getByName('minecraft:water');
         const runtimeIds = new Int32Array(palette.length);
+        // Bedrock keeps water from waterlogged Java states in storage layer 1.
+        const waterSlots = new Uint8Array(palette.length);
         for (let slot = 0; slot < palette.length; slot++) {
             const block = palette[slot]!;
             // A template block arrives as a Bedrock state already, so it skips the mapping.
@@ -1350,6 +1353,8 @@ export class DataDrivenGenerator implements Generator {
                     ? pipeline.translator.runtimeIdOf(block.java.name, block.java.properties)
                     : pipeline.translator.bedrockRuntimeIdOf(block.bedrock.name, block.bedrock.states);
             runtimeIds[slot] = runtimeId === UNKNOWN_RUNTIME_ID ? air : runtimeId;
+            waterSlots[slot] =
+                block.java.name !== 'minecraft:water' && pipeline.oracle.fluid(block.java) === 'water' ? 1 : 0;
         }
 
         const minY = this.dimension.minY;
@@ -1364,6 +1369,7 @@ export class DataDrivenGenerator implements Generator {
         for (let section = minY >> 4; section <= top >> 4; section++) {
             const sectionMinY = section * 16;
             const blocks = new Uint16Array(BLOCKS_PER_SUBCHUNK);
+            let waterBlocks: Uint16Array | undefined;
             const sectionPalette = [air];
             // Two lookups rather than one. The array answers for a slot already seen in this
             // section, which is almost every block; the map is what keeps two region slots that
@@ -1390,12 +1396,19 @@ export class DataDrivenGenerator implements Generator {
                         }
 
                         blocks[target | (y & 0xf)] = local;
+                        if (waterSlots[slot] === 1) {
+                            waterBlocks ??= new Uint16Array(BLOCKS_PER_SUBCHUNK);
+                            waterBlocks[target | (y & 0xf)] = 1;
+                        }
                     }
                 }
             }
 
             if (sectionPalette.length === 1) continue;
-            subChunks.set(section, new SubChunk(new Map([[0, new BlockStorage({ blocks, palette: sectionPalette })]])));
+            const storages = new Map([[0, new BlockStorage({ blocks, palette: sectionPalette })]]);
+            if (waterBlocks !== undefined)
+                storages.set(1, new BlockStorage({ blocks: waterBlocks, palette: [air, water] }));
+            subChunks.set(section, new SubChunk(storages));
         }
 
         return subChunks;

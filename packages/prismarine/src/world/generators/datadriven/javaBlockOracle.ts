@@ -14,8 +14,15 @@ import type { JavaRegistry } from './javaWorldgenData';
 /** The three identifiers Java treats as air. */
 const AIR_BLOCKS = new Set(['minecraft:air', 'minecraft:cave_air', 'minecraft:void_air']);
 
-/** The blocks that are water without being `minecraft:water`. */
-const WATER_BLOCKS = new Set(['minecraft:water', 'minecraft:bubble_column', 'minecraft:seagrass']);
+/** Blocks whose fluid state is water without a `waterlogged` property. */
+const WATER_BLOCKS = new Set([
+    'minecraft:water',
+    'minecraft:bubble_column',
+    'minecraft:kelp',
+    'minecraft:kelp_plant',
+    'minecraft:seagrass',
+    'minecraft:tall_seagrass'
+]);
 
 /** Java's `#minecraft:replaceable`, which is what `canBeReplaced` resolves to for most blocks. */
 const REPLACEABLE_TAG = 'minecraft:replaceable';
