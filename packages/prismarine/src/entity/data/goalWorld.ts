@@ -12,6 +12,7 @@
  * until the runtime can answer it, rather than quietly putting 52 goals to
  * sleep.
  */
+import { canEntityAttack } from '@jsprismarine/entities';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
@@ -114,9 +115,17 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             return nearestFirst(found);
         },
         isAttackable: (mob) => {
-            if (mob.identifier?.() !== 'minecraft:player' || typeof mob.id !== 'number') return true;
-            const player = scene.host.players().find((candidate) => candidate.id === mob.id);
-            return player !== undefined && player.creative !== true && player.spectator !== true;
+            if (mob.identifier?.() === 'minecraft:player' && typeof mob.id === 'number') {
+                const player = scene.host.players().find((candidate) => candidate.id === mob.id);
+                return player !== undefined && player.creative !== true && player.spectator !== true;
+            }
+
+            if (typeof mob.id !== 'number') return true;
+            const target = scene.byId(mob.id);
+            const attacker = scene.byId(entity.id);
+            return (
+                target === undefined || attacker === undefined || canEntityAttack(attacker.instance, target.instance)
+            );
         },
         players: (radius) => {
             const found: Ranked[] = [];

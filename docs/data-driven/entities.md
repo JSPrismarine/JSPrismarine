@@ -151,8 +151,8 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 
 ## Components: what runs, and what only parses
 
-Vanilla's 129 definitions use 202 distinct non-goal component keys. 157 of them are registered, and
-38 of those carry real runtime behavior. The remaining 119 registered keys parse their parameters,
+Vanilla's 129 definitions use 202 distinct non-goal component keys. 158 of them are registered, and
+38 of those carry real runtime behavior. The remaining 120 registered keys parse their parameters,
 normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
@@ -164,15 +164,17 @@ initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angr
 `minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
-`minecraft:spawn_entity`; and the eleven `minecraft:on_*` trigger components. The entities package
-README lists each one and what it does.
+`minecraft:spawn_entity`; the eleven `minecraft:on_*` trigger components; and
+`minecraft:cannot_be_attacked`, which blocks entity attacks. Attacker exceptions are data in
+`minecraft:ignore_cannot_be_attacked`; the package supports that component for custom definitions too.
+The entities package README lists each one and what it does.
 
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:collision_box` and the `minecraft:navigation.*`
 flavors build the path finder's profile, `minecraft:explode` detonates a creeper,
 `minecraft:rideable` seats riders, and the two trade-table components build a merchant.
 
-Forty-five non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
+Forty-four non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
 the enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
 `minecraft:anger_level`. They are gaps in entity coverage; the load report names them instead of
 the server quietly doing nothing. The entities corpus test lists the current set.
@@ -417,8 +419,8 @@ moves the mob.
 A default build registers all 129 of those definitions and nothing else. BDS keeps chemistry, the
 editor and four experimental packs in the same `behavior_packs` folder, and the default asks for
 none of them; `PackStackRequest.bedrockPacks` names more of them by UUID if you want them. The
-build reports 47 warnings and no errors, so warnings on startup are expected rather than a sign of
-a broken stack, and 45 of the 47 name one of the components left unregistered on purpose.
+build reports 46 warnings and no errors, so warnings on startup are expected rather than a sign of
+a broken stack, and 44 of the 46 name one of the components left unregistered on purpose.
 
 ### Adding your own mob
 

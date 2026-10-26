@@ -100,7 +100,12 @@ const RESOLVED_TO_JAVA = 33;
  * The empty markers the entity reads back itself rather than through a hook,
  * because the component name is the whole of what each one means.
  */
-const MARKER_COMPONENTS = ['minecraft:persistent', 'minecraft:fire_immune', 'minecraft:freezing_immune'];
+const MARKER_COMPONENTS = [
+    'minecraft:persistent',
+    'minecraft:fire_immune',
+    'minecraft:freezing_immune',
+    'minecraft:cannot_be_attacked'
+];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
 const isCollisionBox = (value: unknown): value is { readonly width: number; readonly height: number } =>
@@ -230,7 +235,8 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         const withHooks = registry
             .names()
             .filter((name) => !name.startsWith('minecraft:behavior.') && registry.hooksOf(name).size > 0);
-        const withBehavior = [...withHooks, ...TRIGGER_COMPONENTS, ...MARKER_COMPONENTS];
+        const behavioralComponents = new Set([...withHooks, ...TRIGGER_COMPONENTS, ...MARKER_COMPONENTS]);
+        const withBehavior = others.filter((name) => behavioralComponents.has(name));
 
         process.stdout.write(
             [
@@ -247,13 +253,13 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use, 157 of the 202, which covers 102, and every
+        // or more entities use, 158 of the 202, which covers 103, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(157);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(158);
         expect(withBehavior).toHaveLength(38);
-        expect(componentCovered).toBeGreaterThanOrEqual(102);
+        expect(componentCovered).toBeGreaterThanOrEqual(103);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
     });

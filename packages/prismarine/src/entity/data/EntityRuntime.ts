@@ -27,7 +27,7 @@ import type {
     OutgoingTrigger,
     TransformRequest
 } from '@jsprismarine/entities';
-import { EntityInstance, isRecord, javaEntityNavigation, noEffects } from '@jsprismarine/entities';
+import { canEntityAttack, EntityInstance, isRecord, javaEntityNavigation, noEffects } from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
@@ -773,6 +773,11 @@ export class EntityRuntime implements EntityScene {
     public hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): void {
         if (this.pendingDeaths.has(entity.id)) return;
         if (entity.instance.attributes.get('health') === undefined) return;
+
+        if (sourceId !== undefined && ['entity_attack', 'entity_explosion', 'projectile'].includes(cause)) {
+            const attacker = this.entities.get(sourceId);
+            if (attacker !== undefined && !canEntityAttack(attacker.instance, entity.instance)) return;
+        }
 
         const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
         const result = entity.instance.damage({ cause, amount, damager });

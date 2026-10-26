@@ -180,6 +180,11 @@ on damage the entity ends up ignoring: `minecraft:fire_immune` covers `campfire`
 What is left comes off the `health` attribute. Whoever dealt the damage answers both the `damager`
 and the `other` filter subjects.
 
+`minecraft:cannot_be_attacked` blocks attacks from entities. An attacker can carry
+`minecraft:ignore_cannot_be_attacked` to allow all targets, or only targets passing its `filters`.
+The runtime applies that rule during target selection and entity melee, projectile, and explosion
+damage.
+
 The eleven `minecraft:on_*` components fire through `EntityInstance.trigger`, which evaluates the
 component's own filters, queues a `self` event for the next tick and routes any other target. Five
 fire from inside the package: `on_hurt`, `on_hurt_by_player` and `on_death` from a damage event, and
@@ -217,12 +222,13 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:transformation` | Counts down and asks the world to replace the entity |
 | `minecraft:despawn` | Applies the distance and chance rules, or its filters, unless the entity is persistent |
 | `minecraft:instant_despawn` | Removes the entity the moment it becomes active |
+| `minecraft:ignore_cannot_be_attacked` | Lets attacker data filter exceptions to a target's attack protection |
 | the eleven `minecraft:on_*` | Raise their event at the fixed point the engine or a caller reaches |
 
-Three more are empty markers the entity reads directly rather than through a hook, because the
-component name is the whole of what each one means: `minecraft:persistent` stops
-`minecraft:despawn`, and `minecraft:fire_immune` and `minecraft:freezing_immune` turn their causes
-aside in `EntityInstance.damage`.
+Four more are empty markers the runtime reads directly rather than through hooks: `minecraft:persistent`
+stops `minecraft:despawn`; `minecraft:fire_immune` and `minecraft:freezing_immune` turn their causes
+aside in `EntityInstance.damage`; and `minecraft:cannot_be_attacked` blocks entity attacks unless the
+attacker's `minecraft:ignore_cannot_be_attacked` filter allows the target.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`,
 which is the whole of what a flag like `minecraft:can_climb` or a table reference like
@@ -234,7 +240,7 @@ parsed structurally. `minecraft:type_family` and the integer state components ar
 reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
 with no caller view.
 
-Forty-five non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
+Forty-four non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
 prints each name, and the loader reports them instead of silently doing nothing; each is an
 outstanding coverage gap.
 
@@ -248,9 +254,9 @@ test in `src/vanillaEntities.test.ts`:
 | Entity definitions composed | 129 |
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
-| Non-goal component keys in vanilla | 202, of which 157 are registered |
+| Non-goal component keys in vanilla | 202, of which 158 are registered |
 | Non-goal keys that carry behavior rather than data | 38 |
-| Entities whose every non-goal component is registered | 102 of 129 |
+| Entities whose every non-goal component is registered | 103 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
 | Filter tests the documentation lists | 107, all implemented |
@@ -290,8 +296,8 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 `statRuling(identifier, stat)` answers why one entity's stat resolved the way it did, so a parity
 row quotes the decision instead of keeping a second copy of it.
 
-The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 157
-keys cover 102. The 27 entities that are not component-covered need keys only they use, such as the
+The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 158
+keys cover 103. The 26 entities that are not component-covered need keys only they use, such as the
 enderman's `minecraft:teleport`, the shulker's `minecraft:peek`, the warden's
 `minecraft:anger_level` and the villager's `minecraft:trade_table`.
 
@@ -323,4 +329,4 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
 - **The components that still parse as data.** `minecraft:breedable`, `minecraft:tameable`,
   `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`, `minecraft:explode`,
   `minecraft:healable` and the rest need items, interaction and a world to act on. The load report
-  and `EntityType.unimplementedComponents` name the 45 non-goal keys that remain unregistered.
+  and `EntityType.unimplementedComponents` name the 44 non-goal keys that remain unregistered.

@@ -134,6 +134,42 @@ export const typeFamily: ComponentFactory<EntityHooks, TypeFamilyParams> = {
     create: () => ({})
 };
 
+/** What `minecraft:ignore_cannot_be_attacked` declares. */
+export interface IgnoreCannotBeAttackedParams {
+    /** Targets this entity may attack despite their `minecraft:cannot_be_attacked` component. */
+    readonly filters: Filter | undefined;
+}
+
+const attackExceptions = new WeakMap<EntityInstance, Filter | undefined>();
+
+/** `minecraft:ignore_cannot_be_attacked`, with its exception filter scoped to the active component. */
+export const ignoreCannotBeAttacked: ComponentFactory<EntityHooks, IgnoreCannotBeAttackedParams> = {
+    name: 'minecraft:ignore_cannot_be_attacked',
+    hooks: ['onInitialize', 'onRemove'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        if (value.filters === undefined) return accepted({ filters: undefined });
+        const filters = parseFilterValue(value.filters, 'minecraft:ignore_cannot_be_attacked filters');
+        return filters.ok ? accepted({ filters: filters.value }) : filters;
+    },
+    create: (params) => ({
+        onInitialize: (entity) => attackExceptions.set(entity, params.filters),
+        onRemove: (entity) => attackExceptions.delete(entity)
+    })
+};
+
+/** Whether the attacker may damage the target under the attack-protection components. */
+export const canEntityAttack = (attacker: EntityInstance, target: EntityInstance): boolean => {
+    if (!target.hasComponent('minecraft:cannot_be_attacked')) return true;
+    if (!attackExceptions.has(attacker)) return false;
+
+    const filters = attackExceptions.get(attacker);
+    return (
+        filters === undefined ||
+        evaluateFilter(filters, { ...attacker.filterContext(), other: target.filterContext().self })
+    );
+};
+
 /** What `minecraft:loot` declares. */
 export interface LootParams {
     /** The pack-relative path of the loot table, such as `loot_tables/entities/zombie.json`. */

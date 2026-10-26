@@ -327,7 +327,7 @@ describe('EntityRuntime', () => {
         });
     });
 
-    describe('player targeting', () => {
+    describe('target eligibility', () => {
         it('updates brain combat targetability immediately when a player changes game mode', () => {
             const player = {
                 id: 99,
@@ -398,6 +398,108 @@ describe('EntityRuntime', () => {
             world.players = [player];
             runtime.tick(41);
             expect(zombie?.target).toBeUndefined();
+        });
+
+        it('blocks attacks on protected entities unless the attacker data allows them', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:protected_target': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:type_family': { family: ['ghast', 'monster'] },
+                            'minecraft:cannot_be_attacked': {}
+                        }
+                    },
+                    'jsprismarine:hunter': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 1 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:type_family': { family: ['hunter', 'monster'] },
+                            'minecraft:behavior.nearest_attackable_target': {
+                                priority: 1,
+                                entity_types: [
+                                    { filters: { test: 'is_family', subject: 'other', value: 'ghast' }, max_dist: 16 }
+                                ]
+                            }
+                        }
+                    },
+                    'jsprismarine:permitted_hunter': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:movement': { value: 1 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': {},
+                            'minecraft:type_family': { family: ['hunter', 'monster'] },
+                            'minecraft:behavior.nearest_attackable_target': {
+                                priority: 1,
+                                entity_types: [
+                                    { filters: { test: 'is_family', subject: 'other', value: 'ghast' }, max_dist: 16 }
+                                ]
+                            }
+                        },
+                        component_groups: {
+                            allowed_target: {
+                                'minecraft:ignore_cannot_be_attacked': {
+                                    filters: { test: 'is_family', subject: 'other', value: 'ghast' }
+                                }
+                            },
+                            any_target: {
+                                'minecraft:ignore_cannot_be_attacked': {}
+                            }
+                        },
+                        events: {
+                            'jsprismarine:allow_target': { add: { component_groups: ['allowed_target'] } },
+                            'jsprismarine:allow_any_target': {
+                                remove: { component_groups: ['allowed_target'] },
+                                add: { component_groups: ['any_target'] }
+                            },
+                            'jsprismarine:disallow_target': {
+                                remove: { component_groups: ['allowed_target', 'any_target'] }
+                            }
+                        }
+                    }
+                }
+            );
+            const target = runtime.spawn('jsprismarine:protected_target', GROUND);
+            const hunter = runtime.spawn('jsprismarine:hunter', { ...GROUND, x: 3 });
+            const permittedHunter = runtime.spawn('jsprismarine:permitted_hunter', { ...GROUND, x: -3 });
+            if (target === undefined || hunter === undefined || permittedHunter === undefined)
+                throw new Error('the fixture does not declare the protected target and both hunters');
+
+            for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+
+            expect(hunter.target).toBeUndefined();
+            expect(permittedHunter.target).toBeUndefined();
+
+            permittedHunter.instance.fire('jsprismarine:allow_target');
+            for (let tick = 21; tick <= 40; tick += 1) runtime.tick(tick);
+            expect(permittedHunter.target).toBe(target.id);
+
+            const startingHealth = target.instance.attributes.get('health')?.current;
+            if (startingHealth === undefined) throw new Error('the protected target has no health');
+            runtime.hurt(target, hunter.id, 'entity_attack', 5);
+            runtime.hurt(target, hunter.id, 'projectile', 5);
+            runtime.hurt(target, hunter.id, 'entity_explosion', 5);
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth);
+
+            runtime.hurt(target, permittedHunter.id, 'entity_attack', 5);
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 5);
+            runtime.hurt(target, permittedHunter.id, 'projectile', 5);
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 10);
+
+            permittedHunter.instance.fire('jsprismarine:allow_any_target');
+            runtime.tick(41);
+            runtime.hurt(target, permittedHunter.id, 'entity_attack', 5);
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 15);
+
+            permittedHunter.instance.fire('jsprismarine:disallow_target');
+            runtime.tick(42);
+            runtime.hurt(target, permittedHunter.id, 'entity_attack', 5);
+            expect(target.instance.attributes.get('health')?.current).toBe(startingHealth - 15);
         });
     });
 

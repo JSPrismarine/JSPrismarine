@@ -22,6 +22,7 @@ import {
     equipment,
     experienceReward,
     hurtOnCondition,
+    ignoreCannotBeAttacked,
     instantDespawn,
     integerStateComponents,
     inventory,
@@ -68,9 +69,9 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  * `minecraft:shareables` is.
  *
  * The line this list draws is every non-goal key that two or more of the 129
- * vanilla entities use. The 45 keys only one entity uses are left
- * unregistered, so the load report names them and the next agent has the
- * remaining work as a list rather than as silence.
+ * vanilla entities use, plus `minecraft:cannot_be_attacked`, whose singleton
+ * marker changes target selection and damage. The 44 other keys only one
+ * entity uses remain unregistered, so the load report names them.
  */
 export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:addrider',
@@ -94,6 +95,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:can_join_raid',
     'minecraft:can_power_jump',
     'minecraft:can_stand_on_powder_snow',
+    'minecraft:cannot_be_attacked',
     'minecraft:conditional_bandwidth_optimization',
     'minecraft:custom_hit_test',
     'minecraft:dash_action',
@@ -199,6 +201,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(equipment);
     register(experienceReward);
     register(hurtOnCondition);
+    register(ignoreCannotBeAttacked);
     register(instantDespawn);
     register(inventory);
     register(jumpStatic);
