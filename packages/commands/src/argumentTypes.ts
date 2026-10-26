@@ -492,6 +492,9 @@ const bareId = (id: string): string => (id.startsWith('minecraft:') ? id.slice('
  * a vanilla id should not make that id unspellable, and because Mojang's list
  * is what a Bedrock client completes from.
  *
+ * Bedrock command enum values must be lowercase. Values are lowercased when
+ * advertised, then resolved back to the registry's identifier when parsed.
+ *
  * @param registry - The registry id, used in the report and in the enum name
  *   when Bedrock publishes no enum for it.
  * @param values - The ids the server's own registry holds, namespaced.
@@ -509,25 +512,32 @@ export const resourceArgument = (registry: string, values?: readonly string[]): 
     // `minecraft:speed`, and Java's commands take the full one. Both parse,
     // and the value handed to a command body is always an id, so a host never
     // has to guess which edition wrote the line.
-    const vanilla = new Set((table?.values ?? []).map(bareId));
-    const custom = new Set(loaded);
+    const vanilla = new Set((table?.values ?? []).map((value) => bareId(value.toLowerCase())));
+    const custom = new Map(loaded.map((id) => [id.toLowerCase(), id]));
+    const enumValues = new Set((table?.values ?? []).map((value) => value.toLowerCase()));
+    for (const id of loaded) {
+        if (!vanilla.has(bareId(id.toLowerCase()))) enumValues.add(id.toLowerCase());
+    }
 
     return {
         parse: (reader) => {
             const token = readToken(reader);
+            const normalized = token.toLowerCase();
             // A pack id first, verbatim: it carries its own namespace and
             // nothing may rewrite it to `minecraft:`.
-            if (custom.has(token)) return token;
+            const registered = custom.get(normalized);
+            if (registered !== undefined) return registered;
 
-            const bare = bareId(token);
-            if (vanilla.has(bare) || custom.has(`minecraft:${bare}`)) return `minecraft:${bare}`;
+            const bare = bareId(normalized);
+            const namespaced = custom.get(`minecraft:${bare}`);
+            if (vanilla.has(bare) || namespaced !== undefined) return namespaced ?? `minecraft:${bare}`;
 
             fail(reader, `'${token}' is not in the ${registry} registry`);
         },
         describeBedrock: () => ({
             kind: 'enum',
             name: table?.name ?? registry.replace(/[^\w]/g, '_'),
-            values: [...(table?.values ?? []), ...loaded.filter((id) => !vanilla.has(bareId(id)))]
+            values: [...enumValues]
         })
     };
 };
