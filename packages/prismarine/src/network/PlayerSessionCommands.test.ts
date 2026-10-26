@@ -127,12 +127,15 @@ describe('PlayerSession', () => {
                 commands.find(({ commandName }) => commandName === name)?.overloads.map(spell);
 
             expect(overloadsOf('say')).toEqual([[`message: ${CommandParameterType.MessageRoot}`]]);
-            // `add` and `set` continue identically, so the flattener folds the two keywords
-            // into one enum - which is Mojang's own encoding for a subcommand keyword.
-            expect(overloadsOf('time')).toEqual([
-                ['add|set: OPTION_ADD_SET', `amount: ${CommandParameterType.Int}`],
-                ['query: OPTION_QUERY', 'unit: TimeQuery']
-            ]);
+            // The current Java schema keeps `add` and `set` as separate subcommands and leaves
+            // the other clock routes beside them, while preserving these shared forms.
+            expect(overloadsOf('time')).toEqual(
+                expect.arrayContaining([
+                    ['add: OPTION_ADD', `time: ${CommandParameterType.Int}`],
+                    ['set: OPTION_SET', `time: ${CommandParameterType.Int}`],
+                    ['query: OPTION_QUERY', 'unit: TimeQuery']
+                ])
+            );
         });
 
         it('sends only the vanilla commands a player may run', async () => {

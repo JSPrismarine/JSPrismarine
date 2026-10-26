@@ -5,12 +5,13 @@
  * own host behavior and Bedrock-specific spellings; matching Java leaves reuse
  * their executors, with argument names adapted by position where needed.
  */
-import type { ArgumentType, CommandContext, LiteralArgumentBuilder, StringReader } from '@jsprismarine/brigadier';
+import type { ArgumentType, CommandContext, LiteralArgumentBuilder } from '@jsprismarine/brigadier';
 import {
     BoolArgumentType,
     FloatArgumentType,
     IntegerArgumentType,
     StringArgumentType,
+    StringReader,
     argument,
     literal
 } from '@jsprismarine/brigadier';
@@ -41,6 +42,7 @@ import {
     timeArgument
 } from '../argumentTypes';
 import type { CommandSource, Rotation, Vector3 } from '../host';
+import { gameRule } from '../gamerules';
 import {
     anchorArgument,
     command,
@@ -183,6 +185,22 @@ const registryValues = (registry: string, commands: CommandRegistry<CommandSourc
     return undefined;
 };
 
+const readResourceWithSuffix = (reader: StringReader, registry: string, commands: CommandRegistry<CommandSource>) => {
+    const token = readStructuredToken(reader);
+    const stateStart = token.indexOf('[');
+    const componentStart = token.indexOf('{');
+    const suffixStart =
+        stateStart < 0 ? componentStart : componentStart < 0 ? stateStart : Math.min(stateStart, componentStart);
+    const resourceId = suffixStart < 0 ? token : token.slice(0, suffixStart);
+    const resourceReader = new StringReader(resourceId);
+    const resource = resourceArgument(registry, registryValues(registry, commands)).parse(
+        resourceReader,
+        EMPTY_PARSE_CONTEXT
+    );
+    const suffix = suffixStart < 0 ? '' : token.slice(suffixStart);
+    return `${resource}${suffix}`;
+};
+
 const javaArgumentType = (
     parser: string,
     properties: Readonly<Record<string, unknown>>,
@@ -217,6 +235,7 @@ const javaArgumentType = (
             return StringArgumentType.word();
         }
         case 'minecraft:entity':
+        case 'minecraft:game_profile':
             return entityArgument();
         case 'minecraft:score_holder':
             return scoreHolderArgument();
@@ -273,14 +292,18 @@ const javaArgumentType = (
         case 'minecraft:operation':
             return operationArgument();
         case 'minecraft:item_stack':
-            return customType('Java item components are not a Bedrock parameter type', (reader) => {
-                const stack = readStructuredToken(reader);
-                const separator = stack.indexOf('[');
-                const item = separator < 0 ? stack : stack.slice(0, separator);
-                return item.includes(':') ? stack : `minecraft:${stack}`;
-            });
-        case 'minecraft:block_predicate':
+            return {
+                ...resourceArgument('minecraft:item', registryValues('minecraft:item', commands)),
+                parse: (reader) => readResourceWithSuffix(reader, 'minecraft:item', commands),
+                bedrockGap: 'Java item components are not a Bedrock parameter type'
+            };
         case 'minecraft:block_state':
+            return {
+                ...resourceArgument('minecraft:block', registryValues('minecraft:block', commands)),
+                parse: (reader) => readResourceWithSuffix(reader, 'minecraft:block', commands),
+                bedrockGap: 'Java block states are not a Bedrock parameter type'
+            };
+        case 'minecraft:block_predicate':
         case 'minecraft:item_predicate':
         case 'minecraft:slot_source':
         case 'minecraft:item_slot':
@@ -290,7 +313,6 @@ const javaArgumentType = (
         case 'minecraft:style':
         case 'minecraft:heightmap':
         case 'minecraft:feature':
-        case 'minecraft:game_profile':
         case 'minecraft:context_float_provider':
         case 'minecraft:context_int_provider':
         case 'minecraft:resource_location':
@@ -377,6 +399,7 @@ const javaBedrockType = (part: JavaPathPart): string | undefined => {
         case 'brigadier:string':
             return part.properties?.type === 'greedy' ? 'MESSAGE_ROOT' : 'ID';
         case 'minecraft:entity':
+        case 'minecraft:game_profile':
             return 'SELECTION';
         case 'minecraft:vec3':
             return 'POSITION_FLOAT';
@@ -406,6 +429,12 @@ const compatibleArgument = (legacy: LegacyPathPart, java: JavaPathPart): number 
     if (shape === undefined) return 0;
     const javaShape = javaBedrockType(java);
     if (javaShape === undefined) return 0;
+    if (
+        (shape === 'POSITION' || shape === 'POSITION_FLOAT') &&
+        (javaShape === 'POSITION' || javaShape === 'POSITION_FLOAT')
+    ) {
+        return 4;
+    }
     if (shape === javaShape || shape === 'ID' || (shape.startsWith('ENUM:') && javaShape === 'BOOL')) return 4;
     return -8;
 };
@@ -417,11 +446,14 @@ const literalValues = (part: LegacyPathPart): readonly string[] => {
 
 const bindLegacyArguments = (
     legacy: LegacyExecutor,
-    javaPath: readonly JavaPathPart[]
+    javaPath: readonly JavaPathPart[],
+    shiftAfterLiteral = false,
+    bindRecipeWildcard = false
 ): Map<string, ArgumentBinding> | undefined => {
     const legacyArgs = legacy.parts.filter((part) => part.kind === 'argument');
     const javaArgs = javaPath.filter((part) => part.kind === 'argument');
     const bindings = new Map<string, ArgumentBinding>();
+    let literalBindings = 0;
 
     for (let index = 0; index < legacyArgs.length; index += 1) {
         const legacyArgument = legacyArgs[index];
@@ -435,14 +467,18 @@ const bindLegacyArguments = (
         }
 
         const enumLiteral = javaPath.find(
-            (part) => part.kind === 'literal' && literalValues(legacyArgument).includes(part.name)
+            (part) =>
+                part.kind === 'literal' &&
+                (literalValues(legacyArgument).includes(part.name) ||
+                    (bindRecipeWildcard && legacyArgument.name === 'recipe' && part.name === '*'))
         );
         if (enumLiteral !== undefined) {
             bindings.set(legacyArgument.name, { kind: 'literal', value: enumLiteral.name });
+            if (shiftAfterLiteral) literalBindings += 1;
             continue;
         }
 
-        const positional = javaArgs[index];
+        const positional = javaArgs[index - literalBindings];
         if (positional !== undefined && compatibleArgument(legacyArgument, positional) >= 0) {
             bindings.set(legacyArgument.name, { kind: 'argument', name: positional.name });
             continue;
@@ -466,15 +502,19 @@ const bindLegacyArguments = (
                 !legacy.parts.some((legacyPart) => legacyPart.kind === 'literal' && legacyPart.name === part.name) &&
                 !boundLiterals.has(part.name)
         )
-    ) {
+    )
         return undefined;
-    }
 
     return bindings;
 };
 
-const scoreLegacyExecutor = (legacy: LegacyExecutor, javaPath: readonly JavaPathPart[]): number => {
-    const bindings = bindLegacyArguments(legacy, javaPath);
+const scoreLegacyExecutor = (
+    legacy: LegacyExecutor,
+    javaPath: readonly JavaPathPart[],
+    shiftAfterLiteral = false,
+    bindRecipeWildcard = false
+): number => {
+    const bindings = bindLegacyArguments(legacy, javaPath, shiftAfterLiteral, bindRecipeWildcard);
     if (bindings === undefined) return Number.NEGATIVE_INFINITY;
     if (legacy.parts.length === 0 && javaPath.length === 0) return 10;
     let score = bindings.size * 4 - Math.abs(legacy.parts.length - javaPath.length);
@@ -494,9 +534,13 @@ const scoreLegacyExecutor = (legacy: LegacyExecutor, javaPath: readonly JavaPath
 const mappedContext = (
     context: CommandContext<CommandSource>,
     legacy: LegacyExecutor,
-    javaPath: readonly JavaPathPart[]
+    javaPath: readonly JavaPathPart[],
+    shiftAfterLiteral = false,
+    bindRecipeWildcard = false
 ): CommandContext<CommandSource> => {
-    const bindings = bindLegacyArguments(legacy, javaPath) ?? new Map<string, ArgumentBinding>();
+    const bindings =
+        bindLegacyArguments(legacy, javaPath, shiftAfterLiteral, bindRecipeWildcard) ??
+        new Map<string, ArgumentBinding>();
     return new Proxy(context, {
         get(target, property) {
             if (property === 'getArgument') {
@@ -535,14 +579,20 @@ const findLegacyExecutor = (
 ): CommandExecutor | undefined => {
     if (commandName === 'teleport') return teleportExecutor(path);
     if (commandName === 'gamerule') return gameRuleExecutor(path);
+    const shiftAfterLiteral = commandName === 'title';
+    const bindRecipeWildcard = commandName === 'recipe';
 
     const ranked = executors
-        .map((executor) => ({ executor, score: scoreLegacyExecutor(executor, path) }))
+        .map((executor) => ({
+            executor,
+            score: scoreLegacyExecutor(executor, path, shiftAfterLiteral, bindRecipeWildcard)
+        }))
         .filter((entry) => Number.isFinite(entry.score))
         .sort((left, right) => right.score - left.score);
     const best = ranked[0];
     if (best === undefined || best.score < 3) return undefined;
-    return (context) => best.executor.execute(mappedContext(context, best.executor, path));
+    return (context) =>
+        best.executor.execute(mappedContext(context, best.executor, path, shiftAfterLiteral, bindRecipeWildcard));
 };
 
 const faceRotation = (origin: Vector3, destination: Vector3): Rotation => {
@@ -555,6 +605,21 @@ const faceRotation = (origin: Vector3, destination: Vector3): Rotation => {
 
 const teleportExecutor = (path: readonly JavaPathPart[]): CommandExecutor | undefined => {
     const route = path.map((part) => `${part.kind}:${part.name}`);
+
+    if (route.join(' ') === 'argument:destination') {
+        return command((context) => {
+            const current = source(context);
+            if (current.entity === undefined) return report(current, 0, 'No entity to teleport');
+            const destination = selectOne(current, value(context, 'destination'));
+            const moved = current.host.entities.teleport(
+                current.entity,
+                destination.position,
+                destination.rotation,
+                destination.dimension
+            );
+            return report(current, moved ? 1 : 0, `Teleported to ${destination.name}`);
+        });
+    }
 
     if (route.join(' ') === 'argument:location') {
         return command((context) => {
@@ -637,8 +702,10 @@ const teleportExecutor = (path: readonly JavaPathPart[]): CommandExecutor | unde
 
 const gameRuleExecutor = (path: readonly JavaPathPart[]): CommandExecutor | undefined => {
     const [rulePart] = path;
-    if (rulePart?.kind !== 'literal' || !rulePart.name.startsWith('minecraft:')) return undefined;
-    const ruleName = rulePart.name;
+    if (rulePart?.kind !== 'literal') return undefined;
+    const rule = gameRule(rulePart.name);
+    if (rule === undefined) return undefined;
+    const ruleName = rule.name;
     const writes = path.some((part) => part.kind === 'argument' && part.name === 'value');
 
     return command((context) => {
