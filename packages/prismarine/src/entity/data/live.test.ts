@@ -30,7 +30,7 @@ import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import LevelDB from '../../world/providers/leveldb/LevelDB';
 import { Dimensions } from '../../world/Dimension';
-import GameRuleManager from '../../world/GameRuleManager';
+import GameRuleManager, { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import EntityGrid from '../../world/EntityGrid';
 import { Position } from '../../world/Position';
@@ -93,9 +93,10 @@ const entityFile = (identifier: string, body: Record<string, unknown>) =>
 const MOB_BASE = {
     'minecraft:health': { value: 20, max: 20 },
     'minecraft:attack': { damage: 3 },
-    'minecraft:movement': { value: 10 },
+    'minecraft:movement': { value: 0.25 },
     'minecraft:follow_range': { value: 24 },
     'minecraft:collision_box': { width: 0.6, height: 1.8 },
+    'minecraft:physics': {},
     'minecraft:navigation.walk': { can_walk: true },
     'minecraft:type_family': { family: ['mob'] }
 };
@@ -491,6 +492,33 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     describe('spawning', () => {
+        it('routes spawn egg entity actions through the live data runtime', async () => {
+            for (const [identifier, x] of [
+                ['minecraft:zombie', 2],
+                ['minecraft:villager_v2', 4]
+            ] as const) {
+                live.runtime.content().world.itemActions.perform({
+                    kind: 'spawn-entity',
+                    identifier,
+                    position: { x, y: GROUND_Y + 4, z: 2 }
+                });
+            }
+
+            const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            if (zombie === undefined) throw new Error('the spawn egg action bypassed the data runtime');
+            const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+            if (villager === undefined) throw new Error('the villager spawn egg action bypassed the data runtime');
+
+            expect(villager.brain).toBeDefined();
+
+            await run(30);
+
+            expect(zombie.position.y).toBe(GROUND_Y);
+            expect(villager.position.y).toBe(GROUND_Y);
+            expect(typesIn(world)).toContain('minecraft:zombie');
+            expect(typesIn(world)).toContain('minecraft:villager_v2');
+        });
+
         it('spawns a herd from a real spawn rule into real chunks', async () => {
             addPlayer(8, 8);
 
@@ -954,6 +982,34 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(villager?.brain).toBeDefined();
         });
 
+        it('migrates a pre-runtime mob from its saved actor and resumes gravity and goals', async () => {
+            const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-migrate-'));
+            folders.push(folder);
+
+            const first = await session(folder);
+            await first.world.addEntity(
+                new GenericEntity({
+                    identifier: 'minecraft:zombie',
+                    position: new Position(2.5, GROUND_Y + 4, 3.5, first.world)
+                })
+            );
+
+            await first.world.saveChunks();
+            await first.provider.disable();
+
+            const second = await session(folder);
+            await second.world.loadChunk(0, 0);
+
+            const zombie = second.live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            if (zombie === undefined) throw new Error('the saved legacy zombie was not migrated into the runtime');
+            expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
+
+            for (let tick = 1; tick <= 30; tick += 1) await second.live.tick(tick);
+
+            expect(zombie.position.y).toBe(GROUND_Y);
+            expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
+        });
+
         it('displaces the copy level.json rebuilt rather than standing beside it', async () => {
             const folder = mkdtempSync(join(tmpdir(), 'jsp-entity-duplicate-'));
             folders.push(folder);
@@ -1003,5 +1059,66 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(second.live.runtime.all()).toEqual([]);
             expect(typesIn(second.world)).toContain('minecraft:item');
         });
+    });
+
+    describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('over the vanilla entity definitions', () => {
+        it(
+            'runs spawn egg actions for a zombie and villager with their real components',
+            { timeout: 180_000 },
+            async () => {
+                const setup = liveWorld();
+                world = setup.world;
+                runtimes = setup.runtimes;
+                world.getGameRuleManager().setGameRule(GameRules.DoMobSpawning, false, true);
+
+                let built: ServerContent | undefined;
+                built = buildServerContent({
+                    seed: 1234n,
+                    world: serverWorldSource({
+                        worldFor: () => world,
+                        content: () => built!,
+                        seed: 1234n,
+                        difficulty: () => Difficulty.NORMAL,
+                        entityRuntimes: runtimes
+                    })
+                });
+                setup.hold(built);
+
+                const opened = runtimes.at(DIMENSION);
+                if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
+                live = opened;
+
+                const player = addPlayer(8, 2);
+                for (const [identifier, x] of [
+                    ['minecraft:zombie', 2],
+                    ['minecraft:villager_v2', 40]
+                ] as const) {
+                    live.runtime.content().world.itemActions.perform({
+                        kind: 'spawn-entity',
+                        identifier,
+                        position: { x, y: GROUND_Y + 4, z: 2 }
+                    });
+                }
+
+                const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+                if (villager === undefined)
+                    throw new Error('the vanilla villager spawn egg action bypassed the data runtime');
+                const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+                if (zombie === undefined)
+                    throw new Error('the vanilla zombie spawn egg action bypassed the data runtime');
+
+                expect(villager.brain).toBeDefined();
+
+                for (let tick = 1; tick <= 30; tick += 1) await live.tick(tick);
+
+                expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
+                expect(zombie.target).toBe(Number(player.getRuntimeId()));
+                expect(zombie.position.x).toBeGreaterThan(4);
+                expect(zombie.position.y).toBe(GROUND_Y);
+                expect(villager.position.y).toBe(GROUND_Y);
+                expect(typesIn(world)).toContain('minecraft:zombie');
+                expect(typesIn(world)).toContain('minecraft:villager_v2');
+            }
+        );
     });
 });

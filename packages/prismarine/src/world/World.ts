@@ -906,12 +906,12 @@ export class World implements Service {
      */
     private restoreDataEntity(stored: Entity): boolean {
         const live = this.dataEntities();
-        if (live === undefined || stored.persistentNbt === null) return false;
+        if (live === undefined) return false;
 
-        const record = dataEntityRecordIn(stored.persistentNbt);
-        if (record === undefined) return false;
+        const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
+        if (record !== undefined) return live.restore(record, stored) !== undefined;
 
-        return live.restore(record, stored) !== undefined;
+        return stored instanceof GenericEntity && live.restoreGeneric(stored) !== undefined;
     }
 
     private isLegacyEntity(candidate: Entity, stored: Entity): boolean {

@@ -105,9 +105,8 @@ export interface EntityFacts {
     /**
      * The `minecraft:movement` value, in Bedrock's own movement units.
      *
-     * Not blocks per second and not blocks per tick: it is the number the
-     * client is told and the number every goal's `speed_multiplier` scales.
-     * {@link blocksPerTick} converts it for the movement model.
+     * The live movement controller uses this as its per-tick path speed. Keep
+     * the raw component value so groups can change it while the entity is alive.
      */
     readonly movement: number;
     /** The `minecraft:underwater_movement` value, or the walking one when the type declares none. */
@@ -121,18 +120,6 @@ export interface EntityFacts {
     /** Whether `/summon` may create the type. */
     readonly summonable: boolean;
 }
-
-/**
- * Bedrock's `minecraft:movement` value as blocks per tick.
- *
- * Vanilla's cow carries `0.25` and walks a little under half a block a second,
- * which is the factor Java's `movement_speed` attribute uses for the same
- * number: a speed attribute is blocks per tick divided by this.
- */
-const MOVEMENT_UNITS_PER_BLOCK_PER_TICK = 10;
-
-/** One `minecraft:movement` value as the blocks per tick the movement model integrates. */
-export const blocksPerTick = (movement: number): number => movement / MOVEMENT_UNITS_PER_BLOCK_PER_TICK;
 
 /**
  * Reads the facts of every entity type in a registry, once.

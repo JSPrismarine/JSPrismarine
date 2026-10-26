@@ -120,20 +120,28 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         liveWorld: world,
         report: (message) => reportFrom(world, dimension, message)
     });
+    const liveEntities = live === undefined ? undefined : entityContentGroups(live.runtime);
 
     const adapter: ServerWorldAdapter = {
         level,
         blocks,
-        entities,
+        entities: liveEntities?.entities ?? entities,
         effects,
         ticks,
         random,
-        items: createContentItemGroup({ blocks: blockGroup, entities, effects, level, actors, content }),
+        items: createContentItemGroup({
+            blocks: blockGroup,
+            entities: liveEntities?.entities ?? entities,
+            effects,
+            level,
+            actors,
+            content
+        }),
         // `generation` is left out rather than filled with throwing members: the adapter
         // declares it optional so that the projection in `views.ts` reports the subsystem
         // that owes it. `commands` is the network subsystem's. `spawning` and `ai` are the
         // entity subsystem's, and are absent on a server that runs no data-driven entities.
-        ...(live === undefined ? {} : entityContentGroups(live.runtime))
+        ...(liveEntities ?? {})
     };
 
     live?.attach(adapter);

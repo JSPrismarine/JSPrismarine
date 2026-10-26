@@ -330,6 +330,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         // thud. A player is deliberately the empty string: the client uses its own player sounds,
         // and naming `minecraft:player` here plays them twice.
         packet.entityType = entity instanceof Player ? '' : entity.getType();
+        packet.entityUniqueId = entity.getRuntimeId();
         packet.isBabyMob = false;
         packet.disableRelativeVolume = false;
 

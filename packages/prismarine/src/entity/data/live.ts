@@ -25,6 +25,7 @@ import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
+import type { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime } from './EntityRuntime';
@@ -242,6 +243,31 @@ export class LiveEntityRuntime {
     public restore(record: DataEntityRecord, stored: Entity): DataEntity | undefined {
         const at = stored.getPosition();
         const entity = this.runtime.restore(record, { x: at.getX(), y: at.getY(), z: at.getZ() });
+        if (entity === undefined) return undefined;
+
+        const body = this.bodies.bodyOf(entity.id);
+        if (body !== undefined) body.persistentNbt = stored.persistentNbt;
+        return entity;
+    }
+
+    /**
+     * Migrates an older generic actor into the data runtime when its pack type is available.
+     *
+     * Earlier server versions serialized mob bodies without the runtime state tag. Rebuilding
+     * those bodies as generic actors left them with no component set, goals, or gravity. Their
+     * type's spawn event initializes the current data state, while the original actor tags stay
+     * on the replacement body for fields the runtime does not model yet.
+     */
+    public restoreGeneric(stored: GenericEntity): DataEntity | undefined {
+        const identifier = stored.getType();
+        if (!this.runtime.content().entities.registry.has(identifier)) return undefined;
+
+        const position = stored.getPosition();
+        const entity = this.runtime.spawn(
+            identifier,
+            { x: position.getX(), y: position.getY(), z: position.getZ() },
+            { yaw: stored.yaw, pitch: stored.pitch }
+        );
         if (entity === undefined) return undefined;
 
         const body = this.bodies.bodyOf(entity.id);

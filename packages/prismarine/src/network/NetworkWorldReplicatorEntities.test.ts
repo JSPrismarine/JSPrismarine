@@ -7,7 +7,11 @@ import type { Config } from '../config/Config';
 import type { Entity } from '../entity/Entity';
 import { stub, stubOf } from '../testing/stub.test.helper';
 import type { World } from '../world/World';
+import type { DataPacket } from './Packets';
 import type PlayerSession from './PlayerSession';
+import LevelSoundEventPacket from './packet/LevelSoundEventPacket';
+import { LevelSoundEvent } from '@jsprismarine/minecraft';
+import { Position } from '../world/Position';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
 
 /**
@@ -23,6 +27,7 @@ const fakeSession = () => {
     const dropped: bigint[] = [];
     const reconciled: bigint[][] = [];
     const queued: bigint[] = [];
+    const sent: DataPacket[] = [];
     let flushes = 0;
     const tracked = new Set<bigint>();
 
@@ -31,6 +36,7 @@ const fakeSession = () => {
         dropped,
         reconciled,
         queued,
+        sent,
         tracked,
         get flushes() {
             return flushes;
@@ -42,6 +48,7 @@ const fakeSession = () => {
                 void reconciled.push([...entities].map((one) => one.getRuntimeId())),
             queueMoveActor: (entity: Entity) => void queued.push(entity.getRuntimeId()),
             flushQueuedMoves: async () => void flushes++,
+            send: async (packet: DataPacket) => void sent.push(packet),
             tracks: (runtimeId: bigint) => tracked.has(runtimeId)
         })
     };
@@ -62,7 +69,15 @@ const fakePlayer = (runtimeId: bigint) => {
 /** A mob: in the world, but nobody's client. */
 const fakeMob = (runtimeId: bigint) => stub<Entity>({ getRuntimeId: () => runtimeId });
 
-const replicatorOver = ({ players = [], entities = [] }: { players?: Player[]; entities?: Entity[] } = {}) => {
+const replicatorOver = ({
+    players = [],
+    entities = [],
+    proximity = true
+}: {
+    players?: Player[];
+    entities?: Entity[];
+    proximity?: boolean;
+} = {}) => {
     const world = stub<World>({
         getName: () => 'test',
         getPlayers: () => players,
@@ -70,7 +85,7 @@ const replicatorOver = ({ players = [], entities = [] }: { players?: Player[]; e
     });
 
     const server = stub<Server>({
-        getConfig: () => stub<Config>({ getProximityBroadcast: () => true }),
+        getConfig: () => stub<Config>({ getProximityBroadcast: () => proximity }),
         getLogger: () => stub<Logger>({ verbose: () => {}, error: () => {} })
     });
 
@@ -170,6 +185,27 @@ describe('network', () => {
 
                 expect(first.spy.flushes).toBe(1);
                 expect(second.spy.flushes).toBe(1);
+            });
+        });
+
+        describe('actorSound', () => {
+            it('attributes a mob sound to the mob that made it', () => {
+                const { player, spy } = fakePlayer(1n);
+                const world = stub<World>();
+                const mob = stub<Entity>({
+                    getRuntimeId: () => 2n,
+                    getType: () => 'minecraft:zombie',
+                    getPosition: () => new Position(1, 64, 1, world)
+                });
+                const replicator = replicatorOver({ players: [player], proximity: false });
+
+                replicator.actorSound(mob, LevelSoundEvent.HURT);
+
+                const packet = spy.sent[0];
+                expect(packet).toBeInstanceOf(LevelSoundEventPacket);
+                if (!(packet instanceof LevelSoundEventPacket)) throw new Error('expected an actor sound packet');
+                expect(packet.entityType).toBe('minecraft:zombie');
+                expect(packet.entityUniqueId).toBe(2n);
             });
         });
     });

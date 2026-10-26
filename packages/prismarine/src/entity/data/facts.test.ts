@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_BOX, blocksPerTick, boxOf } from './facts';
+import { DEFAULT_BOX, boxOf } from './facts';
 import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
 
 /**
@@ -128,12 +128,12 @@ describe('the facts of a type that declares them in a component group', () => {
         });
     });
 
-    it('move the entity, which a speed of zero never did', () => {
+    it('uses the live movement value directly as one tick of path speed', () => {
         const { entity } = bloomed();
         entity.body.moveTo({ x: 8, y: SPAWN.y, z: 0 }, 1);
         entity.step();
 
-        expect(entity.position.x).toBeCloseTo(blocksPerTick(BLOOMED.movement), 6);
+        expect(entity.position.x).toBeCloseTo(BLOOMED.movement, 6);
     });
 
     it('follow the entity when the group goes away again', () => {

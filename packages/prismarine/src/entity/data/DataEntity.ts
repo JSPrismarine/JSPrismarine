@@ -20,7 +20,7 @@ import { DamageLog } from './damageLog';
 import type { MobEquipmentSet } from '../equipment';
 import { NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
-import { blocksPerTick, liveFactsOf } from './facts';
+import { liveFactsOf } from './facts';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
 const ARRIVAL_RADIUS = 0.25;
@@ -308,7 +308,7 @@ export class MobBody {
             this.idleTicks += 1;
         }
 
-        const speed = blocksPerTick(this.facts.movement) * this.speedMultiplier;
+        const speed = this.facts.movement * this.speedMultiplier;
         if (speed <= 0) return;
 
         const scale = Math.min(speed, remaining) / remaining;
