@@ -23,6 +23,12 @@ describe('a rolled drop under its Bedrock name', () => {
         expect(drops.map((drop) => drop.count)).toEqual([2, 1]);
     });
 
+    it('resolves a legacy item variant from its auxiliary value', () => {
+        expect(bedrockItemDrops([{ identifier: 'minecraft:wool', count: 2, meta: 14 }])).toEqual([
+            { identifier: 'minecraft:red_wool', count: 2, meta: 0 }
+        ]);
+    });
+
     it('keeps everything a drop carries besides its name', () => {
         const [drop] = bedrockItemDrops([
             {

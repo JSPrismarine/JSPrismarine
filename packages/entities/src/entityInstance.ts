@@ -652,14 +652,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     }
 
     /**
-     * Asks the world to create what an active spawn component describes.
+     * Asks the world to create an entity or item a component describes.
      *
      * @param request - The entity or item, count, and event the component configured.
+     * @param source - The component asking the world to create it.
      * @returns Whether the world accepted the request.
      */
-    public requestSpawn(request: EntitySpawnRequest): boolean {
+    public requestSpawn(request: EntitySpawnRequest, source = 'minecraft:spawn_entity'): boolean {
         if (this.environment.spawnEntity === undefined) {
-            this.report(`minecraft:spawn_entity asks to create ${request.identifier}, which nothing handles`);
+            this.report(`${source} asks to create ${request.identifier}, which nothing handles`);
             return false;
         }
         return this.environment.spawnEntity(this, request);

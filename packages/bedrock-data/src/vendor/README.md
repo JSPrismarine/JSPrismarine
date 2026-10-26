@@ -23,9 +23,9 @@ satisfy is an ingredient nothing can satisfy.
 
 ## `r16_to_current_item_map.json`
 
-Legacy item name to the name the flattened item table uses, at 1.26.30. Read at build time by
-`packages/minecraft/datagen/generate-recipes.js`, which needs it because Mojang's own recipe files
-still name items the way the game did before the rename.
+Legacy item name to the name the flattened item table uses, at 1.26.30. The recipe generator reads
+it because Mojang's own recipe files still name items the way the game did before the rename; the
+`legacy_item_aliases` export also lets the runtime resolve those names in vanilla entity data.
 
 - Source: https://github.com/pmmp/BedrockData, tag `bedrock-1.26.30`
 - Commit: `bdb44a48fb6beffb6e9f6864f06d2232eb62b6a3`

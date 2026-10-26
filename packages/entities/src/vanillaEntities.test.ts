@@ -222,6 +222,27 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(chicken.hasComponent('minecraft:is_baby')).toBe(true);
     });
 
+    it('drops the vanilla turtle shell piece when a baby grows up', () => {
+        const requests: unknown[] = [];
+        const turtle = types.spawn('minecraft:turtle', {
+            cause: 'born',
+            environment: {
+                spawnEntity: (_entity, request) => {
+                    requests.push(request);
+                    return true;
+                }
+            }
+        });
+
+        expect(turtle.componentParams('minecraft:ageable')).toMatchObject({ dropItems: ['turtle_shell_piece'] });
+        expect(turtle.hasComponent('minecraft:is_baby')).toBe(true);
+
+        for (let tick = 0; tick < 24_001; tick += 1) turtle.tick();
+
+        expect(requests).toEqual([{ kind: 'item', identifier: 'minecraft:turtle_shell_piece', count: 1 }]);
+        expect(turtle.hasComponent('minecraft:is_baby')).toBe(false);
+    });
+
     it('covers the components the research note predicts and reports what it does not', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();

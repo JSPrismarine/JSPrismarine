@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Activities } from '@jsprismarine/entity-brains';
 import type { FilterEntityView } from '@jsprismarine/entities';
+import { vanillaItemDefinitions } from '@jsprismarine/items';
 
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
@@ -297,6 +298,52 @@ describe('EntityRuntime', () => {
 
             for (let tick = 112; tick <= 131; tick += 1) runtime.tick(tick);
             expect(pausedBaby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+        });
+
+        it('drops ageable items when the baby finishes growing', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {
+                    itemDefinitions: vanillaItemDefinitions().filter(
+                        (definition) => definition.identifier === 'minecraft:turtle_scute'
+                    )
+                },
+                {
+                    'jsprismarine:ageable_drops': {
+                        components: {},
+                        component_groups: {
+                            baby: {
+                                'minecraft:is_baby': {},
+                                'minecraft:ageable': {
+                                    duration: 0.1,
+                                    drop_items: ['turtle_shell_piece'],
+                                    grow_up: { event: 'jsprismarine:grown', target: 'self' }
+                                }
+                            },
+                            adult: {}
+                        },
+                        events: {
+                            'minecraft:entity_born': { add: { component_groups: ['baby'] } },
+                            'jsprismarine:grown': {
+                                add: { component_groups: ['adult'] },
+                                remove: { component_groups: ['baby'] }
+                            }
+                        }
+                    }
+                }
+            );
+            const baby = runtime.spawn('jsprismarine:ageable_drops', GROUND, { cause: 'born' });
+            if (baby === undefined) throw new Error('the fixture declares no ageable baby');
+
+            runtime.tick(1);
+            runtime.tick(2);
+
+            expect(world.drops.map((drop) => drop.item.identifier)).toEqual(['minecraft:turtle_scute']);
+            expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+
+            runtime.tick(3);
+            expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
         });
 
         it('tames an entity from its data and applies its tame event', () => {

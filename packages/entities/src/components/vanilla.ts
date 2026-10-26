@@ -1365,6 +1365,14 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
                 if (!state.paused) state.remaining -= 1;
                 if (state.remaining > 0) return;
                 states.delete(entity);
+                for (const item of params.dropItems) {
+                    const identifier = ageableItemIdentifier(item);
+                    if (identifier === undefined) continue;
+                    entity.requestSpawn(
+                        { kind: 'item', identifier: normalizedItemIdentifier(identifier), count: 1 },
+                        'minecraft:ageable'
+                    );
+                }
                 if (params.growUp?.event !== undefined)
                     entity.raise(params.growUp.event, params.growUp.target, 'minecraft:ageable');
             }

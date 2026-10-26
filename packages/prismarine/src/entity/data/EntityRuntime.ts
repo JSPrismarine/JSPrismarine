@@ -19,6 +19,7 @@
  * The camel and the happy ghast run both 1 and 2, which is what
  * `BrainMobDefinition.alsoRunsGoals` is for.
  */
+import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import type {
     EntityActuator,
     EntityPosition,
@@ -441,7 +442,7 @@ export class EntityRuntime implements EntityScene {
         return entity;
     }
 
-    /** Creates the child or item requested by an active `minecraft:spawn_entity` component. */
+    /** Creates the child or item requested by an active entity component. */
     private spawnFromComponent(source: EntityInstance, request: EntitySpawnRequest): boolean {
         const parent = this.byInstance.get(source);
         if (parent === undefined) return false;
@@ -450,11 +451,12 @@ export class EntityRuntime implements EntityScene {
         let spawned = false;
         for (let index = 0; index < request.count; index += 1) {
             if (request.kind === 'item') {
-                if (!this.content().items.registry.has(request.identifier)) {
+                const identifier = legacy_item_aliases[request.identifier] ?? request.identifier;
+                if (!this.content().items.registry.has(identifier)) {
                     this.report(`${parent.identifier} asks to spawn unknown item ${request.identifier}`);
                     continue;
                 }
-                this.host.drop(blockPositionOf(at), { identifier: request.identifier, count: 1 });
+                this.host.drop(blockPositionOf(at), { identifier, count: 1 });
                 if (request.itemEvent !== undefined)
                     source.raise(request.itemEvent.event, request.itemEvent.target, 'minecraft:spawn_entity');
                 spawned = true;

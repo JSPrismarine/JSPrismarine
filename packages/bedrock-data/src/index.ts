@@ -2,6 +2,7 @@ import block_definitions_data from './jsp/block_definitions.json';
 import { creative_groups, creativeitems } from './generated/creativeitems';
 import item_components_data from './generated/item_components.json';
 import item_table_data from './generated/item_table.json';
+import legacy_item_aliases_data from './vendor/r16_to_current_item_map.json';
 import item_tags_data from './vendor/item_tags.json';
 
 export type { CreativeGroupEntry, CreativeItemEntry } from './generated/creativeitems';
@@ -74,6 +75,13 @@ export const item_components: Readonly<Record<string, Buffer>> = Object.fromEntr
 export const item_id_map: Record<string, number> = Object.fromEntries(
     Object.entries(item_table).map(([name, entry]) => [name, entry.runtime_id])
 );
+
+/** Legacy Bedrock item identifiers still used by vanilla definitions, mapped to current names. */
+export const legacy_item_aliases: Readonly<Record<string, string>> = legacy_item_aliases_data.simple;
+
+/** Legacy Bedrock item identifiers whose auxiliary value selects a current item name. */
+export const legacy_item_aux_aliases: Readonly<Record<string, Readonly<Record<string, string>>>> =
+    legacy_item_aliases_data.complex;
 
 /** A vanilla block the client only knows if the server declares it. */
 export interface BlockDefinitionEntry {

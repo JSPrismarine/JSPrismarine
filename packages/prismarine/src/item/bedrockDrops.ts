@@ -16,6 +16,7 @@
  * here, because a Bedrock pack's own table names Bedrock items and nothing is gained by
  * refusing to drop them.
  */
+import { legacy_item_aliases, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 import { mapLootToBedrock } from '@jsprismarine/loot';
 import type { BedrockStack } from '@jsprismarine/loot';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
@@ -59,12 +60,26 @@ const renamed = (drop: ContentItemDrop, bedrock: ReadonlyMap<string, BedrockStac
     };
 };
 
+/** Replaces a legacy Bedrock item name and auxiliary value with its current item identifier. */
+const currentItemIdentifier = (drop: ContentItemDrop): ContentItemDrop => {
+    const contents = drop.contents?.map((held) => (held === undefined ? undefined : currentItemIdentifier(held)));
+    const variant = legacy_item_aux_aliases[drop.identifier]?.[String(drop.meta ?? 0)];
+    const identifier = variant ?? legacy_item_aliases[drop.identifier];
+
+    return {
+        ...drop,
+        ...(identifier === undefined ? {} : { identifier }),
+        ...(variant === undefined ? {} : { meta: 0 }),
+        ...(contents === undefined ? {} : { contents })
+    };
+};
+
 /**
  * What a roll dropped, under the names a Bedrock client resolves.
  *
  * @param drops - The drops as the table rolled them, by Java id.
- * @returns The same drops in the same order, each under its Bedrock identifier. Counts,
- *   enchantments, names, lore and contents are untouched.
+ * @returns The same drops in the same order, each under its current Bedrock identifier. Legacy
+ *   auxiliary variants become their current names; counts, enchantments, names, and lore remain.
  */
 export const bedrockItemDrops = (drops: readonly ContentItemDrop[]): readonly ContentItemDrop[] => {
     if (drops.length === 0) return drops;
@@ -74,5 +89,5 @@ export const bedrockItemDrops = (drops: readonly ContentItemDrop[]): readonly Co
     const { stacks } = mapLootToBedrock(drops.flatMap(stacksIn), javaItemToBedrock);
     const bedrock = new Map(stacks.map((stack) => [stack.javaId, stack]));
 
-    return drops.map((drop) => renamed(drop, bedrock));
+    return drops.map((drop) => currentItemIdentifier(renamed(drop, bedrock)));
 };
