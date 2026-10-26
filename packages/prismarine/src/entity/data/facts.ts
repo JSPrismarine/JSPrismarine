@@ -24,7 +24,7 @@
  * spawn event adds counts.
  */
 import type { EntityType } from '@jsprismarine/entities';
-import { EntityInstance, collisionBox, loot, typeFamily } from '@jsprismarine/entities';
+import { DEFAULT_UNDERWATER_MOVEMENT, EntityInstance, collisionBox, loot, typeFamily } from '@jsprismarine/entities';
 import type { Registry } from '@jsprismarine/content';
 
 /** A box centered on the entity's position, extending upwards from its feet. */
@@ -109,7 +109,7 @@ export interface EntityFacts {
      * the raw component value so groups can change it while the entity is alive.
      */
     readonly movement: number;
-    /** The `minecraft:underwater_movement` value, or the walking one when the type declares none. */
+    /** The active `minecraft:underwater_movement` value, or its component default when absent. */
     readonly underwaterMovement: number;
     /** The families `minecraft:type_family` declares, which is what `is_family` matches. */
     readonly families: readonly string[];
@@ -177,7 +177,7 @@ const factsOf = (registry: Registry<EntityType>, identifier: string, type: Entit
         knockbackResistance: attributes.value('knockback_resistance', 0),
         followRange: attributes.value('follow_range', 0),
         movement,
-        underwaterMovement: attributes.value('underwater_movement', movement),
+        underwaterMovement: attributes.value('underwater_movement', DEFAULT_UNDERWATER_MOVEMENT),
         families: type.params(typeFamily)?.family ?? [],
         lootTable: type.params(loot)?.table,
         spawnable: type.flags.spawnable,
@@ -240,7 +240,7 @@ class LiveFacts implements EntityFacts {
     }
 
     public get underwaterMovement(): number {
-        return this.instance.attributes.value('underwater_movement', this.movement);
+        return this.instance.attributes.value('underwater_movement', this.type.underwaterMovement);
     }
 
     public get families(): readonly string[] {

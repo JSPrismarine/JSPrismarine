@@ -32,6 +32,9 @@ import {
  * every mob needs first, then the sensors and timers that drive events.
  */
 
+/** The component default used when an entity has no underwater movement component. */
+export const DEFAULT_UNDERWATER_MOVEMENT = 0.02;
+
 /** The attribute components, each one number the server reads off the entity. */
 export const attributeComponents: readonly ComponentFactory<
     EntityHooks,
@@ -39,7 +42,7 @@ export const attributeComponents: readonly ComponentFactory<
 >[] = [
     attributeComponent('minecraft:health', 'health', 20),
     attributeComponent('minecraft:movement', 'movement', 0.25),
-    attributeComponent('minecraft:underwater_movement', 'underwater_movement', 0.02),
+    attributeComponent('minecraft:underwater_movement', 'underwater_movement', DEFAULT_UNDERWATER_MOVEMENT),
     attributeComponent('minecraft:lava_movement', 'lava_movement', 0.02),
     attributeComponent('minecraft:flying_speed', 'flying_speed', 0.02),
     attributeComponent('minecraft:follow_range', 'follow_range', 16),

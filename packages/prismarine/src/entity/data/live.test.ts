@@ -1191,6 +1191,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 const pig = live.runtime.all().find((entity) => entity.identifier === 'minecraft:pig');
                 if (pig === undefined) throw new Error('the vanilla pig spawn egg action bypassed the data runtime');
                 expect(villager.brain).toBeDefined();
+                expect(waterZombie.facts.underwaterMovement).toBeLessThan(waterZombie.facts.movement);
 
                 await live.tick(1);
                 expect(zombie.position.y).toBe(GROUND_Y);
@@ -1232,8 +1233,10 @@ describe('the data-driven entity runtime over a live world', () => {
                     const chunk = world.getLoadedChunk(x >> 4, chunkZ);
                     if (chunk === null)
                         throw new Error(`the vanilla path test chunk for x=${x}, chunkZ=${chunkZ} was not loaded`);
-                    for (let z = 0; z < 16; z += 1) {
-                        chunk.setBlockRuntimeId(x & 15, FLOOR_Y, z, idOf('minecraft:water'));
+                    for (let y = FLOOR_Y - 2; y <= FLOOR_Y; y += 1) {
+                        for (let z = 0; z < 16; z += 1) {
+                            chunk.setBlockRuntimeId(x & 15, y, z, idOf('minecraft:water'));
+                        }
                     }
                 }
             }
@@ -1241,6 +1244,7 @@ describe('the data-driven entity runtime over a live world', () => {
             const pig = live.runtime.spawn('minecraft:pig', { x: 2.5, y: GROUND_Y, z: 2.5 });
             if (pig === undefined) throw new Error('the vanilla content declares no pig');
             expect(navigationProfile(pig.instance).canPathOverWater).toBe(true);
+            expect(pig.facts.underwaterMovement).toBeLessThan(pig.facts.movement);
 
             const navigator = new Navigator({
                 actuator: live.runtime.actuatorFor(pig.instance),
@@ -1271,9 +1275,11 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombieWalker.target).toBe(Number(player.getRuntimeId()));
             expect(zombieWalker.position.x).toBeGreaterThan(4);
             expect(zombieWalker.position.x).toBeLessThan(9);
-            expect(zombieWalker.position.y).toBeLessThan(GROUND_Y);
+            expect(zombieWalker.position.y).toBeLessThan(FLOOR_Y);
             expect(zombieWalker.body.conditions.has('in_water')).toBe(true);
-            expect(body.isOnGround()).toBe(false);
+            // The pool is three blocks deep with stone below it; the mob is supported by the
+            // stone bed, not by the water.
+            expect(body.isOnGround()).toBe(true);
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(true);
         });
     });

@@ -1,3 +1,4 @@
+import { DEFAULT_UNDERWATER_MOVEMENT } from '@jsprismarine/entities';
 import { describe, expect, it } from 'vitest';
 
 import { DEFAULT_BOX, boxOf } from './facts';
@@ -113,7 +114,7 @@ describe('the facts of a type that declares them in a component group', () => {
         expect(bloomed().entity.facts).toMatchObject(BLOOMED);
     });
 
-    it('are zero on the type, which is why reading them off the type is the bug', () => {
+    it('use base-component values and defaults on the type', () => {
         const { fixture } = bloomed();
         expect(fixture.runtime.typeFacts().get(LATE)).toMatchObject({
             box: DEFAULT_BOX,
@@ -122,7 +123,7 @@ describe('the facts of a type that declares them in a component group', () => {
             knockbackResistance: 0,
             followRange: 0,
             movement: 0,
-            underwaterMovement: 0,
+            underwaterMovement: DEFAULT_UNDERWATER_MOVEMENT,
             families: [],
             lootTable: undefined
         });
