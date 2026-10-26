@@ -53,7 +53,12 @@ const GOAL_WORLD_ENTITIES: ExtraEntities = {
         'minecraft:shooter': { def: 'jsprismarine:dart' },
         'minecraft:behavior.ranged_attack': { priority: 1, attack_radius: 16, attack_interval: 0.05 }
     }),
-    'jsprismarine:dart': { components: { 'minecraft:health': { value: 1, max: 1 } } },
+    'jsprismarine:dart': {
+        components: {
+            'minecraft:health': { value: 1, max: 1 },
+            'minecraft:projectile': {}
+        }
+    },
     'jsprismarine:mount': mob({
         'minecraft:rideable': { seat_count: 2, seats: { position: [0, 1, 0] } },
         'minecraft:behavior.controlled_by_player': { priority: 1 }
