@@ -73,21 +73,37 @@ export const loose = async (shooter: Entity, ticks: number): Promise<boolean> =>
     if (power < MIN_POWER) return false;
 
     const world = shooter.getWorld();
-    const from = shooter.getPosition();
-    const heading = lookVector(shooter.yaw, shooter.pitch);
     const speed = power * MAX_SPEED;
+    const live = world.dataEntities();
 
-    const arrow = new Arrow({
-        position: new Position(from.getX(), from.getY(), from.getZ(), world),
-        velocity: new Vector3(heading.getX() * speed, heading.getY() * speed, heading.getZ() * speed),
-        owner: shooter
-    });
+    if (live.runtime.content().entities.registry.has(Arrow.MOB_ID)) {
+        const projectile = live.launchProjectile(
+            {
+                kind: 'launch-projectile',
+                identifier: Arrow.MOB_ID,
+                source: { identifier: shooter.getType(), runtimeId: Number(shooter.getRuntimeId()) },
+                power: speed,
+                inaccuracy: 0,
+                data: { critical: power >= 1 }
+            },
+            shooter
+        );
+        if (projectile === undefined) return false;
+    } else {
+        const from = shooter.getPosition();
+        const heading = lookVector(shooter.yaw, shooter.pitch);
+        const arrow = new Arrow({
+            position: new Position(from.getX(), from.getY(), from.getZ(), world),
+            velocity: new Vector3(heading.getX() * speed, heading.getY() * speed, heading.getZ() * speed),
+            owner: shooter
+        });
 
-    // Vanilla crits on a *full* draw rather than on falling, which is why the flag is set at launch
-    // and not worked out on impact the way a melee critical is.
-    arrow.setCritical(power >= 1);
+        // Vanilla crits on a *full* draw rather than on falling, which is why the flag is set at launch
+        // and not worked out on impact the way a melee critical is.
+        arrow.setCritical(power >= 1);
 
-    await world.addEntity(arrow);
+        await world.addEntity(arrow);
+    }
     await world.sendActorSound(shooter, LevelSoundEvent.BOW);
 
     return true;

@@ -53,6 +53,7 @@ import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
+import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
@@ -1946,6 +1947,33 @@ describe('the data-driven entity runtime over a live world', () => {
             if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
             live = opened;
         };
+
+        it('spawns a bow arrow through the live data-driven projectile runtime', async () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            const shot = await loose(player, 20);
+
+            expect(shot).toBe(true);
+            const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+            if (arrow === undefined) throw new Error('the bow arrow bypassed the data-driven entity runtime');
+
+            expect(arrow.body.owner).toBe(Number(player.getRuntimeId()));
+            expect(arrow.spawnData?.['critical']).toBe(true);
+            const body = live.bodies.bodyOf(arrow.id);
+            if (body === undefined) throw new Error('the runtime arrow has no client-facing actor');
+            expect(typesIn(world)).toContain('minecraft:arrow');
+            expect(broadcasts.actorSounds).toContainEqual({
+                identifier: 'minecraft:player',
+                entityId: player.getRuntimeId(),
+                sound: LevelSoundEvent.BOW
+            });
+
+            await live.tick(1);
+
+            expect(arrow.position.z).toBeGreaterThan(2);
+            expect(body.getPosition().getZ()).toBeCloseTo(arrow.position.z, 5);
+        });
 
         it('keeps a grounded mob level when it looks at a player', async () => {
             useVanillaContent();
