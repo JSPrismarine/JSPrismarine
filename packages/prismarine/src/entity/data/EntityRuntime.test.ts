@@ -175,6 +175,68 @@ describe('EntityRuntime', () => {
     });
 
     describe('item interactions', () => {
+        it('feeds babies through ageable data and advances their growth timer', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:ageable': {
+                        components: { 'minecraft:health': { value: 10, max: 10 } },
+                        component_groups: {
+                            baby: {
+                                'minecraft:is_baby': {},
+                                'minecraft:ageable': {
+                                    duration: 20,
+                                    feed_items: [{ item: 'wheat', growth: 0.5, result_item: 'stick' }],
+                                    grow_up: { event: 'jsprismarine:grow_up', target: 'self' },
+                                    interact_filters: {
+                                        all_of: [
+                                            { test: 'is_baby' },
+                                            { test: 'is_family', subject: 'other', value: 'player' }
+                                        ]
+                                    }
+                                }
+                            },
+                            adult: { 'minecraft:health': { value: 10, max: 10 } }
+                        },
+                        events: {
+                            'minecraft:entity_born': { add: { component_groups: ['baby'] } },
+                            'jsprismarine:grow_up': {
+                                add: { component_groups: ['adult'] },
+                                remove: { component_groups: ['baby'] }
+                            }
+                        }
+                    },
+                    'jsprismarine:player_fixture': {
+                        components: { 'minecraft:type_family': { family: ['player'] } }
+                    }
+                }
+            );
+            const baby = runtime.spawn('jsprismarine:ageable', GROUND, { cause: 'born' });
+            const player = runtime.spawn('jsprismarine:player_fixture', { x: 2, y: 1, z: 2 });
+            if (baby === undefined) throw new Error('the fixture declares no ageable entity');
+            if (player === undefined) throw new Error('the fixture declares no player');
+
+            expect(runtime.interactWithItem(baby.id, 42, 'minecraft:wheat')).toEqual({ accepted: false });
+
+            expect(runtime.interactWithItem(baby.id, player.id, 'minecraft:wheat')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:stick'
+            });
+            expect(runtime.interactWithItem(baby.id, player.id, 'minecraft:wheat')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:stick'
+            });
+
+            for (let tick = 1; tick <= 99; tick += 1) runtime.tick(tick);
+            expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+
+            runtime.tick(100);
+            expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+            runtime.tick(101);
+            expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
+        });
+
         it('tames an entity from its data and applies its tame event', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

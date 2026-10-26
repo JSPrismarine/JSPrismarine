@@ -220,6 +220,16 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return this.active.get(name)?.component.params;
     }
 
+    /** Applies one held item through the active components.
+     *
+     * @param itemIdentifier - The held item's identifier.
+     * @param other - The player or entity applying the item, for interaction filters.
+     * @returns Whether an active component accepted the item.
+     */
+    public interactWithItem(itemIdentifier: string, other?: FilterEntityView): boolean {
+        return this.dispatchFirst('onInteractWithItem', this, itemIdentifier, other) === true;
+    }
+
     /** The movement and look control the goals use, when the caller supplied one. */
     public get actuator(): EntityActuator | undefined {
         return this.environment.actuator;

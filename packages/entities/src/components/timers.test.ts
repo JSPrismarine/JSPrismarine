@@ -17,7 +17,7 @@ const calf = {
             'test:baby': {
                 'minecraft:is_baby': {},
                 'minecraft:ageable': {
-                    duration: 2,
+                    duration: 20,
                     feed_items: ['wheat'],
                     grow_up: { event: 'test:grown', target: 'self' }
                 }
@@ -100,7 +100,7 @@ describe('minecraft:ageable', () => {
 
         expect(entity.componentParams('minecraft:ageable')).toMatchObject({ feedItems: ['wheat'] });
 
-        tick(entity, 39);
+        tick(entity, 399);
 
         expect(entity.hasComponent('minecraft:is_baby')).toBe(true);
 
@@ -113,9 +113,56 @@ describe('minecraft:ageable', () => {
     it('stops counting once the baby group is gone', () => {
         const reported: string[] = [];
         const entity = spawn(calf, 'test:calf', { report: (message) => reported.push(message) });
-        tick(entity, 100);
+        tick(entity, 500);
 
         expect(reported).toEqual([]);
+    });
+
+    it('advances the timer by the default tenth when fed a string item', () => {
+        const entity = spawn(calf, 'test:calf');
+
+        expect(entity.interactWithItem('minecraft:stick')).toBe(false);
+        expect(entity.interactWithItem('wheat')).toBe(true);
+        expect(entity.interactWithItem('wheat')).toBe(true);
+
+        tick(entity, 340);
+        expect(entity.hasComponent('minecraft:is_baby')).toBe(true);
+
+        tick(entity, 1);
+        expect(entity.hasComponent('minecraft:is_baby')).toBe(false);
+    });
+
+    it('keeps a baby forever when duration is -1', () => {
+        const entity = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:permanent_baby' },
+                    component_groups: {
+                        baby: {
+                            'minecraft:is_baby': {},
+                            'minecraft:ageable': {
+                                duration: -1,
+                                grow_up: { event: 'test:grown', target: 'self' }
+                            }
+                        },
+                        adult: {}
+                    },
+                    events: {
+                        'minecraft:entity_spawned': { add: { component_groups: ['baby'] } },
+                        'test:grown': {
+                            add: { component_groups: ['adult'] },
+                            remove: { component_groups: ['baby'] }
+                        }
+                    }
+                }
+            },
+            'test:permanent_baby'
+        );
+
+        tick(entity, 24_000);
+
+        expect(entity.hasComponent('minecraft:is_baby')).toBe(true);
     });
 });
 

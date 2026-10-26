@@ -1142,22 +1142,30 @@ export class EntityRuntime implements EntityScene {
         }
 
         const healable = entity.instance.componentParams('minecraft:healable');
-        if (!isRecord(healable)) return { accepted: false };
-        const item = componentItem(healable.items, itemIdentifier);
-        if (item === undefined || itemHasEffects(item)) return { accepted: false };
-        if (
-            healable.filters !== undefined &&
-            !evaluateFilter(parseFilter(healable.filters), entity.instance.filterContext())
-        )
-            return { accepted: false };
+        if (isRecord(healable)) {
+            const item = componentItem(healable.items, itemIdentifier);
+            if (item !== undefined && !itemHasEffects(item)) {
+                const currentHealth = entity.instance.attributes.get('health');
+                const filtersPass =
+                    healable.filters === undefined ||
+                    evaluateFilter(parseFilter(healable.filters), entity.instance.filterContext());
+                if (
+                    filtersPass &&
+                    currentHealth !== undefined &&
+                    (currentHealth.current < currentHealth.max || healable.force_use === true)
+                ) {
+                    const amount = isRecord(item) && typeof item.heal_amount === 'number' ? item.heal_amount : 1;
+                    const resultItem = resultItemOf(item);
+                    if (amount > 0) entity.instance.attributes.set('health', currentHealth.current + amount);
+                    return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
+                }
+            }
+        }
 
-        const currentHealth = entity.instance.attributes.get('health');
-        if (currentHealth === undefined || (currentHealth.current >= currentHealth.max && healable.force_use !== true))
-            return { accepted: false };
-
-        const amount = isRecord(item) && typeof item.heal_amount === 'number' ? item.heal_amount : 1;
-        const resultItem = resultItemOf(item);
-        if (amount > 0) entity.instance.attributes.set('health', currentHealth.current + amount);
+        if (!entity.instance.interactWithItem(itemIdentifier, this.mobById(owner)?.view())) return { accepted: false };
+        const ageable = entity.instance.componentParams('minecraft:ageable');
+        const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
+        const resultItem = resultItemOf(feedItem);
         return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
     }
 

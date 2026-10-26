@@ -210,7 +210,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | --- | --- |
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
-| `minecraft:ageable` | Counts the baby's `duration` down and raises `grow_up` |
+| `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, applies `result_item`, honors `interact_filters`, and raises `grow_up`; pause/reset item effects are pending ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
 | `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta` and raises `calm_event` |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
@@ -326,7 +326,7 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   `on_start_landing`, `on_start_takeoff`, `on_wake_with_owner` and `on_friendly_anger` need
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
-- **The components that still parse as data.** `minecraft:breedable`, `minecraft:tameable`,
-  `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`, `minecraft:explode`,
-  `minecraft:healable` and the rest need items, interaction and a world to act on. The load report
-  and `EntityType.unimplementedComponents` name the 44 non-goal keys that remain unregistered.
+- **The components and fields that still need behavior.** `minecraft:ageable.pause_growth_items` and
+  `reset_growth_items`, `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`,
+  `minecraft:explode` and the rest need item use or world effects. The load report and
+  `EntityType.unimplementedComponents` name the 44 non-goal keys that remain unregistered.

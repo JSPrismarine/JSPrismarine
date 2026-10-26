@@ -155,4 +155,10 @@ export interface EntityHooks {
     onTick: (entity: EntityInstance) => void;
     /** Decides what one damage event does; the first handler that answers wins. */
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
+    /** Applies one held item; the first handler that answers wins. */
+    onInteractWithItem: (
+        entity: EntityInstance,
+        itemIdentifier: string,
+        other?: FilterEntityView
+    ) => boolean | undefined;
 }

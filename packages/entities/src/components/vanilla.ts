@@ -7,6 +7,7 @@ import { splitSpawnReference } from '../eventEngine';
 import type { EventTarget } from '../events';
 import { parseEventTarget } from '../events';
 import { damagerSubjects } from '../filterContext';
+import type { FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
@@ -1117,11 +1118,11 @@ export interface AgeableParams {
     readonly duration: number;
     /** The event fired when the entity finishes growing. */
     readonly growUp?: SensorTrigger;
-    /** Items that feed the baby, which shorten the wait by ten percent each. */
+    /** Items that feed the baby, and the fraction of its remaining growth time each item advances. */
     readonly feedItems: readonly unknown[];
-    /** Items that hold the countdown where it is while the entity carries one. */
+    /** Items that pause growth when fed to the baby. */
     readonly pauseGrowthItems: readonly unknown[];
-    /** Items that put the countdown back to the full duration. */
+    /** Items that reset the countdown when fed to the baby. */
     readonly resetGrowthItems: readonly unknown[];
     /** Items dropped when the entity grows up. */
     readonly dropItems: readonly unknown[];
@@ -1129,18 +1130,25 @@ export interface AgeableParams {
     readonly interactFilters?: Filter;
 }
 
+/** Normalizes an item identifier with Bedrock's default namespace. */
+const normalizedItemIdentifier = (identifier: string): string =>
+    identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+
+/** Reads an item identifier from either supported `feed_items` entry shape. */
+const ageableFeedItemIdentifier = (item: unknown): string | undefined =>
+    typeof item === 'string' ? item : isRecord(item) && typeof item.item === 'string' ? item.item : undefined;
+
 /**
  * `minecraft:ageable`, carried by the baby group of 35 vanilla entities.
  *
  * The countdown runs while the component is active and fires `grow_up` when it
  * runs out, which is the event that swaps the baby group for the adult one.
- * Feeding is an interaction this package does not own, so `feed_items`,
- * `pause_growth_items` and `reset_growth_items` parse and stay readable
- * through `componentParams` for whatever carries the interaction out.
+ * Feeding is routed through the active component, so its item, growth, result,
+ * and filter data all stay attached to the behavior that owns the timer.
  */
 export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
     name: 'minecraft:ageable',
-    hooks: ['onInitialize', 'onTick'],
+    hooks: ['onInitialize', 'onRemove', 'onTick', 'onInteractWithItem'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         let interactFilters: Filter | undefined;
@@ -1163,11 +1171,43 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
         const states = new WeakMap<EntityInstance, IntervalState>();
         return {
             onInitialize: (entity) => {
-                states.set(entity, { remaining: Math.round(params.duration * TICKS_PER_SECOND) });
+                states.set(entity, {
+                    remaining: params.duration < 0 ? -1 : Math.round(params.duration * TICKS_PER_SECOND)
+                });
+            },
+            onRemove: (entity) => states.delete(entity),
+            onInteractWithItem: (entity, itemIdentifier, other) => {
+                const state = states.get(entity);
+                if (state === undefined || state.remaining < 0) return undefined;
+
+                const normalizedItem = normalizedItemIdentifier(itemIdentifier);
+                if (params.interactFilters !== undefined) {
+                    const item: FilterItemView = { identifier: () => normalizedItem };
+                    const subjects = other === undefined ? {} : { other, player: other };
+                    if (
+                        !evaluateFilter(params.interactFilters, {
+                            ...entity.filterContext(),
+                            ...subjects,
+                            item
+                        })
+                    )
+                        return undefined;
+                }
+
+                const feedItem = params.feedItems.find((entry) => {
+                    const identifier = ageableFeedItemIdentifier(entry);
+                    return identifier !== undefined && normalizedItemIdentifier(identifier) === normalizedItem;
+                });
+                if (feedItem === undefined) return undefined;
+                const growth = isRecord(feedItem) && typeof feedItem.growth === 'number' ? feedItem.growth : 0.1;
+                const secondsUntilAdult = Math.trunc(state.remaining / TICKS_PER_SECOND);
+                const secondsToAdvance = Math.trunc(secondsUntilAdult * Math.fround(growth));
+                state.remaining = Math.max(0, state.remaining - secondsToAdvance * TICKS_PER_SECOND);
+                return true;
             },
             onTick: (entity) => {
                 const state = states.get(entity);
-                if (state === undefined) return;
+                if (state === undefined || state.remaining < 0) return;
                 state.remaining -= 1;
                 if (state.remaining > 0) return;
                 states.delete(entity);

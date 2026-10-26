@@ -372,6 +372,31 @@ const ENTITIES = new Map([
             component_groups: { tamed: { 'minecraft:is_tamed': {} } },
             events: { 'jsprismarine:on_tame': { add: { component_groups: ['tamed'] } } }
         })
+    ],
+    [
+        'jsprismarine:ageable_fixture',
+        entityFile('jsprismarine:ageable_fixture', {
+            components: { ...MOB_BASE },
+            component_groups: {
+                baby: {
+                    'minecraft:is_baby': {},
+                    'minecraft:ageable': {
+                        duration: 2,
+                        feed_items: [{ item: 'wheat', growth: 0.5, result_item: 'stick' }],
+                        grow_up: { event: 'jsprismarine:ageable_grown', target: 'self' },
+                        interact_filters: { test: 'is_baby' }
+                    }
+                },
+                adult: { 'minecraft:type_family': { family: ['adult'] } }
+            },
+            events: {
+                'minecraft:entity_born': { add: { component_groups: ['baby'] } },
+                'jsprismarine:ageable_grown': {
+                    add: { component_groups: ['adult'] },
+                    remove: { component_groups: ['baby'] }
+                }
+            }
+        })
     ]
 ]);
 
@@ -711,6 +736,51 @@ describe('the data-driven entity runtime over a live world', () => {
 
         expect(pet.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.TAMED))).toBe(true);
+    });
+
+    it('feeds an ageable baby through the live inventory path and applies its result item', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:wheat' }), count: 2 }));
+        const baby = live.runtime.spawn(
+            'jsprismarine:ageable_fixture',
+            { x: 2.5, y: GROUND_Y, z: 2.5 },
+            {
+                cause: 'born'
+            }
+        );
+        if (baby === undefined) throw new Error('the fixture declares no ageable baby');
+
+        const body = live.bodies.bodyOf(baby.id);
+        if (body === undefined) throw new Error('the ageable baby has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: baby.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(1);
+        expect(
+            player
+                .getInventory()
+                .getItems()
+                .some((entry) => entry.getItem().getName() === 'minecraft:stick' && entry.getCount() === 1)
+        ).toBe(true);
+
+        await run(21);
+
+        expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
+        expect(baby.instance.hasComponent('minecraft:type_family')).toBe(true);
     });
 
     it('routes data-defined healing through the live item interaction and consumes one item', async () => {
