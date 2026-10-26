@@ -172,7 +172,14 @@ const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
     // Nothing on this server runs the pillager patrol or the village raid, so no named mob
     // event is ever active. Said as a fact rather than guessed: the rules that gate on one
     // refuse, which is what keeps a patrol from spawning every cycle.
-    mobEventActive: () => false
+    mobEventActive: () => false,
+    structureSpawnOverrideAt: (identifier, at) => {
+        const world = options.liveWorld();
+        if (world === undefined) return undefined;
+
+        const generator = world.getGenerator();
+        return generator.structureSpawnOverrideAt?.(identifier, at, world.getSeed());
+    }
 });
 
 /**

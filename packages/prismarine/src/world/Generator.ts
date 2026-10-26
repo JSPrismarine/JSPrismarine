@@ -60,6 +60,13 @@ export interface StructureSearchResult {
     readonly z: number;
 }
 
+/** A block position in a generator's world. */
+export interface GeneratorPosition {
+    readonly x: number;
+    readonly y: number;
+    readonly z: number;
+}
+
 /** How a chunk request is scheduled against every other outstanding one. */
 export interface ChunkRequestOptions {
     /**
@@ -135,6 +142,20 @@ export interface Generator {
      * @returns The nearest match, or undefined when the radius held none.
      */
     locate?(request: StructureSearchRequest): StructureSearchResult | undefined;
+
+    /**
+     * Whether Java structure spawn overrides reserve an entity type at one position.
+     *
+     * Generators without Java structure data omit the query. A generator with Java data returns
+     * `undefined` for an entity that also appears in Java's biome spawn tables or has no
+     * structure override. Structure-only entities return `false` outside matching overrides and
+     * `true` inside one.
+     *
+     * @param identifier - The Bedrock entity identifier used by the live spawner.
+     * @param at - The entity's candidate spawn position in blocks.
+     * @param seed - The world seed used to lay out structures.
+     */
+    structureSpawnOverrideAt?(identifier: string, at: GeneratorPosition, seed?: bigint): boolean | undefined;
 
     /**
      * Gives up every chunk request that has not started yet, for a server that is shutting down.

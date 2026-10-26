@@ -54,6 +54,7 @@ import { Item as ItemEntity } from '../other/Item';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
 import type { LiveEntityRuntime } from './live';
+import type { Generator } from '../../world/Generator';
 
 /**
  * The data-driven entity runtime, driving a real world.
@@ -633,6 +634,8 @@ const liveWorld = (): {
         currentTick: 0,
         spawn: new Vector3(8, GROUND_Y, 8),
         dimension: Dimensions.Overworld,
+        seed: 1234n,
+        generator: stub<Generator>({}),
         blockUpdates: new BlockUpdateScheduler(),
         entities: new Map(),
         entityChunkIndices: new Map(),
@@ -763,6 +766,19 @@ describe('the data-driven entity runtime over a live world', () => {
         // Both used to throw `NotWiredError` naming the entity subsystem.
         expect(() => live.runtime.content().world.spawnWorld.players()).not.toThrow();
         expect(live.runtime.content().world.brainWorld()).toBeDefined();
+    });
+
+    it('rejects a natural spawn when Java reserves that entity for a structure override', async () => {
+        Object.assign(world, {
+            generator: Object.assign(stub<Generator>({}), {
+                structureSpawnOverrideAt: (identifier: string) => (identifier === 'minecraft:cow' ? false : undefined)
+            })
+        });
+        addPlayer(8, 8);
+
+        await run(400);
+
+        expect(typesIn(world)).not.toContain('minecraft:cow');
     });
 
     it('replaces a successfully used tame item through the live inventory path', async () => {

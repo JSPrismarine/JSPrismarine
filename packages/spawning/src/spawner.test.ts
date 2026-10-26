@@ -198,6 +198,23 @@ describe('herd and permutation spawning', () => {
         expect(first?.identifier).toBe('minecraft:pillager');
         expect(first?.spawnEvent).toBe('minecraft:spawn_as_patrol_follower');
     });
+
+    it('keeps structure-only permutation types inside their Java structure overrides', () => {
+        const cow = ruleOf('minecraft:cow', 'animal', [
+            {
+                'minecraft:spawns_on_surface': {},
+                'minecraft:weight': { default: 1 },
+                'minecraft:herd': { min_size: 1, max_size: 1 },
+                'minecraft:permute_type': [{ weight: 0, entity_type: 'minecraft:pig', min_guaranteed: 1 }]
+            }
+        ]);
+        const world = worldWith({
+            structureSpawnOverrideAt: (identifier) => (identifier === 'minecraft:pig' ? false : undefined)
+        });
+        const spawner = new Spawner({ rules: [cow], world, random: seededRandom(7) });
+
+        expect(spawner.cycle('animal', 0)).toEqual([]);
+    });
 });
 
 describe('the weighted draw between rules', () => {

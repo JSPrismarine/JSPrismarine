@@ -104,6 +104,16 @@ export interface SpawnWorld {
      * reads it.
      */
     villageBorderDistance?(at: SpawnPosition): number | undefined;
+    /**
+     * Whether Java restricts this entity type to a structure spawn override at this position.
+     *
+     * `false` means the Java data declares at least one structure override for the entity, but
+     * this position is outside every active override. `true` means a matching override covers
+     * this position. `undefined` means Java's biome data also permits this entity to spawn
+     * outside structures, or that the world has no Java override data for it, so the spawn rule
+     * decides as usual.
+     */
+    structureSpawnOverrideAt?(identifier: string, at: SpawnPosition): boolean | undefined;
 }
 
 /** The squared distance between two positions, which is what the range checks compare. */

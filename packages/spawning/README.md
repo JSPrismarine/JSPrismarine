@@ -197,7 +197,11 @@ JSP_VANILLA_SPAWN_RULES=1 pnpm --filter @jsprismarine/spawning exec vitest run s
 - **The four rules with no conditions.** Blaze, cat, pillager and wither skeleton register a pool
   and leave placement to engine code: fortress spawns, village cats and patrol placement. This
   package spawns them wherever the pool cycle looks, which is wrong for all four.
-- **Structure spawning.** Spawner blocks, trial spawners and the structure-bound mob lists are not
-  spawn rules and are not here.
+- **Structure-based spawn selection.** When the world supplies Java structure data, the spawner
+  suppresses a rule candidate if Java reserves that entity type exclusively for structure
+  overrides and the candidate is outside every matching structure. This keeps guardians out of
+  ordinary ocean water while leaving entities also listed in Java biome spawn tables eligible
+  outside structures. Structure overrides do not yet create spawn attempts or replace the biome
+  category's weighted selection.
 - **Measuring the constants.** Every number in the table above is replaceable, and a capture against
   a running BDS would turn the guesses into measurements.

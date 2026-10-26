@@ -275,6 +275,8 @@ export interface ContentSpawnAccess {
      * when no village is near.
      */
     villageBorderDistance?(at: ContentPosition): number | undefined;
+    /** Whether Java reserves this entity type for a structure spawn override at one position. */
+    structureSpawnOverrideAt?(identifier: string, at: ContentPosition): boolean | undefined;
 }
 
 /** The per-entity AI seams, which need an entity index the content packages never see. */

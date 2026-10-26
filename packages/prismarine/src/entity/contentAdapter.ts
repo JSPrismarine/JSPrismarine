@@ -90,7 +90,13 @@ const spawnAccessOf = (runtime: EntityRuntime): ContentSpawnAccess => ({
     mobEventActive: (event) => runtime.host.mobEventActive(event),
     ...(runtime.host.villageBorderDistance === undefined
         ? {}
-        : { villageBorderDistance: (at: ContentPosition) => runtime.host.villageBorderDistance?.(at) })
+        : { villageBorderDistance: (at: ContentPosition) => runtime.host.villageBorderDistance?.(at) }),
+    ...(runtime.host.structureSpawnOverrideAt === undefined
+        ? {}
+        : {
+              structureSpawnOverrideAt: (identifier: string, at: ContentPosition) =>
+                  runtime.host.structureSpawnOverrideAt?.(identifier, at)
+          })
 });
 
 /** The two water identifiers, which decide whether a spawn site is underwater. */

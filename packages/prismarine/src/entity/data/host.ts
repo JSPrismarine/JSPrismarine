@@ -111,4 +111,6 @@ export interface EntityHostFacts {
      * rather than match everywhere.
      */
     villageBorderDistance?(at: ContentPosition): number | undefined;
+    /** Whether Java structure spawn data reserves this type at one position. */
+    structureSpawnOverrideAt?(identifier: string, at: ContentPosition): boolean | undefined;
 }

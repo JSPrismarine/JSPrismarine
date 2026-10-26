@@ -33,7 +33,9 @@ import {
     placeFeature,
     sortFeaturesPerStep
 } from '@jsprismarine/features';
+import { javaEntityTypeToBedrock } from '@jsprismarine/mapping';
 import { boxesOverlap } from '@jsprismarine/structures';
+import type { BoundingBox } from '@jsprismarine/structures';
 import type {
     BiomeClimate,
     BiomeResolver,
@@ -331,6 +333,81 @@ interface StepFeatures {
     readonly features: readonly (PlacedFeature | undefined)[];
 }
 
+type StructureSpawnBox = 'full' | 'piece';
+
+interface StructureSpawnOverride {
+    readonly structure: string;
+    readonly boundingBox: StructureSpawnBox;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Every Java entity type listed by a biome's natural spawn table. */
+const naturalSpawnTypesOf = (biomes: JavaWorldgenRegistries['biomes']): ReadonlySet<string> => {
+    const types = new Set<string>();
+
+    for (const document of biomes.values()) {
+        if (!isRecord(document) || !isRecord(document.attributes)) continue;
+        const spawns = document.attributes['minecraft:gameplay/natural_mob_spawns'];
+        if (!isRecord(spawns) || !isRecord(spawns.argument) || !isRecord(spawns.argument.spawns_by_category)) continue;
+
+        for (const entries of Object.values(spawns.argument.spawns_by_category)) {
+            if (!Array.isArray(entries)) continue;
+            for (const entry of entries) if (isRecord(entry) && typeof entry.type === 'string') types.add(entry.type);
+        }
+    }
+
+    return types;
+};
+
+/** Indexes Java structure-only overrides by the entity identifier the live spawner uses. */
+const structureSpawnOverridesOf = (
+    structures: JavaWorldgenRegistries['structures'],
+    naturalSpawnTypes: ReadonlySet<string>
+) => {
+    const byEntity = new Map<string, StructureSpawnOverride[]>();
+
+    for (const [structure, value] of structures) {
+        if (!isRecord(value) || !isRecord(value.spawn_overrides)) continue;
+
+        for (const override of Object.values(value.spawn_overrides)) {
+            if (!isRecord(override)) continue;
+            const boundingBox = override.bounding_box;
+            if (boundingBox !== 'full' && boundingBox !== 'piece') continue;
+            if (!Array.isArray(override.spawns)) continue;
+
+            for (const spawn of override.spawns) {
+                if (!isRecord(spawn) || typeof spawn.type !== 'string') continue;
+                // A type that appears in any Java biome table also spawns outside structures;
+                // its override replaces the biome list only while the candidate is inside.
+                if (naturalSpawnTypes.has(spawn.type)) continue;
+                const mapping = javaEntityTypeToBedrock(spawn.type);
+                const identifier =
+                    mapping.kind === 'mapped' || mapping.kind === 'passthrough'
+                        ? mapping.bedrock
+                        : mapping.kind === 'loss'
+                          ? mapping.loss.bedrockFallback
+                          : undefined;
+                if (identifier === undefined) continue;
+
+                const overrides = byEntity.get(identifier) ?? [];
+                overrides.push({ structure, boundingBox });
+                byEntity.set(identifier, overrides);
+            }
+        }
+    }
+
+    return byEntity;
+};
+
+const boxContains = (box: BoundingBox, at: { readonly x: number; readonly y: number; readonly z: number }): boolean => {
+    const x = Math.floor(at.x);
+    const y = Math.floor(at.y);
+    const z = Math.floor(at.z);
+    return x >= box.minX && x <= box.maxX && y >= box.minY && y <= box.maxY && z >= box.minZ && z <= box.maxZ;
+};
+
 /** What one biome contributes to the decoration of a chunk it reaches. */
 interface BiomeDecoration {
     /**
@@ -447,6 +524,7 @@ export class DataDrivenGenerator implements Generator {
     private readonly worldgen: WorldgenData;
     private readonly materialRules: MaterialRuleData;
     private readonly biomeSource: MultiNoiseBiomeSource;
+    private readonly structureSpawnOverrides: ReadonlyMap<string, readonly StructureSpawnOverride[]>;
     private readonly pipelines = new Map<string, SeededPipeline>();
 
     /** Whether {@link DataDrivenGenerator.stopGenerating} has been called. */
@@ -491,6 +569,10 @@ export class DataDrivenGenerator implements Generator {
 
     public constructor(private readonly options: DataDrivenGeneratorOptions) {
         const registries = options.registries;
+        this.structureSpawnOverrides = structureSpawnOverridesOf(
+            registries.structures,
+            naturalSpawnTypesOf(registries.biomes)
+        );
         this.dimension = options.dimension ?? Dimensions.Overworld;
         this.worldgen = new WorldgenData({
             densityFunctions: registries.densityFunctions,
@@ -911,6 +993,27 @@ export class DataDrivenGenerator implements Generator {
      */
     public structureStartsAt(chunkX: number, chunkZ: number, seed = 0n): readonly StructureStart[] {
         return this.pipelineFor(seed).structures?.startsFor(chunkX, chunkZ) ?? [];
+    }
+
+    /** @inheritDoc */
+    public structureSpawnOverrideAt(
+        identifier: string,
+        at: { readonly x: number; readonly y: number; readonly z: number },
+        seed = 0n
+    ): boolean | undefined {
+        const overrides = this.structureSpawnOverrides.get(identifier);
+        if (overrides === undefined) return undefined;
+
+        const starts = this.structureStartsAt(Math.floor(at.x / 16), Math.floor(at.z / 16), seed);
+        return starts.some((start) =>
+            overrides.some(
+                (override) =>
+                    override.structure === start.structure &&
+                    (override.boundingBox === 'full'
+                        ? boxContains(start.boundingBox, at)
+                        : start.pieces.some((piece) => boxContains(piece.boundingBox, at)))
+            )
+        );
     }
 
     /** The structure types this server has no builder for, which therefore generate nothing. */

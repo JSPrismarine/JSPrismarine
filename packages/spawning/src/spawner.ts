@@ -273,6 +273,8 @@ export class Spawner {
         let totalWeight = 0;
 
         for (const rule of rules) {
+            if (this.world.structureSpawnOverrideAt?.(rule.identifier, position) === false) continue;
+
             const engineRule = this.engineRules.get(rule.identifier);
             if (engineRule !== undefined && !engineRule(position, { world: this.world, random: this.random })) continue;
 
@@ -331,10 +333,12 @@ export class Spawner {
             const permutation = permutations?.[index];
             const swapped = permutation?.entityType === undefined ? undefined : splitSpawnType(permutation.entityType);
             const position = index === 0 ? anchor : this.herdMemberPosition(anchor, pass);
+            const identifier = swapped?.identifier ?? rule.identifier;
+            if (this.world.structureSpawnOverrideAt?.(identifier, position) === false) continue;
             const event = eventForMember(index, herd, swapped?.event, condition);
 
             const request: { -readonly [Key in keyof SpawnRequest]: SpawnRequest[Key] } = {
-                identifier: swapped?.identifier ?? rule.identifier,
+                identifier,
                 position,
                 pool,
                 rule: rule.identifier,

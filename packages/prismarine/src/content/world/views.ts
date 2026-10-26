@@ -296,7 +296,13 @@ const spawnWorldOf = (adapter: ServerWorldAdapter, content: ContentLookup): Spaw
         weather: () => adapter.level.weather(),
         age: () => adapter.level.gameTime(),
         mobEventActive: (event) => spawning().mobEventActive(event),
-        villageBorderDistance: (at) => spawning().villageBorderDistance?.(at)
+        villageBorderDistance: (at) => spawning().villageBorderDistance?.(at),
+        ...(spawning().structureSpawnOverrideAt === undefined
+            ? {}
+            : {
+                  structureSpawnOverrideAt: (identifier: string, at: ContentPosition) =>
+                      spawning().structureSpawnOverrideAt?.(identifier, at)
+              })
     };
 };
 

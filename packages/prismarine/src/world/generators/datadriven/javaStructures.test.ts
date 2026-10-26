@@ -275,6 +275,29 @@ describe.skipIf(!enabled)('the structures the data-driven overworld generates', 
     );
 
     it(
+        'maps Java structure-only entity IDs before checking override bounds',
+        () => {
+            const monument = generator
+                .structureStartsAt(-80, -73, SEED)
+                .find((start) => start.structure === 'minecraft:monument');
+            if (monument === undefined) throw new Error('the seeded ocean monument did not start');
+
+            const inside = {
+                x: Math.floor((monument.boundingBox.minX + monument.boundingBox.maxX) / 2),
+                y: Math.floor((monument.boundingBox.minY + monument.boundingBox.maxY) / 2),
+                z: Math.floor((monument.boundingBox.minZ + monument.boundingBox.maxZ) / 2)
+            };
+            const outside = { ...inside, x: monument.boundingBox.minX - 1 };
+
+            expect(generator.structureSpawnOverrideAt('minecraft:guardian', inside, SEED)).toBe(true);
+            expect(generator.structureSpawnOverrideAt('minecraft:guardian', outside, SEED)).toBe(false);
+            expect(generator.structureSpawnOverrideAt('minecraft:pig', inside, SEED)).toBeUndefined();
+            expect(generator.structureSpawnOverrideAt('minecraft:witch', outside, SEED)).toBeUndefined();
+        },
+        CHUNK_TIMEOUT
+    );
+
+    it(
         'builds a woodland mansion in the dark forest the placement found',
         async () => {
             await landsIn(
