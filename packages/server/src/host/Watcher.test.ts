@@ -16,6 +16,8 @@ const makePackages = () => {
     mkdirSync(path.join(packagesDir, 'alpha', 'src'), { recursive: true });
     mkdirSync(path.join(packagesDir, 'bedrock-data', 'src', 'generated'), { recursive: true });
     mkdirSync(path.join(packagesDir, 'bedrock-data', 'utils'), { recursive: true });
+    mkdirSync(path.join(packagesDir, 'blocks', 'src'), { recursive: true });
+    mkdirSync(path.join(packagesDir, 'blocks', 'vanilla_overlay', 'blocks'), { recursive: true });
     return packagesDir;
 };
 
@@ -106,7 +108,9 @@ describe('Watcher', () => {
             path.join(packagesDir, 'bedrock-data', 'src', 'resources'),
             path.join(packagesDir, 'bedrock-data', 'utils'),
             path.join(packagesDir, 'alpha', 'src'),
-            path.join(packagesDir, 'bedrock-data', 'src')
+            path.join(packagesDir, 'bedrock-data', 'src'),
+            path.join(packagesDir, 'blocks', 'src'),
+            path.join(packagesDir, 'blocks', 'vanilla_overlay')
         ]);
         expect(requestRestart).not.toHaveBeenCalled();
     });
@@ -123,6 +127,20 @@ describe('Watcher', () => {
         expect(requestRestart).toHaveBeenCalledTimes(1);
         expect(requestRestart).toHaveBeenCalledWith(path.join('packages', 'alpha', 'src', 'a.ts'));
         expect(events.filter((event) => event.type === 'supervisor.changed')).toHaveLength(1);
+    });
+
+    it('restarts for a nested block overlay definition change', async () => {
+        const packagesDir = makePackages();
+        const { events, requestRestart, fs, started } = await startWatcher(packagesDir);
+        await started;
+
+        fs.change(path.join(packagesDir, 'blocks', 'vanilla_overlay'), path.join('blocks', 'acacia_log.block.json'));
+        await debounced();
+
+        const reason = path.join('packages', 'blocks', 'vanilla_overlay', 'blocks', 'acacia_log.block.json');
+        expect(requestRestart).toHaveBeenCalledOnce();
+        expect(requestRestart).toHaveBeenCalledWith(reason);
+        expect(events).toContainEqual({ type: 'supervisor.changed', path: reason });
     });
 
     it('ignores tests, prose, and the generated bedrock data', async () => {

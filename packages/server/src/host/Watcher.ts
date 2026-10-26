@@ -1,6 +1,6 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { spawn } from 'node:child_process';
-import { readdirSync, watch } from 'node:fs';
+import { existsSync, readdirSync, watch } from 'node:fs';
 import path from 'node:path';
 import type { Timers } from './ServerChild';
 
@@ -16,7 +16,7 @@ export type WatchDirectory = (
 
 /** Options for {@link Watcher}. */
 export interface WatcherOptions {
-    /** The monorepo's `packages/` directory; every package's `src/` under it is watched. */
+    /** The monorepo's `packages/` directory; package sources and the blocks overlay are watched. */
     packagesDir: string;
     /** Receives `supervisor.watching`, `supervisor.changed`, and `supervisor.generating`. */
     onEvent: (event: SupervisorEvent) => void;
@@ -48,8 +48,8 @@ const shouldIgnore = (pkg: string, filename: string): boolean =>
 const SOURCE_FILE = /\.(ts|json)$/;
 
 /**
- * Restarts the server when a package source file changes, and regenerates the bedrock-data
- * JSON when the generator's inputs change.
+ * Restarts the server when a package source file or block overlay JSON file changes, and
+ * regenerates the bedrock-data JSON when the generator's inputs change.
  *
  * This is the watch half of the former `scripts/dev.mts`. It reports through
  * {@link WatcherOptions.onEvent} and asks for restarts through
@@ -106,6 +106,14 @@ export class Watcher {
             this.watch(path.join(this.options.packagesDir, pkg, 'src'), (filename) => {
                 if (!filename || !SOURCE_FILE.test(filename) || shouldIgnore(pkg, filename)) return;
                 this.requestRestart(path.join('packages', pkg, 'src', filename));
+            });
+        }
+
+        const overlayDir = path.join(this.options.packagesDir, 'blocks', 'vanilla_overlay');
+        if (existsSync(overlayDir)) {
+            this.watch(overlayDir, (filename) => {
+                if (!filename || !filename.endsWith('.json')) return;
+                this.requestRestart(path.join('packages', 'blocks', 'vanilla_overlay', filename));
             });
         }
 

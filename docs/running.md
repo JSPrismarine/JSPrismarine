@@ -39,9 +39,9 @@ it when it is missing.
 ```
 
 `pnpm run dev` is `prismarine --watch`: the server runs from TypeScript source and restarts when
-a file in any workspace package changes. `pnpm run start` runs the same entry point without the
-watcher. Both open the terminal UI described in the next section when they can, and fall back to
-the plain line console otherwise.
+a watched source file or the JSON data in `packages/blocks/vanilla_overlay/` changes.
+`pnpm run start` runs the same entry point without the watcher. Both open the terminal UI
+described in the next section when they can, and fall back to the plain line console otherwise.
 
 The macOS app opens Terminal so the server can use its interactive console. Its config, world, and
 log files are stored in `~/JSPrismarine`.
@@ -72,10 +72,10 @@ sets it.
 
 The remaining flags:
 
-*   `--watch` restarts the server when a workspace package changes and regenerates
-    `bedrock-data` first when its resources or generator changed. `pnpm run dev` passes it for
-    you. The watcher's own state (watching, change detected, generating, restarting, exited) shows
-    in the TUI status bar rather than in the log.
+*   `--watch` restarts the server when a workspace source file or block overlay JSON file changes,
+    and regenerates `bedrock-data` first when its resources or generator changed. `pnpm run dev`
+    passes it for you. The watcher's own state (watching, change detected, generating, restarting,
+    exited) shows in the TUI status bar rather than in the log.
 *   `--headless` runs the server with no console at all: stdin is left alone and nothing is
     read from it. Use it when a wrapper owns the terminal and only the log file matters.
 *   `--no-tui` forces the plain line console even on an interactive terminal.
@@ -171,10 +171,12 @@ the config.
 every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in any package takes
 effect on the next restart.
 
-The host process watches the source of all workspace packages and restarts the server
-gracefully (saving the world first) whenever a file changes. Because the console lives in the host
-and the server is a child process, the console keeps working across restarts. If the server crashes
-while you are mid-edit, the host stays up and starts the server again on your next change.
+The host process watches workspace package sources and the JSON files in
+`packages/blocks/vanilla_overlay/`. It restarts the server gracefully (saving the world first)
+when one changes, so an overlay edit rebuilds the content registries from disk. Because the
+console lives in the host and the server is a child process, the console keeps working across
+restarts. If the server crashes while you are mid-edit, the host stays up and starts the server
+again on your next change.
 Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
 
 ### Dropping packets to find a bad one
