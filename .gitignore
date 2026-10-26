@@ -21,6 +21,9 @@ permissions.json
 .tsup
 vite.config.ts.timestamp*
 
+# Tests
+/.vitest/json
+
 # Turbo cache
 .turbo/
 
