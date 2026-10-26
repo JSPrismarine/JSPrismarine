@@ -2,7 +2,8 @@ import type { ConsoleMessage, ServerMessage } from '@jsprismarine/console-protoc
 import { childProcessLink, isConsoleMessage } from '@jsprismarine/console-protocol';
 import type { LogTransport } from '@jsprismarine/logger';
 import { FileTransport, Logger } from '@jsprismarine/logger';
-import { Config, RemoteConsole, RemoteLogTransport, Server } from '@jsprismarine/prismarine';
+import { Config, readContentSettings, RemoteConsole, RemoteLogTransport, Server } from '@jsprismarine/prismarine';
+import { resolvePackStack } from '@jsprismarine/prismarine/content/packStack';
 
 import { existsSync } from 'node:fs';
 import path from 'node:path';
@@ -51,6 +52,20 @@ const dataPath = (...segments: string[]): string => path.resolve(process.cwd(), 
 
 /** The monorepo's `packages/` directory, which `--watch` watches and generates bedrock-data in. */
 const packagesDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+const contentPackPaths = (): string[] => {
+    try {
+        const settings = readContentSettings();
+        const { stack } = resolvePackStack({
+            worldPacks: settings.worldPacks.map((packPath) => ({ kind: 'directory', path: packPath })),
+            pluginPacks: settings.datapacks.map((packPath) => ({ kind: 'datapack', path: packPath }))
+        });
+        return stack.map((source) => path.resolve(process.cwd(), source.path));
+    } catch {
+        // The server child reports content configuration errors; keep source watching active.
+        return [];
+    }
+};
 
 const fileTransport = (config: Config): FileTransport =>
     new FileTransport({
@@ -139,7 +154,7 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
 /**
  * Runs this process as the host: it owns the terminal, spawns the server as a child with
  * `--role server`, and shows the chosen frontend. With `--watch` it also restarts the child
- * when a workspace package changes.
+ * when workspace source or loaded content data changes.
  */
 const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined): Promise<void> => {
     process.title = 'JSPrismarine host';
@@ -165,6 +180,7 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
     if (args.watch) {
         await new Watcher({
             packagesDir,
+            contentPackPaths: contentPackPaths(),
             onEvent: (event) => supervisor.emit(event),
             requestRestart: (reason) => supervisor.restart(reason)
         }).start();

@@ -39,7 +39,7 @@ it when it is missing.
 ```
 
 `pnpm run dev` is `prismarine --watch`: the server runs from TypeScript source and restarts when
-a watched source file or the JSON data in `packages/blocks/vanilla_overlay/` changes.
+a watched source file or content pack data changes.
 `pnpm run start` runs the same entry point without the watcher. Both open the terminal UI
 described in the next section when they can, and fall back to the plain line console otherwise.
 
@@ -72,7 +72,7 @@ sets it.
 
 The remaining flags:
 
-*   `--watch` restarts the server when a workspace source file or block overlay JSON file changes,
+*   `--watch` restarts the server when a workspace source file or a loaded pack's data changes,
     and regenerates `bedrock-data` first when its resources or generator changed. `pnpm run dev`
     passes it for you. The watcher's own state (watching, change detected, generating, restarting,
     exited) shows in the TUI status bar rather than in the log.
@@ -171,12 +171,16 @@ the config.
 every `@jsprismarine/*` package resolves straight to its `src/`, so an edit in any package takes
 effect on the next restart.
 
-The host process watches workspace package sources and the JSON files in
-`packages/blocks/vanilla_overlay/`. It restarts the server gracefully (saving the world first)
-when one changes, so an overlay edit rebuilds the content registries from disk. Because the
-console lives in the host and the server is a child process, the console keeps working across
-restarts. If the server crashes while you are mid-edit, the host stays up and starts the server
-again on your next change.
+The host process watches workspace package sources and data files under every directory in the
+resolved content stack: the vanilla Bedrock pack, `packages/blocks/vanilla_overlay/`, the Java
+vanilla datapack, and packs configured through `content-world-packs` or `content-datapacks`.
+Explicit `JSP_VANILLA_BEHAVIOR_PACK` and `JSP_VANILLA_DATAPACK` paths are included in that stack.
+Pack JSON, `pack.mcmeta`, `.mcfunction`, and `.brarchive` changes share one debounce, so a batch of
+edits causes one graceful server restart and rebuilds the registries from disk. Content registries
+are built at startup and use positional IDs, so changing them in place would leave running clients
+and entities with stale data. Because the console lives in the host and the server is a child
+process, the console keeps working across restarts. If the server crashes while you are mid-edit,
+the host stays up and starts the server again on your next change.
 Changing the `bedrock-data` resources or its generator regenerates the data before the restart.
 
 ### Dropping packets to find a bad one

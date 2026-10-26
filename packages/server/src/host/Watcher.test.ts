@@ -1,5 +1,5 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -58,12 +58,17 @@ const manualGenerator = () => {
 
 const DEBOUNCE_MS = 20;
 
-const startWatcher = async (packagesDir: string, generate: () => boolean | Promise<boolean> = () => true) => {
+const startWatcher = async (
+    packagesDir: string,
+    generate: () => boolean | Promise<boolean> = () => true,
+    contentPackPaths: readonly string[] = []
+) => {
     const fs = fakeWatch();
     const events: SupervisorEvent[] = [];
     const requestRestart = vi.fn<(reason: string) => void>();
     const watcher = new Watcher({
         packagesDir,
+        contentPackPaths,
         onEvent: (event) => events.push(event),
         requestRestart,
         generate,
@@ -134,13 +139,47 @@ describe('Watcher', () => {
         const { events, requestRestart, fs, started } = await startWatcher(packagesDir);
         await started;
 
-        fs.change(path.join(packagesDir, 'blocks', 'vanilla_overlay'), path.join('blocks', 'acacia_log.block.json'));
+        const overlayDir = path.join(packagesDir, 'blocks', 'vanilla_overlay');
+        fs.change(overlayDir, path.join('blocks', 'acacia_log.block.json'));
         await debounced();
 
         const reason = path.join('packages', 'blocks', 'vanilla_overlay', 'blocks', 'acacia_log.block.json');
         expect(requestRestart).toHaveBeenCalledOnce();
         expect(requestRestart).toHaveBeenCalledWith(reason);
         expect(events).toContainEqual({ type: 'supervisor.changed', path: reason });
+    });
+
+    it('restarts for definition changes in content pack directories', async () => {
+        const packagesDir = makePackages();
+        const packDir = path.join(path.dirname(packagesDir), 'world-packs', 'custom');
+        mkdirSync(path.join(packDir, 'blocks'), { recursive: true });
+        const { events, requestRestart, fs, started } = await startWatcher(packagesDir, undefined, [packDir]);
+        await started;
+
+        fs.change(packDir, path.join('blocks', 'marble.block.json'));
+        fs.change(path.join(packagesDir, 'blocks', 'vanilla_overlay'), path.join('blocks', 'acacia_log.block.json'));
+        fs.change(packDir, path.join('data', 'custom', 'function', 'setup.mcfunction'));
+        fs.change(packDir, 'README.md');
+        await debounced();
+
+        const reason = path.relative(path.dirname(packagesDir), path.join(packDir, 'blocks', 'marble.block.json'));
+        expect(requestRestart).toHaveBeenCalledOnce();
+        expect(requestRestart).toHaveBeenCalledWith(reason);
+        expect(events).toContainEqual({ type: 'supervisor.changed', path: reason });
+    });
+
+    it('restarts when a configured datapack archive changes', async () => {
+        const packagesDir = makePackages();
+        const archive = path.join(path.dirname(packagesDir), 'world-packs', 'custom.zip');
+        mkdirSync(path.dirname(archive), { recursive: true });
+        writeFileSync(archive, '');
+        const { requestRestart, fs, started } = await startWatcher(packagesDir, undefined, [archive]);
+        await started;
+
+        fs.change(path.dirname(archive), path.basename(archive));
+        await debounced();
+
+        expect(requestRestart).toHaveBeenCalledWith(path.relative(path.dirname(packagesDir), archive));
     });
 
     it('ignores tests, prose, and the generated bedrock data', async () => {

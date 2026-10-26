@@ -1,6 +1,6 @@
 import type { SupervisorEvent } from '@jsprismarine/console-protocol';
 import { spawn } from 'node:child_process';
-import { existsSync, readdirSync, watch } from 'node:fs';
+import { readdirSync, statSync, watch } from 'node:fs';
 import path from 'node:path';
 import type { Timers } from './ServerChild';
 
@@ -16,8 +16,10 @@ export type WatchDirectory = (
 
 /** Options for {@link Watcher}. */
 export interface WatcherOptions {
-    /** The monorepo's `packages/` directory; package sources and the blocks overlay are watched. */
+    /** The monorepo's `packages/` directory. */
     packagesDir: string;
+    /** Pack directories and archives from the server's content settings and environment. */
+    contentPackPaths?: readonly string[];
     /** Receives `supervisor.watching`, `supervisor.changed`, and `supervisor.generating`. */
     onEvent: (event: SupervisorEvent) => void;
     /** Called once per settled batch of changes with the first changed path, relative to the repository. */
@@ -46,9 +48,10 @@ const shouldIgnore = (pkg: string, filename: string): boolean =>
     (pkg === 'bedrock-data' && (filename.startsWith('resources') || filename.startsWith('generated')));
 
 const SOURCE_FILE = /\.(ts|json)$/;
+const PACK_DATA_FILE = /\.(json|mcfunction|mcmeta|brarchive)$/i;
 
 /**
- * Restarts the server when a package source file or block overlay JSON file changes, and
+ * Restarts the server when a package source file or loaded pack data file changes, and
  * regenerates the bedrock-data JSON when the generator's inputs change.
  *
  * This is the watch half of the former `scripts/dev.mts`. It reports through
@@ -110,12 +113,10 @@ export class Watcher {
         }
 
         const overlayDir = path.join(this.options.packagesDir, 'blocks', 'vanilla_overlay');
-        if (existsSync(overlayDir)) {
-            this.watch(overlayDir, (filename) => {
-                if (!filename || !filename.endsWith('.json')) return;
-                this.requestRestart(path.join('packages', 'blocks', 'vanilla_overlay', filename));
-            });
-        }
+        const packPaths = new Set(
+            [overlayDir, ...(this.options.contentPackPaths ?? [])].map((value) => path.resolve(value))
+        );
+        for (const packPath of packPaths) this.watchPack(packPath);
 
         this.options.onEvent({ type: 'supervisor.watching', root: this.options.packagesDir });
     }
@@ -135,6 +136,30 @@ export class Watcher {
             // Not every package has a src directory, and the generator inputs are optional;
             // nothing to watch there.
         }
+    }
+
+    private watchPack(packPath: string): void {
+        let directory: boolean;
+        try {
+            directory = statSync(packPath).isDirectory();
+        } catch {
+            return;
+        }
+
+        const repositoryRoot = path.resolve(this.options.packagesDir, '..');
+        if (directory) {
+            this.watch(packPath, (filename) => {
+                if (!filename || !PACK_DATA_FILE.test(filename)) return;
+                this.requestRestart(path.relative(repositoryRoot, path.join(packPath, filename)));
+            });
+            return;
+        }
+
+        const archiveName = path.basename(packPath);
+        this.watch(path.dirname(packPath), (filename) => {
+            if (filename !== archiveName) return;
+            this.requestRestart(path.relative(repositoryRoot, packPath));
+        });
     }
 
     private requestRestart(reason: string): void {
