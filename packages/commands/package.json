@@ -64,6 +64,7 @@
     "homepage": "https://github.com/JSPrismarine/JSPrismarine/tree/master/packages/commands",
     "dependencies": {
         "@jsprismarine/brigadier": "workspace:*",
+        "@jsprismarine/mapping": "workspace:*",
         "@jsprismarine/minecraft": "workspace:*"
     },
     "devDependencies": {

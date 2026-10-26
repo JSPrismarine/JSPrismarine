@@ -548,6 +548,9 @@ importers:
       '@jsprismarine/brigadier':
         specifier: workspace:*
         version: link:../brigadier
+      '@jsprismarine/mapping':
+        specifier: workspace:*
+        version: link:../mapping
       '@jsprismarine/minecraft':
         specifier: workspace:*
         version: link:../minecraft

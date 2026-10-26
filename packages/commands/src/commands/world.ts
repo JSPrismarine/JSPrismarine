@@ -8,6 +8,7 @@
  * spellings 1.21.11 left behind both parse.
  */
 import type { ArgumentType } from '@jsprismarine/brigadier';
+import { javaIdentifiersTable } from '@jsprismarine/mapping/tables';
 import { CommandPermissionLevel } from '@jsprismarine/minecraft';
 
 import {
@@ -24,6 +25,7 @@ import {
 } from '../argumentTypes';
 import { JAVA_GAME_RULES } from '../gamerules';
 import type { BlockRef, CommandSource } from '../host';
+import { suggestFromData } from '../suggestions';
 import type { CommandRegistry } from '../tree';
 import type { Context } from './support';
 import { arg, command, dimensionArgument, lit, report, resolvePosition, select, source, value } from './support';
@@ -32,6 +34,19 @@ const CHEATS = {
     permissionLevel: CommandPermissionLevel.GAME_DIRECTORS,
     requiresCheats: true
 } as const;
+
+const LOCATE_KINDS = ['structure', 'biome', 'poi'] as const;
+type LocateKind = (typeof LOCATE_KINDS)[number];
+
+const LOCATE_REGISTRIES = {
+    structure: 'worldgen/structure',
+    biome: 'worldgen/biome',
+    poi: 'point_of_interest_type'
+} as const satisfies Record<LocateKind, string>;
+
+const locateNameSuggestions = suggestFromData<CommandSource>(
+    (context) => javaIdentifiersTable.registries[LOCATE_REGISTRIES[value<LocateKind>(context, 'kind')]] ?? []
+);
 
 /** Reads Bedrock's `["facing"="north"]` block state list into a record. */
 export const parseBlockStates = (text: string): Record<string, string> => {
@@ -264,21 +279,23 @@ export const registerWorldCommands = (registry: CommandRegistry<CommandSource>):
 
     registry.register(
         lit('locate').then(
-            arg('kind', enumArgument('LocateKind', ['structure', 'biome', 'poi'] as const)).then(
-                arg('name', stringArgument()).executes(
-                    command((context) => {
-                        const current = source(context);
-                        const found = current.host.world.locate(
-                            value(context, 'kind'),
-                            value(context, 'name'),
-                            current.position,
-                            current.dimension
-                        );
-                        if (found === undefined) return report(current, 0, 'Nothing was found');
-                        current.sendFeedback(`Found it at ${found.x}, ${found.y}, ${found.z}`);
-                        return 1;
-                    })
-                )
+            arg('kind', enumArgument('LocateKind', LOCATE_KINDS)).then(
+                arg('name', stringArgument())
+                    .suggests(locateNameSuggestions)
+                    .executes(
+                        command((context) => {
+                            const current = source(context);
+                            const found = current.host.world.locate(
+                                value(context, 'kind'),
+                                value(context, 'name'),
+                                current.position,
+                                current.dimension
+                            );
+                            if (found === undefined) return report(current, 0, 'Nothing was found');
+                            current.sendFeedback(`Found it at ${found.x}, ${found.y}, ${found.z}`);
+                            return 1;
+                        })
+                    )
             )
         ),
         { description: 'Finds the nearest structure, biome or point of interest.', ...CHEATS }

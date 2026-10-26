@@ -15,5 +15,6 @@ export * from './matching';
 export * from './packet';
 export * from './parameterTypes';
 export * from './selector';
+export * from './suggestions';
 export * from './testing';
 export * from './tree';
