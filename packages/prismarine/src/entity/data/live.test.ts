@@ -4,6 +4,7 @@ import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
+import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
@@ -1075,63 +1076,122 @@ describe('the data-driven entity runtime over a live world', () => {
     });
 
     describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('over the vanilla entity definitions', () => {
+        const useVanillaContent = (): void => {
+            const setup = liveWorld();
+            world = setup.world;
+            runtimes = setup.runtimes;
+            world.getGameRuleManager().setGameRule(GameRules.DoMobSpawning, false, true);
+
+            let built: ServerContent | undefined;
+            built = buildServerContent({
+                seed: 1234n,
+                world: serverWorldSource({
+                    worldFor: () => world,
+                    content: () => built!,
+                    seed: 1234n,
+                    difficulty: () => Difficulty.NORMAL,
+                    entityRuntimes: runtimes
+                })
+            });
+            setup.hold(built);
+
+            const opened = runtimes.at(DIMENSION);
+            if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
+            live = opened;
+        };
+
         it(
-            'runs spawn egg actions for a zombie and villager with their real components',
+            'runs spawn egg actions for water, ground, and brain mobs with vanilla components',
             { timeout: 180_000 },
             async () => {
-                const setup = liveWorld();
-                world = setup.world;
-                runtimes = setup.runtimes;
-                world.getGameRuleManager().setGameRule(GameRules.DoMobSpawning, false, true);
+                useVanillaContent();
 
-                let built: ServerContent | undefined;
-                built = buildServerContent({
-                    seed: 1234n,
-                    world: serverWorldSource({
-                        worldFor: () => world,
-                        content: () => built!,
-                        seed: 1234n,
-                        difficulty: () => Difficulty.NORMAL,
-                        entityRuntimes: runtimes
-                    })
-                });
-                setup.hold(built);
-
-                const opened = runtimes.at(DIMENSION);
-                if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
-                live = opened;
+                // Water replaces the two water spawns' floor blocks. Keep the pursuer on dry land so
+                // its chase assertion tests the vanilla goal rather than a route across water.
+                for (const x of [20, 22]) {
+                    const chunk = world.getLoadedChunk(x >> 4, 0);
+                    if (chunk === null) throw new Error(`the vanilla entity test chunk for x=${x} was not loaded`);
+                    chunk.setBlockRuntimeId(x & 15, FLOOR_Y, 2, idOf('minecraft:water'));
+                }
 
                 const player = addPlayer(8, 2);
                 for (const [identifier, x] of [
                     ['minecraft:zombie', 2],
-                    ['minecraft:villager_v2', 40]
+                    ['minecraft:villager_v2', 40],
+                    ['minecraft:pig', 20],
+                    ['minecraft:zombie', 22]
                 ] as const) {
                     live.runtime.content().world.itemActions.perform({
                         kind: 'spawn-entity',
                         identifier,
-                        position: { x, y: GROUND_Y + 4, z: 2 }
+                        position: {
+                            x: x + 0.5,
+                            y: identifier === 'minecraft:villager_v2' ? GROUND_Y + 4 : GROUND_Y,
+                            z: 2.5
+                        }
                     });
                 }
 
                 const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
                 if (villager === undefined)
                     throw new Error('the vanilla villager spawn egg action bypassed the data runtime');
-                const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+                const zombies = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:zombie');
+                const zombie = zombies.find((entity) => entity.position.x < 5);
                 if (zombie === undefined)
                     throw new Error('the vanilla zombie spawn egg action bypassed the data runtime');
-
+                const waterZombie = zombies.find((entity) => entity.position.x > 22);
+                if (waterZombie === undefined)
+                    throw new Error('the vanilla water zombie spawn egg action bypassed the data runtime');
+                const pig = live.runtime.all().find((entity) => entity.identifier === 'minecraft:pig');
+                if (pig === undefined) throw new Error('the vanilla pig spawn egg action bypassed the data runtime');
                 expect(villager.brain).toBeDefined();
 
-                for (let tick = 1; tick <= 30; tick += 1) await live.tick(tick);
+                await live.tick(1);
+                expect(zombie.position.y).toBe(GROUND_Y);
+                expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
+                expect(pig.position.y).toBeLessThan(GROUND_Y);
+                for (let tick = 2; tick <= 30; tick += 1) await live.tick(tick);
 
                 expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
                 expect(zombie.target).toBe(Number(player.getRuntimeId()));
-                expect(zombie.position.x).toBeGreaterThan(4);
+                expect(zombie.position.x).toBeGreaterThan(6);
                 expect(zombie.position.y).toBe(GROUND_Y);
+                expect(waterZombie.position.y).toBeLessThan(GROUND_Y);
+                expect(pig.position.y).toBeLessThan(GROUND_Y);
                 expect(villager.position.y).toBe(GROUND_Y);
                 expect(typesIn(world)).toContain('minecraft:zombie');
                 expect(typesIn(world)).toContain('minecraft:villager_v2');
             }
         );
+
+        it('does not treat water as walking support for a vanilla pig', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            // Span every loaded z coordinate so a ground walker has no dry detour. The pig's
+            // vanilla `can_path_over_water` flag must not make these water blocks support it.
+            for (let chunkZ = -LOADED_RADIUS; chunkZ <= LOADED_RADIUS; chunkZ += 1) {
+                for (let x = 4; x <= 8; x += 1) {
+                    const chunk = world.getLoadedChunk(x >> 4, chunkZ);
+                    if (chunk === null)
+                        throw new Error(`the vanilla path test chunk for x=${x}, chunkZ=${chunkZ} was not loaded`);
+                    for (let z = 0; z < 16; z += 1) {
+                        chunk.setBlockRuntimeId(x & 15, FLOOR_Y, z, idOf('minecraft:water'));
+                    }
+                }
+            }
+
+            const pig = live.runtime.spawn('minecraft:pig', { x: 2.5, y: GROUND_Y, z: 2.5 });
+            if (pig === undefined) throw new Error('the vanilla content declares no pig');
+            expect(navigationProfile(pig.instance).canPathOverWater).toBe(true);
+
+            const navigator = new Navigator({
+                actuator: live.runtime.actuatorFor(pig.instance),
+                navigation: () => live.runtime.navigation(),
+                profile: () => navigationProfile(pig.instance)
+            });
+
+            expect(navigator.canReach({ x: 10.5, y: GROUND_Y, z: 2.5 })).toBe(false);
+            expect(pig.position).toEqual({ x: 2.5, y: GROUND_Y, z: 2.5 });
+        });
     });
 });
