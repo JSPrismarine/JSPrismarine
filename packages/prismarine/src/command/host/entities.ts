@@ -132,7 +132,7 @@ const summonDataEntity = (
     const spawned = live.runtime.spawn(
         identifier,
         { x: position.x, y: position.y, z: position.z },
-        { yaw: rotation.yaw, pitch: rotation.pitch }
+        { yaw: rotation.yaw, pitch: 0 }
     );
     if (spawned === undefined) return undefined;
 
@@ -225,7 +225,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const entity = new Written({
                 position: Position.fromVector3(vectorOf(position), world),
                 yaw: rotation.yaw,
-                pitch: rotation.pitch,
+                pitch: 0,
                 headYaw: rotation.yaw
             });
             if (options.name !== undefined) entity.setName(options.name);

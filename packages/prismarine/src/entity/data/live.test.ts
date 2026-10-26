@@ -1588,6 +1588,18 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(dustling?.instance.goals.names()).toContain('minecraft:behavior.random_stroll');
         });
 
+        it('does not turn a summoned mob toward the sky with the command source pitch', () => {
+            entityCommandHost(world.getServer(), new Scoreboard()).summon(
+                'jsprismarine:dustling',
+                { x: 2.5, y: GROUND_Y, z: 2.5 },
+                { yaw: 37, pitch: -90 },
+                {}
+            );
+
+            const dustling = live.runtime.all().find((entity) => entity.identifier === 'jsprismarine:dustling');
+            expect(dustling?.body.pitch).toBe(0);
+        });
+
         it('gives the summoned mob a body the clients are sent, facing where it was told', () => {
             const ref = summon('jsprismarine:dustling', { x: 2.5, y: GROUND_Y, z: 2.5 }, 90);
 
