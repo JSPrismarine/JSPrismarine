@@ -79,6 +79,7 @@ import { PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
+import { bedrockEntityIdentifierOf } from '../identifierMapping';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -1153,11 +1154,15 @@ export class EntityRuntime implements EntityScene {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
 
-        const spawnEggData = this.content().items.types.get(itemIdentifier)?.params(entityData);
+        const content = this.content();
+        const spawnEggData = content.items.types.get(itemIdentifier)?.params(entityData);
+        const spawnEggIdentifier =
+            isRecord(spawnEggData) && typeof spawnEggData.id === 'string'
+                ? bedrockEntityIdentifierOf(spawnEggData.id, (candidate) => content.entities.registry.has(candidate))
+                : undefined;
         if (
             entity.instance.hasComponent('minecraft:spawn_egg_interaction') &&
-            isRecord(spawnEggData) &&
-            spawnEggData.id === entity.identifier
+            spawnEggIdentifier === entity.identifier
         ) {
             const baby = this.spawn(entity.identifier, entity.position, { cause: 'born', data: spawnEggData });
             if (baby !== undefined) return { accepted: true };

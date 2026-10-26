@@ -29,6 +29,7 @@ import type {
 } from '@jsprismarine/item-behaviors';
 
 import { holderSetIncludes } from './holderSets';
+import { bedrockEntityIdentifierOf } from '../entity/identifierMapping';
 
 import type {
     ContentBlock,
@@ -186,9 +187,14 @@ export const createContentItemGroup = (options: ContentItemGroupOptions): Conten
             }
             case 'play-sound':
                 return effects.playSound(action.position, action.sound);
-            case 'spawn-entity':
-                entities.spawn(action.identifier, action.position, action.data);
+            case 'spawn-entity': {
+                const built = content();
+                const identifier = bedrockEntityIdentifierOf(action.identifier, (candidate) =>
+                    built.entities.registry.has(candidate)
+                );
+                if (identifier !== undefined) entities.spawn(identifier, action.position, action.data);
                 return;
+            }
             default:
                 return actors.perform(action);
         }

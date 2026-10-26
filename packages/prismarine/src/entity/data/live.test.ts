@@ -2276,6 +2276,76 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(creeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);
         });
 
+        it('maps a spawn egg entity id before spawning inside another mob', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:villager_spawn_egg' }), count: 1 })
+                );
+            const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (pig === undefined) throw new Error('vanilla content declares no pig');
+            const pigBody = live.bodies.bodyOf(pig.id);
+            if (pigBody === undefined) throw new Error('the vanilla pig has no client-facing actor');
+
+            expect(
+                useItemOnEntity({
+                    content: live.runtime.content(),
+                    actors: worldSource.actorsAt(DIMENSION),
+                    player,
+                    target: {
+                        identifier: pig.identifier,
+                        runtimeId: Number(pigBody.getRuntimeId()),
+                        position: pig.position
+                    }
+                })
+            ).toBe('handled');
+
+            const villager = live.runtime.all().find((entity) => entity.identifier === 'minecraft:villager_v2');
+            expect(villager?.position).toEqual(pig.position);
+            expect(villager && live.bodies.bodyOf(villager.id)).toBeDefined();
+        });
+
+        it('matches renamed entity ids when a spawn egg creates a baby', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:villager_spawn_egg' }), count: 1 })
+                );
+            const villager = live.runtime.spawn('minecraft:villager_v2', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (villager === undefined) throw new Error('vanilla content declares no villager');
+            expect(villager.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
+            const body = live.bodies.bodyOf(villager.id);
+            if (body === undefined) throw new Error('the vanilla villager has no client-facing actor');
+
+            expect(
+                useItemOnEntity({
+                    content: live.runtime.content(),
+                    actors: worldSource.actorsAt(DIMENSION),
+                    player,
+                    target: {
+                        identifier: villager.identifier,
+                        runtimeId: Number(body.getRuntimeId()),
+                        position: villager.position
+                    }
+                })
+            ).toBe('handled');
+
+            const child = live.runtime
+                .all()
+                .find((entity) => entity.identifier === 'minecraft:villager_v2' && entity.id !== villager.id);
+            expect(child?.position).toEqual(villager.position);
+            expect(child?.instance.hasComponent('minecraft:is_baby')).toBe(true);
+            expect(child && live.bodies.bodyOf(child.id)).toBeDefined();
+        });
+
         it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, () => {
             useVanillaContent();
 
