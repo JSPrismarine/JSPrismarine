@@ -83,6 +83,8 @@ export function createToastStack(
                 borderStyle: 'rounded',
                 borderColor: theme[toast.tone],
                 backgroundColor: theme.surface,
+                shouldFill: true,
+                opacity: 0.9,
                 flexDirection: 'row',
                 alignItems: 'center',
                 paddingLeft: 1,
