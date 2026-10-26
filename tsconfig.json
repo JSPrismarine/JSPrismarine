@@ -4,8 +4,8 @@
     "compilerOptions": {
         "noEmit": true,
 
-        // `@jsprismarine/parity` imports a few modules with their extension, and this project
-        // reads those sources directly rather than through a package's built types.
+        // Parity and console-protocol import workspace sources directly with `.ts` extensions,
+        // and this aggregate project includes their source and test files.
         "allowImportingTsExtensions": true
     },
 
