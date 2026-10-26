@@ -22,6 +22,20 @@ export type JumpDirection = 1 | -1;
 
 const DEFAULT_CAPACITY = 10_000;
 
+/** Collapses source locations to the same module names used by ordinary log levels. */
+const broadNamespace = (namespace: string): string => {
+    const withoutLocation = namespace.replace(/:\d+:\d+$/, '');
+    const normalized = withoutLocation.replaceAll('\\', '/');
+    const sourcePrefix = normalized.startsWith('src/') ? 'src/' : '/src/';
+    const sourceIndex = normalized.lastIndexOf(sourcePrefix);
+    if (sourceIndex >= 0) {
+        const module = normalized.slice(sourceIndex + sourcePrefix.length).split('/')[0];
+        if (module !== undefined && module !== '') return module.replace(/\.(?:ts|tsx|js|jsx|mts|cts|mjs|cjs)$/i, '');
+    }
+    const basename = normalized.slice(normalized.lastIndexOf('/') + 1);
+    return basename.replace(/\.(?:ts|tsx|js|jsx|mts|cts|mjs|cjs)$/i, '');
+};
+
 /**
  * Ring buffer of log records with the level filter, namespace filter, and search state the log
  * pane and status bar read. `visible()` is cached and updated in place on append, so a store near
@@ -33,12 +47,14 @@ export class LogStore {
     private readonly slots: (StoredRecord | undefined)[];
     private start = 0;
     private count = 0;
+    private warningRecords = 0;
+    private errorRecords = 0;
     private evictedCount = 0;
     private currentGeneration = 1;
     private lastSeq = 0;
 
     private maxLevel: LogLevel | undefined;
-    private namespacePattern: { needle: string; invert: boolean } | undefined;
+    private namespacePattern: { needle: string; invert: boolean; exact: boolean; grouped: boolean } | undefined;
     private searchNeedle: string | undefined;
 
     private visibleCache: StoredRecord[] = [];
@@ -58,6 +74,16 @@ export class LogStore {
         return this.count;
     }
 
+    /** Warning log records still held in the ring buffer, regardless of active filters. */
+    public get warningCount(): number {
+        return this.warningRecords;
+    }
+
+    /** Error log records still held in the ring buffer, regardless of active filters. */
+    public get errorCount(): number {
+        return this.errorRecords;
+    }
+
     /** Records pushed out by the ring buffer since the store was created. */
     public get evicted(): number {
         return this.evictedCount;
@@ -73,6 +99,19 @@ export class LogStore {
         return this.hidden;
     }
 
+    /** Broad module namespaces of server log records still held in the ring buffer, sorted. */
+    public namespaces(): string[] {
+        const namespaces = new Set<string>();
+        for (let i = 0; i < this.count; i += 1) {
+            const record = this.slots[(this.start + i) % this.capacity]!;
+            if (record.kind === 'log' && record.namespace !== '') {
+                const namespace = broadNamespace(record.namespace);
+                if (namespace !== '') namespaces.add(namespace);
+            }
+        }
+        return [...namespaces].sort((a, b) => a.localeCompare(b));
+    }
+
     /** Indices into {@link visible} whose message contains the search query. Empty without a query. */
     public get matches(): readonly number[] {
         return this.matchCache;
@@ -82,6 +121,20 @@ export class LogStore {
     public append(entry: LogEntry): void {
         this.lastSeq = entry.seq;
         this.push({ ...entry, generation: this.currentGeneration, kind: 'log' });
+    }
+
+    /** Appends a console-side message with the same filters and rendering as server log data. */
+    public appendLocal(level: LogLevel, namespace: string, message: string, at = Date.now()): void {
+        this.push({
+            seq: this.lastSeq,
+            level,
+            namespace,
+            at,
+            message,
+            formatted: message,
+            generation: this.currentGeneration,
+            kind: 'log'
+        });
     }
 
     /** Appends one line of child process output, attributed to the generation that produced it. */
@@ -120,16 +173,20 @@ export class LogStore {
     }
 
     /**
-     * Keeps only log records whose namespace contains `pattern`, ignoring case. A leading `!`
-     * inverts the match. `undefined` clears the filter.
+     * Keeps only log records matching `pattern`, ignoring case. By default this is a substring
+     * match; a leading `!` inverts it. Exact grouped matching compares broad module names and
+     * ignores source line and column suffixes. `undefined` clears the filter.
+     *
+     * @param exact - Matches the entire namespace instead of a substring when true.
+     * @param grouped - Compares broad module names when true.
      */
-    public setNamespaceFilter(pattern: string | undefined): void {
-        if (pattern === undefined || pattern === '' || pattern === '!') {
+    public setNamespaceFilter(pattern: string | undefined, exact = false, grouped = false): void {
+        if (pattern === undefined || pattern === '' || (pattern === '!' && !exact)) {
             this.namespacePattern = undefined;
-        } else if (pattern.startsWith('!')) {
-            this.namespacePattern = { needle: pattern.slice(1).toLowerCase(), invert: true };
+        } else if (!exact && pattern.startsWith('!')) {
+            this.namespacePattern = { needle: pattern.slice(1).toLowerCase(), invert: true, exact: false, grouped };
         } else {
-            this.namespacePattern = { needle: pattern.toLowerCase(), invert: false };
+            this.namespacePattern = { needle: pattern.toLowerCase(), invert: false, exact, grouped };
         }
         this.rebuild();
     }
@@ -185,10 +242,17 @@ export class LogStore {
         return { seq: this.lastSeq, level: 'info', namespace: '', at, message, formatted: message };
     }
 
+    private adjustLevelCount(record: StoredRecord, delta: 1 | -1): void {
+        if (record.kind !== 'log') return;
+        if (record.level === 'warn') this.warningRecords += delta;
+        if (record.level === 'error') this.errorRecords += delta;
+    }
+
     private push(record: StoredRecord): void {
         let evicted = 0;
         if (this.count === this.capacity) {
             const oldest = this.slots[this.start]!;
+            this.adjustLevelCount(oldest, -1);
             this.start = (this.start + 1) % this.capacity;
             this.count -= 1;
             this.evictedCount += 1;
@@ -203,6 +267,7 @@ export class LogStore {
         }
         this.slots[(this.start + this.count) % this.capacity] = record;
         this.count += 1;
+        this.adjustLevelCount(record, 1);
 
         this.visibleFrozen = undefined;
         if (this.passes(record)) {
@@ -220,7 +285,9 @@ export class LogStore {
         if (this.maxLevel !== undefined && !isAtLeastLevel(record.level, this.maxLevel)) return false;
         const pattern = this.namespacePattern;
         if (pattern === undefined) return true;
-        return record.namespace.toLowerCase().includes(pattern.needle) !== pattern.invert;
+        const namespace = (pattern.grouped ? broadNamespace(record.namespace) : record.namespace).toLowerCase();
+        const matches = pattern.exact ? namespace === pattern.needle : namespace.includes(pattern.needle);
+        return matches !== pattern.invert;
     }
 
     private rebuild(): void {

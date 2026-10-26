@@ -7,9 +7,11 @@ import { join } from 'node:path';
 
 import type { CommandOutcome } from './app/createApp';
 import { createApp } from './app/createApp';
+import { openSourceInEditor } from './editor/openEditor';
 import { CommandHistory } from './input/history';
 import type { CompletionResult } from './input/inputBar';
 import { LogStore } from './log/logStore';
+import type { SourceLocation } from './log/sourceLocation';
 import { resolveTheme } from './theme';
 
 /** The console's view of the server link: it receives server messages and sends console messages. */
@@ -42,7 +44,7 @@ export interface StartConsoleOptions {
     serverName?: string;
     /** Server version for the title bar. */
     version?: string;
-    /** Environment read for `NO_COLOR` and `JSP_DIR`; defaults to `process.env`. */
+    /** Environment read for `NO_COLOR`, `JSP_DIR`, `VISUAL`, and `EDITOR`; defaults to `process.env`. */
     env?: NodeJS.ProcessEnv;
     /** Terminal output; defaults to `process.stdout`. Its color depth picks the theme. */
     stdout?: NodeJS.WriteStream;
@@ -225,6 +227,18 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
                     cursor
                 }));
                 return { completions: result.completions, replace: result.replace };
+            },
+            async openSourceLocation(location: SourceLocation): Promise<void> {
+                const editor = env.VISUAL?.trim() || env.EDITOR;
+                if (editor === undefined || editor.trim() === '') {
+                    throw new Error('set VISUAL or EDITOR to open source locations');
+                }
+                await renderer.suspend();
+                try {
+                    await openSourceInEditor(editor, location, process.cwd(), env);
+                } finally {
+                    await renderer.resume();
+                }
             },
             actions: {
                 restart: () => supervisor.restart('console'),

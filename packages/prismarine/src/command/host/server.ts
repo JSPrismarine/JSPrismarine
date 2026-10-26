@@ -158,6 +158,10 @@ export const serverSideCommandHost = (server: Server): ServerCommandHost => {
             changeRecipes(server, unlocked, server.getContent().recipes, players, recipe, give),
 
         sendMessage: (targets, kind, text) => {
+            // The protocol only sends these messages to connected clients. Mirror public
+            // server messages into the logger so the headless console and saved logs can see
+            // what the game sent; whispers remain private to their recipients.
+            if (kind !== 'whisper') server.getLogger().info(text);
             for (const player of playersOf(server, targets)) {
                 carryOut(player.sendMessage(text, MESSAGE_TYPES[kind]), undefined);
             }

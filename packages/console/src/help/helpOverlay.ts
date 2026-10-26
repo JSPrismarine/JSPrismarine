@@ -1,5 +1,5 @@
 import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { TextChunk } from '@opentui/core';
+import type { KeyEvent, TextChunk } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { COMMAND_GROUPS, formatBinding } from '../keymap/catalog';
@@ -13,8 +13,8 @@ export interface HelpOverlayProps {
 }
 
 /**
- * A centered cheat sheet of key bindings that floats over the rest of the console. Hidden until
- * `show` or `toggle` is called.
+ * A compact, scrollable cheat sheet of key bindings that floats over the console.
+ * Hidden until `show` or `toggle` is called.
  */
 export interface HelpOverlay {
     /** Absolutely positioned; add it to the pane the overlay should float over. */
@@ -22,47 +22,57 @@ export interface HelpOverlay {
     show(): void;
     hide(): void;
     toggle(): void;
+    /** Routes scrolling keys to the visible shortcut list. */
+    handleKeyPress(key: KeyEvent): boolean;
     readonly isVisible: boolean;
     /** Removes the resize listener and destroys the renderables. */
     dispose(): void;
 }
 
-type HelpLine = { kind: 'header'; text: string } | { kind: 'command'; keys: string; title: string } | { kind: 'blank' };
+type HelpLine =
+    { kind: 'header'; text: string } | { kind: 'command'; keys: string; title: string; alternateKeys?: string };
 
 interface HelpLayout {
     columns: HelpLine[][];
+    columnWidths: number[];
     /** Inner width of the box, excluding border and padding. */
     width: number;
-    /** Number of body rows shown, including a trailing ellipsis row when truncated. */
-    rows: number;
-    truncated: boolean;
+    /** Number of body rows across all columns. */
+    totalRows: number;
+    /** Number of body rows visible at once. */
+    visibleRows: number;
 }
 
 const TITLE = ' Keyboard shortcuts ';
-const FOOTER = 'Esc to close';
-const ELLIPSIS = '…';
+const FOOTER = '↑/↓ PgUp/PgDn · Esc to close';
 const KEY_GAP = 2;
 const COLUMN_GAP = 3;
 const PADDING_X = 1;
 /** Border rows and columns on both sides. */
 const BORDER = 2;
-/** The blank row above the footer plus the footer itself. */
-const FOOTER_ROWS = 2;
+const FOOTER_ROWS = 1;
+const MAX_HEIGHT = 20;
 const Z_INDEX = 100;
 
-const keysOf = (command: CommandSpec): string =>
-    command.bindings.length > 0 ? command.bindings.map(formatBinding).join(', ') : (command.hint ?? '');
+const commandLine = (command: CommandSpec): HelpLine => {
+    const bindings = command.bindings.map(formatBinding);
+    const keys = bindings.join(', ');
+    const compactKeys = keys.length > 16;
+
+    return {
+        kind: 'command',
+        keys: compactKeys ? (bindings[0] ?? command.hint ?? '') : keys || (command.hint ?? ''),
+        title: command.title,
+        alternateKeys: compactKeys ? bindings.slice(1).join(', ') : undefined
+    };
+};
 
 const linesFor = (catalog: CommandCatalog): HelpLine[][] =>
     COMMAND_GROUPS.map((group) => catalog.filter((command) => command.group === group))
         .filter((commands) => commands.length > 0)
-        .map((commands) => [
-            { kind: 'header', text: commands[0]?.group ?? '' },
-            ...commands.map((command): HelpLine => ({ kind: 'command', keys: keysOf(command), title: command.title }))
-        ]);
+        .map((commands) => [{ kind: 'header', text: commands[0]?.group ?? '' }, ...commands.map(commandLine)]);
 
-const joinBlocks = (blocks: HelpLine[][]): HelpLine[] =>
-    blocks.flatMap((block, index) => (index === 0 ? block : [{ kind: 'blank' }, ...block]));
+const joinBlocks = (blocks: HelpLine[][]): HelpLine[] => blocks.flat();
 
 /** Splits the group blocks into two columns of roughly equal height without breaking a group. */
 const splitBlocks = (blocks: HelpLine[][]): [HelpLine[], HelpLine[]] => {
@@ -70,44 +80,56 @@ const splitBlocks = (blocks: HelpLine[][]): [HelpLine[], HelpLine[]] => {
     let taken = 0;
     let split = 0;
     while (split < blocks.length - 1 && taken < total / 2) {
-        taken += (blocks[split]?.length ?? 0) + 1;
+        taken += blocks[split]?.length ?? 0;
         split += 1;
     }
     return [joinBlocks(blocks.slice(0, split)), joinBlocks(blocks.slice(split))];
 };
 
+const lineWidth = (lines: readonly HelpLine[]): number =>
+    Math.max(
+        0,
+        ...lines.map((line) =>
+            line.kind === 'command'
+                ? columns(line.keys) +
+                  KEY_GAP +
+                  columns(line.title) +
+                  (line.alternateKeys ? 3 + columns(line.alternateKeys) : 0)
+                : columns(line.text)
+        )
+    );
+
 function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeight: number): HelpLayout {
     const blocks = linesFor(catalog);
-    const commands = blocks.flat().filter((line) => line.kind === 'command');
-    const keyWidth = Math.max(0, ...commands.map((line) => columns(line.keys)));
-    const titleWidth = Math.max(0, ...commands.map((line) => columns(line.title)));
-    const columnWidth = keyWidth + KEY_GAP + titleWidth;
-
     const maxInnerWidth = Math.max(1, terminalWidth - BORDER - PADDING_X * 2);
-    const maxBodyRows = Math.max(1, terminalHeight - BORDER - FOOTER_ROWS);
+    const maxPanelHeight = Math.max(1, Math.min(MAX_HEIGHT, Math.ceil(terminalHeight * 0.6), terminalHeight));
+    const maxBodyRows = Math.max(1, maxPanelHeight - BORDER - FOOTER_ROWS);
 
     const single = joinBlocks(blocks);
-    const twoColumnsFit = columnWidth * 2 + COLUMN_GAP <= maxInnerWidth && blocks.length > 1;
-    const laidOut = single.length > maxBodyRows && twoColumnsFit ? splitBlocks(blocks) : [single];
+    const singleWidth = lineWidth(single);
+    const [left, right] = splitBlocks(blocks);
+    const twoColumnWidths = [lineWidth(left), lineWidth(right)];
+    const twoColumnWidth = twoColumnWidths.reduce((sum, width) => sum + width, COLUMN_GAP);
+    const useTwoColumns = blocks.length > 1 && twoColumnWidth <= maxInnerWidth;
+    const laidOut = useTwoColumns ? [left, right] : [single];
+    const columnWidths = useTwoColumns ? twoColumnWidths : [Math.min(maxInnerWidth, singleWidth)];
+    const totalRows = Math.max(1, ...laidOut.map((column) => column.length));
 
-    const height = Math.max(...laidOut.map((column) => column.length));
-    const truncated = height > maxBodyRows;
-    const rows = truncated ? maxBodyRows : height;
-    const width = Math.min(maxInnerWidth, laidOut.length * columnWidth + (laidOut.length - 1) * COLUMN_GAP);
-
-    const visibleRows = truncated ? rows - 1 : rows;
     return {
-        columns: laidOut.map((column) => column.slice(0, visibleRows)),
-        width,
-        rows,
-        truncated
+        columns: laidOut,
+        columnWidths,
+        width: Math.min(
+            maxInnerWidth,
+            columnWidths.reduce((sum, width) => sum + width, COLUMN_GAP * (laidOut.length - 1))
+        ),
+        totalRows,
+        visibleRows: Math.min(totalRows, maxBodyRows)
     };
 }
 
 /**
- * Creates the help overlay. The box lays itself out from the catalog on every `show` and on
- * resize: one column when it fits, two when the terminal is too short but wide enough, and a
- * trailing `…` row when even that does not fit.
+ * Creates the help overlay. It uses two columns when the terminal has room, otherwise it shows
+ * a bounded page of shortcuts that can be scrolled with the keyboard or mouse.
  */
 export function createHelpOverlay(
     ctx: Pick<ConsoleContext, 'renderer' | 'theme'>,
@@ -133,15 +155,26 @@ export function createHelpOverlay(
         paddingRight: PADDING_X
     });
 
+    let scrollOffset = 0;
+    let visibleRows = 1;
+    let maxScrollOffset = 0;
+
     const chunksFor = (line: HelpLine, keyWidth: number): TextChunk[] => {
         switch (line.kind) {
             case 'header':
-                return [fg(theme.textMuted)(line.text)];
+                return [fg(theme.accent)(line.text)];
             case 'command':
-                return [fg(theme.accent)(line.keys.padEnd(keyWidth + KEY_GAP)), fg(theme.text)(line.title)];
-            case 'blank':
-                return [];
+                return [
+                    fg(theme.accent)(line.keys.padEnd(keyWidth + KEY_GAP)),
+                    fg(theme.text)(line.title),
+                    ...(line.alternateKeys ? [fg(theme.textMuted)(` (${line.alternateKeys})`)] : [])
+                ];
         }
+    };
+
+    const scrollBy = (rows: number): void => {
+        scrollOffset = Math.max(0, Math.min(maxScrollOffset, scrollOffset + rows));
+        layout();
     };
 
     const layout = () => {
@@ -151,26 +184,35 @@ export function createHelpOverlay(
         }
 
         const result = layoutHelp(catalog, renderer.terminalWidth, renderer.terminalHeight);
-        const keyWidth = Math.max(
-            0,
-            ...result.columns.flat().map((line) => (line.kind === 'command' ? columns(line.keys) : 0))
-        );
-        const columnWidth = Math.floor(
-            (result.width - COLUMN_GAP * (result.columns.length - 1)) / result.columns.length
-        );
-
+        visibleRows = result.visibleRows;
+        maxScrollOffset = Math.max(0, result.totalRows - visibleRows);
+        scrollOffset = Math.min(scrollOffset, maxScrollOffset);
+        const footer = maxScrollOffset > 0 ? (result.columns.length === 1 ? `… ${FOOTER}` : FOOTER) : 'Esc to close';
+        const columnsToRender = result.columns.map((column) => column.slice(scrollOffset, scrollOffset + visibleRows));
         const body = new BoxRenderable(renderer, {
             id: 'help-body',
             flexDirection: 'row',
             columnGap: COLUMN_GAP,
-            height: result.rows
+            height: visibleRows,
+            onMouseScroll(event) {
+                const scroll = event.scroll;
+                if (scroll === undefined) return;
+                if (scroll.direction === 'up') scrollBy(-Math.max(1, Math.floor(scroll.delta)));
+                else if (scroll.direction === 'down') scrollBy(Math.max(1, Math.floor(scroll.delta)));
+                else return;
+                event.preventDefault();
+            }
         });
-        result.columns.forEach((lines, columnIndex) => {
+        columnsToRender.forEach((lines, columnIndex) => {
             const column = new BoxRenderable(renderer, {
                 id: `help-column-${columnIndex}`,
                 flexDirection: 'column',
-                width: columnWidth
+                width: result.columnWidths[columnIndex] ?? result.width
             });
+            const keyWidth = Math.max(
+                0,
+                ...(result.columns[columnIndex] ?? []).map((line) => (line.kind === 'command' ? columns(line.keys) : 0))
+            );
             lines.forEach((line, rowIndex) => {
                 column.add(
                     new TextRenderable(renderer, {
@@ -181,15 +223,6 @@ export function createHelpOverlay(
                     })
                 );
             });
-            if (result.truncated && columnIndex === 0) {
-                column.add(
-                    new TextRenderable(renderer, {
-                        id: 'help-ellipsis',
-                        height: 1,
-                        content: new StyledText([fg(theme.textMuted)(ELLIPSIS)])
-                    })
-                );
-            }
             body.add(column);
         });
         renderable.add(body);
@@ -197,13 +230,13 @@ export function createHelpOverlay(
             new TextRenderable(renderer, {
                 id: 'help-footer',
                 height: 1,
-                marginTop: 1,
-                content: new StyledText([fg(theme.textMuted)(FOOTER)])
+                truncate: true,
+                content: new StyledText([fg(theme.accent)(footer)])
             })
         );
 
         const width = result.width + PADDING_X * 2 + BORDER;
-        const height = result.rows + FOOTER_ROWS + BORDER;
+        const height = visibleRows + FOOTER_ROWS + BORDER;
         renderable.width = width;
         renderable.height = height;
         renderable.left = Math.max(0, Math.floor((renderer.terminalWidth - width) / 2));
@@ -230,6 +263,32 @@ export function createHelpOverlay(
         toggle() {
             if (renderable.visible) hide();
             else show();
+        },
+        handleKeyPress(key) {
+            if (!renderable.visible) return false;
+            const page = Math.max(1, visibleRows - 1);
+            switch (key.name) {
+                case 'up':
+                    scrollBy(-1);
+                    return true;
+                case 'down':
+                    scrollBy(1);
+                    return true;
+                case 'pageup':
+                    scrollBy(-page);
+                    return true;
+                case 'pagedown':
+                    scrollBy(page);
+                    return true;
+                case 'home':
+                    scrollBy(-maxScrollOffset);
+                    return true;
+                case 'end':
+                    scrollBy(maxScrollOffset);
+                    return true;
+                default:
+                    return false;
+            }
         },
         get isVisible() {
             return renderable.visible;

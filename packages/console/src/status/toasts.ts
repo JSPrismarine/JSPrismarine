@@ -58,6 +58,7 @@ export function createToastStack(
     const { renderer, theme } = ctx;
     const timers: ToastTimers = props.timers ?? defaultTimers;
     const queue = new ToastQueue({ maxVisible: props.maxVisible ?? 3, defaultTtlMs: props.defaultTtlMs ?? 4000 });
+    const renderedToasts = new Map<string, BoxRenderable>();
     let timer: unknown;
     let disposed = false;
 
@@ -72,11 +73,15 @@ export function createToastStack(
     });
 
     const render = () => {
-        for (const child of renderable.getChildren()) {
-            renderable.remove(child);
-            child.destroyRecursively();
+        const activeIds = new Set(queue.toasts.map((toast) => toast.id));
+        for (const [id, box] of renderedToasts) {
+            if (activeIds.has(id)) continue;
+            renderable.remove(box);
+            box.destroyRecursively();
+            renderedToasts.delete(id);
         }
         for (const toast of queue.toasts) {
+            if (renderedToasts.has(toast.id)) continue;
             const box = new BoxRenderable(renderer, {
                 id: toast.id,
                 border: true,
@@ -98,13 +103,13 @@ export function createToastStack(
                 fg: theme.danger,
                 onMouseDown(event) {
                     if (event.button !== 0) return;
-                    event.stopPropagation();
                     event.preventDefault();
                     dismissToast(toast.id);
                 }
             });
             box.add(close);
             renderable.add(box);
+            renderedToasts.set(toast.id, box);
         }
     };
 
@@ -158,6 +163,7 @@ export function createToastStack(
             }
             queue.clear();
             renderable.destroyRecursively();
+            renderedToasts.clear();
         }
     };
 }

@@ -1,5 +1,5 @@
 import type { KeyEvent } from '@opentui/core';
-import { BoxRenderable, CliRenderEvents, InputRenderable, TextRenderable } from '@opentui/core';
+import { BoxRenderable, CliRenderEvents, InputRenderable, RenderableEvents, TextRenderable } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { CompletionState, formatCompletionStrip } from './completion';
@@ -28,6 +28,8 @@ export interface InputBarProps {
     onInterrupt(kind: InterruptKind): void;
     /** Whether the server is already stopping; an empty-line Ctrl+C then forces at once. Defaults to false. */
     serverStopping?(): boolean;
+    /** Called when mouse or keyboard focus moves into or out of the editor. */
+    onFocusChange?(focused: boolean): void;
     /** Receives a short status hint, or undefined when the hint no longer applies. */
     onHint?(text: string | undefined): void;
     /** Clock for the Ctrl+C window, in milliseconds; defaults to `Date.now`. */
@@ -108,6 +110,10 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         cursorColor: theme.text,
         onKeyDown: handleKey
     });
+    const onFocused = (): void => props.onFocusChange?.(true);
+    const onBlurred = (): void => props.onFocusChange?.(false);
+    input.on(RenderableEvents.FOCUSED, onFocused);
+    input.on(RenderableEvents.BLURRED, onBlurred);
     const row = new BoxRenderable(renderer, { flexDirection: 'row', height: 1, width: '100%' });
     row.add(promptText);
     row.add(input);
@@ -281,6 +287,8 @@ export function createInputBar(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, 
         dispose: () => {
             disposed = true;
             renderer.off(CliRenderEvents.RESIZE, layoutStrip);
+            input.off(RenderableEvents.FOCUSED, onFocused);
+            input.off(RenderableEvents.BLURRED, onBlurred);
             root.destroyRecursively();
         }
     };

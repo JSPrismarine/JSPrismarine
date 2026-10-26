@@ -51,6 +51,8 @@ export type ServerMessage =
           tps: number;
           tickMs: number;
           players: number;
+          /** Online player names for consoles that show a player list. */
+          playerNames?: readonly string[];
           maxPlayers: number;
           rssBytes: number;
           uptimeMs: number;
@@ -172,6 +174,9 @@ const CONSOLE_FIELDS = {
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null;
 
+const isStringArray = (value: unknown): value is readonly string[] =>
+    Array.isArray(value) && value.every((item) => typeof item === 'string');
+
 const hasKind = (value: unknown, kind: FieldKind): boolean => {
     if (typeof kind === 'function') return kind(value);
     return kind === 'array' ? Array.isArray(value) : typeof value === kind;
@@ -190,7 +195,9 @@ const matchesTable = (value: unknown, table: Record<string, Record<string, Field
  * must hold one of their declared values.
  */
 export function isServerMessage(value: unknown): value is ServerMessage {
-    return matchesTable(value, SERVER_FIELDS);
+    if (!matchesTable(value, SERVER_FIELDS)) return false;
+    if (!isRecord(value) || value.type !== 'status' || !Object.hasOwn(value, 'playerNames')) return true;
+    return isStringArray(value.playerNames);
 }
 
 /**

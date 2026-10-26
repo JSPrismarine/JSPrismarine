@@ -92,7 +92,7 @@ export class LogWindow {
         if (this.following) {
             this.first = this.maxOffset;
         } else {
-            this.first = this.clamp(this.first - evicted);
+            this.first = this.anchorClamp(this.first - evicted);
             this.unreadCount += count;
         }
     }
@@ -108,10 +108,10 @@ export class LogWindow {
         this.reanchor();
     }
 
-    /** Changes the number of painted rows. A paused window that now shows the end follows again. */
+    /** Changes the number of painted rows while keeping a paused window on the same log row. */
     public onResize(height: number): void {
         this.rows = Math.max(1, height);
-        this.reanchor();
+        this.first = this.following ? this.maxOffset : this.anchorClamp(this.first);
     }
 
     /** Picks the rows to paint from the full list. */
@@ -125,6 +125,11 @@ export class LogWindow {
 
     private clamp(offset: number): number {
         return Math.min(this.maxOffset, Math.max(this.floor, offset));
+    }
+
+    /** Keeps a paused top row when the viewport grows beyond the rows after it. */
+    private anchorClamp(offset: number): number {
+        return Math.min(Math.max(this.floor, this.total - 1), Math.max(this.floor, offset));
     }
 
     private moveTo(offset: number): void {

@@ -1,7 +1,8 @@
 import type { ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
+import { isLogLevel, LOG_LEVELS } from '@jsprismarine/logger';
 import type { LogLevel } from '@jsprismarine/logger';
-import { BoxRenderable, CliRenderEvents } from '@opentui/core';
-import type { KeyEvent } from '@opentui/core';
+import { BoxRenderable, CliRenderEvents, MouseButton } from '@opentui/core';
+import type { KeyEvent, MouseEvent } from '@opentui/core';
 
 import { createHelpOverlay } from '../help/helpOverlay';
 import { createInputBar } from '../input/inputBar';
@@ -13,15 +14,18 @@ import type { CommandId } from '../keymap/catalog';
 import type { LogStore } from '../log/logStore';
 import { createLogView } from '../log/logView';
 import type { LogView } from '../log/logView';
+import type { SourceLocation } from '../log/sourceLocation';
 import { HELP_SEGMENT, createStatusBar } from '../status/statusBar';
+import { createDropdown } from '../status/dropdown';
 import { formatMemory, formatPlayers, formatTickMs, formatTps, formatUptime, stateSegment } from '../status/segments';
-import type { Segment, ServerState } from '../status/segments';
+import type { Segment, SegmentBounds, ServerState } from '../status/segments';
+import type { DropdownOption } from '../status/dropdown';
 import { createToastStack } from '../status/toasts';
 import type { ToastInput } from '../status/toastQueue';
 import type { ConsoleContext } from '../context';
 import { INITIAL_DEV_STATE, reduceDevState } from './devState';
 import type { DevState } from './devState';
-import { computeLayout } from './layout';
+import { SIDE_PANE_RESIZER_WIDTH, SIDE_PANE_WIDTH, computeLayout } from './layout';
 import type { Layout } from './layout';
 import { createSidePane } from './sidePane';
 import { createTitleBar } from './titleBar';
@@ -54,6 +58,8 @@ export interface AppProps {
     onCommand(line: string): Promise<CommandOutcome>;
     /** Completes the text before `cursor` on the server. */
     onComplete(line: string, cursor: number): Promise<CompletionResult>;
+    /** Opens a source location in the host's configured editor. */
+    openSourceLocation?(location: SourceLocation): Promise<void>;
     actions: AppActions;
     serverName?: string;
     version?: string;
@@ -85,9 +91,12 @@ interface Metrics {
     tps?: number;
     tickMs?: number;
     players?: { online: number; max: number };
+    playerNames?: readonly string[];
     rssBytes?: number;
     uptimeMs?: number;
 }
+
+const TPS_HISTORY_LIMIT = 30;
 
 /**
  * Builds the console tree and wires its components together.
@@ -110,15 +119,21 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     let server: { version: string; pid: number } | undefined;
     let levelFilter: LogLevel | undefined = DEFAULT_LEVEL;
     let namespaceFilter: string | undefined;
+    let namespaceFilterExact = false;
     let search: string | undefined;
     let wrap = false;
     let inputFocused = true;
     let sidePanePreference: boolean | undefined;
+    let sidePaneWidth = SIDE_PANE_WIDTH;
+    let tpsHistory: number[] = [];
+    let resizingSidePane = false;
+    let resizeStartX = 0;
+    let resizeStartWidth = SIDE_PANE_WIDTH;
     /** Whether the host said a restart request will be acted on; only a watching host does. */
     let canRestart = false;
     /** Names the server completes an empty line with; `/name` lines go to the server when `name` is one. */
     let commandNames: ReadonlySet<string> = new Set();
-    let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, {});
+    let layout: Layout = computeLayout(renderer.terminalWidth, renderer.terminalHeight, { sidePaneWidth });
     let jumpCursor = 0;
 
     store.setLevelFilter(levelFilter);
@@ -147,9 +162,74 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     const toasts = createToastStack(components);
     const titleBar = createTitleBar(components, { serverName: props.serverName, version: props.version });
-    const sidePane = createSidePane(components);
+    const sidePane = createSidePane(components, {
+        onClose() {
+            sidePanePreference = false;
+            applyLayout();
+        }
+    });
+    const sidePaneResizer = new BoxRenderable(renderer, {
+        id: 'side-pane-resizer',
+        position: 'absolute',
+        width: SIDE_PANE_RESIZER_WIDTH,
+        height: '100%',
+        border: ['left'],
+        borderColor: theme.border,
+        visible: false,
+        onMouseDown(event: MouseEvent) {
+            if (event.button !== MouseButton.LEFT) return;
+            event.preventDefault();
+            resizingSidePane = true;
+            resizeStartX = event.x;
+            resizeStartWidth = layout.sidePaneWidth;
+        },
+        onMouseDrag(event: MouseEvent) {
+            if (!resizingSidePane) return;
+            sidePaneWidth = resizeStartWidth + resizeStartX - event.x;
+            applyLayout();
+            sidePaneWidth = layout.sidePaneWidth;
+        },
+        onMouseDragEnd() {
+            resizingSidePane = false;
+        },
+        onMouseOver() {
+            sidePaneResizer.borderColor = theme.borderFocused;
+            renderer.setMousePointer('col-resize');
+            renderer.requestRender();
+        },
+        onMouseOut() {
+            if (resizingSidePane) return;
+            sidePaneResizer.borderColor = theme.border;
+            renderer.setMousePointer('default');
+            renderer.requestRender();
+        }
+    });
     const statusBar = createStatusBar(components);
     const help = createHelpOverlay(components, { catalog: COMMAND_CATALOG });
+    const dropdown = createDropdown(components);
+
+    root.onMouseDown = (event: MouseEvent): void => {
+        if (event.button !== MouseButton.LEFT) return;
+        let inStatusBar = false;
+        for (let target = event.target; target !== null; target = target.parent) {
+            if (target === statusBar.renderable) {
+                inStatusBar = true;
+                break;
+            }
+        }
+        if (inStatusBar && event.defaultPrevented) return;
+        const contains = (renderable: BoxRenderable): boolean =>
+            event.x >= renderable.x &&
+            event.x < renderable.x + renderable.width &&
+            event.y >= renderable.y &&
+            event.y < renderable.y + renderable.height;
+        if (layout.sidePane === 'overlay' && !contains(sidePane.renderable) && !contains(sidePaneResizer)) {
+            sidePanePreference = false;
+            applyLayout();
+        }
+        if (dropdown.isOpen && !contains(dropdown.renderable)) dropdown.close();
+        if (help.isVisible && !contains(help.renderable)) help.hide();
+    };
 
     /** Turns an exception from a handler into a toast and a raw stderr line. */
     const report = (error: unknown): void => {
@@ -178,7 +258,15 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         store,
         wrap,
         showNamespace: layout.showNamespace,
-        levelStyle: layout.levelStyle
+        levelStyle: layout.levelStyle,
+        onFocus: focusLog,
+        onOpenSourceLocation(location) {
+            if (props.openSourceLocation === undefined) {
+                toasts.push({ tone: 'muted', text: 'set VISUAL or EDITOR to open source locations' });
+                return;
+            }
+            void props.openSourceLocation(location).catch(report);
+        }
     });
     logColumn.add(view.renderable);
 
@@ -189,7 +277,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         onComplete: props.onComplete,
         onInterrupt: guard(interrupt),
         onHint: guard((text: string | undefined) => statusBar.setHint(text)),
-        serverStopping: () => state === 'stopping'
+        serverStopping: () => state === 'stopping',
+        onFocusChange: guard((focused: boolean) => {
+            if (inputFocused === focused) return;
+            inputFocused = focused;
+            refreshStatus();
+        })
     });
 
     function focusInput(): void {
@@ -212,21 +305,31 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     logColumn.add(toasts.renderable);
     main.add(logColumn);
     main.add(sidePane.renderable);
+    main.add(sidePaneResizer);
     root.add(titleBar.renderable);
     root.add(main);
     root.add(input.renderable);
     root.add(statusBar.renderable);
     root.add(help.renderable);
+    root.add(dropdown.renderable);
     renderer.root.add(root);
-
-    function filterText(): string {
-        const parts = [levelFilter ?? 'all', namespaceFilter ?? 'all'];
-        if (store.hiddenCount > 0) parts.push(`${store.hiddenCount} hidden`);
-        return parts.join(' · ');
-    }
 
     function refreshStatus(): void {
         const left: Segment[] = [stateSegment(state)];
+        left.push({
+            id: 'error-count',
+            text: `ERR ${store.errorCount}`,
+            tone: 'danger',
+            priority: 98,
+            onActivate: store.errorCount > 0 ? () => showLevel('error') : undefined
+        });
+        left.push({
+            id: 'warning-count',
+            text: `WARN ${store.warningCount}`,
+            tone: 'warning',
+            priority: 97,
+            onActivate: store.warningCount > 0 ? () => showLevel('warn') : undefined
+        });
         if (metrics.tps !== undefined) left.push({ id: 'tps', text: formatTps(metrics.tps), tone: 'ok', priority: 90 });
         if (metrics.players) {
             left.push({
@@ -252,19 +355,168 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         }
         statusBar.setLeft(left);
         const focusSegment: Segment = inputFocused
-            ? { id: 'focus', text: 'INPUT · Esc log', tone: 'accent', priority: 110 }
-            : { id: 'focus', text: 'LOG · Esc input', tone: 'accent', priority: 110 };
-        statusBar.setRight(
-            layout.compactStatus
-                ? [focusSegment, { ...HELP_SEGMENT, text: '?' }]
-                : [focusSegment, { id: 'filter', text: filterText(), tone: 'muted', priority: 10 }, HELP_SEGMENT]
-        );
+            ? { id: 'focus', text: 'INPUT · Esc log', tone: 'muted', priority: 10 }
+            : { id: 'focus', text: 'LOG · Esc input', tone: 'muted', priority: 10 };
+        const helpSegment: Segment = {
+            ...HELP_SEGMENT,
+            tone: 'accent',
+            priority: 110,
+            onActivate: () => {
+                dropdown.close();
+                help.toggle();
+            }
+        };
+        const detailsSegment: Segment = {
+            id: 'details',
+            text: layout.sidePane === 'overlay' ? '× details' : 'details',
+            tone: 'accent',
+            priority: 105,
+            onActivate: () => {
+                dropdown.close();
+                help.hide();
+                toggleSidePane();
+            }
+        };
+        const filters: Segment[] = [
+            {
+                id: 'level-filter',
+                text: levelFilter ?? 'all',
+                tone: 'accent',
+                priority: 100,
+                onActivate: (bounds) => openLevelDropdown(bounds)
+            },
+            {
+                id: 'namespace-filter',
+                text: namespaceFilter ?? 'all',
+                tone: 'accent',
+                priority: 90,
+                onActivate: (bounds) => openNamespaceDropdown(bounds)
+            }
+        ];
+        if (store.hiddenCount > 0) {
+            filters.push({
+                id: 'hidden-count',
+                text: `${store.hiddenCount} hidden ×`,
+                tone: 'accent',
+                priority: 50,
+                onActivate: (bounds) => openHiddenDropdown(bounds)
+            });
+        }
+        const right = layout.sidePane === 'inline' ? filters : [detailsSegment, ...filters];
+        statusBar.setRight(layout.compactStatus ? [...right, helpSegment] : [focusSegment, ...right, helpSegment]);
+    }
+
+    function openLevelDropdown(anchor: SegmentBounds): void {
+        help.hide();
+        const options: DropdownOption[] = [
+            { label: 'All levels', value: 'all' },
+            ...LOG_LEVELS.map((level) => ({ label: `${level} and more severe`, value: level }))
+        ];
+        dropdown.open({
+            title: 'Log level',
+            anchor,
+            options,
+            selectedValue: levelFilter ?? 'all',
+            onSelect(value) {
+                if (value !== 'all' && !isLogLevel(value)) return;
+                levelFilter = value === 'all' ? undefined : value;
+                store.setLevelFilter(levelFilter);
+                refreshStatus();
+            }
+        });
+    }
+
+    function openNamespaceDropdown(anchor: SegmentBounds): void {
+        help.hide();
+        const namespaces = store.namespaces();
+        const options: DropdownOption[] = [{ label: 'All namespaces', value: 'all' }];
+        if (namespaceFilter !== undefined && !namespaceFilterExact) {
+            options.push({ label: `Pattern: ${namespaceFilter}`, value: `pattern:${namespaceFilter}` });
+        }
+        for (const namespace of namespaces) {
+            options.push({ label: namespace, value: `namespace:${namespace}` });
+        }
+        if (namespaceFilter !== undefined && namespaceFilterExact && !namespaces.includes(namespaceFilter)) {
+            options.push({ label: `Current: ${namespaceFilter}`, value: `namespace:${namespaceFilter}` });
+        }
+
+        dropdown.open({
+            title: 'Namespace',
+            anchor,
+            options,
+            selectedValue:
+                namespaceFilter === undefined
+                    ? 'all'
+                    : namespaceFilterExact
+                      ? `namespace:${namespaceFilter}`
+                      : `pattern:${namespaceFilter}`,
+            onSelect(value) {
+                if (value === 'all') {
+                    namespaceFilter = undefined;
+                    namespaceFilterExact = false;
+                } else if (value.startsWith('pattern:')) {
+                    namespaceFilter = value.slice('pattern:'.length);
+                    namespaceFilterExact = false;
+                } else if (value.startsWith('namespace:')) {
+                    namespaceFilter = value.slice('namespace:'.length);
+                    namespaceFilterExact = true;
+                } else {
+                    return;
+                }
+                store.setNamespaceFilter(namespaceFilter, namespaceFilterExact, namespaceFilterExact);
+                refreshStatus();
+            }
+        });
+    }
+
+    function openHiddenDropdown(anchor: SegmentBounds): void {
+        help.hide();
+        const options: DropdownOption[] = [{ label: 'Show all logs', value: 'clear-all' }];
+        if (levelFilter !== undefined) options.push({ label: 'Clear level filter', value: 'clear-level' });
+        if (namespaceFilter !== undefined) options.push({ label: 'Clear namespace filter', value: 'clear-namespace' });
+
+        dropdown.open({
+            title: `${store.hiddenCount} hidden`,
+            anchor,
+            options,
+            onSelect(value) {
+                if (value === 'clear-all') {
+                    clearFilters();
+                    return;
+                }
+                if (value === 'clear-level') {
+                    levelFilter = undefined;
+                    store.setLevelFilter(undefined);
+                } else if (value === 'clear-namespace') {
+                    namespaceFilter = undefined;
+                    namespaceFilterExact = false;
+                    store.setNamespaceFilter(undefined);
+                } else {
+                    return;
+                }
+                refreshStatus();
+            }
+        });
+    }
+
+    function clearFilters(): void {
+        dropdown.close();
+        levelFilter = undefined;
+        namespaceFilter = undefined;
+        namespaceFilterExact = false;
+        store.setLevelFilter(undefined);
+        store.setNamespaceFilter(undefined);
+        refreshStatus();
     }
 
     function refreshSidePane(): void {
         sidePane.update({
             state,
             players: metrics.players,
+            playerNames: metrics.playerNames,
+            tps: metrics.tps,
+            tpsHistory,
+            tickMs: metrics.tickMs,
             server,
             uptimeMs: metrics.uptimeMs,
             rssBytes: metrics.rssBytes,
@@ -274,16 +526,34 @@ export function createApp(ctx: AppContext, props: AppProps): App {
 
     function applyLayout(): void {
         const next = computeLayout(renderer.terminalWidth, renderer.terminalHeight, {
-            sidePaneVisible: sidePanePreference
+            sidePaneVisible: sidePanePreference,
+            sidePaneWidth
         });
         const previous = layout;
         layout = next;
 
         titleBar.renderable.visible = next.titleBar;
         sidePane.setMode(next.sidePane, next.sidePaneWidth);
+        sidePaneResizer.visible = next.sidePane !== 'hidden';
+        sidePaneResizer.position = 'absolute';
+        sidePaneResizer.width = SIDE_PANE_RESIZER_WIDTH;
+        sidePaneResizer.height = '100%';
+        sidePaneResizer.top = 0;
+        if (next.sidePane === 'inline') {
+            sidePaneResizer.left = next.logWidth;
+            sidePaneResizer.right = undefined;
+        } else if (next.sidePane === 'overlay') {
+            sidePaneResizer.left = undefined;
+            sidePaneResizer.right = next.sidePaneWidth - SIDE_PANE_RESIZER_WIDTH;
+        } else {
+            sidePaneResizer.left = undefined;
+            sidePaneResizer.right = undefined;
+        }
+        sidePaneResizer.zIndex = next.sidePane === 'overlay' ? 6 : undefined;
         if (next.levelStyle !== previous.levelStyle) view.setLevelStyle(next.levelStyle);
         if (next.showNamespace !== previous.showNamespace) view.setShowNamespace(next.showNamespace);
         refreshStatus();
+        refreshSidePane();
     }
 
     function setState(next: ServerState): void {
@@ -322,6 +592,23 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             return;
         }
         scrollToIndex(index);
+    }
+
+    function showLevel(level: LogLevel): void {
+        dropdown.close();
+        help.hide();
+        levelFilter = level;
+        namespaceFilter = undefined;
+        namespaceFilterExact = false;
+        search = undefined;
+        store.setLevelFilter(level);
+        store.setNamespaceFilter(undefined);
+        store.setSearch(undefined);
+        view.setSearchHighlight(undefined);
+        jumpCursor = store.visible().length;
+        refreshStatus();
+        focusLog();
+        jumpToLevel(level);
     }
 
     function jumpToMatch(direction: 1 | -1): void {
@@ -380,6 +667,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         if (namespace) {
             const [, invert, pattern] = namespace;
             namespaceFilter = pattern === '' ? undefined : `${invert}${pattern}`;
+            namespaceFilterExact = false;
             store.setNamespaceFilter(namespaceFilter);
             refreshStatus();
             focusLog();
@@ -397,10 +685,18 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         if (localCommand(line)) return;
         props.onCommand(line).then(
             guard((outcome: CommandOutcome) => {
-                if (!outcome.ok) toasts.push({ tone: 'danger', text: outcome.error ?? `command failed: ${line}` });
+                if (!outcome.ok) {
+                    const message = outcome.error ?? `command failed: ${line}`;
+                    store.appendLocal('error', 'Console', message, now());
+                    refreshStatus();
+                    toasts.push({ tone: 'danger', text: message });
+                }
             }),
             guard((error: unknown) => {
-                toasts.push({ tone: 'danger', text: error instanceof Error ? error.message : String(error) });
+                const message = error instanceof Error ? error.message : String(error);
+                store.appendLocal('error', 'Console', `${line}: ${message}`, now());
+                refreshStatus();
+                toasts.push({ tone: 'danger', text: message });
             })
         );
     }
@@ -485,14 +781,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             case 'log.filter':
                 cycleLevelFilter();
                 return;
-            case 'view.toggleFocus':
-                toggleFocus();
-                return;
             case 'view.toggleSidePane':
                 toggleSidePane();
                 return;
             case 'view.help':
                 help.toggle();
+                return;
+            case 'view.toggleFocus':
+                toggleFocus();
                 return;
             case 'view.palette':
                 toasts.push(NOT_AVAILABLE('the command palette'));
@@ -508,6 +804,10 @@ export function createApp(ctx: AppContext, props: AppProps): App {
     }
 
     function escape(): boolean {
+        if (dropdown.isOpen) {
+            dropdown.close();
+            return true;
+        }
         if (inputFocused && input.isCompleting()) return false;
         if (help.isVisible) {
             help.hide();
@@ -535,6 +835,16 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             if (escape()) key.preventDefault();
             return;
         }
+        if (dropdown.isOpen) {
+            key.preventDefault();
+            dropdown.handleKeyPress(key);
+            return;
+        }
+        if (help.isVisible) {
+            key.preventDefault();
+            help.handleKeyPress(key);
+            return;
+        }
         const id = resolveCommand(key, { inputFocused });
         if (id === undefined) return;
         key.preventDefault();
@@ -551,13 +861,14 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         switch (message.type) {
             case 'hello':
                 server = { version: message.serverVersion, pid: message.pid };
+                tpsHistory = [];
                 refreshSidePane();
                 learnCommandNames();
                 return;
             case 'log': {
                 const { seq, level, namespace, at, message: text, formatted } = message;
                 store.append({ seq, level, namespace, at, message: text, formatted });
-                if (store.hiddenCount > 0) refreshStatus();
+                refreshStatus();
                 return;
             }
             case 'log.dropped':
@@ -568,9 +879,12 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                     tps: message.tps,
                     tickMs: message.tickMs,
                     players: { online: message.players, max: message.maxPlayers },
+                    playerNames: message.playerNames,
                     rssBytes: message.rssBytes,
                     uptimeMs: message.uptimeMs
                 };
+                tpsHistory.push(message.tps);
+                if (tpsHistory.length > TPS_HISTORY_LIMIT) tpsHistory.shift();
                 refreshStatus();
                 refreshSidePane();
                 return;
@@ -594,6 +908,9 @@ export function createApp(ctx: AppContext, props: AppProps): App {
         if (event.type === 'supervisor.state') {
             if (event.state === 'starting' && event.generation > 1) {
                 store.startGeneration('server restarted', now());
+                metrics = {};
+                tpsHistory = [];
+                refreshSidePane();
             }
             state = event.state;
         }
@@ -609,7 +926,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             input.setDisabled(flag);
         },
         focus() {
-            input.focus();
+            focusInput();
         },
         dispose() {
             if (disposed) return;
@@ -619,6 +936,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
             view.dispose();
             input.dispose();
             statusBar.dispose();
+            dropdown.dispose();
             toasts.dispose();
             help.dispose();
             sidePane.dispose();

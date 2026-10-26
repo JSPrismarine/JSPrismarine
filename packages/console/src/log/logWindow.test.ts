@@ -123,14 +123,15 @@ describe('LogWindow', () => {
         expect(window.slice(list(12))).toEqual([9, 10, 11]);
     });
 
-    it('clamps the offset on resize while paused', () => {
+    it('keeps the top row when resizing while paused', () => {
         const window = windowOf(5, 12);
         window.scrollBy(-3);
         window.onResize(6);
         expect(window.offset).toBe(4);
         expect(window.follow).toBe(false);
         window.onResize(20);
-        expect(window.offset).toBe(0);
+        expect(window.offset).toBe(4);
+        expect(window.follow).toBe(false);
     });
 
     it('clamps the offset when the list is rebuilt and clears unread', () => {
@@ -154,7 +155,7 @@ describe('LogWindow', () => {
         expect(window.offset).toBe(0);
     });
 
-    it('resumes follow when a rebuild or resize leaves the window at the end', () => {
+    it('resumes follow after a shorter rebuild but preserves a paused resize anchor', () => {
         const rebuilt = windowOf(5, 30);
         rebuilt.scrollBy(-10);
         rebuilt.onAppended(2);
@@ -168,8 +169,9 @@ describe('LogWindow', () => {
         resized.scrollBy(-1);
         resized.onAppended(1);
         resized.onResize(20);
-        expect(resized.follow).toBe(true);
-        expect(resized.unread).toBe(0);
+        expect(resized.offset).toBe(6);
+        expect(resized.follow).toBe(false);
+        expect(resized.unread).toBe(1);
     });
 
     describe('clear', () => {

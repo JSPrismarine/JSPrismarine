@@ -28,7 +28,7 @@ export interface RemoteConsoleOptions {
  * next, and comparing those exactly would send a status every interval.
  */
 const statusKey = (status: Extract<ServerMessage, { type: 'status' }>): string =>
-    `${Math.round(status.tps * 2) / 2}|${status.players}|${status.maxPlayers}`;
+    `${Math.round(status.tps * 2) / 2}|${status.players}|${status.maxPlayers}|${JSON.stringify(status.playerNames ?? [])}`;
 
 /**
  * The server end of the remote console: the service a headless server runs when a host
@@ -196,12 +196,14 @@ export class RemoteConsole implements Service {
     }
 
     private sendStatus(): void {
+        const players = this.server.getSessionManager().getAllPlayers();
         const status: ServerMessage = {
             type: 'status',
             v: PROTOCOL_VERSION,
             tps: this.server.getTPS(),
             tickMs: this.server.getTickMs(),
-            players: this.server.getSessionManager().getAllPlayers().length,
+            players: players.length,
+            playerNames: players.map((player) => player.getName()).sort(),
             maxPlayers: this.server.getConfig().getMaxPlayers(),
             rssBytes: process.memoryUsage().rss,
             uptimeMs: process.uptime() * 1000

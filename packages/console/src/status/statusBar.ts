@@ -1,10 +1,10 @@
-import { BoxRenderable, CliRenderEvents, StyledText, TextRenderable, fg } from '@opentui/core';
-import type { TextChunk } from '@opentui/core';
+import { BoxRenderable, CliRenderEvents, MouseButton, TextRenderable } from '@opentui/core';
+import type { ColorInput } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
 import { columns } from '../text';
 import { layoutSegments } from './segments';
-import type { Segment } from './segments';
+import type { Segment, SegmentBounds } from './segments';
 
 /**
  * Initial contents of the status bar.
@@ -38,6 +38,20 @@ const SEPARATOR = ' · ';
 const PADDING = 1;
 const GAP = 1;
 
+interface StatusTextPart {
+    id: string;
+    text: string;
+    color: ColorInput;
+    bounds?: SegmentBounds;
+    activate?: Segment['onActivate'];
+    renderable: TextRenderable;
+}
+
+interface StatusTextGroup {
+    ids: string[];
+    parts: StatusTextPart[];
+}
+
 /**
  * Creates the status bar. The bar measures itself against the renderer's terminal width and
  * draws on the theme's `surface` color.
@@ -61,16 +75,104 @@ export function createStatusBar(
         paddingRight: PADDING,
         backgroundColor: theme.surface
     });
-    const leftText = new TextRenderable(renderer, { id: 'status-left', fg: theme.text, truncate: true });
-    const rightText = new TextRenderable(renderer, { id: 'status-right', fg: theme.text });
-    renderable.add(leftText);
-    renderable.add(rightText);
+    const leftGroup = new BoxRenderable(renderer, {
+        id: 'status-left',
+        height: 1,
+        flexDirection: 'row',
+        overflow: 'hidden'
+    });
+    const rightGroup = new BoxRenderable(renderer, {
+        id: 'status-right',
+        height: 1,
+        flexDirection: 'row',
+        justifyContent: 'flex-end'
+    });
+    renderable.add(leftGroup);
+    renderable.add(rightGroup);
+    const leftTextGroup: StatusTextGroup = { ids: [], parts: [] };
+    const rightTextGroup: StatusTextGroup = { ids: [], parts: [] };
 
-    const chunksFor = (segments: readonly Segment[]): TextChunk[] =>
-        segments.flatMap((segment, index) => {
-            const chunk = fg(theme[segment.tone])(segment.text);
-            return index === 0 ? [chunk] : [fg(theme.muted)(SEPARATOR), chunk];
+    const partsFor = (
+        segments: readonly Segment[],
+        startX: number,
+        side: string
+    ): Omit<StatusTextPart, 'renderable'>[] => {
+        let x = startX;
+        return segments.flatMap((segment, index) => {
+            const parts: Omit<StatusTextPart, 'renderable'>[] = [];
+            if (index > 0) {
+                parts.push({ id: `status-${side}-separator-${index}`, text: SEPARATOR, color: theme.muted });
+                x += columns(SEPARATOR);
+            }
+            const bounds: SegmentBounds = {
+                x,
+                y: renderer.terminalHeight - 1,
+                width: columns(segment.text),
+                height: 1
+            };
+            parts.push({
+                id: `status-${side}-${segment.id}`,
+                text: segment.text,
+                color: theme[segment.tone],
+                bounds,
+                activate: segment.onActivate
+            });
+            x += columns(segment.text);
+            return parts;
         });
+    };
+
+    const renderSegments = (
+        group: BoxRenderable,
+        rendered: StatusTextGroup,
+        segments: readonly Segment[],
+        startX: number,
+        side: string
+    ): void => {
+        const parts = partsFor(segments, startX, side);
+        const ids = parts.map((part) => part.id);
+        const sameOrder = ids.length === rendered.ids.length && ids.every((id, index) => id === rendered.ids[index]);
+        if (!sameOrder) {
+            for (const child of group.getChildren()) {
+                group.remove(child);
+                child.destroyRecursively();
+            }
+            rendered.ids = ids;
+            rendered.parts = parts.map((part) => {
+                const text = new TextRenderable(renderer, {
+                    id: part.id,
+                    content: part.text,
+                    fg: part.color
+                });
+                const current: StatusTextPart = { ...part, renderable: text };
+                text.onMouseDown = (event) => {
+                    if (
+                        event.button !== MouseButton.LEFT ||
+                        current.activate === undefined ||
+                        current.bounds === undefined
+                    ) {
+                        return;
+                    }
+                    event.preventDefault();
+                    current.activate(current.bounds);
+                };
+                group.add(text);
+                return current;
+            });
+            return;
+        }
+
+        parts.forEach((part, index) => {
+            const current = rendered.parts[index];
+            if (current === undefined) return;
+            current.text = part.text;
+            current.color = part.color;
+            current.bounds = part.bounds;
+            current.activate = part.activate;
+            current.renderable.content = part.text;
+            current.renderable.fg = part.color;
+        });
+    };
 
     const layout = () => {
         const width = renderer.terminalWidth - PADDING * 2;
@@ -81,12 +183,15 @@ export function createStatusBar(
         );
         const leftWidth = Math.max(0, width - rightWidth - (rightKept.length > 0 ? GAP : 0));
 
-        rightText.content = new StyledText(chunksFor(rightKept));
+        const rightStart = renderer.terminalWidth - PADDING - rightWidth;
+        rightGroup.width = rightWidth;
+        renderSegments(rightGroup, rightTextGroup, rightKept, rightStart, 'right');
+        leftGroup.width = leftWidth;
         if (hint !== undefined) {
             const [kept] = layoutSegments([{ id: 'hint', text: hint, tone: 'accent', priority: 0 }], leftWidth);
-            leftText.content = new StyledText(kept ? chunksFor([kept]) : []);
+            renderSegments(leftGroup, leftTextGroup, kept ? [kept] : [], PADDING, 'left');
         } else {
-            leftText.content = new StyledText(chunksFor(layoutSegments(left, leftWidth, SEPARATOR)));
+            renderSegments(leftGroup, leftTextGroup, layoutSegments(left, leftWidth, SEPARATOR), PADDING, 'left');
         }
     };
 

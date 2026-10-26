@@ -7,6 +7,18 @@ import type { ThemeRole } from '../theme/theme';
  */
 export type SegmentTone = Extract<ThemeRole, 'ok' | 'warning' | 'danger' | 'muted' | 'accent'>;
 
+/** Position and size of a status segment when its activation callback runs. */
+export interface SegmentBounds {
+    /** Zero-based terminal column at the segment's first cell. */
+    x: number;
+    /** Zero-based terminal row containing the status bar. */
+    y: number;
+    /** Display width in terminal columns. */
+    width: number;
+    /** Display height in terminal rows. */
+    height: number;
+}
+
 /**
  * One item in the status bar. Higher `priority` segments survive longer when the bar narrows.
  */
@@ -16,6 +28,8 @@ export interface Segment {
     text: string;
     tone: SegmentTone;
     priority: number;
+    /** Runs when the user presses the left mouse button over the segment. */
+    onActivate?: (bounds: SegmentBounds) => void;
 }
 
 /**
