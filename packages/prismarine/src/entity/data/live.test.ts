@@ -43,6 +43,7 @@ import { Dimensions } from '../../world/Dimension';
 import GameRuleManager, { GameRules } from '../../world/GameRuleManager';
 import { createEngineWorld } from '../../world/EngineWorld';
 import EntityGrid from '../../world/EntityGrid';
+import BlockPhysics from '../../world/physics/BlockPhysics';
 import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
@@ -2044,6 +2045,26 @@ describe('the data-driven entity runtime over a live world', () => {
             expect((await world.getBlockState(2, GROUND_Y, 2)).name).toBe('minecraft:stone');
             expect(live.runtime.byId(id)).toBeUndefined();
             expect(live.bodies.bodyOf(id)).toBeUndefined();
+        });
+
+        it('routes a block falling from its support through the live runtime', async () => {
+            useVanillaContent();
+
+            const chunk = world.getLoadedChunk(0, 0);
+            if (chunk === null) throw new Error('the falling-block test chunk was not loaded');
+            chunk.setBlockRuntimeId(2, FLOOR_Y, 2, idOf('minecraft:air'));
+            chunk.setBlockRuntimeId(2, FLOOR_Y + 1, 2, idOf('minecraft:sand'));
+
+            await new BlockPhysics(world).update(2, FLOOR_Y + 1, 2, 0);
+
+            const fallingBlock = live.runtime.all().find((entity) => entity.identifier === 'minecraft:falling_block');
+            if (fallingBlock === undefined) throw new Error('the sand bypassed the data-driven entity runtime');
+            expect(fallingBlock.spawnData).toEqual({ block: 'minecraft:sand' });
+
+            for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+            expect((await world.getBlockState(2, FLOOR_Y, 2)).name).toBe('minecraft:sand');
+            expect(live.runtime.byId(fallingBlock.id)).toBeUndefined();
         });
 
         it(

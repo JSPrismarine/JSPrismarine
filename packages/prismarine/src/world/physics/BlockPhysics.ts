@@ -106,9 +106,16 @@ export class BlockPhysics {
     private async fall(name: string, x: number, y: number, z: number, now: number): Promise<void> {
         await this.world.setBlockByName(x, y, z, 'minecraft:air', now);
 
+        const position = { x: x + 0.5, y, z: z + 0.5 };
+        const live = this.world.dataEntities?.();
+        if (live?.runtime.content().entities.registry.has(FallingBlock.MOB_ID)) {
+            const falling = live.runtime.spawn(FallingBlock.MOB_ID, position, { data: { block: name } });
+            if (falling !== undefined) return;
+        }
+
         // Centered in the column it fell from, so it lands back in the same one.
         const entity = new FallingBlock({
-            position: new Position(x + 0.5, y, z + 0.5, this.world),
+            position: new Position(position.x, position.y, position.z, this.world),
             blockName: name
         });
 
