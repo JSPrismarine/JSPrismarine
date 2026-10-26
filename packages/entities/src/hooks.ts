@@ -167,6 +167,8 @@ export interface EntityHooks {
     onTick: (entity: EntityInstance) => void;
     /** Decides what one damage event does; the first handler that answers wins. */
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
+    /** Observes the result after sensors, immunities, and health changes without altering it. */
+    onDamageProcessed: (entity: EntityInstance, damage: DamageEvent, result: DamageResult) => void;
     /** Applies one held item; the first handler that answers wins. */
     onInteractWithItem: (
         entity: EntityInstance,

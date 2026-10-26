@@ -114,6 +114,10 @@ const isCollisionBox = (value: unknown): value is { readonly width: number; read
 const isEntityFile = (data: unknown): boolean =>
     typeof data === 'object' && data !== null && 'minecraft:entity' in data;
 
+/** Whether a parsed component's parameters are a JSON object. */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
 /** Every `entities/*.json` of one layer, from its brarchive and from a loose folder. */
 const layerEntityFiles = (root: string): ReadonlyMap<string, Uint8Array> => {
     const files = new Map<string, Uint8Array>();
@@ -251,6 +255,18 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
             ?.components.find((component) => component.name === 'minecraft:interact')?.params;
 
         expect(interaction).toMatchObject({ interactions: [expect.objectContaining({ playSounds: ['milk'] })] });
+    });
+
+    it('parses the vanilla piglin interaction cooldown after damage', () => {
+        const piglin = types.registry.get('minecraft:piglin');
+        if (piglin === undefined) throw new Error('the vanilla pack declares no piglin');
+        const components = [...piglin.components, ...[...piglin.groups.values()].flatMap((group) => group.components)];
+        const interactions = components.flatMap((component) => {
+            if (component.name !== 'minecraft:interact' || !isRecord(component.params)) return [];
+            return Array.isArray(component.params.interactions) ? component.params.interactions.filter(isRecord) : [];
+        });
+
+        expect(interactions).toContainEqual(expect.objectContaining({ cooldownAfterBeingAttacked: 20 }));
     });
 
     it('covers the components the research note predicts and reports what it does not', () => {

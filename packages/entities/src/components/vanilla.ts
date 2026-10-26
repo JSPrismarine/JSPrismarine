@@ -1006,8 +1006,20 @@ interface InteractEntry {
     readonly useItem: boolean;
     readonly transformedItem?: TransformedItem;
     readonly playSounds: readonly string[];
+    /** Seconds before this interaction can succeed again. */
+    readonly cooldown: number;
+    /** Seconds after damage during which this interaction is unavailable. */
+    readonly cooldownAfterBeingAttacked: number;
     readonly unsupportedFields: readonly string[];
 }
+
+interface InteractCooldownState {
+    readonly interactions: number[];
+    readonly attacked: number[];
+}
+
+/** Converts an interaction delay from seconds into whole server ticks. */
+const interactionCooldownTicks = (seconds: number): number => Math.ceil(seconds * TICKS_PER_SECOND);
 
 /** What `minecraft:interact` declares. */
 export interface InteractParams {
@@ -1018,17 +1030,25 @@ export interface InteractParams {
 /**
  * The held-item behavior currently implemented for `minecraft:interact`.
  *
- * It evaluates each entry's `on_interact.filters`, queues its event, plays
- * `play_sounds`, and applies `transform_to_item` and `use_item` to the live
- * held stack. Other interaction fields remain visible as a one-time runtime
- * report so incomplete behavior is not silently treated as vanilla.
+ * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
+ * its event, plays `play_sounds`, and applies `transform_to_item` and `use_item`
+ * to the live held stack. Other interaction fields remain visible as a
+ * one-time runtime report so incomplete behavior is not silently treated as
+ * vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
-    hooks: ['onInitialize', 'onInteractWithItem'],
+    hooks: ['onInitialize', 'onRemove', 'onTick', 'onDamageProcessed', 'onInteractWithItem'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
-        const supportedFields = new Set(['on_interact', 'use_item', 'transform_to_item', 'play_sounds']);
+        const supportedFields = new Set([
+            'on_interact',
+            'use_item',
+            'transform_to_item',
+            'play_sounds',
+            'cooldown',
+            'cooldown_after_being_attacked'
+        ]);
         const interactions: InteractEntry[] = [];
         for (const [index, raw] of asList(value.interactions).entries()) {
             if (!isRecord(raw)) return rejected(`interactions[${index}] must be an object`);
@@ -1069,6 +1089,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 onInteract,
                 useItem: booleanAt(raw, 'use_item', false),
                 playSounds,
+                cooldown: Math.max(0, numberAt(raw, 'cooldown', 0)),
+                cooldownAfterBeingAttacked: Math.max(0, numberAt(raw, 'cooldown_after_being_attacked', 0)),
                 ...(typeof raw.transform_to_item === 'string'
                     ? { transformedItem: transformedItemOf(raw.transform_to_item) }
                     : {}),
@@ -1079,20 +1101,54 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     },
     create: (params) => {
         const reported = new WeakSet<EntityInstance>();
+        const cooldowns = new WeakMap<EntityInstance, InteractCooldownState>();
+        const cooldownsFor = (entity: EntityInstance): InteractCooldownState => {
+            let state = cooldowns.get(entity);
+            if (state === undefined) {
+                state = {
+                    interactions: params.interactions.map(() => 0),
+                    attacked: params.interactions.map(() => 0)
+                };
+                cooldowns.set(entity, state);
+            }
+            return state;
+        };
         return {
             onInitialize: (entity) => {
+                cooldowns.set(entity, {
+                    interactions: params.interactions.map(() => 0),
+                    attacked: params.interactions.map(() => 0)
+                });
                 if (reported.has(entity)) return;
                 reported.add(entity);
                 const unsupported = [...new Set(params.interactions.flatMap((entry) => entry.unsupportedFields))];
                 if (unsupported.length > 0)
                     entity.report(`minecraft:interact fields ${unsupported.join(', ')} are not carried out`);
             },
-            onInteractWithItem: (entity, itemIdentifier, other): EntityItemInteractionEffect | undefined => {
+            onRemove: (entity) => {
+                cooldowns.delete(entity);
+            },
+            onTick: (entity) => {
+                const state = cooldownsFor(entity);
+                for (let index = 0; index < params.interactions.length; index += 1) {
+                    state.interactions[index] = Math.max(0, (state.interactions[index] ?? 0) - 1);
+                    state.attacked[index] = Math.max(0, (state.attacked[index] ?? 0) - 1);
+                }
+            },
+            onDamageProcessed: (entity) => {
+                const state = cooldownsFor(entity);
+                for (let index = 0; index < params.interactions.length; index += 1) {
+                    const delay = params.interactions[index]?.cooldownAfterBeingAttacked ?? 0;
+                    if (delay > 0) state.attacked[index] = interactionCooldownTicks(delay);
+                }
+            },
+            onInteractWithItem: (entity, itemIdentifier, other): boolean | EntityItemInteractionEffect | undefined => {
                 const normalizedItem = normalizedItemIdentifier(itemIdentifier);
                 const heldItem = other?.equipment?.('hand', 0) ?? { identifier: () => normalizedItem };
                 const subjects = other === undefined ? {} : { other, player: other };
                 const context = { ...entity.filterContext(), ...subjects, item: heldItem };
-                for (const entry of params.interactions) {
+                const state = cooldownsFor(entity);
+                for (const [index, entry] of params.interactions.entries()) {
                     if (entry.onInteract?.filters !== undefined && !evaluateFilter(entry.onInteract.filters, context))
                         continue;
                     if (
@@ -1102,6 +1158,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.playSounds.length === 0
                     )
                         continue;
+                    if ((state.interactions[index] ?? 0) > 0 || (state.attacked[index] ?? 0) > 0) return false;
+                    state.interactions[index] = interactionCooldownTicks(entry.cooldown);
                     if (entry.onInteract?.event !== undefined)
                         entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
                     return {

@@ -598,6 +598,66 @@ describe('EntityRuntime', () => {
 
             expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
         });
+
+        it('enforces each data-defined interaction cooldown per entity', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:cooldown_interaction': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:interact': {
+                                interactions: { use_item: true, cooldown: 0.1 }
+                            }
+                        }
+                    },
+                    'jsprismarine:attacked_interaction': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:damage_sensor': {
+                                triggers: [{ cause: 'entity_attack', deals_damage: 'yes' }]
+                            },
+                            'minecraft:interact': {
+                                interactions: { use_item: true, cooldown_after_being_attacked: 0.1 }
+                            }
+                        }
+                    }
+                }
+            );
+            const cooling = runtime.spawn('jsprismarine:cooldown_interaction', GROUND);
+            const independent = runtime.spawn('jsprismarine:cooldown_interaction', GROUND);
+            const attacked = runtime.spawn('jsprismarine:attacked_interaction', GROUND);
+            if (cooling === undefined || independent === undefined || attacked === undefined)
+                throw new Error('the fixture declares no interaction cooldown entities');
+
+            expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+            expect(runtime.interactWithItem(independent.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+            expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
+            runtime.tick(1);
+            expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
+            runtime.tick(2);
+            expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+
+            attacked.instance.damage({ cause: 'entity_attack', amount: 1 });
+            expect(runtime.interactWithItem(attacked.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
+            runtime.tick(3);
+            expect(runtime.interactWithItem(attacked.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
+            runtime.tick(4);
+            expect(runtime.interactWithItem(attacked.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+        });
     });
 
     describe('physics', () => {

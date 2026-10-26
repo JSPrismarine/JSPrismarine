@@ -361,7 +361,9 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         const died = amount > 0 && remaining !== undefined && remaining <= 0;
         if (died) fire('minecraft:on_death');
 
-        return { amount, health: remaining, died, events };
+        const result = { amount, health: remaining, died, events };
+        this.dispatch('onDamageProcessed', this, event, result);
+        return result;
     }
 
     /**
