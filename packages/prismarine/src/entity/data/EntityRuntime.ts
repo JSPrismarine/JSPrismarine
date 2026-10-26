@@ -25,6 +25,7 @@ import type {
     EntityEffects,
     EntityPosition,
     EntitySpawnRequest,
+    EntitySpawnItemsRequest,
     EventTarget,
     FilterContext,
     FilterEntityView,
@@ -47,6 +48,7 @@ import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
+import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 
 import { EYE_HEIGHT as PLAYER_EYE_HEIGHT } from '../Human';
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
@@ -1218,14 +1220,44 @@ export class EntityRuntime implements EntityScene {
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
-            const { playSounds, ...itemEffect } = interaction;
+            const { playSounds, spawnItems, ...itemEffect } = interaction;
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
+            if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
             return { accepted: true, ...itemEffect };
         }
         const ageable = entity.instance.componentParams('minecraft:ageable');
         const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
         const resultItem = resultItemOf(feedItem);
         return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
+    }
+
+    /** Rolls the Bedrock table a successful data-defined interaction names. */
+    private dropInteractionLoot(
+        request: EntitySpawnItemsRequest,
+        entity: DataEntity,
+        owner: number,
+        itemIdentifier: string
+    ): void {
+        const components = new Map<string, unknown>();
+        for (const name of entity.instance.activeComponents()) {
+            const value = entity.instance.componentParams(name);
+            if (value !== undefined) components.set(name, value);
+        }
+        const source: EntityView = { type: entity.identifier, components };
+        const player = this.host.players().find((candidate) => candidate.id === owner);
+        const sourceMob = this.mobById(owner);
+        const origin = player?.position ?? sourceMob?.position() ?? entity.position;
+        const tool: ItemStack = { id: itemIdentifier, count: 1, components: new Map() };
+        const drops = this.content().equipmentLoot.roll(request.table, {
+            parameterSet: 'shearing',
+            parameters: { this_entity: source, origin, tool }
+        });
+        const at = { x: entity.position.x, y: entity.position.y + request.yOffset, z: entity.position.z };
+
+        for (const stack of drops) {
+            if (stack.count <= 0) continue;
+            this.host.drop(at, dropOfRolledStack(stack));
+        }
     }
 
     /**

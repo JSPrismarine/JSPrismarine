@@ -35,7 +35,12 @@ export const rolledStackOfDrop = (drop: ContentItemDrop): PredicateItemStack => 
         components.set('minecraft:container', containerComponentOf(drop.contents));
     }
 
-    return { id: drop.identifier, count: drop.count, components };
+    return {
+        id: drop.identifier,
+        count: drop.count,
+        ...(drop.meta === undefined ? {} : { meta: drop.meta }),
+        components
+    };
 };
 
 /** Java's `minecraft:container`: one `{ slot, item }` per filled slot, empty ones left out. */
@@ -149,6 +154,7 @@ export const dropOfRolledStack = (stack: PredicateItemStack): ContentItemDrop =>
     return {
         identifier: stack.id,
         count: stack.count,
+        ...(stack.meta === undefined ? {} : { meta: stack.meta }),
         ...(enchantments === undefined ? {} : { enchantments }),
         ...(typeof damage === 'number' && damage > 0 ? { damage: Math.trunc(damage) } : {}),
         ...(customName === undefined ? {} : { customName }),

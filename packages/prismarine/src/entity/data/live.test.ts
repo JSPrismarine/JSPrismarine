@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
-import { java_entity_attributes } from '@jsprismarine/bedrock-data';
+import { java_entity_attributes, legacy_item_aux_aliases } from '@jsprismarine/bedrock-data';
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
@@ -2047,6 +2047,66 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(lamb.instance.hasComponent('minecraft:is_baby')).toBe(true);
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
+        });
+
+        it('shears a vanilla sheep through its data-defined interaction', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:shears' }), count: 1 }));
+            const sheep = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (sheep === undefined) throw new Error('vanilla content declares no sheep');
+            const body = live.bodies.bodyOf(sheep.id);
+            if (body === undefined) throw new Error('the vanilla sheep has no client-facing actor');
+            const color = sheep.instance.componentParams('minecraft:color');
+            const colorIndex = typeof color === 'number' ? color : 0;
+            const expectedWoolIdentifier = legacy_item_aux_aliases['minecraft:wool']?.[String(colorIndex)];
+            if (expectedWoolIdentifier === undefined)
+                throw new Error(`Bedrock has no wool item for color ${colorIndex}`);
+            const wool = live.runtime.content().equipmentLoot.roll('loot_tables/entities/sheep_shear.json', {
+                parameterSet: 'shearing',
+                parameters: {
+                    this_entity: {
+                        type: sheep.identifier,
+                        components: new Map([['minecraft:color', colorIndex]])
+                    },
+                    origin: { x: 2, y: GROUND_Y, z: 2 },
+                    tool: { id: 'minecraft:shears', count: 1, components: new Map() }
+                }
+            });
+            expect(wool).toHaveLength(1);
+            expect(wool[0]).toMatchObject({ id: 'minecraft:wool', meta: colorIndex });
+            expect(wool[0]?.count).toBeGreaterThanOrEqual(1);
+            expect(wool[0]?.count).toBeLessThanOrEqual(3);
+            const actors = createItemActorPort({
+                world: () => world,
+                entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+                level: unwiredWorld().level,
+                interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+            });
+
+            expect(
+                useItemOnEntity({
+                    content: live.runtime.content(),
+                    actors,
+                    player,
+                    target: { identifier: sheep.identifier, runtimeId: Number(body.getRuntimeId()) }
+                })
+            ).toBe('handled');
+            await live.tick(1);
+
+            expect(sheep.instance.hasComponent('minecraft:is_sheared')).toBe(true);
+            const droppedWool = world
+                .getEntities()
+                .filter((entity) => entity instanceof ItemEntity)
+                .find((entity) => entity.getItem()?.getItem().getName() === expectedWoolIdentifier);
+            const droppedItem = droppedWool?.getItem()?.getItem();
+            expect(droppedItem?.getName()).toBe(expectedWoolIdentifier);
+            expect(droppedItem?.getMeta()).toBe(0);
+            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SHEARED))).toBe(true);
         });
 
         it('uses Java-owned attributes when the live runtime builds vanilla entities', () => {

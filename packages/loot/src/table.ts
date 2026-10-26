@@ -171,6 +171,45 @@ const withModifier = (entry: LootEntry, modifier: ItemModifier): LootEntry => ({
     produce: (emit, evaluation) => entry.produce(applyModifier(emit, modifier, evaluation), evaluation)
 });
 
+/** Compiles the Bedrock entry functions implemented by this loot runtime. */
+const bedrockFunctionsAt = (value: unknown, context: ParseContext, grammar: LootGrammar): readonly ItemModifier[] => {
+    if (!Array.isArray(value)) return [];
+
+    const functions: ItemModifier[] = [];
+    for (const [index, raw] of value.entries()) {
+        if (!isJsonObject(raw)) continue;
+        const name = namespaced(asString(raw['function']) ?? '').slice('minecraft:'.length);
+        const at = context.at(index);
+
+        if (name === 'set_count') {
+            const count = rangeAt(raw['count'], at.at('count'), grammar);
+            functions.push((stack, evaluation) => {
+                const next = Math.max(0, Math.trunc(count(evaluation)));
+                return next === 0 ? undefined : evaluation.items.withCount(stack, next);
+            });
+        } else if (name === 'set_data_from_color_index') {
+            const path = at.path;
+            functions.push((stack, evaluation) => {
+                const entity = evaluation.parameter('this_entity', path);
+                const color = entity?.components?.get('minecraft:color');
+                const index =
+                    typeof color === 'number' ? color : isJsonObject(color) ? asNumber(color['value']) : undefined;
+                if (index === undefined) {
+                    evaluation.diagnostics.warn(path, 'set_data_from_color_index has no entity color to copy');
+                    return stack;
+                }
+                const withMeta = evaluation.items.withMeta;
+                if (withMeta === undefined) {
+                    evaluation.diagnostics.warn(path, 'the item stack adapter cannot carry Bedrock auxiliary data');
+                    return stack;
+                }
+                return withMeta(stack, index);
+            });
+        }
+    }
+    return functions;
+};
+
 /**
  * Java's `UniformContainerBase.EntryBase.getWeight`: float arithmetic, floored
  * to an integer, clamped at zero. The float rounding matters, because a
@@ -472,6 +511,20 @@ const containerAt = (value: unknown, context: ParseContext, grammar: LootGrammar
     const condition = gateAt(value[gateKey], context.at(gateKey), grammar.dialect, grammar.difficulty);
     const modifier =
         value['modifier'] === undefined ? undefined : modifierAt(value['modifier'], context.at('modifier'));
+    const modifiers = [
+        ...(modifier === undefined ? [] : [modifier]),
+        ...(grammar.dialect === 'bedrock'
+            ? bedrockFunctionsAt(value['functions'], context.at('functions'), grammar)
+            : [])
+    ];
+    const entryModifier: ItemModifier | undefined =
+        modifiers.length === 0
+            ? undefined
+            : (stack, evaluation) =>
+                  modifiers.reduce<ItemStack | undefined>(
+                      (carry, current) => (carry === undefined ? undefined : current(carry, evaluation)),
+                      stack
+                  );
     const body = ENTRIES[name](value, context, grammar);
 
     const at = context.at('pools');
@@ -484,8 +537,8 @@ const containerAt = (value: unknown, context: ParseContext, grammar: LootGrammar
         if (!condition(evaluation.context)) return false;
 
         const offer = (entry: LootEntry): void => emit(nested.length === 0 ? entry : withNestedPools(entry, nested));
-        if (modifier === undefined) return body(offer, evaluation);
-        return body((entry) => offer(withModifier(entry, modifier)), evaluation);
+        if (entryModifier === undefined) return body(offer, evaluation);
+        return body((entry) => offer(withModifier(entry, entryModifier)), evaluation);
     };
 };
 

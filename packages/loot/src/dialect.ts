@@ -162,7 +162,6 @@ export const reportEntryKeys = (value: JsonObject, context: ParseContext, dialec
  * reach someone rather than quietly change what a table produces.
  */
 export const BEDROCK_REVIEWED_FUNCTIONS = {
-    set_count: 'an entry produces the one item it names',
     looting_enchant: "a killer's looting level adds nothing",
     set_data: 'a variant such as a dye color comes out as the default',
     enchant_randomly: 'the result arrives unenchanted',
@@ -178,13 +177,19 @@ export const BEDROCK_REVIEWED_FUNCTIONS = {
     set_banner_details: "a raid captain's banner is a plain one",
     set_stew_effect: 'a suspicious stew carries no effect',
     set_ominous_bottle_amplifier: 'the bottle carries the lowest bad omen',
-    set_data_from_color_index: "the entity's color does not reach the drop",
     random_aux_value: 'the aux value stays at zero',
     exploration_map: 'a rolled map points nowhere'
 } as const satisfies Readonly<Record<string, string>>;
 
+/** Bedrock loot functions this package applies while compiling an entry. */
+export const BEDROCK_IMPLEMENTED_FUNCTIONS = {
+    set_count: "sets the entry's stack count using Bedrock's range",
+    set_data_from_color_index: 'copies the entity color into Bedrock auxiliary item data'
+} as const satisfies Readonly<Record<string, string>>;
+
 /** {@link BEDROCK_REVIEWED_FUNCTIONS} as a lookup, for a name read out of a file rather than written here. */
 const REVIEWED_FUNCTIONS: ReadonlyMap<string, string> = new Map(Object.entries(BEDROCK_REVIEWED_FUNCTIONS));
+const IMPLEMENTED_FUNCTIONS: ReadonlySet<string> = new Set(Object.keys(BEDROCK_IMPLEMENTED_FUNCTIONS));
 
 /**
  * Reports each member of a Bedrock entry's `functions` array against
@@ -215,6 +220,7 @@ export const reportBedrockFunctions = (value: unknown, context: ParseContext): v
         }
 
         const name = namespaced(declared).slice('minecraft:'.length);
+        if (IMPLEMENTED_FUNCTIONS.has(name)) continue;
         const lost = REVIEWED_FUNCTIONS.get(name);
         if (lost === undefined) {
             at.error(

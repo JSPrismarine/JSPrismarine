@@ -10,7 +10,7 @@ import { damagerSubjects } from '../filterContext';
 import type { FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
-import type { EntityItemInteractionEffect } from '../hooks';
+import type { EntityItemInteractionEffect, EntitySpawnItemsRequest } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { EntitySpawnRequest } from '../hooks';
 import type { RideableParams } from '../riding';
@@ -1005,6 +1005,8 @@ interface InteractEntry {
     readonly onInteract?: SensorTrigger;
     readonly useItem: boolean;
     readonly transformedItem?: TransformedItem;
+    /** Bedrock loot-table path rolled when the interaction succeeds. */
+    readonly spawnItems?: EntitySpawnItemsRequest;
     readonly playSounds: readonly string[];
     /** Seconds before this interaction can succeed again. */
     readonly cooldown: number;
@@ -1031,10 +1033,10 @@ export interface InteractParams {
  * The held-item behavior currently implemented for `minecraft:interact`.
  *
  * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
- * its event, plays `play_sounds`, and applies `transform_to_item` and `use_item`
- * to the live held stack. Other interaction fields remain visible as a
- * one-time runtime report so incomplete behavior is not silently treated as
- * vanilla.
+ * its event, plays `play_sounds`, rolls `spawn_items`, and applies
+ * `transform_to_item` and `use_item` to the live held stack. Other interaction
+ * fields remain visible as a one-time runtime report so incomplete behavior
+ * is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1045,6 +1047,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'on_interact',
             'use_item',
             'transform_to_item',
+            'spawn_items',
             'play_sounds',
             'cooldown',
             'cooldown_after_being_attacked'
@@ -1072,6 +1075,21 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            if (
+                raw.spawn_items !== undefined &&
+                (!isRecord(raw.spawn_items) || typeof raw.spawn_items.table !== 'string')
+            )
+                return rejected(`interactions[${index}].spawn_items must name a loot table`);
+            if (
+                isRecord(raw.spawn_items) &&
+                raw.spawn_items.y_offset !== undefined &&
+                typeof raw.spawn_items.y_offset !== 'number'
+            )
+                return rejected(`interactions[${index}].spawn_items.y_offset must be a number`);
+            const spawnItems: EntitySpawnItemsRequest | undefined =
+                isRecord(raw.spawn_items) && typeof raw.spawn_items.table === 'string'
+                    ? { table: raw.spawn_items.table, yOffset: numberAt(raw.spawn_items, 'y_offset', 0) }
+                    : undefined;
             let playSounds: readonly string[] = [];
             if (typeof raw.play_sounds === 'string') playSounds = [raw.play_sounds];
             else if (raw.play_sounds !== undefined) {
@@ -1094,7 +1112,15 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 ...(typeof raw.transform_to_item === 'string'
                     ? { transformedItem: transformedItemOf(raw.transform_to_item) }
                     : {}),
-                unsupportedFields: Object.keys(raw).filter((key) => !supportedFields.has(key))
+                ...(spawnItems === undefined ? {} : { spawnItems }),
+                unsupportedFields: [
+                    ...Object.keys(raw).filter((key) => !supportedFields.has(key)),
+                    ...(isRecord(raw.spawn_items)
+                        ? Object.keys(raw.spawn_items)
+                              .filter((key) => key !== 'table' && key !== 'y_offset')
+                              .map((key) => `spawn_items.${key}`)
+                        : [])
+                ]
             });
         }
         return accepted({ interactions });
@@ -1154,6 +1180,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     if (
                         entry.onInteract?.event === undefined &&
                         entry.transformedItem === undefined &&
+                        entry.spawnItems === undefined &&
                         !entry.useItem &&
                         entry.playSounds.length === 0
                     )
@@ -1164,6 +1191,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
                     return {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
+                        ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),
                         ...(entry.transformedItem === undefined
                             ? {}
                             : {

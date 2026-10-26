@@ -8,6 +8,8 @@ export interface ItemStack {
     /** Namespaced item identifier, for example `minecraft:diamond`. */
     readonly id: string;
     readonly count: number;
+    /** Bedrock auxiliary item data, carried by loot functions such as `set_data_from_color_index`. */
+    readonly meta?: number;
     /** Data components keyed by namespaced component type, for example `minecraft:enchantments`. */
     readonly components: ReadonlyMap<string, unknown>;
 }
@@ -22,6 +24,8 @@ export interface ItemStackOps {
     create(id: string, count: number): ItemStack;
     withId(stack: ItemStack, id: string): ItemStack;
     withCount(stack: ItemStack, count: number): ItemStack;
+    /** Sets Bedrock's auxiliary item data, or clears it when undefined. */
+    withMeta?(stack: ItemStack, meta: number | undefined): ItemStack;
     /** Sets a component, or removes it when `value` is undefined. */
     withComponent(stack: ItemStack, type: string, value: unknown): ItemStack;
     component(stack: ItemStack, type: string): unknown;
@@ -47,6 +51,7 @@ export const defaultItemStackOps: ItemStackOps = {
     create: (id, count) => ({ id, count, components: new Map() }),
     withId: (stack, id) => ({ ...stack, id }),
     withCount: (stack, count) => ({ ...stack, count }),
+    withMeta: (stack, meta) => ({ ...stack, ...(meta === undefined ? { meta: undefined } : { meta }) }),
     withComponent: (stack, type, value) => ({ ...stack, components: copyComponents(stack, type, value) }),
     component: (stack, type) => stack.components.get(type),
     maxStackSize: () => 64,

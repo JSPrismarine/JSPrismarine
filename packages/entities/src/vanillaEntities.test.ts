@@ -270,6 +270,25 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(interactions).toContainEqual(expect.objectContaining({ cooldownAfterBeingAttacked: 20 }));
     });
 
+    it('parses Bedrock spawn_items tables and their entity-relative drop offsets', () => {
+        const strider = types.registry.get('minecraft:strider');
+        if (strider === undefined) throw new Error('the vanilla pack declares no strider');
+        const components = [
+            ...strider.components,
+            ...[...strider.groups.values()].flatMap((group) => group.components)
+        ].filter((component) => component.name === 'minecraft:interact');
+
+        expect(components.map((component) => component.params)).toContainEqual(
+            expect.objectContaining({
+                interactions: expect.arrayContaining([
+                    expect.objectContaining({
+                        spawnItems: { table: 'loot_tables/entities/saddle.json', yOffset: 1.7 }
+                    })
+                ])
+            })
+        );
+    });
+
     it('covers the components the research note predicts and reports what it does not', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();

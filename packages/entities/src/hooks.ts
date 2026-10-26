@@ -138,6 +138,14 @@ export interface DamageResult {
     readonly events: readonly string[];
 }
 
+/** Items a successful data-defined interaction asks the host to drop. */
+export interface EntitySpawnItemsRequest {
+    /** The pack-relative Bedrock loot-table path. */
+    readonly table: string;
+    /** Vertical offset from the entity's feet, in blocks. */
+    readonly yOffset: number;
+}
+
 /** The item changes requested by a successful data-defined interaction. */
 export interface EntityItemInteractionEffect {
     /** The item the used stack becomes, when the interaction transforms it. */
@@ -146,6 +154,8 @@ export interface EntityItemInteractionEffect {
     readonly resultItemData?: number;
     /** Whether the live inventory should consume one item from the held stack. */
     readonly consumeItem?: boolean;
+    /** A Bedrock loot table and drop offset to run as part of a successful interaction. */
+    readonly spawnItems?: EntitySpawnItemsRequest;
     /** Sounds the world plays when this interaction succeeds. */
     readonly playSounds?: readonly string[];
 }

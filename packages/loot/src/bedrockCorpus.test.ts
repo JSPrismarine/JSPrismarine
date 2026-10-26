@@ -193,9 +193,8 @@ describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
         // without refusing a stock Bedrock server. Counted here so a gap cannot
         // grow, shrink or change kind unnoticed.
         expect(reported.filter((entry) => entry.severity === 'error')).toEqual([]);
-        expect(reported.length).toBe(1484);
+        expect(reported.length).toBe(778);
         expect(Object.fromEntries(counted)).toEqual({
-            'warning: this package does not apply the bedrock loot function set_count, so an entry produces the one item it names': 700,
             "warning: this package does not apply the bedrock loot function enchant_random_gear, so a mob's gear arrives unenchanted": 143,
             "warning: this package does not apply the bedrock loot function looting_enchant, so a killer's looting level adds nothing": 114,
             'warning: this package does not apply the bedrock loot function explosion_decay, so a nearby explosion destroys none of the drop': 96,
@@ -215,7 +214,6 @@ describe.skipIf(!enabled)('the vanilla Bedrock equipment tables', () => {
             "warning: this package does not apply the bedrock loot function enchant_book_for_trading, so a villager's trade book arrives blank": 10,
             'warning: this package does not evaluate the bedrock loot condition biome_has_tag, which reads a tag on the biome the roll happens in, so its gate never opens': 9,
             'warning: this package does not apply the bedrock loot function set_ominous_bottle_amplifier, so the bottle carries the lowest bad omen': 7,
-            "warning: this package does not apply the bedrock loot function set_data_from_color_index, so the entity's color does not reach the drop": 6,
             'warning: this package does not evaluate the bedrock loot condition killed_by_entity, which reads which entity type landed the killing blow, so its gate never opens': 5,
             'warning: this package does not evaluate the bedrock loot condition entity_killed, which reads a predicate over the entity that was killed, so its gate never opens': 4,
             "warning: this package does not evaluate the bedrock loot condition has_variant, which reads the entity's minecraft:variant, so its gate never opens": 3,

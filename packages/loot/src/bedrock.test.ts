@@ -109,6 +109,49 @@ describe('the plural conditions array', () => {
     });
 });
 
+describe('Bedrock item functions', () => {
+    it('applies stack counts and copies an entity color into item auxiliary data', () => {
+        const parsed = parseLootTable(
+            {
+                pools: [
+                    {
+                        rolls: 1,
+                        entries: [
+                            {
+                                type: 'item',
+                                name: 'minecraft:wool',
+                                functions: [
+                                    { function: 'set_data_from_color_index' },
+                                    { function: 'set_count', count: { min: 1, max: 3 } }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            { dialect: 'bedrock' }
+        );
+        const context = new PredicateContext({
+            parameterSet: 'shearing',
+            parameters: {
+                this_entity: {
+                    type: 'minecraft:sheep',
+                    components: new Map([['minecraft:color', 12]])
+                },
+                origin: { x: 0, y: 64, z: 0 },
+                tool: { id: 'minecraft:shears', count: 1, components: new Map() }
+            },
+            random: scriptedRandom([0.5])
+        });
+        const [wool] = rollLootTable(parsed.value, context);
+
+        expect(parsed.diagnostics).toEqual([]);
+        expect(wool).toMatchObject({ id: 'minecraft:wool', meta: 12 });
+        expect(wool?.count).toBeGreaterThanOrEqual(1);
+        expect(wool?.count).toBeLessThanOrEqual(3);
+    });
+});
+
 describe('the three chance conditions', () => {
     it('random_chance draws against its stated chance', () => {
         const table = {

@@ -93,9 +93,9 @@ diagnostic and evaluate false, rather than failing the whole parse.
   `scriptedRandom`, `constantRandom` and `seededRandom` are built in.
 - `LevelView` answers weather, the world clock, biomes, structures, light, blocks, fluids, command
   storage, scoreboards and environment attributes.
-- `ItemStackOps` owns stack construction, component writes, the stack size limit and the durability
-  limit, so a host keeps its own item type behind the minimal `{ id, count, components }` shape this
-  package reads.
+- `ItemStackOps` owns stack construction, Bedrock auxiliary data, component writes, the stack size
+  limit, and the durability limit, so a host keeps its own item type behind the minimal
+  `{ id, count, components, meta? }` shape this package reads.
 - `EnchantmentView` answers enchantment levels, maximum levels and the enchanting table draw.
 - `ContentView` answers the few content questions the modifiers need and this package cannot own:
   smelting results, player profiles, exploration map search, loot entry rolls and the dye table.
