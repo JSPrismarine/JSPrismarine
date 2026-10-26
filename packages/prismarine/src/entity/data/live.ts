@@ -209,6 +209,24 @@ export class LiveEntityRuntime {
     }
 
     /**
+     * Suspends a data-driven entity whose chunk is leaving memory.
+     *
+     * The caller writes the entity's NBT to its chunk before calling this, so removing the
+     * runtime instance here does not make it a death or a despawn.
+     */
+    public unload(body: Entity): boolean {
+        const id = this.bodies.detach(body);
+        if (id === undefined) return false;
+
+        this.runtime.remove(id, 'chunk unload');
+        void body
+            .getWorld()
+            .removeEntity(body)
+            .catch((error: unknown) => this.options.report(String(error)));
+        return true;
+    }
+
+    /**
      * Brings one saved entity back into the runtime.
      *
      * The body built from the file is not the body that ends up in the world:

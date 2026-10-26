@@ -4,6 +4,9 @@ import type { ChunkRequestOptions, Generator } from '../Generator';
 import type Chunk from '../chunk/Chunk';
 
 export default interface Provider extends Service {
+    /** True only when `writeChunk` persists terrain, block entities, and actors for later reload. */
+    readonly supportsChunkUnload?: boolean;
+
     /**
      * Returns the path to the world folder.
      */

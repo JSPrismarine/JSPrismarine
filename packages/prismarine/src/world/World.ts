@@ -145,6 +145,9 @@ const PRELOAD_BATCH_SIZE = 32;
  */
 const SAVE_BATCH_SIZE = 8;
 
+/** How many chunks one tick may write and unload after players move away. */
+const CHUNK_UNLOAD_BATCH_SIZE = 8;
+
 /**
  * How far from a player the world simulates, in chunks.
  *
@@ -604,6 +607,8 @@ export class World implements Service {
         // than one per mob - see `flushMovement`.
         await this.flushMovement();
         await this.sendTime();
+
+        await this.unloadDistantChunks();
     }
 
     /**
@@ -833,19 +838,43 @@ export class World implements Service {
         // After the chunk is in the map: the engine reads the blocks back through the world.
         this.systems.onChunkLoaded(x, z);
 
-        await this.createStoredEntities(chunk);
+        const discardedStacklessItems = await this.createStoredEntities(chunk);
         await this.createGeneratedEntities(chunk);
+
+        if (discardedStacklessItems && this.provider.supportsChunkUnload === true) {
+            try {
+                await this.enqueueSave(async () => {
+                    this.dataEntities().persist();
+                    await this.provider.writeChunk(chunk);
+                });
+            } catch (error: unknown) {
+                this.server
+                    .getLogger()
+                    .error(`Failed to remove stackless item actors from chunk ${chunk.getX()},${chunk.getZ()}`);
+                this.server.getLogger().error(error);
+            }
+        }
 
         // TODO: event here, eg onChunkLoad
         return chunk;
     }
 
     /** Restores the actor NBT the provider read for this chunk. */
-    private async createStoredEntities(chunk: Chunk): Promise<void> {
+    private async createStoredEntities(chunk: Chunk): Promise<boolean> {
+        let discardedStacklessItems = false;
+
         for (const nbt of chunk.takeStoredEntities()) {
             if (nbt.getString('identifier', '') === 'minecraft:player') continue;
 
             const entity = EntitySerializer.fromNBT(nbt, this);
+            if (entity instanceof ItemEntity && entity.getItem() === undefined) {
+                this.server
+                    .getLogger()
+                    .warn(`Skipped dropped item without a stack in chunk ${chunk.getX()},${chunk.getZ()}`);
+                chunk.markChanged();
+                discardedStacklessItems = true;
+                continue;
+            }
 
             // Before the restore, not after: `level.json` holds a copy of every entity and
             // `enable` rebuilds those as written classes, so the actor record has to displace
@@ -857,6 +886,8 @@ export class World implements Service {
 
             await this.addEntity(entity);
         }
+
+        return discardedStacklessItems;
     }
 
     /**
@@ -910,6 +941,11 @@ export class World implements Service {
         if (spawns.length === 0) return;
 
         for (const spawn of spawns) {
+            // Java world generation writes mobs and structure actors, never dropped stacks.
+            // A generated item has no loot payload and would otherwise live forever without
+            // anything for the player to pick up.
+            if (spawn.type === ItemEntity.MOB_ID) continue;
+
             const at = { x: spawn.x, y: spawn.y, z: spawn.z };
 
             // The runtime first, because a village's villager wants its components, its brain
@@ -1934,6 +1970,111 @@ export class World implements Service {
     }
 
     /**
+     * Removes chunks outside every player's simulation and view areas after saving them.
+     *
+     * Chunks loaded before the first player remain available for spawn preparation. Once a
+     * player is online, chunks beyond the largest area that player needs can be read back from
+     * the provider instead of accumulating for the life of the server.
+     */
+    private async unloadDistantChunks(): Promise<void> {
+        if (this.provider.supportsChunkUnload !== true) return;
+
+        const players = this.getPlayers();
+        if (players.length === 0) return;
+
+        let unloaded = 0;
+        for (const chunk of this.chunks.values()) {
+            if (unloaded >= CHUNK_UNLOAD_BATCH_SIZE) break;
+
+            const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+            if (this.loading.has(index) || this.chunkNeededByPlayers(chunk, players)) continue;
+            if (await this.unloadChunk(chunk)) unloaded++;
+        }
+    }
+
+    /** Saves and removes one chunk and the non-player entities it holds. */
+    private async unloadChunk(chunk: Chunk): Promise<boolean> {
+        const index = Chunk.packXZ(chunk.getX(), chunk.getZ());
+        if (this.chunks.get(index) !== chunk || this.loading.has(index)) return false;
+
+        try {
+            await this.enqueueSave(async () => {
+                if (
+                    this.chunks.get(index) !== chunk ||
+                    this.loading.has(index) ||
+                    this.chunkNeededByPlayers(chunk, this.getPlayers())
+                )
+                    return;
+
+                const entities = this.entitiesInChunk(chunk);
+                if (chunk.getHasChanged() || entities.length > 0) {
+                    this.dataEntities().persist();
+                    await this.provider.writeChunk(chunk);
+                }
+            });
+        } catch (error: unknown) {
+            this.server.getLogger().error(`Failed to save chunk ${chunk.getX()},${chunk.getZ()} before unloading`);
+            this.server.getLogger().error(error);
+            return false;
+        }
+
+        if (
+            this.chunks.get(index) !== chunk ||
+            this.loading.has(index) ||
+            chunk.getHasChanged() ||
+            this.chunkNeededByPlayers(chunk, this.getPlayers())
+        )
+            return false;
+
+        const removals: Promise<void>[] = [];
+        for (const entity of this.entitiesInChunk(chunk)) {
+            if (this.dataEntities().unload(entity)) continue;
+            removals.push(this.removeEntity(entity));
+        }
+
+        this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
+        this.chunks.delete(index);
+        this.lastChunkIndex = -1;
+        this.lastChunk = null;
+        this.lastChunkSource = null;
+        await Promise.all(
+            removals.map(async (removal) => {
+                try {
+                    await removal;
+                } catch (error: unknown) {
+                    this.server
+                        .getLogger()
+                        .error(`Failed to remove entities from chunk ${chunk.getX()},${chunk.getZ()}`);
+                    this.server.getLogger().error(error);
+                }
+            })
+        );
+        return true;
+    }
+
+    private chunkNeededByPlayers(chunk: Chunk, players: readonly Player[]): boolean {
+        return players.some((player) => {
+            const position = player.getPosition();
+            const radius = Math.max(SIMULATION_DISTANCE, player.viewDistance);
+            return (
+                Math.abs(CoordinateUtils.fromBlockToChunk(position.getX()) - chunk.getX()) <= radius &&
+                Math.abs(CoordinateUtils.fromBlockToChunk(position.getZ()) - chunk.getZ()) <= radius
+            );
+        });
+    }
+
+    private entitiesInChunk(chunk: Chunk): Entity[] {
+        return this.getEntities().filter((entity) => {
+            if (entity instanceof Player) return false;
+            const position = entity.getPosition();
+            return (
+                CoordinateUtils.fromBlockToChunk(position.getX()) === chunk.getX() &&
+                CoordinateUtils.fromBlockToChunk(position.getZ()) === chunk.getZ()
+            );
+        });
+    }
+
+    /**
      * Sends whatever changed about each entity's attributes this tick, and forgets it.
      *
      * Mirrors {@link World.flushMovement}: the entities record what changed as they change it,
@@ -2087,7 +2228,10 @@ export class World implements Service {
         // sees the body. This is where the two meet, once per save rather than once per tick.
         this.dataEntities().persist();
 
-        const changed = Array.from(this.chunks.values()).filter((chunk) => chunk.getHasChanged());
+        const entityChunks = new Set(this.entityChunkIndices.values());
+        const changed = Array.from(this.chunks.values()).filter(
+            (chunk) => chunk.getHasChanged() || entityChunks.has(Chunk.packXZ(chunk.getX(), chunk.getZ()))
+        );
         for (let i = 0; i < changed.length; i += SAVE_BATCH_SIZE) {
             for (const chunk of changed.slice(i, i + SAVE_BATCH_SIZE)) await this.provider.writeChunk(chunk);
 
@@ -2131,7 +2275,7 @@ export class World implements Service {
     }
 
     /**
-     * Runs one pass once the pass before it has finished.
+     * Runs one world or chunk write once the write before it has finished.
      *
      * Two passes over the same chunks at once would race on `Chunk.markSaved`. The one that
      * finished second would clear the flag for a write the other had not made yet, and that
@@ -2143,7 +2287,7 @@ export class World implements Service {
      * never rejects, so waiting for a predecessor cannot fail on its behalf. The pass's own
      * failure still reaches whoever awaited this.
      */
-    private async enqueueSave(): Promise<void> {
+    private async enqueueSave(write: () => Promise<void> = () => this.write()): Promise<void> {
         const previous = this.saving;
 
         let finished!: () => void;
@@ -2156,7 +2300,7 @@ export class World implements Service {
 
         try {
             await previous;
-            await this.write();
+            await write();
         } finally {
             // Only when nothing has queued behind this, so the last pass in a chain is the one
             // that clears the slot.

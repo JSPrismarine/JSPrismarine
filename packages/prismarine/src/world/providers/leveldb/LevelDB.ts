@@ -49,6 +49,8 @@ const DATABASE_DIRECTORY = 'db';
  * world made in the game opens here.
  */
 export default class LevelDB extends BaseProvider {
+    public readonly supportsChunkUnload = true;
+
     private database: Database | null = null;
 
     public constructor(folderPath: string, server: Server) {

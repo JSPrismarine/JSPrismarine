@@ -26,6 +26,9 @@ const GROUND_PROBE = 0.01;
  */
 const PICKUP_DELAY = 10;
 
+/** How long a dropped stack stays in the world, matching Java's five-minute item age. */
+const DESPAWN_AGE = 6000;
+
 /** How near a player has to be, in blocks, to take an item. */
 const PICKUP_RANGE = 1.5;
 
@@ -68,18 +71,26 @@ export class Item extends Entity {
 
     public constructor({
         item,
+        age = 0,
         ...options
     }: ConstructorParameters<typeof Entity>[0] & {
         item?: ContainerEntry;
+        age?: number;
     }) {
         super(options);
 
         this.item = item;
+        this.age = age;
     }
 
     /** What this entity is on the ground: the stack a player picks up. */
     public getItem(): ContainerEntry | undefined {
         return this.item;
+    }
+
+    /** The number of ticks this dropped stack has spent in a loaded chunk. */
+    public getAge(): number {
+        return this.age;
     }
 
     /**
@@ -112,6 +123,11 @@ export class Item extends Entity {
         if (this.taken) return;
 
         this.age++;
+        if (this.age >= DESPAWN_AGE) {
+            await this.getWorld().removeEntity(this);
+            return;
+        }
+
         await this.fall();
         await this.tryMerge();
         await this.tryPickup();

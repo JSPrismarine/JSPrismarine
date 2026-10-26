@@ -1,8 +1,12 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
 
+import ContainerEntry from '../inventory/ContainerEntry';
+import { restoredItem, storedItem } from '../inventory/persistence';
+import type { StoredItemStack } from '../inventory/persistence';
 import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
+import { Item } from './other/Item';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -38,10 +42,18 @@ export class EntitySerializer {
 
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
         const modeled = writtenEntities().get(identifier);
+        const options = { position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 };
 
-        const entity = modeled
-            ? new modeled({ position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 })
-            : new GenericEntity({ identifier, position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 });
+        const entity =
+            identifier === Item.MOB_ID
+                ? new Item({
+                      ...options,
+                      age: nbt.getShort('Age', 0),
+                      ...itemEntryFrom(nbt, world)
+                  })
+                : modeled
+                  ? new modeled(options)
+                  : new GenericEntity({ identifier, ...options });
 
         entity.persistentNbt = remainder(nbt);
         return entity;
@@ -55,6 +67,22 @@ export class EntitySerializer {
         nbt.addValue('Pos', floats([position.getX(), position.getY(), position.getZ()]));
         nbt.addValue('Rotation', floats([entity.yaw, entity.pitch]));
 
+        if (entity instanceof Item) {
+            nbt.addValue('Age', new Types.ShortVal(entity.getAge()));
+            const entry = entity.getItem();
+            const stack = entry === undefined ? null : storedItem(entry.getItem(), entry.getCount());
+            if (stack === null) {
+                nbt.remove('Item');
+            } else {
+                const itemNbt = new NBTTagCompound('Item');
+                itemNbt.addValue('Name', new Types.StringVal(stack.name));
+                itemNbt.addValue('Count', new Types.ByteVal(stack.count));
+                itemNbt.addValue('Damage', new Types.ShortVal(stack.meta ?? 0));
+                itemNbt.addValue('JSPStack', new Types.StringVal(JSON.stringify(stack)));
+                nbt.addValue('Item', itemNbt);
+            }
+        }
+
         // Left as they were found when the entity came from disk, and given sane values when it
         // did not - the server does not model any of these yet, and inventing them would be worse
         // than carrying forward what the file said.
@@ -67,6 +95,63 @@ export class EntitySerializer {
         return nbt;
     }
 }
+
+/** Restores the stack in an item actor, including this server's item components. */
+const itemEntryFrom = (nbt: NBTTagCompound, world: World): { item?: ContainerEntry } => {
+    const stack = restoredItem(itemStackFrom(nbt), world.getServer().getContent());
+    return stack === null ? {} : { item: new ContainerEntry({ item: stack, count: stack.getAmount() }) };
+};
+
+/** Reads the dropped stack from this server's saved form or the basic Bedrock item fields. */
+const itemStackFrom = (nbt: NBTTagCompound): StoredItemStack | null => {
+    const item = nbt.getCompound('Item', false);
+    if (item === null) return null;
+
+    const encoded = item.getString('JSPStack', '');
+    if (encoded.length > 0) {
+        try {
+            const parsed: unknown = JSON.parse(encoded);
+            if (isStoredItemStack(parsed)) return parsed;
+        } catch {
+            // An invalid server extension does not hide a stack's standard item name and count.
+        }
+    }
+
+    const name = item.getString('Name', '');
+    const count = item.getByte('Count', 0);
+    if (name.length === 0 || count <= 0) return null;
+
+    return { name, count, meta: item.getShort('Damage', 0) };
+};
+
+/** Checks JSON read from actor NBT before giving it to the inventory restore path. */
+const isStoredItemStack = (value: unknown): value is StoredItemStack => {
+    if (!isRecord(value)) return false;
+    if (typeof value.name !== 'string' || typeof value.count !== 'number' || !Number.isInteger(value.count))
+        return false;
+    if (value.meta !== undefined && typeof value.meta !== 'number') return false;
+    if (value.damage !== undefined && typeof value.damage !== 'number') return false;
+    if (value.customName !== undefined && typeof value.customName !== 'string') return false;
+    if (
+        value.lore !== undefined &&
+        (!Array.isArray(value.lore) || !value.lore.every((line) => typeof line === 'string'))
+    )
+        return false;
+    if (value.enchantments !== undefined) {
+        if (!isRecord(value.enchantments)) return false;
+        if (!Object.values(value.enchantments).every((level) => typeof level === 'number')) return false;
+    }
+    if (value.contents !== undefined) {
+        if (!Array.isArray(value.contents) || !value.contents.every((slot) => slot === null || isStoredItemStack(slot)))
+            return false;
+    }
+
+    return value.name.length > 0 && value.count > 0;
+};
+
+/** Whether a JSON value has named fields. */
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
 
 /** Everything except the tags {@link EntitySerializer} writes back itself. */
 const remainder = (nbt: NBTTagCompound): NBTTagCompound => {

@@ -94,6 +94,7 @@ export interface LiveBodiesOptions {
 /** One live body per data-driven entity, kept in step with it. */
 export class LiveBodies {
     private readonly bodies = new Map<number, Entity>();
+    private readonly idsByBody = new Map<Entity, number>();
     /** The health last written onto each body, which is how a legacy blow is noticed. */
     private readonly written = new Map<number, number>();
     /** The property values last sent for each body. */
@@ -164,6 +165,7 @@ export class LiveBodies {
         this.writeEquipment(entity, body);
 
         this.bodies.set(entity.id, body);
+        this.idsByBody.set(body, entity.id);
         this.synced.set(entity.id, body.getSyncedProperties());
         void world.addEntity(body).catch((error: unknown) => this.failed('add', error));
     }
@@ -174,11 +176,26 @@ export class LiveBodies {
         this.bodies.delete(entity.id);
         this.written.delete(entity.id);
         this.synced.delete(entity.id);
+        this.equipped.delete(entity.id);
         if (body === undefined) return;
+        this.idsByBody.delete(body);
 
         const world = this.options.world();
         if (world === undefined) return;
         void world.removeEntity(body).catch((error: unknown) => this.failed('remove', error));
+    }
+
+    /** Takes a body out of the indexes before its runtime entity is suspended for chunk unload. */
+    public detach(body: Entity): number | undefined {
+        const id = this.idsByBody.get(body);
+        if (id === undefined) return undefined;
+
+        this.idsByBody.delete(body);
+        this.bodies.delete(id);
+        this.written.delete(id);
+        this.synced.delete(id);
+        this.equipped.delete(id);
+        return id;
     }
 
     /**
@@ -236,8 +253,10 @@ export class LiveBodies {
     /** Forgets every body, for a world that is closing. */
     public clear(): void {
         this.bodies.clear();
+        this.idsByBody.clear();
         this.written.clear();
         this.synced.clear();
+        this.equipped.clear();
     }
 
     /**
