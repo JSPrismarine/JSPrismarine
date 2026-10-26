@@ -39,7 +39,7 @@ describe('config', () => {
         it('should have the default worlds', () => {
             expect(config.getWorlds()).toEqual({
                 world: {
-                    generator: 'Flat',
+                    generator: 'Overworld',
                     provider: 'LevelDB',
                     // A string, because the seed is 64 bits and a JSON number is a double.
                     seed: expect.stringMatching(/^-?\d+$/)
@@ -63,8 +63,8 @@ describe('config', () => {
             expect(config.getViewDistance()).toBe(10);
         });
 
-        it('should have online mode disabled by default', () => {
-            expect(config.getOnlineMode()).toBe(false);
+        it('should have online mode enabled by default', () => {
+            expect(config.getOnlineMode()).toBe(true);
         });
 
         it('should have the default packet compression level', () => {
@@ -210,10 +210,10 @@ describe('config', () => {
             expect(config.getMotd()).toBe('Another JSPrismarine server!');
             expect(config.getMaxPlayers()).toBe(20);
             expect(config.getViewDistance()).toBe(10);
-            expect(config.getOnlineMode()).toBe(false);
+            expect(config.getOnlineMode()).toBe(true);
             expect(config.getPacketCompressionLevel()).toBe(7);
             expect(config.getWorlds()).toEqual({
-                world: { generator: 'Flat', provider: 'LevelDB', seed: expect.stringMatching(/^-?\d+$/) }
+                world: { generator: 'Overworld', provider: 'LevelDB', seed: expect.stringMatching(/^-?\d+$/) }
             });
         });
 
