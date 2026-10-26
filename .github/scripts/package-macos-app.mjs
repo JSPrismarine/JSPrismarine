@@ -9,6 +9,7 @@ const [binaryPath, architecture] = process.argv.slice(2);
 if (!binaryPath || !['arm64', 'x64'].includes(architecture)) {
     throw new Error('Usage: node .github/scripts/package-macos-app.mjs <binary-path> <arm64|x64>');
 }
+const clangArchitecture = architecture === 'x64' ? 'x86_64' : 'arm64';
 
 const bundleName = `JSPrismarine-${architecture}.app`;
 const outputDirectory = path.dirname(path.resolve(repositoryRoot, binaryPath));
@@ -17,11 +18,14 @@ const contentsPath = path.join(bundlePath, 'Contents');
 const macOSPath = path.join(contentsPath, 'MacOS');
 const resourcesPath = path.join(contentsPath, 'Resources');
 const executablePath = path.join(macOSPath, 'prismarine');
+const appExecutablePath = path.join(macOSPath, 'JSPrismarine');
+const appCommandPath = path.join(resourcesPath, 'JSPrismarine.command');
 const iconPath = path.join(resourcesPath, 'icon.icns');
 const iconsetPath = mkdtempSync(path.join(os.tmpdir(), 'jsprismarine-icon-'));
 const temporaryIconsetPath = path.join(iconsetPath, 'icon.iconset');
 const sourceIconPath = path.join(repositoryRoot, '.github/assets/icon.png');
 const entitlementsPath = path.join(repositoryRoot, '.github/assets/entitlements.plist');
+const launcherSourcePath = path.join(repositoryRoot, '.github/scripts/macos-app-launcher.m');
 const sourceBinaryPath = path.resolve(repositoryRoot, binaryPath);
 const zipPath = path.join(outputDirectory, `${bundleName}.zip`);
 const signArguments = ['--deep', '--force', '-vvvv', '--sign', '-', '--entitlements', entitlementsPath];
@@ -36,6 +40,36 @@ execFileSync('codesign', [...signArguments, sourceBinaryPath], { stdio: 'inherit
 execFileSync('codesign', ['-vvv', '--verify', sourceBinaryPath], { stdio: 'inherit' });
 copyFileSync(sourceBinaryPath, executablePath);
 chmodSync(executablePath, 0o755);
+execFileSync(
+    'clang',
+    [
+        '-arch',
+        clangArchitecture,
+        '-mmacosx-version-min=10.13',
+        '-fobjc-arc',
+        '-framework',
+        'Foundation',
+        launcherSourcePath,
+        '-o',
+        appExecutablePath
+    ],
+    { stdio: 'inherit' }
+);
+chmodSync(appExecutablePath, 0o755);
+
+writeFileSync(
+    appCommandPath,
+    `#!/bin/bash
+set -e
+
+app_path="$(cd "$(dirname "$0")/../.." && pwd -P)"
+data_directory="\${HOME}/JSPrismarine"
+mkdir -p "$data_directory"
+cd "$data_directory"
+exec "$app_path/Contents/MacOS/prismarine" "$@"
+`
+);
+chmodSync(appCommandPath, 0o755);
 
 const iconSizes = [
     ['icon_16x16.png', 16],
@@ -72,7 +106,7 @@ const infoPlist = `<?xml version="1.0" encoding="UTF-8"?>
 <dict>
 	<key>CFBundleDevelopmentRegion</key><string>en</string>
 	<key>CFBundleDisplayName</key><string>JSPrismarine</string>
-	<key>CFBundleExecutable</key><string>prismarine</string>
+	<key>CFBundleExecutable</key><string>JSPrismarine</string>
 	<key>CFBundleIconFile</key><string>icon</string>
 	<key>CFBundleIdentifier</key><string>org.jsprismarine.server</string>
 	<key>CFBundleInfoDictionaryVersion</key><string>6.0</string>
@@ -95,8 +129,10 @@ writeFileSync(path.join(contentsPath, 'PkgInfo'), 'APPL????');
 if (statSync(executablePath).size === 0) throw new Error(`Executable is empty: ${binaryPath}`);
 
 execFileSync('codesign', [...signArguments, executablePath], { stdio: 'inherit' });
+execFileSync('codesign', [...signArguments, appExecutablePath], { stdio: 'inherit' });
 execFileSync('codesign', [...signArguments, bundlePath], { stdio: 'inherit' });
 execFileSync('codesign', ['-vvv', '--verify', executablePath], { stdio: 'inherit' });
+execFileSync('codesign', ['-vvv', '--verify', appExecutablePath], { stdio: 'inherit' });
 execFileSync('codesign', ['-vvv', '--verify', bundlePath], { stdio: 'inherit' });
 execFileSync('ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', bundlePath, zipPath], { stdio: 'inherit' });
 

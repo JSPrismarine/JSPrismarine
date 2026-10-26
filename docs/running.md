@@ -43,6 +43,9 @@ a file in any workspace package changes. `pnpm run start` runs the same entry po
 watcher. Both open the terminal UI described in the next section when they can, and fall back to
 the plain line console otherwise.
 
+The macOS app opens Terminal so the server can use its interactive console. Its config, world, and
+log files are stored in `~/JSPrismarine`.
+
 ## 4. Console
 
 The `prismarine` entry point picks one of two console modes at startup.
