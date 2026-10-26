@@ -206,23 +206,18 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();
         let componentCovered = 0;
-        let goalCovered = 0;
-        let fullyCovered = 0;
 
         for (const [, type] of types.registry) {
             for (const name of type.declaredComponents) declared.add(name);
             const missing = type.unimplementedComponents;
-            const missingGoals = missing.filter((name) => name.startsWith('minecraft:behavior.'));
             const missingOthers = missing.filter((name) => !name.startsWith('minecraft:behavior.'));
             if (missingOthers.length === 0) componentCovered += 1;
-            if (missingGoals.length === 0) goalCovered += 1;
-            if (missing.length === 0) fullyCovered += 1;
         }
 
         const goals = [...declared].filter((name) => name.startsWith('minecraft:behavior.'));
         const others = [...declared].filter((name) => !name.startsWith('minecraft:behavior.'));
-        const implementedOthers = others.filter((name) => registry.has(name));
-        const implementedGoals = goals.filter((name) => registry.has(name));
+        const registeredOthers = others.filter((name) => registry.has(name));
+        const unimplementedOthers = others.filter((name) => !registry.has(name)).sort();
 
         const tests = new Set<string>();
         for (const file of files) filterTestsIn(file.data, tests);
@@ -240,24 +235,23 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         process.stdout.write(
             [
                 `entities: ${types.registry.size}`,
-                `non-goal keys in vanilla: ${others.length}, implemented: ${implementedOthers.length}`,
+                `non-goal keys in vanilla: ${others.length}, registered: ${registeredOthers.length}`,
+                `unimplemented non-goal keys: ${unimplementedOthers.join(', ')}`,
                 `non-goal keys that carry behavior: ${withBehavior.length}`,
-                `goals in vanilla: ${goals.length}, implemented: ${implementedGoals.length}`,
-                `entities with every non-goal component implemented: ${componentCovered}`,
-                `entities with every goal implemented: ${goalCovered}`,
-                `entities fully covered: ${fullyCovered}`,
+                `goal names in vanilla: ${goals.length} (registration is checked by @jsprismarine/entity-goals)`,
+                `entities with every non-goal component registered: ${componentCovered}`,
                 `filter tests in vanilla: ${tests.size}, implemented: ${implementedTests.length}`,
                 ''
             ].join('\n')
         );
 
         // The research note measures that the 140 most used non-goal keys
-        // cover 88 of the 129 entities. This package implements every key two
+        // cover 88 of the 129 entities. This package registers every key two
         // or more entities use, 157 of the 202, which covers 102, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(implementedOthers.length).toBeGreaterThanOrEqual(157);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(157);
         expect(withBehavior).toHaveLength(38);
         expect(componentCovered).toBeGreaterThanOrEqual(102);
         expect(tests.size).toBe(86);

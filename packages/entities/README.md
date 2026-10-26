@@ -234,9 +234,9 @@ parsed structurally. `minecraft:type_family` and the integer state components ar
 reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
 with no caller view.
 
-The line the package draws is every non-goal key that two or more of the 129 vanilla entities use.
-The 45 keys exactly one entity uses stay unregistered on purpose, so loading the vanilla pack names
-them in the report instead of silently doing nothing.
+Forty-five non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
+prints each name, and the loader reports them instead of silently doing nothing; each is an
+outstanding coverage gap.
 
 ## Measured coverage
 
@@ -248,12 +248,11 @@ test in `src/vanillaEntities.test.ts`:
 | Entity definitions composed | 129 |
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
-| Non-goal component keys in vanilla | 202, of which 157 are implemented |
+| Non-goal component keys in vanilla | 202, of which 157 are registered |
 | Non-goal keys that carry behavior rather than data | 38 |
-| Entities whose every non-goal component is implemented | 102 of 129 |
-| Goals in vanilla | 170, of which 3 are implemented |
-| Entities whose every goal is implemented | 38 of 129 |
-| Entities fully covered, components and goals | 33 of 129 |
+| Entities whose every non-goal component is registered | 102 of 129 |
+| Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
+| Entities that declare goals | 92 of 129; all their goal names are registered |
 | Filter tests the documentation lists | 107, all implemented |
 | Filter tests vanilla uses | 86, all implemented |
 | Event action keys vanilla uses | 8, all carried out; 56 uses |
@@ -305,10 +304,9 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
 
 ## What a later agent adds
 
-- **Goals.** 167 of the 170. 30 of Java's 67 goal class names match a Bedrock `minecraft:behavior.*`
-  name after snake-casing, so the goal mobs port; the 20 Java brain mobs have no data expression in
-  either format and need a second mechanism written against Java's memory, sensor and activity
-  model.
+- **Goal parity.** All 170 vanilla goal names have registered factories, and the totality test keeps
+  that inventory complete. The remaining work is validating each goal's world effects and timing
+  against its game behavior.
 - **Spawn rules.** The 21 spawn-rule components, the population pools and the herd placement. The
   filter evaluator and `spawnEventFor` already take the `initial_event`, `event` and `permute_type`
   names a spawn rule hands over.
@@ -325,4 +323,4 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
 - **The components that still parse as data.** `minecraft:breedable`, `minecraft:tameable`,
   `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`, `minecraft:explode`,
   `minecraft:healable` and the rest need items, interaction and a world to act on. The load report
-  and `EntityType.unimplementedComponents` keep naming the 45 keys that are not registered at all.
+  and `EntityType.unimplementedComponents` name the 45 non-goal keys that remain unregistered.

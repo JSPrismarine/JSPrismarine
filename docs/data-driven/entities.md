@@ -172,10 +172,10 @@ README lists each one and what it does.
 flavors build the path finder's profile, `minecraft:explode` detonates a creeper,
 `minecraft:rideable` seats riders, and the two trade-table components build a merchant.
 
-45 keys are left unregistered on purpose. Each is used by exactly one vanilla entity, such as the
-enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
-`minecraft:anger_level`, and leaving them out means the load report names them instead of the
-server quietly doing nothing.
+Forty-five non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
+the enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
+`minecraft:anger_level`. They are gaps in entity coverage; the load report names them instead of
+the server quietly doing nothing. The entities corpus test lists the current set.
 
 If your pack uses a component the server does not implement, you find out two ways. The pack load
 writes one `component.unknown` warning per unregistered name, which reaches the server log and
@@ -234,9 +234,11 @@ looking at a world fact this server does not track yet, and the report names the
 ## Goals
 
 A goal is a component carrying a `priority` and optional `control_flags`, and all 170
-`minecraft:behavior.*` names vanilla uses have an implementation.
+`minecraft:behavior.*` names vanilla uses have a registered factory in `@jsprismarine/entity-goals`.
 `packages/entity-goals/src/totality.test.ts` fails if a name in the generated goal inventory has no
-registered factory, so the number cannot drift without the build noticing.
+registered factory, so the number cannot drift without the build noticing. Ninety-two vanilla
+entities declare at least one goal, and every goal name they declare is registered; the other 37
+definitions have no goals.
 
 The scheduler is the documented one. Priority 0 is the highest. Each tick it stops every running
 goal that can no longer continue, then walks the registered goals upward from 0 and starts each one
