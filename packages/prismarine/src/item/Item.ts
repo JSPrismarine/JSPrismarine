@@ -130,6 +130,10 @@ export class Item {
      * The inventory packets write it, so that a client and the server name a stack by the same
      * number in an `ItemStackRequest` and in its answer. A stack read off the wire keeps the id
      * it came with.
+     *
+     * Ids are counted per player by `HumanInventory.assignStackNetworkId`. A stack keeps its id
+     * when it moves whole or changes size through {@link Item.withCount}; every other copy starts
+     * without one, and so does a part split off a stack.
      */
     public stackNetworkId = 0;
 
@@ -401,11 +405,17 @@ export class Item {
      * the contents and the content the stack reads its components from. A slot that changes
      * size goes through here, because the wire writes the item's count and not the slot's.
      *
+     * The stack network id comes along too, because a stack that grows or shrinks is still the
+     * stack the client knows: a Bedrock Dedicated Server 1.26.52 keeps the id on what is left
+     * of a stack and on a stack merged onto. A part split off is a new stack, and the caller
+     * clears the id on it.
+     *
      * @param count - How many the copy holds. Set after construction, so zero stays zero.
      */
     public withCount(count: number): Item {
         const copy = this.copyWith({});
         copy.count = count;
+        copy.stackNetworkId = this.stackNetworkId;
         return copy;
     }
 

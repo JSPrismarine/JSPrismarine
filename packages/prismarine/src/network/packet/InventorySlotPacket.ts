@@ -7,11 +7,8 @@ import DataPacket from './DataPacket';
  * One slot of one container, changed.
  *
  * The counterpart to `InventoryContentPacket` for a single slot, and the only way to tell a
- * client about a slot it did not ask about. An `ItemStackResponse` can only answer for the
- * slots the request named: crafting spends the grid, and the actions a client sends for a
- * craft - `CraftingRecipe`, `CraftingResultsDeprecated`, `Take` - name no grid slot at all,
- * so the answer had nowhere to say the ingredients were gone. The log stayed on screen and
- * could be crafted from for ever, while the server had already spent it.
+ * client about a slot it did not ask about. An `ItemStackResponse` only reaches the client that
+ * sent the request, so another player with the same chest open learns of a change through this.
  *
  * Wire order at protocol 2193: `Container Id` (varuint32, despite the docs page typing it as
  * a uint8 - gophertunnel and PocketMine both read a varuint here), `Slot` (varuint32),
@@ -56,7 +53,7 @@ export default class InventorySlotPacket extends DataPacket {
 
         // Air is a whole item instance - eight bytes - not a bare zero. Writing one byte here
         // ended the packet seven bytes early, which a real client reads as a malformed packet
-        // and hangs up on; this fires on every craft, where a spent grid slot is emptied.
+        // and hangs up on.
         //
         // A stack goes out with the id the client will name it by, when it has one.
         if (this.item) this.item.networkSerialize(this, this.item.stackNetworkId > 0 ? this.item.stackNetworkId : null);

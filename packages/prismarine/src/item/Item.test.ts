@@ -50,4 +50,14 @@ describe('Item.withCount', () => {
         expect(stone.getAmount()).toBe(10);
         expect(stone.withCount(0).getAmount()).toBe(0);
     });
+
+    it('keeps the stack network id, which no other copy does', () => {
+        // A stack that grows or shrinks is still the stack the client knows by that id.
+        const stone = new Item({ name: 'minecraft:stone', count: 10 });
+        stone.stackNetworkId = 7;
+
+        expect(stone.withCount(4).stackNetworkId).toBe(7);
+        expect(stone.withDisplay('Rock').stackNetworkId).toBe(0);
+        expect(stone.withEnchantments({ 'minecraft:efficiency': 1 }).stackNetworkId).toBe(0);
+    });
 });

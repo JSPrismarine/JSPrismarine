@@ -154,8 +154,7 @@ const scene = (open: OpenBlockContainer) => {
     const session: PlayerSession = stub<PlayerSession>({
         getPlayer: () => player,
         getOpenBlockContainer: () => open,
-        send: async (packet: DataPacket) => void sent.push(packet),
-        sendCraftingSlot: async () => {}
+        send: async (packet: DataPacket) => void sent.push(packet)
     });
 
     attributes.setValue(AttributeIds.PlayerLevel, 30);

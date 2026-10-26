@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { BlockState } from '../block/state/BlockState';
 import type { Entity } from '../entity/Entity';
+import { Item as ItemEntity } from '../entity/other/Item';
 import { Item } from '../item/Item';
 import { NetworkWorldReplicator } from '../network/NetworkWorldReplicator';
 import AddItemActorPacket from '../network/packet/AddItemActorPacket';
@@ -217,6 +218,23 @@ describe('world', () => {
             ]);
 
             expect(entities.size).toBe(0);
+        });
+
+        it('puts a stack on the ground without the stack network id it had', async () => {
+            // Ids are counted per player, so one carried onto the ground could name another of
+            // the stacks of whoever picks it up.
+            const { world, entities } = emptyWorld();
+            const held = new Item({ name: 'minecraft:cobblestone', count: 3 });
+            held.stackNetworkId = 9;
+
+            await world.dropContents(new Vector3(10, 64, -20), [held]);
+
+            const [dropped] = entities.values();
+            if (!(dropped instanceof ItemEntity)) throw new Error('no item entity was added');
+            expect(dropped.getItem()?.getItem().stackNetworkId).toBe(0);
+            expect(dropped.getItem()?.getItem().getAmount()).toBe(3);
+            // A copy: the stack the caller still holds keeps its id.
+            expect(held.stackNetworkId).toBe(9);
         });
 
         it('drops nothing in creative, where breaking is not mining', async () => {

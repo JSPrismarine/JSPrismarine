@@ -761,6 +761,8 @@ export default class PlayerSession {
      */
     public async sendInventory(windowId: number = WindowIds.INVENTORY): Promise<void> {
         const inventory = this.player.getInventory();
+        // Every stack goes out with the id the client will name it by in its requests.
+        inventory.assignStackNetworkIds();
 
         const pk = new InventoryContentPacket();
         pk.items = inventory.getItems(true);
@@ -786,31 +788,9 @@ export default class PlayerSession {
     }
 
     /**
-     * Tells the client what one slot of its crafting grid now holds.
-     *
-     * The grid lives in the player's own UI window rather than in the inventory, and an
-     * `ItemStackResponse` can only answer about slots the request named. A craft names none
-     * of them - the client sends `CraftingRecipe`, `CraftingResultsDeprecated` and `Take`,
-     * and no slot of the grid among them - so this is the only way to say the ingredients
-     * have been spent. Without it the log stayed on screen and could be crafted from for
-     * ever, while the server had already taken it.
-     * @param {number} wireSlot - the slot in the client's numbering, 28 upwards.
-     * @param {Item | null} item - what is there now, or `null` to empty it.
-     */
-    public async sendCraftingSlot(wireSlot: number, item: Item | null): Promise<void> {
-        const packet = new InventorySlotPacket();
-        packet.windowId = WindowIds.PLAYER_ONLY_UI;
-        packet.inventorySlot = wireSlot;
-        packet.item = item;
-
-        await this.connection.sendDataPacket(packet);
-    }
-
-    /**
      * Tells this client that one slot of a container it has open now holds something else.
      *
-     * The counterpart to {@link PlayerSession.sendCraftingSlot} for a block's own slots. An
-     * `ItemStackResponse` only ever reaches the client that sent the request, so this is the
+     * An `ItemStackResponse` only ever reaches the client that sent the request, so this is the
      * only way to tell the other players standing at the same chest that a stack has gone.
      *
      * @param windowId - The `Container Id` this client opened the block under, which is its own.

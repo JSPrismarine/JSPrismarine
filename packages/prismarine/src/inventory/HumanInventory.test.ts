@@ -24,6 +24,44 @@ describe('inventory', () => {
             expect(inventory.getItemInHand().getName()).toBe('minecraft:dirt');
         });
 
+        describe('stack network ids', () => {
+            it('counts per player, and leaves a stack its id', () => {
+                const first = new HumanInventory();
+                const second = new HumanInventory();
+                const stone = new Item({ name: 'minecraft:stone' });
+                const dirt = new Item({ name: 'minecraft:dirt' });
+
+                expect(first.assignStackNetworkId(stone)).toBe(1);
+                expect(first.assignStackNetworkId(dirt)).toBe(2);
+                expect(first.assignStackNetworkId(stone)).toBe(1);
+                // Another player's count starts on its own.
+                expect(second.assignStackNetworkId(new Item({ name: 'minecraft:stone' }))).toBe(1);
+            });
+
+            it('gives air none', () => {
+                expect(new HumanInventory().assignStackNetworkId(Item.air())).toBe(0);
+            });
+
+            it('gives every stack the player holds one, the ender chest included', () => {
+                const inventory = new HumanInventory();
+                const stone = new Item({ name: 'minecraft:stone' });
+                const helmet = new Item({ name: 'minecraft:iron_helmet' });
+                const shield = new Item({ name: 'minecraft:shield' });
+                const diamond = new Item({ name: 'minecraft:diamond' });
+                const torch = new Item({ name: 'minecraft:torch' });
+                inventory.setItem(4, new ContainerEntry({ item: stone, count: 1 }));
+                inventory.getArmor().setItem(0, new ContainerEntry({ item: helmet, count: 1 }));
+                inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
+                inventory.getEnderChest().setItem(13, new ContainerEntry({ item: diamond, count: 1 }));
+                inventory.setCursor(torch);
+
+                inventory.assignStackNetworkIds();
+
+                const held = [stone, helmet, shield, diamond, torch];
+                expect(new Set(held.map((item) => item.stackNetworkId))).toEqual(new Set([1, 2, 3, 4, 5]));
+            });
+        });
+
         it('ignores a slot outside the hotbar', () => {
             // The slot arrives off the wire, so it is not to be trusted as an index.
             const inventory = new HumanInventory();

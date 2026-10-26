@@ -126,6 +126,29 @@ describe('network', () => {
                 expect(armor.items.map((entry) => entry.getItem().getName())).toContain('minecraft:diamond_chestplate');
             });
 
+            it('sends every stack with a stack network id of its own', async () => {
+                // The client names stacks by these ids in its requests, and BDS sends one with
+                // every stack it lists.
+                const { session, sent } = ownSession();
+                const inventory = session.getPlayer().getInventory();
+                inventory.setItem(
+                    3,
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 9 }), count: 9 })
+                );
+
+                await session.sendInventory();
+
+                const ids = sent
+                    .filter((packet) => packet instanceof InventoryContentPacket)
+                    .flatMap((packet) => packet.items.map((entry) => entry.getItem()))
+                    .filter((item) => item.getName() !== 'minecraft:air')
+                    .map((item) => item.stackNetworkId);
+                // The stone, and the chestplate in the armor window.
+                expect(ids).toHaveLength(2);
+                expect(ids.every((id) => id > 0)).toBe(true);
+                expect(new Set(ids).size).toBe(ids.length);
+            });
+
             it('sends the held item as equipment in the inventory window', async () => {
                 const { session, sent } = ownSession();
                 const inventory = session.getPlayer().getInventory();

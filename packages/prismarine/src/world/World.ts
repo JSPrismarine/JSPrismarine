@@ -2025,10 +2025,19 @@ export class World implements Service {
             return;
         }
 
+        // Without the stack network id it had in a player's inventory. Ids are counted per
+        // player, so whoever picks the stack up gives it one of their own; carried along, it
+        // could name another of their stacks as well.
+        let grounded = item;
+        if (item.stackNetworkId !== 0) {
+            grounded = item.withCount(item.getAmount());
+            grounded.stackNetworkId = 0;
+        }
+
         // Built where it lands, so nothing has to be moved into place afterwards and no
         // client is told about a position the entity never actually held.
         const entity = new ItemEntity({
-            item: new ContainerEntry({ item, count: item.getAmount() }),
+            item: new ContainerEntry({ item: grounded, count: grounded.getAmount() }),
             position: Position.fromVector3(position, this)
         });
 

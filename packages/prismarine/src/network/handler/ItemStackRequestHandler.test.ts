@@ -48,6 +48,13 @@ const tableSlot = (index: number): ItemStackRequestSlotInfo => ({
     stackNetId: 0
 });
 
+/** Where a craft or a creative pick puts what it made, before a step moves it; the client numbers it 50. */
+const createdOutput: ItemStackRequestSlotInfo = {
+    container: { containerId: ContainerUiId.CREATED_OUTPUT, dynamicId: null },
+    slotId: 50,
+    stackNetId: 0
+};
+
 const slot = (slotId: number, containerId = ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY): ItemStackRequestSlotInfo => ({
     container: { containerId, dynamicId: null },
     slotId,
@@ -86,7 +93,6 @@ const run = async (
     options: { open?: OpenBlockContainer; player?: Player } = {}
 ) => {
     const sent: DataPacket[] = [];
-    const craftingSlots: Array<{ slot: number; item: string }> = [];
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => options.open,
         getPlayer: () =>
@@ -98,10 +104,7 @@ const run = async (
                 // server whether any content is loaded. These doubles load none.
                 getServer: () => server
             }),
-        send: async (packet) => void sent.push(packet),
-        // The grid lives in the player's UI window, and an `ItemStackResponse` can only answer
-        // about slots the request named - a craft names none of them.
-        sendCraftingSlot: async (slot, item) => void craftingSlots.push({ slot, item: item?.getName() ?? 'air' })
+        send: async (packet) => void sent.push(packet)
     });
 
     await new ItemStackRequestHandler().handle(
@@ -113,7 +116,7 @@ const run = async (
     const response = sent.find((pk): pk is ItemStackResponsePacket => pk instanceof ItemStackResponsePacket);
     if (!response) throw new Error('no ItemStackResponsePacket was sent');
 
-    return Object.assign(response, { craftingSlots });
+    return response;
 };
 
 describe('network', () => {
@@ -466,10 +469,12 @@ describe('network', () => {
                             { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId: 1, repetitions: 1 },
                             { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(0) },
                             { type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT, count: 1, source: craftSlot(1) },
+                            // The result is taken from the created output, as the retail client
+                            // does it at 1.26.52.
                             {
                                 type: ItemStackRequestActionType.PLACE,
                                 count: 1,
-                                source: craftSlot(0),
+                                source: createdOutput,
                                 destination: slot(0)
                             }
                         ],
@@ -524,7 +529,7 @@ describe('network', () => {
                                 {
                                     type: ItemStackRequestActionType.PLACE,
                                     count: 1,
-                                    source: craftSlot(0),
+                                    source: createdOutput,
                                     destination: slot(0)
                                 }
                             ],
@@ -566,6 +571,204 @@ describe('network', () => {
                 );
                 expect(answered?.slots[0]?.count).toBe(2);
             });
+        });
+
+        describe('paying for a craft', () => {
+            /** A server that knows one recipe: two planks side by side make four sticks. */
+            const sticksServer = async () => {
+                const recipe = new ShapelessRecipe(
+                    'sticks',
+                    'crafting_table',
+                    [new ItemIngredient('minecraft:oak_planks'), new ItemIngredient('minecraft:oak_planks')],
+                    [new Item({ name: 'minecraft:stick', count: 4 })]
+                );
+                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
+                await manager.registerRecipe(recipe);
+                const registry = new StationRegistry();
+                const server = stub<Server>({
+                    getRecipeManager: () => manager,
+                    getStationRegistry: () => registry,
+                    getLogger: () => stub<Logger>({ debug: () => {} }),
+                    getContent: () => testContent()
+                });
+                registry.registerRecipeStations(server);
+                return server;
+            };
+
+            /** A grid holding `count` planks in each of its first two slots. */
+            const planksGrid = (count: number) => {
+                const craftingInput = new CraftingInput();
+                craftingInput.set(0, new Item({ name: 'minecraft:oak_planks', count }));
+                craftingInput.set(1, new Item({ name: 'minecraft:oak_planks', count }));
+                return craftingInput;
+            };
+
+            const craft = (
+                type: ItemStackRequestActionType,
+                repetitions: number,
+                spent: Array<{ slot: number; count: number }>,
+                taken: number
+            ): ItemStackRequest => ({
+                requestId: -3,
+                actions: [
+                    { type, recipeNetId: 1, repetitions },
+                    ...spent.map(({ slot: index, count }) => ({
+                        type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                        count,
+                        source: craftSlot(index)
+                    })),
+                    {
+                        type: ItemStackRequestActionType.PLACE,
+                        count: taken,
+                        source: createdOutput,
+                        destination: slot(0)
+                    }
+                ],
+                filterStrings: [],
+                filterStringCause: 0
+            });
+
+            it('refuses a craft whose steps spend less than it costs', async () => {
+                // The steps say what is spent, so a client naming one slot of two would have had
+                // four sticks for one plank.
+                const craftingInput = planksGrid(1);
+                const inventory = new HumanInventory();
+
+                const response = await run(
+                    [craft(ItemStackRequestActionType.CRAFTING_RECIPE, 1, [{ slot: 0, count: 1 }], 4)],
+                    inventory,
+                    await sticksServer(),
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+                expect(craftingInput.get(0)?.getAmount()).toBe(1);
+                expect(craftingInput.get(1)?.getAmount()).toBe(1);
+                expect(inventory.getItem(0).getName()).toBe('minecraft:air');
+            });
+
+            it('crafts as many as an automatic craft repeats, and spends that many', async () => {
+                const craftingInput = planksGrid(3);
+                const inventory = new HumanInventory();
+
+                const response = await run(
+                    [
+                        craft(
+                            ItemStackRequestActionType.CRAFTING_RECIPE_AUTO,
+                            2,
+                            [
+                                { slot: 0, count: 2 },
+                                { slot: 1, count: 2 }
+                            ],
+                            8
+                        )
+                    ],
+                    inventory,
+                    await sticksServer(),
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(inventory.getItem(0).getName()).toBe('minecraft:stick');
+                expect(inventory.getItem(0).getAmount()).toBe(8);
+                expect(craftingInput.get(0)?.getAmount()).toBe(1);
+                expect(craftingInput.get(1)?.getAmount()).toBe(1);
+            });
+
+            it('takes no more out of the created output than the craft made', async () => {
+                // The step's count was believed, so one craft placed as many sticks as it asked for.
+                const inventory = new HumanInventory();
+
+                await run(
+                    [
+                        craft(
+                            ItemStackRequestActionType.CRAFTING_RECIPE,
+                            1,
+                            [
+                                { slot: 0, count: 1 },
+                                { slot: 1, count: 1 }
+                            ],
+                            64
+                        )
+                    ],
+                    inventory,
+                    await sticksServer(),
+                    planksGrid(1)
+                );
+
+                expect(inventory.getItem(0).getAmount()).toBe(4);
+            });
+        });
+
+        it('answers each slot under the container and number the request named', async () => {
+            // The offhand is slot 1 to the client and the one slot of its own container here, and
+            // a hotbar slot is answered as a hotbar slot rather than as the combined inventory.
+            const inventory = new HumanInventory();
+            inventory.setItem(
+                2,
+                new ContainerEntry({ item: new Item({ name: 'minecraft:torch', count: 5 }), count: 5 })
+            );
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 5,
+                                source: slot(2, ContainerUiId.HOTBAR),
+                                destination: slot(1, ContainerUiId.OFFHAND)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(inventory.getOffhand().getItem(0).getName()).toBe('minecraft:torch');
+            expect(
+                response.responses[0]?.containers.map(({ container, slots }) => ({
+                    container: container.containerId,
+                    slots: slots.map(({ slot: at, count }) => ({ at, count }))
+                }))
+            ).toEqual([
+                { container: ContainerUiId.HOTBAR, slots: [{ at: 2, count: 0 }] },
+                { container: ContainerUiId.OFFHAND, slots: [{ at: 1, count: 5 }] }
+            ]);
+        });
+
+        it('puts what is worn back when a later step fails', async () => {
+            const inventory = new HumanInventory();
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ name: 'minecraft:iron_helmet' }), count: 1 }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -5,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: slot(0),
+                                destination: slot(0, ContainerUiId.ARMOR_CONTAINER)
+                            },
+                            { type: ItemStackRequestActionType.CRAFTING_LOOM }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                fakeServer([])
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(inventory.getArmor().isEmpty(0)).toBe(true);
+            expect(inventory.getItem(0).getName()).toBe('minecraft:iron_helmet');
         });
 
         it('refuses a recipe the grid does not actually hold', async () => {
