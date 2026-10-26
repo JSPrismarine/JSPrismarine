@@ -1,12 +1,12 @@
-import { PROTOCOL_VERSION } from '@jsprismarine/console-protocol';
 import type { ConsoleMessage, MessageLink, ServerMessage, SupervisorEvent } from '@jsprismarine/console-protocol';
-import { createCliRenderer } from '@opentui/core';
+import { PROTOCOL_VERSION } from '@jsprismarine/console-protocol';
 import type { CliRenderer, CliRendererConfig } from '@opentui/core';
+import { createCliRenderer } from '@opentui/core';
 import { randomUUID } from 'node:crypto';
 import { join } from 'node:path';
 
-import { createApp } from './app/createApp';
 import type { CommandOutcome } from './app/createApp';
+import { createApp } from './app/createApp';
 import { CommandHistory } from './input/history';
 import type { CompletionResult } from './input/inputBar';
 import { LogStore } from './log/logStore';
@@ -138,7 +138,8 @@ export async function startConsole(options: StartConsoleOptions): Promise<Consol
             consoleMode: 'disabled',
             screenMode: 'alternate-screen',
             openConsoleOnError: false,
-            useMouse: true
+            useMouse: true,
+            experimental_nativeInput: true
         });
     } catch (error) {
         throw new Error(`The console could not start its renderer: ${errorText(error)}`, { cause: error });

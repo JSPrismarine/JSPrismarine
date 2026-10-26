@@ -1,8 +1,8 @@
 import { BoxRenderable, TextRenderable } from '@opentui/core';
 
 import type { ConsoleContext } from '../context';
-import { ToastQueue } from './toastQueue';
 import type { ToastInput } from './toastQueue';
+import { ToastQueue } from './toastQueue';
 
 /**
  * Clock and timer functions the toast stack schedules expiry with. Defaults to the globals;
@@ -83,10 +83,25 @@ export function createToastStack(
                 borderStyle: 'rounded',
                 borderColor: theme[toast.tone],
                 backgroundColor: theme.surface,
+                flexDirection: 'row',
+                alignItems: 'center',
                 paddingLeft: 1,
                 paddingRight: 1
             });
             box.add(new TextRenderable(renderer, { id: `${toast.id}-text`, content: toast.text, fg: theme.text }));
+
+            const close = new TextRenderable(renderer, {
+                id: `${toast.id}-close`,
+                content: ' [x]',
+                fg: theme.danger,
+                onMouseDown(event) {
+                    if (event.button !== 0) return;
+                    event.stopPropagation();
+                    event.preventDefault();
+                    dismissToast(toast.id);
+                }
+            });
+            box.add(close);
             renderable.add(box);
         }
     };
@@ -111,6 +126,12 @@ export function createToastStack(
         );
     };
 
+    function dismissToast(id: string): void {
+        if (!queue.dismiss(id)) return;
+        render();
+        arm();
+    }
+
     return {
         renderable,
         push(toast) {
@@ -120,9 +141,7 @@ export function createToastStack(
             return id;
         },
         dismiss(id) {
-            if (!queue.dismiss(id)) return;
-            render();
-            arm();
+            dismissToast(id);
         },
         clear() {
             queue.clear();
