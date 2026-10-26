@@ -24,7 +24,15 @@ import type { JavaStatSource } from './javaStats';
 import { javaAttributeBases } from './javaStats';
 import type { JavaEntityNavigation } from './javaNavigation';
 import type { EntityAction, EventTarget } from './events';
-import type { DamageEvent, DamageResult, EntityActuator, EntityEffects, EntityHooks, EntityPosition } from './hooks';
+import type {
+    DamageEvent,
+    DamageResult,
+    EntityActuator,
+    EntityEffects,
+    EntityHooks,
+    EntityPosition,
+    EntitySpawnRequest
+} from './hooks';
 import { FIRE_DAMAGE_CAUSES, FREEZING_DAMAGE_CAUSES } from './hooks';
 import { isRideableParams } from './riding';
 import type { PropertyDefinition, PropertyValue } from './properties';
@@ -107,6 +115,8 @@ export interface EntityEnvironment {
     remove?(entity: EntityInstance, reason: string): void;
     /** Replaces the entity with another type, for `minecraft:transformation`. */
     transform?(entity: EntityInstance, request: TransformRequest): void;
+    /** Creates an entity or item requested by a data component. */
+    spawnEntity?(entity: EntityInstance, request: EntitySpawnRequest): boolean;
     /** Receives everything the runtime met and did not carry out. */
     report?(message: string, entity: EntityInstance): void;
     /**
@@ -608,6 +618,20 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
             return;
         }
         this.environment.transform(this, request);
+    }
+
+    /**
+     * Asks the world to create what an active spawn component describes.
+     *
+     * @param request - The entity or item, count, and event the component configured.
+     * @returns Whether the world accepted the request.
+     */
+    public requestSpawn(request: EntitySpawnRequest): boolean {
+        if (this.environment.spawnEntity === undefined) {
+            this.report(`minecraft:spawn_entity asks to create ${request.identifier}, which nothing handles`);
+            return false;
+        }
+        return this.environment.spawnEntity(this, request);
     }
 
     /** Applies one event's effects now, outside the tick loop. */

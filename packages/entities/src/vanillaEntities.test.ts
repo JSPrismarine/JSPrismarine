@@ -258,7 +258,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
         expect(implementedOthers.length).toBeGreaterThanOrEqual(157);
-        expect(withBehavior).toHaveLength(37);
+        expect(withBehavior).toHaveLength(38);
         expect(componentCovered).toBeGreaterThanOrEqual(102);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

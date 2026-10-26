@@ -32,6 +32,7 @@ import {
     physics,
     pushable,
     rideable,
+    spawnEntity,
     timer,
     transformation,
     triggerComponent,
@@ -154,7 +155,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:shooter',
     'minecraft:sittable',
     'minecraft:spawn_egg_interaction',
-    'minecraft:spawn_entity',
     'minecraft:spell_effects',
     'minecraft:strength',
     'minecraft:tameable',
@@ -207,6 +207,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(dataComponent('jsprismarine:falling_block'));
     register(pushable);
     register(rideable);
+    register(spawnEntity);
     register(timer);
     register(transformation);
     register(typeFamily);

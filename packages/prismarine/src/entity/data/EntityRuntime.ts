@@ -22,6 +22,7 @@
 import type {
     EntityActuator,
     EntityPosition,
+    EntitySpawnRequest,
     FilterContext,
     OutgoingTrigger,
     TransformRequest
@@ -397,6 +398,7 @@ export class EntityRuntime implements EntityScene {
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
                 remove: (removed, reason) => this.removeInstance(removed, reason),
                 transform: (from, request) => this.transform(from, request),
+                spawnEntity: (from, request) => this.spawnFromComponent(from, request),
                 route: (trigger, from) => this.route(trigger, from),
                 report: (message) => this.report(`${reference}: ${message}`)
             }
@@ -422,6 +424,43 @@ export class EntityRuntime implements EntityScene {
         }
 
         return entity;
+    }
+
+    /** Creates the child or item requested by an active `minecraft:spawn_entity` component. */
+    private spawnFromComponent(source: EntityInstance, request: EntitySpawnRequest): boolean {
+        const parent = this.byInstance.get(source);
+        if (parent === undefined) return false;
+
+        const at = parent.position;
+        let spawned = false;
+        for (let index = 0; index < request.count; index += 1) {
+            if (request.kind === 'item') {
+                if (!this.content().items.registry.has(request.identifier)) {
+                    this.report(`${parent.identifier} asks to spawn unknown item ${request.identifier}`);
+                    continue;
+                }
+                this.host.drop(blockPositionOf(at), { identifier: request.identifier, count: 1 });
+                if (request.itemEvent !== undefined)
+                    source.raise(request.itemEvent.event, request.itemEvent.target, 'minecraft:spawn_entity');
+                spawned = true;
+            } else {
+                const child = this.spawn(request.identifier, at, {
+                    cause: request.cause,
+                    event: request.event
+                });
+                if (child === undefined) continue;
+                if (request.shouldLeash)
+                    this.report(
+                        `${parent.identifier} asks to leash spawned ${child.identifier}, which the runtime does not track`
+                    );
+                spawned = true;
+            }
+
+            if (request.sound !== undefined && request.sound.length > 0)
+                this.world.effects.playSound(blockPositionOf(at), request.sound);
+        }
+
+        return spawned;
     }
 
     /** Takes an entity out of the world. */

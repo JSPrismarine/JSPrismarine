@@ -67,6 +67,25 @@ export interface EntityEffects {
     executeEventOnBlock?(entity: EntityInstance, position: EntityPosition, event: string): void;
 }
 
+/** One entity or item a data component asks the world to create. */
+export type EntitySpawnRequest =
+    | {
+          readonly kind: 'entity';
+          readonly identifier: string;
+          readonly count: number;
+          readonly cause: 'born' | 'spawned';
+          readonly event?: string;
+          readonly shouldLeash: boolean;
+          readonly sound?: string;
+      }
+    | {
+          readonly kind: 'item';
+          readonly identifier: string;
+          readonly count: number;
+          readonly itemEvent?: { readonly event: string; readonly target: EventTarget };
+          readonly sound?: string;
+      };
+
 /** One incoming damage event, as `minecraft:damage_sensor` and the hurt triggers read it. */
 export interface DamageEvent {
     /** The damage cause, such as `fall` or `entity_attack`. */

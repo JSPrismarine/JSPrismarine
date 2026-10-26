@@ -144,33 +144,33 @@ A chicken arrives in the world like this.
    0001](../adr/0001-entity-stat-authority.md) hands a stat to Java. The chicken keeps Bedrock's
    0.6 by 0.8 hitbox, where Java publishes 0.4 by 0.7.
 
-One thing in that file does nothing. `minecraft:spawn_entity` parses, and its parameters are
-readable, but no code lays the egg, so chickens on this server do not produce eggs. The next
-section explains how to tell which components are in that state.
+`minecraft:spawn_entity` runs one timer per configured entry. When it expires, the runtime checks
+the entry's filters, then creates the requested item or entity with its count, spawn event and
+sound. `single_use` stops that entry after a successful spawn. The runtime does not yet track
+leashes, so an entry with `should_leash` names that missing behavior in the server log.
 
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. 157 of them are registered, and
-37 of those carry real runtime behavior. The remaining 120 registered keys parse their parameters,
+38 of those carry real runtime behavior. The remaining 119 registered keys parse their parameters,
 normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
 
-The 37 that act are the ones that measure something over time or decide an outcome: the nine
+The 38 that act are the ones that measure something over time or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
 `minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
-`minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`; and the
-eleven `minecraft:on_*` trigger components. The entities package README lists each one and what it
-does.
+`minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
+`minecraft:spawn_entity`; and the eleven `minecraft:on_*` trigger components. The entities package
+README lists each one and what it does.
 
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:collision_box` and the `minecraft:navigation.*`
 flavors build the path finder's profile, `minecraft:explode` detonates a creeper,
-`minecraft:rideable` seats riders, and the two trade-table components build a merchant. What makes
-`minecraft:spawn_entity` inert is that nothing reads it, not that it parses as data.
+`minecraft:rideable` seats riders, and the two trade-table components build a merchant.
 
 45 keys are left unregistered on purpose. Each is used by exactly one vanilla entity, such as the
 enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's

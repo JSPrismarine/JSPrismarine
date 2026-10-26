@@ -204,6 +204,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | Component | What it does |
 | --- | --- |
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
+| `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:ageable` | Counts the baby's `duration` down and raises `grow_up` |
 | `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta` and raises `calm_event` |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
@@ -248,7 +249,7 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, of which 157 are implemented |
-| Non-goal keys that carry behavior rather than data | 37 |
+| Non-goal keys that carry behavior rather than data | 38 |
 | Entities whose every non-goal component is implemented | 102 of 129 |
 | Goals in vanilla | 170, of which 3 are implemented |
 | Entities whose every goal is implemented | 38 of 129 |

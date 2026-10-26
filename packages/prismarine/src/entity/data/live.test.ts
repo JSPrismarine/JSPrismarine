@@ -235,6 +235,44 @@ const ENTITIES = new Map([
         })
     ],
     [
+        'jsprismarine:egg_layer',
+        entityFile('jsprismarine:egg_layer', {
+            components: {
+                'minecraft:health': { value: 10, max: 10 },
+                'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                'minecraft:spawn_entity': {
+                    entities: {
+                        min_wait_time: 0.05,
+                        max_wait_time: 0.05,
+                        spawn_item_event: { event: 'jsprismarine:egg_spawned', target: 'self' },
+                        single_use: true
+                    }
+                }
+            },
+            component_groups: { egg_spawned: { 'minecraft:is_baby': {} } },
+            events: { 'jsprismarine:egg_spawned': { add: { component_groups: ['egg_spawned'] } } }
+        })
+    ],
+    [
+        'jsprismarine:child_spawner',
+        entityFile('jsprismarine:child_spawner', {
+            components: {
+                'minecraft:health': { value: 10, max: 10 },
+                'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                'minecraft:spawn_entity': {
+                    entities: {
+                        min_wait_time: 0,
+                        max_wait_time: 0,
+                        num_to_spawn: 2,
+                        spawn_entity: 'minecraft:chicken',
+                        spawn_event: 'minecraft:entity_born',
+                        single_use: true
+                    }
+                }
+            }
+        })
+    ],
+    [
         'minecraft:piglin',
         entityFile('minecraft:piglin', {
             components: {
@@ -533,9 +571,13 @@ const buildOver = (world: World, runtimes: EntityRuntimes): ServerContent => {
         }),
         blockPalette: fixturePalette(),
         itemDefinitions: vanillaItemDefinitions().filter((definition) =>
-            ['minecraft:leather', 'minecraft:wheat', 'minecraft:emerald', 'minecraft:cobblestone'].includes(
-                definition.identifier
-            )
+            [
+                'minecraft:leather',
+                'minecraft:wheat',
+                'minecraft:emerald',
+                'minecraft:cobblestone',
+                'minecraft:egg'
+            ].includes(definition.identifier)
         ),
         seed: 1234n,
         world: serverWorldSource({
@@ -721,6 +763,31 @@ describe('the data-driven entity runtime over a live world', () => {
         const chick = live.runtime.all().find((entity) => entity.identifier === 'minecraft:chicken');
         if (chick === undefined) throw new Error('the egg hit action did not spawn its chicken');
         expect(chick.instance.hasComponent('minecraft:is_baby')).toBe(true);
+    });
+
+    it('spawns an item from the active spawn_entity component only once', async () => {
+        const layer = live.runtime.spawn('jsprismarine:egg_layer', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (layer === undefined) throw new Error('the fixture declares no egg layer');
+
+        await run(5);
+
+        const drops = world
+            .getEntities()
+            .filter((entity) => entity instanceof ItemEntity)
+            .map((entity) => entity.getItem()?.getItem().getName());
+        expect(drops).toEqual(['minecraft:egg']);
+        expect(layer.instance.hasComponent('minecraft:is_baby')).toBe(true);
+    });
+
+    it('spawns the configured entity count with the named spawn event', async () => {
+        const spawner = live.runtime.spawn('jsprismarine:child_spawner', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (spawner === undefined) throw new Error('the fixture declares no child spawner');
+
+        await run(1);
+
+        const chicks = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:chicken');
+        expect(chicks).toHaveLength(2);
+        expect(chicks.every((chick) => chick.instance.hasComponent('minecraft:is_baby'))).toBe(true);
     });
 
     it('lets gravity carry a mob into water instead of treating the water surface as ground', async () => {

@@ -10,6 +10,7 @@ import { damagerSubjects } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
+import type { EntitySpawnRequest } from '../hooks';
 import type { RideableParams } from '../riding';
 import type { TriggerComponentParams } from '../triggers';
 import type { ComponentRecord } from './schemas';
@@ -790,6 +791,140 @@ export const timer: ComponentFactory<EntityHooks, TimerParams> = {
                     entity.raise(params.down.event, params.down.target, 'minecraft:timer');
                 if (params.looping) state.remaining = Math.round(draw(entity) * TICKS_PER_SECOND);
                 else states.delete(entity);
+            }
+        };
+    }
+};
+
+/** One entity or item configured in `minecraft:spawn_entity.entities`. */
+interface SpawnEntityEntry {
+    readonly request: EntitySpawnRequest;
+    readonly minWait: number;
+    readonly maxWait: number;
+    readonly singleUse: boolean;
+    readonly filters?: Filter;
+}
+
+/** The spawn entries active on one entity. */
+interface SpawnEntityState {
+    readonly remaining: number[];
+    readonly used: Set<number>;
+}
+
+/** What `minecraft:spawn_entity` declares. */
+export interface SpawnEntityParams {
+    readonly entries: readonly SpawnEntityEntry[];
+}
+
+/** Adds the default vanilla namespace to a component identifier that omits it. */
+const qualifiedSpawnIdentifier = (identifier: string): string =>
+    identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+
+/** Draws an entry's next wait in server ticks. */
+const spawnWaitTicks = (entity: EntityInstance, entry: SpawnEntityEntry): number => {
+    const seconds =
+        entry.minWait < entry.maxWait
+            ? entry.minWait + entity.random.next() * (entry.maxWait - entry.minWait)
+            : entry.minWait;
+    return Math.max(0, Math.round(seconds * TICKS_PER_SECOND));
+};
+
+/**
+ * `minecraft:spawn_entity`, which periodically creates the configured item or entity.
+ *
+ * Its schedule belongs to the active component instance: removing its group clears the clock,
+ * and adding it again starts a new one.
+ */
+export const spawnEntity: ComponentFactory<EntityHooks, SpawnEntityParams> = {
+    name: 'minecraft:spawn_entity',
+    hooks: ['onInitialize', 'onRemove', 'onTick'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+
+        const entries: SpawnEntityEntry[] = [];
+        for (const raw of asList(value.entities)) {
+            if (!isRecord(raw)) return rejected('minecraft:spawn_entity entities must be objects');
+
+            const entityIdentifier = stringAt(raw, 'spawn_entity');
+            const itemIdentifier = stringAt(raw, 'spawn_item') ?? (entityIdentifier === undefined ? 'egg' : undefined);
+            if (entityIdentifier === undefined && itemIdentifier === undefined)
+                return rejected('minecraft:spawn_entity entries need spawn_entity or spawn_item');
+
+            const filters =
+                raw.filters === undefined ? undefined : parseFilterValue(raw.filters, 'minecraft:spawn_entity');
+            if (filters !== undefined && !filters.ok) return filters;
+
+            const minWait = numberAt(raw, 'min_wait_time', 300);
+            const maxWait = numberAt(raw, 'max_wait_time', 600);
+            const count = Math.max(1, Math.floor(numberAt(raw, 'num_to_spawn', 1)));
+            const sound = stringAt(raw, 'spawn_sound') ?? 'plop';
+            if (entityIdentifier !== undefined) {
+                const spawnMethod = stringAt(raw, 'spawn_method');
+                entries.push({
+                    request: {
+                        kind: 'entity',
+                        identifier: qualifiedSpawnIdentifier(entityIdentifier),
+                        count,
+                        cause: spawnMethod === 'spawned' ? 'spawned' : 'born',
+                        event: stringAt(raw, 'spawn_event') ?? 'minecraft:entity_born',
+                        shouldLeash: booleanAt(raw, 'should_leash', false),
+                        sound
+                    },
+                    minWait: Math.min(minWait, maxWait),
+                    maxWait: Math.max(minWait, maxWait),
+                    singleUse: booleanAt(raw, 'single_use', false),
+                    ...(filters === undefined ? {} : { filters: filters.value })
+                });
+            } else if (itemIdentifier !== undefined) {
+                const itemEvent = parseComponentTrigger(raw.spawn_item_event);
+                entries.push({
+                    request: {
+                        kind: 'item',
+                        identifier: qualifiedSpawnIdentifier(itemIdentifier),
+                        count,
+                        ...(itemEvent?.event === undefined
+                            ? {}
+                            : { itemEvent: { event: itemEvent.event, target: itemEvent.target } }),
+                        sound
+                    },
+                    minWait: Math.min(minWait, maxWait),
+                    maxWait: Math.max(minWait, maxWait),
+                    singleUse: booleanAt(raw, 'single_use', false),
+                    ...(filters === undefined ? {} : { filters: filters.value })
+                });
+            }
+        }
+
+        return accepted({ entries });
+    },
+    create: (params) => {
+        const states = new WeakMap<EntityInstance, SpawnEntityState>();
+        return {
+            onInitialize: (entity) => {
+                states.set(entity, {
+                    remaining: params.entries.map((entry) => spawnWaitTicks(entity, entry)),
+                    used: new Set()
+                });
+            },
+            onRemove: (entity) => states.delete(entity),
+            onTick: (entity) => {
+                const state = states.get(entity);
+                if (state === undefined) return;
+
+                for (const [index, entry] of params.entries.entries()) {
+                    if (state.used.has(index)) continue;
+                    state.remaining[index] = Math.max(0, state.remaining[index]! - 1);
+                    if (state.remaining[index]! > 0) continue;
+
+                    if (entry.filters !== undefined && !evaluateFilter(entry.filters, entity.filterContext())) {
+                        state.remaining[index] = spawnWaitTicks(entity, entry);
+                        continue;
+                    }
+
+                    const spawned = entity.requestSpawn(entry.request);
+                    if (entry.singleUse && spawned) state.used.add(index);
+                    else state.remaining[index] = spawnWaitTicks(entity, entry);
+                }
             }
         };
     }
