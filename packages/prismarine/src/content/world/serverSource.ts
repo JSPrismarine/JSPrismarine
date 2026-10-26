@@ -107,7 +107,6 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
 
     const entities = worldEntityAccess({ world, content });
     const effects = worldEffectSink(world, dimension);
-    const actors = createItemActorPort({ world, entities, level });
     const blocks = { ...worldBlocks, ...blockGroup };
 
     // The entity subsystem's own two groups are projections of its runtime, so the runtime is
@@ -121,6 +120,14 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         report: (message) => reportFrom(world, dimension, message)
     });
     const liveEntities = live === undefined ? undefined : entityContentGroups(live.runtime);
+    const actors = createItemActorPort({
+        world,
+        entities,
+        level,
+        ...(live === undefined
+            ? {}
+            : { launchProjectile: (action, shooter) => live.launchProjectile(action, shooter) !== undefined })
+    });
 
     const adapter: ServerWorldAdapter = {
         level,

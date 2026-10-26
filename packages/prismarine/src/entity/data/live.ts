@@ -15,6 +15,7 @@
  * to know how the other got there.
  */
 import type { SpawnWorld } from '@jsprismarine/spawning';
+import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -25,10 +26,11 @@ import type { World } from '../../world/World';
 import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
+import { lookVector } from '../Archery';
 import type { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
-import { EntityRuntime } from './EntityRuntime';
+import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
 import type { DataEntityRecord } from './persistence';
 import { Item as ItemEntity } from '../other/Item';
@@ -115,6 +117,23 @@ const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
         const source = attacker === null ? DamageSource.of(DamageCause.Attack) : DamageSource.entity(attacker);
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
     },
+    hurtByProjectile: (id, amount, projectileId, ownerId) => {
+        const world = options.liveWorld();
+        const target = world?.getEntity(BigInt(id));
+        const projectile = world?.getEntity(BigInt(projectileId));
+        if (target === null || target === undefined) return;
+
+        const owner = ownerId === undefined ? null : (world?.getEntity(BigInt(ownerId)) ?? null);
+        const source =
+            projectile === null || projectile === undefined
+                ? DamageSource.of(DamageCause.Projectile)
+                : DamageSource.projectileFrom(projectile, owner);
+        void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
+    },
+    knockback: (id, directionX, directionZ, strength) => {
+        const target = options.liveWorld()?.getEntity(BigInt(id));
+        target?.applyKnockback(directionX, directionZ, strength);
+    },
     // Nothing on this server runs the pillager patrol or the village raid, so no named mob
     // event is ever active. Said as a fact rather than guessed: the rules that gate on one
     // refuse, which is what keeps a patrol from spawning every cycle.
@@ -196,6 +215,34 @@ export class LiveEntityRuntime {
 
         this.runtime.tick(tick);
         await Promise.all(this.bodies.sync(this.runtime));
+    }
+
+    /**
+     * Launches an item projectile from its live source through the data-driven runtime.
+     *
+     * A player's position is already at eye height; other entity positions are at their feet.
+     * The entity definition supplies flight and hit behavior through `minecraft:projectile`.
+     *
+     * @param action - The item behavior's projectile identifier, speed, spread, and payload.
+     * @param shooter - The live entity that used the item.
+     * @returns The spawned projectile, or undefined when its loaded definition is not a projectile.
+     */
+    public launchProjectile(action: LaunchProjectileAction, shooter: Entity): DataEntity | undefined {
+        const position = shooter.getPosition();
+        const eyeOffset =
+            shooter.getType() === 'minecraft:player' ? 0 : shooter.getBox().height * PROJECTILE_EYE_HEIGHT_FRACTION;
+        const at = { x: position.getX(), y: position.getY() + eyeOffset, z: position.getZ() };
+        const direction = lookVector(shooter.yaw, shooter.pitch);
+
+        return this.runtime.launchProjectile(
+            action.identifier,
+            at,
+            { x: direction.getX(), y: direction.getY(), z: direction.getZ() },
+            action.power,
+            action.inaccuracy,
+            Number(shooter.getRuntimeId()),
+            action.data
+        );
     }
 
     /**

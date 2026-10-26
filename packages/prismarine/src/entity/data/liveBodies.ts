@@ -77,6 +77,11 @@ class DataEntityBody extends GenericEntity {
     }
 
     /** @inheritdoc */
+    public override getTrackingInterval(): number {
+        return this.driver.instance.hasComponent('minecraft:projectile') ? 1 : super.getTrackingInterval();
+    }
+
+    /** @inheritdoc */
     public override applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
         // The damping first, because vanilla's rule is that each shove halves whatever motion
         // the last one left before adding its own - which is what makes a sprint hit both throw

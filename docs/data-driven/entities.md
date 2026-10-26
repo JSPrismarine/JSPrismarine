@@ -390,14 +390,15 @@ server at startup rather than falling back to them. Behavior pack directories li
 `content-world-packs` in `config.yaml` load after the vanilla ones, and later packs replace
 earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
-Seven written classes survive, and none of them is a mob: a dropped stack, a lit TNT, a falling
-block, an arrow, an egg, a snowball and `Human`, which is what a player is. Each does something no
-behavior pack describes, such as counting a fuse down or flying a ballistic arc. Everything else
-is a component set in the runtime with a `GenericEntity` for a body, so a mob's hitbox, its stats
-and the table it rolls on death all come from the stack rather than from a table in this
-repository. `Entity.getBox()` reads the type's `minecraft:collision_box` out of the content
-registry, and the only two boxes still written down here are `minecraft:item` and
-`minecraft:falling_block`, the two types Mojang ships no entity file for.
+Seven written classes remain for compatibility with saved actors that have no data-runtime
+record: a dropped stack, a lit TNT, a falling block, an arrow, an egg, a snowball and `Human`,
+which is what a player is. In the live data path, falling blocks use the entities overlay, and
+projectile flight and hit behavior come from each type's `minecraft:projectile` component.
+Everything else is a component set in the runtime with a `GenericEntity` for a body, so a mob's
+hitbox, its stats and the table it rolls on death all come from the stack rather than from a table
+in this repository. `Entity.getBox()` reads the type's `minecraft:collision_box` out of the content
+registry, and the only box still written down here is `minecraft:item`, the type Mojang ships no
+entity file for.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events

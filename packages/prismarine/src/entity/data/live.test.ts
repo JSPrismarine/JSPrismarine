@@ -152,6 +152,89 @@ const ENTITIES = new Map([
         })
     ],
     [
+        'jsprismarine:projectile_target',
+        entityFile('jsprismarine:projectile_target', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:damage_sensor': {
+                    triggers: [
+                        {
+                            cause: 'projectile',
+                            deals_damage: 'no',
+                            on_damage: {
+                                event: 'jsprismarine:player_projectile',
+                                filters: { test: 'is_family', subject: 'other', value: 'player' }
+                            }
+                        }
+                    ]
+                }
+            },
+            component_groups: { hit_by_player_projectile: { 'minecraft:mark_variant': { value: 42 } } },
+            events: {
+                'jsprismarine:player_projectile': {
+                    add: { component_groups: ['hit_by_player_projectile'] }
+                }
+            }
+        })
+    ],
+    [
+        'minecraft:arrow',
+        entityFile('minecraft:arrow', {
+            components: {
+                'minecraft:collision_box': { width: 0.25, height: 0.25 },
+                'minecraft:physics': {},
+                'minecraft:projectile': {
+                    gravity: 0.05,
+                    on_hit: {
+                        impact_damage: {
+                            damage: { min: 0, max: 0 },
+                            power_multiplier: 2,
+                            destroy_on_hit: true
+                        },
+                        stick_in_ground: { shake_time: 0.35 }
+                    }
+                }
+            }
+        })
+    ],
+    [
+        'minecraft:egg',
+        entityFile('minecraft:egg', {
+            components: {
+                'minecraft:collision_box': { width: 0.25, height: 0.25 },
+                'minecraft:physics': {},
+                'minecraft:projectile': {
+                    gravity: 0.03,
+                    on_hit: {
+                        impact_damage: { damage: { min: 0, max: 0 }, destroy_on_hit: true },
+                        spawn_chance: {
+                            first_spawn_chance: 1,
+                            first_spawn_count: 1,
+                            second_spawn_chance: 0,
+                            second_spawn_count: 4,
+                            spawn_baby: true,
+                            spawn_definition: 'minecraft:chicken'
+                        },
+                        remove_on_hit: {}
+                    }
+                }
+            }
+        })
+    ],
+    [
+        'minecraft:chicken',
+        entityFile('minecraft:chicken', {
+            components: {
+                'minecraft:collision_box': { width: 0.4, height: 0.7 },
+                'minecraft:health': { value: 4, max: 4 },
+                'minecraft:physics': {},
+                'minecraft:type_family': { family: ['chicken', 'mob'] }
+            },
+            component_groups: { baby: { 'minecraft:is_baby': {} } },
+            events: { 'minecraft:entity_born': { add: { component_groups: ['baby'] } } }
+        })
+    ],
+    [
         'minecraft:piglin',
         entityFile('minecraft:piglin', {
             components: {
@@ -510,6 +593,134 @@ describe('the data-driven entity runtime over a live world', () => {
         // Both used to throw `NotWiredError` naming the entity subsystem.
         expect(() => live.runtime.content().world.spawnWorld.players()).not.toThrow();
         expect(live.runtime.content().world.brainWorld()).toBeDefined();
+    });
+
+    it('launches a player projectile through the live data-driven runtime', async () => {
+        const player = addPlayer(8, 0);
+        Object.assign(player, { position: new Position(8, GROUND_Y + 1.62, 0, world) });
+        const target = live.runtime.spawn('minecraft:warden', { x: 8.5, y: GROUND_Y, z: 4.5 });
+        if (target === undefined) throw new Error('the fixture declares no minecraft:warden');
+        const startingHealth = target.instance.attributes.get('health')?.current;
+        if (startingHealth === undefined) throw new Error('the fixture warden has no health attribute');
+        const identifier = 'minecraft:player';
+        const runtimeId = Number(player.getRuntimeId());
+
+        live.runtime.content().world.itemActions.perform({
+            kind: 'launch-projectile',
+            identifier: 'minecraft:arrow',
+            source: { identifier, runtimeId },
+            power: 3,
+            inaccuracy: 0,
+            data: { critical: true }
+        });
+
+        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        if (arrow === undefined) throw new Error('the item action did not spawn its arrow in the data runtime');
+        const arrowBody = live.bodies.bodyOf(arrow.id);
+        if (arrowBody === undefined) throw new Error('the data-driven arrow has no live body');
+
+        expect(arrow.spawnData).toEqual({ critical: true });
+        expect(arrow.body.owner).toBe(runtimeId);
+        expect(arrow.body.velocity.z).toBeGreaterThan(0);
+        expect(arrowBody.getTrackingInterval()).toBe(1);
+
+        await run(1);
+        expect(arrow.body.velocity.y).toBeCloseTo(-0.0495);
+
+        await run(1);
+
+        expect(target.instance.attributes.get('health')?.current).toBeLessThan(startingHealth);
+        expect(live.runtime.byId(arrow.id)).toBeUndefined();
+    });
+
+    it('runs the target damage sensor with the projectile owner as its damager', async () => {
+        const player = addPlayer(8, 0);
+        Object.assign(player, { position: new Position(8, GROUND_Y + 1.62, 0, world) });
+        const target = live.runtime.spawn('jsprismarine:projectile_target', {
+            x: 8.5,
+            y: GROUND_Y,
+            z: 4.5
+        });
+        if (target === undefined) throw new Error('the fixture declares no projectile target');
+
+        live.runtime.content().world.itemActions.perform({
+            kind: 'launch-projectile',
+            identifier: 'minecraft:arrow',
+            source: { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) },
+            power: 3,
+            inaccuracy: 0
+        });
+
+        await run(4);
+
+        expect(target.instance.attributes.get('health')?.current).toBe(20);
+        expect(target.instance.componentParams('minecraft:mark_variant')).toBe(42);
+    });
+
+    it('routes a mob shot through the projectile component runtime', async () => {
+        const shooter = live.runtime.spawn('minecraft:warden', { x: 8.5, y: GROUND_Y, z: 0.5 });
+        const target = live.runtime.spawn('minecraft:warden', { x: 8.5, y: GROUND_Y, z: 5 });
+        if (shooter === undefined || target === undefined)
+            throw new Error('the fixture declares no warden for the projectile test');
+        const startingHealth = target.instance.attributes.get('health')?.current;
+        if (startingHealth === undefined) throw new Error('the fixture target has no health attribute');
+        const targetMob = live.runtime.mobById(target.id);
+        if (targetMob === undefined) throw new Error('the fixture target has no goal view');
+
+        live.runtime.shoot(shooter.body, targetMob, 'minecraft:arrow');
+        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        if (arrow === undefined) throw new Error('the mob shot did not create its arrow in the data runtime');
+
+        await run(4);
+
+        expect(target.instance.attributes.get('health')?.current).toBeLessThan(startingHealth);
+        expect(live.runtime.byId(arrow.id)).toBeUndefined();
+    });
+
+    it('stops and sticks an arrow at a solid block from its component data', async () => {
+        const chunk = world.getLoadedChunk(0, 0);
+        if (chunk == null) throw new Error('the projectile test chunk was not loaded');
+        chunk.setBlockRuntimeId(8, GROUND_Y + 1, 2, idOf('minecraft:stone'));
+
+        const player = addPlayer(8, 0);
+        Object.assign(player, { position: new Position(8.5, GROUND_Y + 1.62, 0.5, world) });
+        live.runtime.content().world.itemActions.perform({
+            kind: 'launch-projectile',
+            identifier: 'minecraft:arrow',
+            source: { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) },
+            power: 3,
+            inaccuracy: 0
+        });
+
+        const arrow = live.runtime.all().find((entity) => entity.identifier === 'minecraft:arrow');
+        if (arrow === undefined) throw new Error('the arrow launch action produced no data entity');
+
+        await run(1);
+
+        expect(arrow.position.z).toBeLessThan(2);
+        expect(arrow.body.velocity).toEqual({ x: 0, y: 0, z: 0 });
+        expect(live.runtime.byId(arrow.id)).toBe(arrow);
+    });
+
+    it('hatches an egg using the projectile definition on impact', async () => {
+        const player = addPlayer(8, 0);
+        Object.assign(player, { position: new Position(8, GROUND_Y + 1.62, 0, world) });
+        const target = live.runtime.spawn('minecraft:warden', { x: 8.5, y: GROUND_Y, z: 4.5 });
+        if (target === undefined) throw new Error('the fixture declares no minecraft:warden');
+
+        live.runtime.content().world.itemActions.perform({
+            kind: 'launch-projectile',
+            identifier: 'minecraft:egg',
+            source: { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) },
+            power: 1.5,
+            inaccuracy: 0
+        });
+
+        await run(4);
+
+        const chick = live.runtime.all().find((entity) => entity.identifier === 'minecraft:chicken');
+        if (chick === undefined) throw new Error('the egg hit action did not spawn its chicken');
+        expect(chick.instance.hasComponent('minecraft:is_baby')).toBe(true);
     });
 
     it('lets gravity carry a mob into water instead of treating the water surface as ground', async () => {

@@ -98,6 +98,10 @@ export interface EntityHostFacts {
      * @param sourceId - The runtime id of the entity answerable for the blow.
      */
     hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
+    /** Deals damage to an entity with the projectile and its owner preserved as the source. */
+    hurtByProjectile?(id: number, amount: number, projectileId: number, ownerId: number | undefined): void;
+    /** Applies projectile knockback to an entity outside the data-driven index. */
+    knockback?(id: number, directionX: number, directionZ: number, strength: number): void;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */
     mobEventActive(event: string): boolean;
     /**

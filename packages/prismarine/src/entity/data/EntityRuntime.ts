@@ -34,7 +34,8 @@ import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
 import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 
-import type { ContentItemDrop } from '../../content/world/adapter';
+import { EYE_HEIGHT as PLAYER_EYE_HEIGHT } from '../Human';
+import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
 import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
@@ -60,6 +61,74 @@ import { PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
+
+/** The interval between projectile samples, small enough not to skip a target. */
+const PROJECTILE_SWEEP_STEP = 0.25;
+
+/** Vanilla expands a projectile target by this amount before checking a hit. */
+const PROJECTILE_HIT_MARGIN = 0.3;
+
+/** How long a projectile ignores its owner and stays alive, in ticks. */
+const PROJECTILE_OWNER_GRACE = 5;
+const PROJECTILE_MAX_LIFE = 1200;
+const PROJECTILE_KNOCKBACK = 0.4;
+const PROJECTILE_KNOCKBACK_LIFT = 0.1;
+const PLAYER_WIDTH = 0.6;
+const PLAYER_HEIGHT = 1.8;
+
+/** The default eye position as a fraction of a non-player entity's hitbox height. */
+export const PROJECTILE_EYE_HEIGHT_FRACTION = 0.85;
+
+/** The body and flight lifetime state of one active projectile. */
+interface ProjectileState {
+    age: number;
+    stuck: boolean;
+    readonly hitEntities: Set<number>;
+}
+
+/** Whether a point along a projectile's path overlaps a target's data-driven box. */
+const projectileOverlaps = (
+    at: EntityPosition,
+    projectile: { readonly width: number; readonly height: number },
+    target: EntityPosition,
+    width: number,
+    height: number
+): boolean =>
+    Math.abs(at.x - target.x) <= projectile.width / 2 + width / 2 + PROJECTILE_HIT_MARGIN &&
+    Math.abs(at.z - target.z) <= projectile.width / 2 + width / 2 + PROJECTILE_HIT_MARGIN &&
+    at.y + projectile.height >= target.y - PROJECTILE_HIT_MARGIN &&
+    at.y <= target.y + height + PROJECTILE_HIT_MARGIN;
+
+/** Turns a direction, speed, and spread into a projectile velocity. */
+const projectileVelocity = (
+    direction: EntityPosition,
+    speed: number,
+    inaccuracy: number,
+    random: { nextFloat(): number }
+): EntityPosition => {
+    const length = Math.hypot(direction.x, direction.y, direction.z);
+    const unit =
+        length > 0
+            ? { x: direction.x / length, y: direction.y / length, z: direction.z / length }
+            : { x: 0, y: 0, z: 1 };
+    const spread = Math.max(0, inaccuracy) * 0.0075;
+    const gaussian = (): number => {
+        const first = Math.max(Number.MIN_VALUE, random.nextFloat());
+        const second = random.nextFloat();
+        return Math.sqrt(-2 * Math.log(first)) * Math.cos(2 * Math.PI * second);
+    };
+    const scattered =
+        spread === 0
+            ? unit
+            : { x: unit.x + gaussian() * spread, y: unit.y + gaussian() * spread, z: unit.z + gaussian() * spread };
+    const launchSpeed = Math.max(0, Number.isFinite(speed) ? speed : 0);
+
+    return {
+        x: scattered.x * launchSpeed,
+        y: scattered.y * launchSpeed,
+        z: scattered.z * launchSpeed
+    };
+};
 
 /** How to build one {@link EntityRuntime}. */
 export interface EntityRuntimeOptions {
@@ -123,6 +192,8 @@ export class EntityRuntime implements EntityScene {
         number,
         { readonly startY: number; readonly fallThrough: ReadonlySet<string> }
     >();
+    /** Flight age and impacts already passed through for each active projectile. */
+    private readonly projectiles = new Map<number, ProjectileState>();
     /** One merchant per trading entity, kept because `persist_trades` means the offers are drawn once. */
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
@@ -365,6 +436,7 @@ export class EntityRuntime implements EntityScene {
         this.pools.delete(id);
         this.merchants.delete(id);
         this.fallingBlocks.delete(id);
+        this.projectiles.delete(id);
         this.rides.remove(id);
         this.onRemove(entity, reason);
     }
@@ -648,13 +720,12 @@ export class EntityRuntime implements EntityScene {
      * here rather than writing the attribute itself.
      */
     public hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): void {
-        const health = entity.instance.attributes.get('health');
-        if (health === undefined) return;
+        if (entity.instance.attributes.get('health') === undefined) return;
 
-        entity.body.damage.record(sourceId, cause, amount);
-        const remaining = health.current - amount;
-        entity.instance.attributes.set('health', remaining);
-        if (remaining <= 0) this.kill(entity);
+        const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
+        const result = entity.instance.damage({ cause, amount, damager });
+        if (result.amount > 0) entity.body.damage.record(sourceId, cause, result.amount);
+        if (result.died) this.kill(entity);
     }
 
     /** Knocks a mob away from the entity, scaled by what the target resists. */
@@ -682,8 +753,8 @@ export class EntityRuntime implements EntityScene {
      * The projectile the goal named wins, and `minecraft:shooter` is the
      * fallback, which is where every vanilla shooter writes it. The arrow is
      * created at the shooter's eye with the velocity that points it at the
-     * target; what it does on arrival belongs to the projectile component and
-     * not here.
+     * target. Flight and impact are then handled by its `minecraft:projectile`
+     * component.
      */
     public shoot(shooter: MobBody, target: GoalMob, projectile: string | undefined): void {
         const identifier = projectile ?? this.shooterDefinitionOf(shooter);
@@ -694,21 +765,59 @@ export class EntityRuntime implements EntityScene {
 
         const from = {
             x: shooter.position.x,
-            y: shooter.position.y + shooter.facts.box.height * EYE_HEIGHT,
+            y: shooter.position.y + shooter.facts.box.height * PROJECTILE_EYE_HEIGHT_FRACTION,
             z: shooter.position.z
         };
-        const arrow = this.spawn(identifier, from);
-        if (arrow === undefined) return;
-
         const at = target.position();
         const away = distance(from, at) || 1;
-        arrow.body.push({
-            x: ((at.x - from.x) / away) * PROJECTILE_SPEED,
-            y: ((at.y - from.y) / away) * PROJECTILE_SPEED,
-            z: ((at.z - from.z) / away) * PROJECTILE_SPEED
-        });
-        arrow.body.owner = shooter.id;
-        arrow.body.lookAt(at);
+        this.launchProjectile(
+            identifier,
+            from,
+            { x: (at.x - from.x) / away, y: (at.y - from.y) / away, z: (at.z - from.z) / away },
+            PROJECTILE_SPEED,
+            0,
+            shooter.id
+        );
+    }
+
+    /**
+     * Spawns a projectile with its owner and launch velocity recorded in the live entity runtime.
+     *
+     * Its flight is read from `minecraft:projectile`; a type without that component is refused
+     * instead of leaving a body that can only fall like an ordinary entity.
+     *
+     * @param identifier - The projectile entity definition to instantiate.
+     * @param at - The launch position, in world coordinates.
+     * @param direction - The direction of travel; it is normalized before speed is applied.
+     * @param speed - Launch speed, in blocks per tick.
+     * @param inaccuracy - Gaussian spread in degrees, as Java's projectile launch uses it.
+     * @param owner - The runtime id responsible for this projectile.
+     * @param data - Item-specific payload, such as arrow enchantments or potion contents.
+     * @returns The launched projectile, or undefined when its definition is unavailable or invalid.
+     */
+    public launchProjectile(
+        identifier: string,
+        at: EntityPosition,
+        direction: EntityPosition,
+        speed: number,
+        inaccuracy: number,
+        owner: number,
+        data?: Readonly<Record<string, unknown>>
+    ): DataEntity | undefined {
+        const entity = this.spawn(identifier, at, data === undefined ? undefined : { data });
+        if (entity === undefined) return undefined;
+        if (!entity.instance.hasComponent('minecraft:projectile')) {
+            this.report(`${identifier} was launched without a minecraft:projectile component`);
+            this.remove(entity.id, 'invalid_projectile');
+            return undefined;
+        }
+
+        const velocity = projectileVelocity(direction, speed, inaccuracy, this.world.random);
+        entity.body.velocity = velocity;
+        entity.body.owner = owner;
+        entity.body.lookAt({ x: at.x + velocity.x, y: at.y + velocity.y, z: at.z + velocity.z });
+        this.projectiles.set(entity.id, { age: 0, stuck: false, hitEntities: new Set() });
+        return entity;
     }
 
     /**
@@ -1052,6 +1161,12 @@ export class EntityRuntime implements EntityScene {
      */
     private coast(entity: DataEntity): void {
         const { body, instance } = entity;
+        const projectile = instance.componentParams('minecraft:projectile');
+        if (isRecord(projectile)) {
+            this.coastProjectile(entity, projectile);
+            return;
+        }
+
         const fallingBlock = instance.componentParams('jsprismarine:falling_block');
         if (isRecord(fallingBlock)) {
             this.coastFallingBlock(entity, fallingBlock);
@@ -1111,6 +1226,226 @@ export class EntityRuntime implements EntityScene {
         }
 
         body.position = next;
+    }
+
+    /** Applies projectile gravity, swept collisions, and the active component's hit actions. */
+    private coastProjectile(entity: DataEntity, params: Record<string, unknown>): void {
+        const state = this.projectiles.get(entity.id) ?? { age: 0, stuck: false, hitEntities: new Set<number>() };
+        this.projectiles.set(entity.id, state);
+        state.age += 1;
+
+        const lifetime = typeof params.max_life === 'number' ? params.max_life : PROJECTILE_MAX_LIFE;
+        if (state.age > lifetime) {
+            this.remove(entity.id, 'projectile_expired');
+            return;
+        }
+        if (state.stuck) return;
+
+        const { body } = entity;
+        const from = body.position;
+        const velocity = body.velocity;
+        const to = { x: from.x + velocity.x, y: from.y + velocity.y, z: from.z + velocity.z };
+        const distance = Math.hypot(velocity.x, velocity.y, velocity.z);
+        const steps = Math.max(1, Math.ceil(distance / PROJECTILE_SWEEP_STEP));
+        const navigation = this.navigation();
+        const physics = entity.instance.componentParams('minecraft:physics');
+        const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
+        let lastSafe = from;
+
+        for (let step = 1; step <= steps; step += 1) {
+            const fraction = step / steps;
+            const at = {
+                x: from.x + (to.x - from.x) * fraction,
+                y: from.y + (to.y - from.y) * fraction,
+                z: from.z + (to.z - from.z) * fraction
+            };
+            const target = this.projectileTargetAt(entity, at, state);
+            if (target !== undefined && this.hitProjectile(entity, target, params, at)) {
+                if (entity.removed !== undefined) return;
+            }
+
+            if (hasCollision && !bodyCanOccupy(at, entity.facts.box, navigation)) {
+                const onHit = isRecord(params.on_hit) ? params.on_hit : {};
+                this.applyProjectileHitEffects(onHit, at, false);
+                const sound = typeof params.hit_ground_sound === 'string' ? params.hit_ground_sound : undefined;
+                if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
+
+                if (isRecord(onHit.stick_in_ground)) {
+                    body.position = lastSafe;
+                    body.land();
+                    state.stuck = true;
+                } else {
+                    this.remove(entity.id, 'projectile_hit_block');
+                }
+                return;
+            }
+
+            lastSafe = at;
+        }
+
+        body.position = lastSafe;
+        const inFluid = body.conditions.has('in_water') || body.conditions.has('in_lava');
+        const inertia = inFluid
+            ? typeof params.liquid_inertia === 'number'
+                ? params.liquid_inertia
+                : 0.6
+            : typeof params.air_inertia === 'number'
+              ? params.air_inertia
+              : typeof params.inertia === 'number'
+                ? params.inertia
+                : 0.99;
+        const gravity = typeof params.gravity === 'number' ? params.gravity : 0.03;
+        body.velocity = {
+            x: velocity.x * inertia,
+            y: (velocity.y - gravity) * inertia,
+            z: velocity.z * inertia
+        };
+    }
+
+    /** Finds the first entity whose current hitbox intersects the projectile. */
+    private projectileTargetAt(
+        projectile: DataEntity,
+        at: EntityPosition,
+        state: ProjectileState
+    ): DataEntity | ContentEntity | undefined {
+        const projectileBox = projectile.facts.box;
+        const owner = projectile.body.owner;
+        for (const target of this.grid.within(at, 16)) {
+            if (
+                target.id === projectile.id ||
+                target.instance.hasComponent('minecraft:projectile') ||
+                (target.id === owner && state.age <= PROJECTILE_OWNER_GRACE) ||
+                state.hitEntities.has(target.id)
+            )
+                continue;
+            if (projectileOverlaps(at, projectileBox, target.position, target.facts.box.width, target.facts.box.height))
+                return target;
+        }
+
+        for (const target of this.host.players()) {
+            if (
+                (target.id === owner && state.age <= PROJECTILE_OWNER_GRACE) ||
+                target.creative === true ||
+                target.spectator === true ||
+                state.hitEntities.has(target.id)
+            )
+                continue;
+            const feet = { ...target.position, y: target.position.y - PLAYER_EYE_HEIGHT };
+            if (projectileOverlaps(at, projectileBox, feet, PLAYER_WIDTH, PLAYER_HEIGHT)) return target;
+        }
+
+        return undefined;
+    }
+
+    /** Runs an entity hit through the damage route and hit actions in its projectile data. */
+    private hitProjectile(
+        projectile: DataEntity,
+        target: DataEntity | ContentEntity,
+        params: Record<string, unknown>,
+        at: EntityPosition
+    ): boolean {
+        const onHit = isRecord(params.on_hit) ? params.on_hit : {};
+        const impact = isRecord(onHit.impact_damage) ? onHit.impact_damage : undefined;
+        let damage = 0;
+
+        if (impact !== undefined && this.projectileFilterAllows(impact.filter, target)) {
+            const range = isRecord(impact.damage) ? impact.damage : {};
+            const minimum =
+                typeof range.min === 'number' ? range.min : typeof range.range_min === 'number' ? range.range_min : 0;
+            const maximum =
+                typeof range.max === 'number'
+                    ? range.max
+                    : typeof range.range_max === 'number'
+                      ? range.range_max
+                      : minimum;
+            const powerMultiplier = typeof impact.power_multiplier === 'number' ? impact.power_multiplier : 0;
+            if (minimum === 0 && maximum === 0 && powerMultiplier > 0) {
+                const speed = Math.hypot(
+                    projectile.body.velocity.x,
+                    projectile.body.velocity.y,
+                    projectile.body.velocity.z
+                );
+                damage = Math.ceil(speed * powerMultiplier);
+                if (projectile.spawnData?.['critical'] === true)
+                    damage += this.world.random.nextInt(Math.floor(damage / 2) + 2);
+                const power = projectile.spawnData?.['power'];
+                if (typeof power === 'number' && power > 0) damage += power * 0.5 + 0.5;
+            } else if (maximum >= minimum) {
+                damage = minimum + this.world.random.nextInt(Math.floor(maximum - minimum) + 1);
+            }
+
+            if (damage > 0) {
+                if ('instance' in target) this.hurt(target, projectile.body.owner, 'projectile', damage);
+                else if (this.host.hurtByProjectile !== undefined)
+                    this.host.hurtByProjectile(target.id, damage, projectile.id, projectile.body.owner);
+                else this.host.hurt?.(target.id, damage, 'projectile', projectile.body.owner);
+            }
+        }
+
+        this.projectiles.get(projectile.id)?.hitEntities.add(target.id);
+        this.applyProjectileHitEffects(onHit, at, true);
+        const sound = typeof params.hit_sound === 'string' ? params.hit_sound : undefined;
+        if (sound !== undefined) this.world.effects.playSound(blockPositionOf(at), sound);
+
+        if (impact?.knockback === true && 'instance' in target) {
+            const resistance = Math.min(1, Math.max(0, target.facts.knockbackResistance));
+            const punch = typeof projectile.spawnData?.['punch'] === 'number' ? projectile.spawnData['punch'] : 0;
+            const strength = (PROJECTILE_KNOCKBACK + Math.max(0, punch) * 0.5) * (1 - resistance);
+            const flatSpeed = Math.hypot(projectile.body.velocity.x, projectile.body.velocity.z) || 1;
+            target.body.push({
+                x: (projectile.body.velocity.x / flatSpeed) * strength,
+                y: PROJECTILE_KNOCKBACK_LIFT * (1 - resistance),
+                z: (projectile.body.velocity.z / flatSpeed) * strength
+            });
+            target.body.lastPusher = projectile.body.owner;
+        } else if (impact?.knockback === true && damage === 0 && !('instance' in target)) {
+            const flatSpeed = Math.hypot(projectile.body.velocity.x, projectile.body.velocity.z) || 1;
+            this.host.knockback?.(
+                target.id,
+                projectile.body.velocity.x / flatSpeed,
+                projectile.body.velocity.z / flatSpeed,
+                PROJECTILE_KNOCKBACK
+            );
+        }
+
+        const destroyOnHit = impact?.destroy_on_hit === true || onHit.remove_on_hit !== undefined;
+        if (destroyOnHit) this.remove(projectile.id, 'projectile_hit_entity');
+        return destroyOnHit;
+    }
+
+    /** Applies the particle and child-spawn actions carried by `on_hit`. */
+    private applyProjectileHitEffects(onHit: Record<string, unknown>, at: EntityPosition, entityHit: boolean): void {
+        const particle = isRecord(onHit.particle_on_hit) ? onHit.particle_on_hit : undefined;
+        const showParticle =
+            particle !== undefined && (entityHit ? particle.on_entity_hit === true : particle.on_other_hit === true);
+        if (showParticle && typeof particle.particle_type === 'string') {
+            const count =
+                typeof particle.num_particles === 'number' ? Math.max(1, Math.floor(particle.num_particles)) : 1;
+            for (let index = 0; index < count; index += 1) this.world.effects.spawnParticle(at, particle.particle_type);
+        }
+
+        const spawn = isRecord(onHit.spawn_chance) ? onHit.spawn_chance : undefined;
+        if (spawn === undefined || typeof spawn.spawn_definition !== 'string') return;
+        const firstChance = typeof spawn.first_spawn_chance === 'number' ? spawn.first_spawn_chance : 0;
+        if (this.world.random.nextFloat() >= Math.max(0, Math.min(1, firstChance))) return;
+
+        let count = typeof spawn.first_spawn_count === 'number' ? Math.max(1, Math.floor(spawn.first_spawn_count)) : 1;
+        const secondChance = typeof spawn.second_spawn_chance === 'number' ? spawn.second_spawn_chance : 0;
+        if (secondChance > 0 && this.world.random.nextFloat() < Math.min(1, secondChance))
+            count =
+                typeof spawn.second_spawn_count === 'number'
+                    ? Math.max(1, Math.floor(spawn.second_spawn_count))
+                    : count;
+
+        const cause = spawn.spawn_baby === true ? 'born' : 'spawned';
+        for (let index = 0; index < count; index += 1) this.spawn(spawn.spawn_definition, at, { cause });
+    }
+
+    /** Applies a component's family filter to the entity the projectile hit. */
+    private projectileFilterAllows(filter: unknown, target: DataEntity | ContentEntity): boolean {
+        if (typeof filter !== 'string' || filter.length === 0) return true;
+        if ('instance' in target) return target.instance.families().includes(filter);
+        return target.identifier === filter || target.identifier === `minecraft:${filter}`;
     }
 
     /** Applies the block's configured falling motion and turns it back into a block on landing. */
@@ -1271,6 +1606,8 @@ export class EntityRuntime implements EntityScene {
 
     /** Moves a body along its current waypoint using its active navigation rules. */
     private step(entity: DataEntity): void {
+        if (entity.instance.hasComponent('minecraft:projectile')) return;
+
         const navigation = this.navigation();
         const profile = navigationProfile(entity.instance);
         const feet = blockPositionOf(entity.position);
@@ -1400,9 +1737,6 @@ const setCondition = (conditions: Set<string>, name: string, active: boolean): v
     if (active) conditions.add(name);
     else conditions.delete(name);
 };
-
-/** Where an entity's eyes are up its hitbox, which is Java's 0.85 for a standing mob. */
-const EYE_HEIGHT = 0.85;
 
 /** Epsilon for checking whether a collision sweep reached its requested coordinate. */
 const MOVEMENT_EPSILON = 1e-7;

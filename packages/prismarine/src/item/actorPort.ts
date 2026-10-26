@@ -29,7 +29,7 @@ import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import type { ItemStack } from '@jsprismarine/items';
-import type { EquipmentSlot, ItemSource, SourceState } from '@jsprismarine/item-behaviors';
+import type { EquipmentSlot, ItemSource, LaunchProjectileAction, SourceState } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
 
 /** The live world whose entities and players this port acts on. */
@@ -43,6 +43,8 @@ export interface ItemActorPortOptions {
     readonly entities: ContentEntityAccess;
     /** The clock, which is what an item cooldown is measured against. */
     readonly level: ContentLevelFacts;
+    /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
+    readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
 }
 
 /**
@@ -102,7 +104,7 @@ const inWater = (world: World, entity: Entity): boolean => {
 
 /** Builds the port over one live world. */
 export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
-    const { world, entities, level } = options;
+    const { world, entities, level, launchProjectile } = options;
 
     /** Game tick each cooldown runs out at. */
     const cooldowns = new Map<string, number>();
@@ -274,10 +276,12 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             case 'start-cooldown':
                 cooldowns.set(cooldownKey(action.source.runtimeId, action.group), level.gameTime() + action.ticks);
                 return;
-            case 'launch-projectile':
-                // The entity factory can put a projectile in the world, but nothing gives it the
-                // velocity it was shot with, so it would stand still where it was thrown from.
-                return missing(action, 'projectile motion');
+            case 'launch-projectile': {
+                const shooter = entityOf(action.source);
+                if (shooter === null || launchProjectile === undefined || !launchProjectile(action, shooter))
+                    missing(action, 'a live data-driven projectile runtime');
+                return;
+            }
             case 'apply-effects':
             case 'remove-effects':
                 return missing(action, 'a status effect system');
