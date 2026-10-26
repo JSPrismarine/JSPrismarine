@@ -132,12 +132,32 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const outcome = interactWithEntity(target, player, held.getName());
         if (!outcome.accepted) return false;
 
-        if (player.gamemode === Gametype.CREATIVE) return true;
-
+        let resultItem: Item | undefined;
         if (outcome.resultItem !== undefined) {
-            const resultItem = player.getServer().getItemManager().getItem(outcome.resultItem);
-            if (resultItem === null) return false;
+            const item = player.getServer().getItemManager().getItem(outcome.resultItem);
+            if (item === null) return false;
+            resultItem = outcome.resultItemData === undefined ? item : item.withMeta(outcome.resultItemData);
+        }
 
+        if (player.gamemode === Gametype.CREATIVE) {
+            const alreadyHasResult =
+                resultItem !== undefined &&
+                inventory
+                    .getItems()
+                    .some(
+                        (entry) =>
+                            entry.getItem().getName() === resultItem.getName() &&
+                            entry.getItem().getMeta() === resultItem.getMeta()
+                    );
+            if (resultItem !== undefined && !alreadyHasResult) {
+                inventory.addItem(new ContainerEntry({ item: resultItem, count: 1 }));
+            }
+            return true;
+        }
+
+        if (outcome.consumeItem === false) return true;
+
+        if (resultItem !== undefined) {
             const replacement = new ContainerEntry({ item: resultItem, count: 1 });
             if (heldEntry.getCount() === 1) inventory.setItemInHand(replacement);
             else {

@@ -348,6 +348,15 @@ export class Item {
     }
 
     /**
+     * A copy of this stack with a different legacy auxiliary value.
+     *
+     * @param meta - The replacement auxiliary value, such as a transformed entity-interaction item.
+     */
+    public withMeta(meta: number): Item {
+        return this.copyWith({ meta });
+    }
+
+    /**
      * A copy of this stack carrying a different enchantment set.
      *
      * A copy rather than a mutation: the anvil and the enchanting table both

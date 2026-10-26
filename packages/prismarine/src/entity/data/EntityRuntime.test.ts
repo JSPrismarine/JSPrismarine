@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Activities } from '@jsprismarine/entity-brains';
+import type { FilterEntityView } from '@jsprismarine/entities';
 
 import { brainEntityOf, brainMobOf, tickBrainNavigation } from './brainWorld';
 import { dataEntityRecordOf } from './persistence';
@@ -409,6 +410,65 @@ describe('EntityRuntime', () => {
                 resultItem: 'minecraft:bucket'
             });
             expect(animal.body.owner).toBe(42);
+        });
+
+        it('matches data-defined entity interactions, fires their event, and transforms the held item', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:interactable': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:interact': {
+                                interactions: {
+                                    on_interact: {
+                                        filters: {
+                                            all_of: [
+                                                { test: 'is_family', subject: 'other', value: 'player' },
+                                                {
+                                                    test: 'has_equipment',
+                                                    subject: 'other',
+                                                    domain: 'hand',
+                                                    value: 'bucket:0'
+                                                }
+                                            ]
+                                        },
+                                        event: 'jsprismarine:interacted',
+                                        target: 'self'
+                                    },
+                                    use_item: true,
+                                    transform_to_item: 'bucket:1'
+                                }
+                            }
+                        },
+                        component_groups: { interacted: { 'minecraft:persistent': {} } },
+                        events: { 'jsprismarine:interacted': { add: { component_groups: ['interacted'] } } }
+                    }
+                }
+            );
+            const animal = runtime.spawn('jsprismarine:interactable', GROUND);
+            if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+            const playerView = (itemIdentifier: string): FilterEntityView => ({
+                names: (name) => (name === 'is_family' ? ['player'] : undefined),
+                equipment: (slot) => (slot === 'hand' ? { identifier: () => itemIdentifier, data: () => 0 } : undefined)
+            });
+
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:bucket', playerView('minecraft:bucket'))).toEqual(
+                {
+                    accepted: true,
+                    resultItem: 'minecraft:bucket',
+                    resultItemData: 1,
+                    consumeItem: true
+                }
+            );
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick', playerView('minecraft:stick'))).toEqual({
+                accepted: false
+            });
+
+            runtime.tick(1);
+
+            expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
         });
     });
 

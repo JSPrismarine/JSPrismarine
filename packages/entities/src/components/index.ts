@@ -25,6 +25,7 @@ import {
     ignoreCannotBeAttacked,
     instantDespawn,
     integerStateComponents,
+    interact,
     inventory,
     jumpStatic,
     loot,
@@ -119,7 +120,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:home',
     'minecraft:input_ground_controlled',
     'minecraft:inside_block_notifier',
-    'minecraft:interact',
     'minecraft:is_baby',
     'minecraft:is_chested',
     'minecraft:is_collidable',
@@ -202,6 +202,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(experienceReward);
     register(hurtOnCondition);
     register(ignoreCannotBeAttacked);
+    register(interact);
     register(instantDespawn);
     register(inventory);
     register(jumpStatic);

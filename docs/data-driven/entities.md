@@ -152,22 +152,24 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. 158 of them are registered, and
-38 of those carry real runtime behavior. The remaining 120 registered keys parse their parameters,
+39 of those carry real runtime behavior. The remaining 119 registered keys parse their parameters,
 normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
 
-The 38 that act are the ones that measure something over time or decide an outcome: the nine
+The 39 that act are the ones that measure something over time or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
 `minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
-`minecraft:spawn_entity`; the eleven `minecraft:on_*` trigger components; and
-`minecraft:cannot_be_attacked`, which blocks entity attacks. Attacker exceptions are data in
+`minecraft:spawn_entity`, and `minecraft:interact`; the eleven `minecraft:on_*` trigger components;
+and `minecraft:cannot_be_attacked`, which blocks entity attacks. `minecraft:interact` evaluates item
+filters, raises its event, and applies `use_item` and `transform_to_item` through the live inventory;
+other interaction fields still report as unsupported. Attacker exceptions are data in
 `minecraft:ignore_cannot_be_attacked`; the package supports that component for custom definitions too.
-The entities package README lists each one and what it does.
+The entities package README lists each component and what it does.
 
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item

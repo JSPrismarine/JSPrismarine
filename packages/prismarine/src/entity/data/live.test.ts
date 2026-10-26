@@ -397,6 +397,60 @@ const ENTITIES = new Map([
                 }
             }
         })
+    ],
+    [
+        'jsprismarine:interact_fixture',
+        entityFile('jsprismarine:interact_fixture', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:interact': {
+                    interactions: [
+                        {
+                            on_interact: {
+                                filters: {
+                                    all_of: [
+                                        { test: 'is_family', subject: 'other', value: 'player' },
+                                        {
+                                            test: 'has_equipment',
+                                            subject: 'other',
+                                            domain: 'hand',
+                                            value: 'stick:0'
+                                        }
+                                    ]
+                                },
+                                event: 'jsprismarine:interact_without_use',
+                                target: 'self'
+                            },
+                            use_item: false
+                        },
+                        {
+                            on_interact: {
+                                filters: {
+                                    all_of: [
+                                        { test: 'is_family', subject: 'other', value: 'player' },
+                                        {
+                                            test: 'has_equipment',
+                                            subject: 'other',
+                                            domain: 'hand',
+                                            value: 'bucket:0'
+                                        }
+                                    ]
+                                },
+                                event: 'jsprismarine:interact_used',
+                                target: 'self'
+                            },
+                            use_item: true,
+                            transform_to_item: 'bucket:1'
+                        }
+                    ]
+                }
+            },
+            component_groups: { interacted: { 'minecraft:persistent': {} } },
+            events: {
+                'jsprismarine:interact_used': { add: { component_groups: ['interacted'] } },
+                'jsprismarine:interact_without_use': { add: { component_groups: ['interacted'] } }
+            }
+        })
     ]
 ]);
 
@@ -781,6 +835,108 @@ describe('the data-driven entity runtime over a live world', () => {
 
         expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
         expect(baby.instance.hasComponent('minecraft:type_family')).toBe(true);
+    });
+
+    it('filters a live player interaction, transforms the held item data, and applies its event', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bucket' }), count: 1 }));
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: animal.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:bucket');
+        expect(player.getInventory().getItemInHand().getMeta()).toBe(1);
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
+
+        await live.tick(1);
+
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
+    });
+
+    it('gives a transformed interaction item to a creative player without consuming the held item', () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory(), gamemode: Gametype.CREATIVE });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bucket' }), count: 1 }));
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: animal.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:bucket');
+        expect(player.getInventory().getItemInHand().getMeta()).toBe(0);
+        expect(
+            player
+                .getInventory()
+                .getItems()
+                .some((entry) => entry.getItem().getName() === 'minecraft:bucket' && entry.getItem().getMeta() === 1)
+        ).toBe(true);
+    });
+
+    it('leaves a survival player’s item alone when the interaction does not use it', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:stick' }), count: 2 }));
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: animal.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:stick');
+        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(2);
+
+        await live.tick(1);
+
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
     });
 
     it('routes data-defined healing through the live item interaction and consumes one item', async () => {

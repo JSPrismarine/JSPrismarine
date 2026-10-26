@@ -29,6 +29,7 @@ import type {
     DamageResult,
     EntityActuator,
     EntityEffects,
+    EntityItemInteractionEffect,
     EntityHooks,
     EntityPosition,
     EntitySpawnRequest
@@ -227,7 +228,22 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
      * @returns Whether an active component accepted the item.
      */
     public interactWithItem(itemIdentifier: string, other?: FilterEntityView): boolean {
-        return this.dispatchFirst('onInteractWithItem', this, itemIdentifier, other) === true;
+        return this.interactWithItemResult(itemIdentifier, other) !== false;
+    }
+
+    /**
+     * Dispatches one held item and returns any data-defined inventory effect it requests.
+     *
+     * @param itemIdentifier - The held item's identifier.
+     * @param other - The player or entity applying the item, for interaction filters.
+     * @returns False when no active component accepts the item, true when it accepts without
+     *   inventory changes, or the item changes requested by the active component.
+     */
+    public interactWithItemResult(
+        itemIdentifier: string,
+        other?: FilterEntityView
+    ): boolean | EntityItemInteractionEffect {
+        return this.dispatchFirst('onInteractWithItem', this, itemIdentifier, other) ?? false;
     }
 
     /** The movement and look control the goals use, when the caller supplied one. */

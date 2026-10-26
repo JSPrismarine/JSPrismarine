@@ -138,6 +138,16 @@ export interface DamageResult {
     readonly events: readonly string[];
 }
 
+/** The item changes requested by a successful data-defined interaction. */
+export interface EntityItemInteractionEffect {
+    /** The item the used stack becomes, when the interaction transforms it. */
+    readonly resultItem?: string;
+    /** The transformed item's auxiliary value, such as a filled bucket's variant. */
+    readonly resultItemData?: number;
+    /** Whether the live inventory should consume one item from the held stack. */
+    readonly consumeItem?: boolean;
+}
+
 /**
  * The hooks an entity component may implement.
  *
@@ -160,5 +170,5 @@ export interface EntityHooks {
         entity: EntityInstance,
         itemIdentifier: string,
         other?: FilterEntityView
-    ) => boolean | undefined;
+    ) => boolean | EntityItemInteractionEffect | undefined;
 }

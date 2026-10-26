@@ -211,6 +211,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, applies `result_item`, honors `interact_filters`, and raises `grow_up`; pause/reset item effects are pending ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
+| `minecraft:interact` | Applies `on_interact.filters` and events, `use_item`, and `transform_to_item` through the live player's inventory; other fields still report as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
 | `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta` and raises `calm_event` |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
@@ -255,7 +256,7 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, of which 158 are registered |
-| Non-goal keys that carry behavior rather than data | 38 |
+| Non-goal keys that carry behavior rather than data | 39 |
 | Entities whose every non-goal component is registered | 103 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -327,6 +328,8 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **The components and fields that still need behavior.** `minecraft:ageable.pause_growth_items` and
-  `reset_growth_items`, `minecraft:interact`, `minecraft:inventory`, `minecraft:equipment`,
-  `minecraft:explode` and the rest need item use or world effects. The load report and
+  `reset_growth_items`, the remaining `minecraft:interact` effects (cooldowns, item drops, sounds,
+  spawned items and health changes), `minecraft:inventory`, `minecraft:equipment`, `minecraft:explode`
+  and the rest need item use or world effects. `minecraft:interact` currently runs item filters,
+  entity events, held-item consumption and item transformation. The load report and
   `EntityType.unimplementedComponents` name the 44 non-goal keys that remain unregistered.

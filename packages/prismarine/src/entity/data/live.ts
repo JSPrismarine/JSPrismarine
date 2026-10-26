@@ -16,6 +16,7 @@
  */
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
+import type { EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -27,6 +28,7 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { lookVector } from '../Archery';
+import Player from '../../Player';
 import type { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
@@ -35,6 +37,37 @@ import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
 import type { DataEntityRecord } from './persistence';
 import { Item as ItemEntity } from '../other/Item';
+import type { Item } from '../../item/Item';
+
+/** A held or equipped item as the entity filter language reads it. */
+const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
+    item === undefined ? undefined : { identifier: () => item.getName(), data: () => item.getMeta() };
+
+/** The live player's family and equipment, which `minecraft:interact` filters inspect. */
+const playerFilterView = (player: Player): FilterEntityView => {
+    const inventory = player.getInventory();
+    const armorSlots = new Map<EquipmentSlot, number>([
+        ['head', 0],
+        ['torso', 1],
+        ['leg', 2],
+        ['feet', 3]
+    ]);
+    return {
+        id: () => Number(player.getRuntimeId()),
+        names: (name) => (name === 'is_family' ? ['player'] : undefined),
+        equipment: (slot, index) => {
+            if (slot === 'main_hand' || slot === 'hand' || slot === 'any')
+                return index === 0 ? filterItemOf(inventory.getItemInHand()) : undefined;
+            if (slot === 'off_hand') return filterItemOf(inventory.getOffhand().getEntry(index)?.getItem());
+            if (slot === 'inventory') return filterItemOf(inventory.getEntry(index)?.getItem());
+            const armorIndex = armorSlots.get(slot);
+            if (armorIndex !== undefined)
+                return index === 0 ? filterItemOf(inventory.getArmor().getEntry(armorIndex)?.getItem()) : undefined;
+            if (slot === 'armor') return filterItemOf(inventory.getArmor().getEntry(index)?.getItem());
+            return undefined;
+        }
+    };
+};
 
 /** What {@link EntityRuntimes.open} is given for one dimension. */
 export interface LiveEntityOptions {
@@ -251,7 +284,12 @@ export class LiveEntityRuntime {
         const id = this.bodies.entityIdOf(target);
         return id === undefined
             ? { accepted: false }
-            : this.runtime.interactWithItem(id, Number(player.getRuntimeId()), itemIdentifier);
+            : this.runtime.interactWithItem(
+                  id,
+                  Number(player.getRuntimeId()),
+                  itemIdentifier,
+                  player instanceof Player ? playerFilterView(player) : undefined
+              );
     }
 
     /**

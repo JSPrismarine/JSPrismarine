@@ -25,6 +25,7 @@ import type {
     EntitySpawnRequest,
     EventTarget,
     FilterContext,
+    FilterEntityView,
     OutgoingTrigger,
     TransformRequest
 } from '@jsprismarine/entities';
@@ -1096,8 +1097,21 @@ export class EntityRuntime implements EntityScene {
         if (entity !== undefined) entity.body.loveTicks = Math.max(0, ticks);
     }
 
-    /** Applies one player-held item to an entity whose active data accepts it. */
-    public interactWithItem(id: number, owner: number, itemIdentifier: string): EntityItemInteraction {
+    /**
+     * Applies one player-held item through the entity's active data components.
+     *
+     * @param id - Runtime id of the entity being interacted with.
+     * @param owner - Runtime id of the player or entity holding the item.
+     * @param itemIdentifier - Identifier of the held item.
+     * @param other - The holder's filter view, supplied for live players that are outside this runtime.
+     * @returns Whether the interaction was accepted, and any change to the held item.
+     */
+    public interactWithItem(
+        id: number,
+        owner: number,
+        itemIdentifier: string,
+        other?: FilterEntityView
+    ): EntityItemInteraction {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
 
@@ -1162,7 +1176,12 @@ export class EntityRuntime implements EntityScene {
             }
         }
 
-        if (!entity.instance.interactWithItem(itemIdentifier, this.mobById(owner)?.view())) return { accepted: false };
+        const interaction = entity.instance.interactWithItemResult(
+            itemIdentifier,
+            other ?? this.mobById(owner)?.view()
+        );
+        if (interaction === false) return { accepted: false };
+        if (typeof interaction === 'object') return { accepted: true, ...interaction };
         const ageable = entity.instance.componentParams('minecraft:ageable');
         const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
         const resultItem = resultItemOf(feedItem);

@@ -10,6 +10,7 @@ import { damagerSubjects } from '../filterContext';
 import type { FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
+import type { EntityItemInteractionEffect } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { EntitySpawnRequest } from '../hooks';
 import type { RideableParams } from '../riding';
@@ -980,6 +981,124 @@ const parseComponentTrigger = (value: unknown): SensorTrigger | undefined => {
     const event = stringAt(value, 'event');
     if (event === undefined) return undefined;
     return { event, target: parseEventTarget(value.target, () => undefined) };
+};
+
+/** One item transformation written as `item_name:aux_value`. */
+interface TransformedItem {
+    readonly identifier: string;
+    readonly data?: number;
+}
+
+/** Splits a transformed item into its namespaced identifier and auxiliary value. */
+const transformedItemOf = (value: string): TransformedItem => {
+    const match = /^(?<identifier>.+):(?<data>\d+)$/.exec(value);
+    const identifier = match?.groups?.identifier ?? value;
+    return {
+        identifier: normalizedItemIdentifier(identifier),
+        ...(match?.groups?.data === undefined ? {} : { data: Number(match.groups.data) })
+    };
+};
+
+/** One `minecraft:interact.interactions[]` entry used by a held-item interaction. */
+interface InteractEntry {
+    readonly onInteract?: SensorTrigger;
+    readonly useItem: boolean;
+    readonly transformedItem?: TransformedItem;
+    readonly unsupportedFields: readonly string[];
+}
+
+/** What `minecraft:interact` declares. */
+export interface InteractParams {
+    /** Ordered interactions; the first matching entry with a supported effect wins. */
+    readonly interactions: readonly InteractEntry[];
+}
+
+/**
+ * The held-item behavior currently implemented for `minecraft:interact`.
+ *
+ * It evaluates each entry's `on_interact.filters`, queues its event, and
+ * applies `transform_to_item` and `use_item` to the live held stack. Other
+ * interaction fields remain visible as a one-time runtime report so incomplete
+ * behavior is not silently treated as vanilla.
+ */
+export const interact: ComponentFactory<EntityHooks, InteractParams> = {
+    name: 'minecraft:interact',
+    hooks: ['onInitialize', 'onInteractWithItem'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const supportedFields = new Set(['on_interact', 'use_item', 'transform_to_item']);
+        const interactions: InteractEntry[] = [];
+        for (const [index, raw] of asList(value.interactions).entries()) {
+            if (!isRecord(raw)) return rejected(`interactions[${index}] must be an object`);
+            let onInteract: SensorTrigger | undefined;
+            if (raw.on_interact !== undefined) {
+                if (!isRecord(raw.on_interact)) return rejected(`interactions[${index}].on_interact must be an object`);
+                let filters: Filter | undefined;
+                if (raw.on_interact.filters !== undefined) {
+                    const parsed = parseFilterValue(
+                        raw.on_interact.filters,
+                        `minecraft:interact interactions[${index}]`
+                    );
+                    if (!parsed.ok) return parsed;
+                    filters = parsed.value;
+                }
+                onInteract = {
+                    filters,
+                    event: stringAt(raw.on_interact, 'event'),
+                    target: parseEventTarget(raw.on_interact.target, () => undefined)
+                };
+            }
+            if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
+                return rejected(`interactions[${index}].transform_to_item must be a string`);
+            interactions.push({
+                onInteract,
+                useItem: booleanAt(raw, 'use_item', false),
+                ...(typeof raw.transform_to_item === 'string'
+                    ? { transformedItem: transformedItemOf(raw.transform_to_item) }
+                    : {}),
+                unsupportedFields: Object.keys(raw).filter((key) => !supportedFields.has(key))
+            });
+        }
+        return accepted({ interactions });
+    },
+    create: (params) => {
+        const reported = new WeakSet<EntityInstance>();
+        return {
+            onInitialize: (entity) => {
+                if (reported.has(entity)) return;
+                reported.add(entity);
+                const unsupported = [...new Set(params.interactions.flatMap((entry) => entry.unsupportedFields))];
+                if (unsupported.length > 0)
+                    entity.report(`minecraft:interact fields ${unsupported.join(', ')} are not carried out`);
+            },
+            onInteractWithItem: (entity, itemIdentifier, other): EntityItemInteractionEffect | undefined => {
+                const normalizedItem = normalizedItemIdentifier(itemIdentifier);
+                const heldItem = other?.equipment?.('hand', 0) ?? { identifier: () => normalizedItem };
+                const subjects = other === undefined ? {} : { other, player: other };
+                const context = { ...entity.filterContext(), ...subjects, item: heldItem };
+                for (const entry of params.interactions) {
+                    if (entry.onInteract?.filters !== undefined && !evaluateFilter(entry.onInteract.filters, context))
+                        continue;
+                    if (entry.onInteract?.event === undefined && entry.transformedItem === undefined && !entry.useItem)
+                        continue;
+                    if (entry.onInteract?.event !== undefined)
+                        entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
+                    return {
+                        ...(entry.transformedItem === undefined
+                            ? {}
+                            : {
+                                  resultItem: entry.transformedItem.identifier,
+                                  ...(entry.transformedItem.data === undefined
+                                      ? {}
+                                      : { resultItemData: entry.transformedItem.data })
+                              }),
+                        consumeItem: entry.useItem || entry.transformedItem !== undefined
+                    };
+                }
+                return undefined;
+            }
+        };
+    }
 };
 
 const parseSensorTriggers = (
