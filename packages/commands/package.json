@@ -38,6 +38,7 @@
     "scripts": {
         "clean": "rimraf dist jsp *.tsbuildinfo vite.config.ts.timestamp-* .tsup .turbo",
         "generate:bedrock-commands": "node utils/generate/generate-bedrock-commands.ts",
+        "generate:java-commands": "node utils/generate/generate-java-commands.ts",
         "build": "vite build && node ../../scripts/emit-dts.mts",
         "build:watch": "vite build --watch",
         "test": "vitest run",

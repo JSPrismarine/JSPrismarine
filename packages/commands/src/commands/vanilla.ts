@@ -14,6 +14,7 @@ import { registerBedrockCommands } from './bedrock';
 import { registerDataCommands } from './data';
 import { registerEntityCommands } from './entities';
 import { registerExecute, storeCommandResults } from './execute';
+import { extendWithJavaCommandData } from './javaSchema';
 import { registerServerCommands } from './server';
 import { registerWorldCommands } from './world';
 
@@ -116,5 +117,6 @@ export const registerVanillaCommands = (
     registerServerCommands(registry);
     registerBedrockCommands(registry);
     storeCommandResults(registry.getDispatcher());
+    extendWithJavaCommandData(registry, [...SHARED_COMMAND_NAMES, ...JAVA_ONLY_COMMAND_NAMES]);
     return registry;
 };

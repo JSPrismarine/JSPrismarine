@@ -45,6 +45,15 @@ export default class ArgumentCommandNode<S, T> extends CommandNode<S> {
         return this.type;
     }
 
+    /**
+     * Replaces the parser while keeping this node's name, command, and children.
+     *
+     * @param type - The replacement parser.
+     */
+    public setType(type: ArgumentType<T>): void {
+        this.type = type;
+    }
+
     public getName(): string {
         return this.name;
     }

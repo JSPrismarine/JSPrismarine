@@ -39,6 +39,24 @@ upper-case name a parameter refers to them by, or when a command, overload or en
 empty. The fetched metadata is an extracted game file, so it is parsed and validated, never
 executed.
 
+## Java command syntax
+
+The Java command tree comes from Mojang's `reports/commands.json` for Java Edition 26.3, republished
+in [mcmeta's 26.3 summary](https://github.com/misode/mcmeta/tree/26.3-summary/commands). The pinned
+commit is `d96c75fec200c4580dd75e033a76341521165461`, and the report SHA-256 is
+`9e14a839e32dbcaae044aeb987f1d9c4a4a3c8f7f3a8a3a87dc055e61fa8a84a`.
+
+`src/tables/javaCommands.json` holds that report. `registerVanillaCommands()` adds its signatures
+for the 46 shared commands and the five Java-only commands this package implements, while keeping
+the existing Bedrock spellings. Regenerate the table with:
+
+```sh
+pnpm --filter @jsprismarine/commands run generate:java-commands
+```
+
+The report defines accepted syntax and argument parsers. Existing command handlers run forms they
+support; a Java form without a matching host implementation returns an explicit error.
+
 Read the table through `src/bedrockTable.ts`, which casts the parsed JSON once and exposes
 `bedrockCommandTable`, `bedrockCommand`, `bedrockCommandEnum`, `isBedrockSoftEnum` and
 `isBedrockBasicType`.
