@@ -12,6 +12,7 @@ import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { EYE_HEIGHT } from '../../entity/Human';
 import Player from '../../Player';
 import type Server from '../../Server';
 import type { Config } from '../../config/Config';
@@ -569,7 +570,7 @@ const flatChunk = (x: number, z: number): Chunk => {
 const playerAt = (world: World, x: number, z: number): Player => {
     Entity.runtimeIdCount += 1n;
     return Object.assign(Object.create(Player.prototype), {
-        position: new Position(x, GROUND_Y, z, world),
+        position: new Position(x, GROUND_Y + EYE_HEIGHT, z, world),
         pitch: 0,
         yaw: 0,
         headYaw: 0,
@@ -1919,6 +1920,19 @@ describe('the data-driven entity runtime over a live world', () => {
             if (opened === undefined) throw new Error('the vanilla content opened no entity runtime');
             live = opened;
         };
+
+        it('keeps a grounded mob level when it looks at a player', async () => {
+            useVanillaContent();
+
+            const player = addPlayer(1.5, 0.5);
+            const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (zombie === undefined) throw new Error('vanilla content declares no zombie');
+
+            await run(5);
+
+            expect(zombie.target).toBe(Number(player.getRuntimeId()));
+            expect(zombie.body.pitch).toBeCloseTo(0, 0);
+        });
 
         it('shows hearts when a vanilla animal accepts a breeding item', { timeout: 180_000 }, () => {
             useVanillaContent();

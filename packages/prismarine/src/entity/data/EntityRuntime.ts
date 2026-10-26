@@ -50,7 +50,6 @@ import { Spawner, despawnReason } from '@jsprismarine/spawning';
 import type { Merchant } from '@jsprismarine/trading';
 import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 
-import { EYE_HEIGHT as PLAYER_EYE_HEIGHT } from '../Human';
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
 import { BLOCK_DROPS, MOB_DROPS, MOB_GRIEFING, SPAWN_MOBS, ruleIsOn } from '../../content/world/gameRules';
 import type { ServerContent } from '../../content/ServerContent';
@@ -1565,8 +1564,7 @@ export class EntityRuntime implements EntityScene {
                 state.hitEntities.has(target.id)
             )
                 continue;
-            const feet = { ...target.position, y: target.position.y - PLAYER_EYE_HEIGHT };
-            if (projectileOverlaps(at, projectileBox, feet, PLAYER_WIDTH, PLAYER_HEIGHT)) return target;
+            if (projectileOverlaps(at, projectileBox, target.position, PLAYER_WIDTH, PLAYER_HEIGHT)) return target;
         }
 
         return undefined;

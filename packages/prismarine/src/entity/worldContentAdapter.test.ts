@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { Gametype } from '@jsprismarine/minecraft';
 
+import { EYE_HEIGHT } from './Human';
 import type { ContentLookup } from '../content/world/views';
 import Player from '../Player';
 import { stub, stubOf } from '../testing/stub.test.helper';
@@ -10,14 +11,18 @@ import type { World } from '../world/World';
 import { worldEntityAccess } from './worldContentAdapter';
 
 describe('the live entity content adapter', () => {
-    it('reports the player’s current creative and spectator state', () => {
+    it('reports player mode and feet-level position', () => {
         const world = stub<World>();
-        const player = stubOf(Player, {
-            getRuntimeId: () => 7n,
-            getType: () => 'minecraft:player',
-            getPosition: () => new Position(2.5, 64, -1.5, world),
-            gamemode: Gametype.CREATIVE
-        });
+        const position = new Position(2.5, 64 + EYE_HEIGHT, -1.5, world);
+        const player = Object.assign(
+            stubOf(Player, {
+                getRuntimeId: () => 7n,
+                getType: () => 'minecraft:player',
+                getPosition: () => position,
+                gamemode: Gametype.CREATIVE
+            }),
+            { position }
+        );
         Object.assign(world, { getPlayers: () => [player] });
         const access = worldEntityAccess({
             world: () => world,
@@ -26,7 +31,9 @@ describe('the live entity content adapter', () => {
             }) satisfies ContentLookup
         });
 
-        expect(access.players()).toMatchObject([{ creative: true, spectator: false }]);
+        expect(access.players()).toMatchObject([
+            { creative: true, spectator: false, position: { x: 2.5, y: 64, z: -1.5 } }
+        ]);
 
         player.gamemode = Gametype.SURVIVAL;
 

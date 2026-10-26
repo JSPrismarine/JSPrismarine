@@ -61,6 +61,7 @@ export interface ContentEntity {
     readonly id: number;
     /** The namespaced entity identifier, such as `minecraft:zombie`. */
     readonly identifier: string;
+    /** Position at the bottom of the entity's body, including for players whose network position is their eyes. */
     readonly position: ContentPosition;
     /** Whether this player is in creative mode; absent for non-players. */
     readonly creative?: boolean;

@@ -118,7 +118,7 @@ const contentEntityOf = (entity: Entity): ContentEntity => {
     return {
         id: Number(entity.getRuntimeId()),
         identifier: entity.getType(),
-        position: { x: position.getX(), y: position.getY(), z: position.getZ() }
+        position: { x: position.getX(), y: entity.getFeetY(), z: position.getZ() }
     };
 };
 
@@ -127,7 +127,7 @@ const standsIn = (entity: Entity, at: ContentPosition): boolean => {
     const position = entity.getPosition();
     return (
         Math.floor(position.getX()) === at.x &&
-        Math.floor(position.getY()) === at.y &&
+        Math.floor(entity.getFeetY()) === at.y &&
         Math.floor(position.getZ()) === at.z
     );
 };
@@ -136,7 +136,7 @@ const standsIn = (entity: Entity, at: ContentPosition): boolean => {
 const distanceSquared = (entity: Entity, from: ContentPosition): number => {
     const position = entity.getPosition();
     const dx = position.getX() - from.x;
-    const dy = position.getY() - from.y;
+    const dy = entity.getFeetY() - from.y;
     const dz = position.getZ() - from.z;
     return dx * dx + dy * dy + dz * dz;
 };
