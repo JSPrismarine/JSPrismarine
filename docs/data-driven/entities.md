@@ -457,10 +457,11 @@ owner stay out because both are runtime ids, drawn fresh each session, and would
 pointing at whatever entity happened to take the number. A held item also comes back as an
 identifier rather than as a stack, which is as much as the goal seam models.
 
-**Taming and feeding have no interaction path.** `EntityRuntime.setOwner` and
-`EntityRuntime.setInLove` exist and the goals that read them work, but nothing calls either one:
-`minecraft:tameable` and the feeding half of `minecraft:breedable` parse as data and no
-right-click reaches them. Breeding works when something else puts two animals in love.
+**Taming and breeding food use their component data.** Right-clicking an entity checks its active
+`minecraft:tameable` or `minecraft:breedable` item list. A matching tame item uses the configured
+probability and fires `tame_event` on success; a matching breeding item puts an eligible adult in
+love. Accepted interactions consume one item outside creative mode. Feeding babies to accelerate
+growth and healing tameable mobs with food are not implemented.
 
 **Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
 world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the

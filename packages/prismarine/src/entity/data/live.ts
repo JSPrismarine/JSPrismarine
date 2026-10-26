@@ -245,6 +245,12 @@ export class LiveEntityRuntime {
         );
     }
 
+    /** Applies a held item to a data-driven entity, returning whether its component data accepted it. */
+    public interactWithItem(target: Entity, player: Entity, itemIdentifier: string): boolean {
+        const id = this.bodies.entityIdOf(target);
+        return id !== undefined && this.runtime.interactWithItem(id, Number(player.getRuntimeId()), itemIdentifier);
+    }
+
     /**
      * Writes every entity's component state onto its body, ready for a save.
      *

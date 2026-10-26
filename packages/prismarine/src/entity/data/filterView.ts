@@ -48,6 +48,8 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
             return body.sitting;
         case 'is_sleeping':
             return body.sleeping;
+        case 'is_tamed':
+            return body.owner !== undefined;
         case 'is_riding':
             return scene.vehicleOf(body) !== undefined;
         case 'has_target':

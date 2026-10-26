@@ -23,11 +23,19 @@ import type {
     EntityActuator,
     EntityPosition,
     EntitySpawnRequest,
+    EventTarget,
     FilterContext,
     OutgoingTrigger,
     TransformRequest
 } from '@jsprismarine/entities';
-import { canEntityAttack, EntityInstance, isRecord, javaEntityNavigation, noEffects } from '@jsprismarine/entities';
+import {
+    canEntityAttack,
+    EntityInstance,
+    EVENT_TARGETS,
+    isRecord,
+    javaEntityNavigation,
+    noEffects
+} from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
@@ -42,7 +50,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
-import { canBreed, offspringOf, spendLove } from './breeding';
+import { breedableOf, canBreed, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
@@ -1085,6 +1093,49 @@ export class EntityRuntime implements EntityScene {
         if (entity !== undefined) entity.body.loveTicks = Math.max(0, ticks);
     }
 
+    /** Applies one player-held item to an entity whose active data accepts it. */
+    public interactWithItem(id: number, owner: number, itemIdentifier: string): boolean {
+        const entity = this.entities.get(id);
+        if (entity === undefined || entity.removed !== undefined) return false;
+
+        const tameable = entity.instance.componentParams('minecraft:tameable');
+        if (
+            isRecord(tameable) &&
+            !entity.instance.hasComponent('minecraft:is_tamed') &&
+            entity.body.owner === undefined &&
+            componentItemsInclude(tameable.tame_items, itemIdentifier)
+        ) {
+            const probability = typeof tameable.probability === 'number' ? tameable.probability : 1;
+            if (this.world.random.nextFloat() < Math.min(1, Math.max(0, probability))) {
+                entity.body.owner = owner;
+                entity.body.conditions.add('is_tamed');
+                fireTameEvent(entity, tameable.tame_event);
+            }
+            return true;
+        }
+
+        const breeding = breedableOf(entity.instance);
+        const breedable = entity.instance.componentParams('minecraft:breedable');
+        const health = entity.instance.attributes.get('health');
+        if (
+            breeding === undefined ||
+            !isRecord(breedable) ||
+            !componentItemsInclude(breedable.breed_items, itemIdentifier) ||
+            entity.instance.hasComponent('minecraft:is_baby') ||
+            entity.body.loveTicks > 0 ||
+            entity.body.breedCooldown > 0 ||
+            (breeding.requireTame &&
+                !entity.instance.hasComponent('minecraft:is_tamed') &&
+                entity.body.owner === undefined) ||
+            (breeding.requireFullHealth && (health === undefined || health.current < health.max))
+        ) {
+            return false;
+        }
+
+        entity.body.loveTicks = 600;
+        return true;
+    }
+
     /**
      * Kills an entity: drops what its `minecraft:loot` table rolls, then
      * removes it.
@@ -1791,6 +1842,29 @@ export class EntityRuntime implements EntityScene {
 
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
+
+/** Whether a component's item names one item, with or without its default namespace. */
+const componentItemsInclude = (items: unknown, identifier: string): boolean => {
+    const itemNames = Array.isArray(items) ? items : items === undefined ? [] : [items];
+    const normalized = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+    return itemNames.some((item) => {
+        const name =
+            typeof item === 'string' ? item : isRecord(item) && typeof item.item === 'string' ? item.item : undefined;
+        if (name === undefined) return false;
+        return (name.includes(':') ? name : `minecraft:${name}`) === normalized;
+    });
+};
+
+/** Fires the optional `minecraft:tameable` event on the target it declares. */
+const fireTameEvent = (entity: DataEntity, value: unknown): void => {
+    const event = typeof value === 'string' ? value : isRecord(value) ? value.event : undefined;
+    if (typeof event !== 'string') return;
+
+    const requestedTarget = isRecord(value) ? value.target : undefined;
+    const target: EventTarget = EVENT_TARGETS.find((candidate) => candidate === requestedTarget) ?? 'self';
+    if (target === 'self') entity.instance.fire(event);
+    else entity.instance.raise(event, target, 'minecraft:tameable');
+};
 
 /** Adds or clears one environmental condition on an entity's body. */
 const setCondition = (conditions: Set<string>, name: string, active: boolean): void => {

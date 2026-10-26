@@ -45,6 +45,8 @@ export interface ItemActorPortOptions {
     readonly level: ContentLevelFacts;
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
+    /** Applies a player's held item to a data-driven entity, when its components accept it. */
+    readonly interactWithEntity?: (target: Entity, player: Player, itemIdentifier: string) => boolean;
 }
 
 /**
@@ -57,6 +59,8 @@ export interface ItemActorPortOptions {
 export interface ServerItemActorPort extends ItemActorPort {
     /** Runs a body with one interaction's target recorded, so {@link ItemActorPort.targetOf} answers. */
     duringInteraction<T>(source: ItemSource, target: ItemSource | undefined, body: () => T): T;
+    /** Runs the target entity's data-defined taming or breeding interaction and consumes its item. */
+    interactWithEntity(source: ItemSource): boolean;
 }
 
 /** The armor inventory index each `minecraft:equippable` slot name writes into. */
@@ -104,7 +108,7 @@ const inWater = (world: World, entity: Entity): boolean => {
 
 /** Builds the port over one live world. */
 export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
-    const { world, entities, level, launchProjectile } = options;
+    const { world, entities, level, launchProjectile, interactWithEntity } = options;
 
     /** Game tick each cooldown runs out at. */
     const cooldowns = new Map<string, number>();
@@ -113,6 +117,23 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     const targets = new Map<number, ItemSource>();
 
     const entityOf = (source: ItemSource): Entity | null => world()?.getEntity(BigInt(source.runtimeId)) ?? null;
+
+    const useItemOnEntity = (source: ItemSource): boolean => {
+        const player = entityOf(source);
+        const targetSource = targets.get(source.runtimeId);
+        const target = targetSource === undefined ? null : entityOf(targetSource);
+        if (!(player instanceof Player) || target === null || interactWithEntity === undefined) return false;
+
+        const inventory = player.getInventory();
+        const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
+        const held = inventory.getItemInHand();
+        if (heldEntry === null || heldEntry.getCount() < 1) return false;
+        if (!interactWithEntity(target, player, held.getName())) return false;
+
+        if (player.gamemode !== Gametype.CREATIVE)
+            inventory.setItemInHand(new ContainerEntry({ item: held, count: heldEntry.getCount() - 1 }));
+        return true;
+    };
 
     /** What is reported for a system this server has not written, once per kind. */
     const reported = new Set<string>();
@@ -342,6 +363,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             };
         },
         targetOf: (source) => targets.get(source.runtimeId),
+        interactWithEntity: useItemOnEntity,
         perform,
         duringInteraction: (source, target, body) => {
             const previous = targets.get(source.runtimeId);

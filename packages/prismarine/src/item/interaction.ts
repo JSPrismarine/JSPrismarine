@@ -316,13 +316,14 @@ export const useItemOnEntity = (interaction: EntityInteraction): InteractionResu
 
     const held = player.getInventory().getItemInHand();
     const stack = heldStack(content, held.getName(), held.getAmount());
-    if (stack === undefined) return 'declined';
-
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
-    return actors.duringInteraction(source, target, () =>
-        stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 }) === undefined
+    return actors.duringInteraction(source, target, () => {
+        if (actors.interactWithEntity(source)) return 'handled';
+        if (stack === undefined) return 'declined';
+
+        return stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 }) === undefined
             ? 'declined'
-            : 'handled'
-    );
+            : 'handled';
+    });
 };

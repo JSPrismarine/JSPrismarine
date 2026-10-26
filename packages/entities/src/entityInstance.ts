@@ -781,7 +781,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     private ownFlag(name: EntityFlag): boolean | undefined {
         if (name === 'is_baby') return this.hasComponent('minecraft:is_baby');
-        if (name === 'is_tamed') return this.hasComponent('minecraft:is_tamed');
+        if (name === 'is_tamed')
+            return (
+                this.hasComponent('minecraft:is_tamed') ||
+                this.environment.filterContext?.(this).self.flag?.(name) === true
+            );
         if (name === 'is_persistent') return this.hasComponent('minecraft:persistent');
         if (name === 'has_target') return this.target !== undefined;
         if (name === 'is_riding') return this.mounted !== undefined;

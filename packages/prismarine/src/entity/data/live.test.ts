@@ -19,11 +19,16 @@ import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { overlayPackPath } from '../../content/packStack';
 import { buildServerContent } from '../../content/ServerContent';
 import type { ServerContent } from '../../content/ServerContent';
+import type { ContentEntityAccess } from '../../content/world/adapter';
 import { serverWorldSource } from '../../content/world/serverSource';
+import { unwiredWorld } from '../../content/world/unwired';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { Item } from '../../item/Item';
+import { createItemActorPort } from '../../item/actorPort';
+import { useItemOnEntity } from '../../item/interaction';
 import type ItemManager from '../../item/ItemManager';
 import ContainerEntry from '../../inventory/ContainerEntry';
+import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
 import { stub } from '../../testing/stub.test.helper';
 import { entityCommandHost } from '../../command/host/entities';
@@ -351,6 +356,21 @@ const ENTITIES = new Map([
                 'minecraft:physics': { has_gravity: false }
             }
         })
+    ],
+    [
+        'jsprismarine:pet_fixture',
+        entityFile('jsprismarine:pet_fixture', {
+            components: {
+                ...MOB_BASE,
+                'minecraft:tameable': {
+                    probability: 1,
+                    tame_items: ['bone'],
+                    tame_event: { event: 'jsprismarine:on_tame', target: 'self' }
+                }
+            },
+            component_groups: { tamed: { 'minecraft:is_tamed': {} } },
+            events: { 'jsprismarine:on_tame': { add: { component_groups: ['tamed'] } } }
+        })
     ]
 ]);
 
@@ -648,6 +668,41 @@ describe('the data-driven entity runtime over a live world', () => {
         // Both used to throw `NotWiredError` naming the entity subsystem.
         expect(() => live.runtime.content().world.spawnWorld.players()).not.toThrow();
         expect(live.runtime.content().world.brainWorld()).toBeDefined();
+    });
+
+    it('routes entity taming through the live item interaction and consumes one item', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bone' }), count: 1 }));
+        const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (pet === undefined) throw new Error('the fixture declares no tameable pet');
+        await run(1);
+
+        const body = live.bodies.bodyOf(pet.id);
+        if (body === undefined) throw new Error('the tameable pet has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: pet.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(0);
+        expect(pet.body.owner).toBe(Number(player.getRuntimeId()));
+
+        await live.tick(2);
+
+        expect(pet.instance.hasComponent('minecraft:is_tamed')).toBe(true);
+        expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.TAMED))).toBe(true);
     });
 
     it('launches a player projectile through the live data-driven runtime', async () => {

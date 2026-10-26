@@ -138,7 +138,8 @@ const accepts = (
 const ready = (entity: DataEntity, rules: BreedableRules): boolean => {
     if (entity.instance.hasComponent('minecraft:is_baby')) return false;
     if (entity.body.breedCooldown > 0) return false;
-    if (rules.requireTame && !entity.instance.hasComponent('minecraft:is_tamed')) return false;
+    if (rules.requireTame && !entity.instance.hasComponent('minecraft:is_tamed') && entity.body.owner === undefined)
+        return false;
     if (rules.requireFullHealth && !atFullHealth(entity)) return false;
     return isInLove(entity, rules);
 };

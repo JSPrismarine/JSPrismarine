@@ -125,6 +125,8 @@ export class LiveBodies {
         number,
         { readonly affectedByGravity: boolean; readonly collidable: boolean }
     >();
+    /** Taming flags last mirrored to each body's actor metadata. */
+    private readonly tameFlags = new Map<number, boolean>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -134,6 +136,11 @@ export class LiveBodies {
     /** The live body of one data entity, or undefined when it has none. */
     public bodyOf(id: number): Entity | undefined {
         return this.bodies.get(id);
+    }
+
+    /** The data entity id for a client-facing body, or undefined when it is not data-driven. */
+    public entityIdOf(body: Entity): number | undefined {
+        return this.idsByBody.get(body);
     }
 
     /** How many bodies are in the world, which is what a test counts. */
@@ -182,6 +189,7 @@ export class LiveBodies {
         this.writeEquipment(entity, body);
         this.writeMovementFlags(entity, body);
         this.writePhysicsFlags(entity, body);
+        this.writeTameFlag(entity, body);
         this.writeFallingBlockAppearance(entity, body);
 
         this.bodies.set(entity.id, body);
@@ -199,6 +207,7 @@ export class LiveBodies {
         this.equipped.delete(entity.id);
         this.movementFlags.delete(entity.id);
         this.physicsFlags.delete(entity.id);
+        this.tameFlags.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -219,6 +228,7 @@ export class LiveBodies {
         this.equipped.delete(id);
         this.movementFlags.delete(id);
         this.physicsFlags.delete(id);
+        this.tameFlags.delete(id);
         return id;
     }
 
@@ -248,9 +258,10 @@ export class LiveBodies {
             this.writeEquipment(entity, body);
             const movementFlagsChanged = this.writeMovementFlags(entity, body);
             const physicsFlagsChanged = this.writePhysicsFlags(entity, body);
+            const tameFlagChanged = this.writeTameFlag(entity, body);
             const properties = this.showSyncedProperties(entity, body);
             if (properties !== undefined) moves.push(properties);
-            else if (movementFlagsChanged || physicsFlagsChanged) {
+            else if (movementFlagsChanged || physicsFlagsChanged || tameFlagChanged) {
                 const metadata = this.options.world()?.sendActorMetadata(body);
                 if (metadata !== undefined) moves.push(metadata);
             }
@@ -289,6 +300,7 @@ export class LiveBodies {
         this.equipped.clear();
         this.movementFlags.clear();
         this.physicsFlags.clear();
+        this.tameFlags.clear();
     }
 
     /**
@@ -367,6 +379,17 @@ export class LiveBodies {
         body.metadata.setAffectedByGravity(next.affectedByGravity);
         body.metadata.setCollidable(next.collidable);
         this.physicsFlags.set(entity.id, next);
+        return previous !== undefined;
+    }
+
+    /** Writes the current tamed state to the client-facing actor. */
+    private writeTameFlag(entity: DataEntity, body: Entity): boolean {
+        const tamed = entity.body.owner !== undefined || entity.instance.hasComponent('minecraft:is_tamed');
+        const previous = this.tameFlags.get(entity.id);
+        if (previous === tamed) return false;
+
+        body.metadata.setGenericFlag(ActorFlags.TAMED, tamed);
+        this.tameFlags.set(entity.id, tamed);
         return previous !== undefined;
     }
 

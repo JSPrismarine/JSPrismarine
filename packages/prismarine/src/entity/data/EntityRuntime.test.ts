@@ -174,6 +174,60 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('item interactions', () => {
+        it('tames an entity from its data and applies its tame event', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:tameable': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:tameable': {
+                                probability: 1,
+                                tame_items: ['bone'],
+                                tame_event: { event: 'jsprismarine:on_tame', target: 'self' }
+                            }
+                        },
+                        component_groups: { tamed: { 'minecraft:is_tamed': {} } },
+                        events: { 'jsprismarine:on_tame': { add: { component_groups: ['tamed'] } } }
+                    }
+                }
+            );
+            const wolf = runtime.spawn('jsprismarine:tameable', GROUND);
+            if (wolf === undefined) throw new Error('the fixture declares no tameable entity');
+
+            expect(runtime.interactWithItem(wolf.id, 42, 'minecraft:bone')).toBe(true);
+            expect(wolf.body.owner).toBe(42);
+            expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(false);
+
+            runtime.tick(1);
+
+            expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(true);
+        });
+
+        it('puts an eligible entity in love when fed an item from its data', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:breedable': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:breedable': { require_tame: false, breed_items: ['wheat'] }
+                        }
+                    }
+                }
+            );
+            const cow = runtime.spawn('jsprismarine:breedable', GROUND);
+            if (cow === undefined) throw new Error('the fixture declares no breedable entity');
+
+            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:wheat')).toBe(true);
+            expect(cow.body.loveTicks).toBe(600);
+            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:stick')).toBe(false);
+        });
+    });
+
     describe('physics', () => {
         it('floats a vanilla-shaped buoyant entity at the water surface', () => {
             const { runtime, world } = entityFixture(
