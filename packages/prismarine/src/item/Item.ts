@@ -176,9 +176,8 @@ export class Item {
         this.loreLines = lore === undefined ? [] : [...lore];
         this.heldContents = contents === undefined ? [] : [...contents];
         if (meta) this.meta = meta;
-        // Declared by `ItemProps` but silently dropped until 2168, so a stack read off the
-        // wire came back as one item however many the client said it held.
-        if (count) this.count = count;
+        // Zero is the empty stack's count; treating it as missing turns air into a live item.
+        if (count !== undefined) this.count = count;
 
         this.networkId = ItemIdMap[name];
         this.durability = this.getMaxDurability();

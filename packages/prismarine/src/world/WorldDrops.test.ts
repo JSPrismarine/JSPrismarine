@@ -189,6 +189,23 @@ describe('world', () => {
             expect(entities.size).toBe(World.ITEM_ENTITY_LIMIT);
         });
 
+        it('preserves an explicit zero item count', () => {
+            expect(Item.air().getAmount()).toBe(0);
+            expect(new Item({ name: 'minecraft:stone', count: 0 }).getAmount()).toBe(0);
+        });
+
+        it('does not turn empty stacks into dropped item actors', async () => {
+            const { world, entities } = emptyWorld();
+
+            await world.dropContents(new Vector3(0, 64, 0), [
+                Item.air(),
+                new Item({ name: 'minecraft:air', count: 1 }),
+                new Item({ name: 'minecraft:stone', count: 0 })
+            ]);
+
+            expect(entities.size).toBe(0);
+        });
+
         it('drops nothing in creative, where breaking is not mining', async () => {
             const { world, player, sent, entities } = fakeWorld(new BlockState('minecraft:cobblestone'));
             player.gamemode = Gametype.CREATIVE;

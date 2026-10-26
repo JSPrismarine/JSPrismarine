@@ -79,6 +79,10 @@ const SPAWN_SEARCH_STEP = 8;
  */
 const UNSUITABLE_SPAWN_TERRAIN = new Set(['minecraft:water', 'minecraft:lava', 'minecraft:air']);
 
+/** Whether a drop is an empty item stack. */
+const isEmptyItemDrop = (drop: Block | Item): boolean =>
+    drop instanceof Item && (drop.getName() === 'minecraft:air' || drop.getAmount() <= 0);
+
 /**
  * Surfaces a player must not be dropped onto: water because it is not land, and the
  * decoration blocks because standing on a flower or in a canopy is not a spawn point.
@@ -1856,7 +1860,7 @@ export class World implements Service {
                 );
         }
 
-        const wanted = contents.filter((drop) => drop !== null);
+        const wanted = contents.filter((drop): drop is Block | Item => drop !== null && !isEmptyItemDrop(drop));
         const room = Math.max(0, World.ITEM_ENTITY_LIMIT - this.itemEntityCount());
         if (wanted.length > room) this.reportItemEntityLimit(wanted.length - room);
 

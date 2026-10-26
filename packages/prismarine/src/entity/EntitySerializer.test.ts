@@ -7,6 +7,7 @@ import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
+import { Item as ItemEntity } from './other/Item';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
@@ -62,6 +63,24 @@ describe('entity', () => {
 
             expect(cow.yaw).toBe(90);
             expect(cow.pitch).toBe(45);
+        });
+
+        it('restores an item actor with its Bedrock stack fields', () => {
+            const item = EntitySerializer.fromNBT(
+                actor('minecraft:item', (root) => {
+                    const stack = new NBTTagCompound('Item');
+                    stack.addValue('Name', new Types.StringVal('minecraft:stone'));
+                    stack.addValue('Count', new Types.ByteVal(2));
+                    stack.addValue('Damage', new Types.ShortVal(0));
+                    root.addValue('Item', stack);
+                }),
+                world
+            );
+
+            expect(item).toBeInstanceOf(ItemEntity);
+            if (!(item instanceof ItemEntity)) throw new Error('the item actor was not restored as an item');
+            expect(item.getItem()?.getItem().getName()).toBe('minecraft:stone');
+            expect(item.getItem()?.getCount()).toBe(2);
         });
 
         it('writes the position and rotation back', () => {
