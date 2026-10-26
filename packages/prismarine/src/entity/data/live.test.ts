@@ -2266,6 +2266,7 @@ describe('the data-driven entity runtime over a live world', () => {
                 profile: () => navigationProfile(pig.instance)
             });
 
+            expect(navigator.canReach({ x: 5.5, y: FLOOR_Y - 1.5, z: 5.5 }, 0)).toBe(false);
             expect(navigator.canReach({ x: 10.5, y: GROUND_Y, z: 2.5 })).toBe(false);
 
             const swimmingPig = live.runtime.spawn('minecraft:pig', { x: 5.5, y: FLOOR_Y + 0.5, z: 5.5 });

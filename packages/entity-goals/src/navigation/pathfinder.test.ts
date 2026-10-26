@@ -165,6 +165,18 @@ describe('findPath', () => {
         ).toBeUndefined();
     });
 
+    it('does not turn a floating ground navigator into a vertical swimmer', () => {
+        const view = voxelGrid([['#'], ['~'], ['~']]);
+        const floatingWalker = navigationProfileOf({ height: 1, canFloat: true });
+
+        expect(
+            findPath(view, floatingWalker, {
+                from: { x: 0, y: 1, z: 0 },
+                to: { x: 0, y: 2, z: 0 }
+            })
+        ).toBeUndefined();
+    });
+
     it('does not treat water as ground support when the profile can path over its surface', () => {
         const view = voxelGrid([['#~#'], ['...']]);
 

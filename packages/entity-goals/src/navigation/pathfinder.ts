@@ -11,15 +11,17 @@ import { blockOf } from './view';
  * The model is Java's in shape, because Java's `WalkNodeEvaluator` is the only
  * published implementation of the same idea: a cell is enterable when the
  * entity fits in it and something carries the entity there, and the awkward
- * cells carry a cost penalty rather than being refused outright. The rules
- * themselves come from the Bedrock `minecraft:navigation.*` flags, which is
- * what the entity definitions actually declare.
+ * cells carry a cost penalty rather than being refused outright. A ground
+ * navigator's `canFloat` flag lets it use liquid nodes, but does not give it
+ * vertical swim moves. The rules themselves come from the Bedrock
+ * `minecraft:navigation.*` flags, which is what the entity definitions
+ * actually declare.
  *
  * Three media decide which cells a profile may enter, and a cell is enterable
  * when any enabled medium accepts it: ground (the entity stands on something),
- * swim (the cell is a liquid the entity moves through) and fly (the cell is
- * open air). `minecraft:navigation.climb` adds vertical moves through
- * climbable blocks.
+ * liquid movement (the profile can swim or float), or flight (the cell is open
+ * air). `minecraft:navigation.climb` adds vertical moves through climbable
+ * blocks.
  */
 
 /** The extra cost of a cell a profile would rather not enter. */
@@ -222,13 +224,6 @@ class CellReader {
         return this.cost(x, y, z) !== undefined;
     }
 
-    /** Whether Java's floating navigator can rise or sink from this liquid cell. */
-    public canFloatIn(x: number, y: number, z: number): boolean {
-        if (!this.profile.canFloat) return false;
-        const at = this.cell(x, y, z);
-        return this.view.isWater(at) || this.view.isLava(at);
-    }
-
     /** The view position for one cell, which is the same object every time. */
     private cell(x: number, y: number, z: number): EntityPosition {
         this.at.x = x;
@@ -297,7 +292,7 @@ class CellReader {
     private readHolds(x: number, y: number, z: number): boolean {
         const { profile } = this;
         if (profile.canFly) return true;
-        if (this.inSwimmableLiquid(x, y, z)) return true;
+        if (this.inNavigableLiquid(x, y, z)) return true;
         if (this.hasSupport(x, y, z)) return true;
         return profile.kind === 'climb' && this.view.isClimbable?.(this.cell(x, y, z)) === true;
     }
@@ -312,8 +307,8 @@ class CellReader {
         return view.isSolid(this.cell(x, y - 1, z));
     }
 
-    /** Whether the swim medium carries an entity in the cell. */
-    private inSwimmableLiquid(x: number, y: number, z: number): boolean {
+    /** Whether a swimmer or a ground navigator that can float can occupy this liquid cell. */
+    private inNavigableLiquid(x: number, y: number, z: number): boolean {
         const { view, profile } = this;
         if (!(profile.canSwim || profile.isAmphibious || profile.canFloat)) return false;
         if (view.isWater(this.cell(x, y, z))) return true;
@@ -395,12 +390,7 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
         }
     }
 
-    const vertical =
-        profile.canFly ||
-        profile.canSwim ||
-        profile.isAmphibious ||
-        profile.kind === 'climb' ||
-        cells.canFloatIn(node.x, node.y, node.z);
+    const vertical = profile.canFly || profile.canSwim || profile.isAmphibious || profile.kind === 'climb';
     if (vertical) {
         for (const dy of [1, -1]) {
             const y = node.y + dy;
