@@ -169,8 +169,9 @@ export class Navigator {
      * A reachable position in the box around the entity.
      *
      * With a view it draws candidates and keeps the first the path finder
-     * reaches; without one it asks the actuator, which is what the reference
-     * goals in `@jsprismarine/entities` do.
+     * reaches, skipping water destinations when the active navigation says to
+     * avoid water; without one it asks the actuator, which is what the
+     * reference goals in `@jsprismarine/entities` do.
      *
      * @param random - Draws the candidate offsets, in [0, 1).
      */
@@ -194,6 +195,8 @@ export class Navigator {
                 y: here.y + Math.round((random() * 2 - 1) * yDistance),
                 z: here.z + Math.round((random() * 2 - 1) * xzDistance)
             };
+            if (profile.avoidWater && view.isWater(candidate)) continue;
+
             // Cheapest test first. A candidate the entity could not stand in is most of
             // what ten draws produce, and asking the path finder costs its whole node
             // budget to arrive at the same answer.

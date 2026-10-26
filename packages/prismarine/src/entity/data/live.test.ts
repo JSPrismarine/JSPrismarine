@@ -2637,5 +2637,35 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(body.isOnGround()).toBe(true);
             expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.SWIMMING))).toBe(false);
         });
+
+        it(
+            'does not choose water as a random stroll destination when vanilla data says avoid_water',
+            { timeout: 180_000 },
+            () => {
+                useVanillaContent();
+
+                const chunk = world.getLoadedChunk(0, 0);
+                if (chunk === null) throw new Error('the vanilla random stroll test chunk was not loaded');
+                for (let x = 1; x <= 3; x += 1) chunk.setBlockRuntimeId(x, GROUND_Y, 0, idOf('minecraft:water'));
+
+                const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (pig === undefined) throw new Error('the vanilla content declares no pig');
+                const profile = navigationProfile(pig.instance);
+                expect(profile.avoidWater).toBe(true);
+
+                const navigator = new Navigator({
+                    actuator: live.runtime.actuatorFor(pig.instance),
+                    navigation: () => live.runtime.navigation(),
+                    profile: () => profile
+                });
+                const draws = [0.625, 0.5, 0.5, 1, 0.5, 0.5];
+
+                expect(navigator.randomTarget(4, 0, () => draws.shift() ?? 0.5)).toEqual({
+                    x: 4.5,
+                    y: GROUND_Y,
+                    z: 0.5
+                });
+            }
+        );
     });
 });
