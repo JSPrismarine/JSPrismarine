@@ -238,6 +238,67 @@ describe('EntityRuntime', () => {
             expect(baby.instance.hasComponent('minecraft:is_baby')).toBe(false);
         });
 
+        it('pauses and resets baby growth through ageable data', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:ageable_controls': {
+                        components: {},
+                        component_groups: {
+                            baby: {
+                                'minecraft:is_baby': {},
+                                'minecraft:ageable': {
+                                    duration: 4,
+                                    pause_growth_items: ['golden_dandelion'],
+                                    reset_growth_items: ['golden_dandelion', 'clock'],
+                                    pause_growth: 'jsprismarine:growth_paused',
+                                    reset_growth: { event: 'jsprismarine:growth_reset', target: 'self' },
+                                    grow_up: { event: 'jsprismarine:grown', target: 'self' }
+                                }
+                            },
+                            pause_seen: { 'minecraft:persistent': {} },
+                            reset_seen: { 'minecraft:fire_immune': {} },
+                            adult: {}
+                        },
+                        events: {
+                            'minecraft:entity_born': { add: { component_groups: ['baby'] } },
+                            'jsprismarine:growth_paused': { add: { component_groups: ['pause_seen'] } },
+                            'jsprismarine:growth_reset': { add: { component_groups: ['reset_seen'] } },
+                            'jsprismarine:grown': {
+                                add: { component_groups: ['adult'] },
+                                remove: { component_groups: ['baby'] }
+                            }
+                        }
+                    }
+                }
+            );
+            const pausedBaby = runtime.spawn('jsprismarine:ageable_controls', GROUND, { cause: 'born' });
+            const resetBaby = runtime.spawn('jsprismarine:ageable_controls', GROUND, { cause: 'born' });
+            if (pausedBaby === undefined || resetBaby === undefined)
+                throw new Error('the fixture declares no ageable baby');
+
+            for (let tick = 1; tick <= 30; tick += 1) runtime.tick(tick);
+
+            expect(runtime.interactWithItem(pausedBaby.id, 42, 'minecraft:golden_dandelion')).toEqual({
+                accepted: true
+            });
+            expect(runtime.interactWithItem(resetBaby.id, 42, 'minecraft:clock')).toEqual({ accepted: true });
+            runtime.tick(31);
+            expect(pausedBaby.instance.activeComponentGroups()).toContain('pause_seen');
+            expect(pausedBaby.instance.activeComponentGroups()).toContain('reset_seen');
+            expect(resetBaby.instance.activeComponentGroups()).toContain('reset_seen');
+
+            for (let tick = 32; tick <= 110; tick += 1) runtime.tick(tick);
+            expect(resetBaby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+
+            runtime.tick(111);
+            expect(resetBaby.instance.hasComponent('minecraft:is_baby')).toBe(false);
+
+            for (let tick = 112; tick <= 131; tick += 1) runtime.tick(tick);
+            expect(pausedBaby.instance.hasComponent('minecraft:is_baby')).toBe(true);
+        });
+
         it('tames an entity from its data and applies its tame event', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

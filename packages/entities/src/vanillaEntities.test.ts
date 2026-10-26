@@ -207,6 +207,21 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         ).toEqual([]);
     });
 
+    it('pauses vanilla baby growth with the configured golden dandelion', () => {
+        const chicken = types.spawn('minecraft:chicken', { cause: 'born' });
+
+        expect(chicken.componentParams('minecraft:ageable')).toMatchObject({
+            pauseGrowthItems: ['golden_dandelion'],
+            resetGrowthItems: ['golden_dandelion']
+        });
+        expect(chicken.hasComponent('minecraft:is_baby')).toBe(true);
+        expect(chicken.interactWithItem('minecraft:golden_dandelion')).toBe(true);
+
+        for (let tick = 0; tick < 24_001; tick += 1) chicken.tick();
+
+        expect(chicken.hasComponent('minecraft:is_baby')).toBe(true);
+    });
+
     it('covers the components the research note predicts and reports what it does not', () => {
         const registry = createEntityComponentRegistry();
         const declared = new Set<string>();
