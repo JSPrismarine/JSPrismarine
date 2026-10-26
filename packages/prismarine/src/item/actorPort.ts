@@ -28,6 +28,7 @@ import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
 import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
+import type { EntityItemInteraction } from '../entity/data/itemInteraction';
 import type { ItemStack } from '@jsprismarine/items';
 import type { EquipmentSlot, ItemSource, LaunchProjectileAction, SourceState } from '@jsprismarine/item-behaviors';
 import type { World } from '../world/World';
@@ -46,7 +47,7 @@ export interface ItemActorPortOptions {
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
-    readonly interactWithEntity?: (target: Entity, player: Player, itemIdentifier: string) => boolean;
+    readonly interactWithEntity?: (target: Entity, player: Player, itemIdentifier: string) => EntityItemInteraction;
 }
 
 /**
@@ -59,7 +60,7 @@ export interface ItemActorPortOptions {
 export interface ServerItemActorPort extends ItemActorPort {
     /** Runs a body with one interaction's target recorded, so {@link ItemActorPort.targetOf} answers. */
     duringInteraction<T>(source: ItemSource, target: ItemSource | undefined, body: () => T): T;
-    /** Runs the target entity's data-defined taming or breeding interaction and consumes its item. */
+    /** Runs the target entity's data-defined item interaction and consumes or replaces its item. */
     interactWithEntity(source: ItemSource): boolean;
 }
 
@@ -128,10 +129,35 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
         const held = inventory.getItemInHand();
         if (heldEntry === null || heldEntry.getCount() < 1) return false;
-        if (!interactWithEntity(target, player, held.getName())) return false;
+        const outcome = interactWithEntity(target, player, held.getName());
+        if (!outcome.accepted) return false;
 
-        if (player.gamemode !== Gametype.CREATIVE)
+        if (player.gamemode === Gametype.CREATIVE) return true;
+
+        if (outcome.resultItem !== undefined) {
+            const resultItem = player.getServer().getItemManager().getItem(outcome.resultItem);
+            if (resultItem === null) return false;
+
+            const replacement = new ContainerEntry({ item: resultItem, count: 1 });
+            if (heldEntry.getCount() === 1) inventory.setItemInHand(replacement);
+            else {
+                inventory.setItemInHand(new ContainerEntry({ item: held, count: heldEntry.getCount() - 1 }));
+                const leftOver = inventory.addItem(replacement);
+                const position = player.getPosition();
+                if (leftOver > 0 && position !== undefined) {
+                    entities.drop(
+                        {
+                            x: Math.floor(position.getX()),
+                            y: Math.floor(position.getY()),
+                            z: Math.floor(position.getZ())
+                        },
+                        { identifier: resultItem.getName(), count: leftOver }
+                    );
+                }
+            }
+        } else {
             inventory.setItemInHand(new ContainerEntry({ item: held, count: heldEntry.getCount() - 1 }));
+        }
         return true;
     };
 

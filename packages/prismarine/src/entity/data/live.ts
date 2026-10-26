@@ -29,6 +29,7 @@ import { Entity } from '../Entity';
 import { lookVector } from '../Archery';
 import type { GenericEntity } from '../GenericEntity';
 import type { DataEntity } from './DataEntity';
+import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
 import { EntityRuntime, PROJECTILE_EYE_HEIGHT_FRACTION } from './EntityRuntime';
 import { LiveBodies } from './liveBodies';
@@ -245,10 +246,12 @@ export class LiveEntityRuntime {
         );
     }
 
-    /** Applies a held item to a data-driven entity, returning whether its component data accepted it. */
-    public interactWithItem(target: Entity, player: Entity, itemIdentifier: string): boolean {
+    /** Applies a held item to a data-driven entity and returns any item result it declares. */
+    public interactWithItem(target: Entity, player: Entity, itemIdentifier: string): EntityItemInteraction {
         const id = this.bodies.entityIdOf(target);
-        return id !== undefined && this.runtime.interactWithItem(id, Number(player.getRuntimeId()), itemIdentifier);
+        return id === undefined
+            ? { accepted: false }
+            : this.runtime.interactWithItem(id, Number(player.getRuntimeId()), itemIdentifier);
     }
 
     /**

@@ -69,6 +69,7 @@ import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord } from './persistence';
+import type { EntityItemInteraction } from './itemInteraction';
 import { PointsOfInterest } from './poi';
 import { RideIndex } from './riding';
 import type { EntityScene, SpawnOptions } from './scene';
@@ -1096,9 +1097,9 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Applies one player-held item to an entity whose active data accepts it. */
-    public interactWithItem(id: number, owner: number, itemIdentifier: string): boolean {
+    public interactWithItem(id: number, owner: number, itemIdentifier: string): EntityItemInteraction {
         const entity = this.entities.get(id);
-        if (entity === undefined || entity.removed !== undefined) return false;
+        if (entity === undefined || entity.removed !== undefined) return { accepted: false };
 
         const tameable = entity.instance.componentParams('minecraft:tameable');
         const tameItem = isRecord(tameable) ? componentItem(tameable.tame_items, itemIdentifier) : undefined;
@@ -1110,12 +1111,13 @@ export class EntityRuntime implements EntityScene {
         ) {
             const probability = typeof tameable.probability === 'number' ? tameable.probability : 1;
             if (this.world.random.nextFloat() < Math.min(1, Math.max(0, probability))) {
-                if (itemHasResultItem(tameItem)) return false;
+                const resultItem = resultItemOf(tameItem);
                 entity.body.owner = owner;
                 entity.body.conditions.add('is_tamed');
                 fireTameEvent(entity, tameable.tame_event);
+                return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
             }
-            return true;
+            return { accepted: true };
         }
 
         const breeding = breedableOf(entity.instance);
@@ -1134,29 +1136,29 @@ export class EntityRuntime implements EntityScene {
                 entity.body.owner !== undefined) &&
             (!breeding.requireFullHealth || (health !== undefined && health.current >= health.max))
         ) {
-            if (itemHasResultItem(breedingItem)) return false;
+            const resultItem = resultItemOf(breedingItem);
             entity.body.loveTicks = 600;
-            return true;
+            return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
         }
 
         const healable = entity.instance.componentParams('minecraft:healable');
-        if (!isRecord(healable)) return false;
+        if (!isRecord(healable)) return { accepted: false };
         const item = componentItem(healable.items, itemIdentifier);
-        if (item === undefined) return false;
-        if (itemHasResultItem(item) || itemHasEffects(item)) return false;
+        if (item === undefined || itemHasEffects(item)) return { accepted: false };
         if (
             healable.filters !== undefined &&
             !evaluateFilter(parseFilter(healable.filters), entity.instance.filterContext())
         )
-            return false;
+            return { accepted: false };
 
         const currentHealth = entity.instance.attributes.get('health');
         if (currentHealth === undefined || (currentHealth.current >= currentHealth.max && healable.force_use !== true))
-            return false;
+            return { accepted: false };
 
         const amount = isRecord(item) && typeof item.heal_amount === 'number' ? item.heal_amount : 1;
+        const resultItem = resultItemOf(item);
         if (amount > 0) entity.instance.attributes.set('health', currentHealth.current + amount);
-        return true;
+        return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
     }
 
     /**
@@ -1878,8 +1880,18 @@ const componentItem = (items: unknown, identifier: string): unknown => {
     });
 };
 
-/** Whether an item asks for a replacement item the inventory path cannot return yet. */
-const itemHasResultItem = (item: unknown): boolean => isRecord(item) && item.result_item !== undefined;
+/** The normalized replacement item a successful component interaction returns, if declared. */
+const resultItemOf = (item: unknown): string | undefined => {
+    if (!isRecord(item)) return undefined;
+    const identifier =
+        typeof item.result_item === 'string'
+            ? item.result_item
+            : typeof item.transform_to_item === 'string'
+              ? item.transform_to_item
+              : undefined;
+    if (identifier === undefined) return undefined;
+    return identifier.includes(':') ? identifier : `minecraft:${identifier}`;
+};
 
 /** Whether a healable item asks for status effects the entity runtime does not apply yet. */
 const itemHasEffects = (item: unknown): boolean =>

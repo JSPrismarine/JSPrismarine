@@ -365,7 +365,7 @@ const ENTITIES = new Map([
                 'minecraft:healable': { items: [{ item: 'cooked_beef', heal_amount: 4 }] },
                 'minecraft:tameable': {
                     probability: 1,
-                    tame_items: ['bone'],
+                    tame_items: [{ item: 'bone', result_item: 'stick' }],
                     tame_event: { event: 'jsprismarine:on_tame', target: 'self' }
                 }
             },
@@ -671,12 +671,12 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(live.runtime.content().world.brainWorld()).toBeDefined();
     });
 
-    it('routes entity taming through the live item interaction and consumes one item', async () => {
+    it('replaces a successfully used tame item through the live inventory path', async () => {
         const player = addPlayer(2, 2);
         Object.assign(player, { inventory: new HumanInventory() });
         player
             .getInventory()
-            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bone' }), count: 1 }));
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:bone' }), count: 2 }));
         const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
         if (pet === undefined) throw new Error('the fixture declares no tameable pet');
         await run(1);
@@ -697,7 +697,14 @@ describe('the data-driven entity runtime over a live world', () => {
         });
 
         expect(result).toBe('handled');
-        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(0);
+        expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:bone');
+        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(1);
+        expect(
+            player
+                .getInventory()
+                .getItems()
+                .some((entry) => entry.getItem().getName() === 'minecraft:stick' && entry.getCount() === 1)
+        ).toBe(true);
         expect(pet.body.owner).toBe(Number(player.getRuntimeId()));
 
         await live.tick(2);

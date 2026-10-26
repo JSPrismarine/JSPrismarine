@@ -197,7 +197,7 @@ describe('EntityRuntime', () => {
             const wolf = runtime.spawn('jsprismarine:tameable', GROUND);
             if (wolf === undefined) throw new Error('the fixture declares no tameable entity');
 
-            expect(runtime.interactWithItem(wolf.id, 42, 'minecraft:bone')).toBe(true);
+            expect(runtime.interactWithItem(wolf.id, 42, 'minecraft:bone')).toEqual({ accepted: true });
             expect(wolf.body.owner).toBe(42);
             expect(wolf.instance.hasComponent('minecraft:is_tamed')).toBe(false);
 
@@ -214,7 +214,10 @@ describe('EntityRuntime', () => {
                     'jsprismarine:breedable': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
-                            'minecraft:breedable': { require_tame: false, breed_items: ['wheat'] }
+                            'minecraft:breedable': {
+                                require_tame: false,
+                                breed_items: [{ item: 'wheat', result_item: 'stick' }]
+                            }
                         }
                     }
                 }
@@ -222,9 +225,12 @@ describe('EntityRuntime', () => {
             const cow = runtime.spawn('jsprismarine:breedable', GROUND);
             if (cow === undefined) throw new Error('the fixture declares no breedable entity');
 
-            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:wheat')).toBe(true);
+            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:wheat')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:stick'
+            });
             expect(cow.body.loveTicks).toBe(600);
-            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:stick')).toBe(false);
+            expect(runtime.interactWithItem(cow.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
         });
 
         it('heals an entity by the amount its healable data declares', () => {
@@ -236,7 +242,7 @@ describe('EntityRuntime', () => {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
                             'minecraft:healable': {
-                                items: [{ item: 'cooked_beef', heal_amount: 4 }]
+                                items: [{ item: 'cooked_beef', heal_amount: 4, result_item: 'stick' }]
                             }
                         }
                     }
@@ -246,12 +252,18 @@ describe('EntityRuntime', () => {
             if (animal === undefined) throw new Error('the fixture declares no healable entity');
             animal.instance.damage({ cause: 'entity_attack', amount: 8 });
 
-            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick')).toBe(false);
-            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(true);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:stick'
+            });
             expect(animal.instance.attributes.get('health')?.current).toBe(16);
-            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(true);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:stick'
+            });
             expect(animal.instance.attributes.get('health')?.current).toBe(20);
-            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(false);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toEqual({ accepted: false });
         });
 
         it('checks healable filters and lets force_use accept an item at full health', () => {
@@ -285,33 +297,16 @@ describe('EntityRuntime', () => {
                 throw new Error('the fixture declares no healable entities');
             runtime.hurt(filtered, undefined, 'entity_attack', 8);
 
-            expect(runtime.interactWithItem(forceUse.id, 42, 'minecraft:cookie')).toBe(true);
-            expect(runtime.interactWithItem(filtered.id, 42, 'minecraft:cooked_beef')).toBe(false);
+            expect(runtime.interactWithItem(forceUse.id, 42, 'minecraft:cookie')).toEqual({ accepted: true });
+            expect(runtime.interactWithItem(filtered.id, 42, 'minecraft:cooked_beef')).toEqual({ accepted: false });
             expect(filtered.instance.attributes.get('health')?.current).toBe(12);
         });
 
-        it('declines item data whose result or effects the interaction path cannot apply', () => {
+        it('declines healable item effects the entity runtime does not apply', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),
                 {},
                 {
-                    'jsprismarine:replacement_taming': {
-                        components: {
-                            'minecraft:health': { value: 20, max: 20 },
-                            'minecraft:tameable': {
-                                probability: 1,
-                                tame_items: [{ item: 'milk_bucket', result_item: 'bucket' }]
-                            }
-                        }
-                    },
-                    'jsprismarine:replacement_healing': {
-                        components: {
-                            'minecraft:health': { value: 20, max: 20 },
-                            'minecraft:healable': {
-                                items: [{ item: 'cooked_beef', heal_amount: 4, result_item: 'bowl' }]
-                            }
-                        }
-                    },
                     'jsprismarine:effect_healing': {
                         components: {
                             'minecraft:health': { value: 20, max: 20 },
@@ -323,18 +318,35 @@ describe('EntityRuntime', () => {
                     }
                 }
             );
-            const tameable = runtime.spawn('jsprismarine:replacement_taming', GROUND);
-            const healable = runtime.spawn('jsprismarine:replacement_healing', GROUND);
             const effectful = runtime.spawn('jsprismarine:effect_healing', GROUND);
-            if (tameable === undefined || healable === undefined || effectful === undefined)
-                throw new Error('the fixture declares no entities for the unsupported item data');
-            runtime.hurt(healable, undefined, 'entity_attack', 8);
+            if (effectful === undefined) throw new Error('the fixture declares no entity with a healable effect');
+            expect(runtime.interactWithItem(effectful.id, 42, 'minecraft:cookie')).toEqual({ accepted: false });
+        });
 
-            expect(runtime.interactWithItem(tameable.id, 42, 'minecraft:milk_bucket')).toBe(false);
-            expect(tameable.body.owner).toBeUndefined();
-            expect(runtime.interactWithItem(healable.id, 42, 'minecraft:cooked_beef')).toBe(false);
-            expect(healable.instance.attributes.get('health')?.current).toBe(12);
-            expect(runtime.interactWithItem(effectful.id, 42, 'minecraft:cookie')).toBe(false);
+        it('returns the configured result item after a successful tame', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:bucket_tamer': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:tameable': {
+                                probability: 1,
+                                tame_items: [{ item: 'milk_bucket', result_item: 'bucket' }]
+                            }
+                        }
+                    }
+                }
+            );
+            const animal = runtime.spawn('jsprismarine:bucket_tamer', GROUND);
+            if (animal === undefined) throw new Error('the fixture declares no tameable entity');
+
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:milk_bucket')).toEqual({
+                accepted: true,
+                resultItem: 'minecraft:bucket'
+            });
+            expect(animal.body.owner).toBe(42);
         });
     });
 

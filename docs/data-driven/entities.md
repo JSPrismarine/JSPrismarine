@@ -463,9 +463,9 @@ active `minecraft:tameable`, `minecraft:breedable`, or `minecraft:healable` item
 tame item uses the configured probability and fires `tame_event` on success; a matching breeding
 item puts an eligible adult in love; a matching healing item restores its configured health amount.
 Healing also checks the component's filters and `force_use` flag. Accepted interactions consume one
-item outside creative mode. Feeding babies to accelerate growth, healing item effects, and
-`result_item` replacements are not implemented; matching entries that require an effect or a result
-item are declined without consuming the held item.
+item outside creative mode, and a declared per-item `result_item` replaces it in the player's
+inventory. Feeding babies to accelerate growth and healing item effects are not implemented; a
+healable entry that requires status effects is declined without consuming the held item.
 
 **Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
 world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the
