@@ -24,7 +24,8 @@
                 "requires_correct_tool": false,
                 "push_reaction": "popped",
                 "source": "java"
-            }
+            },
+            "jsprismarine:container_open_sound": "random.chestopen"
         }
     }
 }

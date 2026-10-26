@@ -90,10 +90,8 @@ export const containerFamily = defineFamily(
         onPlayerInteract: (event, world) => {
             if (hasState(event.block, 'open_bit')) {
                 setStates(world, event.block, { open_bit: true });
-                world.playSound(event.block.position, 'random.barrelopen');
                 return true;
             }
-            world.playSound(event.block.position, 'random.chestopen');
             return undefined;
         },
         onBreak: (event, world, context) => {

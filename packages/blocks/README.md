@@ -60,11 +60,11 @@ A file that uses a component its version does not have loads with the rest of it
 
 ## Components
 
-`createBlockComponentRegistry()` returns a `ComponentRegistry<BlockHooks>` holding 56 factories: the
+`createBlockComponentRegistry()` returns a `ComponentRegistry<BlockHooks>` holding 57 factories: the
 49 names in Mojang's `metadata/json_schemas/server/block/1.26.20/Components.json`, the four property
-components Mojang renamed at 1.19.40, `minecraft:custom_components`, and this package's two overlay
-components. Each parameter schema follows Mojang's own schema file, including the defaults it
-declares, so an absent field reads as the engine reads it rather than as `undefined`.
+components Mojang renamed at 1.19.40, `minecraft:custom_components`, and this package's three
+overlay components. Mojang component schemas follow the corresponding schema files, including the
+defaults they declare; project components follow their documented shapes.
 
 Measured against the real data: Mojang's 98 vanilla block files in `bedrock-samples` v1.26.50.4 use
 20 distinct components under `components`, plus `minecraft:transformation` which appears only inside
@@ -73,10 +73,10 @@ Measured against the real data: Mojang's 98 vanilla block files in `bedrock-samp
 counted the base lists. The note's "8 permutations" for `shelf_mushroom` is one short; the file has
 nine. `src/vanillaBlocks.test.ts` checks both numbers and prints the tally.
 
-### The two components this project adds
+### The three components this project adds
 
-Bedrock's grammar cannot hold two facts the server needs, so the overlay writes them under this
-project's own namespace:
+These project components carry metadata the Bedrock block schema does not provide, so the overlay
+writes them under this project's namespace:
 
 - `jsprismarine:block_properties` carries `friction` at Java's precision, `random_tick`,
   `requires_correct_tool`, `push_reaction` and whether the row came from Java or from the fallback.
@@ -87,6 +87,8 @@ project's own namespace:
   `minecraft:custom_components`, which stays registered so a pack that writes the Mojang key keeps
   working, and sits beside it because Mojang marked that hook deprecated while its version 2 still
   needs two experimental toggles.
+- `jsprismarine:container_open_sound` names the sound the server plays after opening this block's
+  container screen. For example, `"jsprismarine:container_open_sound": "random.chestopen"`.
 
 ### No component binds a handler
 
@@ -262,9 +264,11 @@ JavaScript on purpose: a generator that imported `src/` would have to spell its 
 package needs no `allowImportingTsExtensions` to typecheck against this one.
 
 Each file carries the Bedrock-expressible properties as real Bedrock components, filled from
-`bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus the two components above. The generator
-writes Prettier-shaped JSON so the committed pack passes `prettier --check` with no second pass, and
-`src/overlay.test.ts` compares the committed files to a fresh run so the two cannot drift.
+`bedrockBlockPropertiesOf` in `@jsprismarine/mapping`, plus `jsprismarine:behavior` and
+`jsprismarine:block_properties`. Container blocks also carry `jsprismarine:container_open_sound`,
+configured in `src/tables/containerOpenSounds.json`. The generator writes Prettier-shaped JSON so
+the committed pack passes `prettier --check` with no second pass, and `src/overlay.test.ts` compares
+the committed files to a fresh run so the two cannot drift.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,

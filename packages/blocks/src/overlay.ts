@@ -1,6 +1,7 @@
 import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 
 import { behaviorFor } from './families';
+import containerOpenSounds from './tables/containerOpenSounds.json';
 
 /**
  * Where the generator reads a block's properties from.
@@ -281,6 +282,11 @@ export const generateVanillaOverlay = (
             push_reaction: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull',
             source: bedrockOnly ? 'fallback' : 'java'
         };
+
+        const openSound =
+            containerOpenSounds.blocks.find((entry) => entry.identifier === identifier)?.sound ??
+            containerOpenSounds.behaviors.find((entry) => entry.behavior === behavior)?.sound;
+        if (openSound !== undefined) components['jsprismarine:container_open_sound'] = openSound;
 
         files.push({
             path: `blocks/${fileNameFor(identifier)}`,

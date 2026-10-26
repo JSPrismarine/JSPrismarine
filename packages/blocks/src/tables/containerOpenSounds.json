@@ -1,0 +1,14 @@
+{
+    "behaviors": [
+        {
+            "behavior": "jsprismarine:container",
+            "sound": "random.chestopen"
+        }
+    ],
+    "blocks": [
+        {
+            "identifier": "minecraft:barrel",
+            "sound": "random.barrelopen"
+        }
+    ]
+}

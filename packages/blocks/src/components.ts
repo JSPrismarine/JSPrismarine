@@ -586,11 +586,14 @@ export const blockProperties = define(
  */
 export const behavior = define('jsprismarine:behavior', text());
 
+/** The named sound played when the server opens this block's container screen. */
+export const containerOpenSound = define('jsprismarine:container_open_sound', text());
+
 /**
  * Every component this package implements, in the order the registry takes
  * them. The 49 names in Mojang's `Components.json`, the four property
  * components Mojang renamed at 1.19.40, `minecraft:custom_components`, and
- * this project's two overlay components.
+ * this project's three overlay components.
  */
 export const BLOCK_COMPONENTS: readonly BlockComponentFactory<unknown>[] = [
     blockEntity,
@@ -648,7 +651,8 @@ export const BLOCK_COMPONENTS: readonly BlockComponentFactory<unknown>[] = [
     blockLightEmission,
     blockLightAbsorption,
     behavior,
-    blockProperties
+    blockProperties,
+    containerOpenSound
 ];
 
 /** Every component name this package implements, in registration order. */

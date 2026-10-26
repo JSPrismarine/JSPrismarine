@@ -856,7 +856,8 @@ export default class PlayerSession {
      *
      * The contents follow the open for the same reason they do there: a window whose contents
      * never arrive is one the client has no reason to keep. A workstation stores nothing of its
-     * own, so nothing follows its open.
+     * own, so nothing follows its open. Repeated requests for the same open block return the
+     * current window without sending another open packet.
      *
      * @param at - The block position, which is what `ContainerOpen` carries for a block.
      * @param identifier - The block standing there, which decides the screen.
@@ -871,6 +872,16 @@ export default class PlayerSession {
         const container = blockContainerOf(identifier);
         if (container === undefined) return undefined;
 
+        const current = this.blockContainer;
+        if (
+            current?.identifier === identifier &&
+            current.position.getX() === at.getX() &&
+            current.position.getY() === at.getY() &&
+            current.position.getZ() === at.getZ()
+        ) {
+            return current;
+        }
+
         const packet = new ContainerOpenPacket();
         packet.windowId = this.nextWindowId();
         packet.containerType = container.screen;
@@ -879,20 +890,7 @@ export default class PlayerSession {
         // and a block is not an actor.
         packet.containerEntityId = -1n;
         this.openWindows.set(packet.windowId, packet.containerType);
-        await this.connection.sendDataPacket(packet);
-
-        // What the caller read out of the block rather than what the block type says it holds:
-        // a double chest is 54 entries from two block entities, which `blockContainerOf` does
-        // not know about and the caller does.
-        if (contents.length > 0) {
-            const content = new InventoryContentPacket();
-            content.windowId = packet.windowId;
-            content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
-            content.items = contents;
-            await this.connection.sendDataPacket(content);
-        }
-
-        this.blockContainer = {
+        const opened: OpenBlockContainer = {
             windowId: packet.windowId,
             position: at,
             identifier,
@@ -900,7 +898,28 @@ export default class PlayerSession {
             inputs: [null, null],
             bookshelfPower: 0
         };
-        return this.blockContainer;
+        this.blockContainer = opened;
+
+        try {
+            await this.connection.sendDataPacket(packet);
+
+            // What the caller read out of the block rather than what the block type says it holds:
+            // a double chest is 54 entries from two block entities, which `blockContainerOf` does
+            // not know about and the caller does.
+            if (contents.length > 0) {
+                const content = new InventoryContentPacket();
+                content.windowId = packet.windowId;
+                content.containerId = ContainerUiId.LEVEL_ENTITY_CONTAINER;
+                content.items = contents;
+                await this.connection.sendDataPacket(content);
+            }
+        } catch (error) {
+            this.openWindows.delete(packet.windowId);
+            if (this.blockContainer === opened) this.blockContainer = current;
+            throw error;
+        }
+
+        return opened;
     }
 
     /** The block container this session has open, or undefined for none. */

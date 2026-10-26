@@ -39,7 +39,8 @@ describe('the block component registry', () => {
         expect(mojang).toHaveLength(54);
         expect(BLOCK_COMPONENT_NAMES.filter((name) => name.startsWith('jsprismarine:'))).toEqual([
             'jsprismarine:behavior',
-            'jsprismarine:block_properties'
+            'jsprismarine:block_properties',
+            'jsprismarine:container_open_sound'
         ]);
     });
 

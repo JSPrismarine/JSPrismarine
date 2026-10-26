@@ -21,7 +21,7 @@
  * That is what a click no behavior family consumed gets, and what a block or an item the
  * content build has no type for gets, so both still run the path this server has always had.
  */
-import { BLOCK_FACES } from '@jsprismarine/blocks';
+import { BLOCK_FACES, containerOpenSound } from '@jsprismarine/blocks';
 import type { BlockFace, FaceLocation, HookBlock } from '@jsprismarine/blocks';
 import { relative } from '@jsprismarine/engine-systems';
 import { ItemStack } from '@jsprismarine/items';
@@ -158,9 +158,24 @@ const openContainer = (interaction: BlockInteraction, block: HookBlock): boolean
     // shown and the slots they can then move a stack through are one list in one order.
     const contents = container.slots === 0 ? [] : openContainerContents(player, interaction.position, block.identifier);
     const session = player.getNetworkSession();
+    // Repeated interaction packets can arrive before the client closes this container.
+    const current = session.getOpenBlockContainer();
+    const alreadyOpen =
+        current?.identifier === block.identifier &&
+        current.position.getX() === at.getX() &&
+        current.position.getY() === at.getY() &&
+        current.position.getZ() === at.getZ();
+    const openSound = interaction.content.blocks.types
+        .get(block.identifier)
+        ?.state(block.states)
+        .content.params(containerOpenSound);
+    const blockWorld = interaction.content.world.blockWorld.at(player.getWorld().getDimension().name);
 
     void (async () => {
-        await session.openBlockContainer(at, block.identifier, contents);
+        const opened = await session.openBlockContainer(at, block.identifier, contents);
+        if (!alreadyOpen && opened !== undefined && openSound !== undefined) {
+            blockWorld.playSound(interaction.position, openSound);
+        }
 
         // A table's offers depend on the stack in its input slot, and nothing is in it the
         // moment it opens - so this clears the rows rather than leaving the client's own
