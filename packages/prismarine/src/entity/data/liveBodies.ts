@@ -132,6 +132,10 @@ export class LiveBodies {
     >();
     /** Taming flags last mirrored to each body's actor metadata. */
     private readonly tameFlags = new Map<number, boolean>();
+    /** Scale last mirrored to each body's actor metadata. */
+    private readonly scales = new Map<number, number>();
+    /** Baby state last mirrored to each body's actor flags. */
+    private readonly babyFlags = new Map<number, boolean>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -195,6 +199,8 @@ export class LiveBodies {
         this.writeMovementFlags(entity, body);
         this.writePhysicsFlags(entity, body);
         this.writeTameFlag(entity, body);
+        this.writeScale(entity, body);
+        this.writeBabyFlag(entity, body);
         this.writeFallingBlockAppearance(entity, body);
 
         this.bodies.set(entity.id, body);
@@ -213,6 +219,8 @@ export class LiveBodies {
         this.movementFlags.delete(entity.id);
         this.physicsFlags.delete(entity.id);
         this.tameFlags.delete(entity.id);
+        this.scales.delete(entity.id);
+        this.babyFlags.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -234,6 +242,8 @@ export class LiveBodies {
         this.movementFlags.delete(id);
         this.physicsFlags.delete(id);
         this.tameFlags.delete(id);
+        this.scales.delete(id);
+        this.babyFlags.delete(id);
         return id;
     }
 
@@ -264,9 +274,17 @@ export class LiveBodies {
             const movementFlagsChanged = this.writeMovementFlags(entity, body);
             const physicsFlagsChanged = this.writePhysicsFlags(entity, body);
             const tameFlagChanged = this.writeTameFlag(entity, body);
+            const scaleChanged = this.writeScale(entity, body);
+            const babyFlagChanged = this.writeBabyFlag(entity, body);
             const properties = this.showSyncedProperties(entity, body);
             if (properties !== undefined) moves.push(properties);
-            else if (movementFlagsChanged || physicsFlagsChanged || tameFlagChanged) {
+            else if (
+                movementFlagsChanged ||
+                physicsFlagsChanged ||
+                tameFlagChanged ||
+                scaleChanged ||
+                babyFlagChanged
+            ) {
                 const metadata = this.options.world()?.sendActorMetadata(body);
                 if (metadata !== undefined) moves.push(metadata);
             }
@@ -306,6 +324,8 @@ export class LiveBodies {
         this.movementFlags.clear();
         this.physicsFlags.clear();
         this.tameFlags.clear();
+        this.scales.clear();
+        this.babyFlags.clear();
     }
 
     /**
@@ -395,6 +415,29 @@ export class LiveBodies {
 
         body.metadata.setGenericFlag(ActorFlags.TAMED, tamed);
         this.tameFlags.set(entity.id, tamed);
+        return previous !== undefined;
+    }
+
+    /** Writes the entity's active data-driven scale to the client-facing actor. */
+    private writeScale(entity: DataEntity, body: Entity): boolean {
+        const component = entity.instance.componentParams('minecraft:scale');
+        const next = typeof component === 'number' ? component : 1;
+        const previous = this.scales.get(entity.id);
+        if (previous === next) return false;
+
+        body.metadata.setFloat(MetadataFlag.SCALE, next);
+        this.scales.set(entity.id, next);
+        return previous !== undefined;
+    }
+
+    /** Writes the active baby marker to the client-facing actor flags. */
+    private writeBabyFlag(entity: DataEntity, body: Entity): boolean {
+        const next = entity.instance.hasComponent('minecraft:is_baby');
+        const previous = this.babyFlags.get(entity.id);
+        if (previous === next) return false;
+
+        body.metadata.setGenericFlag(ActorFlags.BABY, next);
+        this.babyFlags.set(entity.id, next);
         return previous !== undefined;
     }
 

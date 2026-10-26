@@ -308,7 +308,7 @@ const ENTITIES = new Map([
                 'minecraft:breedable': { require_tame: false, breed_items: ['minecraft:wheat'], breed_cooldown: 30 },
                 'minecraft:behavior.breed': { priority: 1, speed_multiplier: 1 }
             },
-            component_groups: { baby: { 'minecraft:is_baby': {} } },
+            component_groups: { baby: { 'minecraft:is_baby': {}, 'minecraft:scale': { value: 0.5 } } },
             events: { 'minecraft:entity_born': { add: { component_groups: ['baby'] } } }
         })
     ],
@@ -1537,6 +1537,9 @@ describe('the data-driven entity runtime over a live world', () => {
                 .all()
                 .filter((entity) => entity.instance.activeComponentGroups().includes('baby'));
             expect(babies).toHaveLength(1);
+            const babyBody = live.bodies.bodyOf(babies[0]!.id);
+            expect(babyBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
+            expect(babyBody?.metadata.getPropertyValue(MetadataFlag.SCALE)).toBe(0.5);
             // The lamb is in the world too, not only in the index.
             expect(typesIn(world).filter((type) => type === 'minecraft:sheep')).toHaveLength(3);
         });
@@ -2012,6 +2015,27 @@ describe('the data-driven entity runtime over a live world', () => {
                 expect(typesIn(world)).toContain('minecraft:villager_v2');
             }
         );
+
+        it('marks a vanilla lamb as a baby on its client-facing actor', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const first = live.runtime.spawn('minecraft:sheep', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            const second = live.runtime.spawn('minecraft:sheep', { x: 2.5, y: GROUND_Y, z: 0.5 });
+            if (first === undefined || second === undefined) throw new Error('vanilla content declares no sheep');
+            const mate = live.runtime.mobById(second.id);
+            if (mate === undefined) throw new Error('the second vanilla sheep has no goal view');
+            live.runtime.setInLove(first.id, 400);
+            live.runtime.setInLove(second.id, 400);
+            live.runtime.breedWith(first.body, mate);
+
+            const lamb = live.runtime.all().find((entity) => entity.id !== first.id && entity.id !== second.id);
+            if (lamb === undefined) throw new Error('vanilla sheep breeding made no lamb');
+            const body = live.bodies.bodyOf(lamb.id);
+            if (body === undefined) throw new Error('the vanilla lamb has no client-facing actor');
+
+            expect(lamb.instance.hasComponent('minecraft:is_baby')).toBe(true);
+            expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
+        });
 
         it('uses Java-owned attributes when the live runtime builds vanilla entities', () => {
             useVanillaContent();
