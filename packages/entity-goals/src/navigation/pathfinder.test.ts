@@ -141,6 +141,28 @@ describe('findPath', () => {
         expect(findPath(view, sinker, request)).toBeUndefined();
     });
 
+    it('does not treat water as ground support when the profile can path over its surface', () => {
+        const view = voxelGrid([['#~#'], ['...']]);
+
+        const path = findPath(view, navigationProfileOf({ height: 1, canPathOverWater: true }), {
+            from: { x: 0, y: 1, z: 0 },
+            to: { x: 2, y: 1, z: 0 }
+        });
+
+        expect(path).toBeUndefined();
+    });
+
+    it('does not treat lava as ground support when the profile can path over its surface', () => {
+        const view = voxelGrid([['#!#'], ['...']]);
+
+        const path = findPath(view, navigationProfileOf({ height: 1, canPathOverLava: true }), {
+            from: { x: 0, y: 1, z: 0 },
+            to: { x: 2, y: 1, z: 0 }
+        });
+
+        expect(path).toBeUndefined();
+    });
+
     it('prefers dry ground when avoid_water is set but water is the only way through', () => {
         const dry = voxelGrid([
             ['###', '###'],
