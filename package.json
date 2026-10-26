@@ -93,7 +93,7 @@
         "rolldown": "1.2.15",
         "scriptc": "0.4.5",
         "ts-mockito": "2.6.1",
-        "tsc-ts": "0.0.9",
+        "tsc-ts": "0.0.10",
         "turbo": "2.11.10",
         "turbo-ignore": "2.11.10",
         "typescript": "7.0.2",
