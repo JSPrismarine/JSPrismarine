@@ -226,6 +226,116 @@ describe('EntityRuntime', () => {
             expect(cow.body.loveTicks).toBe(600);
             expect(runtime.interactWithItem(cow.id, 42, 'minecraft:stick')).toBe(false);
         });
+
+        it('heals an entity by the amount its healable data declares', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:healable': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:healable': {
+                                items: [{ item: 'cooked_beef', heal_amount: 4 }]
+                            }
+                        }
+                    }
+                }
+            );
+            const animal = runtime.spawn('jsprismarine:healable', GROUND);
+            if (animal === undefined) throw new Error('the fixture declares no healable entity');
+            animal.instance.damage({ cause: 'entity_attack', amount: 8 });
+
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick')).toBe(false);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(true);
+            expect(animal.instance.attributes.get('health')?.current).toBe(16);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(true);
+            expect(animal.instance.attributes.get('health')?.current).toBe(20);
+            expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toBe(false);
+        });
+
+        it('checks healable filters and lets force_use accept an item at full health', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:force_use': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:healable': {
+                                force_use: true,
+                                items: [{ item: 'cookie', heal_amount: 0 }]
+                            }
+                        }
+                    },
+                    'jsprismarine:filtered_healing': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:healable': {
+                                filters: { test: 'is_baby', value: true },
+                                items: [{ item: 'cooked_beef', heal_amount: 4 }]
+                            }
+                        }
+                    }
+                }
+            );
+            const forceUse = runtime.spawn('jsprismarine:force_use', GROUND);
+            const filtered = runtime.spawn('jsprismarine:filtered_healing', GROUND);
+            if (forceUse === undefined || filtered === undefined)
+                throw new Error('the fixture declares no healable entities');
+            runtime.hurt(filtered, undefined, 'entity_attack', 8);
+
+            expect(runtime.interactWithItem(forceUse.id, 42, 'minecraft:cookie')).toBe(true);
+            expect(runtime.interactWithItem(filtered.id, 42, 'minecraft:cooked_beef')).toBe(false);
+            expect(filtered.instance.attributes.get('health')?.current).toBe(12);
+        });
+
+        it('declines item data whose result or effects the interaction path cannot apply', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:replacement_taming': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:tameable': {
+                                probability: 1,
+                                tame_items: [{ item: 'milk_bucket', result_item: 'bucket' }]
+                            }
+                        }
+                    },
+                    'jsprismarine:replacement_healing': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:healable': {
+                                items: [{ item: 'cooked_beef', heal_amount: 4, result_item: 'bowl' }]
+                            }
+                        }
+                    },
+                    'jsprismarine:effect_healing': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:healable': {
+                                force_use: true,
+                                items: [{ item: 'cookie', heal_amount: 0, effects: [{ name: 'fatal_poison' }] }]
+                            }
+                        }
+                    }
+                }
+            );
+            const tameable = runtime.spawn('jsprismarine:replacement_taming', GROUND);
+            const healable = runtime.spawn('jsprismarine:replacement_healing', GROUND);
+            const effectful = runtime.spawn('jsprismarine:effect_healing', GROUND);
+            if (tameable === undefined || healable === undefined || effectful === undefined)
+                throw new Error('the fixture declares no entities for the unsupported item data');
+            runtime.hurt(healable, undefined, 'entity_attack', 8);
+
+            expect(runtime.interactWithItem(tameable.id, 42, 'minecraft:milk_bucket')).toBe(false);
+            expect(tameable.body.owner).toBeUndefined();
+            expect(runtime.interactWithItem(healable.id, 42, 'minecraft:cooked_beef')).toBe(false);
+            expect(healable.instance.attributes.get('health')?.current).toBe(12);
+            expect(runtime.interactWithItem(effectful.id, 42, 'minecraft:cookie')).toBe(false);
+        });
     });
 
     describe('physics', () => {

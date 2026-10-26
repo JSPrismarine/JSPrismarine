@@ -32,11 +32,13 @@ import {
     canEntityAttack,
     EntityInstance,
     EVENT_TARGETS,
+    evaluateFilter,
     isRecord,
     javaEntityNavigation,
     noEffects
 } from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
+import { parseFilter } from '@jsprismarine/packs';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
@@ -1099,14 +1101,16 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined || entity.removed !== undefined) return false;
 
         const tameable = entity.instance.componentParams('minecraft:tameable');
+        const tameItem = isRecord(tameable) ? componentItem(tameable.tame_items, itemIdentifier) : undefined;
         if (
             isRecord(tameable) &&
             !entity.instance.hasComponent('minecraft:is_tamed') &&
             entity.body.owner === undefined &&
-            componentItemsInclude(tameable.tame_items, itemIdentifier)
+            tameItem !== undefined
         ) {
             const probability = typeof tameable.probability === 'number' ? tameable.probability : 1;
             if (this.world.random.nextFloat() < Math.min(1, Math.max(0, probability))) {
+                if (itemHasResultItem(tameItem)) return false;
                 entity.body.owner = owner;
                 entity.body.conditions.add('is_tamed');
                 fireTameEvent(entity, tameable.tame_event);
@@ -1117,22 +1121,41 @@ export class EntityRuntime implements EntityScene {
         const breeding = breedableOf(entity.instance);
         const breedable = entity.instance.componentParams('minecraft:breedable');
         const health = entity.instance.attributes.get('health');
+        const breedingItem = isRecord(breedable) ? componentItem(breedable.breed_items, itemIdentifier) : undefined;
         if (
-            breeding === undefined ||
-            !isRecord(breedable) ||
-            !componentItemsInclude(breedable.breed_items, itemIdentifier) ||
-            entity.instance.hasComponent('minecraft:is_baby') ||
-            entity.body.loveTicks > 0 ||
-            entity.body.breedCooldown > 0 ||
-            (breeding.requireTame &&
-                !entity.instance.hasComponent('minecraft:is_tamed') &&
-                entity.body.owner === undefined) ||
-            (breeding.requireFullHealth && (health === undefined || health.current < health.max))
+            breeding !== undefined &&
+            isRecord(breedable) &&
+            breedingItem !== undefined &&
+            !entity.instance.hasComponent('minecraft:is_baby') &&
+            entity.body.loveTicks <= 0 &&
+            entity.body.breedCooldown <= 0 &&
+            (!breeding.requireTame ||
+                entity.instance.hasComponent('minecraft:is_tamed') ||
+                entity.body.owner !== undefined) &&
+            (!breeding.requireFullHealth || (health !== undefined && health.current >= health.max))
         ) {
-            return false;
+            if (itemHasResultItem(breedingItem)) return false;
+            entity.body.loveTicks = 600;
+            return true;
         }
 
-        entity.body.loveTicks = 600;
+        const healable = entity.instance.componentParams('minecraft:healable');
+        if (!isRecord(healable)) return false;
+        const item = componentItem(healable.items, itemIdentifier);
+        if (item === undefined) return false;
+        if (itemHasResultItem(item) || itemHasEffects(item)) return false;
+        if (
+            healable.filters !== undefined &&
+            !evaluateFilter(parseFilter(healable.filters), entity.instance.filterContext())
+        )
+            return false;
+
+        const currentHealth = entity.instance.attributes.get('health');
+        if (currentHealth === undefined || (currentHealth.current >= currentHealth.max && healable.force_use !== true))
+            return false;
+
+        const amount = isRecord(item) && typeof item.heal_amount === 'number' ? item.heal_amount : 1;
+        if (amount > 0) entity.instance.attributes.set('health', currentHealth.current + amount);
         return true;
     }
 
@@ -1843,17 +1866,24 @@ export class EntityRuntime implements EntityScene {
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
 
-/** Whether a component's item names one item, with or without its default namespace. */
-const componentItemsInclude = (items: unknown, identifier: string): boolean => {
+/** Finds one component item by its identifier, with or without its default namespace. */
+const componentItem = (items: unknown, identifier: string): unknown => {
     const itemNames = Array.isArray(items) ? items : items === undefined ? [] : [items];
     const normalized = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
-    return itemNames.some((item) => {
+    return itemNames.find((item) => {
         const name =
             typeof item === 'string' ? item : isRecord(item) && typeof item.item === 'string' ? item.item : undefined;
         if (name === undefined) return false;
         return (name.includes(':') ? name : `minecraft:${name}`) === normalized;
     });
 };
+
+/** Whether an item asks for a replacement item the inventory path cannot return yet. */
+const itemHasResultItem = (item: unknown): boolean => isRecord(item) && item.result_item !== undefined;
+
+/** Whether a healable item asks for status effects the entity runtime does not apply yet. */
+const itemHasEffects = (item: unknown): boolean =>
+    isRecord(item) && Array.isArray(item.effects) && item.effects.length > 0;
 
 /** Fires the optional `minecraft:tameable` event on the target it declares. */
 const fireTameEvent = (entity: DataEntity, value: unknown): void => {

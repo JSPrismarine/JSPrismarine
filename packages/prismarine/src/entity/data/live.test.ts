@@ -362,6 +362,7 @@ const ENTITIES = new Map([
         entityFile('jsprismarine:pet_fixture', {
             components: {
                 ...MOB_BASE,
+                'minecraft:healable': { items: [{ item: 'cooked_beef', heal_amount: 4 }] },
                 'minecraft:tameable': {
                     probability: 1,
                     tame_items: ['bone'],
@@ -703,6 +704,37 @@ describe('the data-driven entity runtime over a live world', () => {
 
         expect(pet.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.TAMED))).toBe(true);
+    });
+
+    it('routes data-defined healing through the live item interaction and consumes one item', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:cooked_beef' }), count: 1 }));
+        const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (pet === undefined) throw new Error('the fixture declares no healable pet');
+        live.runtime.hurt(pet, undefined, 'entity_attack', 8);
+        await run(1);
+
+        const body = live.bodies.bodyOf(pet.id);
+        if (body === undefined) throw new Error('the healable pet has no client-facing body');
+        const actors = createItemActorPort({
+            world: () => world,
+            entities: stub<ContentEntityAccess>({ drop: () => undefined }),
+            level: unwiredWorld().level,
+            interactWithEntity: (target, owner, item) => live.interactWithItem(target, owner, item)
+        });
+        const result = useItemOnEntity({
+            content: live.runtime.content(),
+            actors,
+            player,
+            target: { identifier: pet.identifier, runtimeId: Number(body.getRuntimeId()) }
+        });
+
+        expect(result).toBe('handled');
+        expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(0);
+        expect(pet.instance.attributes.get('health')?.current).toBe(16);
     });
 
     it('launches a player projectile through the live data-driven runtime', async () => {

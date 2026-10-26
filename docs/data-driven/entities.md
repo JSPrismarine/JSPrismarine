@@ -170,9 +170,10 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 The entities package README lists each one and what it does.
 
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
-`minecraft:breedable` drives breeding, `minecraft:collision_box` and the `minecraft:navigation.*`
-flavors build the path finder's profile, `minecraft:explode` detonates a creeper,
-`minecraft:rideable` seats riders, and the two trade-table components build a merchant.
+`minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item
+interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
+finder's profile, `minecraft:explode` detonates a creeper, `minecraft:rideable` seats riders, and the
+two trade-table components build a merchant.
 
 Forty-four non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
 the enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
@@ -457,11 +458,14 @@ owner stay out because both are runtime ids, drawn fresh each session, and would
 pointing at whatever entity happened to take the number. A held item also comes back as an
 identifier rather than as a stack, which is as much as the goal seam models.
 
-**Taming and breeding food use their component data.** Right-clicking an entity checks its active
-`minecraft:tameable` or `minecraft:breedable` item list. A matching tame item uses the configured
-probability and fires `tame_event` on success; a matching breeding item puts an eligible adult in
-love. Accepted interactions consume one item outside creative mode. Feeding babies to accelerate
-growth and healing tameable mobs with food are not implemented.
+**Taming, breeding, and healing use their component data.** Right-clicking an entity checks its
+active `minecraft:tameable`, `minecraft:breedable`, or `minecraft:healable` item list. A matching
+tame item uses the configured probability and fires `tame_event` on success; a matching breeding
+item puts an eligible adult in love; a matching healing item restores its configured health amount.
+Healing also checks the component's filters and `force_use` flag. Accepted interactions consume one
+item outside creative mode. Feeding babies to accelerate growth, healing item effects, and
+`result_item` replacements are not implemented; matching entries that require an effect or a result
+item are declined without consuming the held item.
 
 **Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
 world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the
