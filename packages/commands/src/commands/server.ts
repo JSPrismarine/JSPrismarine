@@ -189,7 +189,7 @@ export const registerServerCommands = (registry: CommandRegistry<CommandSource>)
                     })
                 )
             ),
-        { description: 'Shows paged command listings and command syntax.' }
+        { description: 'Shows paged command listings and command syntax.', aliases: ['?'] }
     );
 
     registry.register(

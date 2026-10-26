@@ -3,4 +3,4 @@
 "@jsprismarine/prismarine": patch
 ---
 
-Page command help and derive nested syntax from the Java command tree.
+Improve command help with pagination, nested syntax, and the `/?` alias.
