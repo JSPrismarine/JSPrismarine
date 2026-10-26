@@ -92,7 +92,7 @@ import { STRUCTURE_BUILDERS } from './javaStructureTypes';
 import type { TemplateSource } from './javaTemplatePlacement';
 import type { JavaWorldgenRegistries } from './javaWorldgenData';
 import { shareRegistryBundle } from './registryBundle';
-import type { ChunkPipelineSetup, ChunkTaskInput } from './chunkPipeline';
+import type { ChunkPipelineSetup, ChunkTaskInput, FeatureTaskInput } from './chunkPipeline';
 import type { TerrainPipelineSetup } from './terrainPipeline';
 import { bedrockBiomeIdOf, JavaStateTranslator } from './javaTranslation';
 
@@ -141,10 +141,20 @@ export interface DataDrivenGeneratorOptions {
      * eight cores are performance cores and a worker is a whole V8 isolate.
      *
      * Only `terrain` goes to a worker. It writes radius 0, its own chunk and nothing else, so
-     * two of them can never touch the same block. `features` writes radius 1 and stays here,
-     * which is Java's split and is the safety argument for the whole arrangement.
+     * two of them can never touch the same block. Use {@link DataDrivenGeneratorOptions.stages}
+     * to move `features` as well.
      */
     readonly terrain?: TerrainPoolOptions;
+    /**
+     * Where pure `terrain` and `features` status bodies run, sharing one holder map on this
+     * thread. A worker receives the terrain tiles it reads and returns only its feature patches.
+     *
+     * Use this when requests overlap: unlike {@link DataDrivenGeneratorOptions.chunks}, this
+     * keeps shared neighborhood work in one scheduler instead of rebuilding it in worker-local
+     * schedulers. It takes precedence over {@link DataDrivenGeneratorOptions.chunks} and
+     * {@link DataDrivenGeneratorOptions.terrain} when more than one pool option is supplied.
+     */
+    readonly stages?: StagePoolOptions;
     /**
      * Where to run whole chunks, and how many at a time.
      *
@@ -153,9 +163,10 @@ export interface DataDrivenGeneratorOptions {
      * the 239 milliseconds a chunk costs, so no worker count takes it past 1.33 times. A pool
      * of whole chunks makes all but the Bedrock translation parallel.
      *
-     * The two are alternatives, not layers. A generator given both uses this one and leaves
-     * {@link DataDrivenGeneratorOptions.terrain} alone, because a worker running the whole
-     * ladder runs its own `terrain` inside it.
+     * Pool options are alternatives, not layers. {@link DataDrivenGeneratorOptions.stages}
+     * takes precedence when supplied; otherwise this option takes precedence over
+     * {@link DataDrivenGeneratorOptions.terrain}, because a worker running the whole ladder runs
+     * its own `terrain` inside it.
      */
     readonly chunks?: ChunkPoolOptions;
 }
@@ -182,6 +193,26 @@ export interface ChunkPoolOptions {
     /** How far behind a region's owner falls before its work is given away. */
     readonly stealAfter?: number;
     /** Told once, with the reason, when the chunks end up on this thread after all. */
+    readonly onUnavailable?: (reason: string) => void;
+}
+
+/** Where the shared generation scheduler runs independent status bodies. */
+export interface StagePoolOptions {
+    /** The worker module, which {@link defaultChunkPipeline} answers for this package. */
+    readonly pipeline: string;
+    /** How many workers may run terrain and feature bodies concurrently. */
+    readonly workers: number;
+    /** The worker entry, which defaults to `@jsprismarine/chunkgen`'s own. */
+    readonly worker?: string;
+    /**
+     * The standard Java jar templates, when the main generator uses that same source.
+     *
+     * Arbitrary {@link TemplateSource} callbacks cannot cross the worker boundary. Leave this
+     * unset for a custom source; terrain still runs in workers, while feature placement stays
+     * here.
+     */
+    readonly javaTemplates?: boolean;
+    /** Told once when the worker module cannot be loaded and stages fall back to this thread. */
     readonly onUnavailable?: (reason: string) => void;
 }
 
@@ -226,7 +257,7 @@ export const defaultTerrainPipeline = (): string => {
 };
 
 /**
- * This package's own whole-chunk pipeline module, beside this file.
+ * This package's shared-status and legacy whole-chunk pipeline module, beside this file.
  *
  * Resolved the same way, and for the same reasons, as {@link defaultTerrainPipeline}.
  *
@@ -376,6 +407,35 @@ const identifiersOf = (value: unknown): readonly string[] => {
     return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
 };
 
+/** Narrows a worker result at the untyped message boundary. */
+const featurePatchesFromWorker = (value: unknown): readonly RegionChunkPatch[] => {
+    if (
+        !Array.isArray(value) ||
+        !value.every(
+            (patch) =>
+                typeof patch === 'object' &&
+                patch !== null &&
+                'chunkX' in patch &&
+                typeof patch.chunkX === 'number' &&
+                'chunkZ' in patch &&
+                typeof patch.chunkZ === 'number' &&
+                'blocks' in patch &&
+                Array.isArray(patch.blocks) &&
+                'blockEntityRemovals' in patch &&
+                Array.isArray(patch.blockEntityRemovals) &&
+                'blockEntities' in patch &&
+                Array.isArray(patch.blockEntities) &&
+                'entitySpawns' in patch &&
+                Array.isArray(patch.entitySpawns)
+        )
+    ) {
+        throw new TypeError('A feature worker returned an invalid patch list.');
+    }
+
+    // The structural check above is the runtime boundary for a result produced by our worker.
+    return value as RegionChunkPatch[];
+};
+
 /**
  * The chunk generator that reads Java's data.
  *
@@ -401,6 +461,9 @@ export class DataDrivenGenerator implements Generator {
      */
     private pool: GenerationPool | undefined;
 
+    /** Workers for independent statuses, all fed by this generator's shared holder map. */
+    private stagePool: GenerationPool | undefined;
+
     /**
      * The workers that build whole chunks, or undefined when they are built on this thread.
      *
@@ -411,6 +474,9 @@ export class DataDrivenGenerator implements Generator {
 
     /** Whether a chunk worker has ever answered, which tells a startup failure from a bug. */
     private chunkPoolAnswered = false;
+
+    /** Whether any stage worker has answered, which separates startup failure from task failure. */
+    private stagePoolAnswered = false;
 
     /**
      * The band each chunk somebody asked for is waiting in, while it is being built.
@@ -451,11 +517,51 @@ export class DataDrivenGenerator implements Generator {
         }
 
         this.biomeSource = MultiNoiseBiomeSource.fromJson(parameters);
-        this.chunkPool = this.openChunkPool(registries);
+        this.stagePool = this.openStagePool(registries);
+        this.chunkPool = this.stagePool === undefined ? this.openChunkPool(registries) : undefined;
         // Only when the whole ladder is not already pooled: a worker that builds a chunk runs
         // its own `terrain` inside it, and a second pool underneath would be workers asking
-        // workers.
-        this.pool = this.chunkPool === undefined ? this.openPool(registries) : undefined;
+        // workers. Shared status workers replace the terrain-only pool rather than nesting it.
+        this.pool =
+            this.chunkPool === undefined && this.stagePool === undefined ? this.openPool(registries) : undefined;
+    }
+
+    /**
+     * Starts the shared status pool, or reports why its workers cannot run.
+     *
+     * Unlike a whole-chunk pool, every task still uses this generator's holder map. That is what
+     * lets overlapping requests share terrain and feature work while independent status bodies
+     * run on separate threads.
+     */
+    private openStagePool(registries: JavaWorldgenRegistries): GenerationPool | undefined {
+        const stages = this.options.stages;
+        if (stages === undefined) return undefined;
+
+        const where = {
+            pipeline: stages.pipeline,
+            workers: stages.workers,
+            ...(stages.worker === undefined ? {} : { worker: stages.worker })
+        };
+        const reason = GenerationPool.unavailable(where);
+        if (reason !== undefined) {
+            stages.onUnavailable?.(reason);
+            return undefined;
+        }
+
+        return new GenerationPool({
+            ...where,
+            setup: {
+                registryBundle: shareRegistryBundle(registries),
+                dimension: this.dimension,
+                ...(this.options.noiseSettings === undefined ? {} : { noiseSettings: this.options.noiseSettings }),
+                ...(this.options.biomeParameters === undefined
+                    ? {}
+                    : { biomeParameters: this.options.biomeParameters }),
+                carve: this.options.carve !== false,
+                structures: this.options.structures !== false,
+                javaTemplates: stages.javaTemplates === true
+            } satisfies ChunkPipelineSetup
+        });
     }
 
     /**
@@ -574,13 +680,7 @@ export class DataDrivenGenerator implements Generator {
         // The worker's own payload, arriving across a thread boundary the compiler cannot
         // follow. Nothing but `chunkPipeline` puts anything on the other end of this.
         const payload = result.payload as GenerationRegionPayload;
-        const region = GenerationRegion.adopt(payload, {
-            seaLevel: pipeline.settings.seaLevel,
-            seed: pipeline.randomState.seed,
-            blocks: pipeline.oracle,
-            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
-            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
-        });
+        const region = this.adoptRegion(payload, pipeline);
 
         return this.toChunk(cx, cz, region, pipeline);
     }
@@ -631,6 +731,22 @@ export class DataDrivenGenerator implements Generator {
             void pool.destroy();
             this.options.terrain?.onUnavailable?.(
                 `a terrain worker could not run: ${error instanceof Error ? error.message : String(error)}`
+            );
+        }
+
+        return true;
+    }
+
+    /** Gives up on a stage pool whose first task could not start, then lets inline work continue. */
+    private abandonStagePool(error: unknown): boolean {
+        if (this.stopped || this.stagePoolAnswered) return false;
+
+        const pool = this.stagePool;
+        this.stagePool = undefined;
+        if (pool !== undefined) {
+            void pool.destroy();
+            this.options.stages?.onUnavailable?.(
+                `a generation worker could not run: ${error instanceof Error ? error.message : String(error)}`
             );
         }
 
@@ -712,6 +828,35 @@ export class DataDrivenGenerator implements Generator {
     }
 
     /**
+     * Runs one `features` status body over the nine terrain tiles it reads.
+     *
+     * This is the worker half of the shared-status pool. The main scheduler owns the holder map
+     * and sends immutable terrain payloads; this method owns the feature view and returns the
+     * writes grouped by destination chunk.
+     *
+     * @param cx - Center chunk x.
+     * @param cz - Center chunk z.
+     * @param seed - The world seed.
+     * @param terrain - The nine tiles in {@link FEATURE_VIEW_TILES} order.
+     * @returns The center chunk's own feature writes and its eight outbound patches.
+     * @throws RangeError when the task does not carry the complete 3 by 3 terrain view.
+     */
+    public buildFeatureTile(
+        cx: number,
+        cz: number,
+        seed: bigint,
+        terrain: readonly GenerationRegionPayload[]
+    ): readonly RegionChunkPatch[] {
+        if (terrain.length !== FEATURE_VIEW_TILES.length) {
+            throw new RangeError(`A feature task needs ${FEATURE_VIEW_TILES.length} terrain tiles.`);
+        }
+
+        const pipeline = this.pipelineFor(seed);
+        const tiles = terrain.map((payload) => this.adoptRegion(payload, pipeline));
+        return this.featurePatchesFor(cx, cz, tiles, pipeline);
+    }
+
+    /**
      * One chunk's terrain tile, packed for the thread that asked for it.
      *
      * What a worker runs. It is the same `buildTerrain` the main thread runs, called the same
@@ -748,6 +893,7 @@ export class DataDrivenGenerator implements Generator {
         // Worker threads do not receive signals, so terminating them is the only way to stop a
         // worker that is halfway through a chunk. 2 to 24 ms, measured.
         void this.pool?.destroy();
+        void this.stagePool?.destroy();
         void this.chunkPool?.destroy();
     }
 
@@ -823,6 +969,17 @@ export class DataDrivenGenerator implements Generator {
         });
     }
 
+    /** Rebuilds a transferred region with the world-specific readers this thread owns. */
+    private adoptRegion(payload: GenerationRegionPayload, pipeline: SeededPipeline): GenerationRegion {
+        return GenerationRegion.adopt(payload, {
+            seaLevel: pipeline.settings.seaLevel,
+            seed: pipeline.randomState.seed,
+            blocks: pipeline.oracle,
+            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
+            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
+        });
+    }
+
     /**
      * The `terrain` body: the noise fill, the surface materials and the carvers for one chunk.
      *
@@ -846,7 +1003,8 @@ export class DataDrivenGenerator implements Generator {
      */
     private async terrainTileFor(cx: number, cz: number, pipeline: SeededPipeline): Promise<GenerationRegion> {
         const beard = this.beardInputs(cx, cz, pipeline);
-        const pool = this.pool;
+        const stagePool = this.stagePool;
+        const pool = stagePool ?? this.pool;
         if (pool === undefined) return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
 
         let result;
@@ -864,23 +1022,19 @@ export class DataDrivenGenerator implements Generator {
                 },
                 this.urgencyOf(cx, cz)
             );
-            this.poolAnswered = true;
+            if (stagePool === undefined) this.poolAnswered = true;
+            else this.stagePoolAnswered = true;
         } catch (error) {
-            if (!this.abandonPool(error)) throw error;
+            const canFallback = stagePool === undefined ? this.abandonPool(error) : this.abandonStagePool(error);
+            if (!canFallback) throw error;
 
             return this.buildTerrain(cx, cz, pipeline, beard.pieces, beard.junctions);
         }
 
         // The worker's own payload, arriving across a thread boundary the compiler cannot
-        // follow. Nothing but `terrainPipeline` puts anything on the other end of this.
+        // follow. Nothing but a package worker pipeline puts anything on the other end.
         const payload = result.payload as GenerationRegionPayload;
-        return GenerationRegion.adopt(payload, {
-            seaLevel: pipeline.settings.seaLevel,
-            seed: pipeline.randomState.seed,
-            blocks: pipeline.oracle,
-            biomeAt: (x, y, z) => pipeline.biomes.getBiome(x, y, z),
-            ...(this.options.templates === undefined ? {} : { templates: this.options.templates })
-        });
+        return this.adoptRegion(payload, pipeline);
     }
 
     /**
@@ -892,17 +1046,58 @@ export class DataDrivenGenerator implements Generator {
      * this chunk's own writes and the eight patches, which is a few kilobytes against the 1.7 MiB
      * the view holds.
      */
-    private runFeatures(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): GenerationChunk {
+    private async runFeatures(region: StepRegion<GenerationChunk>, pipeline: SeededPipeline): Promise<GenerationChunk> {
         const chunk = region.center;
-        const view = this.createRegion(chunk.chunkX, chunk.chunkZ, 1, pipeline);
-        for (const [dx, dz] of FEATURE_VIEW_TILES) view.copyCenterFrom(region.neighbor(dx, dz, 'terrain').terrain);
+        const tiles = FEATURE_VIEW_TILES.map(([dx, dz]) => region.neighbor(dx, dz, 'terrain').terrain);
+        const stagePool =
+            this.options.structureBuilders === undefined &&
+            (this.options.templates === undefined || this.options.stages?.javaTemplates === true)
+                ? this.stagePool
+                : undefined;
+        let patches: readonly RegionChunkPatch[];
+
+        if (stagePool === undefined) {
+            patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline);
+        } else {
+            try {
+                const input: FeatureTaskInput = {
+                    seed: pipeline.randomState.seed.toString(),
+                    terrain: tiles.map((tile) => tile.workerInput())
+                };
+                const result = await stagePool.run(
+                    {
+                        status: 'features',
+                        chunkX: chunk.chunkX,
+                        chunkZ: chunk.chunkZ,
+                        input
+                    },
+                    this.urgencyOf(chunk.chunkX, chunk.chunkZ)
+                );
+                this.stagePoolAnswered = true;
+                patches = featurePatchesFromWorker(result.payload);
+            } catch (error: unknown) {
+                if (!this.abandonStagePool(error)) throw error;
+                patches = this.featurePatchesFor(chunk.chunkX, chunk.chunkZ, tiles, pipeline);
+            }
+        }
+
+        chunk.recordFeatures(new Map(patches.map((patch) => [this.chunkKey(patch.chunkX, patch.chunkZ), patch])));
+        return chunk;
+    }
+
+    /** Builds a patch-producing feature view from the nine finished terrain tiles. */
+    private featurePatchesFor(
+        cx: number,
+        cz: number,
+        tiles: readonly GenerationRegion[],
+        pipeline: SeededPipeline
+    ): readonly RegionChunkPatch[] {
+        const view = this.createRegion(cx, cz, 1, pipeline);
+        for (const tile of tiles) view.copyCenterFrom(tile);
 
         view.beginWriteTracking();
-        this.decorate(chunk.chunkX, chunk.chunkZ, view, pipeline);
-        chunk.recordFeatures(
-            new Map(view.takeTrackedPatches().map((patch) => [this.chunkKey(patch.chunkX, patch.chunkZ), patch]))
-        );
-        return chunk;
+        this.decorate(cx, cz, view, pipeline);
+        return view.takeTrackedPatches();
     }
 
     /**
@@ -1172,6 +1367,7 @@ export class DataDrivenGenerator implements Generator {
         this.urgencies.set(key, urgency);
         const here = (task: { chunkX: number; chunkZ: number }): boolean => task.chunkX === cx && task.chunkZ === cz;
         this.pool?.promote(here, urgency);
+        this.stagePool?.promote(here, urgency);
         this.chunkPool?.promote(here, urgency);
     }
 
@@ -1578,7 +1774,12 @@ export class DataDrivenGenerator implements Generator {
             }),
             retained: new Map(),
             chunkBiomes: new Map(),
-            queue: new GenerationQueue(this.options.concurrency ?? DEFAULT_CONCURRENCY)
+            queue: new GenerationQueue(
+                this.options.concurrency ??
+                    this.stagePool?.options.workers ??
+                    this.pool?.options.workers ??
+                    DEFAULT_CONCURRENCY
+            )
         };
 
         // A world asked for after the shutdown began is refused at once rather than generating

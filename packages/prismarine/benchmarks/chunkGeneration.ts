@@ -70,7 +70,17 @@ const generator = new DataDrivenGenerator({
               }
           }
         : {}),
-    ...(workers > 0 && arm !== 'chunks'
+    ...(workers > 0 && arm === 'stages'
+        ? {
+              stages: {
+                  pipeline: defaultChunkPipeline(),
+                  workers,
+                  javaTemplates: true,
+                  onUnavailable: (reason) => process.stderr.write(`no stage pool: ${reason}\n`)
+              }
+          }
+        : {}),
+    ...(workers > 0 && arm !== 'chunks' && arm !== 'stages'
         ? {
               terrain: {
                   pipeline: defaultTerrainPipeline(),

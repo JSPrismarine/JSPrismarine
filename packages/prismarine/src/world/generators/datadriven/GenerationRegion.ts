@@ -295,6 +295,31 @@ export class GenerationRegion {
     }
 
     /**
+     * Describes this immutable terrain tile for a worker task without spending its buffers.
+     *
+     * `GenerationPool` structured-clones task input before the worker sees it, so its copies
+     * cannot mutate this region. This is for the read-only terrain tiles a feature pass needs;
+     * callers that hand a tile away must use {@link GenerationRegion.transfer} instead.
+     *
+     * @returns A payload view whose buffers remain owned by this region.
+     */
+    public workerInput(): GenerationRegionPayload {
+        return {
+            chunkX: this.chunkX,
+            chunkZ: this.chunkZ,
+            minY: this.minY,
+            height: this.height,
+            radius: this.radius,
+            palette: this.palette,
+            states: this.states.buffer,
+            highest: this.highest.buffer,
+            ...(this.frozenSurface === null ? {} : { frozenSurface: this.frozenSurface.buffer }),
+            blockEntities: [...this.blockEntities],
+            entitySpawns: this.entitySpawns
+        };
+    }
+
+    /**
      * Rebuilds a region from a payload that arrived on this thread, without copying a buffer.
      *
      * The palette index is rebuilt rather than carried, because it is a `Map` and a `Map` is

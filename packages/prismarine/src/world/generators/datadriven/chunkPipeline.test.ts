@@ -1,9 +1,8 @@
 /**
- * That a chunk built in a worker is the chunk built on this thread.
+ * That legacy whole-chunk workers and shared-status workers build the same chunks as this thread.
  *
- * This is the whole safety argument for the pool. Routing by region means which worker builds a
- * chunk depends on the region size, the worker count and how busy each one was, so a chunk whose
- * contents depended on any of that would be a world that changed shape when the pool did.
+ * This is the safety argument for worker generation. Task routing and concurrent roots depend
+ * on worker count and queue timing, so output cannot depend on which worker ran a status.
  *
  * The comparison runs in a child process, not here. A worker thread resolves the pipeline module
  * through Node's own loader rather than through vitest's, and a dev checkout's imports have no
@@ -32,9 +31,9 @@ const TIMEOUT = 900_000;
 
 const CHECKER = fileURLToPath(new URL('../../../../test/chunkParity.ts', import.meta.url));
 
-describe.runIf(enabled)('a chunk built in a worker', () => {
+describe.runIf(enabled)('a chunk built by workers', () => {
     it(
-        'is the same chunk this thread would have built',
+        'matches inline generation through both worker paths',
         () => {
             const output = execFileSync(process.execPath, ['--import', 'tsx', CHECKER], {
                 encoding: 'utf8',

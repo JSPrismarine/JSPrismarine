@@ -1,5 +1,5 @@
 /**
- * Measures one player's forward-view chunk delivery through the scheduler and chunk worker pool.
+ * Measures one player's forward-view chunk delivery through the scheduler and shared stage pool.
  *
  * Run with `node --import tsx packages/prismarine/benchmarks/playerChunkDelivery.ts [workers] [chunks] [depth]`.
  * The seed and queue order are fixed so runs at different depths cover the same chunks.
@@ -47,7 +47,7 @@ const templates = findJavaTemplateSource(cacheRoot(), registries.processorLists)
 const generator = new DataDrivenGenerator({
     registries,
     templates,
-    chunks: { pipeline: defaultChunkPipeline(), workers }
+    stages: { pipeline: defaultChunkPipeline(), workers, javaTemplates: true }
 });
 
 // Build a forward view from the origin, adding the closest row first and alternating each row

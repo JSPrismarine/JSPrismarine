@@ -1,7 +1,7 @@
 import BaseGenerator from '../BaseGenerator';
 import type { StructureSearchRequest, StructureSearchResult, SurfaceProbe } from '../Generator';
 import type Chunk from '../chunk/Chunk';
-import type { ChunkPoolOptions } from './datadriven/DataDrivenGenerator';
+import type { StagePoolOptions } from './datadriven/DataDrivenGenerator';
 import { DataDrivenGenerator, defaultChunkPipeline } from './datadriven/DataDrivenGenerator';
 import { chunkWorkerCount } from './chunkConcurrency';
 import { findJavaTemplateSource } from './datadriven/javaStructureTemplates';
@@ -24,16 +24,15 @@ import {
  * rather than when the server registers its generators: a server configured for a flat world
  * should not pay for data it will not use.
  *
- * Whole chunks are built in a pool of worker threads, sized from the core count, each worker
- * owning a region of the world so the neighbors a chunk reads are ones it has already built.
- * Nothing has to be built for that to work in a dev checkout, because a worker inherits this
- * process's loader. A host that cannot run workers at all generates on this thread and says so
- * once, since a server that boots slowly beats one that does not boot.
+ * Terrain and feature status bodies run in a pool of worker threads, sized from the core count.
+ * The scheduler stays here, so overlapping requests share the same neighborhood work. Nothing
+ * has to be built for that to work in a dev checkout, because a worker inherits this process's
+ * loader. A host that cannot run workers still generates on this thread and says so once.
  */
 export default class Overworld extends BaseGenerator {
     private generator: DataDrivenGenerator | null = null;
 
-    /** Whether the chunk pool is still expected to run, which only the log line reads. */
+    /** Whether the worker pool is still expected to run, which only the log line reads. */
     private pooled = true;
 
     /**
@@ -79,37 +78,38 @@ export default class Overworld extends BaseGenerator {
         }
 
         const registries = loadJavaWorldgenRegistries(sources);
-        const chunks = this.chunkPool();
+        const stages = this.stagePool();
         this.generator = new DataDrivenGenerator({
             registries,
             templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
-            ...(chunks === undefined ? {} : { chunks })
+            ...(stages === undefined ? {} : { stages })
         });
-        if (chunks !== undefined && this.pooled) {
-            this.getLogger()?.info(`Generating chunks in §b${chunks.workers}§r worker thread(s)`);
+        if (stages !== undefined && this.pooled) {
+            this.getLogger()?.info(`Generating terrain and features in §b${stages.workers}§r worker thread(s)`);
         }
 
         return this.generator;
     }
 
     /**
-     * How whole chunks should be built, or undefined when this host is too small to bother.
+     * How terrain and feature status bodies should run, or undefined when this host is too small.
      *
      * The pipeline module is resolved rather than configured, and a worker inherits this
      * process's loader, so a checkout run under `tsx` and a published install both work with
      * nothing built first. A single executable keeps its modules in the binary, where no worker
      * thread can import them, so there the generator says so once and builds chunks here.
      */
-    private chunkPool(): ChunkPoolOptions | undefined {
+    private stagePool(): StagePoolOptions | undefined {
         const workers = chunkWorkerCount();
         if (workers < 1) return undefined;
 
         return {
             pipeline: defaultChunkPipeline(),
             workers,
+            javaTemplates: true,
             onUnavailable: (reason) => {
                 this.pooled = false;
-                this.getLogger()?.warn(`Generating chunks on the server thread, because ${reason}`);
+                this.getLogger()?.warn(`Generating terrain and features on the server thread, because ${reason}`);
             }
         };
     }

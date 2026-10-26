@@ -1,6 +1,6 @@
 /**
- * Builds the same chunks twice, once on this thread and once through the worker pool, and
- * reports whether they came out identical.
+ * Builds the same chunks three ways: on this thread, through the legacy whole-chunk pool, and
+ * through the shared status pool. Reports whether each worker path matches inline output.
  *
  * A separate process rather than a test body because of how a worker resolves modules. A
  * worker thread is a second module loader and reads the pipeline off disk through Node's own
@@ -41,55 +41,71 @@ if (sources === undefined) {
     process.exit(2);
 }
 
-const open = (workers: number): DataDrivenGenerator => {
+const open = (mode: 'inline' | 'chunks' | 'stages'): DataDrivenGenerator => {
     const registries = loadJavaWorldgenRegistries(sources);
 
     return new DataDrivenGenerator({
         registries,
         templates: findJavaTemplateSource(cacheRoot(), registries.processorLists),
-        ...(workers === 0
-            ? {}
-            : {
+        ...(mode === 'chunks'
+            ? {
                   chunks: {
                       pipeline: defaultChunkPipeline(),
-                      workers,
+                      workers: 3,
                       // Small, so these chunks fall in more than one region and the run covers
                       // a chunk whose neighbors its worker had never seen.
                       regionChunks: 4,
-                      onUnavailable: (reason) => {
+                      onUnavailable: (reason: string) => {
                           process.stderr.write(`the chunk pool refused to start: ${reason}\n`);
                           process.exit(3);
                       }
                   }
-              })
+              }
+            : mode === 'stages'
+              ? {
+                    stages: {
+                        pipeline: defaultChunkPipeline(),
+                        workers: 3,
+                        javaTemplates: true,
+                        onUnavailable: (reason: string) => {
+                            process.stderr.write(`the stage pool refused to start: ${reason}\n`);
+                            process.exit(3);
+                        }
+                    }
+                }
+              : {})
     });
 };
 
 /** The blocks, the biomes and the block entities, as the wire carries them. */
 const built = (chunk: Chunk): string => chunk.networkSerialize().toString('base64');
 
-const inline = open(0);
-const pooled = open(3);
+const inline = open('inline');
+const chunkPool = open('chunks');
+const stagePool = open('stages');
 
 const expected = new Map<string, string>();
 for (const [x, z] of CHUNKS) expected.set(`${x},${z}`, built(await inline.generateChunk(x, z, SEED)));
 
-const actual = new Map<string, string>();
-await Promise.all(
-    CHUNKS.map(async ([x, z]) => {
-        actual.set(`${x},${z}`, built(await pooled.generateChunk(x, z, SEED)));
-    })
-);
+const compare = async (generator: DataDrivenGenerator): Promise<string[]> => {
+    const actual = new Map<string, string>();
+    await Promise.all(
+        CHUNKS.map(async ([x, z]) => {
+            actual.set(`${x},${z}`, built(await generator.generateChunk(x, z, SEED)));
+        })
+    );
+    return [...expected].filter(([position, chunk]) => actual.get(position) !== chunk).map(([position]) => position);
+};
 
-const differing = [...expected]
-    .filter(([position, chunk]) => actual.get(position) !== chunk)
-    .map(([position]) => position);
+const [chunkDifferences, stageDifferences] = await Promise.all([compare(chunkPool), compare(stagePool)]);
 
 inline.stopGenerating();
-pooled.stopGenerating();
+chunkPool.stopGenerating();
+stagePool.stopGenerating();
 
-if (differing.length > 0) {
-    process.stderr.write(`chunks differ: ${differing.join(' ')}\n`);
+if (chunkDifferences.length > 0 || stageDifferences.length > 0) {
+    if (chunkDifferences.length > 0) process.stderr.write(`whole-chunk pool differs: ${chunkDifferences.join(' ')}\n`);
+    if (stageDifferences.length > 0) process.stderr.write(`stage pool differs: ${stageDifferences.join(' ')}\n`);
     process.exit(1);
 }
 
