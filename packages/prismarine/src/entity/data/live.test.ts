@@ -55,8 +55,8 @@ import type { LiveEntityRuntime } from './live';
  * that is the thing a player sees.
  */
 
-/** The two blocks this fixture declares, which are also the whole of its palette. */
-const BLOCKS = ['minecraft:air', 'minecraft:stone'] as const;
+/** The blocks this fixture declares, which are also the whole of its palette. */
+const BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:water'] as const;
 
 const DIMENSION = 'minecraft:overworld';
 
@@ -489,6 +489,19 @@ describe('the data-driven entity runtime over a live world', () => {
         // Both used to throw `NotWiredError` naming the entity subsystem.
         expect(() => live.runtime.content().world.spawnWorld.players()).not.toThrow();
         expect(live.runtime.content().world.brainWorld()).toBeDefined();
+    });
+
+    it('lets gravity carry a mob into water instead of treating the water surface as ground', async () => {
+        const chunk = world.getLoadedChunk(0, 0);
+        if (!chunk) throw new Error('the water test chunk was not loaded');
+        chunk.setBlockRuntimeId(0, FLOOR_Y, 0, idOf('minecraft:water'));
+
+        const mob = live.runtime.spawn('minecraft:warden', { x: 0.5, y: GROUND_Y, z: 0.5 });
+        if (mob === undefined) throw new Error('the fixture declares no minecraft:warden');
+
+        await live.tick(1);
+
+        expect(mob.position.y).toBeLessThan(GROUND_Y);
     });
 
     describe('spawning', () => {

@@ -99,6 +99,10 @@ const EXCEPTION_REASONS: readonly { readonly reason: string; readonly matches: (
  */
 const WITHOUT_COLLISION: readonly { readonly identifier: string; readonly reason: string }[] = [
     { identifier: 'minecraft:air', reason: 'air occupies nothing' },
+    { identifier: 'minecraft:water', reason: 'a liquid has no collision surface' },
+    { identifier: 'minecraft:flowing_water', reason: 'a flowing liquid has no collision surface' },
+    { identifier: 'minecraft:lava', reason: 'a liquid has no collision surface' },
+    { identifier: 'minecraft:flowing_lava', reason: 'a flowing liquid has no collision surface' },
     { identifier: 'minecraft:structure_void', reason: 'the structure editor placeholder has no shape' },
     { identifier: 'minecraft:portal', reason: 'a nether portal is a volume an entity walks into' },
     { identifier: 'minecraft:end_portal', reason: 'an end portal is a volume an entity walks into' },

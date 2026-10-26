@@ -124,6 +124,24 @@ describe('the committed overlay pack', () => {
         expect(table.friction).toHaveLength(22079);
     });
 
+    it('does not make water or lava solid in the flattened collision table', () => {
+        const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
+        const resolved = resolveBlocks(definitions.blocks.values());
+        const table = flattenBlockStates(resolved);
+
+        for (const identifier of [
+            'minecraft:water',
+            'minecraft:flowing_water',
+            'minecraft:lava',
+            'minecraft:flowing_lava'
+        ]) {
+            const type = resolved.types.get(identifier);
+            if (type === undefined) throw new Error(`the vanilla overlay has no ${identifier} block`);
+
+            for (const state of type.states) expect(table.solid[state.runtimeId], identifier).toBe(0);
+        }
+    });
+
     it('keeps the Java friction readable through the component that carries it', () => {
         const { definitions } = load([{ kind: 'directory', path: packDirectory }]);
         const resolved = resolveBlocks(definitions.blocks.values());
