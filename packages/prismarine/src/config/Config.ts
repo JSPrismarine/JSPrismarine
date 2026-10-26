@@ -1,13 +1,13 @@
 import fs from 'node:fs';
 
 import type { LogLevel } from '@jsprismarine/logger';
-import type { WorldData } from '../world/WorldManager';
-import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
-import { convertYamlToJsonConfigDocument } from './ConfigDocument';
-import { toJsonFileContents } from './JsonFile';
 import { SeedGenerator } from '../utils/Seed';
 import { withCwd } from '../utils/cwd';
+import type { WorldData } from '../world/WorldManager';
 import { ConfigBuilder } from './ConfigBuilder';
+import { convertYamlToJsonConfigDocument } from './ConfigDocument';
+import type { ConfigDifficulty, ConfigFile } from './JsonConfigTypes';
+import { toJsonFileContents } from './JsonFile';
 
 import { Difficulty, getGametypeName } from '@jsprismarine/minecraft';
 
@@ -113,12 +113,12 @@ const DEFAULTS = {
     'proximity-broadcast': true,
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
-    'online-mode': false,
+    'online-mode': true,
     'packet-compression-level': DEFAULT_PACKET_COMPRESSION_LEVEL,
     'enable-query': true,
     'enable-process-title': true,
     'enable-ticking': true,
-    'log-excluded-packets': ['SetTimePacket'],
+    'log-excluded-packets': [],
     'crafting-recipe-limit': -1
 } as const satisfies Omit<Record<keyof typeof COMMENTS, unknown>, 'worlds'>;
 
@@ -130,7 +130,7 @@ const DEFAULTS = {
  * {@link import('./JsonConfigTypes').WorldData.seed}.
  */
 const defaultWorlds = (): Record<string, WorldData> => ({
-    world: { generator: 'Flat', provider: 'LevelDB', seed: SeedGenerator().toString() }
+    world: { generator: 'Overworld', provider: 'LevelDB', seed: SeedGenerator().toString() }
 });
 
 /** Runtime settings that take precedence over values in the server config file. */
