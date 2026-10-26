@@ -474,9 +474,9 @@ export class CommandManager implements Service {
             return [`§6/${name}§r §f- ${description}`, `   §eUsage: §f${this.helpUsage(name)}`];
         });
 
-        const previous = page > 1 ? `§b‹ /help ${page - 1}§r   ` : '';
-        const next = page < pageCount ? `   §b/help ${page + 1} ›§r` : '';
-        const title = `${previous}§fHelp - Page ${page}/${pageCount}${next}`;
+        const previous = page > 1 ? '§f‹' : '§8■';
+        const next = page < pageCount ? '§f›' : '§8■';
+        const title = `${previous} §fHelp §b${page}§f/${pageCount} ${next}`;
         const border = this.helpBorder(title, entries);
         return [border, ...entries, border];
     }
@@ -493,7 +493,7 @@ export class CommandManager implements Service {
     private helpBorder(title: string, content: readonly string[]): string {
         const middle = ` §7<<< ${title}§7 >>> §r`;
         const middleWidth = this.visibleTextLength(middle);
-        const width = Math.max(60, middleWidth + 12, ...content.map((line) => this.visibleTextLength(line)));
+        const width = Math.max(middleWidth + 12, ...content.map((line) => this.visibleTextLength(line)));
         const fill = width - middleWidth;
         const left = Math.floor(fill / 2);
         const right = fill - left;
