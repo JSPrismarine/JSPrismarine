@@ -145,6 +145,7 @@ export class StructureStartSource {
     private readonly biomesOf: (structure: string) => ReadonlySet<string>;
     private readonly pools = new Map<string, TemplatePool | undefined>();
     private readonly starts = new Map<string, StructureStart | null>();
+    private readonly startsByChunk = new Map<string, readonly StructureStart[]>();
 
     /** The structures of each step, in registry order, which is the order Java seeds them in. */
     private readonly byStep = new Map<DecorationStep, string[]>();
@@ -255,6 +256,10 @@ export class StructureStartSource {
      * what bounds how far a structure may spill from the chunk it started in.
      */
     public startsFor(chunkX: number, chunkZ: number): readonly StructureStart[] {
+        const key = `${chunkX},${chunkZ}`;
+        const cached = this.startsByChunk.get(key);
+        if (cached !== undefined) return cached;
+
         const range = {
             minChunkX: chunkX - REFERENCE_RADIUS,
             minChunkZ: chunkZ - REFERENCE_RADIUS,
@@ -270,6 +275,8 @@ export class StructureStartSource {
             }
         }
 
+        if (this.startsByChunk.size >= CACHE_LIMIT) this.startsByChunk.clear();
+        this.startsByChunk.set(key, found);
         return found;
     }
 

@@ -171,6 +171,60 @@ describe('StructureStartSource', () => {
         expect(assemblies).toBe(points);
     });
 
+    it('caches each chunk result without changing candidate order', () => {
+        let assemblies = 0;
+        const source = new StructureStartSource({
+            seed: SEED,
+            registries: registriesOf([HERE]),
+            level,
+            templates,
+            isPossibleBiome: (biome) => biome === HERE || biome === ELSEWHERE,
+            builders: new Map<string, StructureBuilder>([
+                [
+                    'test:hut',
+                    (context) => ({
+                        origin: { x: context.chunkX * 16 + 8, y: 64, z: context.chunkZ * 16 + 8 },
+                        pieces: () => {
+                            assemblies++;
+                            return [
+                                {
+                                    boundingBox: {
+                                        minX: -10000,
+                                        minY: 64,
+                                        minZ: -10000,
+                                        maxX: 10000,
+                                        maxY: 65,
+                                        maxZ: 10000
+                                    },
+                                    place: () => {}
+                                }
+                            ];
+                        }
+                    })
+                ]
+            ])
+        });
+
+        const expected = source
+            .usedSets()
+            .flatMap((named) =>
+                candidateChunksIn(named.set.placement, SEED, {
+                    minChunkX: -8,
+                    minChunkZ: -8,
+                    maxChunkX: 8,
+                    maxChunkZ: 8
+                }).map((candidate) => source.startAt(named, candidate.x, candidate.z))
+            )
+            .filter((start) => start !== null);
+
+        const first = source.startsFor(0, 0);
+        const second = source.startsFor(0, 0);
+
+        expect(first).toEqual(expected);
+        expect(second).toBe(first);
+        expect(assemblies).toBe(expected.length);
+    });
+
     describe('locate', () => {
         it('finds the nearest start to the origin, not whichever candidate came first', () => {
             const source = sourceOf();

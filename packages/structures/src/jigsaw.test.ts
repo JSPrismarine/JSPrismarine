@@ -404,7 +404,8 @@ describe('assembleJigsaw', () => {
         // A regression lock on the draw order. The layout itself is checked
         // by the tests around this one: four streets leave the center, each
         // reaches one house, and nothing overlaps.
-        expect(layout(assembleJigsaw(config, sources(2024)))).toEqual([
+        const assembly = assembleJigsaw(config, sources(2024));
+        expect(layout(assembly)).toEqual([
             'test:center@0,63,0/clockwise_180',
             'test:street@-3,63,0/clockwise_90',
             'test:street@0,63,-3/clockwise_180',
@@ -415,6 +416,23 @@ describe('assembleJigsaw', () => {
             'test:house_a@0,63,6/none',
             'test:house_a@6,63,0/counterclockwise_90'
         ]);
+    });
+
+    it('records Java junction source positions and ground levels on both pieces', () => {
+        const { pieces } = assembleJigsaw(config, sources(2024));
+
+        expect(pieces[0]?.junctions).toEqual([
+            { sourceX: -1, sourceGroundY: 64, sourceZ: 1 },
+            { sourceX: 1, sourceGroundY: 64, sourceZ: -1 },
+            { sourceX: 1, sourceGroundY: 64, sourceZ: 3 },
+            { sourceX: 3, sourceGroundY: 64, sourceZ: 1 }
+        ]);
+        expect(pieces[1]?.groundLevelDelta).toBe(1);
+        expect(pieces[1]?.junctions).toEqual([
+            { sourceX: 0, sourceGroundY: 64, sourceZ: 1 },
+            { sourceX: -4, sourceGroundY: 64, sourceZ: 1 }
+        ]);
+        expect(pieces[5]?.junctions).toEqual([{ sourceX: -3, sourceGroundY: 64, sourceZ: 1 }]);
     });
 
     it('grows outward from the center, one street per side', () => {
@@ -538,6 +556,10 @@ describe('assembleJigsaw', () => {
 
         expect(streets).not.toHaveLength(0);
         for (const street of streets) expect(street.position[1]).toBe(40);
+        expect(streets[0]?.junctions).toEqual([
+            { sourceX: 0, sourceGroundY: 64, sourceZ: 1 },
+            { sourceX: -4, sourceGroundY: 41, sourceZ: 1 }
+        ]);
     });
 
     it('reserves vertical room for a piece whose jigsaw points back into itself', () => {
