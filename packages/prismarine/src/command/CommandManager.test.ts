@@ -333,6 +333,7 @@ describe('command', () => {
                     // back by scanning the loaded worlds, so a target has to have a runtime
                     // id, a position and a world the way a connected player does.
                     getRuntimeId: () => 2n,
+                    getFeetY: () => 64,
                     getType: () => 'minecraft:player',
                     getPosition: () => new Position(0, 64, 0, world),
                     getWorld: () => world,
@@ -399,6 +400,7 @@ describe('command', () => {
                     getPermissions: () => grants,
                     isOp: () => permissionManager.isOp(ownerUuid),
                     getType: () => 'minecraft:player',
+                    getFeetY: () => 64,
                     getPosition: () => new Position(0, 64, 0, world),
                     getWorld: () => world,
                     getServer: () => server,
