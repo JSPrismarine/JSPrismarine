@@ -193,8 +193,9 @@ The entities package README lists each component and what it does.
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item
 interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
-finder's profile, `minecraft:can_climb` enables ladder traversal, and `minecraft:can_fly` lets the
-pathfinder leave solid ground. The host also reads
+finder's profile; its walking, swimming, and flight capabilities project to `CANWALK`, `CANSWIM`, and
+`CANFLY`. `minecraft:can_climb` enables ladder traversal and projects to `CANCLIMB`, while
+`minecraft:can_fly` lets the pathfinder leave solid ground. The host also reads
 `minecraft:explode` to detonate a creeper, `minecraft:rideable` to seat riders, and the two
 trade-table components to build a merchant. The shared body physics reads `minecraft:air_drag_modifier`,
 `minecraft:uses_uniform_air_drag`, `minecraft:friction_modifier`, and `minecraft:bounciness` to apply

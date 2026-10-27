@@ -48,8 +48,10 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
     const physics = instance.componentParams('minecraft:physics');
     const scale = instance.componentParams('minecraft:scale');
     const flags: ActorFlagProjection[] = [
+        { flag: ActorFlags.CANCLIMB, value: navigation.canClimbLadders === true },
         { flag: ActorFlags.CANSWIM, value: canSwim },
         { flag: ActorFlags.CANFLY, value: navigation.canFly },
+        { flag: ActorFlags.CANWALK, value: navigation.canWalk },
         { flag: ActorFlags.CAN_POWER_JUMP, value: instance.hasComponent('minecraft:can_power_jump') },
         { flag: ActorFlags.FIRE_IMMUNE, value: instance.hasComponent('minecraft:fire_immune') },
         { flag: ActorFlags.SWIMMING, value: canSwim && body.conditions.has('in_water') },

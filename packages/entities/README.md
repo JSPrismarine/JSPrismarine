@@ -235,7 +235,8 @@ also sets the Bedrock actor's `FIRE_IMMUNE` flag.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne
-paths; the runtime projects `minecraft:can_fly` to the Bedrock actor's `CANFLY` flag and
+paths. The runtime projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's
+walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `CANFLY`; it projects
 `minecraft:can_power_jump` to `CAN_POWER_JUMP`. A table reference like `minecraft:shareables` remains
 data for a system to use. The outer runtime also reads
 physics values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
