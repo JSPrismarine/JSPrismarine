@@ -118,9 +118,10 @@ const stepHeightOf = (entity: EntityInstance, canJump: boolean): number => {
     return canJump ? 1 : 0.5625;
 };
 
-/** Adds entity abilities the navigation component does not carry. */
+/** Adds entity abilities declared separately from the navigation component. */
 const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => ({
     ...profile,
+    canFly: profile.canFly || entity.hasComponent('minecraft:can_fly'),
     canClimbLadders: entity.hasComponent('minecraft:can_climb')
 });
 

@@ -49,6 +49,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
     const scale = instance.componentParams('minecraft:scale');
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANSWIM, value: canSwim },
+        { flag: ActorFlags.CANFLY, value: navigation.canFly },
         { flag: ActorFlags.SWIMMING, value: canSwim && body.conditions.has('in_water') },
         {
             flag: MetadataFlag.AFFECTED_BY_GRAVITY,

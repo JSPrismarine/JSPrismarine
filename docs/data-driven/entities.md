@@ -152,12 +152,12 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Sixty-one keys carry
-runtime behavior. The remaining 141 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Sixty-two keys carry
+runtime behavior. The remaining 140 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
-The 61 that act change entity state or decide an outcome: the nine
+The 62 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -173,7 +173,8 @@ its entity to world game-event delivery; the actor metadata markers `minecraft:i
 `minecraft:body_rotation_always_follows_head`, `minecraft:uses_uniform_air_drag`,
 `minecraft:renders_when_invisible`, `minecraft:rotation_axis_aligned`,
 `minecraft:rotation_locked_to_vehicle`, and `minecraft:uses_legacy_friction`, which project their
-state into actor metadata; `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
+state into actor metadata; `minecraft:can_fly`, which enables airborne paths and projects the
+Bedrock actor's `CANFLY` flag; `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the
 eleven `minecraft:on_*`
 trigger components; and `minecraft:cannot_be_attacked`, which blocks entity attacks.
@@ -190,7 +191,8 @@ The entities package README lists each component and what it does.
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item
 interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
-finder's profile, and `minecraft:can_climb` enables ladder traversal. The host also reads
+finder's profile, `minecraft:can_climb` enables ladder traversal, and `minecraft:can_fly` lets the
+pathfinder leave solid ground. The host also reads
 `minecraft:explode` to detonate a creeper, `minecraft:rideable` to seat riders, and the two
 trade-table components to build a merchant. The shared body physics reads `minecraft:air_drag_modifier`,
 `minecraft:uses_uniform_air_drag`, `minecraft:friction_modifier`, and `minecraft:bounciness` to apply
