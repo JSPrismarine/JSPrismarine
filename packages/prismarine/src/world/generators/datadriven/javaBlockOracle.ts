@@ -33,6 +33,9 @@ const FULL_CUBE = 1;
 /** The cached flag for a block another block can stand on. */
 const STURDY_TOP = 2;
 
+/** The cached flag for a non-air block that fills its whole cell. */
+const SOLID = 4;
+
 /** One block's support rule: the tag Java tests the block below against, and who follows it. */
 interface SupportRule {
     /** The `#minecraft:supports_*` tag the block below has to be in. */
@@ -192,8 +195,11 @@ export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
 
         const mapped = javaBlockStateToBedrock(state.name, state.properties);
         const block = mapped.kind === 'unknown' ? undefined : mapped.bedrock;
+        const fullCube = block !== undefined && isFullCube(block);
         const flags =
-            block === undefined ? 0 : (isFullCube(block) ? FULL_CUBE : 0) | (hasSturdyTopFace(block) ? STURDY_TOP : 0);
+            (fullCube ? FULL_CUBE : 0) |
+            (block !== undefined && hasSturdyTopFace(block) ? STURDY_TOP : 0) |
+            (fullCube && !AIR_BLOCKS.has(state.name) ? SOLID : 0);
 
         facts.set(state.name, flags);
         return flags;
@@ -213,7 +219,7 @@ export const createJavaBlockOracle = (blockTags: JavaRegistry): BlockOracle => {
      * features build on or test against, and disagrees for the slabs and stairs features do
      * not read.
      */
-    const isSolid = (state: BlockState): boolean => !isAir(state) && (bedrockFacts(state) & FULL_CUBE) !== 0;
+    const isSolid = (state: BlockState): boolean => (bedrockFacts(state) & SOLID) !== 0;
 
     return {
         isAir,

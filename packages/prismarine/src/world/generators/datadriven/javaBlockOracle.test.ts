@@ -40,6 +40,16 @@ const on = (below: string): TestFeatureWorld => {
 const survives = (name: string, below: string): boolean =>
     oracle.canSurvive(on(below), { x: 0, y: 1, z: 0 }, { name, properties: {} });
 
+describe('isSolid', () => {
+    it('accepts mapped full cubes and rejects air and non-solid blocks', () => {
+        expect(oracle.isSolid({ name: 'minecraft:stone', properties: {} })).toBe(true);
+        expect(oracle.isSolid({ name: 'minecraft:short_grass', properties: {} })).toBe(false);
+        expect(oracle.isSolid({ name: 'minecraft:air', properties: {} })).toBe(false);
+        expect(oracle.isSolid({ name: 'minecraft:cave_air', properties: {} })).toBe(false);
+        expect(oracle.isSolid({ name: 'minecraft:void_air', properties: {} })).toBe(false);
+    });
+});
+
 describe('canSurvive', () => {
     it.each([
         'minecraft:brown_mushroom_block',
