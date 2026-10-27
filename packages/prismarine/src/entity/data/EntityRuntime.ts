@@ -1423,9 +1423,13 @@ export class EntityRuntime implements EntityScene {
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
-            const { healthAmount, playSounds, spawnItems, vibration, ...itemEffect } = interaction;
+            const { addItems, healthAmount, playSounds, spawnItems, vibration, ...itemEffect } = interaction;
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
+            const addedItems =
+                addItems === undefined
+                    ? undefined
+                    : this.rollInteractionLoot(addItems.table, entity, owner, itemIdentifier);
             if (vibration !== undefined)
                 this.world.effects.emitGameEvent(
                     vibration.includes(':') ? vibration : `minecraft:${vibration}`,
@@ -1440,7 +1444,7 @@ export class EntityRuntime implements EntityScene {
                     this.hurt(entity, owner, 'entity_attack', -healthAmount);
                 }
             }
-            return { accepted: true, ...itemEffect };
+            return { accepted: true, ...itemEffect, ...(addedItems === undefined ? {} : { addedItems }) };
         }
         const ageable = entity.instance.componentParams('minecraft:ageable');
         const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
@@ -1455,6 +1459,18 @@ export class EntityRuntime implements EntityScene {
         owner: number,
         itemIdentifier: string
     ): void {
+        const at = { x: entity.position.x, y: entity.position.y + request.yOffset, z: entity.position.z };
+        for (const item of this.rollInteractionLoot(request.table, entity, owner, itemIdentifier))
+            this.host.drop(at, item);
+    }
+
+    /** Rolls a loot table named by a successful entity interaction. */
+    private rollInteractionLoot(
+        table: string,
+        entity: DataEntity,
+        owner: number,
+        itemIdentifier: string
+    ): readonly ContentItemDrop[] {
         const components = new Map<string, unknown>();
         for (const name of entity.instance.activeComponents()) {
             const value = entity.instance.componentParams(name);
@@ -1465,16 +1481,12 @@ export class EntityRuntime implements EntityScene {
         const sourceMob = this.mobById(owner);
         const origin = player?.position ?? sourceMob?.position() ?? entity.position;
         const tool: ItemStack = { id: itemIdentifier, count: 1, components: new Map() };
-        const drops = this.content().equipmentLoot.roll(request.table, {
+        const drops = this.content().equipmentLoot.roll(table, {
             parameterSet: 'shearing',
             parameters: { this_entity: source, origin, tool }
         });
-        const at = { x: entity.position.x, y: entity.position.y + request.yOffset, z: entity.position.z };
 
-        for (const stack of drops) {
-            if (stack.count <= 0) continue;
-            this.host.drop(at, dropOfRolledStack(stack));
-        }
+        return bedrockItemDrops(drops.filter((stack) => stack.count > 0).map(dropOfRolledStack));
     }
 
     /**

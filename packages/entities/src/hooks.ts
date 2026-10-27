@@ -138,10 +138,14 @@ export interface DamageResult {
     readonly events: readonly string[];
 }
 
-/** Items a successful data-defined interaction asks the host to drop. */
-export interface EntitySpawnItemsRequest {
+/** A Bedrock loot table whose items a successful interaction adds to the player's inventory. */
+export interface EntityAddItemsRequest {
     /** The pack-relative Bedrock loot-table path. */
     readonly table: string;
+}
+
+/** Items a successful data-defined interaction asks the host to drop. */
+export interface EntitySpawnItemsRequest extends EntityAddItemsRequest {
     /** Vertical offset from the entity's feet, in blocks. */
     readonly yOffset: number;
 }
@@ -150,6 +154,8 @@ export interface EntitySpawnItemsRequest {
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
     readonly healthAmount?: number;
+    /** Loot to add to the player's inventory when the interaction succeeds. */
+    readonly addItems?: EntityAddItemsRequest;
     /** Durability removed from the held item when the interaction succeeds. */
     readonly hurtItem?: number;
     /** The item the used stack becomes, when the interaction transforms it. */

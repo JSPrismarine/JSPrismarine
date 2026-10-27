@@ -192,7 +192,7 @@ trigger components; and `minecraft:cannot_be_attacked`, which blocks entity atta
 `minecraft:interact` evaluates item
 filters, enforces its cooldowns, raises its event, adjusts health by `health_amount`, plays
 `play_sounds`, emits its `vibration` game event, requests the `spawn_items` loot table from the host,
-and applies `hurt_item`, `use_item`, and
+adds `add_items` loot to the player's inventory, and applies `hurt_item`, `use_item`, and
 `transform_to_item` through the live inventory; other interaction fields still report as unsupported.
 Attacker exceptions are
 data in `minecraft:ignore_cannot_be_attacked`; the package supports that component for custom

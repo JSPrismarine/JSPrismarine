@@ -20,6 +20,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
 import ContainerEntry from '../inventory/ContainerEntry';
+import { itemOfDrop } from '../inventory/persistence';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { Item } from './Item';
@@ -27,7 +28,7 @@ import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
-import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
+import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import type { EntityItemInteraction } from '../entity/data/itemInteraction';
 import type { ItemStack } from '@jsprismarine/items';
@@ -132,6 +133,8 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         if (heldEntry === null || heldEntry.getCount() < 1) return false;
         const outcome = interactWithEntity(target, player, held.getName());
         if (!outcome.accepted) return false;
+
+        for (const drop of outcome.addedItems ?? []) giveDrop(source, drop);
 
         let resultItem: Item | undefined;
         if (outcome.resultItem !== undefined) {
@@ -239,6 +242,24 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             entities.drop(
                 { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
                 { identifier: stack.identifier, count: leftOver }
+            );
+        }
+    };
+
+    /** Adds a loot drop to a player's inventory, dropping any overflow at their feet. */
+    const giveDrop = (source: ItemSource, drop: ContentItemDrop): void => {
+        const entity = entityOf(source);
+        if (!(entity instanceof Player)) return;
+
+        const item = itemOfDrop(drop, entity.getServer().getContent());
+        if (item === null) return;
+
+        const position = entity.getPosition();
+        const leftOver = entity.getInventory().addItem(new ContainerEntry({ item, count: drop.count }));
+        if (leftOver > 0 && position !== undefined) {
+            entities.drop(
+                { x: Math.floor(position.getX()), y: Math.floor(position.getY()), z: Math.floor(position.getZ()) },
+                { ...drop, count: leftOver }
             );
         }
     };

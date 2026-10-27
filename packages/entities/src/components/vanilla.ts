@@ -10,7 +10,7 @@ import { damagerSubjects } from '../filterContext';
 import type { FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
-import type { EntityItemInteractionEffect, EntitySpawnItemsRequest } from '../hooks';
+import type { EntityAddItemsRequest, EntityItemInteractionEffect, EntitySpawnItemsRequest } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { EntitySpawnRequest } from '../hooks';
 import type { RideableParams } from '../riding';
@@ -1004,6 +1004,8 @@ const transformedItemOf = (value: string): TransformedItem => {
 interface InteractEntry {
     readonly onInteract?: SensorTrigger;
     readonly healthAmount?: number;
+    /** Loot-table items to add to the interacting player's inventory. */
+    readonly addItems?: EntityAddItemsRequest;
     /** Durability to remove from the held item when the interaction succeeds. */
     readonly hurtItem: number;
     readonly useItem: boolean;
@@ -1039,9 +1041,10 @@ export interface InteractParams {
  *
  * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
  * its event, plays `play_sounds`, emits its `vibration` game event, rolls
- * `spawn_items`, and applies `transform_to_item` and `use_item` to the live
- * held stack. Other interaction fields remain visible as a one-time runtime
- * report so incomplete behavior is not silently treated as vanilla.
+ * `spawn_items` or adds `add_items` to the interacting player's inventory,
+ * and applies `transform_to_item` and `use_item` to the live held stack. Other
+ * interaction fields remain visible as a one-time runtime report so incomplete
+ * behavior is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1051,6 +1054,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
         const supportedFields = new Set([
             'on_interact',
             'health_amount',
+            'add_items',
             'hurt_item',
             'use_item',
             'transform_to_item',
@@ -1100,6 +1104,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 (!isRecord(raw.spawn_items) || typeof raw.spawn_items.table !== 'string')
             )
                 return rejected(`interactions[${index}].spawn_items must name a loot table`);
+            if (raw.add_items !== undefined && (!isRecord(raw.add_items) || typeof raw.add_items.table !== 'string'))
+                return rejected(`interactions[${index}].add_items must name a loot table`);
             if (
                 isRecord(raw.spawn_items) &&
                 raw.spawn_items.y_offset !== undefined &&
@@ -1109,6 +1115,10 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             const spawnItems: EntitySpawnItemsRequest | undefined =
                 isRecord(raw.spawn_items) && typeof raw.spawn_items.table === 'string'
                     ? { table: raw.spawn_items.table, yOffset: numberAt(raw.spawn_items, 'y_offset', 0) }
+                    : undefined;
+            const addItems: EntityAddItemsRequest | undefined =
+                isRecord(raw.add_items) && typeof raw.add_items.table === 'string'
+                    ? { table: raw.add_items.table }
                     : undefined;
             let playSounds: readonly string[] = [];
             if (typeof raw.play_sounds === 'string') playSounds = [raw.play_sounds];
@@ -1126,6 +1136,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             interactions.push({
                 onInteract,
                 ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
+                ...(addItems === undefined ? {} : { addItems }),
                 hurtItem: numberAt(raw, 'hurt_item', 0),
                 useItem: booleanAt(raw, 'use_item', false),
                 playSounds,
@@ -1142,6 +1153,11 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ? Object.keys(raw.spawn_items)
                               .filter((key) => key !== 'table' && key !== 'y_offset')
                               .map((key) => `spawn_items.${key}`)
+                        : []),
+                    ...(isRecord(raw.add_items)
+                        ? Object.keys(raw.add_items)
+                              .filter((key) => key !== 'table')
+                              .map((key) => `add_items.${key}`)
                         : [])
                 ]
             });
@@ -1204,6 +1220,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.onInteract?.event === undefined &&
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
+                        entry.addItems === undefined &&
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
                         !entry.useItem &&
@@ -1218,6 +1235,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     return {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),
+                        ...(entry.addItems === undefined ? {} : { addItems: entry.addItems }),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.hurtItem === 0 ? {} : { hurtItem: entry.hurtItem }),
