@@ -246,6 +246,17 @@ const repairableNbt = (component: NonNullable<BedrockItemComponents['minecraft:r
         )
     });
 
+/** Writes `minecraft:digger`, whose block speeds use Bedrock's integer form. */
+const diggerNbt = (component: NonNullable<BedrockItemComponents['minecraft:digger']>): NBTTagCompound =>
+    nbtCompound({
+        destroy_speeds: nbtList(
+            component.destroySpeeds.map(({ block, speed }) =>
+                nbtCompound({ block: nbtCompound({ name: nbtString(block) }), speed: nbtInt(speed) })
+            )
+        ),
+        use_efficiency: nbtByte(component.useEfficiency)
+    });
+
 /** Writes the named components that sit beside `item_properties`. */
 const namedComponents = (projected: BedrockItemComponents): Readonly<Record<string, NbtValue>> => {
     const written: Record<string, NbtValue> = {};
@@ -255,6 +266,9 @@ const namedComponents = (projected: BedrockItemComponents): Readonly<Record<stri
 
     const repairable = projected['minecraft:repairable'];
     if (repairable !== undefined) written['minecraft:repairable'] = repairableNbt(repairable);
+
+    const digger = projected['minecraft:digger'];
+    if (digger !== undefined) written['minecraft:digger'] = diggerNbt(digger);
 
     const displayName = projected['minecraft:display_name'];
     if (displayName !== undefined) {

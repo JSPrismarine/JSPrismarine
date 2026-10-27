@@ -177,6 +177,8 @@ leaves out anything Java cannot decide. This package supplies the rest:
 - A Bedrock `minecraft:block_placer`, written in the captured NBT form with `alignedPlacement`,
   `canUseBlockAsIcon`, and `replaceBlockItem` defaults, its block identifier, and `use_on` block
   selectors. The icon flag defaults from whether the active item definition declares an icon.
+- A Bedrock `minecraft:digger`, written with ordered `destroy_speeds` entries containing a named
+  block descriptor and integer speed, plus the `use_efficiency` byte.
 
 An item the captured table does not name is treated as one this server invented: component based,
 `Item Version` `DataDriven`, and an id allocated from 10000. Those are listed in `allocated`.

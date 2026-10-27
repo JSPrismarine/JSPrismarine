@@ -101,6 +101,8 @@ export interface BedrockItemComponents {
     'minecraft:use_modifiers'?: { use_duration: number; movement_modifier: number };
     /** Java's repair materials, expanded and mapped to Bedrock item identifiers. */
     'minecraft:repairable'?: BedrockRepairableComponent;
+    /** Java's tool rules, expanded and mapped to Bedrock block identifiers. */
+    'minecraft:digger'?: BedrockDiggerComponent;
     'minecraft:fuel'?: { duration: number };
     'minecraft:compostable'?: { composting_chance: number };
     'minecraft:fire_resistant'?: { value: boolean };
@@ -119,6 +121,22 @@ export interface BedrockRepairableItem {
 export interface BedrockRepairableComponent {
     /** Repair material groups accepted by Bedrock's anvil UI. */
     readonly repairItems: readonly BedrockRepairableItem[];
+}
+
+/** One Bedrock digging speed, resolved to a block the client knows. */
+export interface BedrockDiggerRule {
+    /** The Bedrock block identifier this speed applies to. */
+    readonly block: string;
+    /** The integer speed multiplier Bedrock's item component accepts. */
+    readonly speed: number;
+}
+
+/** The Bedrock digging rules projected from Java's `minecraft:tool`. */
+export interface BedrockDiggerComponent {
+    /** The ordered block speeds the item applies while mining. */
+    readonly destroySpeeds: readonly BedrockDiggerRule[];
+    /** Whether Bedrock applies its Efficiency enchantment bonus to this item. */
+    readonly useEfficiency: boolean;
 }
 
 /** One block selector accepted by `minecraft:block_placer.use_on`. */
@@ -164,13 +182,9 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
 ] as const;
 
 /**
- * Bedrock components this projection deliberately leaves out, each because
- * producing it would need a Java-to-Bedrock identifier lookup this package
- * does not depend on, or would overwrite something the client already knows.
+ * Bedrock components this projection does not yet derive from Java item data.
  */
-export const UNPROJECTED_BEDROCK_COMPONENTS = {
-    'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.'
-} as const;
+export const UNPROJECTED_BEDROCK_COMPONENTS = {} as const;
 
 /** Whether an untyped Bedrock JSON value is an object with named fields. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
@@ -365,6 +379,10 @@ export interface ProjectionOptions {
     mapIdentifier?: (javaId: string) => string | undefined;
     /** Resolves a Java item tag to its merged Java item identifiers. */
     resolveItemTag?: (tag: string) => readonly string[] | undefined;
+    /** Maps a Java block identifier to the Bedrock identifier the client knows. */
+    mapBlockIdentifier?: (javaId: string) => string | undefined;
+    /** Resolves a Java block tag to its merged Java block identifiers. */
+    resolveBlockTag?: (tag: string) => readonly string[] | undefined;
     /** The cooking context fuel values resolve for, a normal furnace by default. */
     providers?: ProviderContext;
 }
@@ -382,6 +400,41 @@ const bedrockItemNamesOf = (items: HolderSet, options: ProjectionOptions): reado
         if (bedrockItem !== undefined) mapped.add(bedrockItem);
     }
     return [...mapped];
+};
+
+/** Maps a Java block holder set onto the Bedrock block names the client knows. */
+const bedrockBlockNamesOf = (blocks: HolderSet, options: ProjectionOptions): readonly string[] | undefined => {
+    if (options.mapBlockIdentifier === undefined) return undefined;
+
+    const javaBlocks = blocks.kind === 'entries' ? blocks.entries : options.resolveBlockTag?.(blocks.tag);
+    if (javaBlocks === undefined) return undefined;
+
+    const mapped = new Set<string>();
+    for (const javaBlock of javaBlocks) {
+        const bedrockBlock = options.mapBlockIdentifier(javaBlock);
+        if (bedrockBlock !== undefined) mapped.add(bedrockBlock);
+    }
+    return [...mapped];
+};
+
+/** Projects Java's floating mining speeds into Bedrock's signed integer range. */
+const bedrockMiningSpeed = (speed: number): number => Math.min(2_147_483_647, Math.max(0, Math.round(speed)));
+
+/** Expands Java tool rules into the per-block speeds Bedrock accepts. */
+const bedrockDiggerOf = (type: ItemType, options: ProjectionOptions): BedrockDiggerComponent | undefined => {
+    const parameters = type.params(tool);
+    if (parameters === undefined || options.mapBlockIdentifier === undefined) return undefined;
+
+    const destroySpeeds: BedrockDiggerRule[] = [];
+    for (const rule of parameters.rules) {
+        if (rule.speed === undefined) continue;
+        const blocks = bedrockBlockNamesOf(rule.blocks, options);
+        if (blocks === undefined) continue;
+        const speed = bedrockMiningSpeed(rule.speed);
+        for (const block of blocks) destroySpeeds.push({ block, speed });
+    }
+
+    return destroySpeeds.length === 0 ? undefined : { destroySpeeds, useEfficiency: true };
 };
 
 /**
@@ -405,6 +458,9 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
         ...(displayName === undefined ? {} : { 'minecraft:display_name': displayName }),
         ...(icon === undefined ? {} : { 'minecraft:icon': icon })
     };
+
+    const digger = bedrockDiggerOf(type, options);
+    if (digger !== undefined) projected['minecraft:digger'] = digger;
 
     const stackSize = bedrockIntegerOf(type, 'minecraft:max_stack_size') ?? type.params(maxStackSize);
     if (stackSize !== undefined) {

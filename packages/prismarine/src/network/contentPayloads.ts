@@ -24,7 +24,7 @@ import {
 } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
-import { javaItemToBedrock } from '@jsprismarine/mapping';
+import { javaBlockStateToBedrock, javaItemToBedrock } from '@jsprismarine/mapping';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { ItemInstanceUserData, NetworkBinaryStream, blockRuntimeId } from '@jsprismarine/protocol';
 import { compileRecipeBook } from '@jsprismarine/recipes';
@@ -226,7 +226,12 @@ export const buildNetworkContentPayloads = (
                 const mapped = javaItemToBedrock(javaId);
                 return mapped.kind === 'unknown' ? undefined : mapped.bedrock.identifier;
             },
-            resolveItemTag: (tag) => (content.tags.has('item', tag) ? content.tags.members('item', tag) : undefined)
+            resolveItemTag: (tag) => (content.tags.has('item', tag) ? content.tags.members('item', tag) : undefined),
+            mapBlockIdentifier: (javaId) => {
+                const mapped = javaBlockStateToBedrock(javaId);
+                return mapped.kind === 'unknown' ? undefined : mapped.bedrock.name;
+            },
+            resolveBlockTag: (tag) => (content.tags.has('block', tag) ? content.tags.members('block', tag) : undefined)
         },
         // The two `item_properties` keys no Java component decides and the
         // creative catalog does: which tab an item sits in and under which

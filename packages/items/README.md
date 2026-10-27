@@ -132,15 +132,19 @@ slot, or the spear, shield and glider components. The apple comes out with the s
 
 Keys with no Java source are left out rather than guessed, so the protocol layer can tell a derived
 value from a placeholder. `BEDROCK_ONLY_ITEM_PROPERTIES` lists the seven `item_properties` keys that
-come from the creative catalog, the resource pack or nothing at all, and
-`UNPROJECTED_BEDROCK_COMPONENTS` lists the Java-derived component still missing translation.
+come from the creative catalog, the resource pack or nothing at all.
+`UNPROJECTED_BEDROCK_COMPONENTS` remains as an explicit coverage list and is currently empty.
 The active Bedrock item definition's `minecraft:block_placer` body is also projected, including its
 block selector list and default behavior flags. Its explicit display name and icon, plus the type's
 resolved Bedrock tags, pass through as `minecraft:display_name`, `minecraft:icon`, and `item_tags`;
 Java `minecraft:repairable` item sets expand through the loaded Java item tags and map each member to
-its Bedrock identifier. Java tags are not emitted as Bedrock `item_tags`. The definition's scalar
-item components override the corresponding Java-derived registry values when present. The food
-remainder is available through an injected `mapIdentifier`.
+its Bedrock identifier. Java `minecraft:tool` rules become Bedrock `minecraft:digger` rules: block
+tags expand through the loaded Java block tags, then each block maps to a Bedrock identifier. Bedrock
+documents digging speeds as integers, so the client projection rounds Java's fractional speeds and
+caps values above the signed integer range; server mining continues to use the original Java rules
+and speeds. Java tags are not emitted as Bedrock `item_tags`. The definition's scalar item components
+override the corresponding Java-derived registry values when present. The food remainder is
+available through an injected `mapIdentifier`.
 
 ## Flattened facts
 
