@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createInterface } from 'node:readline';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { DevToolsRelay } from './DevToolsRelay';
 
 // Decode external CDP JSON at the boundary; individual tests check the fields they consume.
 const object = (value: unknown): Record<string, unknown> => {
@@ -57,9 +58,83 @@ const connect = async (url: string) => {
     };
 };
 
+const startInspectorTarget = async (generation: string) => {
+    const child = spawn(
+        process.execPath,
+        [
+            '--input-type=module',
+            '--eval',
+            `
+            import * as inspector from 'node:inspector';
+            inspector.open(0, '127.0.0.1');
+            process.stdout.write(inspector.url() + '\\n');
+            globalThis.generation = ${JSON.stringify(generation)};
+            setInterval(() => {}, 1000);
+        `
+        ],
+        { stdio: ['ignore', 'pipe', 'pipe'] }
+    );
+    const lines = createInterface({ input: child.stdout! });
+    const [endpointUrl] = await once(lines, 'line');
+    lines.close();
+    return {
+        child,
+        endpointUrl: String(endpointUrl),
+        async stop() {
+            if (child.exitCode !== null || child.signalCode !== null) return;
+            const exited = once(child, 'exit');
+            child.kill('SIGKILL');
+            await exited;
+        }
+    };
+};
+
+describe('DevTools relay across watched server restarts', () => {
+    it('keeps one CDP connection open and attaches it to the next inspector', async () => {
+        const relay = new DevToolsRelay();
+        let client: Awaited<ReturnType<typeof connect>> | undefined;
+        let first: Awaited<ReturnType<typeof startInspectorTarget>> | undefined;
+        let second: Awaited<ReturnType<typeof startInspectorTarget>> | undefined;
+        try {
+            await relay.start();
+            const frontend = new URL(relay.frontendUrl);
+            expect(frontend.protocol).toBe('https:');
+            expect(frontend.searchParams.get('ws')).toBe(
+                new URL(relay.endpointUrl).host + new URL(relay.endpointUrl).pathname
+            );
+            first = await startInspectorTarget('first');
+            relay.setTarget(first.endpointUrl);
+            client = await connect(relay.endpointUrl);
+            await client.send('Runtime.enable');
+            const original = await client.send('Runtime.evaluate', {
+                expression: 'globalThis.generation',
+                returnByValue: true
+            });
+            expect(object(original.result).value).toBe('first');
+
+            await first.stop();
+            second = await startInspectorTarget('second');
+            relay.setTarget(second.endpointUrl);
+            const logged = client.event('Runtime.consoleAPICalled');
+            const restarted = await client.send('Runtime.evaluate', {
+                expression: 'console.log(globalThis.generation); globalThis.generation',
+                returnByValue: true
+            });
+            expect(object(restarted.result).value).toBe('second');
+            const event = await logged;
+            expect(event.type).toBe('log');
+            expect(event.args).toEqual(expect.arrayContaining([expect.objectContaining({ value: 'second' })]));
+        } finally {
+            client?.close();
+            await Promise.all([first?.stop(), second?.stop(), relay.close()]);
+        }
+    });
+});
+
 describe('DevTools over an external Node inspector connection', () => {
     let child: ReturnType<typeof spawn>;
     let client: Awaited<ReturnType<typeof connect>>;
+    let frontendUrl: string;
 
     beforeEach(async () => {
         // A separate process is essential: a same-thread inspector cannot test real pauses.
@@ -72,10 +147,13 @@ describe('DevTools over an external Node inspector connection', () => {
                 '--eval',
                 `
             import { openDevTools } from ${JSON.stringify(new URL('./DevTools.ts', import.meta.url).href)};
+            import { Logger } from ${JSON.stringify(import.meta.resolve('@jsprismarine/logger'))};
+            import { createDevToolsLogTransport } from ${JSON.stringify(new URL('./DevTools.ts', import.meta.url).href)};
             const session = openDevTools();
             process.stdout.write(JSON.stringify({ endpoint: session.endpointUrl, frontend: session.frontendUrl }) + '\\n');
             session.waitForDebugger();
             globalThis.devtoolsReady = true;
+            globalThis.devtoolsLogger = new Logger('debug', [createDevToolsLogTransport()]);
             setInterval(() => {}, 1000);
         `
             ],
@@ -87,6 +165,7 @@ describe('DevTools over an external Node inspector connection', () => {
         const urls = object(JSON.parse(line));
         expect(urls.endpoint).toMatch(/^ws:\/\/127\.0\.0\.1:\d+\//);
         expect(new URL(String(urls.frontend)).searchParams.get('ws')).toBe(String(urls.endpoint).slice(5));
+        frontendUrl = String(urls.frontend);
         client = await connect(String(urls.endpoint));
         await client.send('Runtime.enable');
         await client.send('Debugger.enable');
@@ -122,6 +201,38 @@ describe('DevTools over an external Node inspector connection', () => {
         });
         expect(object(before.result).value).toBe('undefined');
         await start();
+    });
+
+    it('prints a browser-safe frontend URL for the inspector endpoint', async () => {
+        const frontend = new URL(frontendUrl);
+        expect(frontend.protocol).toBe('https:');
+        expect(frontend.searchParams.get('ws')).toMatch(/^127\.0\.0\.1:\d+\//);
+    });
+
+    it('forwards console API output through the inspector protocol', async () => {
+        await start();
+        const logged = client.event('Runtime.consoleAPICalled');
+        await client.send('Runtime.evaluate', { expression: 'console.log("devtools-console-probe")' });
+        const event = await logged;
+        expect(event.type).toBe('log');
+        expect(event.args).toEqual(
+            expect.arrayContaining([expect.objectContaining({ value: 'devtools-console-probe' })])
+        );
+    });
+
+    it('forwards JSPrismarine log records to the DevTools Console', async () => {
+        await start();
+        const logged = client.event('Runtime.consoleAPICalled');
+        await client.send('Runtime.evaluate', {
+            expression: 'globalThis.devtoolsLogger.info("devtools-logger-probe")'
+        });
+        const event = await logged;
+        expect(event.type).toBe('info');
+        expect(event.args).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({ value: expect.stringContaining('devtools-logger-probe') })
+            ])
+        );
     });
 
     it.each([undefined, 'value === 7'])(

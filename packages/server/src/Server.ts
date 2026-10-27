@@ -19,7 +19,8 @@ import { Supervisor } from './host/Supervisor';
 import { decideMode, probeFfi } from './host/tuiGate';
 import { suppressFfiWarning } from './host/warnings';
 import { Watcher } from './host/Watcher';
-import { openDevTools } from './devtools/DevTools';
+import { createDevToolsLogTransport, openDevTools } from './devtools/DevTools';
+import { DevToolsRelay } from './devtools/DevToolsRelay';
 
 /**
  * Values already in the environment win, then earlier files over later ones, matching the
@@ -85,13 +86,16 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
 
     const devtools = args.devtools || args.devtoolsWait ? openDevTools() : undefined;
     if (devtools) {
-        process.stderr.write(`JSPrismarine DevTools: ${devtools.frontendUrl}\n`);
-        process.stderr.write(`JSPrismarine inspector: ${devtools.endpointUrl}\n`);
+        if (remote) process.stderr.write(`JSPrismarine inspector target: ${devtools.endpointUrl}\n`);
+        else {
+            process.stderr.write(`JSPrismarine DevTools: ${devtools.frontendUrl}\n`);
+            process.stderr.write(`JSPrismarine inspector: ${devtools.endpointUrl}\n`);
+        }
         if (args.devtoolsWait) devtools.waitForDebugger();
     }
 
     const config = new Config({ serverPort: args.port });
-    const transports: LogTransport[] = [fileTransport(config)];
+    const transports: LogTransport[] = [fileTransport(config), ...(devtools ? [createDevToolsLogTransport()] : [])];
     let attach: ((server: Server) => void) | undefined;
     if (remote) {
         const link = childProcessLink<ConsoleMessage, ServerMessage>({ validate: isConsoleMessage });
@@ -186,6 +190,12 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
 const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined): Promise<void> => {
     process.title = 'JSPrismarine host';
     const ui = frontend ?? plainFrontend();
+    const devtoolsRelay = args.devtools || args.devtoolsWait ? new DevToolsRelay() : undefined;
+    if (devtoolsRelay) {
+        await devtoolsRelay.start();
+        process.stderr.write(`JSPrismarine DevTools: ${devtoolsRelay.frontendUrl}\n`);
+        process.stderr.write(`JSPrismarine inspector: ${devtoolsRelay.endpointUrl}\n`);
+    }
 
     const supervisor = new Supervisor({
         spawnChild: () => spawnServerChild({ userArgs: process.argv.slice(2) }),
@@ -193,12 +203,23 @@ const runHost = async (args: ServerArgs, frontend: ConsoleFrontend | undefined):
         canRestart: args.watch,
         exit: async (code) => {
             try {
-                await ui.close();
+                try {
+                    await devtoolsRelay?.close();
+                } finally {
+                    await ui.close();
+                }
             } finally {
                 process.exit(code);
             }
         }
     });
+    if (devtoolsRelay) {
+        supervisor.onEvent((event) => {
+            if (event.type !== 'supervisor.output' || event.stream !== 'stderr') return;
+            const prefix = 'JSPrismarine inspector target: ';
+            if (event.text.startsWith(prefix)) devtoolsRelay.setTarget(event.text.slice(prefix.length));
+        });
+    }
     supervisor.handleSignals();
     // Before the frontend attaches, so this runs ahead of any handler the TUI registers.
     handleFatalErrors({ supervisor, ui });
