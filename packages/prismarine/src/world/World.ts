@@ -166,6 +166,12 @@ const CHUNK_UNLOAD_BATCH_SIZE = 8;
  */
 export const SIMULATION_DISTANCE = 10;
 
+/** A player's chunk, which anchors the chunks that tick this world. */
+interface PlayerChunkPosition {
+    readonly x: number;
+    readonly z: number;
+}
+
 /** Sky light at a position nothing stands over, which is what `Level.canSeeSky` answers. */
 const FULL_SKY_LIGHT = 15;
 
@@ -601,6 +607,9 @@ export class World implements Service {
             endSystemsProfile();
         }
 
+        const playerChunks = this.playerChunkPositions();
+        const isPositionTicking = (x: number, z: number): boolean =>
+            this.isChunkWithinSimulationDistance(playerChunks, Math.floor(x) >> 4, Math.floor(z) >> 4);
         const entities = this.getEntities();
 
         // Also before them, and for the same reason: every mob asks who it is touching, and it has
@@ -616,7 +625,12 @@ export class World implements Service {
 
         const endEntityUpdatesProfile = startProfileSpan(this.server, `World.entityUpdates:${this.name}`);
         try {
-            await Promise.all(entities.map((entity) => entity.update(tick)));
+            const tickingEntities = entities.filter((entity) => {
+                if (entity instanceof Player) return true;
+                const position = entity.getPosition();
+                return isPositionTicking(position.getX(), position.getZ());
+            });
+            await Promise.all(tickingEntities.map((entity) => entity.update(tick)));
         } finally {
             endEntityUpdatesProfile();
         }
@@ -628,7 +642,7 @@ export class World implements Service {
         // and the sixty vanilla spawn rules, through `@jsprismarine/spawning`.
         const endDataEntitiesProfile = startProfileSpan(this.server, `World.dataEntities:${this.name}`);
         try {
-            await this.dataEntities().tick(tick);
+            await this.dataEntities().tick(tick, ({ x, z }) => isPositionTicking(x, z));
         } finally {
             endDataEntitiesProfile();
         }
@@ -1763,14 +1777,14 @@ export class World implements Service {
      * sections.
      */
     public randomTickChunks(): RandomTickChunk[] {
-        const players = this.getPlayers();
-        if (players.length === 0) return [];
+        const playerChunks = this.playerChunkPositions();
+        if (playerChunks.length === 0) return [];
 
         const visited: RandomTickChunk[] = [];
         for (const chunk of this.chunks.values()) {
             const x = chunk.getX();
             const z = chunk.getZ();
-            if (!players.some((player) => this.withinSimulationDistance(player, x, z))) continue;
+            if (!this.isChunkWithinSimulationDistance(playerChunks, x, z)) continue;
 
             const sections: number[] = [];
             for (const [index, subChunk] of chunk.getSubChunks()) {
@@ -1780,6 +1794,13 @@ export class World implements Service {
         }
 
         return visited;
+    }
+
+    private playerChunkPositions(): PlayerChunkPosition[] {
+        return this.getPlayers().map((player) => {
+            const position = player.getPosition();
+            return { x: Math.floor(position.getX()) >> 4, z: Math.floor(position.getZ()) >> 4 };
+        });
     }
 
     /**
@@ -1795,11 +1816,14 @@ export class World implements Service {
      * block disc belongs to mob spawning, and `ChunkMap.anyPlayerCloseEnoughTo` to the fire
      * spread radius, which {@link import('./EngineWorld').canSpreadFireAround} already answers.
      */
-    private withinSimulationDistance(player: Player, chunkX: number, chunkZ: number): boolean {
-        const position = player.getPosition();
-        return (
-            Math.abs((Math.floor(position.getX()) >> 4) - chunkX) <= SIMULATION_DISTANCE &&
-            Math.abs((Math.floor(position.getZ()) >> 4) - chunkZ) <= SIMULATION_DISTANCE
+    private isChunkWithinSimulationDistance(
+        playerChunks: readonly PlayerChunkPosition[],
+        chunkX: number,
+        chunkZ: number
+    ): boolean {
+        return playerChunks.some(
+            (player) =>
+                Math.abs(player.x - chunkX) <= SIMULATION_DISTANCE && Math.abs(player.z - chunkZ) <= SIMULATION_DISTANCE
         );
     }
 

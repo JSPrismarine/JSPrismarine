@@ -160,6 +160,8 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     private target: FilterEntityView | undefined;
     private mounted: EntityInstance | undefined;
     private readonly seated: EntityInstance[] = [];
+    private filterContextCache: FilterContext | undefined;
+    private filterContextSelf: FilterEntityView | undefined;
 
     /**
      * @param holder - A holder from the registry of resolved entity types.
@@ -702,11 +704,34 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     /** Builds the filter context for this entity, with its own facts filled in. */
     public filterContext(): FilterContext {
         const supplied = this.environment.filterContext?.(this);
-        return {
+        const random = supplied?.random ?? this.random;
+        const cached = this.filterContextCache;
+        if (
+            cached !== undefined &&
+            this.filterContextSelf === supplied?.self &&
+            cached.other === supplied?.other &&
+            cached.player === supplied?.player &&
+            cached.target === supplied?.target &&
+            cached.parent === supplied?.parent &&
+            cached.baby === supplied?.baby &&
+            cached.damager === supplied?.damager &&
+            cached.holder === supplied?.holder &&
+            cached.item === supplied?.item &&
+            cached.block === supplied?.block &&
+            cached.world === supplied?.world &&
+            cached.random === random
+        ) {
+            return cached;
+        }
+
+        const context = {
             ...supplied,
             self: this.selfView(supplied?.self),
-            random: supplied?.random ?? this.random
+            random
         };
+        this.filterContextCache = context;
+        this.filterContextSelf = supplied?.self;
+        return context;
     }
 
     /** Runs the event and resolves its values, without changing anything. */

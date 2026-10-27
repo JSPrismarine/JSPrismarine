@@ -27,7 +27,6 @@ import type {
     EntitySpawnRequest,
     EntitySpawnItemsRequest,
     EventTarget,
-    FilterContext,
     FilterEntityView,
     OutgoingTrigger,
     TransformRequest
@@ -448,6 +447,7 @@ export class EntityRuntime implements EntityScene {
         body.ownerIdentity = options.ownerId === undefined ? undefined : this.host.playerIdentityOf?.(options.ownerId);
         this.spawning = body;
         const executeEntityEvent = this.world.blocks.executeEntityEvent;
+        const filterContext = entityFilterContextOf(body, this);
         const instance = new EntityInstance(registry.holder(reference), {
             id,
             environment: {
@@ -484,7 +484,7 @@ export class EntityRuntime implements EntityScene {
                         this.host.drop(blockPositionOf(body.position), item);
                     }
                 } satisfies EntityEffects,
-                filterContext: (): FilterContext => entityFilterContextOf(body, this),
+                filterContext: () => filterContext,
                 random: { next: () => this.world.random.nextFloat() },
                 javaStats: content.entities.javaStats,
                 javaNavigation: javaEntityNavigation(reference, content.entities.javaNavigation),
@@ -576,21 +576,25 @@ export class EntityRuntime implements EntityScene {
     }
 
     /**
-     * Runs one server tick for every live entity.
+     * Runs one server tick for eligible live entities.
      *
-     * @param tick - The world's tick counter, which is what the spawner's
-     *   per-pool cadence is measured against.
+     * @param tick - The world's tick counter, which the spawner's per-pool cadence uses.
+     * @param shouldTick - Optional chunk eligibility rule; omitted callers tick every entity.
      */
-    public tick(tick: number): void {
+    public tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): void {
         this.refreshOnlineOwners();
         this.interest.resetBlockCache();
         this.navigationView?.invalidateBlockCache();
-        const entities = this.all();
+        const allEntities = this.all();
+        const entities =
+            shouldTick === undefined ? allEntities : allEntities.filter((entity) => shouldTick(entity.position));
         let widest = 0;
         let tallest = 0;
-        for (const entity of entities) {
-            widest = Math.max(widest, entity.facts.box.width);
-            tallest = Math.max(tallest, entity.facts.box.height);
+        if (entities.length > 0) {
+            for (const entity of allEntities) {
+                widest = Math.max(widest, entity.facts.box.width);
+                tallest = Math.max(tallest, entity.facts.box.height);
+            }
         }
 
         for (const entity of entities) {
@@ -620,7 +624,7 @@ export class EntityRuntime implements EntityScene {
             this.pushIntersectingEntity(entity, widest, tallest);
         }
         this.runSpawnCycle(tick);
-        this.runDespawnCycle();
+        this.runDespawnCycle(shouldTick);
     }
 
     /** Invalidates block reads cached by the point-of-interest and navigation views. */
@@ -674,11 +678,12 @@ export class EntityRuntime implements EntityScene {
      * reason. The two rules are `@jsprismarine/spawning`'s, so the Y floor and
      * the simulation edge are one number each rather than one per caller.
      */
-    private runDespawnCycle(): void {
+    private runDespawnCycle(shouldTick?: (position: EntityPosition) => boolean): void {
         const world = this.spawnWorld;
         if (world === undefined) return;
 
         for (const entity of this.all()) {
+            if (shouldTick !== undefined && !shouldTick(entity.position)) continue;
             if (!this.pools.has(entity.id)) continue;
             const reason = despawnReason({ position: blockPositionOf(entity.position) }, world);
             if (reason !== undefined) this.remove(entity.id, reason);

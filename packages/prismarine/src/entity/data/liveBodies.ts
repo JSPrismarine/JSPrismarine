@@ -22,6 +22,7 @@
  * the retaliation all happen in one place.
  */
 import { Vector3 } from '@jsprismarine/math';
+import type { EntityPosition } from '@jsprismarine/entities';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
 import { Position } from '../../world/Position';
@@ -121,6 +122,8 @@ export class LiveBodies {
     private readonly equipped = new Map<number, number>();
     /** The data-derived actor metadata last mirrored to each body. */
     private readonly actorMetadata = new Map<number, ReturnType<typeof actorMetadataProjection>>();
+    /** The owner last reflected in actor metadata, so owner rebinding can update idle bodies. */
+    private readonly owners = new Map<number, number | undefined>();
     private readonly options: LiveBodiesOptions;
 
     public constructor(options: LiveBodiesOptions) {
@@ -175,6 +178,7 @@ export class LiveBodies {
             );
             this.written.set(entity.id, health.current);
         }
+        this.owners.set(entity.id, entity.body.owner);
 
         // Before the world hears about it, so the `AddActorPacket` a client is sent is followed
         // by the equipment rather than by nothing. `sendAddActor` reads the body's equipment
@@ -199,6 +203,7 @@ export class LiveBodies {
         this.synced.delete(entity.id);
         this.equipped.delete(entity.id);
         this.actorMetadata.delete(entity.id);
+        this.owners.delete(entity.id);
         if (body === undefined) return;
         this.idsByBody.delete(body);
 
@@ -218,6 +223,7 @@ export class LiveBodies {
         this.synced.delete(id);
         this.equipped.delete(id);
         this.actorMetadata.delete(id);
+        this.owners.delete(id);
         return id;
     }
 
@@ -229,35 +235,51 @@ export class LiveBodies {
      * reach the runtime before the loot and the removal it may cause, and a
      * body that is removed has no position left to send.
      *
+     * @param runtime - The entity runtime whose state is mirrored.
+     * @param shouldSync - Optional chunk eligibility rule for derived metadata.
      * @returns The movement broadcasts, which the caller awaits with the rest
      *   of its tick.
      */
-    public sync(runtime: EntityRuntime): readonly Promise<void>[] {
+    public sync(runtime: EntityRuntime, shouldSync?: (position: EntityPosition) => boolean): readonly Promise<void>[] {
         const moves: Promise<void>[] = [];
 
         for (const entity of runtime.all()) {
             const body = this.bodies.get(entity.id);
             if (body === undefined) continue;
+            const isTicking = shouldSync === undefined || shouldSync(entity.position);
 
-            this.takeLegacyDamage(runtime, entity, body);
+            const writtenHealth = this.written.get(entity.id);
+            if (writtenHealth !== undefined && body.getHealth() !== writtenHealth)
+                this.takeLegacyDamage(runtime, entity, body);
             // Removed by the damage above, in which case its body has gone with it.
             if (!this.bodies.has(entity.id)) continue;
 
-            this.showHealth(entity, body);
-            this.writeEquipment(entity, body);
-            const metadata = actorMetadataProjection(entity);
-            const actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
-            if (actorMetadataChanged) {
-                applyActorMetadataProjection(body, metadata);
-                this.actorMetadata.set(entity.id, metadata);
+            const health = entity.instance.attributes.get('health');
+            if (
+                health !== undefined &&
+                (this.written.get(entity.id) !== health.current || body.getHealth() !== health.current)
+            ) {
+                this.showHealth(entity, body);
             }
-            const properties = this.showSyncedProperties(entity, body);
+            this.writeEquipment(entity, body);
+            const ownerChanged = this.owners.get(entity.id) !== entity.body.owner;
+            if (ownerChanged) this.owners.set(entity.id, entity.body.owner);
+            let actorMetadataChanged = false;
+            if (isTicking || ownerChanged || !this.actorMetadata.has(entity.id)) {
+                const metadata = actorMetadataProjection(entity);
+                actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
+                if (actorMetadataChanged) {
+                    applyActorMetadataProjection(body, metadata);
+                    this.actorMetadata.set(entity.id, metadata);
+                }
+            }
+            const properties = isTicking ? this.showSyncedProperties(entity, body) : undefined;
             if (properties !== undefined) moves.push(properties);
             else if (actorMetadataChanged) {
                 const metadata = this.options.world()?.sendActorMetadata(body);
                 if (metadata !== undefined) moves.push(metadata);
             }
-            const move = this.showPosition(entity, body);
+            const move = this.showPosition(entity, body, isTicking);
             if (move !== undefined) moves.push(move);
         }
 
@@ -291,6 +313,7 @@ export class LiveBodies {
         this.synced.clear();
         this.equipped.clear();
         this.actorMetadata.clear();
+        this.owners.clear();
     }
 
     /**
@@ -382,11 +405,11 @@ export class LiveBodies {
     }
 
     /** Moves the body to where the runtime put the entity, when that is anywhere new. */
-    private showPosition(entity: DataEntity, body: Entity): Promise<void> | undefined {
+    private showPosition(entity: DataEntity, body: Entity, syncGrounded = true): Promise<void> | undefined {
         // Before the early return, because a mob that landed this tick without moving far
         // enough to be worth a packet is still a mob that is now on the ground, and the next
         // move packet is the one that has to say so.
-        body.setGrounded(entity.body.conditions.has('on_ground'));
+        if (syncGrounded) body.setGrounded(entity.body.conditions.has('on_ground'));
 
         const at = entity.position;
         const here = body.getPosition();

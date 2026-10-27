@@ -16,7 +16,7 @@
  */
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
-import type { EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
+import type { EntityPosition, EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { singleDimension } from '../../content/world/adapter';
@@ -262,24 +262,21 @@ export class LiveEntityRuntime {
     }
 
     /**
-     * Runs one server tick: the entities, the spawn cycle, the despawn pass,
-     * and then the bodies.
+     * Runs one server tick for eligible entities, then mirrors them to live bodies.
      *
-     * The spawn loop starts on the first tick rather than on construction,
-     * because it reads the loaded spawn rules and the content finishes
-     * building after the adapter that made this runtime.
+     * The spawn loop starts on the first tick because it reads the loaded spawn rules.
      *
-     * @param tick - The world's tick counter, which the pools' cadences are
-     *   measured against.
+     * @param tick - The world's tick counter, which the pools' cadences use.
+     * @param shouldTick - Optional chunk eligibility rule; omitted callers tick every entity.
      */
-    public async tick(tick: number): Promise<void> {
+    public async tick(tick: number, shouldTick?: (position: EntityPosition) => boolean): Promise<void> {
         if (!this.started && this.spawnWorld !== undefined) {
             this.runtime.startSpawning(this.spawnWorld);
             this.started = true;
         }
 
-        this.runtime.tick(tick);
-        await Promise.all(this.bodies.sync(this.runtime));
+        this.runtime.tick(tick, shouldTick);
+        await Promise.all(this.bodies.sync(this.runtime, shouldTick));
     }
 
     /**

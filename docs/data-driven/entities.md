@@ -448,15 +448,13 @@ a broken stack, and 42 of the 45 name one of the components left unregistered on
 
 Each of these changes what you can expect to work.
 
-**Performance is the open question.** Every entity in a loaded dimension ticks every tick, with no
-gate on distance from a player, and path finding dominates the cost. A mob standing alone is cheap,
-tens of microseconds a tick. Once mobs can see each other the targeting and attacking goals start
-running searches, and the cost per mob per tick rises into milliseconds, which leaves room for a
-few dozen mobs in a 50 millisecond tick rather than the hundreds a Bedrock world holds. One
-improvement is already in: the navigator and the path finder's view of the blocks cost 623
-microseconds per entity per tick together and now cost 20. No tick budget has been set and nothing
-gates ticking by simulation distance, so treat the data path as something to test with rather than
-to run a populated server on.
+**Dense active chunks can still be expensive.** Entities tick only in chunks inside a player's
+simulation distance, using the same gate for class-based and data-driven entities. Loaded chunks
+outside every player's simulation distance stay still, and with no online players entity AI and
+movement stop. In active chunks, each entity still runs its data-driven components and goals every
+tick. Targeting, attacking, and path-finding can make a dense crowd exceed the 50 millisecond tick
+budget. The navigator and path-finder's block view cost about 20 microseconds per entity per tick,
+down from 623, but there is no tick budget for individual goals.
 
 **A mob's attack target is lost over a save.** The target is a runtime id, drawn fresh each
 session, so saving it could point the mob at an unrelated entity after restart. A tamed mob's
