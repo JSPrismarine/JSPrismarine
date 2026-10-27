@@ -9,7 +9,7 @@ import type {
 import { resolveTypes } from '@jsprismarine/content';
 import { Molang } from '@jsprismarine/molang';
 
-import { collisionBox, createBlockComponentRegistry, tick } from './components';
+import { collisionBox, createBlockComponentRegistry, tags as blockTags, tick } from './components';
 import type { BlockDefinitionDocument } from './definition';
 import { parseBlockDefinition } from './definition';
 import type { BlockHooks, BlockStateValue } from './hooks';
@@ -59,6 +59,10 @@ export interface BlockState {
     readonly values: Readonly<Record<string, BlockStateValue>>;
     /** Which permutations matched this state, in declaration order. */
     readonly permutations: PermutationMask;
+    /** The Bedrock tags attached to this state after its permutations resolve. */
+    readonly tags: readonly string[];
+    /** Whether this state carries one of its Bedrock `minecraft:tags`. */
+    hasTag(tag: string): boolean;
     /**
      * The resolved content type for this state: its bound components, its
      * behaviors and its hook table, with the matching permutations applied
@@ -251,13 +255,16 @@ export const resolveBlocks = (
                 byMask.set(key, content);
             }
 
+            const stateTags = content.params(blockTags) ?? [];
             const state: BlockState = {
                 type,
                 index,
                 runtimeId: firstRuntimeId + index,
                 values,
                 permutations: mask,
-                content
+                content,
+                tags: stateTags,
+                hasTag: (tag) => stateTags.includes(tag)
             };
             ownStates[index] = state;
             states[state.runtimeId] = state;

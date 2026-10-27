@@ -121,6 +121,9 @@ palette.runtimeId('minecraft:cocoa', { age: 2, direction: 1 });
 palette.stateOf(1234); // { entry, values }
 ```
 
+The Bedrock `minecraft:tags` component is available on each resolved `BlockState` as `tags` and
+`hasTag(name)`. Permutations resolve first, so a state reads the tags of its active component set.
+
 ## Resolving
 
 `resolveBlocks(definitions)` turns `@jsprismarine/packs` definitions into a `BlockType` per

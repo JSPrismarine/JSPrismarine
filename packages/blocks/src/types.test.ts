@@ -2,7 +2,7 @@ import type { Definition } from '@jsprismarine/content';
 import { BehaviorRegistry } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
-import { destructibleByMining, loot } from './components';
+import { destructibleByMining, loot, tags } from './components';
 import type { BlockHooks } from './hooks';
 import { BlockPalette, BlockStateModel } from './state';
 import { BlockLoadError, resolveBlocks } from './types';
@@ -58,6 +58,36 @@ describe('resolving block definitions', () => {
         expect(type.state({ growth: 0 }).content.params(loot)).toBe('loot_tables/blocks/shelf_mushroom_growth_0.json');
         expect(type.state({ growth: 1 }).content.params(loot)).toBe('loot_tables/blocks/shelf_mushroom_growth_1.json');
         expect(type.state({ growth: 1 }).permutations).toEqual([0]);
+    });
+
+    it('exposes Bedrock tags after the state permutations resolve', () => {
+        const resolved = resolveBlocks(
+            [
+                definition('test:tagged', {
+                    description: { identifier: 'test:tagged', states: { growth: [0, 1] } },
+                    components: { 'minecraft:tags': ['base', 'shared'] },
+                    permutations: [
+                        {
+                            condition: "query.block_state('growth') == 1",
+                            components: { 'minecraft:tags': ['grown', 'shared'] }
+                        }
+                    ]
+                })
+            ],
+            { statePalette: emptyPalette }
+        );
+        const type = resolved.types.get('test:tagged')!;
+        const base = type.state({ growth: 0 });
+        const grown = type.state({ growth: 1 });
+
+        expect(base.tags).toEqual(['base', 'shared']);
+        expect(base.hasTag('base')).toBe(true);
+        expect(base.hasTag('grown')).toBe(false);
+        expect(grown.tags).toEqual(['grown', 'shared']);
+        expect(grown.hasTag('base')).toBe(false);
+        expect(grown.hasTag('grown')).toBe(true);
+        expect(grown.hasTag('missing')).toBe(false);
+        expect(grown.content.params(tags)).toEqual(grown.tags);
     });
 
     it('resolves one content type per distinct permutation set, not per state', () => {
