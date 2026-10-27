@@ -1003,6 +1003,7 @@ const transformedItemOf = (value: string): TransformedItem => {
 /** One `minecraft:interact.interactions[]` entry used by a held-item interaction. */
 interface InteractEntry {
     readonly onInteract?: SensorTrigger;
+    readonly healthAmount?: number;
     readonly useItem: boolean;
     readonly transformedItem?: TransformedItem;
     /** Bedrock loot-table path rolled when the interaction succeeds. */
@@ -1047,6 +1048,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
         if (!isRecord(value)) return rejected('expected an object');
         const supportedFields = new Set([
             'on_interact',
+            'health_amount',
             'use_item',
             'transform_to_item',
             'spawn_items',
@@ -1078,6 +1080,11 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            if (
+                raw.health_amount !== undefined &&
+                (typeof raw.health_amount !== 'number' || !Number.isInteger(raw.health_amount))
+            )
+                return rejected(`interactions[${index}].health_amount must be an integer`);
             if (raw.vibration !== undefined && (typeof raw.vibration !== 'string' || raw.vibration.length === 0))
                 return rejected(`interactions[${index}].vibration must be a non-empty string`);
             if (
@@ -1110,6 +1117,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             interactions.push({
                 onInteract,
+                ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
                 useItem: booleanAt(raw, 'use_item', false),
                 playSounds,
                 ...(typeof raw.vibration === 'string' ? { vibration: raw.vibration } : {}),
@@ -1187,6 +1195,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.onInteract?.event === undefined &&
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
+                        (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         !entry.useItem &&
                         entry.playSounds.length === 0 &&
                         entry.vibration === undefined
@@ -1200,6 +1209,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
+                        ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.transformedItem === undefined
                             ? {}
                             : {

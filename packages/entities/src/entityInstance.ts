@@ -810,6 +810,10 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
 
     private ownFlag(name: EntityFlag): boolean | undefined {
         if (name === 'is_baby') return this.hasComponent('minecraft:is_baby');
+        if (name === 'is_missing_health') {
+            const health = this.attributes.get('health');
+            return health !== undefined && health.current < health.max;
+        }
         if (name === 'is_tamed')
             return (
                 this.hasComponent('minecraft:is_tamed') ||

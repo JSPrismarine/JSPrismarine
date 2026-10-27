@@ -535,6 +535,29 @@ describe('EntityRuntime', () => {
             expect(runtime.interactWithItem(animal.id, 42, 'minecraft:cooked_beef')).toEqual({ accepted: false });
         });
 
+        it('applies a negative interact health amount as damage', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:damaging_interaction': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:interact': { interactions: { health_amount: -4 } }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:damaging_interaction', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no damaging interaction');
+
+            expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(entity.instance.attributes.get('health')?.current).toBe(16);
+        });
+
         it('checks healable filters and lets force_use accept an item at full health', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

@@ -146,8 +146,10 @@ export interface EntitySpawnItemsRequest {
     readonly yOffset: number;
 }
 
-/** The item changes requested by a successful data-defined interaction. */
+/** The effects requested by a successful data-defined interaction. */
 export interface EntityItemInteractionEffect {
+    /** Health gained, or lost when negative, when the interaction succeeds. */
+    readonly healthAmount?: number;
     /** The item the used stack becomes, when the interaction transforms it. */
     readonly resultItem?: string;
     /** The transformed item's auxiliary value, such as a filled bucket's variant. */

@@ -2351,6 +2351,35 @@ describe('the data-driven entity runtime over a live world', () => {
             });
         });
 
+        it('repairs an injured iron golem through its vanilla interaction data', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:iron_ingot' }), count: 2 }));
+            const golem = live.runtime.spawn('minecraft:iron_golem', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (golem === undefined) throw new Error('vanilla content declares no iron golem');
+            const health = golem.instance.attributes.get('health');
+            const body = live.bodies.bodyOf(golem.id);
+            if (health === undefined || body === undefined) throw new Error('the vanilla iron golem is incomplete');
+
+            live.runtime.hurt(golem, undefined, 'entity_attack', 25);
+            const injuredHealth = golem.instance.attributes.get('health')?.current;
+            if (injuredHealth === undefined) throw new Error('the iron golem has no health after being injured');
+
+            await useHeldItemOnEntity(player, body.getRuntimeId());
+
+            expect(golem.instance.attributes.get('health')?.current).toBe(Math.min(health.max, injuredHealth + 25));
+            expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(1);
+
+            await useHeldItemOnEntity(player, body.getRuntimeId());
+
+            expect(golem.instance.attributes.get('health')?.current).toBe(health.max);
+            expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(1);
+        });
+
         it('materializes every loaded entity definition through the live runtime', { timeout: 180_000 }, () => {
             useVanillaContent();
 
