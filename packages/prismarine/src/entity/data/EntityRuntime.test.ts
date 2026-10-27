@@ -570,7 +570,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: false
+                consumeItem: false,
+                swing: true
             });
             expect(entity.instance.attributes.get('health')?.current).toBe(16);
         });
@@ -609,7 +610,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: false
+                consumeItem: false,
+                swing: true
             });
             expect(entity.body.containerSlots[0]).toEqual({
                 identifier: 'minecraft:diamond_pickaxe',
@@ -653,7 +655,7 @@ describe('EntityRuntime', () => {
                     identifier: 'minecraft:air',
                     count: 0
                 })
-            ).toEqual({ accepted: true, consumeItem: false, takenItem: item });
+            ).toEqual({ accepted: true, consumeItem: false, takenItem: item, swing: true });
             expect(entity.body.equipment.mainhand).toBeUndefined();
             expect(entity.body.containerSlots[0]).toBeUndefined();
         });
@@ -803,12 +805,14 @@ describe('EntityRuntime', () => {
                     accepted: true,
                     resultItem: 'minecraft:bucket',
                     resultItemData: 1,
-                    consumeItem: true
+                    consumeItem: true,
+                    swing: true
                 }
             );
             expect(runtime.interactWithItem(animal.id, 42, 'minecraft:stick', playerView('minecraft:stick'))).toEqual({
                 accepted: true,
-                consumeItem: false
+                consumeItem: false,
+                swing: true
             });
             expect(runtime.interactWithItem(animal.id, 42, 'minecraft:apple', playerView('minecraft:apple'))).toEqual({
                 accepted: false
@@ -920,7 +924,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(horse.id, 42, heldItem.identifier, playerView, heldItem)).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
             expect(horse.body.containerSlots[1]).toEqual(heldItem);
             expect(horse.body.equipment.body).toEqual(heldItem);
@@ -932,7 +937,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(horse.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: false
+                consumeItem: false,
+                swing: true
             });
             expect(horse.body.containerSlots[1]).toBeUndefined();
             expect(horse.body.equipment.body).toBeUndefined();
@@ -966,7 +972,7 @@ describe('EntityRuntime', () => {
                     count: 4,
                     customName: 'Given stick'
                 })
-            ).toEqual({ accepted: true, consumeItem: true });
+            ).toEqual({ accepted: true, consumeItem: true, swing: true });
             expect(entity.body.equipment.mainhand).toEqual({
                 identifier: 'minecraft:stick',
                 count: 1,
@@ -996,7 +1002,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(entity.id, 42, 'minecraft:shears')).toEqual({
                 accepted: true,
-                consumeItem: false
+                consumeItem: false,
+                swing: true
             });
             expect(world.gameEvents).toEqual([
                 {
@@ -1032,7 +1039,8 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(spawner.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
             expect(
                 runtime
@@ -1081,11 +1089,13 @@ describe('EntityRuntime', () => {
 
             expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
             expect(runtime.interactWithItem(independent.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
             expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({ accepted: false });
             runtime.tick(1);
@@ -1093,7 +1103,8 @@ describe('EntityRuntime', () => {
             runtime.tick(2);
             expect(runtime.interactWithItem(cooling.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
 
             attacked.instance.damage({ cause: 'entity_attack', amount: 1 });
@@ -1103,7 +1114,8 @@ describe('EntityRuntime', () => {
             runtime.tick(4);
             expect(runtime.interactWithItem(attacked.id, 42, 'minecraft:stick')).toEqual({
                 accepted: true,
-                consumeItem: true
+                consumeItem: true,
+                swing: true
             });
         });
     });
