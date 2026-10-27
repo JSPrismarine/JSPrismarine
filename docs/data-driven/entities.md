@@ -152,12 +152,12 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Sixty-three keys carry
-runtime behavior. The remaining 139 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Sixty-four keys carry
+runtime behavior. The remaining 138 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
-The 63 that act change entity state or decide an outcome: the nine
+The 64 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -170,7 +170,8 @@ its entity to world game-event delivery; the actor metadata markers `minecraft:i
 `minecraft:is_ignited`, `minecraft:is_saddled`, `minecraft:is_chested`,
 `minecraft:is_illager_captain`, `minecraft:is_shaking`, `minecraft:is_hidden_when_invisible`,
 `minecraft:is_stackable`, `minecraft:is_collidable`, `minecraft:is_pregnant`, `minecraft:is_stunned`,
-`minecraft:body_rotation_always_follows_head`, `minecraft:uses_uniform_air_drag`,
+`minecraft:body_rotation_always_follows_head`, `minecraft:body_rotation_blocked`,
+`minecraft:uses_uniform_air_drag`,
 `minecraft:renders_when_invisible`, `minecraft:rotation_axis_aligned`,
 `minecraft:rotation_locked_to_vehicle`, and `minecraft:uses_legacy_friction`, which project their
 state into actor metadata; `minecraft:can_fly`, which enables airborne paths and projects the

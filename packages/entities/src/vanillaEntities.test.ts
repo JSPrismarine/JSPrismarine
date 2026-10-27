@@ -120,6 +120,7 @@ const RUNTIME_COMPONENTS = [
     'minecraft:is_pregnant',
     'minecraft:is_stunned',
     'minecraft:body_rotation_always_follows_head',
+    'minecraft:body_rotation_blocked',
     'minecraft:air_drag_modifier',
     'minecraft:bounciness',
     'minecraft:friction_modifier',
@@ -375,7 +376,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(63);
+        expect(withBehavior).toHaveLength(64);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

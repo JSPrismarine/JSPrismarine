@@ -87,6 +87,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             flag: ActorFlags.BODY_ROTATION_ALWAYS_FOLLOWS_HEAD,
             value: instance.hasComponent('minecraft:body_rotation_always_follows_head')
         },
+        { flag: ActorFlags.BODY_ROTATION_BLOCKED, value: instance.hasComponent('minecraft:body_rotation_blocked') },
         { flag: ActorFlags.USES_UNIFORM_AIR_DRAG, value: instance.hasComponent('minecraft:uses_uniform_air_drag') },
         { flag: ActorFlags.RENDERS_WHEN_INVISIBLE, value: instance.hasComponent('minecraft:renders_when_invisible') },
         { flag: ActorFlags.ROTATION_AXIS_ALIGNED, value: instance.hasComponent('minecraft:rotation_axis_aligned') },
