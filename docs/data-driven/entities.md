@@ -151,13 +151,13 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 
 ## Components: what runs, and what only parses
 
-Vanilla's 129 definitions use 202 distinct non-goal component keys. 161 of them are registered, and
-46 of those carry runtime behavior. The remaining 115 registered keys parse their parameters,
+Vanilla's 129 definitions use 202 distinct non-goal component keys. 163 of them are registered, and
+51 of those carry runtime behavior. The remaining 112 registered keys parse their parameters,
 normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
 
-The 46 that act change entity state or decide an outcome: the nine
+The 51 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -168,9 +168,11 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 `minecraft:spawn_entity`, `minecraft:interact`, and `minecraft:vibration_listener`, which connects
 its entity to world game-event delivery; the actor metadata markers `minecraft:is_charged`,
 `minecraft:is_ignited`, `minecraft:is_saddled`, `minecraft:is_chested`,
-`minecraft:is_illager_captain`, and `minecraft:is_shaking`, which project their state into actor
-metadata; the eleven `minecraft:on_*` trigger components; and `minecraft:cannot_be_attacked`, which
-blocks entity attacks. `minecraft:interact` evaluates item
+`minecraft:is_illager_captain`, `minecraft:is_shaking`, `minecraft:is_hidden_when_invisible`,
+`minecraft:is_stackable`, `minecraft:is_collidable`, `minecraft:is_pregnant`, and
+`minecraft:is_stunned`, which project their state into actor metadata; the eleven `minecraft:on_*`
+trigger components; and `minecraft:cannot_be_attacked`, which blocks entity attacks.
+`minecraft:interact` evaluates item
 filters, enforces its cooldowns, raises its event, adjusts health by `health_amount`, plays
 `play_sounds`, emits its `vibration` game event, requests the `spawn_items` loot table from the host,
 and applies `use_item` and
@@ -186,7 +188,7 @@ interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors
 finder's profile, `minecraft:explode` detonates a creeper, `minecraft:rideable` seats riders, and the
 two trade-table components build a merchant.
 
-Forty-one non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
+Thirty-nine non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
 the enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
 `minecraft:anger_level`. They are gaps in entity coverage; the load report names them instead of
 the server quietly doing nothing. The entities corpus test lists the current set.
@@ -437,8 +439,8 @@ moves the mob.
 A default build registers all 129 of those definitions and nothing else. BDS keeps chemistry, the
 editor and four experimental packs in the same `behavior_packs` folder, and the default asks for
 none of them; `PackStackRequest.bedrockPacks` names more of them by UUID if you want them. The
-build reports 45 warnings and no errors, so warnings on startup are expected rather than a sign of
-a broken stack, and 41 of the 45 name one of the components left unregistered on purpose.
+build reports 43 warnings and no errors, so warnings on startup are expected rather than a sign of
+a broken stack, and 39 of the 43 name one of the components left unregistered on purpose.
 
 ### Adding your own mob
 

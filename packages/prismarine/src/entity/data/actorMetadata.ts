@@ -54,7 +54,11 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             flag: MetadataFlag.AFFECTED_BY_GRAVITY,
             value: isRecord(physics) && physics.hasGravity === true
         },
-        { flag: MetadataFlag.HAS_COLLISION, value: !isRecord(physics) || physics.hasCollision !== false },
+        {
+            flag: MetadataFlag.HAS_COLLISION,
+            value:
+                !isRecord(physics) || physics.hasCollision !== false || instance.hasComponent('minecraft:is_collidable')
+        },
         {
             flag: MetadataFlag.IGNITED,
             value: body.fuseTicks !== undefined || instance.hasComponent('minecraft:is_ignited')
@@ -67,6 +71,13 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             value: instance.hasComponent('minecraft:is_illager_captain')
         },
         { flag: ActorFlags.SHAKING, value: instance.hasComponent('minecraft:is_shaking') },
+        {
+            flag: ActorFlags.HIDDEN_WHEN_INVISIBLE,
+            value: instance.hasComponent('minecraft:is_hidden_when_invisible')
+        },
+        { flag: ActorFlags.STACKABLE, value: instance.hasComponent('minecraft:is_stackable') },
+        { flag: ActorFlags.IS_PREGNANT, value: instance.hasComponent('minecraft:is_pregnant') },
+        { flag: ActorFlags.STUNNED, value: instance.hasComponent('minecraft:is_stunned') },
         {
             flag: ActorFlags.TAMED,
             value: body.owner !== undefined || instance.hasComponent('minecraft:is_tamed')

@@ -83,26 +83,29 @@ describe('actor metadata from entity components', () => {
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(true);
     });
 
-    it('projects saddled, chested, captain, and shaking markers to actor flags', () => {
+    it('projects vanilla entity marker components to actor flags', () => {
         const fixture = entityFixture(
             new TestEntityWorld(),
             {},
             {
                 'jsprismarine:marker_actor': {
-                    components: { 'minecraft:physics': {} },
+                    components: { 'minecraft:physics': { has_collision: false } },
                     component_groups: {
-                        saddled: { 'minecraft:is_saddled': {} },
-                        chested: { 'minecraft:is_chested': {} },
-                        captain: { 'minecraft:is_illager_captain': {} },
-                        shaking: { 'minecraft:is_shaking': {} }
+                        marked: {
+                            'minecraft:is_saddled': {},
+                            'minecraft:is_chested': {},
+                            'minecraft:is_illager_captain': {},
+                            'minecraft:is_shaking': {},
+                            'minecraft:is_hidden_when_invisible': {},
+                            'minecraft:is_stackable': {},
+                            'minecraft:is_collidable': {},
+                            'minecraft:is_pregnant': {},
+                            'minecraft:is_stunned': {}
+                        }
                     },
                     events: {
-                        mark: {
-                            add: { component_groups: ['saddled', 'chested', 'captain', 'shaking'] }
-                        },
-                        clear: {
-                            remove: { component_groups: ['saddled', 'chested', 'captain', 'shaking'] }
-                        }
+                        mark: { add: { component_groups: ['marked'] } },
+                        clear: { remove: { component_groups: ['marked'] } }
                     }
                 }
             }
@@ -116,7 +119,17 @@ describe('actor metadata from entity components', () => {
 
         const metadata = new Metadata();
         const body = stub<Entity>({ metadata });
-        const flags = [ActorFlags.SADDLED, ActorFlags.CHESTED, ActorFlags.IS_ILLAGER_CAPTAIN, ActorFlags.SHAKING];
+        const flags = [
+            ActorFlags.SADDLED,
+            ActorFlags.CHESTED,
+            ActorFlags.IS_ILLAGER_CAPTAIN,
+            ActorFlags.SHAKING,
+            ActorFlags.HIDDEN_WHEN_INVISIBLE,
+            ActorFlags.STACKABLE,
+            ActorFlags.HAS_COLLISION,
+            ActorFlags.IS_PREGNANT,
+            ActorFlags.STUNNED
+        ];
         const expectFlags = (value: boolean): void => {
             for (const flag of flags) {
                 // Mojang stores flags 64 and above in the FlagsTwo data item (ID 92).
