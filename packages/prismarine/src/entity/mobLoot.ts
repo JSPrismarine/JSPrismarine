@@ -33,6 +33,7 @@ import type {
 } from '@jsprismarine/predicates';
 
 import type { ContentItemDrop } from '../content/world/adapter';
+import { bedrockEntityTypeTagsFor, javaEntityTypeTagsFor } from '../content/entityTypeTags';
 import { bedrockItemDrops } from '../item/bedrockDrops';
 import { dropOfRolledStack } from '../item/lootStack';
 import type { ServerContent } from '../content/ServerContent';
@@ -143,6 +144,7 @@ export const rollMobDrops = (
 
     const origin = context.position ?? NOWHERE;
     const killer = context.damage?.sourceEntity;
+    const javaIdentifier = `minecraft:${table.slice(ENTITY_TABLE_PREFIX.length)}`;
 
     const rolled = content.loot.roll(table, {
         parameterSet: 'entity',
@@ -152,7 +154,8 @@ export const rollMobDrops = (
             // Bedrock identifier the server holds.
             this_entity: {
                 ...context.self,
-                type: `minecraft:${table.slice(ENTITY_TABLE_PREFIX.length)}`,
+                type: javaIdentifier,
+                typeTags: javaEntityTypeTagsFor(content.tags, javaIdentifier),
                 position: origin
             },
             origin,
@@ -279,7 +282,7 @@ const damageTagsOf = (content: ServerContent, type: string): readonly string[] =
 };
 
 /** One entity as the loot predicates read it: what it is, where it is, and what it holds. */
-const lootEntityView = (entity: LootEntity | null | undefined): EntityView | undefined => {
+const lootEntityView = (entity: LootEntity | null | undefined, tags: ServerContent['tags']): EntityView | undefined => {
     if (!entity) return undefined;
 
     const at = entity.getPosition();
@@ -287,6 +290,7 @@ const lootEntityView = (entity: LootEntity | null | undefined): EntityView | und
 
     return {
         type: entity.getType(),
+        typeTags: bedrockEntityTypeTagsFor(tags, entity.getType()),
         position: { x: at.getX(), y: at.getY(), z: at.getZ() },
         // The looting bonus is read off the killer's main hand, so an empty
         // hand has to be an empty `equipment` rather than an absent one: an
@@ -310,8 +314,8 @@ export const lootDamageSource = (
     if (!source) return undefined;
 
     const type = damageTypeOf(source);
-    const attacker = lootEntityView(source.attacker);
-    const projectile = lootEntityView(source.projectile);
+    const attacker = lootEntityView(source.attacker, content.tags);
+    const projectile = lootEntityView(source.projectile, content.tags);
 
     return {
         type,

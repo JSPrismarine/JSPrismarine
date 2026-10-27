@@ -61,7 +61,11 @@ const listening = (player: Player, trigger: TriggerName): boolean =>
     player.getServer().getContent().advancements.listensFor(trigger);
 
 /** One entity as a trigger condition reads it, equipment included. */
-const viewOf = (entity: Entity) => entityPredicateView(entity, { equipment: entity.getEquipment() });
+const viewOf = (entity: Entity) =>
+    entityPredicateView(entity, {
+        equipment: entity.getEquipment(),
+        tags: entity.getServer().getContent().tags
+    });
 
 /** Every slot of a player's main inventory, with an empty slot as undefined. */
 const inventoryOf = (player: Player): readonly (PredicateItemStack | undefined)[] => {

@@ -32,6 +32,7 @@ const players = new WeakMap<EntityView, Player>();
 export const advancementSubject = (player: Player): EntityView => {
     const view = entityPredicateView(player, {
         equipment: player.getEquipment(),
+        tags: player.getServer().getContent().tags,
         player: {
             experienceLevel: player.attributes.getValue(AttributeIds.PlayerLevel),
             gameMode: getGametypeName(player.gamemode),

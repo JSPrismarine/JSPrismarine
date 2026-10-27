@@ -12,9 +12,6 @@
  * with a guess quietly answers wrong. So this fills in what a live entity can
  * actually say and leaves the rest out. Absent on purpose:
  *
- * - **`typeTags`.** The entity type tags are Java's and this server's entities
- *   carry Bedrock identifiers; `@jsprismarine/mapping` only translates the
- *   other way.
  * - **`effects`.** There is no status effect system yet, which is also why
  *   `Entity.getResistanceLevel` is a constant zero.
  * - **`scores`, `team`, `nbt`, `vehicle`, `passenger`, `target`, `lookingAt`.**
@@ -22,6 +19,8 @@
  */
 import type { EntityView, EquipmentSlot, ItemStack as PredicateItemStack, Vec3 } from '@jsprismarine/predicates';
 
+import type { ContentTags } from '../content/tags';
+import { bedrockEntityTypeTagsFor } from '../content/entityTypeTags';
 import type { Item } from '../item/Item';
 
 /** The little of an entity a view needs, so a test satisfies it without a world. */
@@ -56,6 +55,8 @@ export interface ViewablePlayerState {
 export interface EntityViewOptions {
     readonly equipment?: ViewableEquipment;
     readonly player?: ViewablePlayerState;
+    /** The merged Java entity type tags, mapped to this server's identifiers. */
+    readonly tags?: ContentTags;
 }
 
 /** The equipment slots a stack can be worn in, in the order a view lists them. */
@@ -101,13 +102,15 @@ const equipmentOf = (
  *
  * @param entity - The live entity.
  * @param options - What the caller knows that the entity does not expose:
- *   its equipment, and the player bars when it is a player.
+ *   its equipment, Java tags, and the player bars when it is a player.
  */
 export const entityPredicateView = (entity: ViewableEntity, options: EntityViewOptions = {}): EntityView => {
-    const { player } = options;
+    const { player, tags } = options;
+    const typeTags = tags === undefined ? undefined : bedrockEntityTypeTagsFor(tags, entity.getType());
 
     return {
         type: entity.getType(),
+        ...(typeTags === undefined ? {} : { typeTags }),
         position: vec3Of(entity.getPosition()),
         equipment: equipmentOf(options.equipment),
         flags: {

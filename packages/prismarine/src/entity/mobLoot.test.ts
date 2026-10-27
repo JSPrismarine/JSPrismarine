@@ -136,7 +136,9 @@ const fixture = (): ServerContent => {
             'minecraft:entities/sheep/white': { type: 'minecraft:entity' }
         },
         {
-            'damage_type/minecraft:is_projectile': { values: ['minecraft:arrow', 'minecraft:mob_projectile'] }
+            'damage_type/minecraft:is_projectile': { values: ['minecraft:arrow', 'minecraft:mob_projectile'] },
+            'entity_type/minecraft:skeletons': { values: ['minecraft:skeleton'] },
+            'entity_type/minecraft:undead': { values: ['#minecraft:skeletons', 'minecraft:zombified_piglin'] }
         }
     );
     return plumbing;
@@ -185,6 +187,23 @@ describe('mob loot', () => {
             // the distinction the ghast's music disc turns on.
             expect(source?.directEntity?.type).toBe('minecraft:arrow');
             expect(source?.sourceEntity?.type).toBe('minecraft:skeleton');
+            expect(source?.sourceEntity?.typeTags).toEqual(['minecraft:skeletons', 'minecraft:undead']);
+        });
+
+        it('supplies Java entity type tags to the mob table predicates', () => {
+            const content = contentWith(
+                {
+                    'minecraft:entities/skeleton': drops('minecraft:bone', {
+                        type: 'minecraft:entity_properties',
+                        entity: 'this',
+                        predicate: { 'minecraft:entity_type': '#minecraft:skeletons' }
+                    })
+                },
+                { 'entity_type/minecraft:skeletons': { values: ['minecraft:skeleton'] } }
+            );
+
+            expect(rollMobDrops(content, 'minecraft:skeleton')).toEqual([{ identifier: 'minecraft:bone', count: 1 }]);
+            expect(content.loot.diagnostics.entries).toEqual([]);
         });
 
         it('names a player’s swing a player attack and a mob’s a mob attack', () => {

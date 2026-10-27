@@ -75,6 +75,9 @@ export const enchantedDamageContext = (input: MitigationInput): EnchantedDamageC
     const damageSource = lootDamageSource(input.content, input.source);
     if (damageSource === undefined) return undefined;
 
-    const entity = entityPredicateView(input.victim, { equipment: input.equipment });
+    const entity = entityPredicateView(input.victim, {
+        equipment: input.equipment,
+        tags: input.content.tags
+    });
     return { entity, damageSource };
 };
