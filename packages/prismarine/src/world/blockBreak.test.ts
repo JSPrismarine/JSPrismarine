@@ -232,11 +232,7 @@ const liveWorld = (
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            getContent: content,
-            getBlockManager: () => ({
-                findBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] }),
-                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] })
-            })
+            getContent: content
         }
     });
 

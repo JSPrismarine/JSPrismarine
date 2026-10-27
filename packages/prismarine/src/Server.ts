@@ -4,7 +4,6 @@ import Console from './Console';
 import { ConsoleSender } from './command/ConsoleSender';
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
-import BlockManager from './block/BlockManager';
 import type { Random } from './utils/Random';
 import { ChatManager } from './chat/ChatManager';
 import { lootBuildReport, lootSummary, lootWarning } from './content/lootReport';
@@ -131,7 +130,6 @@ export default class Server extends EventEmitter {
      * about their connections - see {@link WorldChangeSink}.
      */
     private readonly worldReplicators = new WorldReplicators(this);
-    private readonly blockManager: BlockManager;
     private readonly recipeManager: RecipeManager;
 
     /**
@@ -283,7 +281,6 @@ export default class Server extends EventEmitter {
         this.profiler = profile ? new ServerProfiler() : undefined;
         if (this.profiler) attachProfiler(this, this.profiler);
         this.packetRegistry = new PacketRegistry(this);
-        this.blockManager = new BlockManager(this);
         this.recipeManager = new RecipeManager(this);
         this.worldManager = new WorldManager(this);
         this.consoleSender = new ConsoleSender(this);
@@ -312,7 +309,6 @@ export default class Server extends EventEmitter {
         joinContentPayloads(this.content, this.logger);
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
-        await this.blockManager.enable();
         await this.recipeManager.enable();
         this.stationRegistry.registerRecipeStations(this);
         await this.banManager.enable();
@@ -1004,14 +1000,6 @@ export default class Server extends EventEmitter {
 
     public getWorldManager(): WorldManager {
         return this.worldManager;
-    }
-
-    /**
-     * Returns the block manager.
-     * @returns {BlockManager} The block manager.
-     */
-    public getBlockManager(): BlockManager {
-        return this.blockManager;
     }
 
     /**

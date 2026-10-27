@@ -48,6 +48,7 @@ import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
 import Progress from '../utils/Progress';
 import { withCwd } from '../utils/cwd';
 import { readJsonFile, writeJsonFile } from '../config/JsonFile';
+import { blockFromContent } from '../block/Block';
 import type { ChunkRequestOptions, Generator, StructureSearchResult } from './Generator';
 import { GenerationStopped } from './Generator';
 import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
@@ -749,7 +750,7 @@ export class World implements Service {
      * The block at a position, carrying the state the chunk holds.
      *
      * Every one of the palette's 22079 states resolves, because the names a chunk can hold
-     * come out of the same catalog the block manager answers from. The properties travel
+     * come out of the same content build this method reads. The properties travel
      * with the name, so a lit lamp, a half slab and a stair on its side each read their own
      * facts rather than the ones their default state has.
      * @throws When no registry names the block the chunk holds, which is a corrupt chunk or
@@ -759,7 +760,7 @@ export class World implements Service {
      */
     public async getBlock(x: number, y: number, z: number, layer = 0): Promise<Block> {
         const state = (await this.getChunkAt(x, z)).getBlock(x, y, z, layer);
-        const block = this.server.getBlockManager().findBlock(state.name, state.properties);
+        const block = blockFromContent(state.name, this.server.getContent(), state.properties);
         if (!block) {
             throw new Error(`No block named ${state.name}, held at ${x} ${y} ${z} in world ${this.getName()}`);
         }
@@ -2071,7 +2072,9 @@ export class World implements Service {
      */
     private async dropItem(position: Vector3, drop: Block | Item, motion?: Vector3): Promise<void> {
         const item =
-            drop instanceof Item ? drop : new Item({ id: drop.getId(), name: drop.getName(), meta: drop.getMeta() });
+            drop instanceof Item
+                ? drop
+                : new Item({ name: drop.getName(), meta: drop.getMeta(), content: this.server.getContent() });
 
         // A stack with no wire id goes out as air, and the client draws an item actor holding
         // air as an empty item on the ground. That is an unknown Java id `bedrockDrops` kept, or

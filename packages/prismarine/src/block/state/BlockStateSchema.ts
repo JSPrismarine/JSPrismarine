@@ -182,7 +182,7 @@ export class BlockStateSchemas {
      *
      * The dedupe is skipped when nothing has registered, which is every server that has no
      * plugin blocks: building a 1477-entry `Set` costs four times what listing the keys
-     * does, and `BlockManager` asks for this list on every `getBlocks()`.
+     * does, and this list is read directly when the schema catalog is needed.
      */
     public static names(): string[] {
         if (this.registered.size === 0) return [...SHIPPED.keys()];

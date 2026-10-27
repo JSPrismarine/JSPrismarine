@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as Generators from './generators/Generators';
 import { GeneratorManager } from './GeneratorManager';
 import type Server from '../Server';
+import { testContent } from '../testing/entityServer';
 
 describe('world', () => {
     describe('GeneratorManager', () => {
@@ -11,9 +12,7 @@ describe('world', () => {
                 debug: () => {},
                 verbose: () => {}
             }),
-            getBlockManager: () => ({
-                getBlock: () => {}
-            }),
+            getContent: () => testContent(),
             releaseOnShutdown: () => {}
         }))();
 

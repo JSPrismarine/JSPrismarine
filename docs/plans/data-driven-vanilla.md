@@ -184,7 +184,7 @@ Exit: the allow list contains only RNG-dependent rows and the open questions in 
 
 Every package is below 1.0.0, so by [the versioning policy](../versioning.md) each breaking change is a `minor` bump through the fixed group in `.changeset/config.json`.
 
-- `Block`, `Item` and `Entity` stop being classes plugins subclass. `BlockManager.registerBlock(Block)` and `ItemManager.registerItem(Item)` go through a deprecation release as adapters, then disappear.
+- The block and item registration events and manager facades are removed; the pack stack owns their definitions. Entity compatibility paths and the remaining subclassable runtime classes still need to go.
 - `BlockIdsType`, `ItemIdsType` and every legacy numeric id go. Reading an old world still needs `legacy_block_ids.json` and `legacy_item_ids.json`, which the LevelDB provider owns.
 - `World.getBlock` returns a block instance for every palette state instead of air for unregistered names.
 - `instanceof Item` and `instanceof Mob` become type queries over families and tags.

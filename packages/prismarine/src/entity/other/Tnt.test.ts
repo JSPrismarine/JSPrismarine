@@ -107,11 +107,7 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
         server: {
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL, getProximityBroadcast: () => true }),
             getLogger: () => ({ debug: () => {}, error: () => {}, verbose: () => {}, warn: () => {} }),
-            getContent: content,
-            getBlockManager: () => ({
-                findBlock: () => null,
-                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] })
-            })
+            getContent: content
         }
     });
 

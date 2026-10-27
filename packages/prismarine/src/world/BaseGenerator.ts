@@ -1,4 +1,7 @@
-import type BlockManager from '../block/BlockManager';
+import { blockFromContent } from '../block/Block';
+import type { Block } from '../block/Block';
+import type { BlockStateValue } from '@jsprismarine/blocks';
+import type { ServerContent } from '../content/ServerContent';
 import type Chunk from './chunk/Chunk';
 import type { Generator } from './Generator';
 
@@ -15,16 +18,16 @@ export interface GeneratorLogger {
 }
 
 export default abstract class BaseGenerator implements Generator {
-    private readonly blockManager: BlockManager;
+    private readonly contentSource: () => ServerContent;
     private readonly logger: GeneratorLogger | undefined;
 
     /**
-     * @param blockManager - The server's blocks.
+     * @param contentSource - The server's loaded content, read when a chunk is generated.
      * @param logger - Where to report a decision a person should see. Absent in a test, which
      *   is why every use of it is optional.
      */
-    public constructor(blockManager: BlockManager, logger?: GeneratorLogger) {
-        this.blockManager = blockManager;
+    public constructor(contentSource: () => ServerContent, logger?: GeneratorLogger) {
+        this.contentSource = contentSource;
         this.logger = logger;
     }
 
@@ -37,8 +40,15 @@ export default abstract class BaseGenerator implements Generator {
      */
     public abstract generateChunk(cx: number, cz: number, seed?: bigint): Promise<Chunk>;
 
-    protected getBlockManager(): BlockManager {
-        return this.blockManager;
+    protected getContent(): ServerContent {
+        return this.contentSource();
+    }
+
+    protected getBlock(name: string, states: Readonly<Record<string, BlockStateValue>> = {}): Block {
+        const block = blockFromContent(name, this.getContent(), states);
+        if (block === null) throw new Error(`invalid block with id ${name}`);
+
+        return block;
     }
 
     protected getLogger(): GeneratorLogger | undefined {

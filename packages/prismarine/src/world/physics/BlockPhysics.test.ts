@@ -1,8 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { beforeEach, describe, expect, it } from 'vitest';
 
-import type { Block } from '../../block/Block';
-import type BlockManager from '../../block/BlockManager';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
@@ -11,17 +9,6 @@ import Chunk from '../chunk/Chunk';
 import { Dimensions } from '../Dimension';
 import type { World } from '../World';
 import BlockPhysics from './BlockPhysics';
-import { testContent } from '../../testing/entityServer';
-
-/** A catalog entry for a block name, which is what the drop of a destroyed block reads. */
-const blockNamed = (name: string): Block =>
-    stub<Block>({
-        getName: () => name,
-        getStateName: () => name,
-        getId: () => 1,
-        getMeta: () => 0,
-        getDrops: () => [blockNamed(name)]
-    });
 
 /**
  * Block physics, on a world reduced to chunks and a scheduler.
@@ -65,17 +52,8 @@ class TestWorld {
         getPlayers: () => [],
         getServer: () =>
             stub<Server>({
-                // No pack stack, so a destroyed block falls back to the catalog's own drop.
-                getContent: () => testContent(),
-                getLogger: () => stub<Logger>({ error: () => {}, debug: () => {} }),
-                getBlockManager: () =>
-                    stub<BlockManager>({
-                        findBlock: (name) => (name === 'minecraft:nonexistent' ? null : blockNamed(name)),
-                        getBlock: (name) => {
-                            if (name === 'minecraft:nonexistent') throw new Error('no such block');
-                            return blockNamed(name);
-                        }
-                    })
+                // No pack stack, so a destroyed block falls back to the shipped schema.
+                getLogger: () => stub<Logger>({ error: () => {}, debug: () => {} })
             }),
         dropFromBlock: async (_block, contents) => {
             for (const drop of contents) if (drop) this.dropped.push(drop.getName());

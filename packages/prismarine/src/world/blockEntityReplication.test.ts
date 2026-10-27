@@ -8,7 +8,6 @@ import type { NBTTagCompound } from '@jsprismarine/nbt';
 import type { Vector3 } from '@jsprismarine/math';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import type BlockManager from '../block/BlockManager';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import type { Config } from '../config/Config';
 import type Server from '../Server';
@@ -59,7 +58,6 @@ const testServer = (): Server =>
         getLogger: () =>
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getConfig: () => stub<Config>({ getDifficulty: () => Difficulty.NORMAL, getEntityTrackingInterval: () => 20 }),
-        getBlockManager: () => stub<BlockManager>({ findBlock: () => null }),
         getContent: () => testContent(),
         getEntityRuntime: () => inertEntityRuntime()
     });

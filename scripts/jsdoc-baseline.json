@@ -526,7 +526,6 @@
     "packages/prismarine/src/block/Block.ts public method `Block.isPartOfCreativeInventory`",
     "packages/prismarine/src/block/Block.ts public method `Block.isTransparent`",
     "packages/prismarine/src/block/Block.ts public method `Block.toString`",
-    "packages/prismarine/src/block/BlockManager.ts exported class `BlockManager`",
     "packages/prismarine/src/block/state/BlockRuntimeIds.ts exported constant `UNKNOWN_BLOCK_NAME`",
     "packages/prismarine/src/block/state/BlockRuntimeIds.ts public method `BlockRuntimeIds.get`",
     "packages/prismarine/src/block/state/BlockState.ts public method `BlockState.equals`",

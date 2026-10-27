@@ -26,7 +26,6 @@ import type { RakNetSession } from '@jsprismarine/raknet';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import BlockManager from '../block/BlockManager';
 import type { Config } from '../config/Config';
 import type Console from '../Console';
 import { definitionOf, definitionsOf } from '../content/ContentOptions';
@@ -80,7 +79,7 @@ const ITEMS = [
 /**
  * The states each block carries, which have to match the server's own catalog.
  *
- * `BlockManager.findBlock` encodes the state a chunk holds against the content's model, and this
+ * `blockFromContent` encodes the state a chunk holds against the content's model, and this
  * server writes a chest with the `minecraft:cardinal_direction` its real palette gives one, so a
  * fixture that declared the chest stateless made every read of a placed chest throw.
  */
@@ -139,11 +138,8 @@ const buildScene = async (name: string) => {
     let world: World | undefined;
     let content: ServerContent | undefined;
 
-    let blocksOf: BlockManager | undefined;
-
     const server: Server = stub<Server>({
         on: () => server,
-        getBlockManager: () => (blocksOf ??= new BlockManager(server)),
         post: () => 0,
         emit: async () => {},
         getTick: () => 0,

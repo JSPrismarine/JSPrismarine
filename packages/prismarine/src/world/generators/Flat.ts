@@ -31,10 +31,10 @@ export default class Flat extends BaseGenerator {
                 let block: Block;
                 try {
                     if (!layer.block.startsWith('minecraft:')) {
-                        block = this.getBlockManager().getBlock(`minecraft:${layer.block}`);
-                    } else block = this.getBlockManager().getBlock(layer.block);
+                        block = this.getBlock(`minecraft:${layer.block}`);
+                    } else block = this.getBlock(layer.block);
                 } catch {
-                    block = this.getBlockManager().getBlock('minecraft:air');
+                    block = this.getBlock('minecraft:air');
                 }
                 for (let c = 1; c <= layer.size; c++) {
                     blocks.push(block);

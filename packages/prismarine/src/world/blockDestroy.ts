@@ -17,6 +17,7 @@
  * first, because a family reads the block entity it is about to lose.
  */
 
+import { blockFromContent } from '../block/Block';
 import type { Block } from '../block/Block';
 import type { ContentPosition } from '../content/world/adapter';
 import type { Item } from '../item/Item';
@@ -36,9 +37,8 @@ const AIR = 'minecraft:air';
  */
 export interface DestroyWorld extends BreakWorld {
     getServer(): {
-        getContent(): ServerContent;
+        getContent?(): ServerContent | undefined;
         getLogger(): { error(error: unknown): void };
-        getBlockManager(): { findBlock(name: string): Block | null };
     };
     /** Puts the drops on the ground, one item entity each, popping out of the block. */
     dropFromBlock(block: ContentPosition, contents: Array<Block | Item | null>): Promise<void>;
@@ -80,7 +80,7 @@ const catalogDrops = (destruction: BlockDestruction): Array<Block | Item> => {
     if (standing === undefined || standing.name === AIR) return [];
 
     const server = world.getServer();
-    const block = server.getBlockManager().findBlock(standing.name);
+    const block = blockFromContent(standing.name, server.getContent?.());
     if (block === null) return [];
 
     return block.getDrops(null, server).filter((drop): drop is Block | Item => drop !== null);

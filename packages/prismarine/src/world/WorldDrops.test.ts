@@ -89,9 +89,6 @@ const fakeWorld = (initial: BlockState, { id = 1, dropName = initial.name } = {}
         getEntities: () => [],
         sendWorldEvent: async () => {},
         server: {
-            getBlockManager: () => ({
-                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name })
-            }),
             getConfig: () => ({ getProximityBroadcast: () => true }),
             getLogger: () => ({ verbose: () => {}, error: () => {}, debug: () => {}, warn: () => {} }),
             // Every roll in the middle, so the drop starts at the middle of the block, still

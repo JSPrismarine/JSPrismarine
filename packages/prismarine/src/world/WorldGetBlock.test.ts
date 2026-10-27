@@ -1,22 +1,11 @@
-import type { Logger } from '@jsprismarine/logger';
 import { describe, expect, it } from 'vitest';
 
 import type { Block } from '../block/Block';
-import BlockManager from '../block/BlockManager';
-import type { BlockManagerServer } from '../block/BlockManager';
 import { BlockState } from '../block/state/BlockState';
 import { BlockStateSchemas } from '../block/state/BlockStateSchema';
-import { stub } from '../testing/stub.test.helper';
+import type { ServerContent } from '../content/ServerContent';
+import { testContent } from '../testing/entityServer';
 import { World } from './World';
-
-/** A block manager over the shipped catalog, with nothing of the server it does not read. */
-const blockManager = () => {
-    const server: BlockManagerServer = {
-        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
-    };
-
-    return new BlockManager(server);
-};
 
 /**
  * A world that holds one state at every position.
@@ -24,16 +13,16 @@ const blockManager = () => {
  * Built off the prototype because what is under test is the one method and the registry
  * behind it, and standing up a provider, a generator and a tick would say nothing more.
  */
-const worldHolding = (state: BlockState, manager = blockManager()) =>
+const worldHolding = (state: BlockState, content?: ServerContent) =>
     Object.assign(Object.create(World.prototype), {
         getName: () => 'test',
         getChunkAt: async () => ({ getBlock: () => state }),
-        server: { getBlockManager: () => manager }
+        server: { getContent: () => content }
     }) as World;
 
 describe('World.getBlock', () => {
     it('resolves every state in the palette', async () => {
-        const manager = blockManager();
+        const content = testContent();
         const failures: string[] = [];
         let states = 0;
 
@@ -43,7 +32,7 @@ describe('World.getBlock', () => {
 
                 let block: Block;
                 try {
-                    block = await worldHolding(state, manager).getBlock(0, 0, 0);
+                    block = await worldHolding(state, content).getBlock(0, 0, 0);
                 } catch (error) {
                     failures.push(`${state.toString()}: ${(error as Error).message}`);
                     continue;

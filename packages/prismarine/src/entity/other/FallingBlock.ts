@@ -1,3 +1,4 @@
+import { blockFromContent } from '../../block/Block';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { destroyBlock } from '../../world/blockDestroy';
 import { Entity } from '../Entity';
@@ -145,7 +146,8 @@ export default class FallingBlock extends Entity {
         }
 
         try {
-            const block = this.getServer().getBlockManager().getBlock(this.blockName);
+            const block = blockFromContent(this.blockName, this.getServer().getContent());
+            if (block === null) return;
             await this.getWorld().dropFromBlock({ x, y, z }, [block]);
         } catch {
             // Not a block this server models as an item; it is gone either way.

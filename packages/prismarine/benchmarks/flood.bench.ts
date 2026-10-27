@@ -114,11 +114,7 @@ class BenchWorld {
     public getServer(): any {
         return {
             getLogger: () => ({ error: (error: unknown) => console.error(error) }),
-            getConfig: () => ({ getDifficulty: () => 2 }),
-            getBlockManager: () => ({
-                getBlock: (name: string) => ({ getName: () => name, getStateName: () => name }),
-                findBlock: () => null
-            })
+            getConfig: () => ({ getDifficulty: () => 2 })
         };
     }
 

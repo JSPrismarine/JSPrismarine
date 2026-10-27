@@ -1,7 +1,7 @@
 import * as Generators from './generators/Generators';
 import type { Generator } from './';
 import type Server from '../Server';
-import type BlockManager from '../block/BlockManager';
+import type { ServerContent } from '../content/ServerContent';
 import type { GeneratorLogger } from './BaseGenerator';
 
 export class GeneratorManager {
@@ -34,10 +34,10 @@ export class GeneratorManager {
 
     public registerClassGenerator(
         id: string,
-        generator: new (blockManager: BlockManager, logger: GeneratorLogger) => Generator,
+        generator: new (contentSource: () => ServerContent, logger: GeneratorLogger) => Generator,
         server: Server
     ): void {
-        this.generators.set(id.toLowerCase(), new generator(server.getBlockManager(), server.getLogger()));
+        this.generators.set(id.toLowerCase(), new generator(() => server.getContent(), server.getLogger()));
         server.getLogger().debug(`Generator with id §b${id}§r registered`);
     }
 

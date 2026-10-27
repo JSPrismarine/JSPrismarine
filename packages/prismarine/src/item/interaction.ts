@@ -25,6 +25,7 @@ import { Vector3 } from '@jsprismarine/math';
 import { Gametype, WindowTypes } from '@jsprismarine/minecraft';
 
 import { advancementBlockUsed, advancementItemUsedOnBlock, advancementPlacedBlock } from '../advancement/triggers';
+import { blockFromContent } from '../block/Block';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
 import { showEnchantingTable } from '../enchantment/enchantingTable';
 import { blockContainerOf } from '../inventory/blockContainers';
@@ -79,18 +80,16 @@ const hookBlockAt = (player: Player, dimension: string, at: ContentPosition): Ho
 };
 
 /** Whether an item names a block it can be put down as. A sword, a bucket or a spawn egg does not. */
-const placesBlock = (player: Player, placed: Item): boolean =>
+const placesBlock = (content: ServerContent, placed: Item): boolean =>
     BlockRuntimeIds.tryGetByName(placed.getName()) !== null &&
-    player.getServer().getBlockManager().findBlock(placed.getName())?.canBePlaced() === true;
+    blockFromContent(placed.getName(), content)?.canBePlaced() === true;
 
 /**
  * Puts the block an item names into the world, through the content adapter.
  *
- * The position is the clicked one when what stands there can be replaced, as short grass and leaf
- * litter can, and the position against the clicked face otherwise. Whether a block may be
- * replaced is the block manager's own answer rather than a second list kept here. A face position
- * already taken by a block that cannot be replaced is refused rather than overwritten, and so is
- * a click on air, which the client only sends about a block it has and the server does not.
+ * The clicked position is used when its block state can be replaced; otherwise the block goes
+ * against the clicked face. Resolved component and tag data decide whether a block can be
+ * replaced. A face position occupied by a nonreplaceable block, or a click on air, is refused.
  *
  * @returns Where the block went down, or undefined when the placement is refused.
  */
@@ -99,18 +98,18 @@ const placeBlock = (interaction: BlockInteraction, placed: Item, face: BlockFace
     const { player, content } = interaction;
     const world = player.getWorld();
     const blocks = content.world.blockWorld.at(world.getDimension().name);
-    const manager = player.getServer().getBlockManager();
-    const replaceable = (block: SystemBlock): boolean =>
-        block.name === 'minecraft:air' || manager.findBlock(block.name, block.states)?.canBeReplaced() === true;
+    const canReplace = (block: SystemBlock): boolean =>
+        block.name === 'minecraft:air' ||
+        blockFromContent(block.name, content, block.states)?.canBeReplaced() === true;
 
     const clicked = world.loadedBlockAt(interaction.position.x, interaction.position.y, interaction.position.z);
     if (clicked === undefined || clicked.name === 'minecraft:air') return undefined;
 
-    const target = replaceable(clicked) ? interaction.position : relative(interaction.position, face);
+    const target = canReplace(clicked) ? interaction.position : relative(interaction.position, face);
 
     // Undefined outside the dimension's height as well as in a chunk that is not in memory.
     const standing = world.loadedBlockAt(target.x, target.y, target.z);
-    if (standing === undefined || !replaceable(standing)) return undefined;
+    if (standing === undefined || !canReplace(standing)) return undefined;
 
     // Through the adapter rather than through the world, so the write raises `onPlace` and the
     // neighbors are told. That hook is what gives a chest its block entity record.
@@ -335,7 +334,7 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
             }
         }
 
-        if (!placesBlock(player, held)) return 'declined';
+        if (!placesBlock(content, held)) return 'declined';
 
         const placedAt = placeBlock(interaction, held, face);
         if (placedAt === undefined) {

@@ -57,7 +57,7 @@ export interface BreakWorld {
     getTicks(): number;
     /** The server, for its content and its log. */
     getServer(): {
-        getContent(): ServerContent;
+        getContent?(): ServerContent | undefined;
         getLogger(): { error(error: unknown): void };
     };
 }
@@ -227,7 +227,8 @@ const spilledContents = (
 export const breakBlockWithContent = (breaking: BlockBreak): Array<Block | Item> | undefined => {
     const { world, position, player } = breaking;
     const server = world.getServer();
-    const content = server.getContent();
+    const content = server.getContent?.();
+    if (content === undefined) return undefined;
 
     try {
         const standing = world.loadedBlockAt(position.x, position.y, position.z);
@@ -318,13 +319,17 @@ export interface ToolWear {
  * so no tool wore.
  *
  * Nothing is sent. The client wears its own copy as it predicts the break, and BDS sent no
- * inventory while a pickaxe mined. A behavior that throws is logged and costs the player nothing.
+ * inventory while a pickaxe mined. With no content loaded, this hook is skipped. A behavior that
+ * throws is logged and costs the player nothing.
  */
 export const wearBreakingTool = ({ world, source, tool, block }: ToolWear): void => {
     const server = world.getServer();
 
     try {
-        const stack = contentStackOf(server.getContent(), tool);
+        const content = server.getContent?.();
+        if (content === undefined) return;
+
+        const stack = contentStackOf(content, tool);
         stack?.dispatch('onMineBlock', { itemStack: stack, source, block });
     } catch (error: unknown) {
         server.getLogger().error(error);

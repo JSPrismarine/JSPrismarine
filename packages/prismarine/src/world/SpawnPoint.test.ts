@@ -23,7 +23,6 @@ import { InetAddress } from '@jsprismarine/raknet';
 import type { RakNetSession } from '@jsprismarine/raknet';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import BlockManager from '../block/BlockManager';
 import { entityRefOf } from '../command/host/support';
 import { worldCommandHost } from '../command/host/world';
 import type { Config } from '../config/Config';
@@ -111,7 +110,6 @@ const buildScene = async (name: string) => {
     const folder = path.join(scratch, 'worlds', name);
     let world: World | undefined;
     let content: ServerContent | undefined;
-    let blocksOf: BlockManager | undefined;
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -124,7 +122,6 @@ const buildScene = async (name: string) => {
             stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug: () => {}, verbose: () => {} }),
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
-        getBlockManager: () => (blocksOf ??= new BlockManager(server)),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;

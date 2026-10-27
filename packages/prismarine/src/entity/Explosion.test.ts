@@ -56,7 +56,6 @@ const scene = ({ griefing = true, solid = false, block = '', content = emptyCont
             getRandom: () => () => 0.5,
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
             getLogger: () => ({ error: () => {}, debug: () => {} }),
-            getBlockManager: () => ({ findBlock: () => null }),
             // No pack stack by default, so there are no loot tables and nothing drops.
             getContent: () => content
         }),

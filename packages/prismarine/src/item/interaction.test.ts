@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { BlockPalette, vanillaBlockPalette } from '@jsprismarine/blocks';
-import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Gametype } from '@jsprismarine/minecraft';
 import { constantRandom } from '@jsprismarine/predicates';
@@ -10,8 +9,6 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { advancementsOf } from '../advancement/progress';
-import BlockManager from '../block/BlockManager';
-import type { BlockManagerServer } from '../block/BlockManager';
 import { Attributes } from '../entity/Attribute';
 import ContainerEntry from '../inventory/ContainerEntry';
 import HumanInventory from '../inventory/HumanInventory';
@@ -137,10 +134,7 @@ const overlayBlock = (identifier: string) => {
 };
 
 /** A `World` reduced to what the interaction path touches, on a real chunk and real systems. */
-const liveWorld = (
-    blockManager: BlockManager,
-    content: () => ServerContent
-): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
+const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
     const changed: string[] = [];
@@ -155,7 +149,6 @@ const liveWorld = (
         entityChunkIndices: new Map(),
         players: new Map(),
         server: {
-            getBlockManager: () => blockManager,
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
             // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
             // to land. Read late, because the content is built over this world.
@@ -286,12 +279,7 @@ describe('useItemOnBlock', () => {
 
     beforeEach(() => {
         let built: ServerContent | undefined;
-        // Over the content, as a running server's is, so a block's answer to whether it can be
-        // replaced comes out of the fixture's tags.
-        const blockManager = new BlockManager(
-            stub<BlockManagerServer>({ getLogger: () => stub<Logger>({ verbose: () => {} }), getContent: () => built })
-        );
-        ({ world, chunk, sounds, changed } = liveWorld(blockManager, () => built!));
+        ({ world, chunk, sounds, changed } = liveWorld(() => built!));
 
         handle = serverWorldSource({
             worldFor: () => world,

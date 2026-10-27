@@ -1,6 +1,7 @@
 import { item_id_map as BlockIdMap } from '@jsprismarine/bedrock-data';
+import { blockProperties, replaceable } from '@jsprismarine/blocks';
 import { isFullCube } from '@jsprismarine/engine-systems';
-import type { BlockStateValue } from '@jsprismarine/blocks';
+import type { BlockStateValue, BlockType } from '@jsprismarine/blocks';
 import { bedrockBlockPropertiesOf, bedrockBlockStateToJava, bedrockBlockToJava } from '@jsprismarine/mapping';
 
 import type { ServerContent } from '../content/ServerContent';
@@ -8,12 +9,13 @@ import { Item } from '../item/Item';
 import type { LootLevelWorld } from '../world/lootLevel';
 import { lootLevelOf } from '../world/lootLevel';
 import { rollBlockDrops } from './blockLoot';
+import { BlockStateSchemas } from './state/BlockStateSchema';
 
 /**
  * Everything the server reads off one block state.
  *
  * Resolved once, by whoever built the block, rather than looked up per call.
- * {@link BlockManager} fills it from `ServerContent`'s flattened per-state
+ * {@link blockFromContent} fills it from `ServerContent`'s flattened per-state
  * table when the server built its content from packs; a block built without
  * one falls back to `@jsprismarine/mapping`'s Java-sourced table, which is
  * the same data the overlay pack is generated from.
@@ -147,9 +149,7 @@ export class Block {
      * The block's numeric id.
      *
      * @deprecated Blocks have no numeric id any more. Zero is what every
-     *   block answers; use {@link Block.getName}. The one caller left is
-     *   `World.dropItem`, which passes it into an `Item` that resolves its
-     *   own network id by name.
+     *   block answers; use {@link Block.getName}.
      */
     public getId(): number {
         return 0;
@@ -168,6 +168,16 @@ export class Block {
     /** The id the client resolves the block's item form by. */
     public getNetworkId(): number {
         return this.networkId ?? 0;
+    }
+
+    /** The Bedrock tags attached to this block state, or an empty list when it has no type. */
+    public getTags(): readonly string[] {
+        return this.content?.blocks.types.get(this.name)?.state(this.states).tags ?? [];
+    }
+
+    /** Whether this block state carries one of its Bedrock tags. */
+    public hasTag(tag: string): boolean {
+        return this.content?.blocks.types.get(this.name)?.state(this.states).hasTag(tag) ?? false;
     }
 
     /** Java's destroy time in seconds; `-1` marks the unbreakable blocks. */
@@ -235,8 +245,8 @@ export class Block {
     /**
      * Whether the block gives way to a placement rather than blocking it.
      *
-     * Java's `#minecraft:replaceable` block tag answers: short grass, leaf litter, a snow layer,
-     * water and the rest of what a placed block goes into instead of on top of. The client makes
+     * The resolved state's `minecraft:replaceable` component or tag answers for short grass, leaf
+     * litter, water, and other blocks a placement goes into instead of on top of. The client makes
      * the same call when it predicts a placement, so a server that answered no for leaf litter put
      * the block above it while the client showed it in the litter's place.
      *
@@ -250,12 +260,17 @@ export class Block {
     public canBeReplaced(): boolean {
         if (this.name === 'minecraft:air') return true;
 
-        const tags = this.content?.tags;
-        if (tags === undefined) return false;
+        const content = this.content;
+        if (content === undefined) return false;
+        const { tags } = content;
 
         const exact = bedrockBlockStateToJava(this.getStateName(), this.states);
         if (exact.kind === 'mapped' && exact.java.name === 'minecraft:snow')
             return exact.java.properties.layers === '1';
+
+        const state = content.blocks.types.get(this.name)?.state(this.states);
+        if (state?.content.params(replaceable) !== undefined) return true;
+        if (tags.includes('block', 'minecraft:replaceable', this.name)) return true;
 
         const javaBlocks = exact.kind === 'mapped' ? [exact.java.name] : bedrockBlockToJava(this.getStateName());
         return javaBlocks.some((javaBlock) => tags.includes('block', REPLACEABLE_TAG, javaBlock));
@@ -323,6 +338,36 @@ export class Block {
         return this.canBePlaced();
     }
 }
+
+/** Resolves a block from loaded content, falling back to the shipped schema when no type was loaded. */
+export const blockFromContent = (
+    name: string,
+    content: ServerContent | undefined,
+    states: Readonly<Record<string, BlockStateValue>> = {}
+): Block | null => {
+    if (content === undefined) {
+        return BlockStateSchemas.get(name) === null ? null : new Block({ name, states });
+    }
+
+    const type: BlockType | undefined = content.blocks.types.get(name);
+    if (type === undefined) return null;
+
+    const state = type.state(states);
+    const id = state.runtimeId;
+    const table = content.blocks.table;
+    const facts: BlockFacts = {
+        ...javaBlockFactsOf(type.identifier, states),
+        hardness: table.hardness[id]!,
+        blastResistance: table.blastResistance[id]!,
+        lightEmission: table.lightEmission[id]!,
+        lightFilter: table.lightFilter[id]!,
+        friction: table.friction[id]!,
+        solid: table.solid[id] === 1,
+        requiresCorrectTool: state.content.params(blockProperties)?.requiresCorrectTool ?? false
+    };
+
+    return new Block({ name, states, facts, content });
+};
 
 /** What {@link Block.getDrops} reads off the server: its content and its worlds. */
 export interface BlockDropServer {

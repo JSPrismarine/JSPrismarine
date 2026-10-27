@@ -15,7 +15,6 @@ export type { ContentSettings } from './content/settings';
 
 import SessionManager from './SessionManager';
 import BanManager from './ban/BanManager';
-import BlockManager from './block/BlockManager';
 import WorldManager from './world/WorldManager';
 
-export { BanManager, BlockManager, SessionManager, WorldManager };
+export { BanManager, SessionManager, WorldManager };
