@@ -84,6 +84,8 @@ export interface EntityScene {
     dismount(rider: MobBody): void;
     /** What an entity rides, or undefined when it rides nothing. */
     vehicleOf(rider: MobBody): GoalMob | undefined;
+    /** The entity holding this one's leash, or undefined when it is not leashed. */
+    leashHolderOf(entity: MobBody): GoalMob | undefined;
     /** Who rides an entity, in the order they got on. */
     ridersOf(vehicle: MobBody): readonly GoalMob[];
     /** Takes an item stack lying in the world into an entity's inventory. */

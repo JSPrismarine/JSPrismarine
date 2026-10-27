@@ -281,6 +281,8 @@ export class EntityRuntime implements EntityScene {
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
     private readonly rides = new RideIndex();
+    /** The entity holding each data-driven entity's leash, by runtime id. */
+    private readonly leashHolders = new Map<number, number>();
     /** The points of interest of the dimension, which eleven goals search. */
     private readonly interest = new PointsOfInterest({ navigation: () => this.navigation() });
     /** The point-of-interest kinds already reported as unindexed, so each is said once. */
@@ -602,10 +604,7 @@ export class EntityRuntime implements EntityScene {
                     event: request.event
                 });
                 if (child === undefined) continue;
-                if (request.shouldLeash)
-                    this.report(
-                        `${parent.identifier} asks to leash spawned ${child.identifier}, which the runtime does not track`
-                    );
+                if (request.shouldLeash) this.leashHolders.set(child.id, parent.id);
                 spawned = true;
             }
 
@@ -633,6 +632,10 @@ export class EntityRuntime implements EntityScene {
         this.projectiles.delete(id);
         this.fuses.delete(id);
         this.rides.remove(id);
+        this.leashHolders.delete(id);
+        for (const [leashedId, holderId] of this.leashHolders) {
+            if (holderId === id) this.leashHolders.delete(leashedId);
+        }
         this.onRemove(entity, reason);
     }
 
@@ -1279,6 +1282,12 @@ export class EntityRuntime implements EntityScene {
     public vehicleOf(rider: MobBody): GoalMob | undefined {
         const vehicle = this.rides.vehicleOf(rider.id);
         return vehicle === undefined ? undefined : this.mobById(vehicle);
+    }
+
+    /** What entity holds one data-driven entity's leash, when it has one. */
+    public leashHolderOf(entity: MobBody): GoalMob | undefined {
+        const holder = this.leashHolders.get(entity.id);
+        return holder === undefined ? undefined : this.mobById(holder);
     }
 
     /** Who rides an entity, in the order they got on. */

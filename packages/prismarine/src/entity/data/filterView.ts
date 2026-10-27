@@ -136,7 +136,8 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
         }),
     vehicle: () => viewOf(scene.vehicleOf(body)?.id, scene),
     owner: () => viewOf(body.owner, scene),
-    attackTarget: () => viewOf(body.target, scene)
+    attackTarget: () => viewOf(body.target, scene),
+    leashHolder: () => scene.leashHolderOf(body)?.view()
 });
 
 /** One of the boolean facts the runtime owns, or undefined when it owns none of that name. */
@@ -150,6 +151,8 @@ const flagOf = (body: MobBody, scene: EntityScene, name: EntityFlag): boolean | 
             return body.owner !== undefined;
         case 'is_riding':
             return scene.vehicleOf(body) !== undefined;
+        case 'is_leashed':
+            return scene.leashHolderOf(body) !== undefined;
         case 'has_target':
             return body.target !== undefined;
         case 'is_moving':

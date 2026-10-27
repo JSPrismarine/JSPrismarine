@@ -148,8 +148,10 @@ A chicken arrives in the world like this.
 
 `minecraft:spawn_entity` runs one timer per configured entry. When it expires, the runtime checks
 the entry's filters, then creates the requested item or entity with its count, spawn event and
-sound. `single_use` stops that entry after a successful spawn. The runtime does not yet track
-leashes, so an entry with `should_leash` names that missing behavior in the server log.
+sound. `single_use` stops that entry after a successful spawn. `should_leash` records the spawned
+entity's holder while both entities are live, which the `is_leashed` and `is_leashed_to` filters can
+read. The relationship is not persisted. Lead interactions and physical leash movement are not
+implemented yet.
 
 ## Components: what runs, and what only parses
 
