@@ -152,12 +152,16 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Sixty-six keys carry
-runtime behavior. The remaining 136 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Seventy keys carry
+runtime behavior. The remaining 132 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
-The 66 that act change entity state or decide an outcome: the nine
+This count includes host reads and actor-metadata projections. It does not mean every field of each
+component has a runtime implementation.
+
+The 70 with runtime effects include components that change entity state, decide an outcome, or
+project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -177,6 +181,9 @@ its entity to world game-event delivery; the actor metadata markers `minecraft:i
 `minecraft:out_of_control`, which project their
 state into actor metadata; `minecraft:can_fly`, which enables airborne paths and projects the
 Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_POWER_JUMP`;
+`minecraft:dash_action`, `minecraft:input_ground_controlled`, `minecraft:free_camera_controlled`, and
+`minecraft:vertical_movement_action`, which project `CAN_DASH`, `WASD_CONTROLLED`,
+`WASD_FREE_CAMERA_CONTROLLED`, and `CAN_USE_VERTICAL_MOVEMENT_ACTION` to actor metadata;
 `minecraft:fire_immune`, which prevents fire damage and projects `FIRE_IMMUNE`;
 `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the
@@ -190,6 +197,8 @@ and applies `use_item` and
 Attacker exceptions are
 data in `minecraft:ignore_cannot_be_attacked`; the package supports that component for custom
 definitions too.
+The ground-input, dash, free-camera, and vertical-movement components currently only advertise
+controls to the client; the server does not apply those inputs to entity movement.
 The entities package README lists each component and what it does.
 
 "Parses as data" is not the same as "ignored". The host reads several data components itself:

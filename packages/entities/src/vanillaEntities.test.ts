@@ -97,7 +97,7 @@ const JAVA_STAT_DISAGREEMENTS = 151;
 const RESOLVED_TO_JAVA = 33;
 
 /**
- * The empty markers that have runtime meaning without a component hook.
+ * Components the host reads without a component hook.
  */
 const RUNTIME_COMPONENTS = [
     'minecraft:persistent',
@@ -106,6 +106,10 @@ const RUNTIME_COMPONENTS = [
     'minecraft:can_fly',
     'minecraft:can_stand_on_powder_snow',
     'minecraft:can_power_jump',
+    'minecraft:dash_action',
+    'minecraft:input_ground_controlled',
+    'minecraft:free_camera_controlled',
+    'minecraft:vertical_movement_action',
     'minecraft:fire_immune',
     'minecraft:out_of_control',
     'minecraft:freezing_immune',
@@ -378,7 +382,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(66);
+        expect(withBehavior).toHaveLength(70);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

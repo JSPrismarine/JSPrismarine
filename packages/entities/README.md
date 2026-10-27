@@ -238,9 +238,13 @@ Data components parse, normalize and expose their value through `EntityInstance.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne
 paths, and reads `minecraft:can_stand_on_powder_snow` to treat powder snow as support. The runtime
 projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's
-walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `CANFLY`; it projects
-`minecraft:can_power_jump` to `CAN_POWER_JUMP`. A table reference like `minecraft:shareables` remains
-data for a system to use. The outer runtime also reads
+walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `CANFLY`. It projects
+`minecraft:can_power_jump`, `minecraft:dash_action`, `minecraft:input_ground_controlled`,
+`minecraft:free_camera_controlled`, and `minecraft:vertical_movement_action` to `CAN_POWER_JUMP`,
+`CAN_DASH`, `WASD_CONTROLLED`, `WASD_FREE_CAMERA_CONTROLLED`, and
+`CAN_USE_VERTICAL_MOVEMENT_ACTION`. These flags tell the client which controls are available; the
+server does not yet apply those inputs to entity movement. A table reference like
+`minecraft:shareables` remains data for a system to use. The outer runtime also reads
 physics values from the active component set: `minecraft:air_drag_modifier` changes air resistance,
 `minecraft:uses_uniform_air_drag` applies the same drag on both axes,
 `minecraft:friction_modifier` changes ground friction, and `minecraft:bounciness` changes how much
@@ -254,9 +258,9 @@ reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is
 with no caller view.
 
 Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
-and exposes it through `EntityInstance.componentParams`. The 34 keys used by only one entity are
-data-only factories for now. They do not run engine behavior; the corpus test counts their bodies
-as parsed, not behaviorally implemented.
+and exposes it through `EntityInstance.componentParams`. Of the 34 keys used by only one entity,
+33 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
+them as parsed rather than behaviorally implemented.
 
 ## Measured coverage
 
@@ -269,7 +273,7 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys that carry behavior rather than data | 66 |
+| Non-goal keys with a runtime effect | 70 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -311,8 +315,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than simulation: 66 non-goal components currently carry runtime
-behavior, and the remaining bodies are available as data for behavior that still needs to be added.
+measures name coverage rather than complete simulation: 70 non-goal components currently have a
+runtime effect, including host reads and protocol projections. The remaining 132 bodies are
+available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -340,5 +345,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  136 currently expose data without runtime behavior. The component bodies remain accessible to the
+  132 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

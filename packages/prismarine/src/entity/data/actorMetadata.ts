@@ -53,6 +53,16 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         { flag: ActorFlags.CANFLY, value: navigation.canFly },
         { flag: ActorFlags.CANWALK, value: navigation.canWalk },
         { flag: ActorFlags.CAN_POWER_JUMP, value: instance.hasComponent('minecraft:can_power_jump') },
+        { flag: ActorFlags.CAN_DASH, value: instance.hasComponent('minecraft:dash_action') },
+        { flag: ActorFlags.WASD_CONTROLLED, value: instance.hasComponent('minecraft:input_ground_controlled') },
+        {
+            flag: ActorFlags.WASD_FREE_CAMERA_CONTROLLED,
+            value: instance.hasComponent('minecraft:free_camera_controlled')
+        },
+        {
+            flag: ActorFlags.CAN_USE_VERTICAL_MOVEMENT_ACTION,
+            value: instance.hasComponent('minecraft:vertical_movement_action')
+        },
         { flag: ActorFlags.FIRE_IMMUNE, value: instance.hasComponent('minecraft:fire_immune') },
         { flag: ActorFlags.OUT_OF_CONTROL, value: instance.hasComponent('minecraft:out_of_control') },
         { flag: ActorFlags.SWIMMING, value: canSwim && body.conditions.has('in_water') },
