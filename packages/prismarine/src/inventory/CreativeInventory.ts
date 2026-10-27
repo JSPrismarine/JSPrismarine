@@ -6,24 +6,9 @@ import {
 import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTTagCompound } from '@jsprismarine/nbt';
 import { Item } from '../item/Item';
+import type { ServerContent } from '../content/ServerContent';
 import type { CreativeEntry, CreativeGroup } from '../network/packet/CreativeContentPacket';
 import { creativeCategoryOf } from '../network/packet/CreativeContentPacket';
-
-/** A registered block or item, as far as the creative menu reads one. */
-export interface CreativeRegistryEntry {
-    getName(): string;
-    getId(): number;
-}
-
-/**
- * The registries the creative menu is built from.
- *
- * A full `Server` fits. A test only has to supply these two managers.
- */
-export interface CreativeRegistries {
-    getBlockManager(): { getBlocks(): readonly CreativeRegistryEntry[] };
-    getItemManager(): { getItems(): readonly CreativeRegistryEntry[] };
-}
 
 /**
  * The hashed block runtime id a creative record's block state carries, or zero when it has none.
@@ -52,7 +37,7 @@ interface BuiltMenu {
 /**
  * The creative menu, in the order the client shows it.
  *
- * One per server, built from that server's own registries. It used to be a static built
+ * One per server, built from that server's own content. It used to be a static built
  * once per process, so the second server in a process served the first one's menu and
  * tests had to call `reset()` between cases.
  *
@@ -71,33 +56,28 @@ interface BuiltMenu {
  * nothing ever matched and the menu was empty from the day it was written.
  */
 export class CreativeInventory {
-    private readonly registries: CreativeRegistries;
+    private readonly getContent: (() => ServerContent) | undefined;
     private menu: BuiltMenu | null = null;
 
     /**
-     * @param {CreativeRegistries} registries - where the registered blocks and items come
-     * from. A whole `Server` fits.
+     * @param {() => ServerContent} [getContent] - the loaded content, when this menu belongs to a server.
      */
-    public constructor(registries: CreativeRegistries) {
-        this.registries = registries;
+    public constructor(getContent?: () => ServerContent) {
+        this.getContent = getContent;
     }
 
-    /** Builds the menu and its headings from the registries this instance was given. */
+    /** Builds the menu from the vanilla creative catalog, resolving its items against server content when available. */
     private build(): BuiltMenu {
-        const server = this.registries;
-        const registered = [...server.getBlockManager().getBlocks(), ...server.getItemManager().getItems()];
-
-        // Indexed by name: scanning every block and item once per creative entry would be
-        // 2000 passes over the registry.
-        const byName = new Map<string, CreativeRegistryEntry>();
-        for (const entry of registered) if (!byName.has(entry.getName())) byName.set(entry.getName(), entry);
-
-        // The numeric id here is only the server's own handle on the item, and the fallback
-        // for anything the item table does not name - which, past the guard below, is nothing.
-        // What goes on the wire is the table's id, resolved by name, and the block state the
-        // record carries rather than the one the name would resolve to.
-        const toItem = (name: string, meta: number, blockStates: string | undefined) =>
-            new Item({ id: byName.get(name)?.getId() ?? 0, name, meta, blockRuntimeId: blockRuntimeIdOf(blockStates) });
+        const content = this.getContent?.();
+        const toItem = (name: string, meta: number, blockStates: string | undefined) => {
+            const itemContent = content?.items.types.has(name) ? content : undefined;
+            return new Item({
+                name,
+                meta,
+                blockRuntimeId: blockRuntimeIdOf(blockStates),
+                ...(itemContent === undefined ? {} : { content: itemContent })
+            });
+        };
 
         const entries: CreativeEntry[] = [];
         for (const entry of CreativeItems) {

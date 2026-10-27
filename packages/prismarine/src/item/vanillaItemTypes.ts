@@ -6,8 +6,8 @@
  * the 122 data components an item carries are readable with nothing fetched
  * and nothing on disk. That is what every number an item answers comes from
  * when it was built without a content build behind it, which is an `Item`
- * constructed with no `content` and the test doubles that hand `ItemManager`
- * no `getContent` at all.
+ * constructed with no `content` and standalone test doubles that have no
+ * content build.
  *
  * Bedrock item tags come from the same captured catalog used by the content
  * build; Java datapack tags still require a loaded content build.

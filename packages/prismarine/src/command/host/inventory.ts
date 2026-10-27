@@ -21,6 +21,7 @@ import type { DataTarget, ItemSlot } from '@jsprismarine/commands';
 
 import type Server from '../../Server';
 import ContainerEntry from '../../inventory/ContainerEntry';
+import { itemFromContent } from '../../item/itemFromContent';
 import type Inventory from '../../inventory/Inventory';
 import { blockContainerAt } from './containers';
 import { blockPositionOf, carryOut, refuse, resolvePlayer, unsupported, worldOf } from './support';
@@ -53,7 +54,7 @@ interface SlotTarget {
 
 /** The item a command named, or null when no loaded pack declares it. */
 const stackOf = (server: Server, item: string) =>
-    server.getItemManager().getItem(item.includes(':') ? item : `minecraft:${item}`);
+    itemFromContent(item.includes(':') ? item : `minecraft:${item}`, server.getContent());
 
 /**
  * Puts a stack into one slot of the container block at a position.

@@ -24,7 +24,6 @@ import StartGamePacket from './packet/StartGamePacket';
 
 import type { ContentPayloadReport, NetworkContentPayloads } from './contentPayloads';
 import type Server from '../Server';
-import type { CreativeRegistries } from '../inventory/CreativeInventory';
 import type { ContentOptions } from '../content/ContentOptions';
 import type { ServerContent } from '../content/ServerContent';
 import type { Definition, Definitions } from '@jsprismarine/packs';
@@ -263,18 +262,6 @@ describe('network', () => {
 });
 
 /**
- * The registries `CreativeInventory` reads, with nothing registered.
- *
- * A registered class only supplies the server's own numeric handle on an
- * item, and the captured item table supplies every number that reaches the
- * wire, so an empty pair builds the same menu a running server builds.
- */
-const emptyRegistries: CreativeRegistries = {
-    getBlockManager: () => ({ getBlocks: () => [] }),
-    getItemManager: () => ({ getItems: () => [] })
-};
-
-/**
  * A `StartGamePacket` whose only variable is `Block Properties`, encoded.
  *
  * Everything else is a fixed value, so two buffers that differ differ in the
@@ -443,7 +430,7 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the payloads the vanilla pack
         // The menu a pick is read against, so the order and the length are
         // the whole of the agreement: an entry at a different position hands
         // a player an item they did not click.
-        const theirs = new CreativeInventory(emptyRegistries).getEntries();
+        const theirs = new CreativeInventory().getEntries();
         const ours = vanilla().creative.entries;
 
         expect(ours).toHaveLength(theirs.length);

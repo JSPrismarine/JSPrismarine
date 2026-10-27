@@ -34,6 +34,7 @@ import { rollMobDrops } from '../../entity/mobLoot';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemOfDrop } from '../../inventory/persistence';
 import type { Item } from '../../item/Item';
+import { itemFromContent } from '../../item/itemFromContent';
 import { lootLevelOf } from '../../world/lootLevel';
 import { blockContainerAt, insertIntoContainer } from './containers';
 import { BLOCK_CONTAINER_SLOT, setItemSlot } from './inventory';
@@ -88,7 +89,12 @@ const slotOf = (target: DataTarget, slot: ItemSlot, offset: number): ItemSlot =>
 };
 
 /** What the predicates read of a tool, for a `mine` or `fish` source. */
-const toolOf = (server: Server, source: CommandSource, tool: string | undefined): PredicateItemStack | undefined => {
+const toolOf = (
+    server: Server,
+    content: ServerContent,
+    source: CommandSource,
+    tool: string | undefined
+): PredicateItemStack | undefined => {
     if (tool === undefined) return undefined;
     if (tool === 'mainhand' || tool === 'offhand') {
         const player = source.entity === undefined ? undefined : resolvePlayer(server, source.entity);
@@ -98,7 +104,7 @@ const toolOf = (server: Server, source: CommandSource, tool: string | undefined)
         return held?.asPredicateStack();
     }
 
-    const registered = server.getItemManager().getItem(tool.includes(':') ? tool : `minecraft:${tool}`);
+    const registered = itemFromContent(tool.includes(':') ? tool : `minecraft:${tool}`, content);
     return registered === null ? undefined : registered.asPredicateStack();
 };
 
@@ -124,7 +130,7 @@ const rollLoot = (
         const block = world.loadedBlockAt(at.getX(), at.getY(), at.getZ());
         if (block === undefined) refuse('There is no loaded block there');
 
-        const tool = toolOf(server, source, loot.tool);
+        const tool = toolOf(server, content, source, loot.tool);
         return rollBlockDrops(
             content,
             { identifier: block.name, states: block.states },
@@ -140,7 +146,7 @@ const rollLoot = (
         loot.kind === 'fish'
             ? { x: loot.position.x, y: loot.position.y, z: loot.position.z }
             : { x: source.position.x, y: source.position.y, z: source.position.z };
-    const tool = loot.kind === 'fish' ? toolOf(server, source, loot.tool) : undefined;
+    const tool = loot.kind === 'fish' ? toolOf(server, content, source, loot.tool) : undefined;
 
     if (content.loot.table(loot.table) === undefined) refuse(`There is no loot table called ${loot.table}`);
 
@@ -158,25 +164,30 @@ const rollLoot = (
 };
 
 /** One rolled drop as a stack this server can put somewhere, or null when it names nothing. */
-const stackOf = (server: Server, drop: ContentItemDrop): Item | null => {
-    const registered = server.getItemManager().getItem(drop.identifier);
+const stackOf = (content: ServerContent, drop: ContentItemDrop): Item | null => {
+    const registered = itemFromContent(drop.identifier, content);
     if (registered === null) return null;
 
     // A fresh stack rather than the registry's own, whose count the registry
     // shares with every other holder of that item - and carrying what the roll
     // put on it, so `/loot give` hands over the enchanted book the table rolled.
-    return itemOfDrop({ meta: registered.getMeta(), ...drop });
+    return itemOfDrop({ meta: registered.getMeta(), ...drop }, content);
 };
 
 /** Puts what was rolled into the players' inventories. */
-const giveTo = (server: Server, players: readonly EntityRef[], drops: readonly ContentItemDrop[]): number => {
+const giveTo = (
+    server: Server,
+    content: ServerContent,
+    players: readonly EntityRef[],
+    drops: readonly ContentItemDrop[]
+): number => {
     let given = 0;
     for (const ref of players) {
         const player = resolvePlayer(server, ref);
         if (player === undefined) continue;
 
         for (const drop of drops) {
-            const stack = stackOf(server, drop);
+            const stack = stackOf(content, drop);
             if (stack === null) continue;
 
             const leftover = player.getInventory().addItem(new ContainerEntry({ item: stack, count: drop.count }));
@@ -205,7 +216,7 @@ export const runLootCommand = (
     const drops = rollLoot(server, content, loot, source);
     if (drops.length === 0) return 0;
 
-    if (destination.kind === 'give') return giveTo(server, destination.players, drops);
+    if (destination.kind === 'give') return giveTo(server, content, destination.players, drops);
 
     if (destination.kind === 'replace') {
         // Java writes consecutive slots from the one named, one stack each.
@@ -238,7 +249,7 @@ export const runLootCommand = (
 
     const world = worldOf(server, destination.dimension);
     const at = new Vector3(destination.position.x, destination.position.y, destination.position.z);
-    const stacks = drops.map((drop) => stackOf(server, drop));
+    const stacks = drops.map((drop) => stackOf(content, drop));
     const dropped = stacks.filter((stack) => stack !== null).length;
     if (dropped === 0) return 0;
 

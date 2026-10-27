@@ -197,9 +197,6 @@ const liveWorld = (content: () => ServerContent | undefined): Fixture => {
             getBlockManager: () => ({
                 findBlock: () => null,
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] })
-            }),
-            getItemManager: () => ({
-                getItem: (name: string) => ({ getId: () => 1, getName: () => name, getMeta: () => 0 })
             })
         }
     });

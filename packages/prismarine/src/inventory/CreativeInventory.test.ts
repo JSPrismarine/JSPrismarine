@@ -18,24 +18,11 @@ const vanillaBlockId = (blockStates: string): number => {
     return bytes.readInt32LE(bytes.indexOf('network_id') + 'network_id'.length);
 };
 
-/**
- * A server that has registered nothing at all.
- *
- * Deliberately empty, because that is the whole point of what changed: the menu used to be
- * the intersection of the creative list and the blocks and items this server implements
- * classes for, which left all but three hundred odd entries out. A class is what gives an
- * item behavior once it is held; it is not what makes the client able to show it.
- */
-const emptyServer = {
-    getBlockManager: () => ({ getBlocks: () => [] }),
-    getItemManager: () => ({ getItems: () => [] })
-};
-
 describe('CreativeInventory', () => {
     /** A fresh menu per case, which is what owning one rather than sharing a static buys. */
     let menu: CreativeInventory;
     beforeEach(() => {
-        menu = new CreativeInventory(emptyServer);
+        menu = new CreativeInventory();
     });
 
     it('shows every creative entry the item table still names, with nothing registered', () => {
@@ -173,20 +160,9 @@ describe('CreativeInventory', () => {
         expect(menu.get(items.length + 1)).toBeNull();
     });
 
-    it('reads its own registries, so two servers in one process do not share a menu', () => {
-        // The menu used to be a static built on the first read, so whichever server read it
-        // first decided what every other server in the process served.
-        const withStone = new CreativeInventory({
-            getBlockManager: () => ({ getBlocks: () => [{ getName: () => 'minecraft:stone', getId: () => 42 }] }),
-            getItemManager: () => ({ getItems: () => [] })
-        });
-        const idOfStone = (inventory: CreativeInventory) =>
-            inventory
-                .getItems()
-                .find((item) => item.getName() === 'minecraft:stone')
-                ?.getId();
+    it('builds a separate menu for each server instance', () => {
+        const other = new CreativeInventory();
 
-        expect(idOfStone(withStone)).toBe(42);
-        expect(idOfStone(new CreativeInventory(emptyServer))).toBe(0);
+        expect(other.getEntries()).not.toBe(menu.getEntries());
     });
 });

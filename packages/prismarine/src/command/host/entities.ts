@@ -22,6 +22,7 @@ import { writtenEntities } from '../../entity/Entities';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
+import { itemFromContent } from '../../item/itemFromContent';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import PositionMode from '../../network/type/PositionMode';
@@ -305,9 +306,10 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const player = resolvePlayer(server, ref);
             if (player === undefined) return 0;
 
-            const item = server
-                .getItemManager()
-                .getItem(identifier.includes(':') ? identifier : `minecraft:${identifier}`);
+            const item = itemFromContent(
+                identifier.includes(':') ? identifier : `minecraft:${identifier}`,
+                server.getContent()
+            );
             if (item === null) return 0;
 
             const leftover = player.getInventory().addItem(new ContainerEntry({ item, count }));

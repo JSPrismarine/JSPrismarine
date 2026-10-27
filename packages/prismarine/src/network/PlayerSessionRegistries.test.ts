@@ -16,10 +16,7 @@ import type { Config } from '../config/Config';
 import { buildServerContent } from '../content/ServerContent';
 import { fixtureBlockPalette, fixtureContentOptions } from '../content/testing';
 import type RecipeManager from '../crafting/RecipeManager';
-import type BlockManager from '../block/BlockManager';
-import type { CreativeRegistries } from '../inventory/CreativeInventory';
 import CreativeInventory from '../inventory/CreativeInventory';
-import type ItemManager from '../item/ItemManager';
 import type { StubMembers } from '../testing/stub.test.helper';
 import { stub } from '../testing/stub.test.helper';
 import PlayerSession from './PlayerSession';
@@ -51,23 +48,13 @@ const logger = () => stub<Logger>({ info: () => {}, warn: () => {}, error: () =>
 /** The config both paths read, with everything the server has set to go out. */
 const everyRecipe = () => stub<Config>({ getCraftingRecipeLimit: () => -1 });
 
-/** The registries the creative menu reads, with nothing registered. */
-const emptyRegistries: CreativeRegistries = {
-    getBlockManager: () => ({ getBlocks: () => [] }),
-    getItemManager: () => ({ getItems: () => [] })
-};
-
 /** A server with nothing registered and no content build. */
 const captureServer = (overrides: StubMembers<Server> = {}) =>
     stub<Server>({
         getLogger: logger,
         getConfig: everyRecipe,
         getContent: () => testContent(),
-        // The server's own registries are the full managers, not the two methods the
-        // creative menu reads off them, so they are stood in for separately.
-        getBlockManager: () => stub<BlockManager>({ getBlocks: () => [] }),
-        getItemManager: () => stub<ItemManager>({ getItems: () => [] }),
-        getCreativeInventory: () => new CreativeInventory(emptyRegistries),
+        getCreativeInventory: () => new CreativeInventory(() => testContent()),
         ...overrides
     });
 
@@ -116,7 +103,7 @@ describe('PlayerSession', () => {
             await session.sendCreativeContents();
 
             // The payload replaces both lists, so nothing reads the server's
-            // block and item managers on this path.
+            // no manager on this path.
             expect(creativePacket(sent).payload).toBe(payloads.creative);
         });
 

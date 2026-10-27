@@ -236,10 +236,6 @@ const liveWorld = (
             getBlockManager: () => ({
                 findBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] }),
                 getBlock: (name: string) => ({ getName: () => name, getStateName: () => name, getDrops: () => [] })
-            }),
-            // What the content's `entities.drop` resolves a drop through before it makes one.
-            getItemManager: () => ({
-                getItem: (name: string) => ({ getId: () => 1, getName: () => name, getMeta: () => 0 })
             })
         }
     });

@@ -34,7 +34,6 @@ import type { ServerContent } from '../content/ServerContent';
 import type { ServerWorldHandle } from '../content/world/serverSource';
 import { serverWorldSource } from '../content/world/serverSource';
 import { useItemOnBlock } from '../item/interaction';
-import ItemManager from '../item/ItemManager';
 import type ClientConnection from '../network/ClientConnection';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
 import type { PermissionManager } from '../permission/PermissionManager';
@@ -113,7 +112,6 @@ const buildScene = async (name: string) => {
     let world: World | undefined;
     let content: ServerContent | undefined;
     let blocksOf: BlockManager | undefined;
-    let itemsOf: ItemManager | undefined;
 
     const server: Server = stub<Server>({
         on: () => server,
@@ -127,7 +125,6 @@ const buildScene = async (name: string) => {
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [] }),
         getBlockManager: () => (blocksOf ??= new BlockManager(server)),
-        getItemManager: () => (itemsOf ??= new ItemManager(server)),
         getContent: () => {
             if (content === undefined) throw new Error('the content was read before it was built');
             return content;

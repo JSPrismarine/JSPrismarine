@@ -24,7 +24,7 @@ export type RecipeManagerServer = {
  * an `ItemStackRequest` names one by that number. The two have to agree or a player crafts
  * something they did not choose.
  *
- * Registration is how a plugin contributes, mirroring `BlockManager` and `ItemManager`. The
+ * Registration is how a plugin contributes, mirroring `BlockManager`. The
  * {@link revision} counter alongside it is copied from `BlockStateSchemas`: the encoded
  * packet is worth caching - it is identical for every player and a megabyte of it - and this
  * is what lets that cache notice a plugin without knowing plugins exist.

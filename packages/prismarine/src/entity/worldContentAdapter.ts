@@ -20,6 +20,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import type { BlockEntityData, ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
 import type { ContentLookup } from '../content/world/views';
 import { itemOfDrop } from '../inventory/persistence';
+import { itemFromContent } from '../item/itemFromContent';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { writtenEntities } from './Entities';
@@ -218,7 +219,8 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             // The item registry answers by name, and a drop naming something nothing has
             // registered is lost. Said out loud rather than dropped quietly, because "I see
             // no item" otherwise cannot be told from "no drop was made".
-            const registered = loaded.getServer().getItemManager().getItem(item.identifier);
+            const built = content();
+            const registered = itemFromContent(item.identifier, built);
             if (registered === null) {
                 loaded
                     .getServer()
@@ -234,7 +236,7 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             // with every other holder of that item. Everything the drop carries past its name
             // comes with it, so a chest that spills an enchanted pickaxe spills an enchanted
             // pickaxe; the registry's aux value stands in only where the drop states none.
-            const stack = itemOfDrop({ meta: registered.getMeta(), ...item }, content());
+            const stack = itemOfDrop({ meta: registered.getMeta(), ...item }, built);
             if (stack === null) return;
 
             // Out of the block it names, as a block's own drop leaves it, so it can merge with

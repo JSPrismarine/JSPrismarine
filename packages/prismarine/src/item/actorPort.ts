@@ -23,6 +23,7 @@ import ContainerEntry from '../inventory/ContainerEntry';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { Item } from './Item';
+import { itemFromContent } from './itemFromContent';
 import Player from '../Player';
 import { Position } from '../world/Position';
 import type { ActorItemAction, ItemActorPort } from './contentAdapter';
@@ -134,7 +135,7 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
 
         let resultItem: Item | undefined;
         if (outcome.resultItem !== undefined) {
-            const item = player.getServer().getItemManager().getItem(outcome.resultItem);
+            const item = itemFromContent(outcome.resultItem, player.getServer().getContent());
             if (item === null) return false;
             resultItem = outcome.resultItemData === undefined ? item : item.withMeta(outcome.resultItemData);
         }
@@ -196,14 +197,17 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
     /** The server's own item for a stack an item behavior built, or null when nothing has it. */
     const itemOf = (stack: ItemStack): Item | null => {
         const loaded = world();
-        const registered = loaded?.getServer().getItemManager().getItem(stack.identifier) ?? null;
+        if (loaded === undefined) return null;
+
+        const content = loaded.getServer().getContent();
+        const registered = itemFromContent(stack.identifier, content);
         if (registered === null) return null;
 
         return new Item({
-            id: registered.getId(),
             name: registered.getName(),
             meta: registered.getMeta(),
-            count: stack.count
+            count: stack.count,
+            content
         });
     };
 

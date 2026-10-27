@@ -28,7 +28,6 @@ import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import { Item } from '../../item/Item';
 import { createItemActorPort } from '../../item/actorPort';
 import { useItemOnEntity } from '../../item/interaction';
-import type ItemManager from '../../item/ItemManager';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { testEntityServer } from '../../testing/entityServer';
@@ -655,10 +654,6 @@ const liveWorld = (): {
         // world runs its mobs through the data path rather than the written classes.
         getEntityRuntime: (dimension: string) => runtimes.at(dimension),
         getWorldManager: () => stub<WorldManager>({ getDefaultWorld: () => world, getWorlds: () => [world] }),
-        // Every identifier is an item here, because the point of the loot test is which
-        // identifier the table rolled rather than what this server has registered.
-        getItemManager: () =>
-            stub<ItemManager>({ getItem: (name: string) => new Item({ id: 1, name, meta: 0, count: 1 }) }),
         getContent: () => content
     });
 

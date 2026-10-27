@@ -19,8 +19,6 @@ import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
 import { writtenEntities } from '../../entity/Entities';
-import type ItemManager from '../../item/ItemManager';
-import type { Item } from '../../item/Item';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
@@ -157,19 +155,6 @@ const buildFixture = (): Fixture => {
                 isOp: () => false,
                 setOp: async () => true,
                 can: () => ({ execute: () => true, not: () => ({ execute: () => false }) })
-            }),
-        getItemManager: () =>
-            stub<ItemManager>({
-                getItem: (name: string) =>
-                    name === 'minecraft:stone'
-                        ? stub<Item>({
-                              getName: () => name,
-                              getId: () => 1,
-                              getMeta: () => 0,
-                              getMaxAmount: () => 64,
-                              meta: 0
-                          })
-                        : null
             }),
         getRandom: () => () => 0.5,
         getWorldReplicators: () =>

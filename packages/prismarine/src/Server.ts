@@ -23,7 +23,6 @@ import { TickEvent } from './events/Events';
 import RaknetConnectEvent from './events/raknet/RaknetConnectEvent';
 import RaknetDisconnectEvent from './events/raknet/RaknetDisconnectEvent';
 import RaknetEncapsulatedPacketEvent from './events/raknet/RaknetEncapsulatedPacketEvent';
-import ItemManager from './item/ItemManager';
 import { CreativeInventory } from './inventory/CreativeInventory';
 import ClientConnection from './network/ClientConnection';
 import { joinContentPayloads } from './network/contentPayloads';
@@ -132,7 +131,6 @@ export default class Server extends EventEmitter {
      * about their connections - see {@link WorldChangeSink}.
      */
     private readonly worldReplicators = new WorldReplicators(this);
-    private readonly itemManager: ItemManager;
     private readonly blockManager: BlockManager;
     private readonly recipeManager: RecipeManager;
 
@@ -140,10 +138,9 @@ export default class Server extends EventEmitter {
      * This server's creative menu.
      *
      * Owned here rather than kept in a static, so two servers in one process each serve
-     * their own registries. Built on the first read, which is after plugins have
-     * registered.
+     * their own content build. Built on the first read, after content is available.
      */
-    private readonly creativeInventory = new CreativeInventory(this);
+    private readonly creativeInventory = new CreativeInventory(() => this.getContent());
 
     /**
      * The blocks a player can craft at. Derived from the recipe book once it is loaded, so a
@@ -286,7 +283,6 @@ export default class Server extends EventEmitter {
         this.profiler = profile ? new ServerProfiler() : undefined;
         if (this.profiler) attachProfiler(this, this.profiler);
         this.packetRegistry = new PacketRegistry(this);
-        this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
         this.recipeManager = new RecipeManager(this);
         this.worldManager = new WorldManager(this);
@@ -316,7 +312,6 @@ export default class Server extends EventEmitter {
         joinContentPayloads(this.content, this.logger);
         await this.permissionManager.enable();
         await this.packetRegistry.enable();
-        await this.itemManager.enable();
         await this.blockManager.enable();
         await this.recipeManager.enable();
         this.stationRegistry.registerRecipeStations(this);
@@ -1009,14 +1004,6 @@ export default class Server extends EventEmitter {
 
     public getWorldManager(): WorldManager {
         return this.worldManager;
-    }
-
-    /**
-     * Returns the item manager.
-     * @returns {ItemManager} The item manager.
-     */
-    public getItemManager(): ItemManager {
-        return this.itemManager;
     }
 
     /**

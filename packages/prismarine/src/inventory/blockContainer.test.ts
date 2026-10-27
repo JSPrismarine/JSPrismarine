@@ -34,7 +34,6 @@ import { buildServerContent } from '../content/ServerContent';
 import type { ServerContent } from '../content/ServerContent';
 import { serverWorldSource } from '../content/world/serverSource';
 import { Item } from '../item/Item';
-import ItemManager from '../item/ItemManager';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type ClientConnection from '../network/ClientConnection';
 import { createConnectedPlayer } from '../network/createConnectedPlayer';
@@ -141,12 +140,10 @@ const buildScene = async (name: string) => {
     let content: ServerContent | undefined;
 
     let blocksOf: BlockManager | undefined;
-    let itemsOf: ItemManager | undefined;
 
     const server: Server = stub<Server>({
         on: () => server,
         getBlockManager: () => (blocksOf ??= new BlockManager(server)),
-        getItemManager: () => (itemsOf ??= new ItemManager(server)),
         post: () => 0,
         emit: async () => {},
         getTick: () => 0,

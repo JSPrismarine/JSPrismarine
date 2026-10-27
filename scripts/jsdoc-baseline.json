@@ -769,7 +769,6 @@
     "packages/prismarine/src/item/Item.ts public method `Item.isPartOfCreativeInventory`",
     "packages/prismarine/src/item/Item.ts public method `Item.isTool`",
     "packages/prismarine/src/item/ItemEnchantmentType.ts exported enum `ItemEnchantmentType`",
-    "packages/prismarine/src/item/ItemManager.ts exported class `ItemManager`",
     "packages/prismarine/src/network/ChunkSender.ts public method `ChunkSender.clear`",
     "packages/prismarine/src/network/ChunkSender.ts public method `ChunkSender.has`",
     "packages/prismarine/src/network/ChunkSender.ts public method `ChunkSender.isEmpty`",

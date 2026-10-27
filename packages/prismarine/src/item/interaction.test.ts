@@ -157,7 +157,6 @@ const liveWorld = (
         server: {
             getBlockManager: () => blockManager,
             getConfig: () => ({ getDifficulty: () => Difficulty.NORMAL }),
-            getItemManager: () => ({ getItem: () => null }),
             // The advancement engine, so the triggers `useItemOnBlock` raises have somewhere
             // to land. Read late, because the content is built over this world.
             getContent: () => content(),
