@@ -61,6 +61,8 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         // it is sent once a second rather than every tick.
         currentTick,
         dimension: Dimensions.Overworld,
+        // Chunk unloading is outside the phase ordering this fixture exercises.
+        provider: { supportsChunkUnload: false },
         // The weather cycle reads `doWeatherCycle` and reports a change through the sink. It
         // reports nothing here, because a clear sky stays clear and the client's default is
         // clear; the rule is what it needs to run at all.
