@@ -13,7 +13,6 @@ import { getGametypeId, getGametypeName } from '@jsprismarine/minecraft';
 import type Server from '../Server';
 // Imported straight from its module rather than through the barrel; see `CommandManager.ts`.
 import { Entity } from '../entity/Entity';
-import { writtenEntities } from '../entity/Entities';
 import { CommandEnum } from '../network/type/CommandEnum';
 import ParseTargetSelector from '../utils/ParseTargetSelector';
 import ParseTildeCaretNotation, { parseAbsoluteCoordinate } from '../utils/ParseTildeCaretNotation';
@@ -103,11 +102,10 @@ export class CommandArgumentGamemode implements CommandArgument {
 }
 
 /**
- * Every identifier `/summon` will accept, in registry order with the written classes after it.
+ * Every pack-declared summonable identifier, in registry order.
  *
- * The registry is the pack stack's own answer and covers every mob. The written classes are
- * the handful of entities no behavior pack declares, so neither list alone is the whole of
- * what the command can build.
+ * The pack stack owns the list, so a pack that adds a mob gets it completed and a pack that
+ * removes one stops offering it.
  *
  * @param {Server} server - The server whose content was built from the pack stack.
  * @returns {string[]} The namespaced identifiers, without duplicates.
@@ -116,7 +114,7 @@ const summonableIdentifiers = (server: Server): string[] => {
     const registry = server.getContent().entities.registry;
     const summonable = registry.keys().filter((identifier) => registry.get(identifier)?.flags.summonable === true);
 
-    return [...new Set([...summonable, ...writtenEntities().keys()])];
+    return summonable;
 };
 
 export class CommandArgumentMob implements CommandArgument {
@@ -160,8 +158,7 @@ export class CommandArgumentMob implements CommandArgument {
     }
 
     /**
-     * The `EntityType` enum lists what `/summon` can build: every type the pack stack declares
-     * summonable, plus the written classes no pack describes. The `minecraft:` namespace is
+     * The `EntityType` enum lists every type the pack stack declares summonable. The `minecraft:` namespace is
      * dropped the way the command's own parser adds it back, so the client offers `zombie`, not
      * `minecraft:zombie`. An empty enum here left the client with nothing to complete.
      *

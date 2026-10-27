@@ -18,12 +18,10 @@ import { AttributeIds } from '../../entity/Attribute';
 import { DamageCause } from '../../entity/DamageCause';
 import { DamageSource } from '../../entity/DamageSource';
 import type { Entity } from '../../entity/Entity';
-import { writtenEntities } from '../../entity/Entities';
 import type { ExperienceHolder } from '../../entity/Experience';
 import { addExperiencePoints, pointsForNextLevel } from '../../entity/Experience';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import { itemFromContent } from '../../item/itemFromContent';
-import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
 import PositionMode from '../../network/type/PositionMode';
 import type { Scoreboard } from './scoreboard';
@@ -110,13 +108,11 @@ const selectorFacts = (server: Server, scoreboard: Scoreboard): Partial<Selector
 /**
  * Summons an entity through the data-driven runtime, when the world has one.
  *
- * The runtime is the only thing that can build a mob a behavior pack defines,
- * and it is what drives every mob's components, goals and brain. The written
- * classes the caller falls back to cover `minecraft:falling_block`, the
- * projectiles and everything else the runtime declares no type for.
+ * The runtime is the only thing that builds and drives entities through their
+ * components, goals, and brain.
  *
- * @returns The summoned entity, or undefined when the world has no runtime
- *   yet or no loaded pack declares the identifier.
+ * @returns The summoned entity, or undefined when the loaded pack does not
+ *   declare the identifier.
  */
 const summonDataEntity = (
     world: World,
@@ -126,8 +122,6 @@ const summonDataEntity = (
     name: string | undefined
 ): EntityRef | undefined => {
     const live = world.dataEntities();
-    // Asked before spawning rather than after, so falling back to a written class for an
-    // identifier no pack declares does not also write a report nobody wanted.
     if (live === undefined || !live.runtime.content().entities.registry.has(identifier)) return undefined;
 
     const spawned = live.runtime.spawn(
@@ -217,21 +211,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             const identifier = spawnIdentifierOf(type.includes(':') ? type : `minecraft:${type}`);
             const world = worldOf(server, options.dimension ?? 'minecraft:overworld');
 
-            const dataEntity = summonDataEntity(world, identifier, position, rotation, options.name);
-            if (dataEntity !== undefined) return dataEntity;
-
-            const Written = writtenEntities().get(identifier);
-            if (Written === undefined) return undefined;
-
-            const entity = new Written({
-                position: Position.fromVector3(vectorOf(position), world),
-                yaw: rotation.yaw,
-                pitch: 0,
-                headYaw: rotation.yaw
-            });
-            if (options.name !== undefined) entity.setName(options.name);
-
-            return carryOut(world.addEntity(entity), entityRefOf(entity));
+            return summonDataEntity(world, identifier, position, rotation, options.name);
         },
 
         kill: (ref) => {

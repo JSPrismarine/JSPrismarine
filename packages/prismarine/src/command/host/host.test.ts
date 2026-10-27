@@ -18,7 +18,6 @@ import { definitionsOf, definitionOf } from '../../content/ContentOptions';
 import type { ServerContent } from '../../content/ServerContent';
 import { AttributeIds, Attributes } from '../../entity/Attribute';
 import { Entity } from '../../entity/Entity';
-import { writtenEntities } from '../../entity/Entities';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item as ItemStack } from '../../item/Item';
@@ -138,7 +137,7 @@ const buildFixture = (): Fixture => {
         },
         getLoadedChunk: () => null,
         getSeed: () => 1n,
-        // Inert, which is what keeps `/summon` on the written classes here.
+        // Inert, which declares no entity types for `/summon` to build.
         dataEntities: () => inertEntityRuntime(),
         // Late-bound: an entity class reads the server off the world it is
         // built in, and the server double is built from this one.
@@ -180,10 +179,9 @@ const buildFixture = (): Fixture => {
 
     let content: ServerContent | undefined;
 
-    // The entity ids a real build would thread in are the ones this server can actually
-    // spawn, which with no data-driven runtime is the written classes. Taken from them
-    // rather than listed, so a new class does not quietly become unsummonable here.
-    const registry = buildVanillaCommands({ entityTypes: [...writtenEntities().keys(), 'minecraft:allay'] });
+    // Include these names in the command parser so the host can refuse them when its
+    // data-driven runtime does not declare them.
+    const registry = buildVanillaCommands({ entityTypes: ['minecraft:tnt', 'minecraft:allay'] });
     const host = serverCommandHost(server);
 
     const sourceFor = (as?: Player): CommandSource =>
@@ -451,14 +449,9 @@ describe('the server command host', () => {
             expect(cow.setHealth).toHaveBeenCalled();
         });
 
-        it('summons a written class into the world', async () => {
-            // A lit TNT is one of the seven entities no behavior pack describes, so it is
-            // built as a class rather than through the runtime this fixture does not have.
-            await expect(fixture.run('summon minecraft:tnt 5 6 7')).resolves.toBe(1);
-
-            const summoned = fixture.entities.at(-1);
-            expect(summoned?.getType()).toBe('minecraft:tnt');
-            expect(summoned?.getPosition().getX()).toBe(5);
+        it('refuses a type the data-driven runtime does not declare', async () => {
+            await expect(fixture.run('summon minecraft:tnt 5 6 7')).resolves.toBe(0);
+            expect(fixture.entities).toHaveLength(0);
         });
 
         it('summons nothing for a type with neither a class nor a declared type', async () => {
