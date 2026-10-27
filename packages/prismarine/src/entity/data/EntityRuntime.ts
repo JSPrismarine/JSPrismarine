@@ -1455,23 +1455,25 @@ export class EntityRuntime implements EntityScene {
             isRecord(spawnEggData) && typeof spawnEggData.id === 'string'
                 ? runtimeEntityIdentifierOf(spawnEggData.id, content)
                 : undefined;
-        if (
-            entity.instance.hasComponent('minecraft:spawn_egg_interaction') &&
-            spawnEggIdentifier === entity.identifier
-        ) {
-            const offspringIdentifier =
-                offspringIdentifierOf(entity.instance, entity.identifier, (identifier) =>
-                    runtimeEntityIdentifierOf(identifier, content)
-                ) ?? entity.identifier;
-            const baby = this.spawn(offspringIdentifier, entity.position, { cause: 'born' });
-            if (baby !== undefined) return { accepted: true };
-        }
-        if (spawnEggIdentifier !== undefined) return { accepted: false };
+        const spawnEgg =
+            spawnEggIdentifier === undefined
+                ? undefined
+                : {
+                      identifier: spawnEggIdentifier,
+                      offspringIdentifier:
+                          offspringIdentifierOf(entity.instance, entity.identifier, (identifier) =>
+                              runtimeEntityIdentifierOf(identifier, content)
+                          ) ?? entity.identifier
+                  };
 
         const interaction = entity.instance.interactWithItemResult(
             itemIdentifier,
             other ?? this.mobById(owner)?.view(),
-            { loveTicks: entity.body.loveTicks, breedCooldown: entity.body.breedCooldown }
+            {
+                loveTicks: entity.body.loveTicks,
+                breedCooldown: entity.body.breedCooldown,
+                ...(spawnEgg === undefined ? {} : { spawnEgg })
+            }
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
@@ -1487,12 +1489,17 @@ export class EntityRuntime implements EntityScene {
                 healthAmount,
                 playSounds,
                 repairEntityItem,
+                spawnOffspring,
                 spawnItems,
                 tame,
                 takeItem,
                 vibration,
                 ...itemEffect
             } = interaction;
+            if (spawnOffspring !== undefined) {
+                const offspring = this.spawn(spawnOffspring, entity.position, { cause: 'born' });
+                return offspring === undefined ? { accepted: false } : { accepted: true };
+            }
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
             if (breed === true) entity.body.loveTicks = 600;
             if (tame?.succeeded === true) {

@@ -42,6 +42,7 @@ import {
     pushable,
     rideable,
     spawnEntity,
+    spawnEggInteraction,
     tameable,
     timer,
     transformation,
@@ -190,7 +191,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:shareables',
     'minecraft:shooter',
     'minecraft:sittable',
-    'minecraft:spawn_egg_interaction',
     'minecraft:spell_effects',
     'minecraft:strength',
     'minecraft:suspect_tracking',
@@ -264,6 +264,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(pushable);
     register(rideable);
     register(spawnEntity);
+    register(spawnEggInteraction);
     register(tameable);
     register(timer);
     register(transformation);

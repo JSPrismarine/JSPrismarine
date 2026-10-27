@@ -243,11 +243,12 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     }
 
     /**
-     * Dispatches one held item and returns any data-defined inventory effect it requests.
+     * Dispatches one held item and returns any data-defined effect it requests.
+     * A recognized spawn egg routes only through `minecraft:spawn_egg_interaction`.
      *
      * @param itemIdentifier - The held item's identifier.
      * @param other - The player or entity applying the item, for interaction filters.
-     * @param state - Runtime-owned timers that gate stateful item interactions.
+     * @param state - Runtime-owned timers and resolved spawn-egg data for stateful interactions.
      * @returns False when no active component accepts the item, true when it accepts without
      *   inventory changes, or the item changes requested by the active component.
      */
@@ -256,6 +257,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         other?: FilterEntityView,
         state?: EntityItemInteractionState
     ): boolean | EntityItemInteractionEffect {
+        if (state?.spawnEgg !== undefined) {
+            const handler = this.active.get('minecraft:spawn_egg_interaction')?.component.handlers.onInteractWithItem;
+            return handler?.(this, itemIdentifier, other, state) ?? false;
+        }
+
         return this.dispatchFirst('onInteractWithItem', this, itemIdentifier, other, state) ?? false;
     }
 

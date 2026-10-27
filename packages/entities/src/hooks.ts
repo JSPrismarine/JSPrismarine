@@ -188,6 +188,11 @@ export interface EntityItemInteractionState {
     readonly loveTicks?: number;
     /** Ticks remaining before the entity may breed again. */
     readonly breedCooldown?: number;
+    /** The spawn egg being used, with its resolved offspring type. */
+    readonly spawnEgg?: {
+        readonly identifier: string;
+        readonly offspringIdentifier: string;
+    };
 }
 
 /** The effects requested by a data-defined item interaction. */
@@ -216,6 +221,8 @@ export interface EntityItemInteractionEffect {
     readonly takeItem?: boolean;
     /** Whether the entity should enter its love state. */
     readonly breed?: boolean;
+    /** The offspring type to spawn when a matching spawn egg is used on this entity. */
+    readonly spawnOffspring?: string;
     /** The result of a data-defined taming attempt. */
     readonly tame?: EntityTameInteractionEffect;
     /** Whether the entity should admire the offered item after the interaction. */

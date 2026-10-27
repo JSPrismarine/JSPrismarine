@@ -31,6 +31,7 @@ import {
     numberAt,
     numberComponent,
     parseFilterValue,
+    recordSchema,
     stringAt
 } from './schemas';
 
@@ -980,6 +981,20 @@ export const spawnEntity: ComponentFactory<EntityHooks, SpawnEntityParams> = {
             }
         };
     }
+};
+
+/** `minecraft:spawn_egg_interaction`, which creates the entity's offspring from its matching egg. */
+export const spawnEggInteraction: ComponentFactory<EntityHooks, ComponentRecord> = {
+    name: 'minecraft:spawn_egg_interaction',
+    hooks: ['onInteractWithItem'],
+    schema: recordSchema,
+    create: () => ({
+        onInteractWithItem: (entity, _itemIdentifier, _other, state?: EntityItemInteractionState) => {
+            const spawnEgg = state?.spawnEgg;
+            if (spawnEgg === undefined || spawnEgg.identifier !== entity.type.identifier) return false;
+            return { spawnOffspring: spawnEgg.offspringIdentifier };
+        }
+    })
 };
 
 /** One `{filters, event, target}` trigger, which five component bodies share. */
