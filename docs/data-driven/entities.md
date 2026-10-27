@@ -509,10 +509,11 @@ rather than as a stack, which is as much as the goal seam models.
 active `minecraft:tameable`, `minecraft:breedable`, or `minecraft:healable` item list. A matching
 tame item uses the configured probability and fires `tame_event` on success; a matching breeding
 item puts an eligible adult in love; a matching healing item restores its configured health amount.
-Healing also checks the component's filters and `force_use` flag. Accepted interactions consume one
-item outside creative mode, and a declared per-item `result_item` replaces it in the player's
-inventory. Feeding babies to accelerate growth and healing item effects are not implemented; a
-healable entry that requires status effects is declined without consuming the held item.
+Healing also checks the component's filters and `force_use` flag. Ageable babies accept configured
+feed, pause, and reset items, advancing the remaining growth time by each feed item's `growth`
+fraction. Accepted interactions consume one item outside creative mode, and a declared per-item
+`result_item` replaces it in the player's inventory. Healable item `effects` are not implemented; an
+entry that requires status effects is declined without consuming the held item.
 
 **The dolphin's buried treasure has no source.** `GoalWorld.poi` answers the block-backed kinds
 from the world (beds, bells, the thirteen job-site blocks, doors, and whether a position is
