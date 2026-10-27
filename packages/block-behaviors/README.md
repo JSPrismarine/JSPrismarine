@@ -20,8 +20,9 @@ resolveBlocks(definitions.blocks.values(), { behaviors });
 
 The vanilla overlay writes each block's family into `jsprismarine:behavior`, and the selector reads
 that value when the definition resolves. A later pack can assign a registered family to a block by
-setting the same component. Definitions without it keep the identifier-based family rule as a
-fallback.
+setting the same component. Definitions without it receive no vanilla behavior, so callers that
+resolve blocks directly must include the `jsprismarine_vanilla` overlay when they want vanilla block
+families.
 
 `world` is the second argument because a handler has to reach the world and no hook event carries
 one. It is a `BlockWorld`, described below.

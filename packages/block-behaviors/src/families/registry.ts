@@ -6,7 +6,7 @@
  * agreeing, so a new family rule cannot land without a behavior behind it.
  */
 import type { BlockHooks } from '@jsprismarine/blocks';
-import { behavior, behaviorFor } from '@jsprismarine/blocks';
+import { behavior } from '@jsprismarine/blocks';
 import type { BehaviorRegistry } from '@jsprismarine/content';
 
 import type { BlockFamily } from '../family';
@@ -103,8 +103,7 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
 /**
  * Registers every family and attaches it to definitions whose
  * `jsprismarine:behavior` component names that family. Definitions without
- * the component retain identifier-based selection for callers that do not
- * load the vanilla overlay.
+ * the component receive no vanilla behavior.
  *
  * @param registry - The registry `resolveBlocks` is given.
  * @param world - What the behaviors act on. The server passes its own
@@ -113,11 +112,9 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
 export const registerVanillaBlockBehaviors = (registry: BehaviorRegistry<BlockHooks>, world: BlockWorld): void => {
     for (const family of VANILLA_BLOCK_FAMILIES) {
         registry.register(familyBehavior(family, world));
-        registry.attach(family.name, (identifier, definition) => {
+        registry.attach(family.name, (_, definition) => {
             const declared = definition === undefined ? undefined : componentValue(definition, behavior.name);
-            if (declared !== undefined) return declared === family.name;
-
-            return family.name === behaviorFor(identifier);
+            return declared === family.name;
         });
     }
 };
