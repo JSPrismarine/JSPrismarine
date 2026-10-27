@@ -1065,29 +1065,14 @@ export class World implements Service {
 
             const at = { x: spawn.x, y: spawn.y, z: spawn.z };
 
-            // The runtime first, because a village's villager wants its components, its brain
-            // and its trades, and only the runtime can give it them. Asked whether it declares
-            // the type before spawning, so an identifier no pack carries falls through to the
-            // written classes without the runtime reporting a refusal nobody wanted.
+            // A generated mob gets its components, brain and trades from the data runtime.
             const live = this.dataEntities();
             if (live.runtime.content().entities.registry.has(spawn.type)) {
                 live.runtime.spawn(spawn.type, at, { yaw: spawn.yaw ?? 0, pitch: 0 });
                 continue;
             }
 
-            const Written = writtenEntities().get(spawn.type);
-            if (!Written) {
-                this.server.getLogger().debug(`World generation asked for ${spawn.type}, which nothing can build`);
-                continue;
-            }
-
-            await this.addEntity(
-                new Written({
-                    position: new Position(spawn.x, spawn.y, spawn.z, this),
-                    yaw: spawn.yaw ?? 0,
-                    headYaw: spawn.yaw ?? 0
-                })
-            );
+            this.server.getLogger().debug(`World generation asked for ${spawn.type}, which no data runtime declares`);
         }
     }
 
