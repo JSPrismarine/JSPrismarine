@@ -175,6 +175,20 @@ describe('neighbor chunk data', () => {
         expect(built.featureWorld().getHeight('WORLD_SURFACE_WG', 16, 8)).toBe(51);
     });
 
+    it('leaves an existing block when a copied palette slot resolves to Java air', () => {
+        const source = terrainTile(1, 0);
+        source.writeName(16, 51, 8, 'minecraft:stone');
+        source.writeBedrock(16, 50, 8, { name: 'minecraft:air', states: {} });
+
+        const built = region();
+        built.writeName(16, 50, 8, 'minecraft:gold_block');
+        built.copyCenterFrom(source);
+
+        expect(built.stateAt(16, 50, 8).name).toBe('minecraft:gold_block');
+        expect(built.stateAt(16, 51, 8).name).toBe('minecraft:stone');
+        expect(built.transfer().payload.palette.some((block) => block.bedrock?.name === 'minecraft:air')).toBe(true);
+    });
+
     it('returns cross-chunk blocks, block entities, and entity spawns as a patch', () => {
         const built = region();
         const world = built.featureWorld();

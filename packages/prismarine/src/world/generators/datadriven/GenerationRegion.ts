@@ -457,7 +457,9 @@ export class GenerationRegion {
         // boundary does not allocate a RegionBlock and sort state properties for every block.
         const destinationSlots = source.palette.map((block, slot) => {
             if (slot === 0) return 0;
-            return block.bedrock === undefined ? this.paletteSlot(block.java) : this.bedrockSlot(block.bedrock);
+            const destinationSlot =
+                block.bedrock === undefined ? this.paletteSlot(block.java) : this.bedrockSlot(block.bedrock);
+            return block.java.name === AIR ? 0 : destinationSlot;
         });
         for (let localX = 0; localX < 16; localX++) {
             for (let localZ = 0; localZ < 16; localZ++) {
@@ -475,8 +477,8 @@ export class GenerationRegion {
 
                     const targetIndex = targetColumn * this.height + (y - this.minY);
                     const targetSlot = destinationSlots[sourceSlot]!;
+                    if (targetSlot === 0) continue;
                     const block = this.palette[targetSlot]!;
-                    if (block.java.name === AIR) continue;
 
                     this.states[targetIndex] = targetSlot;
                     this.blockEntities.delete(targetIndex);
