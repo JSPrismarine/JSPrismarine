@@ -214,9 +214,30 @@ class CellReader {
 
     /** Whether the profile can both enter and stay in the cell, with what entering costs. */
     public enterable(x: number, y: number, z: number): number | undefined {
-        const cost = this.cost(x, y, z);
+        const key = keyOf(this.origin, x, y, z);
+        let cost: number | undefined;
+
+        if (key === undefined) cost = this.readCost(x, y, z);
+        else {
+            const known = this.costs.get(key);
+            if (known !== undefined) {
+                if (known === REFUSED) return undefined;
+                cost = known;
+            } else {
+                cost = this.readCost(x, y, z);
+                this.costs.set(key, cost ?? REFUSED);
+            }
+        }
+
         if (cost === undefined) return undefined;
-        return this.holdsPosition(x, y, z) ? cost : undefined;
+        if (key === undefined) return this.readHolds(x, y, z) ? cost : undefined;
+
+        const known = this.holds.get(key);
+        if (known !== undefined) return known ? cost : undefined;
+
+        const holds = this.readHolds(x, y, z);
+        this.holds.set(key, holds);
+        return holds ? cost : undefined;
     }
 
     /** Whether the profile can climb vertically from this block. */
