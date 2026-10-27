@@ -150,6 +150,8 @@ export interface EntitySpawnItemsRequest {
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
     readonly healthAmount?: number;
+    /** Durability removed from the held item when the interaction succeeds. */
+    readonly hurtItem?: number;
     /** The item the used stack becomes, when the interaction transforms it. */
     readonly resultItem?: string;
     /** The transformed item's auxiliary value, such as a filled bucket's variant. */

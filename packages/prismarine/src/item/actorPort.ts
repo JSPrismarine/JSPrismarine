@@ -156,6 +156,12 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
             return true;
         }
 
+        if (outcome.hurtItem !== undefined && outcome.hurtItem > 0 && held.getMaxDurability() > 0) {
+            const broke = held.getDurability() <= outcome.hurtItem;
+            spend(source, outcome.hurtItem, broke);
+            if (broke) return true;
+        }
+
         if (outcome.consumeItem === false) return true;
 
         if (resultItem !== undefined) {

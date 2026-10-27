@@ -5,5 +5,7 @@ export type EntityItemInteraction =
           readonly accepted: true;
           readonly resultItem?: string;
           readonly resultItemData?: number;
+          /** Durability to remove from the player's held item. */
+          readonly hurtItem?: number;
           readonly consumeItem?: boolean;
       };
