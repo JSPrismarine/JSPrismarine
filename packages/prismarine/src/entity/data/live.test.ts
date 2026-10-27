@@ -2134,6 +2134,63 @@ describe('the data-driven entity runtime over a live world', () => {
             live = opened;
         };
 
+        it('keeps clustered zombie groups moving toward a shared survival target', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+            const player = addPlayer(14, 1);
+            player.gamemode = Gametype.SURVIVAL;
+            const positions = [0.5, 5.5].flatMap((originX) =>
+                Array.from({ length: 15 }, (_, index) => ({
+                    x: originX + (index % 5) * 0.32,
+                    y: GROUND_Y,
+                    z: 0.5 + Math.floor(index / 5) * 0.32
+                }))
+            );
+            const entries = positions.map((position) => {
+                const zombie = live.runtime.spawn('minecraft:zombie', position);
+                if (zombie === undefined) throw new Error('vanilla content declares no zombie');
+                return { zombie, position };
+            });
+            const zombies = entries.map(({ zombie }) => zombie);
+            let jumpingTicks = 0;
+            let airborneTicks = 0;
+            const samples = [];
+            for (let tick = 1; tick <= 200; tick += 1) {
+                await live.tick(tick);
+                const jumping = zombies.filter(({ body }) => body.conditions.has('jumping')).length;
+                const airborne = zombies.filter(({ position }) => position.y > GROUND_Y + 0.05).length;
+                jumpingTicks += jumping;
+                airborneTicks += airborne;
+                if (tick % 20 === 0) {
+                    samples.push({
+                        tick,
+                        moved: entries.filter(
+                            ({ zombie, position }) =>
+                                Math.hypot(zombie.position.x - position.x, zombie.position.z - position.z) > 0.3
+                        ).length,
+                        targets: zombies.filter((zombie) => zombie.target === Number(player.getRuntimeId())).length,
+                        jumping,
+                        airborne,
+                        stuck: zombies.filter(({ body }) => body.stuck).length
+                    });
+                }
+            }
+            const firstSample = samples[0];
+            const lastSample = samples.at(-1);
+            if (firstSample === undefined || lastSample === undefined) throw new Error('no crowd samples were taken');
+
+            expect(
+                samples.every(
+                    ({ targets, jumping, airborne, stuck }) =>
+                        targets === zombies.length && jumping === 0 && airborne === 0 && stuck === 0
+                )
+            ).toBe(true);
+            expect(firstSample.moved).toBeGreaterThanOrEqual(24);
+            expect(lastSample.moved).toBe(zombies.length);
+            expect(jumpingTicks).toBe(0);
+            expect(airborneTicks).toBe(0);
+            expect(zombies).toHaveLength(30);
+        });
+
         it('spawns a bow arrow through the live data-driven projectile runtime', async () => {
             useVanillaContent();
 
