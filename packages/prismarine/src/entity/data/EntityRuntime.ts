@@ -281,8 +281,10 @@ export class EntityRuntime implements EntityScene {
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
     private readonly rides = new RideIndex();
-    /** The entity holding each data-driven entity's leash, by runtime id. */
-    private readonly leashHolders = new Map<number, number>();
+    /** The stable identity holding each data-driven entity's leash. */
+    private readonly leashHolders = new Map<number, string>();
+    /** Resolves persistent identities back to the currently loaded entity. */
+    private readonly byPersistentIdentity = new Map<string, DataEntity>();
     /** The points of interest of the dimension, which eleven goals search. */
     private readonly interest = new PointsOfInterest({ navigation: () => this.navigation() });
     /** The point-of-interest kinds already reported as unindexed, so each is said once. */
@@ -417,12 +419,17 @@ export class EntityRuntime implements EntityScene {
      *   in which case the caller restores the saved body the way it always did.
      */
     public restore(record: DataEntityRecord, at: EntityPosition): DataEntity | undefined {
-        const entity = this.create(record.identifier, at, {
-            pool: record.pool,
-            yaw: record.yaw,
-            pitch: record.pitch,
-            data: record.spawnData
-        });
+        const entity = this.create(
+            record.identifier,
+            at,
+            {
+                pool: record.pool,
+                yaw: record.yaw,
+                pitch: record.pitch,
+                data: record.spawnData
+            },
+            record.persistentIdentity
+        );
         if (entity === undefined) return undefined;
         if (!this.hasValidFallingBlockData(entity)) {
             this.remove(entity.id, 'invalid_spawn_data');
@@ -430,6 +437,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        if (record.leashHolderIdentity !== undefined) this.leashHolders.set(entity.id, record.leashHolderIdentity);
         if (entity.instance.hasComponent('minecraft:projectile')) {
             this.projectiles.set(entity.id, { hitEntities: new Set() });
         }
@@ -463,7 +471,12 @@ export class EntityRuntime implements EntityScene {
      * share. What separates the two is only what happens to the entity next: a
      * spawn runs its spawn event, a restore writes the state it was saved with.
      */
-    private create(identifier: string, at: EntityPosition, options: SpawnOptions): DataEntity | undefined {
+    private create(
+        identifier: string,
+        at: EntityPosition,
+        options: SpawnOptions,
+        persistentIdentity?: string
+    ): DataEntity | undefined {
         const content = this.content();
         const registry = content.entities.registry;
         const reference = identifier.includes('<') ? identifier.slice(0, identifier.indexOf('<')) : identifier;
@@ -557,9 +570,17 @@ export class EntityRuntime implements EntityScene {
                   }
                 : {})
         });
-        const entity = new DataEntity({ body, instance, brainMob, brain, spawnData: options.data });
+        const entity = new DataEntity({
+            body,
+            instance,
+            brainMob,
+            brain,
+            spawnData: options.data,
+            ...(persistentIdentity === undefined ? {} : { persistentIdentity })
+        });
         entityForBarter = entity;
         this.entities.set(id, entity);
+        this.byPersistentIdentity.set(entity.persistentIdentity, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the
         // instance was being built moved a body nothing was watching yet, and the grid files
@@ -604,7 +625,7 @@ export class EntityRuntime implements EntityScene {
                     event: request.event
                 });
                 if (child === undefined) continue;
-                if (request.shouldLeash) this.leashHolders.set(child.id, parent.id);
+                if (request.shouldLeash) this.leashHolders.set(child.id, parent.persistentIdentity);
                 spawned = true;
             }
 
@@ -621,6 +642,7 @@ export class EntityRuntime implements EntityScene {
         if (entity === undefined) return;
         entity.removed = reason;
         this.entities.delete(id);
+        this.byPersistentIdentity.delete(entity.persistentIdentity);
         this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
         this.grid.remove(entity);
@@ -633,8 +655,10 @@ export class EntityRuntime implements EntityScene {
         this.fuses.delete(id);
         this.rides.remove(id);
         this.leashHolders.delete(id);
-        for (const [leashedId, holderId] of this.leashHolders) {
-            if (holderId === id) this.leashHolders.delete(leashedId);
+        if (reason !== 'chunk unload') {
+            for (const [leashedId, holderIdentity] of this.leashHolders) {
+                if (holderIdentity === entity.persistentIdentity) this.leashHolders.delete(leashedId);
+            }
         }
         this.onRemove(entity, reason);
     }
@@ -1286,8 +1310,14 @@ export class EntityRuntime implements EntityScene {
 
     /** What entity holds one data-driven entity's leash, when it has one. */
     public leashHolderOf(entity: MobBody): GoalMob | undefined {
-        const holder = this.leashHolders.get(entity.id);
-        return holder === undefined ? undefined : this.mobById(holder);
+        const identity = this.leashHolders.get(entity.id);
+        const holder = identity === undefined ? undefined : this.byPersistentIdentity.get(identity);
+        return holder === undefined ? undefined : this.mobById(holder.id);
+    }
+
+    /** Stable identity of an entity's leash holder, ready to save with its record. */
+    public leashHolderIdentityOf(id: number): string | undefined {
+        return this.leashHolders.get(id);
     }
 
     /** Who rides an entity, in the order they got on. */

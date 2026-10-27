@@ -16,6 +16,7 @@
 import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
+import { randomUUID } from 'node:crypto';
 
 import type { ContentItemDrop } from '../../content/world/adapter';
 import { DamageLog } from './damageLog';
@@ -437,6 +438,8 @@ export class MobBody {
 export interface DataEntityOptions {
     readonly body: MobBody;
     readonly instance: EntityInstance;
+    /** Stable identity used to restore relationships that survive a server session. */
+    readonly persistentIdentity?: string;
     /** Entity-specific fields supplied by the source that spawned it. */
     readonly spawnData?: Readonly<Record<string, unknown>>;
     /** The brain definition for one of the twenty Java brain mobs, when the type is one. */
@@ -449,6 +452,9 @@ export interface DataEntityOptions {
 export class DataEntity {
     /** Where the entity is, where it is going, and what it is after. */
     public readonly body: MobBody;
+
+    /** Stable identity used by persistent relationships such as spawned leash holders. */
+    public readonly persistentIdentity: string;
 
     /** The component state machine, which owns the events, properties and goals. */
     public readonly instance: EntityInstance;
@@ -467,6 +473,7 @@ export class DataEntity {
 
     public constructor(options: DataEntityOptions) {
         this.body = options.body;
+        this.persistentIdentity = options.persistentIdentity ?? randomUUID();
         this.instance = options.instance;
         this.spawnData = options.spawnData;
         this.brainMob = options.brainMob;

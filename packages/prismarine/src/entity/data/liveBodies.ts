@@ -323,7 +323,10 @@ export class LiveBodies {
             if (body === undefined || !body.shouldPersist()) continue;
 
             body.persistentNbt ??= new NBTTagCompound('');
-            writeDataEntityRecord(body.persistentNbt, dataEntityRecordOf(entity, runtime.poolOf(entity.id)));
+            writeDataEntityRecord(
+                body.persistentNbt,
+                dataEntityRecordOf(entity, runtime.poolOf(entity.id), runtime.leashHolderIdentityOf(entity.id))
+            );
         }
     }
 

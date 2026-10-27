@@ -20,12 +20,14 @@
  * happened to take the number. The owner is stored by stable player identity
  * and rebound to the new runtime id when that player returns. The goal-facing
  * `carried` field remains an identifier; `equipment` and `containerSlots`
- * retain complete item stacks and nested contents.
+ * retain complete item stacks and nested contents. A generated identity lets
+ * spawned leash links reconnect when either actor is restored first.
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { Types } from '@jsprismarine/nbt';
+import { randomUUID } from 'node:crypto';
 
 import type { ContentItemDrop } from '../../content/world/adapter';
 import { MOB_EQUIPMENT_SLOTS } from '../equipment';
@@ -39,6 +41,10 @@ export const DATA_ENTITY_TAG = 'jsprismarine:entity';
 export interface DataEntityRecord {
     /** The entity type, such as `minecraft:villager_v2`. */
     readonly identifier: string;
+    /** Stable identity used to reconnect persistent relationships after a reload. */
+    readonly persistentIdentity: string;
+    /** Stable identity of the entity holding this entity's leash, when it has one. */
+    readonly leashHolderIdentity?: string;
     /** The population pool the entity counts against, when a spawn rule produced it. */
     readonly pool?: string;
     /** The component groups active when it was saved, in the order they became active. */
@@ -79,8 +85,18 @@ export interface DataEntityRecord {
     readonly spawnData?: Readonly<Record<string, unknown>>;
 }
 
-/** The record of one live entity, ready to be written. */
-export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined): DataEntityRecord => {
+/**
+ * The record of one live entity, ready to be written.
+ *
+ * @param entity - The live entity whose state is being saved.
+ * @param pool - The population pool it counts against, when it has one.
+ * @param leashHolderIdentity - Stable identity of its leash holder, when it has one.
+ */
+export const dataEntityRecordOf = (
+    entity: DataEntity,
+    pool: string | undefined,
+    leashHolderIdentity?: string
+): DataEntityRecord => {
     const { body, instance } = entity;
 
     const properties: Record<string, PropertyValue> = {};
@@ -97,6 +113,8 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
 
     return {
         identifier: entity.identifier,
+        persistentIdentity: entity.persistentIdentity,
+        ...(leashHolderIdentity === undefined ? {} : { leashHolderIdentity }),
         ...(pool === undefined ? {} : { pool }),
         componentGroups: instance.activeComponentGroups(),
         properties,
@@ -287,6 +305,15 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     const { identifier, pool, carried, ownerIdentity } = parsed;
     if (typeof identifier !== 'string' || identifier === '') return undefined;
 
+    const persistentIdentity =
+        typeof parsed['persistentIdentity'] === 'string' && parsed['persistentIdentity'] !== ''
+            ? parsed['persistentIdentity']
+            : randomUUID();
+    const leashHolderIdentity =
+        typeof parsed['leashHolderIdentity'] === 'string' && parsed['leashHolderIdentity'] !== ''
+            ? parsed['leashHolderIdentity']
+            : undefined;
+
     const home = positionOf(parsed['home']);
     const spawnData = isObject(parsed['spawnData']) ? parsed['spawnData'] : undefined;
     const equipment = equipmentOf(parsed['equipment']);
@@ -296,6 +323,8 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
 
     return {
         identifier,
+        persistentIdentity,
+        ...(leashHolderIdentity === undefined ? {} : { leashHolderIdentity }),
         ...(typeof pool === 'string' ? { pool } : {}),
         componentGroups: stringsOf(parsed['componentGroups']),
         properties: propertiesOf(parsed['properties']),
