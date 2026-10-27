@@ -129,9 +129,7 @@ export class Entity {
     /**
      * The `/tag` tags this entity carries - see {@link Entity.addTag}.
      *
-     * Not persisted, because nothing persists an entity yet: `LevelDB.writeChunk`
-     * writes no actor records at all, so a tag survives exactly as long as the
-     * entity is in memory, which is as long as anything else about it does.
+     * Persisted in the actor's `Tags` list.
      */
     private readonly tags = new Set<string>();
 

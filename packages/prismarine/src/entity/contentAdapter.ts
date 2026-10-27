@@ -47,7 +47,8 @@ export interface EntityContentGroups {
 const contentEntityOf = (entity: DataEntity): ContentEntity => ({
     id: entity.id,
     identifier: entity.identifier,
-    position: entity.position
+    position: entity.position,
+    tags: [...entity.body.tags]
 });
 
 /**

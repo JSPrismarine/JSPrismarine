@@ -36,6 +36,7 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
     id: () => body.id,
     flag: (name) => flagOf(body, scene, name),
     measure: (name) => measureOf(body, scene, name),
+    names: (name) => (name === 'has_tag' ? [...body.tags] : undefined),
     vehicle: () => viewOf(scene.vehicleOf(body)?.id, scene),
     owner: () => viewOf(body.owner, scene),
     attackTarget: () => viewOf(body.target, scene)

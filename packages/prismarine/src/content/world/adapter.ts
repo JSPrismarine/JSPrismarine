@@ -63,6 +63,8 @@ export interface ContentEntity {
     readonly identifier: string;
     /** Position at the bottom of the entity's body, including for players whose network position is their eyes. */
     readonly position: ContentPosition;
+    /** Dynamic string tags used by entity filters such as `has_tag`. */
+    readonly tags?: readonly string[];
     /** Whether this player is in creative mode; absent for non-players. */
     readonly creative?: boolean;
     /** Whether this player is in spectator mode; absent for non-players. */

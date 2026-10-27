@@ -83,6 +83,9 @@ export class MobBody {
     /** The boolean facts a brain reads off the body, such as `on_ground` or `aggressive`. */
     public readonly conditions = new Set<string>();
 
+    /** The entity's dynamic string tags, shared with `/tag` and `has_tag` filters. */
+    public readonly tags = new Set<string>();
+
     /** Who the entity is fighting, by runtime id, or undefined when it is fighting nobody. */
     public target: number | undefined;
 

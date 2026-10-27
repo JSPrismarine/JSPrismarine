@@ -63,7 +63,7 @@ const playerFilterView = (player: Player): FilterEntityView => {
     ]);
     return {
         id: () => Number(player.getRuntimeId()),
-        names: (name) => (name === 'is_family' ? ['player'] : undefined),
+        names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.getTags() : undefined),
         equipment: (slot, index) => {
             if (slot === 'main_hand' || slot === 'hand' || slot === 'any')
                 return index === 0 ? filterItemOf(inventory.getItemInHand()) : undefined;
@@ -406,7 +406,10 @@ export class LiveEntityRuntime {
         if (entity === undefined) return undefined;
 
         const body = this.bodies.bodyOf(entity.id);
-        if (body !== undefined) body.persistentNbt = stored.persistentNbt;
+        if (body !== undefined) {
+            body.persistentNbt = stored.persistentNbt;
+            for (const tag of stored.getTags()) body.addTag(tag);
+        }
         return entity;
     }
 
@@ -442,7 +445,10 @@ export class LiveEntityRuntime {
         if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, stored.getHealth()));
 
         const body = this.bodies.bodyOf(entity.id);
-        if (body !== undefined) body.persistentNbt = stored.persistentNbt;
+        if (body !== undefined) {
+            body.persistentNbt = stored.persistentNbt;
+            for (const tag of stored.getTags()) body.addTag(tag);
+        }
         return entity;
     }
 }

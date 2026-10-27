@@ -30,7 +30,7 @@ import type { World } from '../world/World';
  * - must *not* be listed: stripping it and then defaulting it would quietly replace a burning
  * actor's `Fire: -20` with a zero on the next save.
  */
-const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'JSPBlockName', 'JSPFuse'] as const;
+const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPBlockName', 'JSPFuse'] as const;
 
 export class EntitySerializer {
     /**
@@ -75,6 +75,8 @@ export class EntitySerializer {
             if (motion !== undefined) entity.setVelocity(motion);
         }
 
+        for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
+
         entity.persistentNbt = remainder(nbt);
         return entity;
     }
@@ -86,6 +88,9 @@ export class EntitySerializer {
         nbt.addValue('identifier', new Types.StringVal(entity.getType()));
         nbt.addValue('Pos', floats([position.getX(), position.getY(), position.getZ()]));
         nbt.addValue('Rotation', floats([entity.yaw, entity.pitch]));
+        const tags = entity.getTags();
+        if (tags.length > 0) nbt.addValue('Tags', new Set(tags.map((tag) => new Types.StringVal(tag))));
+        else nbt.remove('Tags');
 
         if (entity instanceof Item) {
             nbt.addValue('Age', new Types.ShortVal(entity.getAge()));
@@ -201,6 +206,18 @@ const readFloats = (nbt: NBTTagCompound, key: string, count: number): number[] =
     if (!list) return Array.from({ length: count }, () => 0);
 
     return [...list].slice(0, count).map((entry) => Number(entry?.getValue?.() ?? entry ?? 0));
+};
+
+/** Reads the string tags on a saved actor, skipping values of any other NBT type. */
+const stringsIn = (nbt: NBTTagCompound, key: string): string[] => {
+    const values = nbt.getList(key, false);
+    if (values === null) return [];
+
+    const strings: string[] = [];
+    for (const value of values) {
+        if (value instanceof Types.StringVal) strings.push(value.getValue());
+    }
+    return strings;
 };
 
 /** Reads a projectile's three saved velocity components, or leaves its default alone. */

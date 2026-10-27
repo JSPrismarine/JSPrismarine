@@ -261,6 +261,10 @@ A filter test whose fact nothing can answer evaluates to false and is reported, 
 defaulting to true. That matters when you are debugging: a mob that never does a thing may be
 looking at a world fact this server does not track yet, and the report names the test.
 
+`has_tag` reads the entity's dynamic string tags, the same set the `/tag` command edits. The host
+keeps that set on data-driven entities across live-body replacement and writes it to the actor's
+`Tags` list when the entity is saved.
+
 ## Goals
 
 A goal is a component carrying a `priority` and optional `control_flags`, and all 170

@@ -223,7 +223,8 @@ const appendPlayers = (found: Ranked[], here: EntityPosition, radius: number, sc
     const within = radius * radius;
     for (const player of scene.host.players()) {
         const away = squaredDistance(here, player.position);
-        if (away <= within) found.push({ mob: playerGoalMob(player.id, player.identifier, player.position), away });
+        if (away <= within)
+            found.push({ mob: playerGoalMob(player.id, player.identifier, player.position, player.tags), away });
     }
 };
 
@@ -259,17 +260,22 @@ const PLAYER_FAMILIES = ['player', 'mob'] as const;
  * A player as a goal sees one.
  *
  * A player is not in the entity index and carries no component set, so the
- * only filter facts the server can answer about one are its identity and its
- * families. A filter asking anything else gets undefined and refuses, which is
- * the rule the whole seam follows.
+ * filter facts the server can answer about one are its identity, its families,
+ * and its dynamic tags. A filter asking anything else gets undefined and
+ * refuses, which is the rule the whole seam follows.
  */
-export const playerGoalMob = (id: number, identifier: string, position: EntityPosition): GoalMob => ({
+export const playerGoalMob = (
+    id: number,
+    identifier: string,
+    position: EntityPosition,
+    tags: readonly string[] = []
+): GoalMob => ({
     id,
     position: () => position,
     lookPosition: () => ({ x: position.x, y: position.y + EYE_HEIGHT, z: position.z }),
     view: (): FilterEntityView => ({
         id: () => id,
-        names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : undefined)
+        names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : name === 'has_tag' ? tags : undefined)
     }),
     identifier: () => identifier
 });

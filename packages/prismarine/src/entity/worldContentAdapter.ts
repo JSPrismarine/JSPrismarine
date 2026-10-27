@@ -126,7 +126,8 @@ const contentEntityOf = (entity: Entity): ContentEntity => {
     return {
         id: Number(entity.getRuntimeId()),
         identifier: entity.getType(),
-        position: { x: position.getX(), y: entity.getFeetY(), z: position.getZ() }
+        position: { x: position.getX(), y: entity.getFeetY(), z: position.getZ() },
+        tags: entity.getTags()
     };
 };
 

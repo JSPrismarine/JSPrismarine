@@ -84,6 +84,23 @@ class DataEntityBody extends GenericEntity {
     }
 
     /** @inheritdoc */
+    public override addTag(tag: string): boolean {
+        if (this.driver.body.tags.has(tag)) return false;
+        this.driver.body.tags.add(tag);
+        return true;
+    }
+
+    /** @inheritdoc */
+    public override removeTag(tag: string): boolean {
+        return this.driver.body.tags.delete(tag);
+    }
+
+    /** @inheritdoc */
+    public override getTags(): readonly string[] {
+        return [...this.driver.body.tags];
+    }
+
+    /** @inheritdoc */
     public override applyKnockback(directionX: number, directionZ: number, strength: number, damping = 0.5): void {
         // The damping first, because vanilla's rule is that each shove halves whatever motion
         // the last one left before adding its own - which is what makes a sprint hit both throw
