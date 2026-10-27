@@ -2603,6 +2603,39 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(babyBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
         });
 
+        it('keeps a spawn-egg zombie baby moving after spawning inside its parent', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const player = addPlayer(18, 0);
+            player.gamemode = Gametype.SURVIVAL;
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:zombie_spawn_egg' }), count: 1 })
+                );
+            const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (parent === undefined) throw new Error('vanilla content declares no zombie');
+            const body = live.bodies.bodyOf(parent.id);
+            if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
+
+            await useHeldItemOnEntity(player, body.getRuntimeId());
+
+            const baby = live.runtime
+                .all()
+                .find((entity) => entity.identifier === 'minecraft:zombie' && entity.id !== parent.id);
+            if (baby === undefined) throw new Error('the matching spawn egg created no baby zombie');
+            expect(baby.position).toEqual(parent.position);
+
+            await run(120);
+
+            expect(parent.target).toBe(Number(player.getRuntimeId()));
+            expect(baby.target).toBe(Number(player.getRuntimeId()));
+            expect(parent.body.stuck).toBe(false);
+            expect(baby.body.stuck).toBe(false);
+            expect(parent.position.x > 4 || baby.position.x > 4).toBe(true);
+        });
+
         it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
