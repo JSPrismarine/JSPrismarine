@@ -236,7 +236,8 @@ also sets the Bedrock actor's `FIRE_IMMUNE` flag. `minecraft:body_rotation_block
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne
-paths. The runtime projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's
+paths, and reads `minecraft:can_stand_on_powder_snow` to treat powder snow as support. The runtime
+projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's
 walk and swim abilities to `CANWALK` and `CANSWIM`, and its flight ability to `CANFLY`; it projects
 `minecraft:can_power_jump` to `CAN_POWER_JUMP`. A table reference like `minecraft:shareables` remains
 data for a system to use. The outer runtime also reads
@@ -268,7 +269,7 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys that carry behavior rather than data | 64 |
+| Non-goal keys that carry behavior rather than data | 65 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -310,7 +311,7 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than simulation: 64 non-goal components currently carry runtime
+measures name coverage rather than simulation: 65 non-goal components currently carry runtime
 behavior, and the remaining bodies are available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
@@ -339,5 +340,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  138 currently expose data without runtime behavior. The component bodies remain accessible to the
+  137 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

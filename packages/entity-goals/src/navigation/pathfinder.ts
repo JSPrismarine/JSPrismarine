@@ -314,7 +314,11 @@ class CellReader {
         // Navigation flags can ask the pathfinder to consider a route across
         // liquid surfaces, but liquids never support an entity's collision
         // box. Swimmers enter the liquid through `inSwimmableLiquid` instead.
-        return view.isSolid(this.cell(x, y - 1, z));
+        const below = this.cell(x, y - 1, z);
+        return (
+            view.isSolid(below) ||
+            (profile.canStandOnPowderSnow === true && view.blockAt(below) === 'minecraft:powder_snow')
+        );
     }
 
     /** Whether a swimmer or a ground navigator that can float can occupy this liquid cell. */

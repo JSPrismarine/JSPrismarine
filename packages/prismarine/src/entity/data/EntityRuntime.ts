@@ -745,7 +745,12 @@ export class EntityRuntime implements EntityScene {
         const grounded =
             hasCollision &&
             entity.body.velocity.y <= 0 &&
-            isSupported(entity.position, entity.facts.box, this.navigation());
+            isSupported(
+                entity.position,
+                entity.facts.box,
+                this.navigation(),
+                entity.instance.hasComponent('minecraft:can_stand_on_powder_snow')
+            );
         setCondition(entity.body.conditions, 'on_ground', grounded);
     }
 
@@ -1698,7 +1703,11 @@ export class EntityRuntime implements EntityScene {
         const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
         const position = body.position;
         const navigation = this.navigation();
-        const grounded = hasCollision && body.velocity.y <= 0 && isSupported(position, entity.facts.box, navigation);
+        const canStandOnPowderSnow = instance.hasComponent('minecraft:can_stand_on_powder_snow');
+        const grounded =
+            hasCollision &&
+            body.velocity.y <= 0 &&
+            isSupported(position, entity.facts.box, navigation, canStandOnPowderSnow);
         const inWater = body.conditions.has('in_water');
         const inLava = body.conditions.has('in_lava');
         const inFluid = inWater || inLava;
@@ -1734,7 +1743,8 @@ export class EntityRuntime implements EntityScene {
         const velocity = body.velocity;
         const fallingY = grounded && velocity.y <= 0 ? 0 : velocity.y - gravity;
         const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
-        const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation);
+        const canOccupy = (at: EntityPosition) =>
+            !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation, canStandOnPowderSnow);
         let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
         const hitHorizontalX = Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + velocity.z, 'z', canOccupy);
@@ -1809,7 +1819,15 @@ export class EntityRuntime implements EntityScene {
                 if (entity.removed !== undefined) return;
             }
 
-            if (hasCollision && !bodyCanOccupy(at, entity.facts.box, navigation)) {
+            if (
+                hasCollision &&
+                !bodyCanOccupy(
+                    at,
+                    entity.facts.box,
+                    navigation,
+                    entity.instance.hasComponent('minecraft:can_stand_on_powder_snow')
+                )
+            ) {
                 const onHit = isRecord(params.on_hit) ? params.on_hit : {};
                 this.applyProjectileHitEffects(onHit, at, false);
                 const sound = typeof params.hit_ground_sound === 'string' ? params.hit_ground_sound : undefined;
@@ -2097,7 +2115,10 @@ export class EntityRuntime implements EntityScene {
 
         const physics = entity.instance.componentParams('minecraft:physics');
         const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
-        const grounded = hasCollision && body.velocity.y <= 0 && isSupported(position, box, this.navigation());
+        const canStandOnPowderSnow = entity.instance.hasComponent('minecraft:can_stand_on_powder_snow');
+        const navigation = this.navigation();
+        const grounded =
+            hasCollision && body.velocity.y <= 0 && isSupported(position, box, navigation, canStandOnPowderSnow);
         if (grounded) body.conditions.add('on_ground');
         else body.conditions.delete('on_ground');
 
@@ -2145,7 +2166,8 @@ export class EntityRuntime implements EntityScene {
             z: velocity.z * horizontalDrag
         };
         const nextY = position.y + nextVelocity.y;
-        const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, box, this.navigation());
+        const canOccupy = (at: EntityPosition) =>
+            !hasCollision || bodyCanOccupy(at, box, navigation, canStandOnPowderSnow);
         let next = moveOnAxis(position, position.x + nextVelocity.x, 'x', canOccupy);
         const hitHorizontalX = Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + nextVelocity.z, 'z', canOccupy);
@@ -2196,7 +2218,9 @@ export class EntityRuntime implements EntityScene {
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
-            canOccupy: (position) => !hasCollision || bodyCanOccupy(position, entity.facts.box, navigation)
+            canOccupy: (position) =>
+                !hasCollision ||
+                bodyCanOccupy(position, entity.facts.box, navigation, profile.canStandOnPowderSnow === true)
         });
     }
 

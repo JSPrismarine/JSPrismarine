@@ -152,12 +152,12 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Sixty-four keys carry
-runtime behavior. The remaining 138 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Sixty-five keys carry
+runtime behavior. The remaining 137 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
-The 64 that act change entity state or decide an outcome: the nine
+The 65 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -196,7 +196,8 @@ The entities package README lists each component and what it does.
 interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
 finder's profile; its walking, swimming, and flight capabilities project to `CANWALK`, `CANSWIM`, and
 `CANFLY`. `minecraft:can_climb` enables ladder traversal and projects to `CANCLIMB`, while
-`minecraft:can_fly` lets the pathfinder leave solid ground. The host also reads
+`minecraft:can_fly` lets the pathfinder leave solid ground, and `minecraft:can_stand_on_powder_snow`
+makes powder snow support the entity in pathfinding and body collision. The host also reads
 `minecraft:explode` to detonate a creeper, `minecraft:rideable` to seat riders, and the two
 trade-table components to build a merchant. The shared body physics reads `minecraft:air_drag_modifier`,
 `minecraft:uses_uniform_air_drag`, `minecraft:friction_modifier`, and `minecraft:bounciness` to apply

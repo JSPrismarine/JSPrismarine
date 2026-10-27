@@ -9,8 +9,16 @@ const COLLISION_EPSILON = 1e-7;
 /** The furthest one collision check advances along an axis, in blocks. */
 const MAX_COLLISION_STEP = 0.2;
 
-/** Whether the entity's collision box fits in passable cells at a position. */
-export const bodyCanOccupy = (position: EntityPosition, box: EntityBox, navigation: NavigationView): boolean => {
+/**
+ * Whether the entity's collision box fits in passable cells at a position.
+ * @param canStandOnPowderSnow - Whether powder snow counts as a collision surface.
+ */
+export const bodyCanOccupy = (
+    position: EntityPosition,
+    box: EntityBox,
+    navigation: NavigationView,
+    canStandOnPowderSnow = false
+): boolean => {
     const minX = Math.floor(position.x - box.width / 2 + COLLISION_EPSILON);
     const maxX = Math.floor(position.x + box.width / 2 - COLLISION_EPSILON);
     const minY = Math.floor(position.y + COLLISION_EPSILON);
@@ -21,7 +29,12 @@ export const bodyCanOccupy = (position: EntityPosition, box: EntityBox, navigati
     for (let x = minX; x <= maxX; x += 1) {
         for (let y = minY; y <= maxY; y += 1) {
             for (let z = minZ; z <= maxZ; z += 1) {
-                if (!navigation.isPassable({ x, y, z })) return false;
+                const at = { x, y, z };
+                if (
+                    !navigation.isPassable(at) ||
+                    (canStandOnPowderSnow && navigation.blockAt(at) === 'minecraft:powder_snow')
+                )
+                    return false;
             }
         }
     }
@@ -53,8 +66,16 @@ export const bodyIntersectsMedium = (
     return false;
 };
 
-/** Whether an entity with level feet is supported by at least one solid block. */
-export const isSupported = (position: EntityPosition, box: EntityBox, navigation: NavigationView): boolean => {
+/**
+ * Whether an entity with level feet is supported by at least one solid block.
+ * @param canStandOnPowderSnow - Whether powder snow can support the entity.
+ */
+export const isSupported = (
+    position: EntityPosition,
+    box: EntityBox,
+    navigation: NavigationView,
+    canStandOnPowderSnow = false
+): boolean => {
     const feetY = Math.floor(position.y);
     if (Math.abs(position.y - feetY) > COLLISION_EPSILON) return false;
 
@@ -65,7 +86,12 @@ export const isSupported = (position: EntityPosition, box: EntityBox, navigation
 
     for (let x = minX; x <= maxX; x += 1) {
         for (let z = minZ; z <= maxZ; z += 1) {
-            if (navigation.isSolid({ x, y: feetY - 1, z })) return true;
+            const below = { x, y: feetY - 1, z };
+            if (
+                navigation.isSolid(below) ||
+                (canStandOnPowderSnow && navigation.blockAt(below) === 'minecraft:powder_snow')
+            )
+                return true;
         }
     }
 

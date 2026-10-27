@@ -35,6 +35,8 @@ export interface NavigationProfile {
     readonly canWalkInLava: boolean;
     /** Whether `minecraft:can_climb` lets the entity climb ladder blocks. */
     readonly canClimbLadders?: boolean;
+    /** Whether `minecraft:can_stand_on_powder_snow` lets the entity use powder snow as support. */
+    readonly canStandOnPowderSnow?: boolean;
     readonly canFly: boolean;
     readonly canBreach: boolean;
     readonly canJump: boolean;
@@ -71,6 +73,7 @@ export const defaultNavigationProfile: NavigationProfile = {
     canWalk: true,
     canWalkInLava: false,
     canClimbLadders: false,
+    canStandOnPowderSnow: false,
     canFly: false,
     canBreach: false,
     canJump: true,
@@ -122,7 +125,8 @@ const stepHeightOf = (entity: EntityInstance, canJump: boolean): number => {
 const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => ({
     ...profile,
     canFly: profile.canFly || entity.hasComponent('minecraft:can_fly'),
-    canClimbLadders: entity.hasComponent('minecraft:can_climb')
+    canClimbLadders: entity.hasComponent('minecraft:can_climb'),
+    canStandOnPowderSnow: entity.hasComponent('minecraft:can_stand_on_powder_snow')
 });
 
 /**
