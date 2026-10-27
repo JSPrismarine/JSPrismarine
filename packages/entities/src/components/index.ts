@@ -71,7 +71,7 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  *
  * The line this list draws is every non-goal key that two or more of the 129
  * vanilla entities use, plus the singleton markers that change target
- * selection, damage, persistence, or actor metadata. The other 42 keys only one
+ * selection, damage, persistence, or actor metadata. The other 41 keys only one
  * entity uses remain unregistered, so the load report names them.
  */
 export const DATA_COMPONENTS: readonly string[] = [
@@ -126,6 +126,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:is_collidable',
     'minecraft:is_dyeable',
     'minecraft:is_hidden_when_invisible',
+    'minecraft:is_ignited',
     'minecraft:is_illager_captain',
     'minecraft:is_saddled',
     'minecraft:is_shaking',

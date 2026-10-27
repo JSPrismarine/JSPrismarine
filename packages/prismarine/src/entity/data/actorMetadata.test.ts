@@ -50,4 +50,36 @@ describe('actor metadata from entity components', () => {
         applyActorMetadataProjection(body, actorMetadataProjection(creeper));
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.POWERED))).toBe(false);
     });
+
+    it('projects a primed TNT component group to the ignited actor flag', () => {
+        const fixture = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                'jsprismarine:primed_tnt': {
+                    components: { 'minecraft:physics': {} },
+                    component_groups: { primed: { 'minecraft:is_ignited': {} } },
+                    events: { prime: { add: { component_groups: ['primed'] } } }
+                }
+            }
+        );
+        const tnt = fixture.runtime.spawn('jsprismarine:primed_tnt', {
+            x: 0.5,
+            y: FLOOR_Y + 1,
+            z: 0.5
+        });
+        if (tnt === undefined) throw new Error('the fixture did not declare primed TNT');
+
+        const metadata = new Metadata();
+        const body = stub<Entity>({ metadata });
+        applyActorMetadataProjection(body, actorMetadataProjection(tnt));
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(false);
+
+        fixture.runtime.trigger(tnt.body, 'prime', 'self');
+        fixture.runtime.tick(1);
+
+        expect(tnt.instance.hasComponent('minecraft:is_ignited')).toBe(true);
+        applyActorMetadataProjection(body, actorMetadataProjection(tnt));
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(true);
+    });
 });

@@ -55,7 +55,10 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             value: isRecord(physics) && physics.hasGravity === true
         },
         { flag: MetadataFlag.HAS_COLLISION, value: !isRecord(physics) || physics.hasCollision !== false },
-        { flag: MetadataFlag.IGNITED, value: body.fuseTicks !== undefined },
+        {
+            flag: MetadataFlag.IGNITED,
+            value: body.fuseTicks !== undefined || instance.hasComponent('minecraft:is_ignited')
+        },
         { flag: ActorFlags.POWERED, value: instance.hasComponent('minecraft:is_charged') },
         {
             flag: ActorFlags.TAMED,

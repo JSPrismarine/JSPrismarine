@@ -106,7 +106,8 @@ const MARKER_COMPONENTS = [
     'minecraft:fire_immune',
     'minecraft:freezing_immune',
     'minecraft:cannot_be_attacked',
-    'minecraft:is_charged'
+    'minecraft:is_charged',
+    'minecraft:is_ignited'
 ];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
@@ -351,13 +352,13 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use, 160 of the 202, which covers 105, and every
+        // or more entities use, 161 of the 202, which covers 106, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(160);
-        expect(withBehavior).toHaveLength(41);
-        expect(componentCovered).toBeGreaterThanOrEqual(105);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(161);
+        expect(withBehavior).toHaveLength(42);
+        expect(componentCovered).toBeGreaterThanOrEqual(106);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
     });
