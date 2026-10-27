@@ -116,6 +116,9 @@ export class MobBody {
      */
     public equipmentRevision = 0;
 
+    /** Called after default equipment changes, once the entity's component state is active. */
+    public onEquipmentChanged: ((previous: MobEquipmentSet, next: MobEquipmentSet) => void) | undefined;
+
     /**
      * What the entity holds in its main hand, as an item identifier.
      *
@@ -153,6 +156,8 @@ export class MobBody {
     public setEquipment(equipment: MobEquipmentSet): boolean {
         if (sameEquipment(this.equipment, equipment)) return false;
 
+        const previous = this.equipment;
+
         for (const slot of MOB_EQUIPMENT_SLOTS) {
             if (!sameEquipment({ [slot]: this.equipment[slot] }, { [slot]: equipment[slot] }))
                 delete this.equipmentInventorySlots[slot];
@@ -160,6 +165,7 @@ export class MobBody {
 
         this.equipment = equipment;
         this.equipmentRevision += 1;
+        this.onEquipmentChanged?.(previous, equipment);
 
         return true;
     }

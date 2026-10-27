@@ -9,7 +9,7 @@ import { parseEventTarget } from '../events';
 import { damagerSubjects } from '../filterContext';
 import type { FilterEntityView, FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
-import type { EntityHooks } from '../hooks';
+import type { EntityEquipmentSlot, EntityHooks } from '../hooks';
 import type {
     EntityAddItemsRequest,
     EntityItemInteractionEffect,
@@ -2424,7 +2424,7 @@ export const transformation: ComponentFactory<EntityHooks, TransformationParams>
 };
 
 /**
- * Builds one of the eleven `minecraft:on_*` components.
+ * Builds one of the ten event-shaped `minecraft:on_*` components.
  *
  * The component carries no hooks because it runs at a fixed point rather than
  * on a schedule of its own. {@link EntityInstance.trigger} reads the parsed
@@ -2449,6 +2449,71 @@ export const triggerComponent = (name: string): ComponentFactory<EntityHooks, Tr
     },
     create: () => ({})
 });
+
+/** One slot watched by `minecraft:on_equipment_changed`. */
+export interface EquipmentChangedSlot {
+    /** The default equipment slot, using Bedrock's fully qualified name. */
+    readonly slot: EntityEquipmentSlot;
+    /** Event raised when an item is placed into the slot. */
+    readonly onEquip?: string;
+    /** Event raised when the slot is cleared. */
+    readonly onUnequip?: string;
+}
+
+/** What `minecraft:on_equipment_changed` declares. */
+export interface EquipmentChangedParams {
+    /** Slot rules in source order; the first matching rule decides each change. */
+    readonly slots: readonly EquipmentChangedSlot[];
+}
+
+const EQUIPMENT_CHANGED_SLOTS: readonly EntityEquipmentSlot[] = [
+    'slot.armor.body',
+    'slot.armor.chest',
+    'slot.armor.feet',
+    'slot.armor.head',
+    'slot.armor.legs',
+    'slot.weapon.mainhand',
+    'slot.weapon.offhand'
+];
+
+/** `minecraft:on_equipment_changed`, with a distinct event for equip and unequip per slot. */
+export const equipmentChanged: ComponentFactory<EntityHooks, EquipmentChangedParams> = {
+    name: 'minecraft:on_equipment_changed',
+    hooks: ['onEquipmentChanged'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        if (value.slots !== undefined && !Array.isArray(value.slots)) return rejected('slots must be an array');
+
+        const slots: EquipmentChangedSlot[] = [];
+        for (const raw of asList(value.slots)) {
+            if (!isRecord(raw)) return rejected('each slots entry must be an object');
+            if (raw.on_equip !== undefined && typeof raw.on_equip !== 'string')
+                return rejected('on_equip must be a string');
+            if (raw.on_unequip !== undefined && typeof raw.on_unequip !== 'string')
+                return rejected('on_unequip must be a string');
+
+            if (raw.slot !== undefined && typeof raw.slot !== 'string') return rejected('slot must be a string');
+            const requestedSlot = typeof raw.slot === 'string' ? raw.slot : 'slot.weapon.mainhand';
+            const slot = EQUIPMENT_CHANGED_SLOTS.find((candidate) => candidate === requestedSlot);
+            if (slot === undefined) return rejected(`unsupported equipment slot ${requestedSlot}`);
+
+            slots.push({
+                slot,
+                ...(typeof raw.on_equip === 'string' ? { onEquip: raw.on_equip } : {}),
+                ...(typeof raw.on_unequip === 'string' ? { onUnequip: raw.on_unequip } : {})
+            });
+        }
+
+        return accepted({ slots });
+    },
+    create: (params) => ({
+        onEquipmentChanged: (entity, slot, equipped) => {
+            const rule = params.slots.find((candidate) => candidate.slot === slot);
+            const event = equipped ? rule?.onEquip : rule?.onUnequip;
+            if (event !== undefined) entity.fire(event);
+        }
+    })
+};
 
 /** The three integer state components filters and the wire both read. */
 export const integerStateComponents: readonly ComponentFactory<EntityHooks, number>[] = [

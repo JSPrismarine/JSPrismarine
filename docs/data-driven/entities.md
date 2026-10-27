@@ -198,9 +198,10 @@ Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_P
 `WASD_FREE_CAMERA_CONTROLLED`, and `CAN_USE_VERTICAL_MOVEMENT_ACTION` to actor metadata;
 `minecraft:fire_immune`, which prevents fire damage and projects `FIRE_IMMUNE`;
 `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
-`minecraft:bounciness`, which the shared body physics reads from the active component set; the
-eleven `minecraft:on_*`
-trigger components; and `minecraft:cannot_be_attacked`, which blocks entity attacks.
+`minecraft:bounciness`, which the shared body physics reads from the active component set; the ten
+event-shaped `minecraft:on_*` trigger components; `minecraft:on_equipment_changed`, which raises
+the first matching event when one of its default equipment slots changes; and
+`minecraft:cannot_be_attacked`, which blocks entity attacks.
 `minecraft:interact` evaluates item filters, enforces cooldowns, raises its event, adjusts health,
 plays sounds, emits vibrations, creates configured entities, and rolls its `add_items` and
 `spawn_items` loot tables. It also applies `hurt_item`, `use_item`, and `transform_to_item` through

@@ -482,7 +482,7 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
     }
 
     /**
-     * Fires one of the eleven `minecraft:on_*` components.
+     * Fires one of the ten event-shaped `minecraft:on_*` components.
      *
      * The component's own `filters` gate it, a `self` target queues the event
      * for the entity's next tick, and any other target leaves as an outgoing

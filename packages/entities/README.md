@@ -185,11 +185,14 @@ and the `other` filter subjects.
 `minecraft:angry.filters` excludes matching targets while that component is active. The runtime
 applies both rules during entity target checks, melee, projectile, and explosion damage.
 
-The eleven `minecraft:on_*` components fire through `EntityInstance.trigger`, which evaluates the
-component's own filters, queues a `self` event for the next tick and routes any other target. Five
-fire from inside the package: `on_hurt`, `on_hurt_by_player` and `on_death` from a damage event, and
-`on_target_acquired` and `on_target_escape` from `setAttackTarget`. The other six name equipment,
-fire, flight, sleep and friendly anger, which no state here owns, so a caller fires those.
+The ten event-shaped `minecraft:on_*` components fire through `EntityInstance.trigger`, which
+evaluates the component's filters, queues a `self` event for the next tick and routes any other
+target. Six fire from inside the package: `on_hurt`, `on_hurt_by_player` and `on_death` from a
+damage event, `on_target_acquired` and `on_target_escape` from `setAttackTarget`, and
+`on_friendly_anger` from the anger broadcast. A caller fires the other four after the entity is set
+on fire, starts landing or taking off, or wakes with its owner. The slot-specific
+`minecraft:on_equipment_changed` raises the first matching `on_equip` or `on_unequip` event when a
+default equipment slot changes; inventory slots are outside its scope.
 
 `minecraft:rideable` seats riders on the vehicle. `mount` checks the seat count and the
 `family_types` list, moves a rider off whatever it was riding, and fires `on_rider_enter_event`;
@@ -230,7 +233,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:despawn` | Applies the distance and chance rules, or its filters, unless the entity is persistent |
 | `minecraft:instant_despawn` | Removes the entity the moment it becomes active |
 | `minecraft:ignore_cannot_be_attacked` | Lets attacker data filter exceptions to a target's attack protection |
-| the eleven `minecraft:on_*` | Raise their event at the fixed point the engine or a caller reaches |
+| `minecraft:on_*` triggers | Raise events at their owning fixed point; `on_equipment_changed` watches default equipment slots |
 
 Other empty markers are read directly rather than through hooks:
 `minecraft:persistent` stops `minecraft:despawn`; `minecraft:transient` excludes the actor from saved
@@ -281,8 +284,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a component hook | 76 |
-| Non-goal keys with a runtime effect across the server | 81 |
+| Non-goal keys with a component hook | 77 |
+| Non-goal keys with a runtime effect across the server | 82 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -324,9 +327,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 76 component factories have hooks, and 81
+measures name coverage rather than complete simulation: 77 component factories have hooks, and 82
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 121 bodies are available as data for behavior that still needs to be added.
+included. The remaining 120 bodies are available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -349,10 +352,11 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   and `transform` for despawn and transformation, `effects` for the six event actions that leave the
   package, `route` for a trigger aimed at another entity, `molang` for the expressions in component
   bodies, and `filterContext` for everything about the world a filter asks.
-- **The six trigger components nothing here fires.** `on_equipment_changed`, `on_ignite`,
-  `on_start_landing`, `on_start_takeoff`, `on_wake_with_owner` and `on_friendly_anger` need
-  equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
-  `EntityInstance.trigger` the moment a caller reaches its fixed point.
+- **The four event-shaped triggers whose state is outside the package.** `on_ignite`,
+  `on_start_landing`, `on_start_takeoff` and `on_wake_with_owner` need fire, flight or sleep state
+  the package does not own. Each parses and runs through `EntityInstance.trigger` when a caller
+  reaches its fixed point. `on_equipment_changed` is handled by default equipment slot changes,
+  and `on_friendly_anger` is handled by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  121 currently expose data without runtime behavior. The component bodies remain accessible to the
+  120 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

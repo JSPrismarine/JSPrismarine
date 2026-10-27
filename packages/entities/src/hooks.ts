@@ -31,6 +31,16 @@ export interface EntityAngerBroadcast {
     readonly target?: FilterEntityView;
 }
 
+/** A Bedrock equipment slot watched by `minecraft:on_equipment_changed`. */
+export type EntityEquipmentSlot =
+    | 'slot.armor.body'
+    | 'slot.armor.chest'
+    | 'slot.armor.feet'
+    | 'slot.armor.head'
+    | 'slot.armor.legs'
+    | 'slot.weapon.mainhand'
+    | 'slot.weapon.offhand';
+
 /**
  * What a goal does to the entity it runs on.
  *
@@ -264,6 +274,8 @@ export interface EntityHooks {
     onTick: (entity: EntityInstance) => void;
     /** Runs when a nearby entity with the same type broadcasts anger. */
     onFriendlyAnger: (entity: EntityInstance) => void;
+    /** Runs when an item is placed into or removed from a default equipment slot. */
+    onEquipmentChanged: (entity: EntityInstance, slot: EntityEquipmentSlot, equipped: boolean) => void;
     /** Runs when the entity attacks another entity. */
     onAttack: (entity: EntityInstance, target: FilterEntityView) => void;
     /** Decides what one damage event does; the first handler that answers wins. */

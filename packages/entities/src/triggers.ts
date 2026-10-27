@@ -4,13 +4,28 @@ import type { EventTarget } from './events';
 import { EVENT_TARGETS } from './events';
 
 /**
- * The `minecraft:on_*` components, which name an event the engine fires at a
- * fixed point rather than on a schedule the component owns.
+ * The ten `minecraft:on_*` components, which name an event the engine fires at
+ * a fixed point rather than on a schedule the component owns. The
+ * slot-specific `minecraft:on_equipment_changed` is defined separately.
  *
  * The parsed parameters live here rather than beside the component factory so
  * {@link EntityInstance.trigger} can read them back without importing the
  * component module.
  */
+
+/** The ten event-shaped `minecraft:on_*` components. */
+export const EVENT_TRIGGER_COMPONENTS = [
+    'minecraft:on_death',
+    'minecraft:on_friendly_anger',
+    'minecraft:on_hurt',
+    'minecraft:on_hurt_by_player',
+    'minecraft:on_ignite',
+    'minecraft:on_start_landing',
+    'minecraft:on_start_takeoff',
+    'minecraft:on_target_acquired',
+    'minecraft:on_target_escape',
+    'minecraft:on_wake_with_owner'
+] as const;
 
 /** The eleven `minecraft:on_*` components vanilla declares. */
 export const TRIGGER_COMPONENTS = [
@@ -27,18 +42,18 @@ export const TRIGGER_COMPONENTS = [
     'minecraft:on_wake_with_owner'
 ] as const;
 
-/** One of {@link TRIGGER_COMPONENTS}. */
-export type TriggerComponentName = (typeof TRIGGER_COMPONENTS)[number];
+/** One of {@link EVENT_TRIGGER_COMPONENTS}, which can be fired directly. */
+export type TriggerComponentName = (typeof EVENT_TRIGGER_COMPONENTS)[number];
 
 /**
- * The six trigger components this package fires itself.
+ * The six event-shaped trigger components this package fires itself.
  *
  * `minecraft:damage_sensor` and {@link EntityInstance.damage} fire the three
  * hurt and death ones, {@link EntityInstance.setAttackTarget} fires the two
  * target ones, and the entity runtime fires friendly anger when a nearby mob
- * broadcasts it. The other five name states no part of this package owns, so
- * a caller fires them through {@link EntityInstance.trigger} once it has
- * equipment, fire, flight and sleep.
+ * broadcasts it. The other four name states no part of this package owns, so
+ * a caller fires them through {@link EntityInstance.trigger} once it has fire,
+ * flight and sleep.
  */
 export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_death',
@@ -49,7 +64,7 @@ export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_target_escape'
 ];
 
-/** What one of the eleven `minecraft:on_*` components declares. */
+/** What an event-shaped `minecraft:on_*` component declares. */
 export interface TriggerComponentParams {
     /** The event to fire; a body with none fires nothing, which four vanilla bodies do. */
     readonly event?: string;
@@ -59,7 +74,7 @@ export interface TriggerComponentParams {
     readonly filters?: Filter;
 }
 
-/** Whether a value is the parsed body of a trigger component. */
+/** Whether a value is the parsed body of an event-shaped trigger component. */
 export const isTriggerParams = (value: unknown): value is TriggerComponentParams => {
     if (typeof value !== 'object' || value === null || !('target' in value)) return false;
     const target: unknown = value.target;

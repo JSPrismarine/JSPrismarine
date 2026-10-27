@@ -5,7 +5,7 @@ import type { EntityComponentRegistry } from '../entityType';
 import type { EntityHooks } from '../hooks';
 import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
-import { TRIGGER_COMPONENTS } from '../triggers';
+import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
 import { dataComponent } from './schemas';
 import {
     ageable,
@@ -25,6 +25,7 @@ import {
     despawn,
     environmentSensor,
     equipment,
+    equipmentChanged,
     experienceReward,
     frictionModifier,
     healable,
@@ -233,7 +234,8 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(bounciness);
     for (const kind of NAVIGATION_KINDS) register(navigationComponent(kind));
     for (const [kind, maxTurn] of MOVEMENT_KINDS) register(movementComponent(kind, maxTurn));
-    for (const name of TRIGGER_COMPONENTS) register(triggerComponent(name));
+    for (const name of EVENT_TRIGGER_COMPONENTS) register(triggerComponent(name));
+    register(equipmentChanged);
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
 
     register(ageable);

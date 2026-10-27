@@ -24,6 +24,7 @@ import type {
     EntityActuator,
     EntityAngerBroadcast,
     EntityEffects,
+    EntityEquipmentSlot,
     EntityPosition,
     EntityRepairItemRequest,
     EntitySpawnRequest,
@@ -70,7 +71,7 @@ import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breed
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
-import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment } from '../equipment';
+import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment, sameEquipment } from '../equipment';
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
@@ -108,6 +109,17 @@ const PROJECTILE_OWNER_GRACE = 5;
 const PROJECTILE_MAX_LIFE = 1200;
 const PROJECTILE_KNOCKBACK = 0.4;
 const PROJECTILE_KNOCKBACK_LIFT = 0.1;
+
+/** The component spellings for the equipment slots the runtime stores. */
+const COMPONENT_EQUIPMENT_SLOTS = {
+    mainhand: 'slot.weapon.mainhand',
+    offhand: 'slot.weapon.offhand',
+    head: 'slot.armor.head',
+    chest: 'slot.armor.chest',
+    legs: 'slot.armor.legs',
+    feet: 'slot.armor.feet',
+    body: 'slot.armor.body'
+} satisfies Record<MobEquipmentSlot, EntityEquipmentSlot>;
 const PLAYER_WIDTH = 0.6;
 const PLAYER_HEIGHT = 1.8;
 const TICKS_PER_SECOND = 20;
@@ -402,6 +414,7 @@ export class EntityRuntime implements EntityScene {
         // sits in - a piglin's weapon depends on whether `melee_unit` or `ranged_unit` was
         // added - so a roll before it would find no component, and a roll after the body
         // would leave the client a frame of an empty-handed skeleton.
+        this.watchEquipment(entity);
         this.equip(entity);
         // After the spawn event, so the body a client is sent already carries whatever the
         // event added: a baby is born a baby rather than growing into one on the next tick.
@@ -441,6 +454,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        this.watchEquipment(entity);
         if (record.leashHolderIdentity !== undefined) this.leashHolders.set(entity.id, record.leashHolderIdentity);
         if (entity.instance.hasComponent('minecraft:projectile')) {
             this.projectiles.set(entity.id, { hitEntities: new Set() });
@@ -649,6 +663,7 @@ export class EntityRuntime implements EntityScene {
         this.byPersistentIdentity.delete(entity.persistentIdentity);
         this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
+        entity.body.onEquipmentChanged = undefined;
         this.grid.remove(entity);
         this.removeGameEventListener(id);
         entity.body.onMove = undefined;
@@ -2077,6 +2092,21 @@ export class EntityRuntime implements EntityScene {
                 report: (message) => this.report(`${entity.identifier}: ${message}`)
             })
         );
+    }
+
+    /** Routes default equipment changes to the active slot-specific component. */
+    private watchEquipment(entity: DataEntity): void {
+        entity.body.onEquipmentChanged = (previous, next) => {
+            for (const slot of MOB_EQUIPMENT_SLOTS) {
+                if (sameEquipment({ [slot]: previous[slot] }, { [slot]: next[slot] })) continue;
+                entity.instance.dispatch(
+                    'onEquipmentChanged',
+                    entity.instance,
+                    COMPONENT_EQUIPMENT_SLOTS[slot],
+                    next[slot] !== undefined
+                );
+            }
+        };
     }
 
     /**
