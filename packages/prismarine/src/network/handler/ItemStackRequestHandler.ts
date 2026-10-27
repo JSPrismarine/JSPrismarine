@@ -381,7 +381,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
          * stone and cracked it at a fist's pace.
          */
         const ownStack = (item: Item, count: number): Item =>
-            new Item({ id: item.getId(), name: item.getName(), meta: item.meta, count, content: server.getContent() });
+            new Item({
+                id: item.getNetworkId(),
+                name: item.getName(),
+                meta: item.meta,
+                count,
+                content: server.getContent()
+            });
 
         // A craft whose request names no slot to spend is spent by the server, from the grid it
         // matched. The retail client at 1.26.52 names each one, but nothing says every client
