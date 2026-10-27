@@ -67,11 +67,17 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
     const cachedBlocks = new Map<number, Map<number, Map<number, ContentBlock | typeof NO_BLOCK>>>();
     let cachedBlockCount = 0;
     let cacheEnabled = true;
+    let lastChunkX: number | undefined;
+    let lastChunkZ: number | undefined;
+    let lastCells: Map<number, ContentBlock | typeof NO_BLOCK> | undefined;
 
     const invalidateBlockCache = (): void => {
         cachedBlocks.clear();
         cachedBlockCount = 0;
         cacheEnabled = true;
+        lastChunkX = undefined;
+        lastChunkZ = undefined;
+        lastCells = undefined;
     };
 
     /** Reads a block once per cell until the runtime invalidates its view. */
@@ -89,7 +95,14 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
         const localX = position.x - chunkX * 16;
         const localZ = position.z - chunkZ * 16;
         const cell = position.y * 256 + localZ * 16 + localX;
-        const cached = cachedBlocks.get(chunkX)?.get(chunkZ)?.get(cell);
+        let cells = lastChunkX === chunkX && lastChunkZ === chunkZ ? lastCells : undefined;
+        if (cells === undefined) {
+            cells = cachedBlocks.get(chunkX)?.get(chunkZ);
+            lastChunkX = chunkX;
+            lastChunkZ = chunkZ;
+            lastCells = cells;
+        }
+        const cached = cells?.get(cell);
         if (cached !== undefined) {
             const block = cached;
             return block === NO_BLOCK ? undefined : block;
@@ -110,12 +123,15 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
             cachedBlocks.set(chunkX, byChunkZ);
         }
 
-        let cells = byChunkZ.get(chunkZ);
+        cells = byChunkZ.get(chunkZ);
         if (cells === undefined) {
             cells = new Map();
             byChunkZ.set(chunkZ, cells);
         }
 
+        lastChunkX = chunkX;
+        lastChunkZ = chunkZ;
+        lastCells = cells;
         cells.set(cell, block ?? NO_BLOCK);
         cachedBlockCount += 1;
         return block;
