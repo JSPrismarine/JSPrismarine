@@ -2122,9 +2122,20 @@ export class World implements Service {
 
     /**
      * Adds an entity body to the level.
+     * Generic bodies a data runtime can build are handed to it first; its replacement body
+     * re-enters here after the runtime has indexed it, so the replacement is added normally.
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        const live = this.server.getEntityRuntime?.(this.dimension.name);
+        if (
+            entity instanceof GenericEntity &&
+            live !== undefined &&
+            live.bodies.entityIdOf(entity) === undefined &&
+            this.restoreDataEntity(entity, live)
+        )
+            return;
+
         // Kept in step only once something has asked for it; before that the first count
         // reads the map, which already holds this arrival. Re-adding one the world already
         // has is a replacement rather than an arrival.
