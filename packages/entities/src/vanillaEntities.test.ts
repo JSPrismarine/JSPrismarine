@@ -107,6 +107,7 @@ const RUNTIME_COMPONENTS = [
     'minecraft:can_stand_on_powder_snow',
     'minecraft:can_power_jump',
     'minecraft:fire_immune',
+    'minecraft:out_of_control',
     'minecraft:freezing_immune',
     'minecraft:cannot_be_attacked',
     'minecraft:is_charged',
@@ -377,7 +378,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(65);
+        expect(withBehavior).toHaveLength(66);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
