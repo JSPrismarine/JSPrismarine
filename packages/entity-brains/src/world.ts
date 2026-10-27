@@ -139,6 +139,8 @@ export interface BrainEntity {
     /** The entity type tags, such as `minecraft:axolotl_hunt_targets`. */
     readonly typeTags: ReadonlySet<string>;
     readonly position: Vec3;
+    /** Where its eyes are, when the world can provide that detail. */
+    readonly eyePosition?: Vec3;
     readonly alive: boolean;
     readonly baby: boolean;
     readonly spectator: boolean;

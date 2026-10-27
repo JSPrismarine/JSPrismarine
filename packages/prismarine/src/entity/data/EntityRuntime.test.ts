@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { Activities } from '@jsprismarine/entity-brains';
+import { Activities, MemoryModuleTypes, entityTracker } from '@jsprismarine/entity-brains';
 import type { FilterEntityView } from '@jsprismarine/entities';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 
@@ -887,6 +887,55 @@ describe('EntityRuntime', () => {
             expect(villager?.position.y).toBe(GROUND.y);
             expect(zombie?.position).not.toMatchObject({ x: zombieStart.x, z: zombieStart.z });
             expect(villager?.position).not.toMatchObject({ x: villagerStart.x, z: villagerStart.z });
+        });
+
+        it('looks at a player’s eyes from goal-driven AI', () => {
+            const player = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 4.5, y: GROUND.y, z: 0.5 }
+            };
+            const { runtime } = entityFixture(
+                new TestEntityWorld({ players: [player] }),
+                {},
+                {
+                    'jsprismarine:watcher': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:behavior.look_at_player': {
+                                priority: 1,
+                                look_distance: 8,
+                                probability: 1
+                            }
+                        }
+                    }
+                }
+            );
+            const watcher = runtime.spawn('jsprismarine:watcher', GROUND);
+            if (watcher === undefined) throw new Error('the fixture declares no watcher');
+
+            runtime.tick(1);
+
+            expect(watcher.body.pitch).toBeLessThan(-15);
+        });
+
+        it('looks at a player’s eyes from brain-driven AI', () => {
+            const player = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 4.5, y: GROUND.y, z: 0.5 }
+            };
+            const { runtime } = entityFixture(new TestEntityWorld({ players: [player] }));
+            const villager = runtime.spawn('minecraft:villager_v2', GROUND);
+            if (villager?.brain === undefined) throw new Error('the fixture villager has no brain');
+            const target = runtime.brainWorld().players()[0];
+            if (target === undefined) throw new Error('the fixture has no player target');
+            villager.brain.setMemory(MemoryModuleTypes.LOOK_TARGET, entityTracker(target));
+
+            runtime.tick(1);
+
+            expect(villager.body.pitch).toBeLessThan(-15);
         });
 
         it('respects entity data that disables gravity', () => {

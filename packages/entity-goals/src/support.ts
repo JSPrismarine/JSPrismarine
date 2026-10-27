@@ -253,6 +253,11 @@ export class GoalSupport {
         this.actuator?.lookAt(position);
     }
 
+    /** Points the entity's head at another mob's eyes, falling back to its position. */
+    public lookAtMob(mob: GoalMob): void {
+        this.lookAt(mob.lookPosition?.() ?? mob.position());
+    }
+
     /** Records something the goal met and could not carry out. */
     public report(message: string): void {
         this.world.report?.(message);

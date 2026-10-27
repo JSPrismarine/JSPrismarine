@@ -89,7 +89,7 @@ export const breed = goal<BreedParams>({
             tick: () => {
                 const mate = partner;
                 if (mate === undefined) return;
-                support.lookAt(mate.position());
+                support.lookAtMob(mate);
                 support.navigator.moveTo(mate.position(), params.speedMultiplier, BREED_DISTANCE);
                 courting += 1;
                 if (courting < LOVE_TICKS || support.distanceTo(mate.position()) > BREED_DISTANCE) return;
@@ -128,7 +128,7 @@ export const makeLove = goal<Record<string, unknown>>({
             tick: () => {
                 const mate = partner;
                 if (mate === undefined) return;
-                support.lookAt(mate.position());
+                support.lookAtMob(mate);
                 support.navigator.moveTo(mate.position(), 1, BREED_DISTANCE);
                 courting += 1;
                 if (courting >= LOVE_TICKS) support.world.breedWith?.(mate);
@@ -283,7 +283,7 @@ const temptLoop = (support: GoalSupport, params: TemptParams): Goal => {
         tick: () => {
             const holder = player;
             if (holder === undefined) return;
-            support.lookAt(holder.position());
+            support.lookAtMob(holder);
             if (params.temptSound !== undefined && (soundTimer -= 1) <= 0) {
                 soundTimer = support.between(params.soundInterval[0], params.soundInterval[1]);
                 support.playSound(params.temptSound);
@@ -382,7 +382,7 @@ export const followOwner = goal<FollowOwnerParams>({
             tick: () => {
                 const keeper = owner;
                 if (keeper === undefined) return;
-                support.lookAt(keeper.position());
+                support.lookAtMob(keeper);
                 if ((repath -= 1) > 0) {
                     support.navigator.tick();
                     return;
@@ -625,7 +625,7 @@ export const play = goal<PlayParams>({
                 if (friend !== undefined) support.navigator.moveTo(friend.position(), params.speedMultiplier, 2);
             },
             tick: () => {
-                if (friend !== undefined) support.lookAt(friend.position());
+                if (friend !== undefined) support.lookAtMob(friend);
                 support.navigator.tick();
             },
             stop: () => {
@@ -687,7 +687,7 @@ export const mingle = goal<MingleParams>({
             },
             tick: () => {
                 remaining -= 1;
-                if (partner !== undefined) support.lookAt(partner.position());
+                if (partner !== undefined) support.lookAtMob(partner);
                 support.navigator.tick();
             },
             stop: () => {
@@ -789,7 +789,7 @@ export const beg = goal<{
             },
             tick: () => {
                 remaining -= 1;
-                if (player !== undefined) support.lookAt(player.position());
+                if (player !== undefined) support.lookAtMob(player);
             },
             stop: () => {
                 remaining = 0;
@@ -830,7 +830,7 @@ export const offerFlower = goal<{ readonly filters: Filter | undefined }>({
             },
             tick: () => {
                 remaining -= 1;
-                if (villager !== undefined) support.lookAt(villager.position());
+                if (villager !== undefined) support.lookAtMob(villager);
             },
             stop: () => {
                 remaining = 0;
@@ -871,7 +871,7 @@ export const takeFlower = goal<{ readonly filters: Filter | undefined; readonly 
             },
             tick: () => {
                 remaining -= 1;
-                if (giver !== undefined) support.lookAt(giver.position());
+                if (giver !== undefined) support.lookAtMob(giver);
             },
             stop: () => {
                 remaining = 0;
@@ -966,7 +966,7 @@ export const tradeInterest = goal<TradeInterestParams>({
             },
             tick: () => {
                 remaining -= 1;
-                if (player !== undefined) support.lookAt(player.position());
+                if (player !== undefined) support.lookAtMob(player);
                 if ((switchTimer -= 1) > 0) return;
                 switchTimer = params.carriedItemSwitchTime;
                 const offers = support.world.inventory?.() ?? [];

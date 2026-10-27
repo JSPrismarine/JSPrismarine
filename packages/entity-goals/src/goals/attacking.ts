@@ -102,7 +102,7 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
             const current = target;
             if (current === undefined) return;
             const where = current.position();
-            support.lookAt(where);
+            support.lookAtMob(current);
 
             if ((repath -= 1) <= 0) {
                 repath = REPATH_INTERVAL;
@@ -310,7 +310,7 @@ export const rangedAttack = goal<RangedAttackParams>({
                 if (current === undefined) return;
                 const where = current.position();
                 const range = support.distanceTo(where);
-                support.lookAt(where);
+                support.lookAtMob(current);
 
                 if (range > params.attackRadius) support.navigator.moveTo(where, params.speedMultiplier, 1);
                 else if (range < params.attackRadiusMin)
@@ -393,7 +393,7 @@ export const fireAtTarget = goal<FireAtTargetParams>({
             tick: () => {
                 const current = target;
                 if (current === undefined) return;
-                support.lookAt(current.position());
+                support.lookAtMob(current);
                 phase -= 1;
                 if (phase === params.postShootDelay) support.world.shoot?.(current, params.projectile);
             },
@@ -447,7 +447,7 @@ const chargeLoop = (support: GoalSupport, params: ChargeAttackParams): Goal => {
         tick: () => {
             const current = target;
             if (current === undefined) return;
-            support.lookAt(current.position());
+            support.lookAtMob(current);
             support.navigator.tick();
             if (support.distanceTo(current.position()) > params.attackReach) return;
             support.world.attack?.(current);
@@ -615,9 +615,10 @@ export const jumpAroundTarget = goal<JumpAroundTargetParams>({
                 prepare = params.prepareDuration;
             },
             tick: () => {
-                const where = target?.position();
-                if (where === undefined) return;
-                support.lookAt(where);
+                const current = target;
+                if (current === undefined) return;
+                const where = current.position();
+                support.lookAtMob(current);
                 if ((prepare -= 1) > 0) return;
                 const here = support.position();
                 const angle = support.random() * Math.PI * 2;
@@ -792,7 +793,7 @@ export const swell = goal<SwellParams>({
                 support.navigator.stop();
             },
             tick: () => {
-                if (target !== undefined) support.lookAt(target.position());
+                if (target !== undefined) support.lookAtMob(target);
             },
             stop: () => {
                 target = undefined;
@@ -844,7 +845,7 @@ export const holdGround = goal<HoldGroundParams>({
                     support.fire(params.withinRadiusEvent, friend);
             },
             tick: () => {
-                if (target !== undefined) support.lookAt(target.position());
+                if (target !== undefined) support.lookAtMob(target);
             },
             stop: () => {
                 target = undefined;
@@ -879,7 +880,7 @@ export const roar = goal<RoarParams>({
             tick: () => {
                 remaining -= 1;
                 const current = support.target();
-                if (current !== undefined) support.lookAt(current.position());
+                if (current !== undefined) support.lookAtMob(current);
             },
             stop: () => {
                 remaining = 0;
@@ -1011,7 +1012,7 @@ export const sonicBoom = goal<SonicBoomParams>({
             tick: () => {
                 remaining -= 1;
                 const current = support.target();
-                if (current !== undefined) support.lookAt(current.position());
+                if (current !== undefined) support.lookAtMob(current);
                 if (fired || remaining > 0 || current === undefined) return;
                 fired = true;
                 support.playSound(params.attackSound);
@@ -1090,7 +1091,7 @@ export const ramAttack = goal<RamAttackParams>({
             tick: () => {
                 const current = target;
                 if (current === undefined) return;
-                support.lookAt(current.position());
+                support.lookAtMob(current);
                 support.navigator.tick();
                 if (support.distanceTo(current.position()) > 1.5) return;
                 support.playSound(params.impactSound);
@@ -1152,7 +1153,7 @@ export const slimeAttack = goal<Record<string, unknown>>({
         tick: () => {
             const current = support.target();
             if (current === undefined) return;
-            support.lookAt(current.position());
+            support.lookAtMob(current);
             slimeHeadingOf(support.entity).toward(support.position(), current.position());
             if (support.distanceTo(current.position()) <= MELEE_REACH) support.world.attack?.(current);
         }
@@ -1185,7 +1186,7 @@ export const guardianAttack = goal<Record<string, unknown>>({
             tick: () => {
                 const current = support.target();
                 if (current === undefined) return;
-                support.lookAt(current.position());
+                support.lookAtMob(current);
                 charge += 1;
                 if (charge < chargeTicks) return;
                 charge = 0;
@@ -1252,7 +1253,7 @@ export const ocelotAttack = goal<OcelotAttackParams>({
                 if (current === undefined) return;
                 const where = current.position();
                 const range = support.distanceTo(where);
-                support.lookAt(where);
+                support.lookAtMob(current);
                 const speed =
                     range <= params.maxSprintRange
                         ? params.sprintSpeedMultiplier
@@ -1327,7 +1328,7 @@ export const stalkAndPounceOnTarget = goal<StalkAndPounceParams>({
                 const current = target;
                 if (current === undefined) return;
                 const where = current.position();
-                support.lookAt(where);
+                support.lookAtMob(current);
                 const range = support.distanceTo(where);
                 if (range > params.pounceMaxDistance) {
                     support.navigator.moveTo(where, params.stalkSpeed, 1);
@@ -1424,7 +1425,7 @@ export const useKineticWeapon = goal<UseKineticWeaponParams>({
                 if (current === undefined) return;
                 const where = current.position();
                 const range = support.distanceTo(where);
-                support.lookAt(where);
+                support.lookAtMob(current);
 
                 if (backingOff) {
                     if (range >= params.repositionDistance[0]) backingOff = false;
@@ -1506,7 +1507,7 @@ export const eatMob = goal<EatMobParams>({
                 const current = prey;
                 if (current === undefined) return;
                 const where = current.position();
-                support.lookAt(where);
+                support.lookAtMob(current);
 
                 if (swallowing > 0) {
                     swallowing -= 1;

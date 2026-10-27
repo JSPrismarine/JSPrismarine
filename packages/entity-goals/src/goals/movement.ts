@@ -1645,7 +1645,7 @@ const followLoop = (
         tick: () => {
             const friend = companion;
             if (friend === undefined) return;
-            support.lookAt(friend.position());
+            support.lookAtMob(friend);
             if ((repath -= 1) > 0) {
                 support.navigator.tick();
                 return;
@@ -1777,7 +1777,7 @@ export const mountPathing = goal<{
                     support.navigator.moveTo(destination.position(), params.speedMultiplier, params.targetDistance + 1);
             },
             tick: () => {
-                if (destination !== undefined && params.trackTarget) support.lookAt(destination.position());
+                if (destination !== undefined && params.trackTarget) support.lookAtMob(destination);
                 support.navigator.tick();
             },
             stop: () => {

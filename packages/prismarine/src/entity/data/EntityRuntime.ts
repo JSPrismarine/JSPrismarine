@@ -73,7 +73,7 @@ import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
-import { blockPositionOf } from './position';
+import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf } from './position';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
@@ -112,7 +112,7 @@ const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): 
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
 
 /** The default eye position as a fraction of a non-player entity's hitbox height. */
-export const PROJECTILE_EYE_HEIGHT_FRACTION = 0.85;
+export const PROJECTILE_EYE_HEIGHT_FRACTION = ENTITY_EYE_HEIGHT_FRACTION;
 
 /** The body and flight lifetime state of one active projectile. */
 interface ProjectileState {

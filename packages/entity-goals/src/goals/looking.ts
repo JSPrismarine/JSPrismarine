@@ -51,7 +51,7 @@ const lookLoop = (
         },
         tick: () => {
             remaining -= 1;
-            if (subject !== undefined) support.lookAt(subject.position());
+            if (subject !== undefined) support.lookAtMob(subject);
         },
         stop: () => {
             remaining = 0;

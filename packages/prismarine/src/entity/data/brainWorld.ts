@@ -22,11 +22,12 @@ import type { Brain } from '@jsprismarine/entity-brains';
 import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 
+import { EYE_HEIGHT } from '../Human';
 import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
 import { actuatorOf, withinMeleeReach } from './goalWorld';
-import { blockPositionOf } from './position';
+import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
 
 /** How far a sensor may look for a non-combat target when the type declares no follow range. */
@@ -38,6 +39,7 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
     type: entity.identifier,
     typeTags: new Set(entity.facts.families),
     position: entity.position,
+    eyePosition: entityEyePosition(entity.position, entity.facts.box.height),
     alive: entity.removed === undefined,
     baby: entity.instance.hasComponent('minecraft:is_baby'),
     spectator: false,
@@ -53,6 +55,7 @@ const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity =
     type: player.identifier,
     typeTags: new Set(),
     position: player.position,
+    eyePosition: { x: player.position.x, y: player.position.y + EYE_HEIGHT, z: player.position.z },
     alive: true,
     baby: false,
     spectator: player.spectator === true,

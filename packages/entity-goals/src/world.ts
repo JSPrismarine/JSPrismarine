@@ -22,6 +22,8 @@ export interface GoalMob {
     readonly id: string | number;
     /** Where it is now. */
     position(): EntityPosition;
+    /** Where its eyes are, when the world can provide that detail. */
+    lookPosition?(): EntityPosition;
     /** Its filter view, which is what an `entity_types` filter evaluates against as `other`. */
     view(): FilterEntityView;
     /** Its entity type, such as `minecraft:villager_v2`. */

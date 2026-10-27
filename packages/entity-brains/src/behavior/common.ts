@@ -181,7 +181,7 @@ export function lookAtTargetSink(minDuration: number, maxDuration: number): Beha
         tick: (context) => {
             const target = context.body.brain.getMemory(MemoryModuleTypes.LOOK_TARGET);
             if (target !== undefined) {
-                context.body.lookAt(target.currentPosition());
+                context.body.lookAt(target.entity?.eyePosition ?? target.currentPosition());
             }
         }
     };

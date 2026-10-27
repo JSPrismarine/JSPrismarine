@@ -16,9 +16,10 @@ import { canEntityAttack } from '@jsprismarine/entities';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
+import { EYE_HEIGHT } from '../Human';
 import type { DataEntity, MobBody } from './DataEntity';
 import { distance, squaredDistance } from './DataEntity';
-import { blockPositionOf } from './position';
+import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
 
 /** The reach of a melee swing, in blocks, which is Java's base attack range. */
@@ -28,6 +29,7 @@ const MELEE_REACH = 3;
 export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => ({
     id: entity.id,
     position: () => entity.position,
+    lookPosition: () => entityEyePosition(entity.position, entity.facts.box.height),
     view: (): FilterEntityView => entity.instance.filterContext().self,
     identifier: () => entity.identifier,
     heldItem: () => entity.carried,
@@ -259,6 +261,7 @@ const PLAYER_FAMILIES = ['player', 'mob'] as const;
 export const playerGoalMob = (id: number, identifier: string, position: EntityPosition): GoalMob => ({
     id,
     position: () => position,
+    lookPosition: () => ({ x: position.x, y: position.y + EYE_HEIGHT, z: position.z }),
     view: (): FilterEntityView => ({
         id: () => id,
         names: (name) => (name === 'is_family' ? PLAYER_FAMILIES : undefined)
