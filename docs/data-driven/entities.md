@@ -157,7 +157,7 @@ normalize them and expose them through `EntityInstance.componentParams`, which f
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
 
-The 51 that act change entity state or decide an outcome: the nine
+The 57 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
