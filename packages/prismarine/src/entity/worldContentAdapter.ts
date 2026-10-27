@@ -46,6 +46,13 @@ export interface WorldEntityAccessOptions {
      * explain, which is the failure the whole adapter is written to avoid.
      */
     readonly content: ContentLookup;
+    /**
+     * Spawns a declared data entity directly into the live runtime.
+     *
+     * Undefined means no live runtime owns the type, so the compatibility body path below may
+     * handle it. Zero means the runtime owns the type but refused this spawn.
+     */
+    readonly spawnDataDriven?: (identifier: string, at: ContentPosition, data?: BlockEntityData) => number | undefined;
 }
 
 /**
@@ -180,11 +187,24 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
                 })),
         spawn: (identifier, at, data) => {
             const loaded = live();
+            const position = { x: at.x + 0.5, y: at.y + 0.5, z: at.z + 0.5 };
+            const runtimeId = options.spawnDataDriven?.(identifier, position, data);
+            if (runtimeId !== undefined) {
+                if (runtimeId !== 0 && data !== undefined) {
+                    const body = loaded.getEntity(BigInt(runtimeId));
+                    if (body !== null) {
+                        body.persistentNbt ??= new NBTTagCompound('');
+                        applyBlockEntityRecord(body.persistentNbt, data);
+                    }
+                }
+                return runtimeId;
+            }
+
             // The middle of the block, which is where Bedrock puts a mob it spawns and what
             // keeps a lit TNT block's entity standing where the block stood.
-            const position = Position.fromVector3(new Vector3(at.x + 0.5, at.y + 0.5, at.z + 0.5), loaded);
+            const bodyPosition = Position.fromVector3(new Vector3(position.x, position.y, position.z), loaded);
 
-            const body = bodyFor(identifier, position, data, content);
+            const body = bodyFor(identifier, bodyPosition, data, content);
             if (typeof body === 'string') {
                 loaded.getServer().getLogger().debug(body, 'entity/worldContentAdapter');
                 // No id, because nothing was spawned. `remove` ignores an id it does not hold,

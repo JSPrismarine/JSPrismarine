@@ -101,7 +101,19 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
         dimension
     });
 
-    const entities = worldEntityAccess({ world, content });
+    const entities = worldEntityAccess({
+        world,
+        content,
+        spawnDataDriven: (identifier, at, data) => {
+            if (identifier === 'minecraft:item' || identifier === 'minecraft:player') return undefined;
+
+            const live = options.entityRuntimes?.at(dimension);
+            const reference = identifier.includes('<') ? identifier.slice(0, identifier.indexOf('<')) : identifier;
+            if (live === undefined || !content().entities.registry.has(reference)) return undefined;
+
+            return live.runtime.spawn(identifier, at, data === undefined ? {} : { data })?.id ?? 0;
+        }
+    });
     const effects = worldEffectSink(world, dimension);
     const blocks = { ...worldBlocks, ...blockGroup };
 
