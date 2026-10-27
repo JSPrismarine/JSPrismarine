@@ -1,0 +1,53 @@
+import { describe, expect, it } from 'vitest';
+import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
+
+import type { Entity } from '../Entity';
+import { Metadata, MetadataFlag } from '../Metadata';
+import { stub } from '../../testing/stub.test.helper';
+import { applyActorMetadataProjection, actorMetadataProjection } from './actorMetadata';
+import { FLOOR_Y, TestEntityWorld, entityFixture } from './testing';
+
+describe('actor metadata from entity components', () => {
+    it('projects a creeper charge event to the powered actor flag', () => {
+        const fixture = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                'jsprismarine:charged_creeper': {
+                    components: { 'minecraft:physics': {} },
+                    component_groups: { charged: { 'minecraft:is_charged': {} } },
+                    events: {
+                        charge: { add: { component_groups: ['charged'] } },
+                        discharge: { remove: { component_groups: ['charged'] } }
+                    }
+                }
+            }
+        );
+        const creeper = fixture.runtime.spawn('jsprismarine:charged_creeper', {
+            x: 0.5,
+            y: FLOOR_Y + 1,
+            z: 0.5
+        });
+        if (creeper === undefined) throw new Error('the fixture did not declare a charged creeper');
+
+        const metadata = new Metadata();
+        const body = stub<Entity>({ metadata });
+        const uncharged = actorMetadataProjection(creeper);
+        applyActorMetadataProjection(body, uncharged);
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.POWERED))).toBe(false);
+
+        fixture.runtime.trigger(creeper.body, 'charge', 'self');
+        fixture.runtime.tick(1);
+
+        expect(creeper.instance.hasComponent('minecraft:is_charged')).toBe(true);
+        applyActorMetadataProjection(body, actorMetadataProjection(creeper));
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.POWERED))).toBe(true);
+
+        fixture.runtime.trigger(creeper.body, 'discharge', 'self');
+        fixture.runtime.tick(2);
+
+        expect(creeper.instance.hasComponent('minecraft:is_charged')).toBe(false);
+        applyActorMetadataProjection(body, actorMetadataProjection(creeper));
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.POWERED))).toBe(false);
+    });
+});

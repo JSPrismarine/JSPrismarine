@@ -97,15 +97,16 @@ const JAVA_STAT_DISAGREEMENTS = 151;
 const RESOLVED_TO_JAVA = 33;
 
 /**
- * The empty markers the entity reads back itself rather than through a hook,
- * because the component name is the whole of what each one means.
+ * The markers the runtime reads back by presence rather than through a hook,
+ * because the component name carries the state itself.
  */
 const MARKER_COMPONENTS = [
     'minecraft:persistent',
     'minecraft:transient',
     'minecraft:fire_immune',
     'minecraft:freezing_immune',
-    'minecraft:cannot_be_attacked'
+    'minecraft:cannot_be_attacked',
+    'minecraft:is_charged'
 ];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
@@ -350,13 +351,13 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use, 159 of the 202, which covers 104, and every
+        // or more entities use, 160 of the 202, which covers 105, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(159);
-        expect(withBehavior).toHaveLength(40);
-        expect(componentCovered).toBeGreaterThanOrEqual(104);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(160);
+        expect(withBehavior).toHaveLength(41);
+        expect(componentCovered).toBeGreaterThanOrEqual(105);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
     });
