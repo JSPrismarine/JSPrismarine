@@ -183,7 +183,7 @@ const itemProperties = (
         frame_count: nbtInt(bedrockOnly.frame_count),
         hand_equipped: nbtByte(source.hand_equipped ?? false),
         hidden_in_commands: nbtByte(bedrockOnly.hidden_in_commands),
-        liquid_clipped: nbtByte(bedrockOnly.liquid_clipped),
+        liquid_clipped: nbtByte(source.liquid_clipped ?? bedrockOnly.liquid_clipped),
         max_stack_size: nbtInt(source.max_stack_size ?? 64),
         // A data-driven definition can provide its icon directly. These twelve
         // vanilla entries keep their atlas key because their item names do not resolve it.
@@ -191,8 +191,8 @@ const itemProperties = (
             textures: nbtCompound(iconTextureTags)
         }),
         mining_speed: nbtFloat(source.mining_speed ?? 1),
-        should_despawn: nbtByte(bedrockOnly.should_despawn),
-        stacked_by_data: nbtByte(bedrockOnly.stacked_by_data),
+        should_despawn: nbtByte(source.should_despawn ?? bedrockOnly.should_despawn),
+        stacked_by_data: nbtByte(source.stacked_by_data ?? bedrockOnly.stacked_by_data),
         use_animation: nbtInt(source.use_animation ?? 0),
         use_duration: nbtInt(source.use_duration ?? 0)
     });

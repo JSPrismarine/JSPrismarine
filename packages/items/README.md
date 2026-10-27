@@ -137,7 +137,8 @@ come from the creative catalog, the resource pack or nothing at all, and
 them would need a Java-to-Bedrock identifier lookup this package does not depend on. The Bedrock
 definition's explicit display name and icon, plus the type's resolved Bedrock tags, pass through as
 `minecraft:display_name`, `minecraft:icon`, and `item_tags`; Java item tags are not translated. The
-food remainder is available through an injected `mapIdentifier`.
+definition's scalar item components override the corresponding Java-derived registry values when
+present. The food remainder is available through an injected `mapIdentifier`.
 
 ## Flattened facts
 

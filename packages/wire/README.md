@@ -152,10 +152,13 @@ The component values come from `projectItemToBedrock` in `@jsprismarine/items`, 
 leaves out anything Java cannot decide. This package supplies the rest:
 
 - The seven keys `BEDROCK_ONLY_ITEM_PROPERTIES` names. `creative_group`, `frame_count`,
-  `hidden_in_commands`, `liquid_clipped`, `should_despawn` and `stacked_by_data` take the value the
-  capture shows on every item - note that `hidden_in_commands` is a byte holding **2**, not a flag.
-  `creative_category` is per item and comes from the creative catalog through
-  `creativeItemProperties`.
+  `hidden_in_commands`, `liquid_clipped`, `should_despawn` and `stacked_by_data` use the captured
+  defaults unless an explicit Bedrock item component supplies a value - note that
+  `hidden_in_commands` is a byte holding **2**, not a flag. `creative_category` is per item and
+  comes from the creative catalog through `creativeItemProperties`.
+- Explicit Bedrock scalar components take precedence for `allow_off_hand`,
+  `can_destroy_in_creative`, `damage`, `glint`, `hand_equipped`, `liquid_clipped`, `max_stack_size`,
+  `should_despawn` and `stacked_by_data`; otherwise the Java projection or captured defaults apply.
 - The tag type of every value, which the projection has no way to express. Two are worth naming:
   `minecraft:max_stack_size.value` is a **byte** while `item_properties.max_stack_size` is an int,
   and `minecraft:use_modifiers.use_duration` is seconds as a float while

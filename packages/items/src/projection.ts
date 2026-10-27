@@ -61,10 +61,16 @@ export interface BedrockItemProperties {
     use_animation?: number;
     /** Whether the item breaks blocks in creative mode. */
     can_destroy_in_creative?: boolean;
+    /** Whether the item can be used while a liquid occupies the target. */
+    liquid_clipped?: boolean;
     /** The base mining speed multiplier. */
     mining_speed?: number;
     /** Whether the item can be held in the off hand. */
     allow_off_hand?: boolean;
+    /** Whether a dropped item stack despawns. */
+    should_despawn?: boolean;
+    /** Whether stacks with different auxiliary values stay separate. */
+    stacked_by_data?: boolean;
 }
 
 /** The compound an item's `Item Component Data` carries, keyed the way Bedrock keys it. */
@@ -98,8 +104,9 @@ export interface BedrockItemComponents {
 }
 
 /**
- * The `item_properties` keys the Bedrock server fills from its own tables
- * rather than from any item property, so the protocol layer supplies them.
+ * The `item_properties` keys with no Java item-property source, so the
+ * protocol layer supplies captured defaults unless an active Bedrock item
+ * component provides a value.
  * `creative_category` and `creative_group` come from the creative item
  * catalog, `frame_count` from the resource pack's icon animation, and the
  * other three have no Java source at all.
@@ -128,6 +135,24 @@ export const UNPROJECTED_BEDROCK_COMPONENTS = {
 /** Whether an untyped Bedrock JSON value is an object with named fields. */
 const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
     typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Reads a Bedrock component's scalar form or its `{ value }` form. */
+const bedrockScalarOf = (type: ItemType, component: string): unknown => {
+    const source = type.bedrockComponents.get(component);
+    return isRecord(source) ? source.value : source;
+};
+
+/** Reads a boolean Bedrock component from its simple or `{ value }` form. */
+const bedrockBooleanOf = (type: ItemType, component: string): boolean | undefined => {
+    const value = bedrockScalarOf(type, component);
+    return typeof value === 'boolean' ? value : undefined;
+};
+
+/** Reads an integer Bedrock component from its simple or `{ value }` form. */
+const bedrockIntegerOf = (type: ItemType, component: string): number | undefined => {
+    const value = bedrockScalarOf(type, component);
+    return typeof value === 'number' && Number.isSafeInteger(value) ? value : undefined;
+};
 
 /** Reads the resource-pack texture variants from the item's Bedrock icon component. */
 const bedrockIconOf = (type: ItemType): BedrockItemComponents['minecraft:icon'] => {
@@ -276,13 +301,13 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
         ...(icon === undefined ? {} : { 'minecraft:icon': icon })
     };
 
-    const stackSize = type.params(maxStackSize);
+    const stackSize = bedrockIntegerOf(type, 'minecraft:max_stack_size') ?? type.params(maxStackSize);
     if (stackSize !== undefined) {
         properties.max_stack_size = stackSize;
         projected['minecraft:max_stack_size'] = { value: stackSize };
     }
 
-    const attack = attackDamageOf(type);
+    const attack = bedrockIntegerOf(type, 'minecraft:damage') ?? attackDamageOf(type);
     if (attack !== undefined) {
         properties.damage = attack;
         projected['minecraft:damage'] = { value: attack };
@@ -295,17 +320,21 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
 
     const toolParams = type.params(tool);
     const weaponParams = type.params(weapon);
-    const handEquipped = toolParams !== undefined || weaponParams !== undefined;
-    if (handEquipped) {
-        properties.hand_equipped = true;
-        projected['minecraft:hand_equipped'] = { value: true };
+    const bedrockHandEquipped = bedrockBooleanOf(type, 'minecraft:hand_equipped');
+    const handEquipped = bedrockHandEquipped ?? (toolParams !== undefined || weaponParams !== undefined);
+    if (bedrockHandEquipped !== undefined || handEquipped) {
+        properties.hand_equipped = handEquipped;
+        projected['minecraft:hand_equipped'] = { value: handEquipped };
     }
     if (toolParams !== undefined) {
         properties.mining_speed = toolParams.default_mining_speed ?? 1;
-        properties.can_destroy_in_creative = toolParams.can_destroy_blocks_in_creative ?? true;
     }
+    const canDestroyInCreative =
+        bedrockBooleanOf(type, 'minecraft:can_destroy_in_creative') ??
+        (toolParams === undefined ? undefined : (toolParams.can_destroy_blocks_in_creative ?? true));
+    if (canDestroyInCreative !== undefined) properties.can_destroy_in_creative = canDestroyInCreative;
 
-    properties.foil = type.params(enchantmentGlintOverride) ?? false;
+    properties.foil = bedrockBooleanOf(type, 'minecraft:glint') ?? type.params(enchantmentGlintOverride) ?? false;
 
     const enchantableParams = type.params(enchantable);
     properties.enchantable_slot = enchantableSlotOf(type);
@@ -321,8 +350,20 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
     if (equippableParams !== undefined) {
         const slot = WEARABLE_SLOTS[equippableParams.slot];
         if (slot !== undefined) projected['minecraft:wearable'] = { slot, protection: armorPointsOf(type) };
-        properties.allow_off_hand = equippableParams.slot === 'offhand' || equippableParams.slot === 'hand';
     }
+    const allowOffHand =
+        bedrockBooleanOf(type, 'minecraft:allow_off_hand') ??
+        (equippableParams === undefined
+            ? undefined
+            : equippableParams.slot === 'offhand' || equippableParams.slot === 'hand');
+    if (allowOffHand !== undefined) properties.allow_off_hand = allowOffHand;
+
+    const liquidClipped = bedrockBooleanOf(type, 'minecraft:liquid_clipped');
+    if (liquidClipped !== undefined) properties.liquid_clipped = liquidClipped;
+    const shouldDespawn = bedrockBooleanOf(type, 'minecraft:should_despawn');
+    if (shouldDespawn !== undefined) properties.should_despawn = shouldDespawn;
+    const stackedByData = bedrockBooleanOf(type, 'minecraft:stacked_by_data');
+    if (stackedByData !== undefined) properties.stacked_by_data = stackedByData;
 
     const consumableParams = type.params(consumable);
     if (consumableParams !== undefined) {
