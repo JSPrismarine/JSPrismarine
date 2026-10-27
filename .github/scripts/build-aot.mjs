@@ -36,7 +36,8 @@ const args = [
     `--target=${target}`,
     `--outfile=${outputPath}`,
     '--no-compile-autoload-dotenv',
-    '--no-compile-autoload-bunfig'
+    '--no-compile-autoload-bunfig',
+    '--trim'
 ];
 
 for (const name of buildMetadata) {

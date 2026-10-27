@@ -20,6 +20,7 @@ permissions.json
 # Build
 .tsup
 vite.config.ts.timestamp*
+*.bun-build
 
 # Tests
 /.vitest/json
