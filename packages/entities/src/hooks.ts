@@ -184,6 +184,14 @@ export interface EntityItemInteractionEffect {
     readonly playSounds?: readonly string[];
     /** Game-event vibration the world emits when this interaction succeeds. */
     readonly vibration?: string;
+    /** The inventory or equipment slot that receives the held item. */
+    readonly equipItemSlot?: string;
+    /** The entity slot whose item is dropped when this interaction succeeds. */
+    readonly dropItemSlot?: string;
+    /** Vertical offset for an item dropped from an entity slot. */
+    readonly dropItemYOffset?: number;
+    /** Whether the entity takes the held item into its main hand. */
+    readonly giveItem?: boolean;
 }
 
 /**

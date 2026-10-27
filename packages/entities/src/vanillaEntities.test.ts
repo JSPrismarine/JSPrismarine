@@ -314,6 +314,19 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(interactions).toContainEqual(expect.objectContaining({ cooldownAfterBeingAttacked: 20 }));
     });
 
+    it('parses the vanilla horse equipment inventory slots', () => {
+        const horse = types.registry.get('minecraft:horse');
+        if (horse === undefined) throw new Error('the vanilla pack declares no horse');
+        const components = [...horse.components, ...[...horse.groups.values()].flatMap((group) => group.components)];
+        const interactions = components.flatMap((component) => {
+            if (component.name !== 'minecraft:interact' || !isRecord(component.params)) return [];
+            return Array.isArray(component.params.interactions) ? component.params.interactions.filter(isRecord) : [];
+        });
+
+        expect(interactions).toContainEqual(expect.objectContaining({ equipItemSlot: '1', giveItem: false }));
+        expect(interactions).toContainEqual(expect.objectContaining({ equipItemSlot: '0', giveItem: false }));
+    });
+
     it('parses Bedrock spawn_items tables and their entity-relative drop offsets', () => {
         const strider = types.registry.get('minecraft:strider');
         if (strider === undefined) throw new Error('the vanilla pack declares no strider');

@@ -1013,6 +1013,14 @@ interface InteractEntry {
     readonly healthAmount?: number;
     /** Entity types to create when this interaction succeeds. */
     readonly spawnEntities: readonly string[];
+    /** Entity inventory or equipment slot that receives the held item. */
+    readonly equipItemSlot?: string;
+    /** Entity inventory or equipment slot whose item is dropped. */
+    readonly dropItemSlot?: string;
+    /** Vertical offset for an item dropped from an entity slot. */
+    readonly dropItemYOffset?: number;
+    /** Whether the entity takes the held item into its main hand. */
+    readonly giveItem: boolean;
     /** Loot-table items to add to the interacting player's inventory. */
     readonly addItems?: EntityAddItemsRequest;
     /** Durability to remove from the held item when the interaction succeeds. */
@@ -1051,9 +1059,10 @@ export interface InteractParams {
  * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
  * its event, plays `play_sounds`, emits its `vibration` game event, rolls
  * `spawn_items` or adds `add_items` to the interacting player's inventory,
- * creates `spawn_entities`, and applies `transform_to_item` and `use_item` to
- * the live held stack. Other interaction fields remain visible as a one-time
- * runtime report so incomplete behavior is not silently treated as vanilla.
+ * creates `spawn_entities`, equips or drops an entity slot, and applies
+ * `transform_to_item`, `give_item`, and `use_item` to the live held stack.
+ * Other interaction fields remain visible as a one-time runtime report so
+ * incomplete behavior is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1064,6 +1073,10 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'on_interact',
             'health_amount',
             'spawn_entities',
+            'equip_item_slot',
+            'drop_item_slot',
+            'drop_item_y_offset',
+            'give_item',
             'add_items',
             'hurt_item',
             'use_item',
@@ -1097,6 +1110,14 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            if (raw.equip_item_slot !== undefined && typeof raw.equip_item_slot !== 'string')
+                return rejected(`interactions[${index}].equip_item_slot must be a string`);
+            if (raw.drop_item_slot !== undefined && typeof raw.drop_item_slot !== 'string')
+                return rejected(`interactions[${index}].drop_item_slot must be a string`);
+            if (raw.drop_item_y_offset !== undefined && typeof raw.drop_item_y_offset !== 'number')
+                return rejected(`interactions[${index}].drop_item_y_offset must be a number`);
+            if (raw.give_item !== undefined && typeof raw.give_item !== 'boolean')
+                return rejected(`interactions[${index}].give_item must be a boolean`);
             const spawnEntities: string[] = [];
             if (raw.spawn_entities !== undefined) {
                 if (!Array.isArray(raw.spawn_entities))
@@ -1158,6 +1179,10 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             interactions.push({
                 onInteract,
                 spawnEntities,
+                ...(typeof raw.equip_item_slot === 'string' ? { equipItemSlot: raw.equip_item_slot } : {}),
+                ...(typeof raw.drop_item_slot === 'string' ? { dropItemSlot: raw.drop_item_slot } : {}),
+                ...(typeof raw.drop_item_y_offset === 'number' ? { dropItemYOffset: raw.drop_item_y_offset } : {}),
+                giveItem: booleanAt(raw, 'give_item', false),
                 ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
                 ...(addItems === undefined ? {} : { addItems }),
                 hurtItem: numberAt(raw, 'hurt_item', 0),
@@ -1244,6 +1269,9 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
                         entry.addItems === undefined &&
+                        entry.equipItemSlot === undefined &&
+                        entry.dropItemSlot === undefined &&
+                        !entry.giveItem &&
                         entry.spawnEntities.length === 0 &&
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
@@ -1271,6 +1299,10 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),
                         ...(entry.addItems === undefined ? {} : { addItems: entry.addItems }),
+                        ...(entry.equipItemSlot === undefined ? {} : { equipItemSlot: entry.equipItemSlot }),
+                        ...(entry.dropItemSlot === undefined ? {} : { dropItemSlot: entry.dropItemSlot }),
+                        ...(entry.dropItemYOffset === undefined ? {} : { dropItemYOffset: entry.dropItemYOffset }),
+                        ...(entry.giveItem ? { giveItem: true } : {}),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.hurtItem === 0 ? {} : { hurtItem: entry.hurtItem }),
@@ -1282,7 +1314,11 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                                       ? {}
                                       : { resultItemData: entry.transformedItem.data })
                               }),
-                        consumeItem: entry.useItem || entry.transformedItem !== undefined
+                        consumeItem:
+                            entry.useItem ||
+                            entry.equipItemSlot !== undefined ||
+                            entry.giveItem ||
+                            entry.transformedItem !== undefined
                     };
                 }
                 return undefined;

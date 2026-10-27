@@ -336,6 +336,53 @@ describe('evaluateFilter', () => {
             expect(evaluate({ test: 'any_slot_empty', subject: 'other', domain: 'inventory' }, carrier)).toBe(true);
         });
 
+        it('scans every slot in an equipment domain for item filters', () => {
+            const helmet = item('minecraft:iron_helmet', {
+                tags: () => ['minecraft:armor'],
+                enchantment: (name) => (name === 'minecraft:protection' ? 1 : 0),
+                hasComponent: (name) => name === 'minecraft:equippable',
+                damaged: () => true
+            });
+            const wearer: FilterContext = {
+                self: {},
+                other: {
+                    equipment: (slot, index) => (slot === 'armor' && index === 3 ? helmet : undefined),
+                    slotFill: (slot) => (slot === 'armor' ? { filled: 1, capacity: 4 } : undefined),
+                    carries: (matches) => matches(helmet)
+                }
+            };
+
+            expect(
+                evaluate({ test: 'has_equipment', subject: 'other', domain: 'armor', value: 'iron_helmet' }, wearer)
+            ).toBe(true);
+            expect(
+                evaluate(
+                    { test: 'has_equipment_tag', subject: 'other', domain: 'armor', value: 'minecraft:armor' },
+                    wearer
+                )
+            ).toBe(true);
+            expect(
+                evaluate(
+                    { test: 'has_damaged_equipment', subject: 'other', domain: 'armor', value: 'iron_helmet' },
+                    wearer
+                )
+            ).toBe(true);
+            expect(
+                evaluate(
+                    {
+                        test: 'actor_has_item_with_enchantment_in_slot',
+                        subject: 'other',
+                        domain: 'armor',
+                        value: 'minecraft:protection'
+                    },
+                    wearer
+                )
+            ).toBe(true);
+            expect(
+                evaluate({ test: 'has_item_with_component', subject: 'other', value: 'minecraft:equippable' }, wearer)
+            ).toBe(true);
+        });
+
         it('reads an enchantment in a slot', () => {
             const armed: FilterContext = {
                 self: {},

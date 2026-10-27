@@ -91,6 +91,17 @@ const inNameSet =
 const equipmentIn = (subject: FilterEntityView, test: FilterTest): FilterItemView | undefined =>
     subject.equipment?.(slotOf(test), 0);
 
+/** Every slot a container-wide equipment domain exposes, including its empty slots. */
+const equipmentSlotsIn = (
+    subject: FilterEntityView,
+    slot: EquipmentSlot
+): readonly (FilterItemView | undefined)[] | undefined => {
+    if (subject.equipment === undefined || subject.slotFill === undefined) return undefined;
+    const fill = subject.slotFill(slot);
+    if (fill === undefined) return undefined;
+    return Array.from({ length: fill.capacity }, (_unused, index) => subject.equipment?.(slot, index));
+};
+
 const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     ...ENTITY_FLAGS.map((name): readonly [string, TestEntry] => [name, { read: flag(name) }]),
     ...ENTITY_MEASURES.map((name): readonly [string, TestEntry] => [name, { read: measure(name) }]),
@@ -110,9 +121,18 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     [
         'has_equipment',
         folds((subject, _context, test) => {
-            const item = equipmentIn(subject, test);
             const wanted = splitItemValue(test.value);
             if (wanted === undefined) return undefined;
+            const slot = slotOf(test);
+            const slots = equipmentSlotsIn(subject, slot);
+            if (slots !== undefined)
+                return slots.some((item) =>
+                    item === undefined
+                        ? wanted.name === 'air' || wanted.name === 'minecraft:air'
+                        : sameItemName(item.identifier(), wanted.name) &&
+                          (wanted.data === undefined || item.data?.() === wanted.data)
+                );
+            const item = equipmentIn(subject, test);
             if (item === undefined) return sameItemName('minecraft:air', wanted.name);
             if (!sameItemName(item.identifier(), wanted.name)) return false;
             return wanted.data === undefined || item.data?.() === wanted.data;
@@ -121,6 +141,17 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     [
         'has_equipment_tag',
         folds((subject, _context, test) => {
+            const slots = equipmentSlotsIn(subject, slotOf(test));
+            if (slots !== undefined) {
+                let unanswered = false;
+                for (const item of slots) {
+                    if (item === undefined) continue;
+                    const tags = item.tags?.();
+                    if (tags === undefined) unanswered = true;
+                    else if (tags.includes(String(test.value ?? ''))) return true;
+                }
+                return unanswered ? undefined : false;
+            }
             const item = equipmentIn(subject, test);
             if (item === undefined) return false;
             const tags = item.tags?.();
@@ -130,9 +161,21 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     [
         'has_damaged_equipment',
         folds((subject, _context, test) => {
+            const wanted = splitItemValue(test.value);
+            const slots = equipmentSlotsIn(subject, slotOf(test));
+            if (slots !== undefined) {
+                let unanswered = false;
+                for (const item of slots) {
+                    if (item === undefined) continue;
+                    if (wanted !== undefined && !sameItemName(item.identifier(), wanted.name)) continue;
+                    const damaged = item.damaged?.();
+                    if (damaged === true) return true;
+                    if (damaged === undefined) unanswered = true;
+                }
+                return unanswered ? undefined : false;
+            }
             const item = equipmentIn(subject, test);
             if (item === undefined) return false;
-            const wanted = splitItemValue(test.value);
             if (wanted !== undefined && !sameItemName(item.identifier(), wanted.name)) return false;
             return item.damaged?.();
         })
@@ -140,6 +183,17 @@ const readers: ReadonlyMap<string, TestEntry> = new Map<string, TestEntry>([
     [
         'actor_has_item_with_enchantment_in_slot',
         folds((subject, _context, test) => {
+            const slots = equipmentSlotsIn(subject, slotOf(test));
+            if (slots !== undefined) {
+                let unanswered = false;
+                for (const item of slots) {
+                    if (item === undefined) continue;
+                    const level = item.enchantment?.(String(test.value ?? ''));
+                    if (level !== undefined && level > 0) return true;
+                    if (level === undefined) unanswered = true;
+                }
+                return unanswered ? undefined : false;
+            }
             const item = equipmentIn(subject, test);
             if (item === undefined) return false;
             return (item.enchantment?.(String(test.value ?? '')) ?? 0) > 0;
