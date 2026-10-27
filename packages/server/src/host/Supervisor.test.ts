@@ -52,6 +52,7 @@ const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
     const children: FakeChild[] = [];
     const exit = vi.fn<(code: number) => void>();
     let failures = options.failSpawns ?? 0;
+    let clock = 0;
     const supervisor = new Supervisor({
         spawnChild: async () => {
             if (failures > 0) {
@@ -63,13 +64,17 @@ const setup = (options: { canRestart?: boolean; failSpawns?: number } = {}) => {
             return child;
         },
         exit,
-        canRestart: options.canRestart ?? true
+        canRestart: options.canRestart ?? true,
+        now: () => clock
     });
     const events: SupervisorEvent[] = [];
     supervisor.onEvent((event) => events.push(event));
     const states = () =>
         events.flatMap((event) => (event.type === 'supervisor.state' ? [`${event.generation}:${event.state}`] : []));
-    return { supervisor, children, exit, events, states };
+    const advance = (ms: number) => {
+        clock += ms;
+    };
+    return { supervisor, children, exit, events, states, advance };
 };
 
 describe('Supervisor', () => {
@@ -266,7 +271,7 @@ describe('Supervisor', () => {
     });
 
     it('stops on the first signal and kills on the second', async () => {
-        const { supervisor, children, exit } = setup();
+        const { supervisor, children, exit, advance } = setup();
         const signals = new EventEmitter();
         supervisor.handleSignals(signals);
         await supervisor.start();
@@ -275,11 +280,33 @@ describe('Supervisor', () => {
         expect(children[0]?.stop).toHaveBeenCalledTimes(1);
         expect(children[0]?.kill).not.toHaveBeenCalled();
 
+        advance(500);
         signals.emit('SIGINT');
         expect(children[0]?.kill).toHaveBeenCalledTimes(1);
 
         children[0]?.exit(null, 'SIGKILL');
         expect(exit).toHaveBeenCalledWith(1);
+    });
+
+    it('takes the copies a wrapper forwards of the first signal as the same stop', async () => {
+        const { supervisor, children, advance } = setup();
+        const signals = new EventEmitter();
+        supervisor.handleSignals(signals);
+        await supervisor.start();
+
+        // One Ctrl+C under `cross-env`: the terminal's SIGINT, then the one cross-env forwards.
+        signals.emit('SIGINT');
+        advance(1);
+        signals.emit('SIGINT');
+        advance(498);
+        signals.emit('SIGINT');
+
+        expect(children[0]?.stop).toHaveBeenCalledTimes(1);
+        expect(children[0]?.kill).not.toHaveBeenCalled();
+
+        advance(1);
+        signals.emit('SIGINT');
+        expect(children[0]?.kill).toHaveBeenCalledTimes(1);
     });
 
     it('takes a stopping notice from the child without repeating it', async () => {

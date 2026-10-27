@@ -19,12 +19,25 @@ export interface SupervisorOptions {
      * for a restart that never comes. Defaults to false.
      */
     canRestart?: boolean;
+    /**
+     * Reads the clock that tells a second signal from a forwarded copy of the first, in
+     * milliseconds; defaults to `performance.now`. Injected so tests can control it.
+     */
+    now?: () => number;
 }
 
 /** The host-side link to the current server generation. */
 export type ServerLink = MessageLink<ServerMessage, ConsoleMessage>;
 
 const HOST_SIGNALS = ['SIGINT', 'SIGTERM', 'SIGHUP'] as const;
+
+/**
+ * How long after the signal that started a stop another one still belongs to that stop. One
+ * Ctrl+C reaches the host more than once when a wrapper such as `cross-env` forwards the SIGINT
+ * it also got from the terminal. Measured under `pnpm run dev`, the copy lands within a
+ * millisecond; the margin covers a machine busy generating terrain.
+ */
+const SIGNAL_COPY_WINDOW_MS = 500;
 
 /** A signal the host handles itself rather than letting it end the process. */
 export type HostSignal = (typeof HOST_SIGNALS)[number];
@@ -52,6 +65,7 @@ export class Supervisor {
     private readonly linkListeners = new Set<(link: ServerLink) => void>();
     private readonly exit: (code: number) => void | Promise<void>;
     private readonly canRestart: boolean;
+    private readonly now: () => number;
     private child: ServerChild | undefined;
     private spawning = false;
     private restartQueued = false;
@@ -63,6 +77,7 @@ export class Supervisor {
     public constructor(private readonly options: SupervisorOptions) {
         this.exit = options.exit ?? ((code) => process.exit(code));
         this.canRestart = options.canRestart ?? false;
+        this.now = options.now ?? (() => performance.now());
     }
 
     /** The last state reported through {@link onEvent}. */
@@ -182,14 +197,21 @@ export class Supervisor {
      * Routes `SIGINT`, `SIGTERM`, and `SIGHUP` to {@link stop}, and a second signal to
      * {@link forceStop}. The host must survive these because outside raw mode the terminal
      * sends them to the whole foreground process group, and `SIGHUP` because the PTY can hang
-     * up while the child still lives.
+     * up while the child still lives. A signal within {@link SIGNAL_COPY_WINDOW_MS} of the one
+     * that started the stop counts as a copy of it rather than as a second request.
      *
      * @returns A function that removes the handlers again.
      */
     public handleSignals(source: SignalSource = process): () => void {
+        let stoppedAt: number | undefined;
         const onSignal = (): void => {
-            if (this.shuttingDown) this.forceStop();
-            else this.stop();
+            const now = this.now();
+            if (!this.shuttingDown) {
+                stoppedAt = now;
+                this.stop();
+            } else if (stoppedAt === undefined || now - stoppedAt >= SIGNAL_COPY_WINDOW_MS) {
+                this.forceStop();
+            }
         };
         for (const signal of HOST_SIGNALS) source.on(signal, onSignal);
         return () => {
