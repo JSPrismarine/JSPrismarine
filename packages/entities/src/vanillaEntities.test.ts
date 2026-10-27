@@ -104,6 +104,7 @@ const RUNTIME_COMPONENTS = [
     'minecraft:transient',
     'minecraft:admire_item',
     'minecraft:barter',
+    'minecraft:breedable',
     'minecraft:can_climb',
     'minecraft:can_fly',
     'minecraft:can_stand_on_powder_snow',
@@ -397,7 +398,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(73);
+        expect(withBehavior).toHaveLength(75);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

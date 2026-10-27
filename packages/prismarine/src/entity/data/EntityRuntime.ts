@@ -37,7 +37,6 @@ import {
     canEntityAttack,
     canEntityAttackView,
     EntityInstance,
-    EVENT_TARGETS,
     evaluateFilter,
     isRecord,
     javaEntityNavigation,
@@ -1400,13 +1399,7 @@ export class EntityRuntime implements EntityScene {
         });
     }
 
-    /**
-     * Records who tamed an entity.
-     *
-     * The taming interaction is what calls this; nothing in the server reads
-     * `minecraft:tameable` yet, so until it does an owner is set from a test
-     * or from a loaded world and the pet goals follow whoever it names.
-     */
+    /** Records who tamed an entity. */
     public setOwner(id: number, owner: number | undefined): void {
         const entity = this.entities.get(id);
         if (entity === undefined) return;
@@ -1475,25 +1468,6 @@ export class EntityRuntime implements EntityScene {
         }
         if (spawnEggIdentifier !== undefined) return { accepted: false };
 
-        const tameable = entity.instance.componentParams('minecraft:tameable');
-        const tameItem = isRecord(tameable) ? componentItem(tameable.tame_items, itemIdentifier) : undefined;
-        if (
-            isRecord(tameable) &&
-            !entity.instance.hasComponent('minecraft:is_tamed') &&
-            entity.body.owner === undefined &&
-            tameItem !== undefined
-        ) {
-            const probability = typeof tameable.probability === 'number' ? tameable.probability : 1;
-            if (this.world.random.nextFloat() < Math.min(1, Math.max(0, probability))) {
-                const resultItem = resultItemOf(tameItem);
-                this.setOwner(entity.id, owner);
-                entity.body.conditions.add('is_tamed');
-                fireTameEvent(entity, tameable.tame_event);
-                return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
-            }
-            return { accepted: true };
-        }
-
         const breeding = breedableOf(entity.instance);
         const breedable = entity.instance.componentParams('minecraft:breedable');
         const health = entity.instance.attributes.get('health');
@@ -1533,11 +1507,17 @@ export class EntityRuntime implements EntityScene {
                 playSounds,
                 repairEntityItem,
                 spawnItems,
+                tame,
                 takeItem,
                 vibration,
                 ...itemEffect
             } = interaction;
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
+            if (tame?.succeeded === true) {
+                this.setOwner(entity.id, owner);
+                entity.body.conditions.add('is_tamed');
+                fireTameEvent(entity, tame.event, tame.target);
+            }
             if (admire === true || barter === true)
                 this.startPiglinInteraction(entity, itemIdentifier, admire === true, barter === true);
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
@@ -2816,14 +2796,10 @@ const resultItemOf = (item: unknown): string | undefined => {
     return identifier.includes(':') ? identifier : `minecraft:${identifier}`;
 };
 
-/** Fires the optional `minecraft:tameable` event on the target it declares. */
-const fireTameEvent = (entity: DataEntity, value: unknown): void => {
-    const event = typeof value === 'string' ? value : isRecord(value) ? value.event : undefined;
-    if (typeof event !== 'string') return;
-
-    const requestedTarget = isRecord(value) ? value.target : undefined;
-    const target: EventTarget = EVENT_TARGETS.find((candidate) => candidate === requestedTarget) ?? 'self';
-    if (target === 'self') entity.instance.fire(event);
+/** Fires the optional `minecraft:tameable` event after ownership is recorded. */
+const fireTameEvent = (entity: DataEntity, event: string | undefined, target: EventTarget | undefined): void => {
+    if (event === undefined) return;
+    if (target === undefined || target === 'self') entity.instance.fire(event);
     else entity.instance.raise(event, target, 'minecraft:tameable');
 };
 

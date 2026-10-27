@@ -152,15 +152,15 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Seventy-three keys carry
-runtime behavior. The remaining 129 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Seventy-five keys carry
+runtime behavior. The remaining 127 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
 This count includes host reads and actor-metadata projections. It does not mean every field of each
 component has a runtime implementation.
 
-The 73 with runtime effects include components that change entity state, decide an outcome, or
+The 75 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -169,9 +169,10 @@ initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angr
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
-`minecraft:spawn_entity`, `minecraft:interact`, `minecraft:healable`, `minecraft:admire_item`,
-`minecraft:barter`, and `minecraft:vibration_listener`, which connects
-its entity to world game-event delivery; the actor metadata markers `minecraft:is_charged`,
+`minecraft:spawn_entity`, `minecraft:interact`, `minecraft:breedable`, `minecraft:healable`,
+`minecraft:tameable`, `minecraft:admire_item`, `minecraft:barter`, and
+`minecraft:vibration_listener`, which connects its entity to world game-event delivery; the actor
+metadata markers `minecraft:is_charged`,
 `minecraft:is_ignited`, `minecraft:is_saddled`, `minecraft:is_chested`,
 `minecraft:is_illager_captain`, `minecraft:is_shaking`, `minecraft:is_hidden_when_invisible`,
 `minecraft:is_stackable`, `minecraft:is_collidable`, `minecraft:is_pregnant`, `minecraft:is_stunned`,
@@ -222,9 +223,11 @@ The ground-input, dash, free-camera, and vertical-movement components currently 
 controls to the client; the server does not apply those inputs to entity movement.
 The entities package README lists each component and what it does.
 
-"Parses as data" is not the same as "ignored". The host reads several data components itself:
-`minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item
-interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
+"Parses as data" is not the same as "ignored". The host still reads `minecraft:breedable` to put
+eligible adults in love when they receive a matching item. `minecraft:healable` and
+`minecraft:tameable` implement item interactions through component hooks, while the host applies
+the resulting health, owner, and event effects. `minecraft:collision_box` and the
+`minecraft:navigation.*` flavors build the path
 finder's profile; its walking, swimming, and flight capabilities project to `CANWALK`, `CANSWIM`, and
 `CANFLY`. `minecraft:can_climb` enables ladder traversal and projects to `CANCLIMB`, while
 `minecraft:can_fly` lets the pathfinder leave solid ground, and `minecraft:can_stand_on_powder_snow`

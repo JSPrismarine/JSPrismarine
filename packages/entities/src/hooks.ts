@@ -172,7 +172,17 @@ export interface EntityRepairItemRequest {
     readonly slot?: string;
 }
 
-/** The effects requested by a successful data-defined interaction. */
+/** The result of a successful or failed `minecraft:tameable` item attempt. */
+export interface EntityTameInteractionEffect {
+    /** Whether the component's probability roll tamed the entity. */
+    readonly succeeded: boolean;
+    /** The event to raise after the host records the new owner. */
+    readonly event?: string;
+    /** The target named by `tame_event`; omitted events do not need a target. */
+    readonly target?: EventTarget;
+}
+
+/** The effects requested by a data-defined item interaction. */
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
     readonly healthAmount?: number;
@@ -196,6 +206,8 @@ export interface EntityItemInteractionEffect {
     readonly repairEntityItem?: EntityRepairItemRequest;
     /** Whether the entity should offer its main-hand item to an empty player hand. */
     readonly takeItem?: boolean;
+    /** The result of a data-defined taming attempt. */
+    readonly tame?: EntityTameInteractionEffect;
     /** Whether the entity should admire the offered item after the interaction. */
     readonly admire?: boolean;
     /** Whether the entity should barter for the offered item after the interaction. */

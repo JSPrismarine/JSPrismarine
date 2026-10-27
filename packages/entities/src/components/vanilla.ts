@@ -14,7 +14,8 @@ import type {
     EntityAddItemsRequest,
     EntityItemInteractionEffect,
     EntityRepairItemRequest,
-    EntitySpawnItemsRequest
+    EntitySpawnItemsRequest,
+    EntityTameInteractionEffect
 } from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { EntitySpawnRequest } from '../hooks';
@@ -1624,6 +1625,89 @@ export const healable: ComponentFactory<EntityHooks, HealableParams> = {
             return {
                 ...(item.healAmount > 0 ? { healthAmount: item.healAmount } : {}),
                 ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem })
+            };
+        }
+    })
+};
+
+/** One item `minecraft:tameable` accepts. */
+export interface TameableItemParams {
+    /** The item identifier, normalized to the default Minecraft namespace. */
+    readonly item: string;
+    /** Item replacing the consumed item after a successful tame, if declared. */
+    readonly resultItem?: string;
+}
+
+/** What `minecraft:tameable` declares. */
+export interface TameableParams {
+    /** Items that can tame the entity. */
+    readonly items: readonly TameableItemParams[];
+    /** Probability of taming on each matching item interaction. */
+    readonly probability: number;
+    /** Event raised after a successful tame. */
+    readonly tameEvent?: SensorTrigger;
+}
+
+/** `minecraft:tameable`, which owns item matching and its probability roll. */
+export const tameable: ComponentFactory<EntityHooks, TameableParams> = {
+    name: 'minecraft:tameable',
+    hooks: ['onInteractWithItem'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+
+        const items: TameableItemParams[] = [];
+        for (const [index, raw] of asList(value.tame_items).entries()) {
+            if (typeof raw === 'string') {
+                items.push({ item: normalizedItemIdentifier(raw) });
+                continue;
+            }
+            if (!isRecord(raw) || typeof raw.item !== 'string' || raw.item.length === 0)
+                return rejected(`tame_items[${index}].item must be a non-empty string`);
+            if (raw.result_item !== undefined && (typeof raw.result_item !== 'string' || raw.result_item.length === 0))
+                return rejected(`tame_items[${index}].result_item must be a non-empty string`);
+            if (
+                raw.transform_to_item !== undefined &&
+                (typeof raw.transform_to_item !== 'string' || raw.transform_to_item.length === 0)
+            )
+                return rejected(`tame_items[${index}].transform_to_item must be a non-empty string`);
+
+            const resultItem =
+                typeof raw.result_item === 'string'
+                    ? raw.result_item
+                    : typeof raw.transform_to_item === 'string'
+                      ? raw.transform_to_item
+                      : undefined;
+            items.push({
+                item: normalizedItemIdentifier(raw.item),
+                ...(resultItem === undefined ? {} : { resultItem: normalizedItemIdentifier(resultItem) })
+            });
+        }
+
+        const tameEvent = parseComponentTrigger(value.tame_event);
+        return accepted({
+            items,
+            probability: numberAt(value, 'probability', 1),
+            ...(tameEvent === undefined ? {} : { tameEvent })
+        });
+    },
+    create: (params) => ({
+        onInteractWithItem: (entity, itemIdentifier) => {
+            if (entity.filterContext().self.flag?.('is_tamed') === true) return undefined;
+
+            const normalizedItem = normalizedItemIdentifier(itemIdentifier);
+            const item = params.items.find((entry) => entry.item === normalizedItem);
+            if (item === undefined) return undefined;
+
+            const succeeded = entity.random.next() < Math.min(1, Math.max(0, params.probability));
+            const tame: EntityTameInteractionEffect = {
+                succeeded,
+                ...(succeeded && params.tameEvent?.event !== undefined
+                    ? { event: params.tameEvent.event, target: params.tameEvent.target }
+                    : {})
+            };
+            return {
+                tame,
+                ...(succeeded && item.resultItem !== undefined ? { resultItem: item.resultItem } : {})
             };
         }
     })

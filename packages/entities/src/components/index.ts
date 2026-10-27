@@ -41,6 +41,7 @@ import {
     pushable,
     rideable,
     spawnEntity,
+    tameable,
     timer,
     transformation,
     triggerComponent,
@@ -192,7 +193,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:spell_effects',
     'minecraft:strength',
     'minecraft:suspect_tracking',
-    'minecraft:tameable',
     'minecraft:tamemount',
     'minecraft:target_nearby_sensor',
     'minecraft:teleport',
@@ -262,6 +262,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(pushable);
     register(rideable);
     register(spawnEntity);
+    register(tameable);
     register(timer);
     register(transformation);
     register(typeFamily);
