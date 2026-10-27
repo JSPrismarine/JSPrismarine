@@ -25,7 +25,6 @@ import { worldBlockEntities, worldBlockStorage, worldContentGroups } from '../..
 import type { World } from '../../world/World';
 import type { ServerItemActorPort } from '../../item/actorPort';
 import type { ContentEffectSink, ServerWorldAdapter, ServerWorldSource } from './adapter';
-import { CONTENT_AREAS, notWired } from './notWired';
 import type { ContentLookup } from './views';
 
 /** What {@link serverWorldSource} is built over. */
@@ -64,10 +63,9 @@ const worldEffectSink = (world: () => World | undefined, dimension: string): Con
     return {
         playSound: (at, sound) => live().playNamedSound(at.x, at.y, at.z, sound),
         spawnParticle: (at, particle) => live().spawnNamedParticle(at.x, at.y, at.z, particle),
-        // Java's game event system, which a warden's vibration listener and a sculk sensor
-        // read. Neither exists here, nothing else listens, and Bedrock puts nothing on the
-        // wire for one, so there is no sink to send it to.
-        emitGameEvent: notWired('effects.emitGameEvent', CONTENT_AREAS.entities)
+        // There is no Java game-event listener yet. ContentEffectSink drops events when its
+        // host has none, so an interaction such as sheep shearing still completes.
+        emitGameEvent: () => undefined
     };
 };
 

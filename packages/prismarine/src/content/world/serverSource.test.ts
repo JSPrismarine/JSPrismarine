@@ -27,7 +27,6 @@ import { overlayPackPath } from '../packStack';
 import { buildServerContent } from '../ServerContent';
 import type { ServerContent } from '../ServerContent';
 import type { ContentPosition } from './adapter';
-import { NotWiredError } from './notWired';
 import { serverWorldSource } from './serverSource';
 
 /**
@@ -396,7 +395,7 @@ describe('serverWorldSource', () => {
         expect(adapter.blocks.biomeTags({ x: 64, y: 64, z: 64 })).toEqual([]);
     });
 
-    it('still refuses the members no subsystem has supplied', () => {
+    it('drops game events when no listener is installed', () => {
         const adapter = serverWorldSource({
             worldFor: () => world,
             content: () => content,
@@ -404,7 +403,17 @@ describe('serverWorldSource', () => {
             difficulty: () => Difficulty.NORMAL
         }).at(DIMENSION);
 
-        expect(() => adapter.effects.emitGameEvent('step', { x: 0, y: 64, z: 0 })).toThrow(NotWiredError);
+        expect(() => adapter.effects.emitGameEvent('step', { x: 0, y: 64, z: 0 })).not.toThrow();
+    });
+
+    it('still refuses groups no subsystem has supplied', () => {
+        const adapter = serverWorldSource({
+            worldFor: () => world,
+            content: () => content,
+            seed: 0n,
+            difficulty: () => Difficulty.NORMAL
+        }).at(DIMENSION);
+
         expect(adapter.spawning).toBeUndefined();
         expect(adapter.ai).toBeUndefined();
         expect(adapter.generation).toBeUndefined();
