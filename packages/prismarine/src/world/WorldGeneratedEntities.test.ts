@@ -109,7 +109,7 @@ describe('mobs left by world generation', () => {
         expect(asked).toHaveLength(1);
     });
 
-    it('builds the written class for a type no pack declares but this server does', async () => {
+    it('does not build a legacy class when the runtime does not declare the type', async () => {
         const chunk = new Chunk(0, 0);
         chunk.getEntitySpawns().push({ type: 'minecraft:tnt', x: 1.5, y: 70, z: 1.5 });
 
@@ -117,7 +117,7 @@ describe('mobs left by world generation', () => {
         await world.loadChunk(0, 0);
 
         expect(asked).toEqual([]);
-        expect(added.map((entity) => entity.getType())).toEqual(['minecraft:tnt']);
+        expect(added).toEqual([]);
     });
 
     it('skips a type nothing can build, and keeps the rest', async () => {
