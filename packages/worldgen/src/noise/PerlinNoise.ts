@@ -63,14 +63,14 @@ export class PerlinNoise extends GradientNoise {
         const relativeX1 = f32(relativeX - 1);
         const relativeY1 = f32(relativeY - 1);
         const relativeZ1 = f32(relativeZ - 1);
-        const d000 = GradientNoise.gradDot(perms[xy00 & 0xff] ?? 0, relativeX, relativeY, relativeZ);
-        const d100 = GradientNoise.gradDot(perms[xy10 & 0xff] ?? 0, relativeX1, relativeY, relativeZ);
-        const d010 = GradientNoise.gradDot(perms[xy01 & 0xff] ?? 0, relativeX, relativeY1, relativeZ);
-        const d110 = GradientNoise.gradDot(perms[xy11 & 0xff] ?? 0, relativeX1, relativeY1, relativeZ);
-        const d001 = GradientNoise.gradDot(perms[(xy00 + 1) & 0xff] ?? 0, relativeX, relativeY, relativeZ1);
-        const d101 = GradientNoise.gradDot(perms[(xy10 + 1) & 0xff] ?? 0, relativeX1, relativeY, relativeZ1);
-        const d011 = GradientNoise.gradDot(perms[(xy01 + 1) & 0xff] ?? 0, relativeX, relativeY1, relativeZ1);
-        const d111 = GradientNoise.gradDot(perms[(xy11 + 1) & 0xff] ?? 0, relativeX1, relativeY1, relativeZ1);
+        const d000 = GradientNoise.gradDotF32(perms[xy00 & 0xff] ?? 0, relativeX, relativeY, relativeZ);
+        const d100 = GradientNoise.gradDotF32(perms[xy10 & 0xff] ?? 0, relativeX1, relativeY, relativeZ);
+        const d010 = GradientNoise.gradDotF32(perms[xy01 & 0xff] ?? 0, relativeX, relativeY1, relativeZ);
+        const d110 = GradientNoise.gradDotF32(perms[xy11 & 0xff] ?? 0, relativeX1, relativeY1, relativeZ);
+        const d001 = GradientNoise.gradDotF32(perms[(xy00 + 1) & 0xff] ?? 0, relativeX, relativeY, relativeZ1);
+        const d101 = GradientNoise.gradDotF32(perms[(xy10 + 1) & 0xff] ?? 0, relativeX1, relativeY, relativeZ1);
+        const d011 = GradientNoise.gradDotF32(perms[(xy01 + 1) & 0xff] ?? 0, relativeX, relativeY1, relativeZ1);
+        const d111 = GradientNoise.gradDotF32(perms[(xy11 + 1) & 0xff] ?? 0, relativeX1, relativeY1, relativeZ1);
         // `lerp3F` spelled out. Its helper calls are not inlined on this hot path; these
         // seven operations retain the same x-then-y-then-z order and f32 rounding as lerp3F.
         const alphaX = smoothstep(relativeX);

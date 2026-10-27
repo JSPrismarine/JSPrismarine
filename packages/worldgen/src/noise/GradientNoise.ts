@@ -97,6 +97,13 @@ export abstract class GradientNoise implements Noise {
         return f32(firstSum + (GRADIENT_Z[index] ?? 0) * dz);
     }
 
+    /** Dot product for displacements already rounded to single precision by the Perlin caller. */
+    protected static gradDotF32(hash: number, x: number, y: number, z: number): number {
+        const index = hash & 15;
+        const firstSum = f32((GRADIENT_X[index] ?? 0) * x + (GRADIENT_Y[index] ?? 0) * y);
+        return f32(firstSum + (GRADIENT_Z[index] ?? 0) * z);
+    }
+
     /** The lattice gradient a permuted index selects. */
     protected permuteToGrad(value: number): readonly [number, number, number] {
         return GRADIENTS[this.permute(value) & 15] ?? [0, 0, 0];
