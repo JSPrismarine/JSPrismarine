@@ -91,20 +91,23 @@ export interface NavigationView {
     isSunlit?(position: EntityPosition): boolean;
     isPortal?(position: EntityPosition): boolean;
     isClimbable?(position: EntityPosition): boolean;
+    isLadder?(position: EntityPosition): boolean;
 }
 ```
 
 Three media decide which cells a profile may enter, and a cell is enterable when any enabled medium
 accepts it: ground when the entity stands on something, swim when the cell is a liquid it moves
 through, and fly when the cell is open air. `minecraft:navigation.climb` adds vertical moves through
-climbable blocks. A ground move keeps its height, steps up one block when the profile jumps, or
-falls to the first supported cell within the fall limit. Diagonal moves cost `sqrt(2)` and may not
-cut a corner.
+climbable blocks, while `minecraft:can_climb` enables vertical moves through ladder blocks for any
+navigation type. A ground move keeps its height, steps up one block when the profile jumps, or falls
+to the first supported cell within the fall limit. Diagonal moves cost `sqrt(2)` and may not cut a
+corner.
 
 `NavigationProfile` comes from the entity's active `minecraft:navigation.*` component, which
 `@jsprismarine/entities` already parses, plus three facts that component does not carry: the height
-from `minecraft:collision_box`, the step height from `minecraft:variable_max_auto_step` and a fall
-limit of 3 blocks. The flags map onto the search like this.
+from `minecraft:collision_box`, the step height from `minecraft:variable_max_auto_step`, and a fall
+limit of 3 blocks. The separate `minecraft:can_climb` marker adds ladder traversal. The flags map
+onto the search like this.
 
 - `can_pass_doors`, `can_open_doors`, `can_open_iron_doors`, `can_break_doors`. An open door needs
   `can_pass_doors`. A closed one needs `can_open_doors`, and an iron one needs

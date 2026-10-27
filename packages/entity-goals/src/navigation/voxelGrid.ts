@@ -78,6 +78,7 @@ export const voxelGrid = (layers: readonly (readonly string[])[]): NavigationVie
         isDamaging: (position) => kindAt(position).damaging === true,
         isSunlit: (position) => kindAt(position).sunlit === true,
         isPortal: (position) => kindAt(position).portal === true,
-        isClimbable: (position) => kindAt(position).climbable === true
+        isClimbable: (position) => kindAt(position).climbable === true,
+        isLadder: (position) => kindAt(position).identifier === 'minecraft:ladder'
     };
 };

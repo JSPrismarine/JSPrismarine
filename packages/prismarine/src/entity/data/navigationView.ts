@@ -186,6 +186,7 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
                 const identifier = identifierAt(position);
                 return identifier !== undefined && CLIMBABLE.has(identifier);
             },
+            isLadder: (position) => identifierAt(position) === 'minecraft:ladder',
             isPortal: (position) => {
                 const identifier = identifierAt(position);
                 return identifier !== undefined && PORTALS.has(identifier);

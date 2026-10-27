@@ -2184,7 +2184,9 @@ export class EntityRuntime implements EntityScene {
         const feet = blockPositionOf(entity.position);
         const inLiquid = navigation.isWater(feet) || navigation.isLava(feet);
         const swims = inLiquid && (profile.canSwim || profile.canFloat || profile.isAmphibious);
-        const climbs = profile.kind === 'climb' && navigation.isClimbable?.(feet) === true;
+        const climbs =
+            (profile.kind === 'climb' && navigation.isClimbable?.(feet) === true) ||
+            (profile.canClimbLadders === true && navigation.isLadder?.(feet) === true);
         const physics = entity.instance.componentParams('minecraft:physics');
         const hasCollision = !isRecord(physics) || physics.hasCollision !== false;
 

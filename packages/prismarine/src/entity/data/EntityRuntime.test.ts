@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { Activities, MemoryModuleTypes, entityTracker } from '@jsprismarine/entity-brains';
+import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { FilterEntityView } from '@jsprismarine/entities';
 import { vanillaItemDefinitions } from '@jsprismarine/items';
 
@@ -851,6 +852,43 @@ describe('EntityRuntime', () => {
             runtime.tick(1);
 
             expect(mover.position.y).toBe(GROUND.y);
+        });
+
+        it('lets minecraft:can_climb move a walking entity vertically on ladders', () => {
+            const world = new TestEntityWorld();
+            for (const x of [0, 3]) {
+                world.setBlock({ x, y: GROUND.y, z: 0 }, 'minecraft:ladder');
+                world.setBlock({ x, y: GROUND.y + 1, z: 0 }, 'minecraft:ladder');
+            }
+
+            const movement = {
+                'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                'minecraft:health': { value: 20, max: 20 },
+                'minecraft:movement': { value: 0.25 },
+                'minecraft:navigation.walk': {},
+                'minecraft:physics': {}
+            };
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:ladder_climber': {
+                        components: { ...movement, 'minecraft:can_climb': {} }
+                    },
+                    'jsprismarine:ladder_walker': { components: movement }
+                }
+            );
+            const climber = runtime.spawn('jsprismarine:ladder_climber', { x: 0.5, y: GROUND.y, z: 0.5 });
+            const walker = runtime.spawn('jsprismarine:ladder_walker', { x: 3.5, y: GROUND.y, z: 0.5 });
+            if (climber === undefined || walker === undefined) throw new Error('the fixture declares no ladder movers');
+
+            expect(navigationProfile(climber.instance).canClimbLadders).toBe(true);
+            climber.body.moveTo({ x: 0.5, y: GROUND.y + 1, z: 0.5 }, 1);
+            walker.body.moveTo({ x: 3.5, y: GROUND.y + 1, z: 0.5 }, 1);
+            runtime.tick(1);
+
+            expect(climber.position.y).toBeGreaterThan(GROUND.y);
+            expect(walker.position.y).toBe(GROUND.y);
         });
 
         it('stops a walking entity at the collision box of a solid wall', () => {

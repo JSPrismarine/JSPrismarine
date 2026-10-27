@@ -41,7 +41,13 @@ import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './hos
  * the block Java's `PoiTypes` makes a home and so the one the sleep and
  * shelter goals search for.
  */
-export const FIXTURE_BLOCKS = ['minecraft:air', 'minecraft:stone', 'minecraft:redstone_lamp', 'minecraft:bed'] as const;
+export const FIXTURE_BLOCKS = [
+    'minecraft:air',
+    'minecraft:stone',
+    'minecraft:redstone_lamp',
+    'minecraft:bed',
+    'minecraft:ladder'
+] as const;
 
 /** The y the fixture world's stone floor sits at; everything above it is air. */
 export const FLOOR_Y = 63;
@@ -75,7 +81,8 @@ export const entityFixturePalette = (): BlockPalette =>
         ['minecraft:air', new BlockStateModel([])],
         ['minecraft:stone', new BlockStateModel([])],
         ['minecraft:redstone_lamp', new BlockStateModel([])],
-        ['minecraft:bed', new BlockStateModel([])]
+        ['minecraft:bed', new BlockStateModel([])],
+        ['minecraft:ladder', new BlockStateModel([])]
     ]);
 
 /** One entity file, in the shape a behavior pack writes. */
@@ -219,7 +226,11 @@ export const entityFixtureStack = (extra: ExtraEntities = {}): Definitions =>
         blocks: new Map(
             FIXTURE_BLOCKS.map((identifier) => [
                 identifier,
-                definitionOf('blocks', identifier, blockFile(identifier, 1.5, identifier === 'minecraft:air'))
+                definitionOf(
+                    'blocks',
+                    identifier,
+                    blockFile(identifier, 1.5, identifier === 'minecraft:air' || identifier === 'minecraft:ladder')
+                )
             ])
         ),
         entities: new Map([

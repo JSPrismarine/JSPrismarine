@@ -33,6 +33,8 @@ export interface NavigationProfile {
     readonly canSwim: boolean;
     readonly canWalk: boolean;
     readonly canWalkInLava: boolean;
+    /** Whether `minecraft:can_climb` lets the entity climb ladder blocks. */
+    readonly canClimbLadders?: boolean;
     readonly canFly: boolean;
     readonly canBreach: boolean;
     readonly canJump: boolean;
@@ -68,6 +70,7 @@ export const defaultNavigationProfile: NavigationProfile = {
     canSwim: false,
     canWalk: true,
     canWalkInLava: false,
+    canClimbLadders: false,
     canFly: false,
     canBreach: false,
     canJump: true,
@@ -115,6 +118,12 @@ const stepHeightOf = (entity: EntityInstance, canJump: boolean): number => {
     return canJump ? 1 : 0.5625;
 };
 
+/** Adds entity abilities the navigation component does not carry. */
+const withEntityAbilities = (entity: EntityInstance, profile: NavigationProfile): NavigationProfile => ({
+    ...profile,
+    canClimbLadders: entity.hasComponent('minecraft:can_climb')
+});
+
 /**
  * Builds the path finder's rules from the entity's active navigation
  * component.
@@ -128,36 +137,42 @@ export const navigationProfile = (entity: EntityInstance): NavigationProfile => 
         if (!isRecord(body)) continue;
 
         const canJump = flag(body, 'canJump', true);
-        return withJavaNavigation(entity, {
-            kind,
-            height: heightOf(entity),
-            stepHeight: stepHeightOf(entity, canJump),
-            maxFallDistance: 3,
-            canPathOverWater: flag(body, 'canPathOverWater', false),
-            canPathOverLava: flag(body, 'canPathOverLava', false),
-            canPathFromAir: flag(body, 'canPathFromAir', false),
-            canFloat: flag(body, 'canFloat', false),
-            canSink: flag(body, 'canSink', true),
-            canSwim: flag(body, 'canSwim', kind === 'swim'),
-            canWalk: flag(body, 'canWalk', kind !== 'fly' && kind !== 'hover' && kind !== 'float'),
-            canWalkInLava: flag(body, 'canWalkInLava', false),
-            canFly: flag(body, 'canFly', kind === 'fly' || kind === 'hover' || kind === 'float'),
-            canBreach: flag(body, 'canBreach', false),
-            canJump,
-            canOpenDoors: flag(body, 'canOpenDoors', false),
-            canOpenIronDoors: flag(body, 'canOpenIronDoors', false),
-            canPassDoors: flag(body, 'canPassDoors', true),
-            canBreakDoors: flag(body, 'canBreakDoors', false),
-            avoidWater: flag(body, 'avoidWater', false),
-            avoidSun: flag(body, 'avoidSun', false),
-            avoidPortals: flag(body, 'avoidPortals', false),
-            avoidDamageBlocks: flag(body, 'avoidDamageBlocks', false),
-            isAmphibious: flag(body, 'isAmphibious', false),
-            blocksToAvoid: avoidedBlocks(body.blocksToAvoid)
-        });
+        return withEntityAbilities(
+            entity,
+            withJavaNavigation(entity, {
+                kind,
+                height: heightOf(entity),
+                stepHeight: stepHeightOf(entity, canJump),
+                maxFallDistance: 3,
+                canPathOverWater: flag(body, 'canPathOverWater', false),
+                canPathOverLava: flag(body, 'canPathOverLava', false),
+                canPathFromAir: flag(body, 'canPathFromAir', false),
+                canFloat: flag(body, 'canFloat', false),
+                canSink: flag(body, 'canSink', true),
+                canSwim: flag(body, 'canSwim', kind === 'swim'),
+                canWalk: flag(body, 'canWalk', kind !== 'fly' && kind !== 'hover' && kind !== 'float'),
+                canWalkInLava: flag(body, 'canWalkInLava', false),
+                canFly: flag(body, 'canFly', kind === 'fly' || kind === 'hover' || kind === 'float'),
+                canBreach: flag(body, 'canBreach', false),
+                canJump,
+                canOpenDoors: flag(body, 'canOpenDoors', false),
+                canOpenIronDoors: flag(body, 'canOpenIronDoors', false),
+                canPassDoors: flag(body, 'canPassDoors', true),
+                canBreakDoors: flag(body, 'canBreakDoors', false),
+                avoidWater: flag(body, 'avoidWater', false),
+                avoidSun: flag(body, 'avoidSun', false),
+                avoidPortals: flag(body, 'avoidPortals', false),
+                avoidDamageBlocks: flag(body, 'avoidDamageBlocks', false),
+                isAmphibious: flag(body, 'isAmphibious', false),
+                blocksToAvoid: avoidedBlocks(body.blocksToAvoid)
+            })
+        );
     }
 
-    return withJavaNavigation(entity, { ...defaultNavigationProfile, height: heightOf(entity) });
+    return withEntityAbilities(
+        entity,
+        withJavaNavigation(entity, { ...defaultNavigationProfile, height: heightOf(entity) })
+    );
 };
 
 /** Lets the pinned Java navigator decide which media its path can enter and hold. */

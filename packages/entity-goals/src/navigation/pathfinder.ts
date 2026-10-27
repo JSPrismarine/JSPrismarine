@@ -219,6 +219,16 @@ class CellReader {
         return this.holdsPosition(x, y, z) ? cost : undefined;
     }
 
+    /** Whether the profile can climb vertically from this block. */
+    public canClimb(x: number, y: number, z: number): boolean {
+        const { view, profile } = this;
+        const at = this.cell(x, y, z);
+        return (
+            (profile.kind === 'climb' && view.isClimbable?.(at) === true) ||
+            (profile.canClimbLadders === true && view.isLadder?.(at) === true)
+        );
+    }
+
     /** Whether a move may pass through the cell without stopping in it. */
     public passesThrough(x: number, y: number, z: number): boolean {
         return this.cost(x, y, z) !== undefined;
@@ -294,7 +304,7 @@ class CellReader {
         if (profile.canFly) return true;
         if (this.inNavigableLiquid(x, y, z)) return true;
         if (this.hasSupport(x, y, z)) return true;
-        return profile.kind === 'climb' && this.view.isClimbable?.(this.cell(x, y, z)) === true;
+        return this.canClimb(x, y, z);
     }
 
     /** Whether the ground medium carries an entity standing in the cell. */
@@ -390,7 +400,8 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
         }
     }
 
-    const vertical = profile.canFly || profile.canSwim || profile.isAmphibious || profile.kind === 'climb';
+    const vertical =
+        profile.canFly || profile.canSwim || profile.isAmphibious || cells.canClimb(node.x, node.y, node.z);
     if (vertical) {
         for (const dy of [1, -1]) {
             const y = node.y + dy;

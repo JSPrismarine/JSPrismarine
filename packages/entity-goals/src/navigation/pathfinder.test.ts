@@ -265,6 +265,18 @@ describe('findPath', () => {
         expect(steps(path)).toEqual(['1,1,0', '1,2,0', '1,3,0']);
     });
 
+    it('climbs ladder blocks when the profile carries minecraft:can_climb', () => {
+        const view = voxelGrid([['##'], ['.L'], ['.L'], ['.L']]);
+
+        const path = findPath(view, navigationProfileOf({ height: 1, canClimbLadders: true }), {
+            from: { x: 0, y: 1, z: 0 },
+            to: { x: 1, y: 3, z: 0 }
+        });
+
+        expect(path?.reachedGoal).toBe(true);
+        expect(steps(path)).toEqual(['1,1,0', '1,2,0', '1,3,0']);
+    });
+
     it('stops searching at the node budget', () => {
         const row = '.'.repeat(64);
         const view = voxelGrid([['#'.repeat(64)], [row]]);

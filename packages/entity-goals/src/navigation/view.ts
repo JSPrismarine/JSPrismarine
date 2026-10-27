@@ -45,6 +45,8 @@ export interface NavigationView {
     isPortal?(position: EntityPosition): boolean;
     /** Whether an entity climbs the block, such as a ladder or a vine. */
     isClimbable?(position: EntityPosition): boolean;
+    /** Whether the block is a ladder, which `minecraft:can_climb` lets entities climb. */
+    isLadder?(position: EntityPosition): boolean;
 }
 
 /** Rounds a position down to the block that contains it. */
