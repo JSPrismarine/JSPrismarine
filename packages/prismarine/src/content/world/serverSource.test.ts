@@ -12,9 +12,9 @@ import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { BlockEntityRegistry } from '../../blockentity/BlockEntityRegistry';
-import { blockEntityRecord } from '../../blockentity/contentRecord';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
-import FallingBlock from '../../entity/other/FallingBlock';
+import { dataEntityRecordIn } from '../../entity/data/persistence';
+import { EntityRuntimes } from '../../entity/data/live';
 import BlockUpdateScheduler from '../../world/BlockUpdateScheduler';
 import Chunk from '../../world/chunk/Chunk';
 import { Dimensions } from '../../world/Dimension';
@@ -58,6 +58,28 @@ const ROBOT = definitionOf('entities', 'fixture:robot', {
     'minecraft:entity': {
         description: { identifier: 'fixture:robot' },
         components: { 'minecraft:health': { value: 10 } }
+    }
+});
+
+const FUSE_ENTITY = definitionOf('entities', 'fixture:fuse_entity', {
+    format_version: '1.26.0',
+    'minecraft:entity': {
+        description: { identifier: 'fixture:fuse_entity' },
+        components: {
+            'minecraft:health': { value: 10 },
+            'minecraft:explode': { fuse_lit: true, fuse_length: { range_min: 4, range_max: 4 }, power: 2 }
+        }
+    }
+});
+
+const BLOCK_ENTITY = definitionOf('entities', 'fixture:block_entity', {
+    format_version: '1.26.0',
+    'minecraft:entity': {
+        description: { identifier: 'fixture:block_entity' },
+        components: {
+            'minecraft:health': { value: 10 },
+            'jsprismarine:falling_block': {}
+        }
     }
 });
 
@@ -170,16 +192,22 @@ describe('serverWorldSource', () => {
     let chunk: Chunk;
     let broadcasts: Broadcasts;
     let content: ServerContent;
+    let entityRuntimes: EntityRuntimes;
 
     beforeEach(() => {
         let built: ServerContent | undefined;
+        entityRuntimes = new EntityRuntimes();
         ({ world, chunk, broadcasts } = liveWorld(() => built!));
 
         content = buildServerContent({
             load: () => ({
                 definitions: definitionsOf({
                     blocks: new Map(BLOCKS.map((id) => [id, overlayBlock(id)])),
-                    entities: new Map([['fixture:robot', ROBOT]]),
+                    entities: new Map([
+                        ['fixture:robot', ROBOT],
+                        ['fixture:fuse_entity', FUSE_ENTITY],
+                        ['fixture:block_entity', BLOCK_ENTITY]
+                    ]),
                     biomes: BIOMES
                 }),
                 diagnostics: []
@@ -194,6 +222,7 @@ describe('serverWorldSource', () => {
                 content: () => built!,
                 seed: 1234n,
                 difficulty: () => Difficulty.NORMAL,
+                entityRuntimes,
                 // Every chance comes up, so a growth step is a fact about the rule rather
                 // than about the draw.
                 random: constantRandom(0)
@@ -337,32 +366,50 @@ describe('serverWorldSource', () => {
         expect(engine.getDifficulty()).toBe('normal');
     });
 
-    it('spawns a lit TNT into the live world, carrying its fuse', () => {
-        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'minecraft:tnt', {
+    it('spawns a declared data entity into the live world, carrying its fuse data', () => {
+        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 3 }, 'fixture:fuse_entity', {
             fuse: 80
         });
 
-        const spawned = world.getEntity(BigInt(id));
-        expect(spawned?.getType()).toBe('minecraft:tnt');
-        expect(spawned?.getPosition().getY()).toBe(64.5);
-        expect(blockEntityRecord(spawned!.persistentNbt!)['fuse']).toBe(80);
-        expect(world.getEntities()).toHaveLength(1);
+        const runtime = entityRuntimes.at(DIMENSION);
+        const spawned = runtime?.runtime.byId(id);
+        const body = runtime?.bodies.bodyOf(id);
+        expect(spawned?.identifier).toBe('fixture:fuse_entity');
+        expect(spawned?.spawnData).toEqual({ fuse: 80 });
+        expect(spawned?.body.fuseTicks).toBe(80);
+        expect(body?.getType()).toBe('fixture:fuse_entity');
+        expect(body?.getPosition().getY()).toBe(64);
+        expect(world.getEntities()).toContain(body);
+
+        if (runtime !== undefined) runtime.bodies.persist(runtime.runtime);
+        const saved =
+            body?.persistentNbt === null || body?.persistentNbt === undefined
+                ? undefined
+                : dataEntityRecordIn(body.persistentNbt);
+        expect(saved?.spawnData).toEqual({ fuse: 80 });
     });
 
-    it('spawns a falling block as the block it is made of', () => {
+    it('spawns a declared data entity with its source block payload', () => {
         const id = content.world.blockWorld
             .at(DIMENSION)
-            .spawnEntity({ x: 3, y: 70, z: 3 }, 'minecraft:falling_block', { block: 'minecraft:stone' });
+            .spawnEntity({ x: 3, y: 70, z: 3 }, 'fixture:block_entity', { block: 'minecraft:stone' });
 
-        const spawned = world.getEntity(BigInt(id));
-        expect(spawned).toBeInstanceOf(FallingBlock);
-        expect((spawned as FallingBlock).getBlockName()).toBe('minecraft:stone');
+        const runtime = entityRuntimes.at(DIMENSION);
+        const spawned = runtime?.runtime.byId(id);
+        const body = runtime?.bodies.bodyOf(id);
+        expect(spawned?.identifier).toBe('fixture:block_entity');
+        expect(spawned?.spawnData).toEqual({ block: 'minecraft:stone' });
+        expect(body?.getType()).toBe('fixture:block_entity');
+        expect(world.getEntities()).toContain(body);
     });
 
     it('spawns an identifier only a pack declares, with no class behind it', () => {
-        const id = content.world.blockWorld.at(DIMENSION).spawnEntity({ x: 3, y: 64, z: 5 }, 'fixture:robot');
+        const adapter = content.world.blockWorld.at(DIMENSION);
+        const id = adapter.spawnEntity({ x: 3, y: 64, z: 5 }, 'fixture:robot');
 
-        expect(world.getEntity(BigInt(id))?.getType()).toBe('fixture:robot');
+        expect(adapter.entitiesAt({ x: 3, y: 64, z: 5 })).toContainEqual(
+            expect.objectContaining({ id, identifier: 'fixture:robot' })
+        );
     });
 
     it('spawns nothing for an identifier no pack declares', () => {
