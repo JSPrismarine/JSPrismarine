@@ -175,9 +175,11 @@ export function canAdmire(body: BrainMob, offered: BrainItem): boolean {
  * Giving a piglin gold writes `ADMIRING_ITEM` with the 119-tick admire duration and stops the
  * piglin walking; what happens to the item and what comes back out of the barter loot table is
  * the host's, and `onBarter` is where that lands.
+ *
+ * @param duration - How many ticks the admiration memory remains present.
  */
-export function admireGoldItem(context: BrainContext): void {
-    context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ADMIRING_ITEM, true, PIGLIN.admireDuration);
+export function admireGoldItem(context: BrainContext, duration: number = PIGLIN.admireDuration): void {
+    context.body.brain.setMemoryWithExpiry(MemoryModuleTypes.ADMIRING_ITEM, true, duration);
     context.body.brain.eraseMemory(MemoryModuleTypes.WALK_TARGET);
     context.body.navigation.stop();
 }
@@ -780,7 +782,7 @@ export const PIGLIN_BRAIN: BrainMobDefinition = {
     ],
     sensorTypes: ['nearest_living_entities', 'nearest_players', 'nearest_items', 'hurt_by', 'piglin_specific_sensor'],
     alsoRunsGoals: false,
-    makeBrain: () => makePiglinBrain(),
+    makeBrain: (options) => makePiglinBrain(options?.onBarter),
     /** Java's `PiglinAi.initMemories`: the first hunt is one full interval away. */
     initMemories: (context) =>
         context.body.brain.setMemoryWithExpiry(

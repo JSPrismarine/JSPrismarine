@@ -211,7 +211,9 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
-| `minecraft:interact` | Applies `on_interact.filters` and events, enforces cooldowns, projects `interact_text` to touch-screen clients, plays `play_sounds`, emits `vibration`, adjusts health, emits `particle_on_start` at the entity with its configured offsets, repairs entity inventory or equipment items, moves an entity's main-hand item into an empty player hand, creates configured entities, rolls `add_items` and `spawn_items` loot tables, uses or transforms the live player's item, equips or drops named equipment and `minecraft:inventory` slots, and gives items to the entity's main hand. Successful interactions relay the player's arm swing to other viewers tracking them by default; set `swing: false` to suppress it. `admire`, `barter`, and non-`none` `particle_on_start.copper_event` still report as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
+| `minecraft:interact` | Applies `on_interact.filters` and events, enforces cooldowns, projects `interact_text` to touch-screen clients, plays `play_sounds`, emits `vibration`, adjusts health, emits `particle_on_start` at the entity with its configured offsets, repairs entity inventory or equipment items, moves an entity's main-hand item into an empty player hand, creates configured entities, rolls `add_items` and `spawn_items` loot tables, uses or transforms the live player's item, equips or drops named equipment and `minecraft:inventory` slots, and gives items to the entity's main hand. Piglin interactions can start admiration and request a barter when the matching components are active. Successful interactions relay the player's arm swing to other viewers tracking them by default; set `swing: false` to suppress it. Non-`none` `particle_on_start.copper_event` still reports as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
+| `minecraft:admire_item` | Sets the piglin's admiration duration and the cooldown after damage, which ends current admiration and disables new attempts |
+| `minecraft:barter` | Rolls `barter_table` with the `barter` loot context after the piglin releases its gold ingot, honoring the cooldown after damage |
 | `minecraft:angry` | Counts down over `duration` plus or minus `duration_delta`, raises `calm_event`, excludes targets with `filters`, broadcasts on activation, attack, being attacked, or death as configured, and plays `angry_sound` on its `sound_interval` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_angry?view=minecraft-bedrock-stable)) |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
@@ -259,7 +261,7 @@ with no caller view.
 
 Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
 and exposes it through `EntityInstance.componentParams`. Of the 34 keys used by only one entity,
-33 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
+31 have no runtime behavior yet. Their factories preserve their bodies, and the corpus test counts
 them as parsed rather than behaviorally implemented.
 
 ## Measured coverage
@@ -273,7 +275,7 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a runtime effect | 70 |
+| Non-goal keys with a runtime effect | 72 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -315,8 +317,8 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 70 non-goal components currently have a
-runtime effect, including host reads and protocol projections. The remaining 132 bodies are
+measures name coverage rather than complete simulation: 72 non-goal components currently have a
+runtime effect, including host reads and protocol projections. The remaining 130 bodies are
 available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
@@ -345,5 +347,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  132 currently expose data without runtime behavior. The component bodies remain accessible to the
+  130 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

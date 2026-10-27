@@ -9,12 +9,14 @@ import { TRIGGER_COMPONENTS } from '../triggers';
 import { dataComponent } from './schemas';
 import {
     ageable,
+    admireItem,
     airDragModifier,
     ambientSoundInterval,
     angry,
     attack,
     attributeComponents,
     breathable,
+    barter,
     bounciness,
     collisionBox,
     damageOverTime,
@@ -79,14 +81,12 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  */
 export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:addrider',
-    'minecraft:admire_item',
     'minecraft:anger_level',
     'minecraft:annotation.break_door',
     'minecraft:annotation.open_door',
     'minecraft:apply_knockback_rules',
     'minecraft:area_attack',
     'minecraft:attack_cooldown',
-    'minecraft:barter',
     'minecraft:balloonable',
     'minecraft:block_climber',
     'minecraft:block_movement_slowdown_immunity',
@@ -236,10 +236,12 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
 
     register(ageable);
+    register(admireItem);
     register(ambientSoundInterval);
     register(angry);
     register(attack);
     register(breathable);
+    register(barter);
     register(collisionBox);
     register(damageOverTime);
     register(damageSensor);

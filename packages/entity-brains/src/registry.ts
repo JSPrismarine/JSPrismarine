@@ -19,6 +19,8 @@ export interface BrainMobOptions {
      * which decides its job-site point of interest type and the weights in its work package.
      */
     readonly variant?: string;
+    /** Called when a piglin finishes admiring a barter item, so the host can roll its loot table. */
+    readonly onBarter?: (context: BrainContext) => void;
 }
 
 /** One mob's brain. Java's `<Mob>Ai` class plus the `brainProvider` field on the mob. */

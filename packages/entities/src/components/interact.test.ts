@@ -37,13 +37,15 @@ describe('minecraft:interact schema', () => {
         expect(result.value.interactions[1]).toMatchObject({
             repairEntityItem: { amount: 3, slot: 'slot.weapon.mainhand' },
             takeItem: true,
+            admire: true,
+            barter: true,
             swing: false,
             particleOnStart: {
                 particleType: 'heart',
                 yOffset: 0,
                 offsetTowardsInteractor: false
             },
-            unsupportedFields: ['admire', 'barter']
+            unsupportedFields: []
         });
     });
 });

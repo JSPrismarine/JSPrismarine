@@ -47,7 +47,14 @@ export const brainEntityOf = (entity: DataEntity, scene: EntityScene): BrainEnti
     canBeTargeted: () => entity.removed === undefined,
     conditions: entity.conditions,
     mainHandItem:
-        entity.carried === undefined ? undefined : { id: entity.carried, tags: itemTags(entity.carried, scene) }
+        entity.carried === undefined ? undefined : { id: entity.carried, tags: itemTags(entity.carried, scene) },
+    offHandItem:
+        entity.body.equipment.offhand === undefined
+            ? undefined
+            : {
+                  id: entity.body.equipment.offhand.identifier,
+                  tags: itemTags(entity.body.equipment.offhand.identifier, scene)
+              }
 });
 
 /** A live player as a brain sees one, including its current combat eligibility. */

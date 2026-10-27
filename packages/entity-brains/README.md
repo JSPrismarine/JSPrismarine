@@ -244,7 +244,7 @@ recently. Anything else goes by whether it beats what the piglin already holds.
 
 Being handed a gold ingot holds `ADMIRING_ITEM` for 119 ticks, which is `ADMIRE_DURATION`, and that
 memory is what puts the piglin into the `admire_item` activity. `onBarter` is the hook
-`makePiglinBrain` takes, because the barter loot table is the host's.
+`makePiglinBrain` takes so the host can roll its data-defined barter table after admiration ends.
 
 Four memories decide what admiring does, and none of them has a Bedrock equivalent:
 `ADMIRING_ITEM`, `TIME_TRYING_TO_REACH_ADMIRE_ITEM`, `DISABLE_WALK_TO_ADMIRE_ITEM` and
@@ -313,10 +313,10 @@ rest keep their real name, their real memory conditions and their real constants
 memory bookkeeping Java does, while leaving the world effect to the host. Those are the behaviors
 that need facts the seam deliberately does not carry.
 
-- **Inventories and items.** The piglin's barter response needs the `piglin_bartering` loot table,
-  the allay's delivery needs its inventory, and the copper golem's transfer needs two containers.
-  `makePiglinBrain` takes an `onBarter` hook; the other two write their memories and leave the item
-  move to the host.
+- **Inventories and items.** The allay's delivery needs its inventory, and the copper golem's
+  transfer needs two containers. Piglin bartering uses `makePiglinBrain`'s `onBarter` hook so the
+  host can roll the active `minecraft:barter` table; the allay and copper golem write their memories
+  and leave the item move to the host.
 - **Block placement.** The frog's `TryLaySpawnOnFluidNearLand` and the sniffer's dig emit a game
   event and clear their memory; the host places the block.
 - **Damage and projectiles.** The warden's sonic boom and the breeze's wind charge walk their memory

@@ -152,15 +152,15 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Seventy keys carry
-runtime behavior. The remaining 132 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Seventy-two keys carry
+runtime behavior. The remaining 130 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
 This count includes host reads and actor-metadata projections. It does not mean every field of each
 component has a runtime implementation.
 
-The 70 with runtime effects include components that change entity state, decide an outcome, or
+The 72 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -200,8 +200,13 @@ player hand, and `interact_text` reaches touch-screen clients through actor meta
 `swing` defaults to true and relays the player's arm animation to other viewers tracking the player
 after a successful interaction; setting it to false suppresses that relay. `particle_on_start`
 emits its named particle with `particle_y_offset` and `particle_offset_towards_interactor` applied.
-`admire`, `barter`, non-`none` `particle_on_start.copper_event`, and unknown particle fields still
-report as unsupported.
+`admire` and `barter` start piglin item behavior when their components and brain are active.
+`minecraft:admire_item` supplies its duration and post-damage cooldown; damage ends current
+admiration and blocks new attempts until that cooldown expires. `minecraft:barter` supplies the
+barter loot table and its post-damage cooldown. The runtime stores the offered gold ingot in the
+offhand, starts admiration, then rolls the table with the `barter` loot context when admiration
+ends. Non-`none` `particle_on_start.copper_event` and unknown particle fields still report as
+unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type
@@ -362,8 +367,8 @@ modules, all 24 sensors, all 26 activities, the combinators, and each of the twe
 real activity table, priorities, memory conditions and constants. The behavior library is 37 shared
 behaviors plus the mob-specific ones. A behavior whose effect the world seam can express is
 implemented in full; the rest keep their real name, memory conditions and constants, do the memory
-bookkeeping Java does, and leave the world effect to the host. The piglin's barter loot, the
-sniffer's dig, the warden's sonic boom damage and the raid state machine are in that group.
+bookkeeping Java does, and leave the world effect to the host. The sniffer's dig, the warden's sonic
+boom damage and the raid state machine are in that group.
 
 Two consequences are worth knowing before you build around a brain mob.
 

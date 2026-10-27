@@ -44,6 +44,7 @@ import {
     noEffects
 } from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
+import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
 import { parseFilter } from '@jsprismarine/packs';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
@@ -252,6 +253,12 @@ export class EntityRuntime implements EntityScene {
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
     /** Invalid interaction slots reported once per entity and request. */
     private readonly reportedInteractionSlots = new WeakMap<DataEntity, Set<string>>();
+    /** Barter requests waiting for a piglin's admire behavior to finish. */
+    private readonly pendingBarters = new WeakSet<DataEntity>();
+    /** The last damage tick used by admiration and barter cooldowns. */
+    private readonly lastDamagedAt = new WeakMap<DataEntity, number>();
+    /** Entities whose malformed barter table has already been reported. */
+    private readonly reportedBarterTables = new WeakSet<DataEntity>();
     /**
      * The body being built right now.
      *
@@ -539,8 +546,19 @@ export class EntityRuntime implements EntityScene {
         this.spawning = undefined;
 
         const brainMob = brainMobFor(content.entities.brains, reference);
-        const brain = brainMob?.makeBrain({ baby: instance.hasComponent('minecraft:is_baby') });
+        let entityForBarter: DataEntity | undefined;
+        const brain = brainMob?.makeBrain({
+            baby: instance.hasComponent('minecraft:is_baby'),
+            ...(brainMob.id === 'minecraft:piglin'
+                ? {
+                      onBarter: () => {
+                          if (entityForBarter !== undefined) this.completePiglinBarter(entityForBarter);
+                      }
+                  }
+                : {})
+        });
         const entity = new DataEntity({ body, instance, brainMob, brain, spawnData: options.data });
+        entityForBarter = entity;
         this.entities.set(id, entity);
         this.byInstance.set(instance, entity);
         // After the index, and with the hook set last: everything a component did while the
@@ -1000,6 +1018,8 @@ export class EntityRuntime implements EntityScene {
         const result = entity.instance.damage({ cause, amount, damager });
         if (result.amount > 0) {
             entity.body.damage.record(sourceId, cause, result.amount);
+            this.lastDamagedAt.set(entity, this.world.level.gameTime());
+            this.disablePiglinAdmirationAfterDamage(entity);
             if (options.feedback !== false) this.host.hurtFeedback?.(entity.id);
         }
         if (result.died) {
@@ -1525,6 +1545,8 @@ export class EntityRuntime implements EntityScene {
         if (typeof interaction === 'object') {
             const {
                 addItems,
+                admire,
+                barter,
                 dropItemSlot,
                 dropItemYOffset,
                 equipItemSlot,
@@ -1538,6 +1560,8 @@ export class EntityRuntime implements EntityScene {
                 ...itemEffect
             } = interaction;
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
+            if (admire === true || barter === true)
+                this.startPiglinInteraction(entity, itemIdentifier, admire === true, barter === true);
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
             if (repairEntityItem !== undefined) this.repairInteractionSlot(entity, repairEntityItem);
@@ -1790,6 +1814,111 @@ export class EntityRuntime implements EntityScene {
             this.host.drop(at, item);
     }
 
+    /** Starts the piglin behavior requested by a successful data-driven interaction. */
+    private startPiglinInteraction(entity: DataEntity, itemIdentifier: string, admire: boolean, barter: boolean): void {
+        if (entity.brain === undefined || entity.brainMob?.id !== 'minecraft:piglin') return;
+
+        const offered = { id: itemIdentifier, tags: new Set<string>() };
+        if (!isBarterCurrency(offered) || entity.body.equipment.offhand !== undefined) return;
+
+        const admireParams = entity.instance.componentParams('minecraft:admire_item');
+        const barterParams = entity.instance.componentParams('minecraft:barter');
+        const context = { world: this.brainWorld(), body: brainMobOf(entity, entity.brain, this) };
+        if (context.body.baby) return;
+        const canStartAdmiring =
+            admire &&
+            entity.instance.hasComponent('minecraft:admire_item') &&
+            isRecord(admireParams) &&
+            canAdmire(context.body, offered) &&
+            this.damageCooldownElapsed(entity, admireParams.cooldownAfterBeingAttacked);
+        const canStartBartering = barter && entity.instance.hasComponent('minecraft:barter') && isRecord(barterParams);
+        if (!canStartAdmiring && !canStartBartering) return;
+
+        entity.body.setEquipment({
+            ...entity.body.equipment,
+            offhand: { identifier: itemIdentifier, count: 1 }
+        });
+        if (canStartAdmiring) {
+            const duration =
+                isRecord(admireParams) && typeof admireParams.duration === 'number' ? admireParams.duration : 10;
+            admireGoldItem(context, Math.ceil(duration * TICKS_PER_SECOND));
+        }
+        if (canStartBartering) this.pendingBarters.add(entity);
+    }
+
+    /** Completes a requested piglin barter after its admire behavior releases the gold ingot. */
+    private completePiglinBarter(entity: DataEntity): void {
+        if (!this.pendingBarters.has(entity)) return;
+
+        const params = entity.instance.componentParams('minecraft:barter');
+        const table = isRecord(params) && typeof params.barterTable === 'string' ? params.barterTable : undefined;
+        if (table === undefined || table.length === 0) {
+            if (!this.reportedBarterTables.has(entity)) {
+                this.reportedBarterTables.add(entity);
+                this.report(`${entity.identifier} requested barter without a minecraft:barter.barter_table`);
+            }
+            this.pendingBarters.delete(entity);
+            return;
+        }
+
+        const cooldown = isRecord(params) ? params.cooldownAfterBeingAttacked : 10;
+        if (!this.damageCooldownElapsed(entity, cooldown)) return;
+        if (entity.body.equipment.offhand?.identifier !== 'minecraft:gold_ingot') {
+            this.pendingBarters.delete(entity);
+            return;
+        }
+
+        this.removeInteractionEquipment(entity, 'offhand');
+        this.pendingBarters.delete(entity);
+        const drops = bedrockItemDrops(
+            this.content()
+                .equipmentLoot.roll(table, {
+                    parameterSet: 'barter',
+                    parameters: { this_entity: this.lootEntityViewOf(entity) }
+                })
+                .filter((drop) => drop.count > 0)
+                .map(dropOfRolledStack)
+        );
+        const position = blockPositionOf(entity.position);
+        for (const drop of drops) {
+            this.host.drop(position, drop);
+        }
+    }
+
+    /** Whether the component's post-damage cooldown has elapsed. */
+    private damageCooldownElapsed(entity: DataEntity, cooldownSeconds: unknown): boolean {
+        const lastDamage = this.lastDamagedAt.get(entity);
+        return (
+            lastDamage === undefined ||
+            this.world.level.gameTime() - lastDamage >=
+                Math.ceil((typeof cooldownSeconds === 'number' ? cooldownSeconds : 10) * TICKS_PER_SECOND)
+        );
+    }
+
+    /** Stops active admiration and disables new piglin admiration after damage. */
+    private disablePiglinAdmirationAfterDamage(entity: DataEntity): void {
+        if (entity.brain === undefined || entity.brainMob?.id !== 'minecraft:piglin') return;
+        if (!entity.instance.hasComponent('minecraft:admire_item')) return;
+
+        const params = entity.instance.componentParams('minecraft:admire_item');
+        const cooldown = isRecord(params) ? params.cooldownAfterBeingAttacked : 10;
+        const duration = Math.ceil((typeof cooldown === 'number' ? cooldown : 10) * TICKS_PER_SECOND);
+        if (duration <= 0) return;
+
+        entity.brain.setMemoryWithExpiry(MemoryModuleTypes.ADMIRING_DISABLED, true, duration);
+        entity.brain.eraseMemory(MemoryModuleTypes.ADMIRING_ITEM);
+    }
+
+    /** The active component view supplied to entity-context loot tables. */
+    private lootEntityViewOf(entity: DataEntity): EntityView {
+        const components = new Map<string, unknown>();
+        for (const name of entity.instance.activeComponents()) {
+            const value = entity.instance.componentParams(name);
+            if (value !== undefined) components.set(name, value);
+        }
+        return { type: entity.identifier, components };
+    }
+
     /** Rolls a loot table named by a successful entity interaction. */
     private rollInteractionLoot(
         table: string,
@@ -1797,12 +1926,7 @@ export class EntityRuntime implements EntityScene {
         owner: number,
         itemIdentifier: string
     ): readonly ContentItemDrop[] {
-        const components = new Map<string, unknown>();
-        for (const name of entity.instance.activeComponents()) {
-            const value = entity.instance.componentParams(name);
-            if (value !== undefined) components.set(name, value);
-        }
-        const source: EntityView = { type: entity.identifier, components };
+        const source = this.lootEntityViewOf(entity);
         const player = this.host.players().find((candidate) => candidate.id === owner);
         const sourceMob = this.mobById(owner);
         const origin = player?.position ?? sourceMob?.position() ?? entity.position;

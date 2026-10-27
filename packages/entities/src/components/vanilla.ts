@@ -1028,6 +1028,10 @@ interface InteractEntry {
     readonly giveItem: boolean;
     /** Whether the entity offers its main-hand item to an empty player hand. */
     readonly takeItem: boolean;
+    /** Whether the entity should admire the offered item after the interaction. */
+    readonly admire: boolean;
+    /** Whether the entity should barter for the offered item after the interaction. */
+    readonly barter: boolean;
     /** Text shown on touch controls while this interaction is available. */
     readonly interactText?: string;
     /** Loot-table items to add to the interacting player's inventory. */
@@ -1072,6 +1076,64 @@ export interface InteractParams {
     readonly interactions: readonly InteractEntry[];
 }
 
+/** What `minecraft:admire_item` declares. Durations are in seconds. */
+export interface AdmireItemParams {
+    /** How long the entity admires an offered item. */
+    readonly duration: number;
+    /** Time after damage during which the entity will not admire items. */
+    readonly cooldownAfterBeingAttacked: number;
+}
+
+/** The Bedrock admiration component, consumed by the data-driven entity runtime. */
+export const admireItem: ComponentFactory<EntityHooks, AdmireItemParams> = {
+    name: 'minecraft:admire_item',
+    hooks: [],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        for (const key of ['duration', 'cooldown_after_being_attacked']) {
+            if (value[key] !== undefined && (typeof value[key] !== 'number' || value[key] < 0))
+                return rejected(`${key} must be a non-negative number`);
+        }
+        return accepted({
+            duration: numberAt(value, 'duration', 10),
+            cooldownAfterBeingAttacked: numberAt(value, 'cooldown_after_being_attacked', 10)
+        });
+    },
+    create: () => ({})
+};
+
+/** What `minecraft:barter` declares. */
+export interface BarterParams {
+    /** Loot table rolled when the entity completes a barter. */
+    readonly barterTable?: string;
+    /** Time after damage during which the entity will not barter. */
+    readonly cooldownAfterBeingAttacked: number;
+}
+
+/** The Bedrock barter component, consumed by the data-driven entity runtime. */
+export const barter: ComponentFactory<EntityHooks, BarterParams> = {
+    name: 'minecraft:barter',
+    hooks: [],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        if (
+            value.barter_table !== undefined &&
+            (typeof value.barter_table !== 'string' || value.barter_table.length === 0)
+        )
+            return rejected('barter_table must be a non-empty string');
+        if (
+            value.cooldown_after_being_attacked !== undefined &&
+            (typeof value.cooldown_after_being_attacked !== 'number' || value.cooldown_after_being_attacked < 0)
+        )
+            return rejected('cooldown_after_being_attacked must be a non-negative number');
+        return accepted({
+            ...(typeof value.barter_table === 'string' ? { barterTable: value.barter_table } : {}),
+            cooldownAfterBeingAttacked: numberAt(value, 'cooldown_after_being_attacked', 10)
+        });
+    },
+    create: () => ({})
+};
+
 /**
  * The held-item behavior currently implemented for `minecraft:interact`.
  *
@@ -1082,8 +1144,10 @@ export interface InteractParams {
  * `transform_to_item`, `give_item`, and `use_item` to the live held stack. It emits a named
  * `particle_on_start.particle_type` with its vertical and interactor offsets, and its `swing`
  * setting relays the player's arm animation after a successful interaction.
- * Other interaction fields remain visible as a one-time runtime report so
- * incomplete behavior is not silently treated as vanilla.
+ * `admire` and `barter` start the piglin's corresponding item behavior when
+ * its active components and brain support them. Other interaction fields
+ * remain visible as a one-time runtime report so incomplete behavior is not
+ * silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1111,7 +1175,9 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'cooldown',
             'cooldown_after_being_attacked',
             'swing',
-            'particle_on_start'
+            'particle_on_start',
+            'admire',
+            'barter'
         ]);
         const interactions: InteractEntry[] = [];
         for (const [index, raw] of asList(value.interactions).entries()) {
@@ -1148,6 +1214,10 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 return rejected(`interactions[${index}].take_item must be a boolean`);
             if (raw.swing !== undefined && typeof raw.swing !== 'boolean')
                 return rejected(`interactions[${index}].swing must be a boolean`);
+            if (raw.admire !== undefined && typeof raw.admire !== 'boolean')
+                return rejected(`interactions[${index}].admire must be a boolean`);
+            if (raw.barter !== undefined && typeof raw.barter !== 'boolean')
+                return rejected(`interactions[${index}].barter must be a boolean`);
             if (raw.particle_on_start !== undefined && !isRecord(raw.particle_on_start))
                 return rejected(`interactions[${index}].particle_on_start must be an object`);
             if (
@@ -1281,6 +1351,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 ...(typeof raw.drop_item_y_offset === 'number' ? { dropItemYOffset: raw.drop_item_y_offset } : {}),
                 giveItem: booleanAt(raw, 'give_item', false),
                 takeItem: booleanAt(raw, 'take_item', false),
+                admire: booleanAt(raw, 'admire', false),
+                barter: booleanAt(raw, 'barter', false),
                 ...(typeof raw.interact_text === 'string' ? { interactText: raw.interact_text } : {}),
                 ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
                 ...(addItems === undefined ? {} : { addItems }),
@@ -1398,6 +1470,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.dropItemSlot === undefined &&
                         !entry.giveItem &&
                         !entry.takeItem &&
+                        !entry.admire &&
+                        !entry.barter &&
                         entry.spawnEntities.length === 0 &&
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
@@ -1431,6 +1505,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.dropItemYOffset === undefined ? {} : { dropItemYOffset: entry.dropItemYOffset }),
                         ...(entry.giveItem ? { giveItem: true } : {}),
                         ...(entry.takeItem ? { takeItem: true } : {}),
+                        ...(entry.admire ? { admire: true } : {}),
+                        ...(entry.barter ? { barter: true } : {}),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
                         ...(entry.particleOnStart === undefined || entry.particleOnStart.particleType === 'none'
                             ? {}

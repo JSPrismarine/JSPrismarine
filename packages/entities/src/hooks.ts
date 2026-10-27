@@ -196,6 +196,10 @@ export interface EntityItemInteractionEffect {
     readonly repairEntityItem?: EntityRepairItemRequest;
     /** Whether the entity should offer its main-hand item to an empty player hand. */
     readonly takeItem?: boolean;
+    /** Whether the entity should admire the offered item after the interaction. */
+    readonly admire?: boolean;
+    /** Whether the entity should barter for the offered item after the interaction. */
+    readonly barter?: boolean;
     /** Whether the interacting player should swing, which defaults to true. */
     readonly swing?: boolean;
     /** The named particle effect emitted when the interaction starts. */
