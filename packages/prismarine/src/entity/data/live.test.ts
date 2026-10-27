@@ -2368,7 +2368,7 @@ describe('the data-driven entity runtime over a live world', () => {
             player
                 .getInventory()
                 .setItemInHand(
-                    new ContainerEntry({ item: new Item({ name: 'minecraft:creeper_spawn_egg' }), count: 1 })
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:creeper_spawn_egg' }), count: 2 })
                 );
             const pig = live.runtime.spawn('minecraft:pig', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (pig === undefined) throw new Error('vanilla content declares no pig');
@@ -2377,8 +2377,19 @@ describe('the data-driven entity runtime over a live world', () => {
             await useHeldItemOnEntity(player, body.getRuntimeId());
 
             const creeper = live.runtime.all().find((entity) => entity.identifier === 'minecraft:creeper');
-            expect(creeper?.position).toEqual(pig.position);
-            expect(creeper?.instance.hasComponent('minecraft:is_baby')).toBe(false);
+            if (creeper === undefined) throw new Error('the spawn egg created no creeper');
+            expect(creeper.position).toEqual(pig.position);
+            expect(creeper.instance.hasComponent('minecraft:is_baby')).toBe(false);
+            const creeperBody = live.bodies.bodyOf(creeper.id);
+            if (creeperBody === undefined) throw new Error('the spawned creeper has no client-facing actor');
+            const bodyPosition = creeperBody.getPosition();
+            expect([bodyPosition.getX(), bodyPosition.getY(), bodyPosition.getZ()]).toEqual([
+                pig.position.x,
+                pig.position.y,
+                pig.position.z
+            ]);
+            expect(player.getInventory().getEntry(player.getInventory().getHandSlotIndex())?.getCount()).toBe(1);
+            expect(player.getInventory().getItemInHand().getAmount()).toBe(1);
         });
 
         it('maps a spawn egg entity id before spawning inside another mob', { timeout: 180_000 }, async () => {
@@ -2426,7 +2437,34 @@ describe('the data-driven entity runtime over a live world', () => {
                 .find((entity) => entity.identifier === 'minecraft:villager_v2' && entity.id !== villager.id);
             expect(child?.position).toEqual(villager.position);
             expect(child?.instance.hasComponent('minecraft:is_baby')).toBe(true);
-            expect(child && live.bodies.bodyOf(child.id)).toBeDefined();
+            const childBody = child && live.bodies.bodyOf(child.id);
+            expect(childBody).toBeDefined();
+            expect(childBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
+        });
+
+        it('uses a zombie’s born event when its own spawn egg is used on it', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+            player
+                .getInventory()
+                .setItemInHand(
+                    new ContainerEntry({ item: new Item({ name: 'minecraft:zombie_spawn_egg' }), count: 1 })
+                );
+            const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (zombie === undefined) throw new Error('vanilla content declares no zombie');
+            const body = live.bodies.bodyOf(zombie.id);
+            if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
+
+            await useHeldItemOnEntity(player, body.getRuntimeId());
+
+            const baby = live.runtime
+                .all()
+                .find((entity) => entity.identifier === 'minecraft:zombie' && entity.id !== zombie.id);
+            expect(baby?.instance.hasComponent('minecraft:is_baby')).toBe(true);
+            const babyBody = baby && live.bodies.bodyOf(baby.id);
+            expect(babyBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
         });
 
         it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, async () => {

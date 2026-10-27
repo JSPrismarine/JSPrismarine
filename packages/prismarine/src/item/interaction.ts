@@ -314,16 +314,27 @@ export const useItemOnBlock = (interaction: BlockInteraction): InteractionResult
 export const useItemOnEntity = (interaction: EntityInteraction): InteractionResult => {
     const { content, actors, player, target } = interaction;
 
-    const held = player.getInventory().getItemInHand();
-    const stack = heldStack(content, held.getName(), held.getAmount());
+    const inventory = player.getInventory();
+    const handSlot = inventory.getHandSlotIndex();
+    const heldEntry = inventory.getEntry(handSlot);
+    const held = inventory.getItemInHand();
+    const stack = heldStack(content, held.getName(), heldEntry?.getCount() ?? held.getAmount());
     const source = { identifier: 'minecraft:player', runtimeId: Number(player.getRuntimeId()) };
 
     return actors.duringInteraction(source, target, () => {
         if (actors.interactWithEntity(source)) return 'handled';
         if (stack === undefined) return 'declined';
 
-        return stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 }) === undefined
-            ? 'declined'
-            : 'handled';
+        const used = stack.dispatchFirst('onUse', { itemStack: stack, source, useDuration: 0 });
+        if (used === undefined) return 'declined';
+
+        // Targeted item use has no later inventory path, so carry its stack result back now.
+        // Spawn eggs use this to spend one egg after creating their entity at the target.
+        if (used.stack?.identifier === held.getName()) {
+            held.count = used.stack.count;
+            heldEntry?.setCount(used.stack.count);
+        }
+
+        return 'handled';
     });
 };
