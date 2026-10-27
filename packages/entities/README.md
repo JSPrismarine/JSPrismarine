@@ -210,7 +210,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | --- | --- |
 | `minecraft:timer` | Draws its duration and raises its event, restarting whenever its group is re-added |
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
-| `minecraft:breedable` | Matches `breed_items`, checks tame, health, baby, love, and cooldown requirements, enters the love state, and replaces the consumed item with its per-item `result_item`; the breeding runtime resolves mates and offspring from related data ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_breedable?view=minecraft-bedrock-stable)) |
+| `minecraft:breedable` | Matches `breed_items`, checks tame, health, baby, love, and cooldown requirements, enters the love state, and replaces the consumed item with its per-item `result_item`; the breeding runtime reads mate and offspring data from `minecraft:offspring_data` and accepts legacy pairs from `minecraft:offspring` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_breedable?view=minecraft-bedrock-stable)) |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
 | `minecraft:healable` | Matches a configured item and filter, restores health when the entity is injured or `force_use` is set, and replaces the consumed item with `result_item`; item `effects` are not applied yet ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_healable?view=minecraft-bedrock-stable)) |
 | `minecraft:tameable` | Accepts configured `tame_items`, rolls `probability` for each attempt, and on success records the owner, raises `tame_event`, and replaces the consumed item with `result_item`; failed attempts are accepted and consume one item outside creative mode ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_tameable?view=minecraft-bedrock-stable)) |
@@ -240,7 +240,8 @@ also sets the Bedrock actor's `FIRE_IMMUNE` flag. `minecraft:body_rotation_block
 `BODY_ROTATION_BLOCKED`. `minecraft:out_of_control` projects to `OUT_OF_CONTROL`.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
-The separate breeding runtime resolves compatible mates and offspring from related data components.
+The separate breeding runtime reads compatible mates and offspring pairs from
+`minecraft:offspring_data`, and retains support for legacy `minecraft:offspring` pairs.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne
 paths, and reads `minecraft:can_stand_on_powder_snow` to treat powder snow as support. The runtime
 projects `minecraft:can_climb` to `CANCLIMB`, the active navigation profile's

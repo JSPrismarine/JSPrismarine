@@ -88,7 +88,8 @@ the part of `entities/chicken.json` that matters, trimmed:
       "minecraft:chicken_baby": { "minecraft:is_baby": {}, "minecraft:ageable": { "duration": 1200 } },
       "minecraft:chicken_adult": {
         "minecraft:loot": { "table": "loot_tables/entities/chicken.json" },
-        "minecraft:breedable": { "breeds_with": { "minecraft:chicken": {} } },
+        "minecraft:breedable": {},
+        "minecraft:offspring_data": { "breeds_with": { "minecraft:chicken": {} } },
         "minecraft:behavior.breed": { "priority": 3, "speed_multiplier": 1 },
         "minecraft:spawn_entity": { "entities": [{ "spawn_item": "egg", "min_wait_time": 300 }] }
       }
@@ -133,8 +134,9 @@ A chicken arrives in the world like this.
    It cannot test for the baby group the `randomize` node may just have added, because an event's
    effects are decided immediately and applied only when the entity next ticks.
 4. On the next tick, the adult group's components initialize: `minecraft:loot` names the table
-   death rolls, `minecraft:breedable` tells the breeding code which mate and which baby to make,
-   and `minecraft:behavior.breed` joins the scheduler at priority 3.
+   death rolls, `minecraft:breedable` supplies the love-state requirements,
+   `minecraft:offspring_data` declares compatible mates and offspring, and
+   `minecraft:behavior.breed` joins the scheduler at priority 3.
 5. Every tick after that, the scheduler walks the goals from priority 0 upward and starts each one
    whose control flags are free. `float` holds `jump`, `panic` and `random_stroll` want `move`,
    `look_at_player` and `random_look_around` want `look`, and `tempt` wants both `move` and `look`.
@@ -225,7 +227,8 @@ The entities package README lists each component and what it does.
 
 "Parses as data" is not the same as "ignored". The `minecraft:breedable` hook matches feed items,
 checks tame, health, baby, love, and cooldown requirements, and puts eligible adults into love; the
-separate breeding runtime resolves compatible mates and offspring from related data components.
+separate breeding runtime reads compatible mates and offspring from `minecraft:offspring_data`, and
+also accepts offspring pairs from the legacy `minecraft:offspring` component.
 `minecraft:healable` and `minecraft:tameable` also implement item interactions through component
 hooks, while the host applies the resulting health, owner, and event effects. `minecraft:collision_box` and the
 `minecraft:navigation.*` flavors build the path

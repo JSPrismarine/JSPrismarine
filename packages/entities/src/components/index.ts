@@ -166,6 +166,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:not_pickable_from_inside',
     'minecraft:npc',
     'minecraft:offspring',
+    'minecraft:offspring_data',
     'minecraft:out_of_control',
     'minecraft:peek',
     'minecraft:persistent',

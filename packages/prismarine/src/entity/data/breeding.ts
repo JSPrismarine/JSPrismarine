@@ -27,10 +27,11 @@ const TICKS_PER_SECOND = 20;
 
 /**
  * Parsed breeding rules for each active component definition. A component group
- * that changes these parameters supplies a different object, while repeated
- * reads of the same data-driven component reuse its parsed rules.
+ * that changes either component supplies a different object, while repeated
+ * reads of the same active definitions reuse their parsed rules.
  */
-const rulesByParams = new WeakMap<Record<string, unknown>, BreedableRules>();
+const EMPTY_COMPONENT_PARAMS: Record<string, unknown> = {};
+const rulesByParams = new WeakMap<Record<string, unknown>, WeakMap<Record<string, unknown>, BreedableRules>>();
 
 /** One entry of `breeds_with`: a type this entity mates with, and the child it makes. */
 export interface MateType {
@@ -42,7 +43,7 @@ export interface MateType {
     readonly breedEvent: string | undefined;
 }
 
-/** `minecraft:breedable`, as the two breeding questions read it. */
+/** `minecraft:breedable`, with mate rules from the active offspring component. */
 export interface BreedableRules {
     readonly requireTame: boolean;
     readonly requireFullHealth: boolean;
@@ -64,7 +65,15 @@ export const breedableOf = (instance: EntityInstance): BreedableRules | undefine
     const params = instance.componentParams('minecraft:breedable');
     if (!isRecord(params)) return undefined;
 
-    const cached = rulesByParams.get(params);
+    const offspringDataParams = instance.componentParams('minecraft:offspring_data');
+    const offspringData = isRecord(offspringDataParams) ? offspringDataParams : EMPTY_COMPONENT_PARAMS;
+    let rulesByOffspringParams = rulesByParams.get(params);
+    if (rulesByOffspringParams === undefined) {
+        rulesByOffspringParams = new WeakMap();
+        rulesByParams.set(params, rulesByOffspringParams);
+    }
+
+    const cached = rulesByOffspringParams.get(offspringData);
     if (cached !== undefined) return cached;
 
     const cooldown = typeof params.breed_cooldown === 'number' ? params.breed_cooldown : DEFAULT_BREED_COOLDOWN;
@@ -72,10 +81,10 @@ export const breedableOf = (instance: EntityInstance): BreedableRules | undefine
         requireTame: params.require_tame !== false,
         requireFullHealth: params.require_full_health === true,
         breedCooldownTicks: Math.round(cooldown * TICKS_PER_SECOND),
-        mates: matesOf(params.breeds_with),
+        mates: matesOf(offspringData.breeds_with ?? params.breeds_with),
         loveFilters: params.love_filters === undefined ? undefined : parseFilter(params.love_filters)
     };
-    rulesByParams.set(params, rules);
+    rulesByOffspringParams.set(offspringData, rules);
     return rules;
 };
 
@@ -86,7 +95,7 @@ export const isInLove = (entity: DataEntity, rules: BreedableRules): boolean => 
 };
 
 /**
- * Reads the offspring type declared for one mate by an entity's active component data.
+ * Reads the offspring type declared for one mate by its active offspring component.
  *
  * @param instance - Entity instance whose offspring component declares the pair.
  * @param mateIdentifier - The other entity's type identifier.
@@ -98,16 +107,23 @@ export const offspringIdentifierOf = (
     mateIdentifier: string,
     resolveIdentifier: (identifier: string) => string | undefined = (identifier) => identifier
 ): string | undefined => {
-    const offspring = instance.componentParams('minecraft:offspring');
-    if (!isRecord(offspring) || !isRecord(offspring.offspring_pairs)) return undefined;
-
     const resolvedMate = resolveIdentifier(mateIdentifier);
     if (resolvedMate === undefined) return undefined;
 
-    const pair = Object.entries(offspring.offspring_pairs).find(
-        ([parentIdentifier]) => resolveIdentifier(parentIdentifier) === resolvedMate
-    );
-    return pair === undefined || typeof pair[1] !== 'string' ? undefined : resolveIdentifier(pair[1]);
+    for (const componentName of ['minecraft:offspring_data', 'minecraft:offspring']) {
+        const offspring = instance.componentParams(componentName);
+        if (!isRecord(offspring) || !isRecord(offspring.offspring_pairs)) continue;
+
+        const pair = Object.entries(offspring.offspring_pairs).find(
+            ([parentIdentifier]) => resolveIdentifier(parentIdentifier) === resolvedMate
+        );
+        if (pair !== undefined && typeof pair[1] === 'string') {
+            const offspringIdentifier = resolveIdentifier(pair[1]);
+            if (offspringIdentifier !== undefined) return offspringIdentifier;
+        }
+    }
+
+    return undefined;
 };
 
 /**
@@ -195,18 +211,21 @@ const atFullHealth = (entity: DataEntity): boolean => {
     return health !== undefined && health.current >= health.max;
 };
 
-/** `breeds_with`, which vanilla writes as one object or an array of them. */
+/** `breeds_with`, written as keyed mate data or legacy `mate_type` entries. */
 const matesOf = (value: unknown): readonly MateType[] => {
     const entries = value === undefined ? [] : Array.isArray(value) ? value : [value];
     return entries.filter(isRecord).flatMap((entry) => {
-        const mateType = typeof entry.mate_type === 'string' ? entry.mate_type : undefined;
-        if (mateType === undefined) return [];
-        return [
-            {
-                mateType,
-                babyType: typeof entry.baby_type === 'string' ? entry.baby_type : undefined,
-                breedEvent: typeof entry.breed_event === 'string' ? entry.breed_event : undefined
-            }
-        ];
+        if (typeof entry.mate_type === 'string') return [mateTypeOf(entry.mate_type, entry)];
+
+        return Object.entries(entry).flatMap(([mateType, params]) =>
+            isRecord(params) ? [mateTypeOf(mateType, params)] : []
+        );
     });
 };
+
+/** Reads the offspring and event fields associated with one mate. */
+const mateTypeOf = (mateType: string, params: Record<string, unknown>): MateType => ({
+    mateType,
+    babyType: typeof params.baby_type === 'string' ? params.baby_type : undefined,
+    breedEvent: typeof params.breed_event === 'string' ? params.breed_event : undefined
+});
