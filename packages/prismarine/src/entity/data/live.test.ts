@@ -459,6 +459,9 @@ const ENTITIES = new Map([
                             },
                             use_item: true,
                             transform_to_item: 'bucket:1'
+                        },
+                        {
+                            play_sounds: 'mob.generic'
                         }
                     ]
                 }
@@ -732,7 +735,8 @@ const buildOver = (
                 'minecraft:wheat',
                 'minecraft:emerald',
                 'minecraft:cobblestone',
-                'minecraft:egg'
+                'minecraft:egg',
+                'minecraft:chicken_spawn_egg'
             ].includes(definition.identifier)
         ),
         seed: 1234n,
@@ -945,6 +949,24 @@ describe('the data-driven entity runtime over a live world', () => {
         await live.tick(1);
 
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
+    });
+
+    it('spawns a spawn egg entity inside an interacted mob even when its interaction accepts the egg', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(new ContainerEntry({ item: new Item({ name: 'minecraft:chicken_spawn_egg' }), count: 1 }));
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+
+        await useHeldItemOnEntity(player, body.getRuntimeId());
+
+        const chicken = live.runtime.all().find((entity) => entity.identifier === 'minecraft:chicken');
+        expect(chicken?.position).toEqual(animal.position);
+        expect(player.getInventory().getItemInHand().getAmount()).toBe(0);
     });
 
     it('gives a transformed interaction item to a creative player without consuming the held item', () => {

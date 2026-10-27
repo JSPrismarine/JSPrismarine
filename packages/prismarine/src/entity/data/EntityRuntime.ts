@@ -1248,6 +1248,7 @@ export class EntityRuntime implements EntityScene {
             const baby = this.spawn(offspringIdentifier, entity.position, { cause: 'born' });
             if (baby !== undefined) return { accepted: true };
         }
+        if (spawnEggIdentifier !== undefined) return { accepted: false };
 
         const tameable = entity.instance.componentParams('minecraft:tameable');
         const tameItem = isRecord(tameable) ? componentItem(tameable.tame_items, itemIdentifier) : undefined;
