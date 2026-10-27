@@ -46,7 +46,6 @@ import {
 import { fluidStateOf } from '@jsprismarine/engine-systems';
 import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { entityData } from '@jsprismarine/items';
-import { parseFilter } from '@jsprismarine/packs';
 import type { BlockQuery, GoalBlock, GoalItem, GoalMob, GoalWorld, NavigationView } from '@jsprismarine/entity-goals';
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import type { SpawnRequest, SpawnWorld } from '@jsprismarine/spawning';
@@ -1516,27 +1515,6 @@ export class EntityRuntime implements EntityScene {
             return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
         }
 
-        const healable = entity.instance.componentParams('minecraft:healable');
-        if (isRecord(healable)) {
-            const item = componentItem(healable.items, itemIdentifier);
-            if (item !== undefined && !itemHasEffects(item)) {
-                const currentHealth = entity.instance.attributes.get('health');
-                const filtersPass =
-                    healable.filters === undefined ||
-                    evaluateFilter(parseFilter(healable.filters), entity.instance.filterContext());
-                if (
-                    filtersPass &&
-                    currentHealth !== undefined &&
-                    (currentHealth.current < currentHealth.max || healable.force_use === true)
-                ) {
-                    const amount = isRecord(item) && typeof item.heal_amount === 'number' ? item.heal_amount : 1;
-                    const resultItem = resultItemOf(item);
-                    if (amount > 0) entity.instance.attributes.set('health', currentHealth.current + amount);
-                    return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
-                }
-            }
-        }
-
         const interaction = entity.instance.interactWithItemResult(
             itemIdentifier,
             other ?? this.mobById(owner)?.view()
@@ -2826,10 +2804,6 @@ const resultItemOf = (item: unknown): string | undefined => {
     if (identifier === undefined) return undefined;
     return identifier.includes(':') ? identifier : `minecraft:${identifier}`;
 };
-
-/** Whether a healable item asks for status effects the entity runtime does not apply yet. */
-const itemHasEffects = (item: unknown): boolean =>
-    isRecord(item) && Array.isArray(item.effects) && item.effects.length > 0;
 
 /** Fires the optional `minecraft:tameable` event on the target it declares. */
 const fireTameEvent = (entity: DataEntity, value: unknown): void => {

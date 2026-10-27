@@ -1536,6 +1536,99 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     }
 };
 
+/** One item `minecraft:healable` accepts. */
+export interface HealableItemParams {
+    /** The item identifier, normalized to the default Minecraft namespace. */
+    readonly item: string;
+    /** Health restored when the entity accepts the item. */
+    readonly healAmount: number;
+    /** Item replacing the consumed item, if the definition names one. */
+    readonly resultItem?: string;
+    /** Effect entries, which the runtime currently leaves unapplied. */
+    readonly effects: readonly unknown[];
+}
+
+/** What `minecraft:healable` declares. */
+export interface HealableParams {
+    /** Items that can be used to heal the entity. */
+    readonly items: readonly HealableItemParams[];
+    /** Conditions required before a matching item can be used. */
+    readonly filters?: Filter;
+    /** Whether a matching item is accepted at full health. */
+    readonly forceUse: boolean;
+}
+
+/** `minecraft:healable`, which owns the entity's item-based healing interaction. */
+export const healable: ComponentFactory<EntityHooks, HealableParams> = {
+    name: 'minecraft:healable',
+    hooks: ['onInteractWithItem'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        if (value.force_use !== undefined && typeof value.force_use !== 'boolean')
+            return rejected('force_use must be a boolean');
+
+        let filters: Filter | undefined;
+        if (value.filters !== undefined) {
+            const parsed = parseFilterValue(value.filters, 'minecraft:healable filters');
+            if (!parsed.ok) return parsed;
+            filters = parsed.value;
+        }
+
+        const items: HealableItemParams[] = [];
+        for (const [index, raw] of asList(value.items).entries()) {
+            if (typeof raw === 'string') {
+                items.push({ item: normalizedItemIdentifier(raw), healAmount: 1, effects: [] });
+                continue;
+            }
+            if (!isRecord(raw) || typeof raw.item !== 'string' || raw.item.length === 0)
+                return rejected(`items[${index}].item must be a non-empty string`);
+            if (
+                raw.heal_amount !== undefined &&
+                (typeof raw.heal_amount !== 'number' || !Number.isFinite(raw.heal_amount))
+            )
+                return rejected(`items[${index}].heal_amount must be a finite number`);
+            if (raw.result_item !== undefined && (typeof raw.result_item !== 'string' || raw.result_item.length === 0))
+                return rejected(`items[${index}].result_item must be a non-empty string`);
+            if (raw.effects !== undefined && !Array.isArray(raw.effects))
+                return rejected(`items[${index}].effects must be an array`);
+
+            items.push({
+                item: normalizedItemIdentifier(raw.item),
+                healAmount: numberAt(raw, 'heal_amount', 1),
+                ...(typeof raw.result_item === 'string'
+                    ? { resultItem: normalizedItemIdentifier(raw.result_item) }
+                    : {}),
+                effects: Array.isArray(raw.effects) ? raw.effects : []
+            });
+        }
+
+        return accepted({ items, filters, forceUse: booleanAt(value, 'force_use', false) });
+    },
+    create: (params) => ({
+        onInteractWithItem: (entity, itemIdentifier, other) => {
+            const normalizedItem = normalizedItemIdentifier(itemIdentifier);
+            const item = params.items.find((entry) => entry.item === normalizedItem);
+            if (item === undefined || item.effects.length > 0) return undefined;
+
+            const heldItem = other?.equipment?.('hand', 0) ?? { identifier: () => normalizedItem };
+            const context = {
+                ...entity.filterContext(),
+                ...(other === undefined ? {} : { other, player: other }),
+                item: heldItem
+            };
+            if (params.filters !== undefined && !evaluateFilter(params.filters, context)) return undefined;
+
+            const health = entity.attributes.get('health');
+            if (health === undefined || (health.current >= health.max && !params.forceUse)) return undefined;
+
+            return {
+                ...(item.healAmount > 0 ? { healthAmount: item.healAmount } : {}),
+                ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem })
+            };
+        }
+    })
+};
+
 const parseSensorTriggers = (
     value: unknown,
     label: string

@@ -26,6 +26,7 @@ import {
     equipment,
     experienceReward,
     frictionModifier,
+    healable,
     hurtOnCondition,
     ignoreCannotBeAttacked,
     instantDespawn,
@@ -130,7 +131,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:genetics',
     'minecraft:grows_crop',
     'minecraft:group_size',
-    'minecraft:healable',
     'minecraft:heartbeat',
     'minecraft:hide',
     'minecraft:home',
@@ -249,6 +249,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(environmentSensor);
     register(equipment);
     register(experienceReward);
+    register(healable);
     register(hurtOnCondition);
     register(ignoreCannotBeAttacked);
     register(interact);
