@@ -1,5 +1,3 @@
-import FallingBlock from '../../entity/other/FallingBlock';
-import { Position } from '../Position';
 import { destroyBlock } from '../blockDestroy';
 import type { World } from '../World';
 import { falls, isWashedAway, liquidOf, needsSupport } from './BlockRules';
@@ -97,29 +95,33 @@ export class BlockPhysics {
     /**
      * Hands a block over to gravity.
      *
-     * The block is taken out of the world and a {@link FallingBlock} put in its place, which falls
-     * under its own acceleration and turns back into a block where it lands. Stepping the block
-     * down through the world instead would be simpler, but a block is only ever in one place or
-     * another - so it could only ever descend at a fixed one block per step, and sand would drift
-     * down rather than drop.
+     * The block is taken out of the world and spawned through its data-driven entity definition,
+     * which falls under its own acceleration and turns back into a block where it lands. Stepping
+     * the block down through the world instead would be simpler, but a block is only ever in one
+     * place or another - so it could only ever descend at a fixed one block per step, and sand
+     * would drift down rather than drop.
      */
     private async fall(name: string, x: number, y: number, z: number, now: number): Promise<void> {
-        await this.world.setBlockByName(x, y, z, 'minecraft:air', now);
-
         const position = { x: x + 0.5, y, z: z + 0.5 };
-        const live = this.world.dataEntities?.();
-        if (live?.runtime.content().entities.registry.has(FallingBlock.MOB_ID)) {
-            const falling = live.runtime.spawn(FallingBlock.MOB_ID, position, { data: { block: name } });
-            if (falling !== undefined) return;
+        const runtime = this.world.dataEntities().runtime;
+        if (!runtime.content().entities.registry.has('minecraft:falling_block')) {
+            this.world
+                .getServer()
+                .getLogger()
+                .error('Cannot spawn falling block: data runtime has no minecraft:falling_block type');
+            return;
         }
 
-        // Centered in the column it fell from, so it lands back in the same one.
-        const entity = new FallingBlock({
-            position: new Position(position.x, position.y, position.z, this.world),
-            blockName: name
-        });
+        if (!(await this.world.setBlockByName(x, y, z, 'minecraft:air', now))) return;
 
-        await this.world.addEntity(entity);
+        const falling = runtime.spawn('minecraft:falling_block', position, { data: { block: name } });
+        if (falling !== undefined) return;
+
+        await this.world.setBlockByName(x, y, z, name, now);
+        this.world
+            .getServer()
+            .getLogger()
+            .error(`Cannot spawn falling block for ${name}: runtime rejected the spawn data`);
     }
 }
 

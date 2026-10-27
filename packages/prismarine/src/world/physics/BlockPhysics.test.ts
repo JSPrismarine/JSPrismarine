@@ -1,6 +1,12 @@
+import type { Registry } from '@jsprismarine/content';
+import type { EntityType } from '@jsprismarine/entities';
 import type { Logger } from '@jsprismarine/logger';
 import { beforeEach, describe, expect, it } from 'vitest';
 
+import type { DataEntity } from '../../entity/data/DataEntity';
+import type { EntityRuntime } from '../../entity/data/EntityRuntime';
+import type { LiveEntityRuntime } from '../../entity/data/live';
+import type { ServerContent, ServerContentEntities } from '../../content/ServerContent';
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
@@ -42,13 +48,33 @@ class TestWorld {
         }
     }
 
-    /** Entities in the world, which for physics means the blocks currently falling. */
-    public readonly entities: any[] = [];
+    /** Spawns handed to the data-driven runtime by block physics. */
+    public readonly spawnedEntities: Array<{
+        readonly identifier: string;
+        readonly at: { readonly x: number; readonly y: number; readonly z: number };
+        readonly data: Readonly<Record<string, unknown>> | undefined;
+    }> = [];
+
+    private readonly live = stub<LiveEntityRuntime>({
+        runtime: stub<EntityRuntime>({
+            content: () =>
+                stub<ServerContent>({
+                    entities: stub<ServerContentEntities>({
+                        registry: stub<Registry<EntityType>>({ has: () => true })
+                    })
+                }),
+            spawn: (identifier, at, options) => {
+                this.spawnedEntities.push({ identifier, at, data: options?.data });
+                return stub<DataEntity>({ identifier, spawnData: options?.data });
+            }
+        })
+    });
 
     /** The face this shows to the code under test. Every member reads the state above. */
     private readonly world = stub<World>({
         getLoadedChunk: (cx, cz) => this.getLoadedChunk(cx, cz),
         getBlockUpdates: () => this.updates,
+        dataEntities: () => this.live,
         getPlayers: () => [],
         getServer: () =>
             stub<Server>({
@@ -57,13 +83,6 @@ class TestWorld {
             }),
         dropFromBlock: async (_block, contents) => {
             for (const drop of contents) if (drop) this.dropped.push(drop.getName());
-        },
-        addEntity: async (entity) => {
-            this.entities.push(entity);
-        },
-        removeEntity: async (entity) => {
-            const index = this.entities.indexOf(entity);
-            if (index >= 0) this.entities.splice(index, 1);
         },
         broadcastMove: async () => {},
         getDimension: () => Dimensions.Overworld,
@@ -137,17 +156,15 @@ const GROUND = 64;
 /**
  * Runs the world until nothing is left to do, or the cascade proves it will not settle.
  *
- * Entities are ticked alongside the block updates, because a falling block *is* an entity: the
- * block leaves the world, falls under its own acceleration, and becomes a block again where it
- * lands. Draining only the update queue would stop the story halfway.
+ * Data-driven entity movement is covered by the live runtime integration tests. This helper
+ * drains only the block update queue used by the support rules below.
  */
 const settle = async (world: TestWorld, physics: BlockPhysics, maxTicks = 200): Promise<number> => {
     for (let tick = 1; tick <= maxTicks; tick++) {
         const due = world.updates.due(tick);
-        if (due.length === 0 && world.updates.size() === 0 && world.entities.length === 0) return tick;
+        if (due.length === 0 && world.updates.size() === 0) return tick;
 
         for (const { x, y, z } of due) await physics.update(x, y, z, tick);
-        for (const entity of [...world.entities]) await entity.update(tick);
     }
 
     return maxTicks;
@@ -222,97 +239,19 @@ describe('falling blocks', () => {
         physics = new BlockPhysics(world.asWorld());
     });
 
-    it('drops sand down a hole until it lands', async () => {
-        // A column of sand with nothing under it: all of it should end up resting on the floor.
+    it('routes unsupported sand through the data-driven entity runtime', async () => {
         world.place(4, GROUND + 1, 4, 'minecraft:sand');
-        world.place(4, GROUND + 2, 4, 'minecraft:sand');
-        world.place(4, GROUND + 3, 4, 'minecraft:sand');
 
-        for (let y = GROUND; y > GROUND - 4; y--) await world.setBlockByName(4, y, 4, 'minecraft:air');
-        await settle(world, physics);
+        await physics.update(4, GROUND + 1, 4, 1);
 
-        // Three blocks of sand, stacked from the new floor upwards, and nothing left above.
-        expect(world.nameAt(4, GROUND - 3, 4)).toBe('minecraft:sand');
-        expect(world.nameAt(4, GROUND - 2, 4)).toBe('minecraft:sand');
-        expect(world.nameAt(4, GROUND - 1, 4)).toBe('minecraft:sand');
         expect(world.nameAt(4, GROUND + 1, 4)).toBe('minecraft:air');
-    });
-
-    it('leaves nothing falling once everything has landed', async () => {
-        world.place(4, GROUND + 1, 4, 'minecraft:sand');
-        await world.setBlockByName(4, GROUND, 4, 'minecraft:air');
-        await settle(world, physics);
-
-        expect(world.entities).toHaveLength(0);
-    });
-
-    it('keeps the sand it started with, no more and no less', async () => {
-        // A block becomes an entity and then a block again, so there are two chances to lose it
-        // and two to duplicate it. The count is the thing to hold on to.
-        world.place(6, GROUND + 5, 6, 'minecraft:sand');
-        await world.setBlockByName(6, GROUND, 6, 'minecraft:air');
-        await settle(world, physics);
-
-        let sand = 0;
-        for (let y = GROUND - 8; y <= GROUND + 8; y++) if (world.nameAt(6, y, 6) === 'minecraft:sand') sand++;
-
-        expect(sand).toBe(1);
-    });
-
-    it('accelerates as it falls rather than descending at a fixed rate', async () => {
-        // The reason a falling block is an entity at all. A block is only ever in one place or
-        // another, so stepping it through the world can only ever move it at a fixed rate; an
-        // entity has a position between blocks and can gather speed through it.
-        world.place(2, GROUND + 40, 2, 'minecraft:sand');
-        world.updates.scheduleAround(2, GROUND + 40, 2, 0);
-
-        // One update to turn the block into an entity.
-        for (const { x, y, z } of world.updates.due(1)) await physics.update(x, y, z, 1);
-        const falling = world.entities[0];
-        expect(falling).toBeDefined();
-
-        const speeds: number[] = [];
-        for (let tick = 2; tick < 12; tick++) {
-            await falling.update(tick);
-            speeds.push(Math.abs(falling.getMotionY()));
-        }
-
-        // Strictly faster every tick, and by the tenth it is moving several times its first step.
-        for (let index = 1; index < speeds.length; index++) {
-            expect(speeds[index]!).toBeGreaterThan(speeds[index - 1]!);
-        }
-
-        expect(speeds[speeds.length - 1]!).toBeGreaterThan(speeds[0]! * 5);
-    });
-
-    it('falls faster than a block could be stepped down, but not without limit', async () => {
-        world.place(2, GROUND + 60, 2, 'minecraft:sand');
-        world.updates.scheduleAround(2, GROUND + 60, 2, 0);
-
-        for (const { x, y, z } of world.updates.due(1)) await physics.update(x, y, z, 1);
-        const falling = world.entities[0];
-
-        // Long enough to reach terminal velocity, and it lands on the way - which is fine: a
-        // settled entity stops accelerating and keeps whatever speed it had.
-        for (let tick = 2; tick < 60; tick++) await falling.update(tick);
-
-        // Terminal velocity: gravity and drag balance a little under two blocks a tick, which is
-        // about forty blocks a second - and it never runs away past that.
-        expect(Math.abs(falling.getMotionY())).toBeGreaterThan(1);
-        expect(Math.abs(falling.getMotionY())).toBeLessThan(2.5);
-    });
-
-    it('tells the client which block is falling', async () => {
-        // The entity is drawn from its `VARIANT` metadata. Without it the client renders a falling
-        // nothing, which looks exactly like the block having been deleted.
-        world.place(3, GROUND + 3, 3, 'minecraft:gravel');
-        world.updates.scheduleAround(3, GROUND + 3, 3, 0);
-
-        for (const { x, y, z } of world.updates.due(1)) await physics.update(x, y, z, 1);
-        const falling = world.entities[0];
-
-        expect(falling.getBlockName()).toBe('minecraft:gravel');
-        expect(falling.metadata.getPropertyValue(2)).toBe(BlockRuntimeIds.getByName('minecraft:gravel'));
+        expect(world.spawnedEntities).toEqual([
+            {
+                identifier: 'minecraft:falling_block',
+                at: { x: 4.5, y: GROUND + 1, z: 4.5 },
+                data: { block: 'minecraft:sand' }
+            }
+        ]);
     });
 
     it('leaves gravel alone when it is standing on something', async () => {
