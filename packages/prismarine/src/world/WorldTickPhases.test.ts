@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
+import { Attributes, AttributeIds } from '../entity/Attribute';
+import type { Entity } from '../entity/Entity';
+import { stub } from '../testing/stub.test.helper';
 import { Dimensions } from './Dimension';
 import EntityGrid from './EntityGrid';
+import { Position } from './Position';
 import type { WorldChangeSink } from './WorldChangeSink';
 import { World } from './World';
 import { inertEntityRuntime } from '../testing/entityServer';
@@ -15,7 +19,17 @@ import { inertEntityRuntime } from '../testing/entityServer';
  * into every player's session; now they go out through {@link WorldChangeSink}, and this is
  * what stops the move from having quietly reordered them.
  */
-const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
+const worldTicking = ({
+    trackingInterval = 1,
+    currentTick = 19,
+    entities = [],
+    entityAttributesChanged
+}: {
+    trackingInterval?: number;
+    currentTick?: number;
+    entities?: Entity[];
+    entityAttributesChanged?: WorldChangeSink['entityAttributesChanged'];
+} = {}) => {
     const calls: string[] = [];
 
     const record =
@@ -34,7 +48,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         actorSound: () => calls.push('actorSound'),
         worldEffect: () => calls.push('worldEffect'),
         entityMoved: () => calls.push('entityMoved'),
-        entityAttributesChanged: record('entityAttributesChanged'),
+        entityAttributesChanged: entityAttributesChanged ?? record('entityAttributesChanged'),
         entityMetadataChanged: record('entityMetadataChanged'),
         entityEquipmentChanged: record('entityEquipmentChanged'),
         actorEffect: record('actorEffect'),
@@ -67,7 +81,7 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
         // reports nothing here, because a clear sky stays clear and the client's default is
         // clear; the rule is what it needs to run at all.
         gameRuleManager: { getGameRule: () => [true, true] as const },
-        getEntities: () => [],
+        getEntities: () => entities,
         getPlayers: () => [],
         runBlockUpdates: async () => void calls.push('blockUpdates'),
         systems: { tick: () => void calls.push('systems') },
@@ -84,6 +98,20 @@ const worldTicking = ({ trackingInterval = 1, currentTick = 19 } = {}) => {
     world.attachChangeSink(sink);
 
     return { world, calls };
+};
+
+const dirtyEntity = (world: World) => {
+    const attributes = new Attributes();
+    attributes.setValue(AttributeIds.Health, 19);
+    const position = new Position(0, 64, 0, world);
+    const entity = stub<Entity>({
+        attributes,
+        getPosition: () => position,
+        getType: () => 'minecraft:cow',
+        update: async () => {}
+    });
+
+    return { entity, attributes };
 };
 
 describe('world', () => {
@@ -147,6 +175,30 @@ describe('world', () => {
 
             expect(calls).not.toContain('reconcile');
             expect(calls).toContain('flushMovement');
+        });
+
+        it('continues flushing later attributes after a synchronous sink failure', async () => {
+            const entities: Entity[] = [];
+            const sent: Entity[] = [];
+            let failingEntity: Entity | undefined;
+            const { world } = worldTicking({
+                entities,
+                entityAttributesChanged: (entity) => {
+                    sent.push(entity);
+                    if (entity === failingEntity) throw new Error('attribute sink failed');
+                    return Promise.resolve();
+                }
+            });
+            const first = dirtyEntity(world);
+            const second = dirtyEntity(world);
+            const third = dirtyEntity(world);
+            failingEntity = second.entity;
+            entities.push(first.entity, second.entity, third.entity);
+
+            await expect(world.update(1)).rejects.toThrow('attribute sink failed');
+
+            expect(sent).toEqual([first.entity, second.entity, third.entity]);
+            expect([first, second, third].map(({ attributes }) => attributes.getDirty())).toEqual([[], [], []]);
         });
     });
 });

@@ -2306,17 +2306,22 @@ export class World implements Service {
      * @param {Entity[]} entities - Everything in the world, from the top of the tick.
      */
     private async flushEntityAttributes(entities: Entity[]): Promise<void> {
-        await Promise.all(
-            entities.map(async (entity) => {
-                if (entity instanceof Player) return;
+        const updates: Promise<void>[] = [];
+        for (const entity of entities) {
+            try {
+                if (entity instanceof Player) continue;
 
                 const dirty = entity.attributes.getDirty();
-                if (dirty.length === 0) return;
+                if (dirty.length === 0) continue;
 
                 entity.attributes.clearDirty();
-                await this.changes.entityAttributesChanged(entity, dirty);
-            })
-        );
+                updates.push(this.changes.entityAttributesChanged(entity, dirty));
+            } catch (error: unknown) {
+                updates.push(Promise.reject(error));
+            }
+        }
+
+        await Promise.all(updates);
     }
 
     /**
