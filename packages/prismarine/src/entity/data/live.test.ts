@@ -2686,6 +2686,40 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(parent.position.x > 4 || baby.position.x > 4).toBe(true);
         });
 
+        it(
+            'keeps a crowd of spawn-egg zombie babies moving toward a survival player',
+            { timeout: 180_000 },
+            async () => {
+                useVanillaContent();
+
+                const player = addPlayer(18, 0);
+                player.gamemode = Gametype.SURVIVAL;
+                Object.assign(player, { inventory: new HumanInventory() });
+                player
+                    .getInventory()
+                    .setItemInHand(
+                        new ContainerEntry({ item: new Item({ name: 'minecraft:zombie_spawn_egg' }), count: 24 })
+                    );
+                const parent = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (parent === undefined) throw new Error('vanilla content declares no zombie');
+                const body = live.bodies.bodyOf(parent.id);
+                if (body === undefined) throw new Error('the vanilla zombie has no client-facing actor');
+
+                for (let egg = 0; egg < 24; egg += 1) await useHeldItemOnEntity(player, body.getRuntimeId());
+
+                const zombies = live.runtime.all().filter((entity) => entity.identifier === 'minecraft:zombie');
+                expect(zombies).toHaveLength(25);
+                expect(zombies.filter((entity) => entity.instance.hasComponent('minecraft:is_baby'))).toHaveLength(24);
+                expect(zombies.every((entity) => entity.position.x === parent.position.x)).toBe(true);
+
+                await run(200);
+
+                expect(zombies.every((entity) => entity.target === Number(player.getRuntimeId()))).toBe(true);
+                expect(zombies.every((entity) => !entity.body.stuck)).toBe(true);
+                expect(zombies.every((entity) => entity.position.x > 4)).toBe(true);
+            }
+        );
+
         it('spawns a baby when a matching spawn egg is used on a mob', { timeout: 180_000 }, async () => {
             useVanillaContent();
 
