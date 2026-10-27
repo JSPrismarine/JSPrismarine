@@ -102,6 +102,7 @@ const RESOLVED_TO_JAVA = 33;
 const RUNTIME_COMPONENTS = [
     'minecraft:persistent',
     'minecraft:transient',
+    'minecraft:can_climb',
     'minecraft:fire_immune',
     'minecraft:freezing_immune',
     'minecraft:cannot_be_attacked',
@@ -372,7 +373,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(goals).toHaveLength(170);
         expect(registeredOthers).toHaveLength(202);
         expect(unimplementedOthers).toEqual([]);
-        expect(withBehavior).toHaveLength(60);
+        expect(withBehavior).toHaveLength(61);
         expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

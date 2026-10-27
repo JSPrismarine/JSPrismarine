@@ -304,10 +304,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 `statRuling(identifier, stat)` answers why one entity's stat resolved the way it did, so a parity
 row quotes the decision instead of keeping a second copy of it.
 
-The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 168
-keys cover 108. The 21 entities that are not component-covered need keys only they use, such as the
-enderman's `minecraft:teleport`, the shulker's `minecraft:peek`, the warden's
-`minecraft:anger_level` and the villager's `minecraft:trade_table`.
+The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
+measures name coverage rather than simulation: 61 non-goal components currently carry runtime
+behavior, and the remaining bodies are available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -334,10 +333,6 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   `on_start_landing`, `on_start_takeoff`, `on_wake_with_owner` and `on_friendly_anger` need
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
-- **The components and fields that still need behavior.** The remaining `minecraft:interact`
-  effects (item drops and inventory transfers), `minecraft:inventory`,
-  `minecraft:equipment`, `minecraft:explode` and the rest need item use or world effects.
-  `minecraft:interact` currently runs item filters, entity events, cooldowns, `play_sounds`,
-  held-item consumption, item transformation, `health_amount`, and `spawn_items` table requests.
-  The 34 data-only components still need their engine behavior implemented where the server
-  simulates it.
+- **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
+  141 currently expose data without runtime behavior. The component bodies remain accessible to the
+  host, but registration alone does not mean the server simulates them.

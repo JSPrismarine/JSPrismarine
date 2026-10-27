@@ -151,13 +151,13 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 
 ## Components: what runs, and what only parses
 
-Vanilla's 129 definitions use 202 distinct non-goal component keys. 168 of them are registered, and
-60 of those carry runtime behavior. The remaining 108 registered keys parse their parameters,
-normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
-`minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
-component means.
+Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
+and every entity definition resolves with its non-goal components recognized. Sixty-one keys carry
+runtime behavior. The remaining 141 expose data without simulating their behavior; some have a
+dedicated schema, and the generic factories preserve the raw body. Both are available through
+`EntityInstance.componentParams`.
 
-The 60 that act change entity state or decide an outcome: the nine
+The 61 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -190,21 +190,22 @@ The entities package README lists each component and what it does.
 "Parses as data" is not the same as "ignored". The host reads several data components itself:
 `minecraft:breedable` drives breeding, `minecraft:healable` and `minecraft:tameable` handle item
 interactions, `minecraft:collision_box` and the `minecraft:navigation.*` flavors build the path
-finder's profile, `minecraft:explode` detonates a creeper, `minecraft:rideable` seats riders, and the
-two trade-table components build a merchant. The shared body physics reads `minecraft:air_drag_modifier`,
+finder's profile, and `minecraft:can_climb` enables ladder traversal. The host also reads
+`minecraft:explode` to detonate a creeper, `minecraft:rideable` to seat riders, and the two
+trade-table components to build a merchant. The shared body physics reads `minecraft:air_drag_modifier`,
 `minecraft:uses_uniform_air_drag`, `minecraft:friction_modifier`, and `minecraft:bounciness` to apply
 the active entity's drag, ground friction, and collision response.
 
-Thirty-four non-goal keys used by exactly one vanilla entity remain unregistered. Examples include
-the enderman's `minecraft:teleport`, the shulker's `minecraft:peek` and the warden's
-`minecraft:anger_level`. They are gaps in entity coverage; the load report names them instead of
-the server quietly doing nothing. The entities corpus test lists the current set.
+Every non-goal key in the vanilla pack is registered, including keys used by only one entity such as
+the enderman's `minecraft:teleport`, the shulker's `minecraft:peek`, and the warden's
+`minecraft:anger_level`. Registration makes a component's data available; it does not promise that
+the server simulates its behavior. The corpus test checks the 202 names and counts the keys that
+currently carry behavior.
 
-If your pack uses a component the server does not implement, you find out two ways. The pack load
-writes one `component.unknown` warning per unregistered name, which reaches the server log and
-`ServerContent.diagnostics`. And `EntityType.unimplementedComponents` lists them per type, so a
-plugin can check a mob before trusting it. Neither one stops the entity from loading: the rest of
-the definition still works, and the unimplemented component does nothing at all.
+An unknown component name writes a `component.unknown` warning to the server log and
+`ServerContent.diagnostics`, and appears in `EntityType.unimplementedComponents`. A registered
+component without runtime behavior does not produce that warning, so check the entity component
+inventory in the package README when deciding whether the server simulates a component.
 
 ## Events and the component-group state machine
 
@@ -443,11 +444,12 @@ cycle and the despawn pass run. The body and the entity behind it stay in step i
 so a player's blow reaches the components that decide what it cost and the shove that came with it
 moves the mob.
 
-A default build registers all 129 of those definitions and nothing else. BDS keeps chemistry, the
-editor and four experimental packs in the same `behavior_packs` folder, and the default asks for
-none of them; `PackStackRequest.bedrockPacks` names more of them by UUID if you want them. The
-build reports 38 warnings and no errors, so warnings on startup are expected rather than a sign of
-a broken stack, and 34 of the 38 name one of the components left unregistered on purpose.
+A default build registers all 129 of those definitions and recognizes every non-goal component
+name they use. BDS keeps chemistry, the editor, and four experimental packs in the same
+`behavior_packs` folder, and the default asks for none of them; `PackStackRequest.bedrockPacks`
+names more of them by UUID if you want them. Startup can still report warnings for unsupported
+fields, actions, or identifiers. A registered component with no runtime behavior does not produce
+an unknown-component warning.
 
 ### Adding your own mob
 
