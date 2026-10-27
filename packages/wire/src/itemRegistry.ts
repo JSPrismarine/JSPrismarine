@@ -202,6 +202,11 @@ const itemProperties = (
 const namedComponents = (projected: BedrockItemComponents): Readonly<Record<string, NbtValue>> => {
     const written: Record<string, NbtValue> = {};
 
+    const displayName = projected['minecraft:display_name'];
+    if (displayName !== undefined) {
+        written['minecraft:display_name'] = nbtCompound({ value: nbtString(displayName.value) });
+    }
+
     const stackSize = projected['minecraft:max_stack_size'];
     // A byte here and an int in `item_properties`, which is what the capture
     // shows for the bundle.

@@ -72,6 +72,8 @@ export interface BedrockItemComponents {
     item_properties: BedrockItemProperties;
     /** Bedrock's resolved item tag names, serialized separately from named components. */
     item_tags?: readonly string[];
+    /** The explicit display name from the active Bedrock item definition. */
+    'minecraft:display_name'?: { value: string };
     /** Resource pack icon textures declared by the active Bedrock item definition. */
     'minecraft:icon'?: { textures: Readonly<Record<string, string>> };
     'minecraft:max_stack_size'?: { value: number };
@@ -118,8 +120,6 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
  * does not depend on, or would overwrite something the client already knows.
  */
 export const UNPROJECTED_BEDROCK_COMPONENTS = {
-    'minecraft:display_name':
-        'The client already has a name for every vanilla item, and Java translation keys do not transform into Bedrock ones reliably.',
     'minecraft:repairable': 'The repair items are a Java item tag, which needs tag expansion and identifier mapping.',
     'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.',
     'minecraft:block_placer': 'Which block an item places is a fact of the block package, not an item component.'
@@ -144,6 +144,12 @@ const bedrockIconOf = (type: ItemType): BedrockItemComponents['minecraft:icon'] 
     }
 
     return typeof source.texture === 'string' ? { textures: { default: source.texture } } : undefined;
+};
+
+/** Reads an explicit display name from the item's Bedrock definition. */
+const bedrockDisplayNameOf = (type: ItemType): BedrockItemComponents['minecraft:display_name'] => {
+    const source = type.bedrockComponents.get('minecraft:display_name');
+    return isRecord(source) && typeof source.value === 'string' ? { value: source.value } : undefined;
 };
 
 /** How Java's equipment slots name the same places Bedrock's `wearable` does. */
@@ -262,9 +268,11 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
     const context = options.providers ?? DEFAULT_PROVIDER_CONTEXT;
     const properties: BedrockItemProperties = {};
     const icon = bedrockIconOf(type);
+    const displayName = bedrockDisplayNameOf(type);
     const projected: BedrockItemComponents = {
         item_properties: properties,
         item_tags: type.tags,
+        ...(displayName === undefined ? {} : { 'minecraft:display_name': displayName }),
         ...(icon === undefined ? {} : { 'minecraft:icon': icon })
     };
 

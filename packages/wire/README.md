@@ -164,6 +164,8 @@ leaves out anything Java cannot decide. This package supplies the rest:
   key because the client cannot infer their icons from their internal item names. A loaded Bedrock
   item definition's `minecraft:icon` takes precedence, including texture variants; the twelve keys
   come from Mojang's pinned `bedrock-samples` item atlas when no definition icon is present.
+- An explicitly declared Bedrock `minecraft:display_name`, written as `{value: string}`. The
+  projection does not derive names from Java translation keys.
 
 An item the captured table does not name is treated as one this server invented: component based,
 `Item Version` `DataDriven`, and an id allocated from 10000. Those are listed in `allocated`.
