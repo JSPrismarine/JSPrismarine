@@ -158,8 +158,8 @@ fence-knot links, and releasing a lead are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Seventy-six keys carry
-runtime behavior. The remaining 126 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Seventy-nine keys carry
+runtime behavior. The remaining 123 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -177,8 +177,9 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
 `minecraft:spawn_entity`, `minecraft:interact`, `minecraft:spawn_egg_interaction`,
 `minecraft:breedable`, `minecraft:healable`, `minecraft:tameable`, `minecraft:admire_item`, `minecraft:barter`, and
-`minecraft:vibration_listener`, which connects its entity to world game-event delivery; the actor
-metadata markers `minecraft:is_charged`,
+`minecraft:vibration_listener`, which connects its entity to world game-event delivery;
+`minecraft:variant`, `minecraft:color`, and `minecraft:color2`, which project their values to actor metadata;
+the actor metadata markers `minecraft:is_charged`,
 `minecraft:is_ignited`, `minecraft:is_saddled`, `minecraft:is_chested`,
 `minecraft:is_illager_captain`, `minecraft:is_shaking`, `minecraft:is_hidden_when_invisible`,
 `minecraft:is_stackable`, `minecraft:is_collidable`, `minecraft:is_pregnant`, `minecraft:is_stunned`,

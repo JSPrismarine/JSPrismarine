@@ -12,7 +12,7 @@ import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
 import type { Entity } from '../Entity';
-import { MetadataFlag } from '../Metadata';
+import { FlagType, MetadataFlag } from '../Metadata';
 import type { DataEntity } from './DataEntity';
 
 /** One actor flag and the value the component state projects onto it. */
@@ -23,6 +23,7 @@ interface ActorFlagProjection {
 
 /** One scalar actor property and its wire type. */
 type ActorPropertyProjection =
+    | { readonly kind: 'byte'; readonly id: number; readonly value: number }
     | { readonly kind: 'float'; readonly id: number; readonly value: number }
     | { readonly kind: 'int'; readonly id: number; readonly value: number }
     | { readonly kind: 'long'; readonly id: number; readonly value: bigint }
@@ -66,6 +67,9 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         instance.hasComponent('minecraft:behavior.float');
     const physics = instance.componentParams('minecraft:physics');
     const scale = instance.componentParams('minecraft:scale');
+    const variant = instance.componentParams('minecraft:variant');
+    const color = instance.componentParams('minecraft:color');
+    const color2 = instance.componentParams('minecraft:color2');
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANCLIMB, value: navigation.canClimbLadders === true },
         { flag: ActorFlags.CANSWIM, value: canSwim },
@@ -141,12 +145,17 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
         { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: interactTextOf(entity) }
     ];
 
+    if (typeof color === 'number') properties.push({ kind: 'byte', id: MetadataFlag.COLOR, value: color });
+    if (typeof color2 === 'number') properties.push({ kind: 'byte', id: ActorDataID.COLOR_2_INDEX, value: color2 });
+
     if (instance.hasComponent('jsprismarine:falling_block')) {
         const block = entity.spawnData?.['block'];
         if (typeof block === 'string') {
             const runtimeId = BlockRuntimeIds.tryGetByName(block);
             if (runtimeId !== null) properties.push({ kind: 'int', id: MetadataFlag.VARIANT, value: runtimeId });
         }
+    } else if (typeof variant === 'number') {
+        properties.push({ kind: 'int', id: MetadataFlag.VARIANT, value: variant });
     }
 
     return { flags, properties };
@@ -156,7 +165,8 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
 export const applyActorMetadataProjection = (body: Entity, projection: ActorMetadataProjection): void => {
     for (const { flag, value } of projection.flags) body.metadata.setGenericFlag(flag, value);
     for (const property of projection.properties) {
-        if (property.kind === 'float') body.metadata.setFloat(property.id, property.value);
+        if (property.kind === 'byte') body.metadata.setPropertyValue(property.id, FlagType.BYTE, property.value);
+        else if (property.kind === 'float') body.metadata.setFloat(property.id, property.value);
         else if (property.kind === 'int') body.metadata.setInt(property.id, property.value);
         else if (property.kind === 'long') body.metadata.setLong(property.id, property.value);
         else body.metadata.setString(property.id, property.value);
