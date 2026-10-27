@@ -1,8 +1,6 @@
 import { Vector3 } from '@jsprismarine/math';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
-import { Position } from '../world/Position';
 import type { Entity } from './Entity';
-import Arrow from './other/Arrow';
 
 /**
  * Loosing an arrow from a bow.
@@ -14,6 +12,9 @@ import Arrow from './other/Arrow';
 
 /** The item that does this. */
 export const BOW = 'minecraft:bow';
+
+/** The projectile a fully supported bow launches. */
+const ARROW_ENTITY = 'minecraft:arrow';
 
 /** Ticks to draw a bow fully. Vanilla's second. */
 const FULL_DRAW_TICKS = 20;
@@ -75,35 +76,21 @@ export const loose = async (shooter: Entity, ticks: number): Promise<boolean> =>
     const world = shooter.getWorld();
     const speed = power * MAX_SPEED;
     const live = world.dataEntities();
+    if (!live.runtime.content().entities.registry.has(ARROW_ENTITY)) return false;
 
-    if (live.runtime.content().entities.registry.has(Arrow.MOB_ID)) {
-        const projectile = live.launchProjectile(
-            {
-                kind: 'launch-projectile',
-                identifier: Arrow.MOB_ID,
-                source: { identifier: shooter.getType(), runtimeId: Number(shooter.getRuntimeId()) },
-                power: speed,
-                inaccuracy: 0,
-                data: { critical: power >= 1 }
-            },
-            shooter
-        );
-        if (projectile === undefined) return false;
-    } else {
-        const from = shooter.getPosition();
-        const heading = lookVector(shooter.yaw, shooter.pitch);
-        const arrow = new Arrow({
-            position: new Position(from.getX(), from.getY(), from.getZ(), world),
-            velocity: new Vector3(heading.getX() * speed, heading.getY() * speed, heading.getZ() * speed),
-            owner: shooter
-        });
+    const projectile = live.launchProjectile(
+        {
+            kind: 'launch-projectile',
+            identifier: ARROW_ENTITY,
+            source: { identifier: shooter.getType(), runtimeId: Number(shooter.getRuntimeId()) },
+            power: speed,
+            inaccuracy: 0,
+            data: { critical: power >= 1 }
+        },
+        shooter
+    );
+    if (projectile === undefined) return false;
 
-        // Vanilla crits on a *full* draw rather than on falling, which is why the flag is set at launch
-        // and not worked out on impact the way a melee critical is.
-        arrow.setCritical(power >= 1);
-
-        await world.addEntity(arrow);
-    }
     await world.sendActorSound(shooter, LevelSoundEvent.BOW);
 
     return true;
