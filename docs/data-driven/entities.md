@@ -175,6 +175,7 @@ its entity to world game-event delivery; the actor metadata markers `minecraft:i
 `minecraft:rotation_locked_to_vehicle`, and `minecraft:uses_legacy_friction`, which project their
 state into actor metadata; `minecraft:can_fly`, which enables airborne paths and projects the
 Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_POWER_JUMP`;
+`minecraft:fire_immune`, which prevents fire damage and projects `FIRE_IMMUNE`;
 `minecraft:air_drag_modifier`, `minecraft:friction_modifier`, and
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the
 eleven `minecraft:on_*`

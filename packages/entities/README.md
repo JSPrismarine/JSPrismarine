@@ -230,7 +230,8 @@ Five more are empty markers the runtime reads directly rather than through hooks
 `minecraft:persistent` stops `minecraft:despawn`; `minecraft:transient` excludes the actor from saved
 records; `minecraft:fire_immune` and `minecraft:freezing_immune` turn their causes aside in
 `EntityInstance.damage`; and `minecraft:cannot_be_attacked` blocks entity attacks unless the
-attacker's `minecraft:ignore_cannot_be_attacked` filter allows the target.
+attacker's `minecraft:ignore_cannot_be_attacked` filter allows the target. `minecraft:fire_immune`
+also sets the Bedrock actor's `FIRE_IMMUNE` flag.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`.
 The pathfinder reads `minecraft:can_climb` to climb ladders and `minecraft:can_fly` to allow airborne

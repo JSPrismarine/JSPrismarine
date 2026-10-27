@@ -51,6 +51,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         { flag: ActorFlags.CANSWIM, value: canSwim },
         { flag: ActorFlags.CANFLY, value: navigation.canFly },
         { flag: ActorFlags.CAN_POWER_JUMP, value: instance.hasComponent('minecraft:can_power_jump') },
+        { flag: ActorFlags.FIRE_IMMUNE, value: instance.hasComponent('minecraft:fire_immune') },
         { flag: ActorFlags.SWIMMING, value: canSwim && body.conditions.has('in_water') },
         {
             flag: MetadataFlag.AFFECTED_BY_GRAVITY,
