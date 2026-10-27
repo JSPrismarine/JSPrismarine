@@ -62,7 +62,7 @@ describe('crafting', () => {
             for (const ingredient of tagged) {
                 const members = ItemTags[ingredient.tag] ?? [];
 
-                expect(members.some((name) => ingredient.matches(new Item({ id: 0, name })))).toBe(true);
+                expect(members.some((name) => ingredient.matches(new Item({ runtimeId: 0, name })))).toBe(true);
             }
         });
 

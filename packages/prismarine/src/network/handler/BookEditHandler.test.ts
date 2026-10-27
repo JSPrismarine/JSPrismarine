@@ -14,12 +14,12 @@ const steveHolding = (item: Item) =>
         {
             getInventory: () =>
                 stub<HumanInventory>({
-                    getItem: (slot) => (slot === 2 ? item : new Item({ id: 0, name: 'minecraft:air' }))
+                    getItem: (slot) => (slot === 2 ? item : new Item({ runtimeId: 0, name: 'minecraft:air' }))
                 })
         }
     );
 
-const bookAndQuill = () => new Item({ id: 0, name: 'minecraft:writable_book' });
+const bookAndQuill = () => new Item({ runtimeId: 0, name: 'minecraft:writable_book' });
 
 const edit = (bookSlot: number, operation: BookEditOperation) =>
     Object.assign(new BookEditPacket(), { bookSlot, operation });
@@ -55,7 +55,7 @@ describe('BookEditHandler', () => {
     });
 
     it('drops an edit aimed at a slot that holds no book and quill', () => {
-        const { logged, server, session } = steveHolding(new Item({ id: 1, name: 'minecraft:stone' }));
+        const { logged, server, session } = steveHolding(new Item({ runtimeId: 1, name: 'minecraft:stone' }));
         const handler = new BookEditHandler();
 
         handler.handle(edit(2, { action: BookEditAction.DeletePage, pageIndex: 0 }), server, session);

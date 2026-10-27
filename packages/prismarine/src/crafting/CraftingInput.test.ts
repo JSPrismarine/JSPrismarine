@@ -13,7 +13,7 @@ import CraftingInput from './CraftingInput';
  * @see https://github.com/pmmp/BedrockProtocol/blob/35.0.0%2Bbedrock-1.21.40/src/types/inventory/UIInventorySlotOffset.php
  */
 describe('CraftingInput', () => {
-    const planks = () => new Item({ id: 0, name: 'minecraft:oak_planks' });
+    const planks = () => new Item({ runtimeId: 0, name: 'minecraft:oak_planks' });
 
     describe('locate', () => {
         it('maps the inventory grid, which starts at 28', () => {

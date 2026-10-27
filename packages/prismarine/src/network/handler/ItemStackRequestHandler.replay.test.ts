@@ -51,7 +51,7 @@ const lines = fs
     .map((line) => JSON.parse(line) as { kind: string } & Record<string, unknown>);
 
 const itemOf = ({ name, count, meta, blockRuntimeId }: Omit<StackLine, 'slot' | 'stackNetworkId'>): Item =>
-    new Item({ id: ItemIdMap[name] ?? 0, name, meta, count, blockRuntimeId });
+    new Item({ runtimeId: ItemIdMap[name] ?? 0, name, meta, count, blockRuntimeId });
 
 /** A recipe as far as the handler looks at it: its station and what it makes. */
 const recipeOf = (line: Record<string, unknown>): Recipe =>

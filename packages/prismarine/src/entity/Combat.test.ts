@@ -81,8 +81,8 @@ describe('melee', () => {
 
     describe('weapon damage', () => {
         it('is one for a bare hand, and for anything that is not a weapon', () => {
-            expect(new Item({ id: 0, name: 'minecraft:air' }).getAttackDamage()).toBe(1);
-            expect(new Item({ id: 0, name: 'minecraft:torch' }).getAttackDamage()).toBe(1);
+            expect(new Item({ runtimeId: 0, name: 'minecraft:air' }).getAttackDamage()).toBe(1);
+            expect(new Item({ runtimeId: 0, name: 'minecraft:torch' }).getAttackDamage()).toBe(1);
         });
 
         it('climbs with the tier of a sword', () => {

@@ -31,7 +31,6 @@ import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
 import type Player from '../Player';
-import { stub } from '../testing/stub.test.helper';
 
 /** One call to the session's container opener, as the harness records it. */
 interface OpenedContainer {
@@ -134,7 +133,9 @@ const overlayBlock = (identifier: string) => {
 };
 
 /** A `World` reduced to what the interaction path touches, on a real chunk and real systems. */
-const liveWorld = (content: () => ServerContent): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
+const liveWorld = (
+    content: () => ServerContent
+): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
     const changed: string[] = [];
@@ -190,7 +191,7 @@ const playerHolding = (
     sneaking = false,
     gamemode: Gametype = Gametype.SURVIVAL
 ): Player => {
-    const item = typeof holding === 'string' ? new Item({ id: 1, name: holding, meta: 0, count: 1 }) : holding;
+    const item = typeof holding === 'string' ? new Item({ runtimeId: 1, name: holding, meta: 0, count: 1 }) : holding;
     const inventory = new HumanInventory();
     inventory.setItem(0, new ContainerEntry({ item, count: item.count }));
     inventory.setHandSlot(0);

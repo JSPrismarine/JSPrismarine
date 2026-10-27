@@ -51,9 +51,9 @@ describe('CreativeContentPacket', () => {
     it('writes every group and then every entry under the group it names', () => {
         // A sword rather than a plank: the helpers below write a zero Block Runtime Id, so an
         // item that places a block would pin the wrong bytes.
-        const sword = new Item({ id: 308, name: 'minecraft:wooden_sword', count: 1 });
-        const stick = new Item({ id: 280, name: 'minecraft:stick', count: 64 });
-        const dyedStick = new Item({ id: 280, name: 'minecraft:stick', meta: 2, count: 1 });
+        const sword = new Item({ runtimeId: 308, name: 'minecraft:wooden_sword', count: 1 });
+        const stick = new Item({ runtimeId: 280, name: 'minecraft:stick', count: 64 });
+        const dyedStick = new Item({ runtimeId: 280, name: 'minecraft:stick', meta: 2, count: 1 });
 
         const packet = new CreativeContentPacket();
         packet.groups = [
@@ -128,13 +128,18 @@ describe('CreativeContentPacket', () => {
             { category: CreativeItemCategory.CONSTRUCTION, name: 'itemGroup.name.planks' },
             { category: CreativeItemCategory.ITEMS, name: '' }
         ]);
-        expect(packet.groups[0]?.icon.getId()).toBe(5);
+        expect(packet.groups[0]?.icon.getNetworkId()).toBe(5);
         expect(packet.groups[1]?.icon.getName()).toBe('minecraft:air');
 
         // The reader has no item table to resolve against, so an item comes back under its
         // wire id with the unknown name.
         expect(
-            packet.entries.map(({ item, group }) => ({ id: item.getId(), count: item.count, meta: item.meta, group }))
+            packet.entries.map(({ item, group }) => ({
+                id: item.getNetworkId(),
+                count: item.count,
+                meta: item.meta,
+                group
+            }))
         ).toEqual([
             { id: 5, count: 64, meta: 0, group: 0 },
             { id: 9, count: 3, meta: 7, group: 1 }
@@ -152,7 +157,7 @@ describe('CreativeContentPacket', () => {
             {
                 category: CreativeItemCategory.NATURE,
                 name: 'ignored',
-                icon: new Item({ id: 1, name: 'minecraft:stone' })
+                icon: new Item({ runtimeId: 1, name: 'minecraft:stone' })
             }
         ];
         packet.payload = {

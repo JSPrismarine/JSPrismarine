@@ -86,7 +86,7 @@ const fakePlayer = (x: number, y: number, z: number) => {
 /** A dirt item lying at `y`, reported 0.125 higher as BDS reports one. */
 const droppedAt = (world: any, y: number, motion?: Vector3) =>
     new Item({
-        item: new ContainerEntry({ item: new ItemStack({ id: 1, name: 'minecraft:dirt' }), count: 1 }),
+        item: new ContainerEntry({ item: new ItemStack({ runtimeId: 1, name: 'minecraft:dirt' }), count: 1 }),
         position: new Position(0.5, y + 0.125, 0.5, world),
         motion
     });
@@ -212,7 +212,7 @@ describe('entity', () => {
                 const entities = items.map(
                     ({ name, count, x }) =>
                         new Item({
-                            item: new ContainerEntry({ item: new ItemStack({ id: 0, name, count }), count }),
+                            item: new ContainerEntry({ item: new ItemStack({ runtimeId: 0, name, count }), count }),
                             position: new Position(x, 64.125, 0.5, world)
                         })
                 );
@@ -231,11 +231,7 @@ describe('entity', () => {
                 ]);
 
                 const candidates = world.grid.nearItems(16, 0.5, 1.5);
-                expect(candidates).toEqual([
-                    firstCurrentChunk,
-                    secondCurrentChunk,
-                    nextChunk
-                ]);
+                expect(candidates).toEqual([firstCurrentChunk, secondCurrentChunk, nextChunk]);
                 expect(candidates).not.toContain(outsideRadius);
             });
 

@@ -93,7 +93,7 @@ describe('item', () => {
         };
 
         it('writes the same bytes the protocol package would, user data included', () => {
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 0 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 });
             const blockRuntimeId = BlockRuntimeIds.getByName('minecraft:stone');
             const descriptor = new NetworkItemStackDescriptor(item.getNetworkId(), 1, 0, false, blockRuntimeId, {
                 userDataBuffer: emptyUserData()
@@ -105,7 +105,7 @@ describe('item', () => {
         });
 
         it('ends a shield with its blocking tick', () => {
-            const shield = new Item({ id: 355, name: 'minecraft:shield', meta: 0 });
+            const shield = new Item({ runtimeId: 355, name: 'minecraft:shield', meta: 0 });
             const descriptor = new NetworkItemStackDescriptor(shield.getNetworkId(), 1, 0, false, 0, {
                 userDataBuffer: unusedUserData(true)
             });
@@ -114,7 +114,7 @@ describe('item', () => {
         });
 
         it('writes the stack net id when there is one', () => {
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 0 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 });
 
             const withNetId = serialized(item, 42);
             const without = serialized(item);
@@ -128,7 +128,7 @@ describe('item', () => {
         it('gives an item that places no block a runtime id of zero, instead of throwing', () => {
             // `BlockRuntimeIds.getByName` has no answer for a sword, and raised - taking the
             // whole packet, and so the entire inventory, down with it.
-            const sword = new Item({ id: 308, name: 'minecraft:diamond_sword', meta: 0 });
+            const sword = new Item({ runtimeId: 308, name: 'minecraft:diamond_sword', meta: 0 });
             const descriptor = new NetworkItemStackDescriptor(sword.getNetworkId(), 1, 0, false, 0, {
                 userDataBuffer: unusedUserData()
             });
@@ -139,10 +139,10 @@ describe('item', () => {
 
         it('writes a body for an item whose numeric id is zero but whose name resolves', () => {
             // Every recipe output is built this way: no numeric id, a name the item table
-            // knows. Deciding on `getId()` rather than on the id actually written made these
+            // knows. Deciding on the retained runtime id rather than on the id actually written made these
             // two bytes long - a real item with nothing after it - and the client that read
             // one left without a word.
-            const output = new Item({ id: 0, name: 'minecraft:stick' });
+            const output = new Item({ runtimeId: 0, name: 'minecraft:stick' });
 
             expect(output.getNetworkId()).not.toBe(0);
 
@@ -157,7 +157,7 @@ describe('item', () => {
             // The item table has an id for air - it is -158 - and taking it leaves the client
             // holding a real item in every slot the player is not using. Most of an inventory
             // is empty slots, so most of the packet was that.
-            const air = new Item({ id: 0, name: 'minecraft:air' });
+            const air = new Item({ runtimeId: 0, name: 'minecraft:air' });
 
             expect(ItemIdMap['minecraft:air']).not.toBe(0);
 
@@ -175,14 +175,14 @@ describe('item', () => {
         });
 
         it('writes a zeroed stack for something that resolves to nothing', () => {
-            const nowhere = new Item({ id: 0, name: 'minecraft:not_a_real_item' });
+            const nowhere = new Item({ runtimeId: 0, name: 'minecraft:not_a_real_item' });
 
             expect(nowhere.getNetworkId()).toBeFalsy();
             expect(serialized(nowhere)).toEqual(Buffer.alloc(8));
         });
 
         it('round-trips through networkDeserialize', () => {
-            const item = new Item({ id: 5, name: 'minecraft:stone', meta: 3 });
+            const item = new Item({ runtimeId: 5, name: 'minecraft:stone', meta: 3 });
 
             const stream = new NetworkBinaryStream(serialized(item));
             const read = Item.networkDeserialize(stream);
@@ -218,7 +218,7 @@ describe('item', () => {
         };
 
         it('write the id differently, so neither starts with the other', () => {
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 0 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 });
 
             const tracked = write(item, true);
             const untracked = write(item, false);
@@ -230,7 +230,7 @@ describe('item', () => {
         });
 
         it('agree on the count and the aux value that follow the id', () => {
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 7 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 7 });
             // The two count bytes and the meta varint, after each form's own id.
             const body = 3;
 
@@ -238,7 +238,7 @@ describe('item', () => {
         });
 
         it('each reads back what it wrote, to the last byte', () => {
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 7 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 7 });
 
             const tracked = new NetworkBinaryStream(write(item, true));
             expect(Item.networkDeserialize(tracked).meta).toBe(7);
@@ -252,7 +252,7 @@ describe('item', () => {
         it('cannot be read by the other reader without ending up misaligned', () => {
             // The failure the client reported, reproduced: read the untracked form as though
             // it were tracked and the runtime id is taken for the flag.
-            const item = new Item({ id: 1, name: 'minecraft:stone', meta: 0 });
+            const item = new Item({ runtimeId: 1, name: 'minecraft:stone', meta: 0 });
 
             const stream = new NetworkBinaryStream(write(item, false));
             Item.networkDeserialize(stream);
@@ -275,14 +275,14 @@ describe('item', () => {
         };
 
         it('resolves a block by name to its default state', () => {
-            const stone = new Item({ id: 1, name: 'minecraft:stone' });
+            const stone = new Item({ runtimeId: 1, name: 'minecraft:stone' });
 
             expect(stone.getBlockRuntimeId()).toBe(BlockRuntimeIds.getByName('minecraft:stone'));
             expect(writtenBlockId(stone)).toBe(stone.getBlockRuntimeId());
         });
 
         it('writes the id it was given instead of the one the name resolves to', () => {
-            const piston = new Item({ id: 33, name: 'minecraft:piston', blockRuntimeId: 1234 });
+            const piston = new Item({ runtimeId: 33, name: 'minecraft:piston', blockRuntimeId: 1234 });
 
             expect(piston.getBlockRuntimeId()).toBe(1234);
             expect(writtenBlockId(piston)).toBe(1234);
@@ -290,7 +290,7 @@ describe('item', () => {
 
         it('keeps an explicit zero for a block-shaped item that places no block', () => {
             // A door is a block to this server and an item to vanilla, which sends a zero here.
-            const door = new Item({ id: 324, name: 'minecraft:wooden_door', blockRuntimeId: 0 });
+            const door = new Item({ runtimeId: 324, name: 'minecraft:wooden_door', blockRuntimeId: 0 });
 
             expect(BlockRuntimeIds.tryGetByName('minecraft:wooden_door')).not.toBeNull();
             expect(writtenBlockId(door)).toBe(0);

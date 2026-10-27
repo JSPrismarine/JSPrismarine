@@ -27,7 +27,10 @@ const fakeWorld = () => {
     const world = stub<World>({ getPlayers: () => players });
 
     const inventory = new HumanInventory();
-    inventory.setItem(3, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:diamond_sword' }), count: 1 }));
+    inventory.setItem(
+        3,
+        new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }), count: 1 })
+    );
 
     const senderSession = stub<PlayerSession>({
         tracks: () => true,
@@ -103,7 +106,7 @@ describe('MobEquipmentHandler', () => {
     it('relays the server copy of the held item to the players that have the sender on screen', async () => {
         const { senderSession, server, toSender, toWatcher, toBystander } = fakeWorld();
         // The client claims to hold a block it was never given.
-        const packet = selected(3, { item: new Item({ id: 0, name: 'minecraft:bedrock' }) });
+        const packet = selected(3, { item: new Item({ runtimeId: 0, name: 'minecraft:bedrock' }) });
 
         await new MobEquipmentHandler().handle(packet, server, senderSession);
 

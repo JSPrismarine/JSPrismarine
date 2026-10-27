@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { Item } from '../item/Item';
 import { ANY_META, ItemIngredient, TagIngredient } from './RecipeIngredient';
 
-const item = (name: string, meta = 0) => new Item({ id: 1, name, meta });
+const item = (name: string, meta = 0) => new Item({ runtimeId: 1, name, meta });
 
 describe('crafting', () => {
     describe('ItemIngredient', () => {

@@ -196,7 +196,7 @@ describe('world', () => {
             const { world, entities, warnings } = emptyWorld();
             const position = new Vector3(10, 64, -20);
             const stacks = (count: number) =>
-                Array.from({ length: count }, () => new Item({ id: 4, name: 'minecraft:cobblestone', meta: 0 }));
+                Array.from({ length: count }, () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 }));
 
             for (let burst = 0; burst < 3; burst += 1) {
                 await world.dropContents(position, stacks(World.ITEM_ENTITY_LIMIT));
@@ -235,7 +235,7 @@ describe('world', () => {
             // all go through here. Without the push their stacks lie a whole block apart, where
             // the half-block merge reach never joins them.
             const { world, entities, rolls } = emptyWorld();
-            const cobblestone = () => new Item({ id: 4, name: 'minecraft:cobblestone', meta: 0 });
+            const cobblestone = () => new Item({ runtimeId: 4, name: 'minecraft:cobblestone', meta: 0 });
 
             await world.dropFromBlock({ x: 3, y: 70, z: -4 }, [cobblestone(), null, cobblestone()]);
 

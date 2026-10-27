@@ -11,7 +11,7 @@ import { ItemIngredient } from './RecipeIngredient';
 import VanillaRecipes from './VanillaRecipes';
 
 const known = (name: string) => ItemIdMap[name] !== undefined;
-const item = (name: string) => new Item({ id: 1, name });
+const item = (name: string) => new Item({ runtimeId: 1, name });
 
 /** A server carrying a real recipe book, so matching runs against vanilla's own data. */
 const serverWith = (recipes: readonly Recipe[]) => {

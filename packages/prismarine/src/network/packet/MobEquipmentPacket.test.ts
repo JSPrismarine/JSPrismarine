@@ -39,7 +39,7 @@ describe('network', () => {
                 const packet = new MobEquipmentPacket();
                 packet.runtimeEntityId = 300n;
                 // A name the item table does not know, so the id given here is the one written.
-                packet.item = new Item({ id: 0x0141, name: 'test:sword' });
+                packet.item = new Item({ runtimeId: 0x0141, name: 'test:sword' });
                 packet.inventorySlot = 4;
                 packet.hotbarSlot = 4;
                 packet.windowId = WindowIds.INVENTORY;
@@ -79,7 +79,7 @@ describe('network', () => {
                 packet.decode();
 
                 expect(packet.runtimeEntityId).toBe(7n);
-                expect(packet.item.getId()).toBe(0x0141);
+                expect(packet.item.getNetworkId()).toBe(0x0141);
                 expect(packet.item.count).toBe(1);
                 expect(packet.inventorySlot).toBe(2);
                 expect(packet.hotbarSlot).toBe(2);

@@ -66,8 +66,8 @@ const toIngredient = (raw: GeneratedIngredient, known: KnownItem): RecipeIngredi
 
 const toItem = (raw: GeneratedItem): Item =>
     new Item({
-        // Resolved from the name by the item table; the numeric id is only a fallback.
-        id: 0,
+        // Resolved from the name by the item table; the runtime id is only a fallback.
+        runtimeId: 0,
         name: raw.name,
         // A wildcard is a question and an output is an answer, so it never leaves as one.
         meta: raw.meta === ANY_META ? 0 : raw.meta,

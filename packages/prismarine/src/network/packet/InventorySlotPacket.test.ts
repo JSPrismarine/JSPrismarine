@@ -112,7 +112,7 @@ describe('network', () => {
             const packet = Object.assign(new InventorySlotPacket(), {
                 windowId: 124,
                 inventorySlot: 30,
-                item: new Item({ id: 5, name: 'minecraft:oak_planks', count: 3 })
+                item: new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count: 3 })
             });
             packet.encode();
 

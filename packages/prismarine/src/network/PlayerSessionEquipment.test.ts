@@ -58,8 +58,8 @@ const sessionFor = (player: Player) => {
 /** A human wearing a chestplate and holding a shield in the off hand. */
 const equippedHuman = () => {
     const inventory = new HumanInventory();
-    const chestplate = new Item({ id: 0, name: 'minecraft:diamond_chestplate' });
-    const shield = new Item({ id: 0, name: 'minecraft:shield' });
+    const chestplate = new Item({ runtimeId: 0, name: 'minecraft:diamond_chestplate' });
+    const shield = new Item({ runtimeId: 0, name: 'minecraft:shield' });
     inventory.getArmor().setItem(1, new ContainerEntry({ item: chestplate, count: 1 }));
     inventory.getOffhand().setItem(0, new ContainerEntry({ item: shield, count: 1 }));
 
@@ -152,7 +152,7 @@ describe('network', () => {
             it('sends the held item as equipment in the inventory window', async () => {
                 const { session, sent } = ownSession();
                 const inventory = session.getPlayer().getInventory();
-                const sword = new Item({ id: 0, name: 'minecraft:diamond_sword' });
+                const sword = new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' });
                 inventory.setItem(inventory.getHandSlotIndex(), new ContainerEntry({ item: sword, count: 1 }));
 
                 await session.sendInventory();

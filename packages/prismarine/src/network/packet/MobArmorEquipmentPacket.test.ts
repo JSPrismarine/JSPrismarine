@@ -5,14 +5,14 @@ import { Item } from '../../item/Item';
 import Identifiers from '../Identifiers';
 import MobArmorEquipmentPacket from './MobArmorEquipmentPacket';
 
-const air = (): Item => new Item({ id: 0, name: 'minecraft:air' });
+const air = (): Item => new Item({ runtimeId: 0, name: 'minecraft:air' });
 
 /**
- * A stack whose name is not in the item table, so the id given here is the one that goes out.
+ * A stack whose name is not in the item table, so the runtime id given here is the one that goes out.
  * A vanilla name would be replaced by the table's number, which the test would then have to
  * look up to write the bytes.
  */
-const stack = (id: number, count = 1): Item => new Item({ id, name: 'test:armor', count });
+const stack = (runtimeId: number, count = 1): Item => new Item({ runtimeId, name: 'test:armor', count });
 
 /**
  * One `NetworkItemStackDescriptor` as the server writes a plain, un-enchanted stack: `Id`
@@ -40,8 +40,8 @@ const AIR_BYTES = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
 
 describe('MobArmorEquipmentPacket', () => {
     it('writes the runtime id and then five stacks in head, torso, legs, feet, body order', () => {
-        const chestplate = new Item({ id: 0, name: 'minecraft:diamond_chestplate' });
-        const planks = new Item({ id: 0, name: 'minecraft:oak_planks', count: 3 });
+        const chestplate = new Item({ runtimeId: 0, name: 'minecraft:diamond_chestplate' });
+        const planks = new Item({ runtimeId: 0, name: 'minecraft:oak_planks', count: 3 });
 
         const packet = new MobArmorEquipmentPacket();
         packet.runtimeEntityId = 1234n;
@@ -59,7 +59,7 @@ describe('MobArmorEquipmentPacket', () => {
         // Decoding does not resolve a wire id back to a name, so a non-air slot is checked by
         // the id it went out under. Air comes back by name with a zero id.
         const slots = Array.from({ length: 5 }, () => Item.networkDeserialize(stream));
-        expect(slots.map((item) => item.getId())).toStrictEqual([
+        expect(slots.map((item) => item.getNetworkId())).toStrictEqual([
             0,
             chestplate.getNetworkId(),
             0,
@@ -109,11 +109,11 @@ describe('MobArmorEquipmentPacket', () => {
 
         expect(packet.runtimeEntityId).toBe(7n);
         expect(packet.head.getName()).toBe('minecraft:air');
-        expect(packet.chest.getId()).toBe(0x0141);
+        expect(packet.chest.getNetworkId()).toBe(0x0141);
         expect(packet.chest.count).toBe(1);
         expect(packet.legs.getName()).toBe('minecraft:air');
         expect(packet.feet.getName()).toBe('minecraft:air');
-        expect(packet.body.getId()).toBe(0x0200);
+        expect(packet.body.getNetworkId()).toBe(0x0200);
         expect(packet.body.count).toBe(2);
         expect(packet.feof()).toBe(true);
     });

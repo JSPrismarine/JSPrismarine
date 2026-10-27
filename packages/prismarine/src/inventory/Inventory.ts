@@ -20,7 +20,7 @@ export default class Inventory {
      * get mutated.
      */
     private static air(): Item {
-        return new Item({ id: 0, name: AIR, meta: 0, count: 0 });
+        return new Item({ runtimeId: 0, name: AIR, meta: 0, count: 0 });
     }
 
     /**

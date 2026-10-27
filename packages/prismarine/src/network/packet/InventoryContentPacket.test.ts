@@ -84,9 +84,9 @@ describe('InventoryContentPacket', () => {
         const inventory = new HumanInventory();
         inventory.setItem(
             0,
-            new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:oak_planks', count: 12 }) })
+            new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:oak_planks', count: 12 }) })
         );
-        inventory.setItem(5, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:diamond_sword' }) }));
+        inventory.setItem(5, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }) }));
 
         return inventory;
     };
@@ -124,7 +124,7 @@ describe('InventoryContentPacket', () => {
 
     it('matches a hand-written buffer', () => {
         const inventory = new Inventory(2);
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:diamond_sword' }) }));
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' }) }));
         const swordId = ItemIdMap['minecraft:diamond_sword']!;
 
         const empty = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00];
@@ -237,7 +237,7 @@ describe('InventoryContentPacket', () => {
 
     it('writes a shield with its blocking tick at the end of the blob', () => {
         const inventory = new Inventory(1);
-        inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:shield' }) }));
+        inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:shield' }) }));
 
         const shield = readBack(encoded(inventory.getItems(true))).slots[0]!;
         // A shield wears, so its blob holds the 28 bytes of a `Damage` 0 compound and two
@@ -258,7 +258,7 @@ describe('InventoryContentPacket', () => {
         // disconnects rather than drawing the item wrong, which is why the whole packet is
         // read back rather than just the stack.
         const inventory = new Inventory(1);
-        const sword = new Item({ id: 0, name: 'minecraft:diamond_sword' })
+        const sword = new Item({ runtimeId: 0, name: 'minecraft:diamond_sword' })
             .withEnchantments({ 'minecraft:sharpness': 2 })
             .withDisplay('Needle', ['Out of a dungeon']);
         inventory.setItem(0, new ContainerEntry({ item: sword }));

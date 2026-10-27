@@ -122,7 +122,7 @@ const run = async (
 describe('network', () => {
     describe('ItemStackRequestHandler', () => {
         it('puts a creative pick in the slot it was dropped on', async () => {
-            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })]);
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
             const inventory = new HumanInventory();
 
             const response = await run(
@@ -171,7 +171,7 @@ describe('network', () => {
             expect(expected).toBeDefined();
             expect(expected).not.toBe('minecraft:oak_planks');
 
-            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })], {
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })], {
                 getContent: () => content
             });
             const inventory = new HumanInventory();
@@ -203,7 +203,7 @@ describe('network', () => {
         it('does not hand the same object to two players', async () => {
             // The creative list is one set of items shared by everyone; putting one of them
             // straight into an inventory would give every player the same object to mutate.
-            const shared = new Item({ id: 5, name: 'minecraft:oak_planks' });
+            const shared = new Item({ runtimeId: 5, name: 'minecraft:oak_planks' });
             const server = fakeServer([shared]);
 
             const pick = (inventory: HumanInventory) =>
@@ -244,7 +244,7 @@ describe('network', () => {
         it('moves a stack between slots', async () => {
             const server = fakeServer([]);
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
 
             await run(
                 [
@@ -353,7 +353,10 @@ describe('network', () => {
             });
 
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:oak_planks' }) }));
+            inventory.setItem(
+                0,
+                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }) })
+            );
             const craftingInput = new CraftingInput();
 
             const response = await run(
@@ -437,12 +440,12 @@ describe('network', () => {
         it('crafts what the grid actually holds', async () => {
             // The whole chain: a recipe registered, a grid filled, the client naming the
             // recipe by number, and the output landing in the inventory.
-            const planks = () => new Item({ id: 1, name: 'minecraft:oak_planks' });
+            const planks = () => new Item({ runtimeId: 1, name: 'minecraft:oak_planks' });
             const recipe = new ShapelessRecipe(
                 'sticks',
                 'crafting_table',
                 [new ItemIngredient('minecraft:oak_planks'), new ItemIngredient('minecraft:oak_planks')],
-                [new Item({ id: 2, name: 'minecraft:stick' })]
+                [new Item({ runtimeId: 2, name: 'minecraft:stick' })]
             );
 
             const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
@@ -777,7 +780,7 @@ describe('network', () => {
                 'sticks',
                 'crafting_table',
                 [new ItemIngredient('minecraft:oak_planks')],
-                [new Item({ id: 2, name: 'minecraft:stick' })]
+                [new Item({ runtimeId: 2, name: 'minecraft:stick' })]
             );
 
             const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
@@ -812,7 +815,10 @@ describe('network', () => {
         it('moves a stack into the crafting grid, which is how anything gets made', async () => {
             const craftingInput = new CraftingInput();
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:oak_planks' }) }));
+            inventory.setItem(
+                0,
+                new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:oak_planks' }) })
+            );
 
             await run(
                 [
@@ -840,7 +846,7 @@ describe('network', () => {
         });
 
         it('encodes the response it produces', async () => {
-            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })]);
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
 
             const response = await run(
                 [
@@ -873,7 +879,7 @@ describe('network', () => {
             // from something other than the game.
             const server = fakeServer([]);
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
 
             for (const requestId of [4, -2]) {
                 const response = await run(
@@ -921,7 +927,7 @@ describe('network', () => {
 
             for (const count of [0, 65]) {
                 const inventory = new HumanInventory();
-                inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+                inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
 
                 const response = await run(
                     [
@@ -957,7 +963,7 @@ describe('network', () => {
                 }
             }
             const inventory = new Broken();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
 
             const response = await run(
                 [
@@ -990,7 +996,7 @@ describe('network', () => {
 
         it('names only the containers something changed in', async () => {
             // The two kept stores used to be listed in every answer, slots or no slots.
-            const server = fakeServer([new Item({ id: 5, name: 'minecraft:oak_planks' })]);
+            const server = fakeServer([new Item({ runtimeId: 5, name: 'minecraft:oak_planks' })]);
 
             const response = await run(
                 [

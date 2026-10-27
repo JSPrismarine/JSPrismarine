@@ -17,7 +17,7 @@ import type DataPacket from '../packet/DataPacket';
 import ContainerClosePacket from '../packet/ContainerClosePacket';
 import ContainerCloseHandler from './ContainerCloseHandler';
 
-const planks = (count: number) => new Item({ id: 5, name: 'minecraft:oak_planks', count });
+const planks = (count: number) => new Item({ runtimeId: 5, name: 'minecraft:oak_planks', count });
 
 /** What a test may change about the close and the session it lands on. */
 interface Scenario {
@@ -132,7 +132,10 @@ describe('network', () => {
             for (let slot = 0; slot < 36; slot++) {
                 inventory.setItem(
                     slot,
-                    new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone', count: 64 }), count: 64 })
+                    new ContainerEntry({
+                        item: new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }),
+                        count: 64
+                    })
                 );
             }
 
@@ -151,7 +154,10 @@ describe('network', () => {
             for (let slot = 0; slot < 36; slot++) {
                 inventory.setItem(
                     slot,
-                    new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone', count: 64 }), count: 64 })
+                    new ContainerEntry({
+                        item: new Item({ runtimeId: 1, name: 'minecraft:stone', count: 64 }),
+                        count: 64
+                    })
                 );
             }
 

@@ -12,7 +12,7 @@ import { NetworkUtil } from '../NetworkUtil';
 import { readRecipeIngredient } from '../type/RecipeIngredientCodec';
 import CraftingDataPacket from './CraftingDataPacket';
 
-const item = (name: string) => new Item({ id: 1, name });
+const item = (name: string) => new Item({ runtimeId: 1, name });
 const need = (name: string, meta?: number) => new ItemIngredient(name, meta);
 
 /**
@@ -197,7 +197,7 @@ describe('network', () => {
                     'torch',
                     'crafting_table',
                     [need('minecraft:stick')],
-                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })],
+                    [new Item({ runtimeId: OUTPUT_ID, name: OUTPUT_NAME })],
                     3
                 )
             ];
@@ -244,7 +244,7 @@ describe('network', () => {
                     2,
                     1,
                     [need('minecraft:stick'), null],
-                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })],
+                    [new Item({ runtimeId: OUTPUT_ID, name: OUTPUT_NAME })],
                     0,
                     true
                 )
@@ -296,7 +296,7 @@ describe('network', () => {
                     need('minecraft:netherite_upgrade_smithing_template'),
                     need('minecraft:diamond_axe'),
                     need('minecraft:netherite_ingot'),
-                    new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })
+                    new Item({ runtimeId: OUTPUT_ID, name: OUTPUT_NAME })
                 )
             ];
             packet.netIdOf = () => 7;
@@ -335,7 +335,7 @@ describe('network', () => {
                     'sticks',
                     'crafting_table',
                     [new TagIngredient('minecraft:planks', new Set(['minecraft:oak_planks']), 2)],
-                    [new Item({ id: OUTPUT_ID, name: OUTPUT_NAME })]
+                    [new Item({ runtimeId: OUTPUT_ID, name: OUTPUT_NAME })]
                 )
             ];
             packet.netIdOf = () => 7;

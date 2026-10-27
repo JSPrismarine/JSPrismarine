@@ -5,7 +5,7 @@ import CraftingGrid from './CraftingGrid';
 import { FurnaceRecipe, ShapedRecipe, ShapelessRecipe, SmithingRecipe } from './Recipe';
 import { ItemIngredient } from './RecipeIngredient';
 
-const item = (name: string, meta = 0) => new Item({ id: 1, name, meta });
+const item = (name: string, meta = 0) => new Item({ runtimeId: 1, name, meta });
 const need = (name: string, meta?: number) => new ItemIngredient(name, meta);
 
 const stick = () => item('minecraft:stick');

@@ -16,14 +16,8 @@ import { itemUserDataTag } from './userData';
 import { vanillaItemTypes } from './vanillaItemTypes';
 
 export interface ItemProps {
-    /**
-     * The item's numeric id.
-     *
-     * @deprecated Items have no numeric id any more; the name is the
-     *   identity and the wire id is resolved from it. Still accepted so the
-     *   handlers that pass one keep compiling.
-     */
-    id?: number;
+    /** The Bedrock runtime id to retain when the item name is not in the vanilla table. */
+    runtimeId?: number;
     name: string;
     meta?: number;
     nbt?: unknown;
@@ -113,7 +107,7 @@ const nameOfWireId = (id: number): string | undefined => {
  */
 export class Item {
     private readonly name: string;
-    private readonly legacyId: number;
+    private readonly runtimeId: number;
     private readonly networkId: number | undefined;
     private readonly placedBlockRuntimeId: number | undefined;
     private readonly content: ServerContent | undefined;
@@ -169,7 +163,7 @@ export class Item {
     private readonly heldContents: readonly (Item | null)[];
 
     public constructor({
-        id,
+        runtimeId,
         name,
         meta,
         count,
@@ -181,7 +175,7 @@ export class Item {
         contents
     }: ItemProps) {
         this.name = name;
-        this.legacyId = id ?? 0;
+        this.runtimeId = runtimeId ?? 0;
         this.placedBlockRuntimeId = blockRuntimeId;
         this.content = content;
         this.enchantmentLevels = enchantmentMap(enchantments);
@@ -215,21 +209,9 @@ export class Item {
         return this.type()?.hasComponent(name) ?? false;
     }
 
-    /**
-     * Whatever numeric id the caller built this stack with, or zero.
-     *
-     * @deprecated Items have no numeric id of their own any more; the name
-     *   is the identity. Still carried because it is the fallback
-     *   {@link Item.getNetworkId} uses for a name the item table does not
-     *   have, which is how a plugin's item reaches the wire.
-     */
-    public getId(): number {
-        return this.legacyId;
-    }
-
-    /** The id the client resolves this stack by. */
+    /** The Bedrock runtime id sent to the client for this item. */
     public getNetworkId(): number {
-        return this.networkId || this.getId();
+        return this.networkId || this.runtimeId;
     }
 
     /** The stack's damage or variant value, which the wire carries beside the id. */
@@ -427,7 +409,7 @@ export class Item {
     /** One copy constructor for the `with*` methods, so each states only what it changes. */
     private copyWith(changes: Partial<ItemProps>): Item {
         const copy = new Item({
-            id: this.legacyId,
+            runtimeId: this.runtimeId,
             name: this.name,
             meta: this.meta,
             count: this.count,
@@ -739,7 +721,7 @@ export class Item {
         // Two bytes in the tracked form, a varint in the other. This is the one asymmetry
         // between them that is not the flag, and it is the reason they no longer share a
         // reader beyond this line.
-        const id = hasStackIdFlag ? stream.readShortLE() : stream.readVarInt();
+        const runtimeId = hasStackIdFlag ? stream.readShortLE() : stream.readVarInt();
 
         const count = stream.readUnsignedShortLE();
         const meta = stream.readUnsignedVarInt();
@@ -756,12 +738,11 @@ export class Item {
         // Read to the end whatever the id, because an empty stack is no longer a bare zero -
         // it is a full stack of zeroes, and stopping at the id leaves the rest of it to be
         // read as the next field.
-        if (id === 0) return new Item({ name: 'minecraft:air' });
+        if (runtimeId === 0) return new Item({ name: 'minecraft:air' });
 
-        // The id is carried as well as resolved, so a stack whose id the item
-        // table does not name still goes back out under the number it came in
-        // under.
-        const item = new Item({ id, name: nameOfWireId(id) ?? 'minecraft:unknown', meta, count });
+        // Keep an unknown runtime id so a custom item goes back out with the
+        // number the client's item registry assigned it.
+        const item = new Item({ runtimeId, name: nameOfWireId(runtimeId) ?? 'minecraft:unknown', meta, count });
         item.stackNetworkId = stackNetworkId;
         return item;
     }

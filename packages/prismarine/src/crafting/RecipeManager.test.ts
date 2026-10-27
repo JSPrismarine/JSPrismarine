@@ -17,7 +17,7 @@ const recipe = (id: string, station = 'crafting_table') =>
         id,
         station,
         [new ItemIngredient('minecraft:stick')],
-        [new Item({ id: 1, name: 'minecraft:torch' })]
+        [new Item({ runtimeId: 1, name: 'minecraft:torch' })]
     );
 
 describe('crafting', () => {

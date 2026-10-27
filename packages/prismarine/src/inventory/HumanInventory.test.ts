@@ -13,8 +13,8 @@ describe('inventory', () => {
          */
         it('holds what the selected slot holds', () => {
             const inventory = new HumanInventory();
-            inventory.setItem(0, new ContainerEntry({ item: new Item({ id: 1, name: 'minecraft:stone' }) }));
-            inventory.setItem(3, new ContainerEntry({ item: new Item({ id: 2, name: 'minecraft:dirt' }) }));
+            inventory.setItem(0, new ContainerEntry({ item: new Item({ runtimeId: 1, name: 'minecraft:stone' }) }));
+            inventory.setItem(3, new ContainerEntry({ item: new Item({ runtimeId: 2, name: 'minecraft:dirt' }) }));
 
             expect(inventory.getItemInHand().getName()).toBe('minecraft:stone');
 
@@ -98,7 +98,7 @@ describe('HumanInventory.getItemInHand', () => {
         // A real item is passed through rather than rebuilt, so a tool keeps its enchantments
         // and everything else a subclass adds.
         const inventory = new HumanInventory();
-        const sword = new Item({ id: 308, name: 'minecraft:diamond_sword' });
+        const sword = new Item({ runtimeId: 308, name: 'minecraft:diamond_sword' });
         inventory.setItem(0, new ContainerEntry({ item: sword }));
         inventory.setHandSlot(0);
 
@@ -115,7 +115,7 @@ describe('HumanInventory.getItemInHand', () => {
  */
 describe('Inventory.addItem', () => {
     const stack = (name: string, count: number) =>
-        new ContainerEntry({ item: new Item({ id: 0, name, count }), count });
+        new ContainerEntry({ item: new Item({ runtimeId: 0, name, count }), count });
 
     it('puts the stack somewhere, which it used to not do', () => {
         const inventory = new HumanInventory();
@@ -208,7 +208,7 @@ describe('Inventory.removeItem', () => {
         // entry left the container one short, moving every stack after the hole up by one.
         const inventory = new HumanInventory();
         inventory.addItem(
-            new ContainerEntry({ item: new Item({ id: 0, name: 'minecraft:dirt', count: 3 }), count: 3 })
+            new ContainerEntry({ item: new Item({ runtimeId: 0, name: 'minecraft:dirt', count: 3 }), count: 3 })
         );
 
         inventory.removeItem(0);

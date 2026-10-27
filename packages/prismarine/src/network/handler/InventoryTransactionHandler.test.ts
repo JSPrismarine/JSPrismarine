@@ -67,7 +67,7 @@ const TICK = 400;
  */
 const fake = (
     gamemode = Gametype.SURVIVAL,
-    held: Item = new Item({ id: 1, name: 'minecraft:stone' }),
+    held: Item = new Item({ runtimeId: 1, name: 'minecraft:stone' }),
     { serverAuthoritativeBreaking = false } = {}
 ) => {
     const broken: BlockPosition[] = [];
@@ -176,7 +176,7 @@ const useItem = (overrides: Partial<UseItemData> = {}): UseItemData => ({
     hotbarSlot: 2,
     hand: HandSlot.MAINHAND,
     // What the client believes it holds. The handler must not act on it.
-    itemInHand: new Item({ id: 5, name: 'minecraft:diamond_block' }),
+    itemInHand: new Item({ runtimeId: 5, name: 'minecraft:diamond_block' }),
     playerPosition: new Vector3(0, 64, 0),
     clickPosition: new Vector3(0.5, 1, 0.5),
     blockRuntimeId: 0,
@@ -378,7 +378,7 @@ describe('InventoryTransactionHandler', () => {
     });
 
     it('starts the bow clock on a click at nothing, and only for a bow', async () => {
-        const withBow = fake(Gametype.SURVIVAL, new Item({ id: 2, name: 'minecraft:bow' }));
+        const withBow = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:bow' }));
         const withStone = fake();
         const clickAir = () => transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.USE }));
 
@@ -429,7 +429,7 @@ describe('InventoryTransactionHandler', () => {
     });
 
     it('routes an item interaction on an entity through content', async () => {
-        const world = fake(Gametype.SURVIVAL, new Item({ id: 2, name: 'minecraft:sheep_spawn_egg' }));
+        const world = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:sheep_spawn_egg' }));
 
         await handle(
             transaction(
@@ -445,7 +445,7 @@ describe('InventoryTransactionHandler', () => {
     });
 
     it('looses an arrow for as long as the bow was drawn, and nothing for a stone', async () => {
-        const withBow = fake(Gametype.SURVIVAL, new Item({ id: 2, name: 'minecraft:bow' }));
+        const withBow = fake(Gametype.SURVIVAL, new Item({ runtimeId: 2, name: 'minecraft:bow' }));
         const withStone = fake();
         vi.mocked(loose).mockClear();
 
