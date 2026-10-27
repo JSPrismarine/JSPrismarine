@@ -55,12 +55,9 @@ export interface ContentEffectsOptions {
     /**
      * Where a game event goes.
      *
-     * Bedrock has no game event packet: a vibration is resolved by whichever
-     * sculk sensor, warden or allay is listening, and all three of those are
-     * server side. So this group has nothing to send and hands the event to
-     * the host instead. Left out, an event is dropped, which is what the
-     * server did with every game event before this group existed and what it
-     * will keep doing until something listens.
+     * Bedrock has no game event packet. The prismarine host hands events to its
+     * server-side vibration listeners, so this group has nothing to send. A
+     * caller that leaves this callback out drops the event.
      */
     readonly onGameEvent?: (event: ContentGameEvent) => void;
 }

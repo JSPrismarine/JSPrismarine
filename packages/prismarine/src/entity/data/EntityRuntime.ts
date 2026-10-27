@@ -88,6 +88,7 @@ import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
 import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
+import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 
 /** The interval between projectile samples, small enough not to skip a target. */
 const PROJECTILE_SWEEP_STEP = 0.25;
@@ -193,6 +194,11 @@ export interface EntityRuntimeOptions {
     content(): ServerContent;
     readonly world: EntityWorldFacts;
     readonly host: EntityHostFacts;
+    /** Adds and re-files listeners for entities with `minecraft:vibration_listener`. */
+    readonly gameEvents?: {
+        add(listener: GameEventListener): (() => void) | undefined;
+        move(listener: GameEventListener): void;
+    };
     /** Receives everything the runtime met and could not carry out. */
     report?(message: string): void;
     /**
@@ -215,6 +221,12 @@ export interface EntityRuntimeOptions {
      * entities supplies this; one that does not gets a counter from 1.
      */
     nextId?(): number;
+}
+
+/** One entity's registration in the world's game-event listener registry. */
+interface EntityGameEventRegistration {
+    readonly listener: GameEventListener;
+    readonly remove: () => void;
 }
 
 /** The live entities of one dimension, and the AI that drives them. */
@@ -261,6 +273,8 @@ export class EntityRuntime implements EntityScene {
     private readonly onReport: (message: string) => void;
     private readonly onSpawn: (entity: DataEntity) => void;
     private readonly onRemove: (entity: DataEntity, reason: string) => void;
+    private readonly gameEvents: EntityRuntimeOptions['gameEvents'];
+    private readonly gameEventListeners = new Map<number, EntityGameEventRegistration>();
     private readonly drawId: () => number;
     private facts: EntityFactsLookup | undefined;
     private factsGeneration = -1;
@@ -278,6 +292,7 @@ export class EntityRuntime implements EntityScene {
         this.onReport = options.report ?? (() => undefined);
         this.onSpawn = options.onSpawn ?? (() => undefined);
         this.onRemove = options.onRemove ?? (() => undefined);
+        this.gameEvents = options.gameEvents;
         this.drawId =
             options.nextId ??
             (() => {
@@ -356,6 +371,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         entity.instance.spawn(options.cause ?? 'spawned', options.event);
+        this.syncGameEventListener(entity);
         this.startFuse(entity);
         // Between the spawn event and the body, for the same reason the body comes last. The
         // event is what activates the component group a mob's `minecraft:equipment` usually
@@ -396,6 +412,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        this.syncGameEventListener(entity);
         this.startFuse(entity);
         this.onSpawn(entity);
         return entity;
@@ -507,7 +524,11 @@ export class EntityRuntime implements EntityScene {
         // instance was being built moved a body nothing was watching yet, and the grid files
         // where the body ended up rather than where it started.
         this.grid.add(entity);
-        body.onMove = () => this.grid.refile(entity);
+        body.onMove = () => {
+            this.grid.refile(entity);
+            const registration = this.gameEventListeners.get(id);
+            if (registration !== undefined) this.gameEvents?.move(registration.listener);
+        };
         if (options.pool !== undefined) this.pools.set(id, options.pool);
 
         if (brain !== undefined) {
@@ -565,6 +586,7 @@ export class EntityRuntime implements EntityScene {
         this.pendingDeaths.delete(id);
         this.byInstance.delete(entity.instance);
         this.grid.remove(entity);
+        this.removeGameEventListener(id);
         entity.body.onMove = undefined;
         this.pools.delete(id);
         this.merchants.delete(id);
@@ -610,6 +632,7 @@ export class EntityRuntime implements EntityScene {
             this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
+            this.syncGameEventListener(entity);
             this.grid.refreshFamilies(entity);
             this.tickBrain(entity);
             tickBrainNavigation(entity);
@@ -822,6 +845,44 @@ export class EntityRuntime implements EntityScene {
      */
     public recordPointOfInterest(kind: string, at: EntityPosition): void {
         this.interest.record(kind, at);
+    }
+
+    /** Adds or removes the world's listener registration when an entity's active groups change. */
+    private syncGameEventListener(entity: DataEntity): void {
+        const current = this.gameEventListeners.get(entity.id);
+        if (!entity.instance.hasComponent('minecraft:vibration_listener')) {
+            if (current !== undefined) this.removeGameEventListener(entity.id);
+            return;
+        }
+
+        if (current !== undefined) {
+            this.gameEvents?.move(current.listener);
+            return;
+        }
+
+        const listener: GameEventListener = {
+            getPosition: () => blockPositionOf(entity.position),
+            getListenerRadius: () => 16,
+            getDeliveryMode: () => 'by_distance',
+            handleGameEvent: (event) => {
+                if (event.sourceId === entity.id) return;
+                if (entity.identifier === 'minecraft:warden')
+                    this.recordPointOfInterest('suspicious_location', event.at);
+                if (entity.identifier === 'minecraft:allay' && event.event === 'minecraft:note_block_play')
+                    this.recordPointOfInterest('noteblock', event.at);
+            }
+        };
+        const remove = this.gameEvents?.add(listener);
+        if (remove !== undefined) this.gameEventListeners.set(entity.id, { listener, remove });
+    }
+
+    /** Removes one entity's listener registration from the world. */
+    private removeGameEventListener(id: number): void {
+        const registration = this.gameEventListeners.get(id);
+        if (registration === undefined) return;
+
+        this.gameEventListeners.delete(id);
+        registration.remove();
     }
 
     /** Every block matching a query around a position, nearest first. */
@@ -1355,7 +1416,7 @@ export class EntityRuntime implements EntityScene {
                 this.world.effects.emitGameEvent(
                     vibration.includes(':') ? vibration : `minecraft:${vibration}`,
                     blockPositionOf(entity.position),
-                    entity.id
+                    owner
                 );
             if (healthAmount !== undefined) {
                 if (healthAmount > 0) {

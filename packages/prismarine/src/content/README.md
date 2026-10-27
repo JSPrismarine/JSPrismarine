@@ -191,7 +191,9 @@ runs as it always has.
 
 ### Network (`src/network/`)
 
-- `effects`: `playSound`, `spawnParticle`, `emitGameEvent`.
+- `effects`: `playSound`, `spawnParticle`, `emitGameEvent`. Game events go through the world's
+  Java-style listener registry and reach data-driven wardens and allays with an active
+  `minecraft:vibration_listener` component in loaded chunks.
 - The optional `commands` group, once `@jsprismarine/commands` is a dependency. It is typed here as
   `ContentCommandHostSlot`, that package's five groups with their bodies left open, so the real
   `CommandHost` is assignable without this package depending on it yet. Replace the type with the
@@ -207,7 +209,6 @@ subsystem that owes it, and each for a reason rather than for want of plumbing.
 
 | Member | Why |
 | --- | --- |
-| `effects.emitGameEvent` | Java's game event system. Nothing listens, and Bedrock puts nothing on the wire for one. |
 | The `spawning`, `ai` and `generation` groups | Left absent rather than filled with throwing members, which is what makes the projection in `views.ts` report the owner. |
 
 `items.stateOf`, `items.targetOf` and `items.perform` no longer throw.

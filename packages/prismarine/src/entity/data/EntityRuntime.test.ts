@@ -747,7 +747,7 @@ describe('EntityRuntime', () => {
                 {
                     event: 'minecraft:shear',
                     at: GROUND,
-                    sourceId: entity.id
+                    sourceId: 42
                 }
             ]);
             expect(reports).toEqual([]);

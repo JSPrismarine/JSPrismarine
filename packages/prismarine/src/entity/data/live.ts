@@ -235,6 +235,10 @@ export class LiveEntityRuntime {
             report: options.report,
             onSpawn: (entity) => this.bodies.add(entity),
             onRemove: (entity) => this.bodies.drop(entity),
+            gameEvents: {
+                add: (listener) => options.liveWorld()?.addGameEventListener(listener),
+                move: (listener) => options.liveWorld()?.moveGameEventListener(listener)
+            },
             // One pool of runtime ids with the server's own entities, so a goal that holds
             // the id of a player cannot be handed a data-driven mob that happens to share it.
             nextId: () => {
