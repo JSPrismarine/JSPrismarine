@@ -15,7 +15,7 @@
  * only one of the twenty-two whose state nothing else on the server holds.
  */
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
@@ -48,6 +48,8 @@ export interface ItemActorPortOptions {
     readonly level: ContentLevelFacts;
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
+    /** Attaches a live holder to a leashable data-driven entity. */
+    readonly attachLead?: (holder: ItemSource, target: ItemSource) => boolean;
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
     readonly interactWithEntity?: (
         target: Entity,
@@ -116,7 +118,7 @@ const inWater = (world: World, entity: Entity): boolean => {
 
 /** Builds the port over one live world. */
 export const createItemActorPort = (options: ItemActorPortOptions): ServerItemActorPort => {
-    const { world, entities, level, launchProjectile, interactWithEntity } = options;
+    const { world, entities, level, launchProjectile, attachLead, interactWithEntity } = options;
 
     /** Game tick each cooldown runs out at. */
     const cooldowns = new Map<string, number>();
@@ -424,7 +426,22 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
                 return missing(action, 'a status effect system');
             case 'grant-experience':
                 return missing(action, 'a player experience bar');
-            case 'attach-lead':
+            case 'attach-lead': {
+                if (attachLead === undefined) {
+                    missing(action, 'a live data-driven leash runtime');
+                    return;
+                }
+                if (!attachLead(action.source, action.target)) return;
+
+                const target = entityOf(action.target);
+                if (target !== null) {
+                    void target
+                        .getWorld()
+                        .sendActorSound(target, LevelSoundEvent.LEAD_LEASH)
+                        .catch((error: unknown) => world()?.getServer().getLogger().error(error));
+                }
+                return;
+            }
             case 'dye-entity':
             case 'shear-entity':
                 return missing(action, 'the entity components that hold it');

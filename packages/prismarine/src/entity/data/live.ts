@@ -303,7 +303,7 @@ export class LiveEntityRuntime {
             world: options.world,
             host: liveHost(options, this.bodies),
             report: options.report,
-            onSpawn: (entity) => this.bodies.add(entity),
+            onSpawn: (entity) => this.bodies.add(entity, this.runtime.leashHolderIdOf(entity.id)),
             onRemove: (entity) => this.bodies.drop(entity),
             gameEvents: {
                 add: (listener) => options.liveWorld()?.addGameEventListener(listener),
@@ -379,6 +379,11 @@ export class LiveEntityRuntime {
             Number(shooter.getRuntimeId()),
             action.data
         );
+    }
+
+    /** Attaches a live entity or player as holder of a data-driven entity's leash. */
+    public attachLead(holderId: number, targetId: number): boolean {
+        return this.runtime.attachLead(holderId, targetId);
     }
 
     /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */

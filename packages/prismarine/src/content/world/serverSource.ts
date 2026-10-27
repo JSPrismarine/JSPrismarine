@@ -136,6 +136,7 @@ const adapterFor = (dimension: string, options: ServerWorldSourceOptions): Dimen
             ? {}
             : {
                   launchProjectile: (action, shooter) => live.launchProjectile(action, shooter) !== undefined,
+                  attachLead: (holder, target) => live.attachLead(holder.runtimeId, target.runtimeId),
                   interactWithEntity: (target, player, itemIdentifier, heldItem) =>
                       live.interactWithItem(target, player, itemIdentifier, heldItem)
               })

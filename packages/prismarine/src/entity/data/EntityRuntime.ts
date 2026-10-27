@@ -40,7 +40,8 @@ import {
     evaluateFilter,
     isRecord,
     javaEntityNavigation,
-    noEffects
+    noEffects,
+    parseEventTarget
 } from '@jsprismarine/entities';
 import { fluidStateOf } from '@jsprismarine/engine-systems';
 import { admireGoldItem, canAdmire, isBarterCurrency, MemoryModuleTypes } from '@jsprismarine/entity-brains';
@@ -98,6 +99,9 @@ const PROJECTILE_SWEEP_STEP = 0.25;
 
 /** Vanilla expands a projectile target by this amount before checking a hit. */
 const PROJECTILE_HIT_MARGIN = 0.3;
+
+/** Prefix that keeps saved player holders distinct from data-entity identities. */
+const PLAYER_LEASH_HOLDER_PREFIX = 'player:';
 
 /** How long a projectile ignores its owner and stays alive, in ticks. */
 const PROJECTILE_OWNER_GRACE = 5;
@@ -281,7 +285,7 @@ export class EntityRuntime implements EntityScene {
     private readonly merchants = new Map<number, Merchant>();
     /** Who rides whom, which both the rider's and the vehicle's goals read. */
     private readonly rides = new RideIndex();
-    /** The stable identity holding each data-driven entity's leash. */
+    /** Stable identities of the entities or players holding data-driven entity leashes. */
     private readonly leashHolders = new Map<number, string>();
     /** Resolves persistent identities back to the currently loaded entity. */
     private readonly byPersistentIdentity = new Map<string, DataEntity>();
@@ -661,6 +665,41 @@ export class EntityRuntime implements EntityScene {
             }
         }
         this.onRemove(entity, reason);
+    }
+
+    /**
+     * Ties a leashable data-driven entity to a live entity or player.
+     *
+     * A second holder can replace the first only when the target's
+     * `minecraft:leashable.can_be_stolen` field is true. The holder is saved by
+     * stable identity so the relationship survives a restart or chunk unload.
+     *
+     * @param holderId - Runtime id of the entity or player holding the lead.
+     * @param targetId - Runtime id of the entity receiving the lead.
+     * @returns Whether the target accepted the leash.
+     */
+    public attachLead(holderId: number, targetId: number): boolean {
+        const target = this.entities.get(targetId);
+        if (target === undefined || holderId === targetId || !target.instance.hasComponent('minecraft:leashable'))
+            return false;
+
+        const holderEntity = this.entities.get(holderId);
+        const playerIdentity = holderEntity === undefined ? this.host.playerIdentityOf?.(holderId) : undefined;
+        const holderIdentity =
+            holderEntity?.persistentIdentity ??
+            (playerIdentity === undefined ? undefined : `${PLAYER_LEASH_HOLDER_PREFIX}${playerIdentity}`);
+        if (holderIdentity === undefined) return false;
+
+        const currentHolderIdentity = this.leashHolders.get(targetId);
+        if (currentHolderIdentity === holderIdentity) return true;
+        if (currentHolderIdentity !== undefined) {
+            const leashable = target.instance.componentParams('minecraft:leashable');
+            if (!isRecord(leashable) || leashable.can_be_stolen !== true) return false;
+        }
+
+        this.leashHolders.set(targetId, holderIdentity);
+        this.raiseLeashEvent(target, 'on_leash');
+        return true;
     }
 
     /**
@@ -1307,14 +1346,32 @@ export class EntityRuntime implements EntityScene {
         return vehicle === undefined ? undefined : this.mobById(vehicle);
     }
 
-    /** What entity holds one data-driven entity's leash, when it has one. */
+    /** What entity or player holds one data-driven entity's leash, when it has one. */
     public leashHolderOf(entity: MobBody): GoalMob | undefined {
-        const identity = this.leashHolders.get(entity.id);
-        const holder = identity === undefined ? undefined : this.byPersistentIdentity.get(identity);
-        return holder === undefined ? undefined : this.mobById(holder.id);
+        const holderId = this.leashHolderIdOf(entity.id);
+        return holderId === undefined ? undefined : this.mobById(holderId);
     }
 
-    /** Stable identity of an entity's leash holder, ready to save with its record. */
+    /**
+     * Runtime id of a loaded entity or player holding this entity's leash.
+     *
+     * @param id - Runtime id of the leashed data-driven entity.
+     * @returns The holder's runtime id, or undefined while the holder is not loaded.
+     */
+    public leashHolderIdOf(id: number): number | undefined {
+        const identity = this.leashHolders.get(id);
+        if (identity === undefined) return undefined;
+
+        const holder = this.byPersistentIdentity.get(identity);
+        if (holder !== undefined) return holder.id;
+
+        const playerIdentity = identity.startsWith(PLAYER_LEASH_HOLDER_PREFIX)
+            ? identity.slice(PLAYER_LEASH_HOLDER_PREFIX.length)
+            : undefined;
+        return playerIdentity === undefined ? undefined : this.host.playerIdForIdentity?.(playerIdentity);
+    }
+
+    /** Stable identity of a leash holder, ready to save with the entity's record. */
     public leashHolderIdentityOf(id: number): string | undefined {
         return this.leashHolders.get(id);
     }
@@ -1325,6 +1382,24 @@ export class EntityRuntime implements EntityScene {
             const mob = this.mobById(rider);
             return mob === undefined ? [] : [mob];
         });
+    }
+
+    /** Fires the event the active leashable component names for an attachment. */
+    private raiseLeashEvent(entity: DataEntity, name: 'on_leash'): void {
+        const leashable = entity.instance.componentParams('minecraft:leashable');
+        if (!isRecord(leashable)) return;
+
+        const value = leashable[name];
+        if (typeof value === 'string') {
+            entity.instance.raise(value, 'self', 'minecraft:leashable');
+            return;
+        }
+        if (!isRecord(value) || typeof value.event !== 'string') return;
+
+        const target = parseEventTarget(value.target, (code, message) =>
+            this.report(`${entity.identifier}: ${code}: ${message}`)
+        );
+        entity.instance.raise(value.event, target, 'minecraft:leashable');
     }
 
     /** Takes an item stack lying in the world into an entity's inventory. */

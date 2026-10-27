@@ -25,6 +25,7 @@ interface ActorFlagProjection {
 type ActorPropertyProjection =
     | { readonly kind: 'float'; readonly id: number; readonly value: number }
     | { readonly kind: 'int'; readonly id: number; readonly value: number }
+    | { readonly kind: 'long'; readonly id: number; readonly value: bigint }
     | { readonly kind: 'string'; readonly id: number; readonly value: string };
 
 /** The first interaction prompt the data type makes available to a touch-screen client. */
@@ -52,8 +53,10 @@ export interface ActorMetadataProjection {
  *
  * These are component-to-protocol mappings, shared by every entity with the same active data.
  * New component metadata belongs in this projection rather than in per-entity body code.
+ *
+ * @param leashHolderId - Runtime id of the entity holding this entity's leash, when one is loaded.
  */
-export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjection => {
+export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: number): ActorMetadataProjection => {
     const { instance, body } = entity;
     const navigation = navigationProfile(instance);
     const canSwim =
@@ -97,6 +100,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         },
         { flag: ActorFlags.POWERED, value: instance.hasComponent('minecraft:is_charged') },
         { flag: ActorFlags.SADDLED, value: instance.hasComponent('minecraft:is_saddled') },
+        { flag: ActorFlags.LEASHED, value: leashHolderId !== undefined },
         { flag: ActorFlags.CHESTED, value: instance.hasComponent('minecraft:is_chested') },
         {
             flag: ActorFlags.IS_ILLAGER_CAPTAIN,
@@ -133,6 +137,7 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
     const properties: ActorPropertyProjection[] = [
         { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 },
         { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 },
+        { kind: 'long', id: MetadataFlag.ENTITY_LEAD_HOLDER_ID, value: BigInt(leashHolderId ?? -1) },
         { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: interactTextOf(entity) }
     ];
 
@@ -153,6 +158,7 @@ export const applyActorMetadataProjection = (body: Entity, projection: ActorMeta
     for (const property of projection.properties) {
         if (property.kind === 'float') body.metadata.setFloat(property.id, property.value);
         else if (property.kind === 'int') body.metadata.setInt(property.id, property.value);
+        else if (property.kind === 'long') body.metadata.setLong(property.id, property.value);
         else body.metadata.setString(property.id, property.value);
     }
 };

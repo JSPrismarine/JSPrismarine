@@ -174,7 +174,7 @@ export class LiveBodies {
      * twenty, so a client draws a ten-health cow with five hearts instead of
      * with two and a half.
      */
-    public add(entity: DataEntity): void {
+    public add(entity: DataEntity, leashHolderId?: number): void {
         const world = this.options.world();
         if (world === undefined) return;
 
@@ -207,7 +207,7 @@ export class LiveBodies {
         // straight after the spawn, and a bow written a tick later would be a visible flicker of
         // an empty-handed skeleton.
         this.writeEquipment(entity, body);
-        const actorMetadata = actorMetadataProjection(entity);
+        const actorMetadata = actorMetadataProjection(entity, leashHolderId);
         applyActorMetadataProjection(body, actorMetadata);
         this.actorMetadata.set(entity.id, actorMetadata);
 
@@ -288,7 +288,7 @@ export class LiveBodies {
             if (ownerChanged) this.owners.set(entity.id, entity.body.owner);
             let actorMetadataChanged = false;
             if (isTicking || ownerChanged || !this.actorMetadata.has(entity.id)) {
-                const metadata = actorMetadataProjection(entity);
+                const metadata = actorMetadataProjection(entity, runtime.leashHolderIdOf(entity.id));
                 actorMetadataChanged = !sameActorMetadataProjection(this.actorMetadata.get(entity.id), metadata);
                 if (actorMetadataChanged) {
                     applyActorMetadataProjection(body, metadata);

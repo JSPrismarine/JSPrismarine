@@ -150,8 +150,10 @@ A chicken arrives in the world like this.
 the entry's filters, then creates the requested item or entity with its count, spawn event and
 sound. `single_use` stops that entry after a successful spawn. `should_leash` records the spawned
 entity's holder by stable identity, so the `is_leashed` and `is_leashed_to` filters can still read the
-relationship after saving, restarting, or unloading either entity's chunk. Lead interactions and
-physical leash movement are not implemented yet.
+relationship after saving, restarting, or unloading either entity's chunk. Using a lead on an
+entity with `minecraft:leashable` records its holder, runs the component's
+`on_leash` event, and projects the relationship to actor metadata. Physical leash movement,
+fence-knot links, and releasing a lead are not implemented yet.
 
 ## Components: what runs, and what only parses
 

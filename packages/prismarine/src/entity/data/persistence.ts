@@ -43,7 +43,7 @@ export interface DataEntityRecord {
     readonly identifier: string;
     /** Stable identity used to reconnect persistent relationships after a reload. */
     readonly persistentIdentity: string;
-    /** Stable identity of the entity holding this entity's leash, when it has one. */
+    /** Stable identity of the entity or player holding this entity's leash, when it has one. */
     readonly leashHolderIdentity?: string;
     /** The population pool the entity counts against, when a spawn rule produced it. */
     readonly pool?: string;
