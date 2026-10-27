@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { interact } from './vanilla';
 
 describe('minecraft:interact schema', () => {
-    it('parses supported slot effects and reports interaction fields it does not run', () => {
+    it('parses supported interaction fields and reports fields it does not run', () => {
         const result = interact.schema({
             interactions: [
                 {
@@ -35,7 +35,6 @@ describe('minecraft:interact schema', () => {
             unsupportedFields: []
         });
         expect(result.value.interactions[1]?.unsupportedFields).toEqual([
-            'interact_text',
             'admire',
             'barter',
             'particle_on_start',

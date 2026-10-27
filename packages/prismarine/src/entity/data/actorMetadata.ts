@@ -7,6 +7,7 @@
  */
 import { navigationProfile } from '@jsprismarine/entity-goals';
 import { isRecord } from '@jsprismarine/entities';
+import { ActorDataID } from '@jsprismarine/minecraft/ActorDataID';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 
 import { BlockRuntimeIds } from '../../block/state/BlockRuntimeIds';
@@ -23,7 +24,22 @@ interface ActorFlagProjection {
 /** One scalar actor property and its wire type. */
 type ActorPropertyProjection =
     | { readonly kind: 'float'; readonly id: number; readonly value: number }
-    | { readonly kind: 'int'; readonly id: number; readonly value: number };
+    | { readonly kind: 'int'; readonly id: number; readonly value: number }
+    | { readonly kind: 'string'; readonly id: number; readonly value: string };
+
+/** The first interaction prompt the data type makes available to a touch-screen client. */
+const interactTextOf = (entity: DataEntity): string => {
+    const rideable = entity.instance.componentParams('minecraft:rideable');
+    if (isRecord(rideable) && typeof rideable.interactText === 'string') return rideable.interactText;
+
+    const interact = entity.instance.componentParams('minecraft:interact');
+    if (!isRecord(interact) || !Array.isArray(interact.interactions)) return '';
+
+    for (const interaction of interact.interactions) {
+        if (isRecord(interaction) && typeof interaction.interactText === 'string') return interaction.interactText;
+    }
+    return '';
+};
 
 /** The complete metadata view derived from one live entity. */
 export interface ActorMetadataProjection {
@@ -116,7 +132,8 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
     ];
     const properties: ActorPropertyProjection[] = [
         { kind: 'float', id: MetadataFlag.SCALE, value: typeof scale === 'number' ? scale : 1 },
-        { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 }
+        { kind: 'int', id: MetadataFlag.FUSE_TIME, value: body.fuseTicks ?? 0 },
+        { kind: 'string', id: ActorDataID.INTERACT_TEXT, value: interactTextOf(entity) }
     ];
 
     if (instance.hasComponent('jsprismarine:falling_block')) {
@@ -135,7 +152,8 @@ export const applyActorMetadataProjection = (body: Entity, projection: ActorMeta
     for (const { flag, value } of projection.flags) body.metadata.setGenericFlag(flag, value);
     for (const property of projection.properties) {
         if (property.kind === 'float') body.metadata.setFloat(property.id, property.value);
-        else body.metadata.setInt(property.id, property.value);
+        else if (property.kind === 'int') body.metadata.setInt(property.id, property.value);
+        else body.metadata.setString(property.id, property.value);
     }
 };
 
