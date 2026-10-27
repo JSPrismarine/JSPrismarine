@@ -147,6 +147,22 @@ describe('EntityRuntime', () => {
         });
     });
 
+    describe('neighbor queries', () => {
+        it('returns family-filtered neighbors once and in spawn order', () => {
+            const { runtime } = runtimeOf();
+            const first = runtime.spawn('minecraft:cow', { x: 32, y: FLOOR_Y + 1, z: 0 });
+            const second = runtime.spawn('minecraft:cow', { x: 0, y: FLOOR_Y + 1, z: 0 });
+            if (first === undefined || second === undefined) throw new Error('the fixture declares no cow');
+
+            const center = { x: 16, y: FLOOR_Y + 1, z: 0 };
+            expect(runtime.near(center, 32, ['mob'])).toEqual([first, second]);
+            expect(runtime.near(center, 32, ['mob', 'cow'])).toEqual([first, second]);
+            expect(runtime.near(center, 32, ['mob', 'mob'])).toEqual([first, second]);
+            expect(runtime.near(center, 32, ['undeclared'])).toEqual([]);
+            expect(runtime.near(center, 32, [])).toEqual([]);
+        });
+    });
+
     describe('entity facts', () => {
         it('reads a type’s stats off its definition rather than off a table', () => {
             const { runtime } = runtimeOf();

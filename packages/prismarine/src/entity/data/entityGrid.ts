@@ -145,11 +145,34 @@ export class EntityGrid {
 
         const reach = radius * radius;
         const found: DataEntity[] = [];
-        const familyNames = families === undefined ? undefined : [...new Set(families)];
-        const seen = familyNames !== undefined && familyNames.length > 1 ? new Set<number>() : undefined;
-        const familyBuckets = familyNames
-            ?.map((family) => this.familyCells.get(family))
-            .filter((cells) => cells !== undefined);
+        let singleFamilyCells: Map<number, DataEntity[]> | undefined;
+        let familyBuckets: Map<number, DataEntity[]>[] | undefined;
+        let seen: Set<number> | undefined;
+
+        if (families !== undefined) {
+            if (families.length === 1) {
+                const family = families[0];
+                if (family === undefined) return [];
+                singleFamilyCells = this.familyCells.get(family);
+            } else {
+                familyBuckets = [];
+                const seenFamilies = new Set<string>();
+                for (const family of families) {
+                    if (seenFamilies.has(family)) continue;
+                    seenFamilies.add(family);
+                    const cells = this.familyCells.get(family);
+                    if (cells !== undefined) familyBuckets.push(cells);
+                }
+
+                if (familyBuckets.length === 0) return [];
+                if (familyBuckets.length === 1) {
+                    singleFamilyCells = familyBuckets[0];
+                    familyBuckets = undefined;
+                } else seen = new Set<number>();
+            }
+
+            if (singleFamilyCells === undefined && familyBuckets === undefined) return [];
+        }
 
         const lowX = cellOf(center.x - radius);
         const highX = cellOf(center.x + radius);
@@ -159,7 +182,7 @@ export class EntityGrid {
         for (let cellX = lowX; cellX <= highX; cellX += 1)
             for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
                 const key = keyOf(cellX, cellZ);
-                if (familyBuckets === undefined) {
+                if (families === undefined) {
                     const cell = this.cells.get(key);
                     if (cell === undefined) continue;
                     for (const entity of cell)
@@ -167,7 +190,15 @@ export class EntityGrid {
                     continue;
                 }
 
-                for (const family of familyBuckets) {
+                if (singleFamilyCells !== undefined) {
+                    const candidates = singleFamilyCells.get(key);
+                    if (candidates === undefined) continue;
+                    for (const entity of candidates)
+                        if (squaredDistance(center, entity.position) <= reach) found.push(entity);
+                    continue;
+                }
+
+                for (const family of familyBuckets ?? []) {
                     const candidates = family.get(key);
                     if (candidates === undefined) continue;
                     for (const entity of candidates) {
