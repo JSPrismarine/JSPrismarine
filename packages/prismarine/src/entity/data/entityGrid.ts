@@ -26,20 +26,19 @@ import { squaredDistance } from './DataEntity';
 /**
  * How wide one cell is, as the shift that divides a coordinate by it.
  *
- * Eight blocks. The searching goals almost all ask for six or eight, and a
- * radius of eight over eight-block cells reads a three-by-three block of
- * cells: twenty-four blocks across for a sixteen-block question, which is as
- * tight as whole cells get before the map lookups cost more than the entities
- * they save.
+ * Sixteen blocks. Searches commonly reach six or eight blocks, while target
+ * searches can reach thirty-five. Wider cells reduce the empty map lookups in
+ * those searches; the exact distance check still drops candidates outside the
+ * requested radius.
  */
-const CELL_BITS = 3;
+const CELL_BITS = 4;
 
 /**
  * How many bits of each cell coordinate the key keeps.
  *
- * Twenty-six, which packs two of them into one integer a double holds
- * exactly, and reaches 268 million blocks each way. The world border stops at
- * 30 million, so two cells never share a key.
+ * Twenty-six, which packs two of them into one integer a double holds exactly. With sixteen-block
+ * cells, keys repeat after more than a billion blocks, well beyond the 30-million-block world
+ * border.
  */
 const KEY_BITS = 26;
 const KEY_MASK = (1 << KEY_BITS) - 1;
