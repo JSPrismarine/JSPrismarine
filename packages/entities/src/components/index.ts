@@ -85,6 +85,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:block_climber',
     'minecraft:block_movement_slowdown_immunity',
     'minecraft:block_sensor',
+    'minecraft:body_rotation_always_follows_head',
     'minecraft:body_rotation_blocked',
     'minecraft:boostable',
     'minecraft:boss',
@@ -169,6 +170,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:transient',
     'minecraft:underwater_mount_breathing',
     'minecraft:uses_legacy_friction',
+    'minecraft:uses_uniform_air_drag',
     'minecraft:variable_max_auto_step',
     'minecraft:vibration_listener',
     'minecraft:water_movement'

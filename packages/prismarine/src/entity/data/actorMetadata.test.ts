@@ -100,7 +100,13 @@ describe('actor metadata from entity components', () => {
                             'minecraft:is_stackable': {},
                             'minecraft:is_collidable': {},
                             'minecraft:is_pregnant': {},
-                            'minecraft:is_stunned': {}
+                            'minecraft:is_stunned': {},
+                            'minecraft:body_rotation_always_follows_head': {},
+                            'minecraft:uses_uniform_air_drag': {},
+                            'minecraft:renders_when_invisible': {},
+                            'minecraft:rotation_axis_aligned': {},
+                            'minecraft:rotation_locked_to_vehicle': {},
+                            'minecraft:uses_legacy_friction': {}
                         }
                     },
                     events: {
@@ -128,7 +134,13 @@ describe('actor metadata from entity components', () => {
             ActorFlags.STACKABLE,
             ActorFlags.HAS_COLLISION,
             ActorFlags.IS_PREGNANT,
-            ActorFlags.STUNNED
+            ActorFlags.STUNNED,
+            ActorFlags.BODY_ROTATION_ALWAYS_FOLLOWS_HEAD,
+            ActorFlags.USES_UNIFORM_AIR_DRAG,
+            ActorFlags.RENDERS_WHEN_INVISIBLE,
+            ActorFlags.ROTATION_AXIS_ALIGNED,
+            ActorFlags.ROTATION_LOCKED_TO_VEHICLE,
+            ActorFlags.USES_LEGACY_FRICTION
         ];
         const expectFlags = (value: boolean): void => {
             for (const flag of flags) {

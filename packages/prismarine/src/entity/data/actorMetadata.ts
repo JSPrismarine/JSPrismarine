@@ -79,6 +79,18 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         { flag: ActorFlags.IS_PREGNANT, value: instance.hasComponent('minecraft:is_pregnant') },
         { flag: ActorFlags.STUNNED, value: instance.hasComponent('minecraft:is_stunned') },
         {
+            flag: ActorFlags.BODY_ROTATION_ALWAYS_FOLLOWS_HEAD,
+            value: instance.hasComponent('minecraft:body_rotation_always_follows_head')
+        },
+        { flag: ActorFlags.USES_UNIFORM_AIR_DRAG, value: instance.hasComponent('minecraft:uses_uniform_air_drag') },
+        { flag: ActorFlags.RENDERS_WHEN_INVISIBLE, value: instance.hasComponent('minecraft:renders_when_invisible') },
+        { flag: ActorFlags.ROTATION_AXIS_ALIGNED, value: instance.hasComponent('minecraft:rotation_axis_aligned') },
+        {
+            flag: ActorFlags.ROTATION_LOCKED_TO_VEHICLE,
+            value: instance.hasComponent('minecraft:rotation_locked_to_vehicle')
+        },
+        { flag: ActorFlags.USES_LEGACY_FRICTION, value: instance.hasComponent('minecraft:uses_legacy_friction') },
+        {
             flag: ActorFlags.TAMED,
             value: body.owner !== undefined || instance.hasComponent('minecraft:is_tamed')
         },

@@ -115,7 +115,13 @@ const MARKER_COMPONENTS = [
     'minecraft:is_stackable',
     'minecraft:is_collidable',
     'minecraft:is_pregnant',
-    'minecraft:is_stunned'
+    'minecraft:is_stunned',
+    'minecraft:body_rotation_always_follows_head',
+    'minecraft:uses_uniform_air_drag',
+    'minecraft:renders_when_invisible',
+    'minecraft:rotation_axis_aligned',
+    'minecraft:rotation_locked_to_vehicle',
+    'minecraft:uses_legacy_friction'
 ];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
@@ -358,12 +364,12 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use plus singleton markers, 163 of the 202, covering 107, and every
+        // or more entities use plus singleton markers, 165 of the 202, covering 107, and every
         // filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(163);
-        expect(withBehavior).toHaveLength(51);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(165);
+        expect(withBehavior).toHaveLength(57);
         expect(componentCovered).toBeGreaterThanOrEqual(107);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
