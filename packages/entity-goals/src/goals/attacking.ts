@@ -93,7 +93,9 @@ const meleeLoop = (support: GoalSupport, options: MeleeOptions): Goal => {
         },
         start: () => {
             cooldown = 0;
-            repath = 0;
+            // The scheduler ticks a newly started goal immediately, so leave
+            // the interval set for that tick after queuing this first path.
+            repath = REPATH_INTERVAL + 1;
             pending = -1;
             swung = false;
             if (target !== undefined) support.navigator.moveTo(target.position(), options.speedMultiplier, 1);

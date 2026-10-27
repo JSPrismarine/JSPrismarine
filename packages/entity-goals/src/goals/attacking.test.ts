@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GoalHarness, testMob } from '../harness';
+import { voxelGrid } from '../navigation/voxelGrid';
 import type { GoalMob, GoalWorld } from '../world';
 
 /**
@@ -36,6 +37,35 @@ const combatWorld = (
 };
 
 describe('minecraft:behavior.melee_box_attack', () => {
+    it('does not search the same melee path again on the tick it starts', () => {
+        const victim = testMob('victim', { x: 8, y: 1, z: 0 });
+        const blocks = voxelGrid([['##########'], ['..........'], ['..........']]);
+        let passabilityReads = 0;
+        const navigation = {
+            ...blocks,
+            isPassable: (position: { readonly x: number; readonly y: number; readonly z: number }) => {
+                passabilityReads += 1;
+                return blocks.isPassable(position);
+            }
+        };
+        const harness = new GoalHarness({
+            goals: { 'minecraft:behavior.melee_box_attack': { priority: 3 } },
+            world: { ...combatWorld(victim), navigation: () => navigation },
+            at: { x: 0.5, y: 1, z: 0.5 }
+        });
+        harness.actuator.follow = false;
+
+        harness.tick();
+        const initialReads = passabilityReads;
+        expect(initialReads).toBeLessThan(85);
+
+        harness.tick(9);
+        expect(passabilityReads).toBe(initialReads);
+
+        harness.tick();
+        expect(passabilityReads).toBeGreaterThan(initialReads);
+    });
+
     it('claims move and look and walks at the target', () => {
         const victim = testMob('victim', { x: 8, y: 0, z: 0 });
         const world = combatWorld(victim);
