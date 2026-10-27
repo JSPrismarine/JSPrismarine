@@ -123,7 +123,7 @@ describe('createApp', () => {
         await t.renderOnce();
 
         const frame = t.captureCharFrame();
-        expect(frame).toContain('● starting · TPS 20.00 · 2/20 · 4.1 ms · 212 MB · up 00:05:40');
+        expect(frame).toContain('● starting · ERR 0 · WARN 0 · TPS 20.00 · 2/20 · 4.1 ms · 212 MB · up 00:05:40');
         expect(frame).toMatch(/online\s+2\/20/);
     });
 

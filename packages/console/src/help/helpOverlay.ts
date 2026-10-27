@@ -86,18 +86,20 @@ const splitBlocks = (blocks: HelpLine[][]): [HelpLine[], HelpLine[]] => {
     return [joinBlocks(blocks.slice(0, split)), joinBlocks(blocks.slice(split))];
 };
 
-const lineWidth = (lines: readonly HelpLine[]): number =>
-    Math.max(
+const keyColumnWidth = (lines: readonly HelpLine[]): number =>
+    Math.max(0, ...lines.map((line) => (line.kind === 'command' ? columns(line.keys) : 0)));
+
+const lineWidth = (lines: readonly HelpLine[]): number => {
+    const keyWidth = keyColumnWidth(lines);
+    return Math.max(
         0,
         ...lines.map((line) =>
             line.kind === 'command'
-                ? columns(line.keys) +
-                  KEY_GAP +
-                  columns(line.title) +
-                  (line.alternateKeys ? 3 + columns(line.alternateKeys) : 0)
+                ? keyWidth + KEY_GAP + columns(line.title) + (line.alternateKeys ? 3 + columns(line.alternateKeys) : 0)
                 : columns(line.text)
         )
     );
+};
 
 function layoutHelp(catalog: CommandCatalog, terminalWidth: number, terminalHeight: number): HelpLayout {
     const blocks = linesFor(catalog);
@@ -209,16 +211,14 @@ export function createHelpOverlay(
                 flexDirection: 'column',
                 width: result.columnWidths[columnIndex] ?? result.width
             });
-            const keyWidth = Math.max(
-                0,
-                ...(result.columns[columnIndex] ?? []).map((line) => (line.kind === 'command' ? columns(line.keys) : 0))
-            );
+            const keyWidth = keyColumnWidth(result.columns[columnIndex] ?? []);
             lines.forEach((line, rowIndex) => {
                 column.add(
                     new TextRenderable(renderer, {
                         id: `help-line-${columnIndex}-${rowIndex}`,
                         height: 1,
                         truncate: true,
+                        wrapMode: 'none',
                         content: new StyledText(chunksFor(line, keyWidth))
                     })
                 );
@@ -231,6 +231,7 @@ export function createHelpOverlay(
                 id: 'help-footer',
                 height: 1,
                 truncate: true,
+                wrapMode: 'none',
                 content: new StyledText([fg(theme.accent)(footer)])
             })
         );

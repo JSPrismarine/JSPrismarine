@@ -83,12 +83,15 @@ describe('createHelpOverlay', () => {
             const frame = lines.join('\n');
             expect(frame).toMatch(/PgUp, Ctrl\+U\s+Page up/);
             expect(frame).toContain('Stop server');
+            expect(frame).toContain('Command palette');
             expect(frame).toContain('Esc to close');
             expect(frame).not.toContain('…');
-            const sideBySide = lines.some(
-                (line) => line.includes('Search history') && line.includes('Toggle side pane')
-            );
-            expect(sideBySide).toBe(true);
+            const historyColumn =
+                lines.find((line) => line.includes('Search history'))?.indexOf('Search history') ?? -1;
+            const paneColumn =
+                lines.find((line) => line.includes('Toggle side pane'))?.indexOf('Toggle side pane') ?? -1;
+            expect(historyColumn).toBeGreaterThanOrEqual(0);
+            expect(paneColumn).toBeGreaterThan(historyColumn);
         } finally {
             await t.dispose();
         }

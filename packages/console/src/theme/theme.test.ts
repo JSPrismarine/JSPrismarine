@@ -60,7 +60,9 @@ describe('resolveTheme', () => {
         const background = RGBA.defaultBackground();
         for (const role of THEME_ROLES) {
             const expected =
-                role === 'background' || role === 'surface' || role === 'selection' ? background : foreground;
+                role === 'background' || role === 'surface' || role === 'selection' || role === 'errorBackground'
+                    ? background
+                    : foreground;
             expect(parseColor(monochromeTheme[role]).equals(expected), role).toBe(true);
         }
         for (const { code } of MINECRAFT_COLORS) {
