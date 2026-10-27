@@ -58,7 +58,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                             value(context, 'entity'),
                             current.position,
                             current.rotation,
-                            {}
+                            { dimension: current.dimension }
                         );
                         return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
                     })
@@ -72,7 +72,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                                     value(context, 'entity'),
                                     resolvePosition(value(context, 'position'), current),
                                     current.rotation,
-                                    {}
+                                    { dimension: current.dimension }
                                 );
                                 return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
                             })
@@ -85,7 +85,7 @@ export const registerEntityCommands = (registry: CommandRegistry<CommandSource>)
                                         value(context, 'entity'),
                                         resolvePosition(value(context, 'position'), current),
                                         current.rotation,
-                                        { nbt: value(context, 'nbt') }
+                                        { nbt: value(context, 'nbt'), dimension: current.dimension }
                                     );
                                     return report(current, summoned === undefined ? 0 : 1, 'Summoned new entity');
                                 })

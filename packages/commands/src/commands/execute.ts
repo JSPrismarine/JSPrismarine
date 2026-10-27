@@ -325,7 +325,7 @@ export const registerExecute = (registry: CommandRegistry<CommandSource>) => {
                             value(context, 'entity'),
                             current.position,
                             current.rotation,
-                            {}
+                            { dimension: current.dimension }
                         );
                         return summoned === undefined ? current : current.withEntity(summoned);
                     }

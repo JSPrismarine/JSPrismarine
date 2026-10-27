@@ -214,7 +214,7 @@ export const entityCommandHost = (server: Server, scoreboard: Scoreboard): Entit
             if (options.nbt !== undefined) unsupported('entity NBT');
 
             const identifier = spawnIdentifierOf(type.includes(':') ? type : `minecraft:${type}`);
-            const world = worldOf(server, 'minecraft:overworld');
+            const world = worldOf(server, options.dimension ?? 'minecraft:overworld');
 
             const dataEntity = summonDataEntity(world, identifier, position, rotation, options.name);
             if (dataEntity !== undefined) return dataEntity;

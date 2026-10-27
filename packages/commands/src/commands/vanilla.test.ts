@@ -99,6 +99,20 @@ describe('the entity commands', () => {
         expect(results).toEqual([1]);
     });
 
+    it('/summon uses the dimension selected by execute in', () => {
+        let options: unknown;
+        run('execute in nether run summon minecraft:pig', {
+            entities: {
+                summon: (_type, _position, _rotation, receivedOptions) => {
+                    options = receivedOptions;
+                    return pig;
+                }
+            }
+        });
+
+        expect(options).toMatchObject({ dimension: 'minecraft:the_nether' });
+    });
+
     describe('a registry argument against the content the host loaded', () => {
         const content = {
             entityTypes: ['minecraft:pig', 'minecraft:villager_v2', 'mypack:dragon'],

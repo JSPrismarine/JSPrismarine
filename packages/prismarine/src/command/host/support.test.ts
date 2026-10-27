@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import Player from '../../Player';
+import type Server from '../../Server';
 import { EYE_HEIGHT } from '../../entity/Human';
 import { stub, stubOf } from '../../testing/stub.test.helper';
 import { Dimensions } from '../../world/Dimension';
 import { Position } from '../../world/Position';
 import type { World } from '../../world/World';
-import { entityRefOf } from './support';
+import type WorldManager from '../../world/WorldManager';
+import { entityRefOf, worldOf } from './support';
 
 describe('command entity references', () => {
     it('uses a player’s feet as the command position', () => {
@@ -23,5 +25,17 @@ describe('command entity references', () => {
         });
 
         expect(entityRefOf(player).position).toEqual({ x: 2.5, y: 64, z: -1.5 });
+    });
+
+    it('resolves `/execute in nether` against the loaded Nether world', () => {
+        const overworld = stub<World>({ getDimension: () => Dimensions.Overworld });
+        const nether = stub<World>({ getDimension: () => Dimensions.Nether });
+        const worldManager = stub<WorldManager>({
+            getWorlds: () => [overworld, nether],
+            getDefaultWorld: () => overworld
+        });
+        const server = stub<Server>({ getWorldManager: () => worldManager });
+
+        expect(worldOf(server, 'minecraft:the_nether')).toBe(nether);
     });
 });

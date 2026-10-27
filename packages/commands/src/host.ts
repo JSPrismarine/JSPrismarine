@@ -108,7 +108,12 @@ export interface EntityCommandHost {
         type: string,
         position: Vector3,
         rotation: Rotation,
-        options: { nbt?: string; name?: string }
+        options: {
+            nbt?: string;
+            name?: string;
+            /** Dimension of the command source, including changes made by `/execute in`. */
+            dimension?: string;
+        }
     ): EntityRef | undefined;
     kill(entity: EntityRef): boolean;
     damage(entity: EntityRef, amount: number, damageType: string, attacker?: EntityRef): boolean;
