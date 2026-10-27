@@ -702,6 +702,36 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
+    /** Cuts the incoming leash or any cuttable leashes held by an entity with shears. */
+    private cutLeashesAt(target: DataEntity): boolean {
+        let cut = false;
+        const leashable = target.instance.componentParams('minecraft:leashable');
+
+        if (this.leashHolders.has(target.id) && isRecord(leashable) && leashable.can_be_cut !== false) {
+            this.leashHolders.delete(target.id);
+            this.raiseLeashEvent(target, 'on_unleash');
+            cut = true;
+        }
+
+        const leashableTo = target.instance.componentParams('minecraft:leashable_to');
+        if (!isRecord(leashableTo) || leashableTo.can_retrieve_from !== true) return cut;
+
+        for (const [leashedId, holderIdentity] of this.leashHolders) {
+            if (holderIdentity !== target.persistentIdentity) continue;
+            const leashed = this.entities.get(leashedId);
+            if (leashed === undefined) continue;
+
+            const component = leashed.instance.componentParams('minecraft:leashable');
+            if (!isRecord(component) || component.can_be_cut === false) continue;
+
+            this.leashHolders.delete(leashedId);
+            this.raiseLeashEvent(leashed, 'on_unleash');
+            cut = true;
+        }
+
+        return cut;
+    }
+
     /**
      * Runs one server tick for eligible live entities.
      *
@@ -1385,7 +1415,7 @@ export class EntityRuntime implements EntityScene {
     }
 
     /** Fires the event the active leashable component names for an attachment. */
-    private raiseLeashEvent(entity: DataEntity, name: 'on_leash'): void {
+    private raiseLeashEvent(entity: DataEntity, name: 'on_leash' | 'on_unleash'): void {
         const leashable = entity.instance.componentParams('minecraft:leashable');
         if (!isRecord(leashable)) return;
 
@@ -1561,6 +1591,10 @@ export class EntityRuntime implements EntityScene {
     ): EntityItemInteraction {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
+
+        if (itemIdentifier === 'minecraft:shears' && heldItem.count > 0 && this.cutLeashesAt(entity)) {
+            return { accepted: true, hurtItem: 1, consumeItem: false };
+        }
 
         const content = this.content();
         const spawnEggData = content.items.types.get(itemIdentifier)?.params(entityData);

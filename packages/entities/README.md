@@ -281,7 +281,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a runtime effect | 76 |
+| Non-goal keys with a component hook | 76 |
+| Non-goal keys with a runtime effect across the server | 81 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -323,9 +324,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 76 non-goal components currently have a
-runtime effect, including host reads and protocol projections. The remaining 126 bodies are
-available as data for behavior that still needs to be added.
+measures name coverage rather than complete simulation: 76 component factories have hooks, and 81
+components have a runtime effect across the server when host reads and protocol projections are
+included. The remaining 121 bodies are available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -353,5 +354,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  123 currently expose data without runtime behavior. The component bodies remain accessible to the
+  121 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.
