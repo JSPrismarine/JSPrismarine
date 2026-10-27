@@ -249,7 +249,8 @@ describe('the command layer on a booted server', () => {
         await expect(run('/help')).resolves.toBe(true);
 
         expect(answers.some((line) => line.includes('§fHelp §b1§f/'))).toBe(true);
-        expect(answers.some((line) => line.includes('/attribute'))).toBe(true);
+        expect(answers.some((line) => line.includes('/clear'))).toBe(true);
+        expect(answers.some((line) => line.includes('/attribute'))).toBe(false);
         expect(answers.some((line) => line.includes('Usage:'))).toBe(true);
     });
 
