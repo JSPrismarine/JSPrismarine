@@ -11,6 +11,5 @@
     "packages/prismarine/src/network/packet/NetworkChunkPublisherUpdatePacket.ts": "fc70a1a9e5bbb8dc620aa9d83a55a31cde928aaf61f87346975edf407bad41dd",
     "packages/prismarine/src/network/packet/PlayerListPacket.ts": "ff1191296a84beb9a7e31af46cdc2f93cea30111377aeb751569ebf0e73e10de",
     "packages/prismarine/src/network/packet/SetActorDataPacket.ts": "4b1c239569ec18cc47902e70c626ed297670f4791c2126f53818d676189df937",
-    "packages/prismarine/src/network/packet/StartGamePacket.ts": "b7f3b89f4c02aedb62e2089b39285d9f172cea42374c04cf8de2aedf350bb720",
     "packages/prismarine/src/network/packet/UpdateSoftEnumPacket.ts": "f4271f3aabc721b2dad2032e6b90bda110af9ee2ed433ad2ee79c0fdebc280a0"
 }

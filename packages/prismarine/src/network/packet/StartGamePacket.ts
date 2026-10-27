@@ -2,15 +2,17 @@ import { block_definitions } from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Dimension, Generator } from '@jsprismarine/minecraft';
-import { ByteOrder, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
+import { ByteOrder, NBTReader, NBTTagCompound, NBTWriter } from '@jsprismarine/nbt';
 import { BlockStateSchemas } from '../../block/state/BlockStateSchema';
 import { NetworkUtil } from '../../network/NetworkUtil';
 import UUID from '../../utils/UUID';
-import type GameRuleManager from '../../world/GameRuleManager';
+import GameRuleManager from '../../world/GameRuleManager';
 import Identifiers from '../Identifiers';
 import DataPacket from './DataPacket';
+import { readGameRule, writeGameRule } from './GameRulesChangedPacket';
 
 import type { BlockProperty } from '@jsprismarine/protocol';
+import type { GameRule } from './GameRulesChangedPacket';
 
 /**
  * Tells a joining client who it is, where it is, and what world it is in.
@@ -104,7 +106,11 @@ export default class StartGamePacket extends DataPacket {
 
     public worldSpawnPos!: Vector3;
 
-    public gameRules: GameRuleManager | null = null;
+    /**
+     * `Rule Data`: the world's rules when the server builds the packet, the rules as the wire
+     * carried them when the packet was decoded, or null to send none.
+     */
+    public gameRules: GameRuleManager | readonly GameRule[] | null = null;
 
     /**
      * `Block Properties`, or null to send the captured vanilla definitions
@@ -172,13 +178,12 @@ export default class StartGamePacket extends DataPacket {
         this.writeByte(1); // Commands Enabled
         this.writeByte(0); // Texture Packs Required
 
-        if (this.gameRules) {
-            this.gameRules.networkSerialize(this); // Rule Data
-        } else {
-            // The first `unsignedVarInt` in the serialized `gameRules` is
-            // the size. Since `gameRules` === null, we just
-            // send a straight `0`
-            this.writeUnsignedVarInt(0);
+        // Rule Data: a varuint32 count, then each rule.
+        if (this.gameRules instanceof GameRuleManager) this.gameRules.networkSerialize(this);
+        else {
+            const rules = this.gameRules ?? [];
+            this.writeUnsignedVarInt(rules.length);
+            for (const rule of rules) writeGameRule(this, rule);
         }
 
         // Experiments. The toggle count is the one list in the packet counted by a fixed
@@ -300,6 +305,195 @@ export default class StartGamePacket extends DataPacket {
         NetworkUtil.writeString(this, this.scenarioIdentifier); // Scenario Id
         NetworkUtil.writeString(this, this.worldIdentifier); // World Id
         NetworkUtil.writeString(this, ''); // Owner Id
+    }
+
+    /**
+     * Reads the packet in wire order, as {@link StartGamePacket.encodePayload} writes it.
+     *
+     * The fields the encoder writes as fixed values are read and not kept. The parts it never
+     * writes (experiments, a forced experimental gameplay flag, the parts of the join
+     * information) are read past when present, so the fields after them still line up.
+     */
+    public decodePayload(): void {
+        this.entityId = this.readVarLong(); // Entity ID
+        this.runtimeEntityId = this.readUnsignedVarLong(); // Runtime ID
+        this.gamemode = this.readVarInt(); // Game Type
+
+        this.playerPos = NetworkUtil.readVector3(this); // Position
+        this.pitch = this.readFloatLE(); // Rotation X
+        this.yaw = this.readFloatLE(); // Rotation Y
+
+        // LevelSettings.
+        // A uint64 on the wire, and a signed 64-bit seed here, as the encoder takes it.
+        this.seed = BigInt.asIntN(64, this.readUnsignedLongLE());
+
+        this.readShortLE(); // Spawn Biome Type
+        NetworkUtil.readString(this); // User Defined Biome Name
+        this.dimension = this.readVarInt(); // Dimension
+
+        this.generator = this.readVarInt(); // Generator Type
+        this.defaultGamemode = this.readVarInt(); // Game Type, the world default
+
+        this.readBoolean(); // Is Hardcore
+
+        this.difficulty = this.readVarInt(); // Game Difficulty
+
+        // Default Spawn Block Position, three signed varints.
+        this.worldSpawnPos = new Vector3(this.readVarInt(), this.readVarInt(), this.readVarInt());
+
+        this.readBoolean(); // Achievements Disabled
+
+        this.readVarInt(); // Editor World Type
+        this.readBoolean(); // Is Created In Editor
+        this.readBoolean(); // Is Exported From Editor
+
+        this.time = this.readVarInt(); // Day Cycle Stop Time
+        this.readUnsignedVarInt(); // Education Edition Offer
+        this.readBoolean(); // Education Features Enabled
+        NetworkUtil.readString(this); // Education Product ID
+
+        this.readFloatLE(); // Rain Level
+        this.readFloatLE(); // Lightning Level
+
+        this.readByte(); // Has Confirmed Platform Locked Content
+        this.readByte(); // Multiplayer Game Intent
+        this.readByte(); // LAN Broadcast Intent
+
+        this.readVarInt(); // Xbox Live Broadcast Setting
+        this.readVarInt(); // Platform Broadcast Setting
+
+        this.readByte(); // Commands Enabled
+        this.readByte(); // Texture Packs Required
+
+        // Rule Data, kept as the wire carried it: there is no world here to hold a manager.
+        const rules: GameRule[] = [];
+        for (let count = this.readUnsignedVarInt(); count > 0; count--) rules.push(readGameRule(this));
+        this.gameRules = rules;
+
+        // Experiments, counted by a fixed 32 bit integer: a name and an enabled flag each.
+        for (let count = this.readUnsignedIntLE(); count > 0; count--) {
+            NetworkUtil.readString(this);
+            this.readBoolean();
+        }
+        this.readBoolean(); // ExperimentsEverToggled
+
+        this.readByte(); // Has Bonus Chest Enabled
+        this.readByte(); // Start With Map Enabled
+
+        this.readByte(); // Player Permissions
+
+        this.readUnsignedIntLE(); // Server Chunk Tick Range
+
+        this.readByte(); // Has Locked Behavior Pack
+        this.readByte(); // Has Locked Resource Pack
+        this.readByte(); // Is From Locked Template
+        this.readByte(); // Use Msa Gamertags Only
+        this.readByte(); // Is From World Template
+        this.readByte(); // Is World Template Option Locked
+        this.readByte(); // Only Spawn V1 Villagers
+        this.readByte(); // Persona Disabled
+        this.readByte(); // Custom Skins Disabled
+        this.readByte(); // Emote Chat Muted
+        NetworkUtil.readString(this); // Base Game Version
+
+        this.readIntLE(); // Limited World Width
+        this.readIntLE(); // Limited World Depth
+
+        this.readBoolean(); // Nether Type
+
+        NetworkUtil.readString(this); // Edu Shared Uri Resource: Button Name
+        NetworkUtil.readString(this); // Edu Shared Uri Resource: Link Uri
+
+        if (this.readBoolean()) this.readBoolean(); // Override Force Experimental Gameplay
+
+        this.readByte(); // Chat Restriction Level
+        this.readByte(); // Disable Player Interactions
+
+        this.readVarInt(); // Server Editor Connection Policy
+        this.readBoolean(); // Allow Anonymous Block Drops In Editor Worlds
+        // End of LevelSettings.
+
+        this.levelId = NetworkUtil.readString(this); // Level ID
+        this.worldName = NetworkUtil.readString(this); // Level Name
+        NetworkUtil.readString(this); // Template Content Identity
+
+        this.readByte(); // Is Trial
+
+        this.readVarInt(); // Rewind History Size
+        this.readBoolean(); // Server Authoritative Block Breaking
+
+        this.ticks = Number(this.readUnsignedLongLE()); // Level Current Time
+
+        this.readVarInt(); // Enchantment Seed
+
+        // Block Properties, kept whatever list they came from, so the packet writes them back
+        // as they arrived.
+        const blockProperties: BlockProperty[] = [];
+        for (let count = this.readUnsignedVarInt(); count > 0; count--) {
+            blockProperties.push({ name: NetworkUtil.readString(this), definition: this.readNetworkCompound() });
+        }
+        this.blockProperties = blockProperties;
+
+        NetworkUtil.readString(this); // Multiplayer Correlation Id
+        this.readBoolean(); // Enable Item Stack Net Manager
+        NetworkUtil.readString(this); // Server Version
+        this.readNetworkCompound(); // Player Property Data
+        this.readUnsignedLongLE(); // Server Block Type Registry Checksum
+        UUID.networkDeserialize(this); // World Template ID
+        this.readBoolean(); // Server Enabled ClientSide Generation
+        this.readByte(); // BlockNetworkIds Are Hashes
+        this.readByte(); // NetworkPermissions: Server Auth Sound Enabled
+
+        if (this.readBoolean()) this.readJoinInformation(); // Server Configuration Join Info
+
+        // Server Telemetry Data.
+        this.serverIdentifier = NetworkUtil.readString(this); // Server Id
+        this.scenarioIdentifier = NetworkUtil.readString(this); // Scenario Id
+        this.worldIdentifier = NetworkUtil.readString(this); // World Id
+        NetworkUtil.readString(this); // Owner Id
+    }
+
+    /**
+     * Reads past the three optional parts of `Server Configuration Join Info`, none of which
+     * this server sends.
+     */
+    private readJoinInformation(): void {
+        const optional = (read: () => unknown): void => {
+            if (this.readBoolean()) read();
+        };
+        const uuid = () => UUID.networkDeserialize(this);
+        const string = () => NetworkUtil.readString(this);
+
+        // Gathering: Experience Id, Experience Name, World Id, World Name, Creator Id,
+        // Target Id, Scenario Id and Server Id, each optional.
+        optional(() => {
+            for (const read of [uuid, string, uuid, string, string, uuid, string, string]) optional(read);
+        });
+
+        // Client Store Entry Point: Store Id and Store Name.
+        optional(() => {
+            string();
+            string();
+        });
+
+        // Presence: an optional Rich Presence Id.
+        optional(() => optional(string));
+    }
+
+    /**
+     * One network NBT compound, as the bytes it takes up.
+     *
+     * NBT has no length in front, so the compound is parsed to find where it ends. The bytes
+     * are copied out rather than sliced, so they outlive the buffer the packet was read from.
+     */
+    private readNetworkCompound(): Buffer {
+        const start = this.getReadIndex();
+
+        const reader = new NBTReader(this, ByteOrder.LITTLE_ENDIAN);
+        reader.setUseVarint(true);
+        reader.parse();
+
+        return Buffer.from(this.getReadBuffer()!.subarray(start, this.getReadIndex()));
     }
 
     /**

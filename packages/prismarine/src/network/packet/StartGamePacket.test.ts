@@ -2,11 +2,13 @@ import { block_definitions } from '@jsprismarine/bedrock-data';
 import { Vector3 } from '@jsprismarine/math';
 import { Difficulty, Dimension, Generator } from '@jsprismarine/minecraft';
 import { NetworkBinaryStream, StartGamePacket as ProtocolStartGamePacket } from '@jsprismarine/protocol';
+import type { StartGame } from '@jsprismarine/protocol';
 import { describe, expect, it } from 'vitest';
 
 import type Server from '../../Server';
 import { stub } from '../../testing/stub.test.helper';
 import GameRuleManager from '../../world/GameRuleManager';
+import { GameRuleValueType } from './GameRulesChangedPacket';
 import StartGamePacket from './StartGamePacket';
 
 // Packet id 11 as a varuint.
@@ -246,5 +248,87 @@ describe('StartGamePacket', () => {
 
         expect(buffer.subarray(SEED_OFFSET, SEED_OFFSET + 8)).toEqual(Buffer.alloc(8, 0xff));
         expect(data.seed).toBe(0xffff_ffff_ffff_ffffn);
+    });
+
+    describe('decodePayload', () => {
+        /** Decodes the bytes with this package's own decoder. */
+        const readBack = (buffer: Buffer): StartGamePacket => {
+            const packet = new StartGamePacket(buffer);
+            packet.decode();
+            return packet;
+        };
+
+        it('reads back what it writes, and writes it again byte for byte', () => {
+            const written = build(-1n).getBuffer();
+
+            const decoded = readBack(written);
+
+            expect(decoded.feof()).toBe(true);
+            expect(decoded).toMatchObject({
+                entityId: -2n,
+                runtimeEntityId: 7n,
+                gamemode: 1,
+                defaultGamemode: 2,
+                difficulty: Difficulty.HARD,
+                generator: Generator.FLAT,
+                dimension: Dimension.OVERWORLD,
+                playerPos: new Vector3(0.5, 64, -2),
+                pitch: 1,
+                yaw: 180,
+                // Signed, as the server holds a seed.
+                seed: -1n,
+                worldSpawnPos: new Vector3(8, -60, -16),
+                time: 6000,
+                ticks: 1234,
+                levelId: 'level-id',
+                worldName: 'A world',
+                serverIdentifier: 'JSPrismarine',
+                scenarioIdentifier: 'scenario',
+                worldIdentifier: 'world-id'
+            });
+            expect(decoded.blockProperties).toHaveLength(block_definitions.length);
+
+            decoded.encode();
+            expect([...decoded.getBuffer()]).toEqual([...written]);
+        });
+
+        it('keeps the game rules as the wire carried them', () => {
+            const decoded = readBack(build().getBuffer());
+
+            expect(decoded.gameRules).toHaveLength(19);
+            expect(decoded.gameRules).toContainEqual({
+                ruleName: 'randomTickSpeed',
+                ruleCanBeModified: true,
+                ruleValue: { type: GameRuleValueType.Integer, value: 3 }
+            });
+        });
+
+        it('reads past the parts this server never sends, so the telemetry after them lines up', () => {
+            // Written by the protocol package's encoder, which writes every optional part.
+            const data: StartGame = {
+                ...decode(build()).data,
+                experiments: [{ name: 'gametest', enabled: true }],
+                experimentsEverToggled: true,
+                forceExperimentalGameplay: true,
+                serverJoinInformation: {
+                    gathering: {
+                        experienceId: { mostSignificantBits: 1n, leastSignificantBits: 2n },
+                        experienceName: 'an experience',
+                        targetId: { mostSignificantBits: 3n, leastSignificantBits: 4n },
+                        serverId: 'server'
+                    },
+                    storeEntryPoint: { storeId: 'store', storeName: 'A store' },
+                    presence: { richPresenceId: 'presence' }
+                }
+            };
+            const buffer = new ProtocolStartGamePacket(data).serialize(new NetworkBinaryStream());
+
+            const decoded = readBack(buffer);
+
+            expect(decoded.feof()).toBe(true);
+            expect(decoded.serverIdentifier).toBe('JSPrismarine');
+            expect(decoded.scenarioIdentifier).toBe('scenario');
+            expect(decoded.worldIdentifier).toBe('world-id');
+        });
     });
 });
