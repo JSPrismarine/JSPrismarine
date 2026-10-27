@@ -196,6 +196,8 @@ export interface EntityItemInteractionEffect {
     readonly repairEntityItem?: EntityRepairItemRequest;
     /** Whether the entity should offer its main-hand item to an empty player hand. */
     readonly takeItem?: boolean;
+    /** Whether the interacting player should swing, which defaults to true. */
+    readonly swing?: boolean;
     /** The inventory or equipment slot that receives the held item. */
     readonly equipItemSlot?: string;
     /** The entity slot whose item is dropped when this interaction succeeds. */

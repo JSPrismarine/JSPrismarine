@@ -1035,6 +1035,8 @@ interface InteractEntry {
     /** Durability to remove from the held item when the interaction succeeds. */
     readonly hurtItem: number;
     readonly useItem: boolean;
+    /** Whether the interacting player swings, which defaults to true. */
+    readonly swing: boolean;
     readonly transformedItem?: TransformedItem;
     /** Bedrock loot-table path rolled when the interaction succeeds. */
     readonly spawnItems?: EntitySpawnItemsRequest;
@@ -1071,7 +1073,8 @@ export interface InteractParams {
  * its event, plays `play_sounds`, emits its `vibration` game event, rolls
  * `spawn_items` or adds `add_items` to the interacting player's inventory,
  * creates `spawn_entities`, equips or drops an entity slot, and applies
- * `transform_to_item`, `give_item`, and `use_item` to the live held stack.
+ * `transform_to_item`, `give_item`, and `use_item` to the live held stack. Its `swing`
+ * setting relays the player's arm animation after a successful interaction.
  * Other interaction fields remain visible as a one-time runtime report so
  * incomplete behavior is not silently treated as vanilla.
  */
@@ -1099,7 +1102,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'repair_entity_item',
             'take_item',
             'cooldown',
-            'cooldown_after_being_attacked'
+            'cooldown_after_being_attacked',
+            'swing'
         ]);
         const interactions: InteractEntry[] = [];
         for (const [index, raw] of asList(value.interactions).entries()) {
@@ -1134,6 +1138,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 return rejected(`interactions[${index}].give_item must be a boolean`);
             if (raw.take_item !== undefined && typeof raw.take_item !== 'boolean')
                 return rejected(`interactions[${index}].take_item must be a boolean`);
+            if (raw.swing !== undefined && typeof raw.swing !== 'boolean')
+                return rejected(`interactions[${index}].swing must be a boolean`);
             if (raw.interact_text !== undefined && typeof raw.interact_text !== 'string')
                 return rejected(`interactions[${index}].interact_text must be a string`);
             const spawnEntities: string[] = [];
@@ -1230,6 +1236,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 ...(addItems === undefined ? {} : { addItems }),
                 hurtItem: numberAt(raw, 'hurt_item', 0),
                 useItem: booleanAt(raw, 'use_item', false),
+                swing: booleanAt(raw, 'swing', true),
                 playSounds,
                 ...(typeof raw.vibration === 'string' ? { vibration: raw.vibration } : {}),
                 cooldown: Math.max(0, numberAt(raw, 'cooldown', 0)),
@@ -1359,6 +1366,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.repairEntityItem === undefined ? {} : { repairEntityItem: entry.repairEntityItem }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.hurtItem === 0 ? {} : { hurtItem: entry.hurtItem }),
+                        swing: entry.swing,
                         ...(entry.transformedItem === undefined
                             ? {}
                             : {

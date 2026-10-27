@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { interact } from './vanilla';
 
 describe('minecraft:interact schema', () => {
-    it('parses supported interaction fields and reports fields it does not run', () => {
+    it('parses supported interaction fields and reports unsupported fields', () => {
         const result = interact.schema({
             interactions: [
                 {
@@ -37,7 +37,8 @@ describe('minecraft:interact schema', () => {
         expect(result.value.interactions[1]).toMatchObject({
             repairEntityItem: { amount: 3, slot: 'slot.weapon.mainhand' },
             takeItem: true,
-            unsupportedFields: ['admire', 'barter', 'particle_on_start', 'swing']
+            swing: false,
+            unsupportedFields: ['admire', 'barter', 'particle_on_start']
         });
     });
 });

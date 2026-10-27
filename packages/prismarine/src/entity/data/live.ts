@@ -29,6 +29,7 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
+import AnimatePacket, { AnimateAction } from '../../network/packet/AnimatePacket';
 import { actorMotionIn } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
@@ -379,7 +380,7 @@ export class LiveEntityRuntime {
         );
     }
 
-    /** Applies a held item to a data-driven entity and returns any item result it declares. */
+    /** Applies a held item to a data-driven entity and carries out its item and animation effects. */
     public interactWithItem(
         target: Entity,
         player: Entity,
@@ -397,6 +398,24 @@ export class LiveEntityRuntime {
             player instanceof Player ? playerFilterView(player) : undefined,
             heldItem
         );
+        if (interaction.accepted && interaction.swing === true && player instanceof Player) {
+            const runtimeEntityId = player.getRuntimeId();
+            const watchers = player
+                .getWorld()
+                .getPlayers()
+                .filter((viewer) => viewer !== player)
+                .filter((viewer) => viewer.getNetworkSession().tracks(runtimeEntityId));
+
+            void Promise.all(
+                watchers.map(async (viewer) => {
+                    const animation = new AnimatePacket();
+                    animation.runtimeEntityId = runtimeEntityId;
+                    animation.action = AnimateAction.Swing;
+                    animation.swingSource = 'interact';
+                    await viewer.getNetworkSession().send(animation);
+                })
+            ).catch((error: unknown) => this.options.report(String(error)));
+        }
         const loveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         if (interaction.accepted && previousLoveTicks <= 0 && loveTicks > 0) {
             const world = this.options.liveWorld();

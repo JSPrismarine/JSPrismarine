@@ -197,7 +197,9 @@ indexed slots in `minecraft:inventory`, and `drop_item_y_offset` moves the resul
 `give_item` replaces the entity's main-hand item, `repair_entity_item` restores durability in a named
 entity inventory or equipment slot, `take_item` moves the entity's main-hand item into an empty
 player hand, and `interact_text` reaches touch-screen clients through actor metadata. The fields
-`admire`, `barter`, `particle_on_start`, and `swing` still report as unsupported.
+`swing` defaults to true and relays the player's arm animation to other viewers tracking the player
+after a successful interaction; setting it to false suppresses that relay. `admire`, `barter`, and
+`particle_on_start` still report as unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type

@@ -13,5 +13,7 @@ export type EntityItemInteraction =
           readonly takenItem?: ItemDrop;
           /** Durability to remove from the player's held item. */
           readonly hurtItem?: number;
+          /** Whether the other viewers see the interacting player's arm swing. */
+          readonly swing?: boolean;
           readonly consumeItem?: boolean;
       };
