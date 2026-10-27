@@ -23,6 +23,7 @@ import type { EntityPosition } from '@jsprismarine/entities';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 
 import { EYE_HEIGHT } from '../Human';
+import type { ContentTags } from '../../content/tags';
 import type { ContentEntity } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import { distance } from './DataEntity';
@@ -69,7 +70,16 @@ const brainPlayerOf = (player: ContentEntity, scene: EntityScene): BrainEntity =
 /** The item tags of one item identifier, which is what a piglin's `piglin_loved` test reads. */
 const itemTags = (identifier: string, scene: EntityScene): ReadonlySet<string> => {
     const tags = scene.content().tags;
-    return new Set(tags.tags('item').filter((tag) => tags.members('item', tag).includes(identifier)));
+    return contentTagsFor('item', identifier, tags);
+};
+
+/** Resolves the tags containing one identifier through the built membership index. */
+const contentTagsFor = (registry: string, identifier: string, tags: ContentTags): ReadonlySet<string> => {
+    const found = new Set<string>();
+    for (const tag of tags.tags(registry)) {
+        if (tags.includes(registry, tag, identifier)) found.add(tag);
+    }
+    return found;
 };
 
 interface BrainNavigationState {
@@ -226,20 +236,27 @@ export const brainWorldOf = (scene: EntityScene): BrainWorld => {
             const identifier = scene.world.blocks.get(pos)?.identifier;
             if (identifier === undefined) return new Set();
             const tags = scene.content().tags;
-            return new Set(tags.tags('block').filter((tag) => tags.members('block', tag).includes(identifier)));
+            return contentTagsFor('block', identifier, tags);
         },
         findBlock: (center, xzRange, yRange, test) => {
+            const tags = scene.content().tags;
+            const tagsByBlock = new Map<string, ReadonlySet<string>>();
+            const blockTagsFor = (identifier: string): ReadonlySet<string> => {
+                const known = tagsByBlock.get(identifier);
+                if (known !== undefined) return known;
+
+                const resolved = contentTagsFor('block', identifier, tags);
+                tagsByBlock.set(identifier, resolved);
+                return resolved;
+            };
+
             for (let dy = -yRange; dy <= yRange; dy += 1) {
                 for (let dx = -xzRange; dx <= xzRange; dx += 1) {
                     for (let dz = -xzRange; dz <= xzRange; dz += 1) {
                         const pos = { x: center.x + dx, y: center.y + dy, z: center.z + dz };
                         const block = scene.world.blocks.get(pos);
                         if (block === undefined) continue;
-                        const tags = scene.content().tags;
-                        const blockTags = new Set(
-                            tags.tags('block').filter((tag) => tags.members('block', tag).includes(block.identifier))
-                        );
-                        if (test(block.identifier, blockTags)) return pos;
+                        if (test(block.identifier, blockTagsFor(block.identifier))) return pos;
                     }
                 }
             }
