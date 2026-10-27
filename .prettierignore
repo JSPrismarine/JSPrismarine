@@ -14,6 +14,10 @@ dist
 .swc
 .bak
 
+# Agent files
+.agents/skills/
+.claude/skills/
+
 packages/bedrock-data/src/resources/*
 packages/bedrock-data/src/generated/*
 packages/bedrock-data/src/jsp/*
