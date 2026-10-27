@@ -150,8 +150,13 @@ abstract class TreeNode<T> {
     public distance(target: readonly number[]): number {
         let total = 0;
         for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
-            const value = parameterDistance(this.parameterSpace[axis] as ClimateParameter, target[axis] as number);
-            total += value * value;
+            // Inline `parameterDistance`: search runs this for every axis of every candidate subtree.
+            const parameter = this.parameterSpace[axis] as ClimateParameter;
+            const targetValue = target[axis] as number;
+            const above = targetValue - parameter.max;
+            const below = parameter.min - targetValue;
+            const distance = above > 0 ? above : Math.max(below, 0);
+            total += distance * distance;
         }
         return total;
     }
