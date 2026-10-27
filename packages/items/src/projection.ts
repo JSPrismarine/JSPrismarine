@@ -78,6 +78,8 @@ export interface BedrockItemComponents {
     item_properties: BedrockItemProperties;
     /** Bedrock's resolved item tag names, serialized separately from named components. */
     item_tags?: readonly string[];
+    /** The block a Bedrock-defined item places, with its placement restrictions. */
+    'minecraft:block_placer'?: BedrockBlockPlacerComponent;
     /** The explicit display name from the active Bedrock item definition. */
     'minecraft:display_name'?: { value: string };
     /** Resource pack icon textures declared by the active Bedrock item definition. */
@@ -101,6 +103,30 @@ export interface BedrockItemComponents {
     'minecraft:hand_equipped'?: { value: boolean };
     'minecraft:cooldown'?: { category: string; duration: number; type: string };
     'minecraft:wearable'?: { slot: string; protection: number };
+}
+
+/** One block selector accepted by `minecraft:block_placer.use_on`. */
+export interface BedrockItemBlockDescriptor {
+    /** The block identifier, when the selector names one block. */
+    readonly name?: string;
+    /** The block state values that further narrow the named block. */
+    readonly states?: Readonly<Record<string, string | number | boolean>>;
+    /** The Bedrock query that selects blocks by their tags. */
+    readonly tags?: string;
+}
+
+/** The resolved Bedrock block placement component sent to the client. */
+export interface BedrockBlockPlacerComponent {
+    /** The block placed when this item is used. */
+    readonly block?: string;
+    /** Whether placement follows the player's alignment while interacting. */
+    readonly alignedPlacement: boolean;
+    /** Whether the block supplies the item icon when no icon is declared. */
+    readonly canUseBlockAsIcon: boolean;
+    /** Whether this item is the default item returned for its block. */
+    readonly replaceBlockItem: boolean;
+    /** Blocks on which the item may be used. Empty means all blocks. */
+    readonly useOn: readonly (string | BedrockItemBlockDescriptor)[];
 }
 
 /**
@@ -128,8 +154,7 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
  */
 export const UNPROJECTED_BEDROCK_COMPONENTS = {
     'minecraft:repairable': 'The repair items are a Java item tag, which needs tag expansion and identifier mapping.',
-    'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.',
-    'minecraft:block_placer': 'Which block an item places is a fact of the block package, not an item component.'
+    'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.'
 } as const;
 
 /** Whether an untyped Bedrock JSON value is an object with named fields. */
@@ -175,6 +200,52 @@ const bedrockIconOf = (type: ItemType): BedrockItemComponents['minecraft:icon'] 
 const bedrockDisplayNameOf = (type: ItemType): BedrockItemComponents['minecraft:display_name'] => {
     const source = type.bedrockComponents.get('minecraft:display_name');
     return isRecord(source) && typeof source.value === 'string' ? { value: source.value } : undefined;
+};
+
+/** Whether a value can be a Bedrock block state. */
+const isBlockStateValue = (value: unknown): value is string | number | boolean =>
+    typeof value === 'string' ||
+    typeof value === 'boolean' ||
+    (typeof value === 'number' && Number.isSafeInteger(value));
+
+/** Reads the block placement component from the active Bedrock item definition. */
+const bedrockBlockPlacerOf = (type: ItemType, canUseBlockAsIcon: boolean): BedrockBlockPlacerComponent | undefined => {
+    const source = type.bedrockComponents.get('minecraft:block_placer');
+    if (!isRecord(source)) return undefined;
+
+    const useOnSource = source.use_on;
+    const selectors = Array.isArray(useOnSource) ? useOnSource : useOnSource === undefined ? [] : [useOnSource];
+    const useOn: (string | BedrockItemBlockDescriptor)[] = [];
+    for (const selector of selectors) {
+        if (typeof selector === 'string') {
+            useOn.push(selector);
+            continue;
+        }
+        if (!isRecord(selector)) continue;
+
+        const statesSource = selector.states;
+        let states: Record<string, string | number | boolean> | undefined;
+        if (isRecord(statesSource)) {
+            states = {};
+            for (const [name, value] of Object.entries(statesSource)) {
+                if (isBlockStateValue(value)) states[name] = value;
+            }
+        }
+        useOn.push({
+            ...(typeof selector.name === 'string' ? { name: selector.name } : {}),
+            ...(states === undefined ? {} : { states }),
+            ...(typeof selector.tags === 'string' ? { tags: selector.tags } : {})
+        });
+    }
+
+    return {
+        ...(typeof source.block === 'string' ? { block: source.block } : {}),
+        alignedPlacement: source.aligned_placement === true,
+        canUseBlockAsIcon:
+            typeof source.can_use_block_as_icon === 'boolean' ? source.can_use_block_as_icon : canUseBlockAsIcon,
+        replaceBlockItem: source.replace_block_item === true,
+        useOn
+    };
 };
 
 /** How Java's equipment slots name the same places Bedrock's `wearable` does. */
@@ -294,9 +365,11 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
     const properties: BedrockItemProperties = {};
     const icon = bedrockIconOf(type);
     const displayName = bedrockDisplayNameOf(type);
+    const blockPlacer = bedrockBlockPlacerOf(type, icon === undefined);
     const projected: BedrockItemComponents = {
         item_properties: properties,
         item_tags: type.tags,
+        ...(blockPlacer === undefined ? {} : { 'minecraft:block_placer': blockPlacer }),
         ...(displayName === undefined ? {} : { 'minecraft:display_name': displayName }),
         ...(icon === undefined ? {} : { 'minecraft:icon': icon })
     };

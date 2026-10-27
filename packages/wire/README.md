@@ -169,6 +169,9 @@ leaves out anything Java cannot decide. This package supplies the rest:
   come from Mojang's pinned `bedrock-samples` item atlas when no definition icon is present.
 - An explicitly declared Bedrock `minecraft:display_name`, written as `{value: string}`. The
   projection does not derive names from Java translation keys.
+- A Bedrock `minecraft:block_placer`, written in the captured NBT form with `alignedPlacement`,
+  `canUseBlockAsIcon`, and `replaceBlockItem` defaults, its block identifier, and `use_on` block
+  selectors. The icon flag defaults from whether the active item definition declares an icon.
 
 An item the captured table does not name is treated as one this server invented: component based,
 `Item Version` `DataDriven`, and an id allocated from 10000. Those are listed in `allocated`.

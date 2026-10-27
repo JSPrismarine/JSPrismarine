@@ -133,12 +133,13 @@ slot, or the spear, shield and glider components. The apple comes out with the s
 Keys with no Java source are left out rather than guessed, so the protocol layer can tell a derived
 value from a placeholder. `BEDROCK_ONLY_ITEM_PROPERTIES` lists the seven `item_properties` keys that
 come from the creative catalog, the resource pack or nothing at all, and
-`UNPROJECTED_BEDROCK_COMPONENTS` lists three components with a reason each, mostly because producing
-them would need a Java-to-Bedrock identifier lookup this package does not depend on. The Bedrock
-definition's explicit display name and icon, plus the type's resolved Bedrock tags, pass through as
-`minecraft:display_name`, `minecraft:icon`, and `item_tags`; Java item tags are not translated. The
-definition's scalar item components override the corresponding Java-derived registry values when
-present. The food remainder is available through an injected `mapIdentifier`.
+`UNPROJECTED_BEDROCK_COMPONENTS` lists the two Java-derived components still missing translation.
+The active Bedrock item definition's `minecraft:block_placer` body is also projected, including its
+block selector list and default behavior flags. Its explicit display name and icon, plus the type's
+resolved Bedrock tags, pass through as `minecraft:display_name`, `minecraft:icon`, and `item_tags`;
+Java item tags are not translated. The definition's scalar item components override the
+corresponding Java-derived registry values when present. The food remainder is available through an
+injected `mapIdentifier`.
 
 ## Flattened facts
 

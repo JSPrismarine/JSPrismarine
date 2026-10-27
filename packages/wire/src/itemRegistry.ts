@@ -25,7 +25,13 @@ import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 import type { NbtValue } from './nbt';
 import { nbtByte, nbtCompound, nbtFloat, nbtInt, nbtList, nbtString } from './nbt';
 
-import type { BedrockItemComponents, ItemType, ProjectionOptions } from '@jsprismarine/items';
+import type {
+    BedrockBlockPlacerComponent,
+    BedrockItemBlockDescriptor,
+    BedrockItemComponents,
+    ItemType,
+    ProjectionOptions
+} from '@jsprismarine/items';
 
 /** `Item Version` as the docs' `ItemVersion` enum numbers it. */
 export const ITEM_VERSION = {
@@ -198,9 +204,40 @@ const itemProperties = (
     });
 };
 
+/** Writes one `minecraft:block_placer.use_on` selector as Bedrock NBT. */
+const blockDescriptorNbt = (descriptor: string | BedrockItemBlockDescriptor): NBTTagCompound => {
+    if (typeof descriptor === 'string') return nbtCompound({ name: nbtString(descriptor) });
+
+    const states: Record<string, NbtValue> = {};
+    for (const [name, value] of Object.entries(descriptor.states ?? {})) {
+        if (typeof value === 'string') states[name] = nbtString(value);
+        else if (typeof value === 'boolean') states[name] = nbtByte(value);
+        else if (Number.isSafeInteger(value)) states[name] = nbtInt(value);
+    }
+
+    return nbtCompound({
+        name: descriptor.name === undefined ? undefined : nbtString(descriptor.name),
+        states: descriptor.states === undefined ? undefined : nbtCompound(states),
+        tags: descriptor.tags === undefined ? undefined : nbtString(descriptor.tags)
+    });
+};
+
+/** Writes `minecraft:block_placer`, whose captured NBT names use camel case. */
+const blockPlacerNbt = (component: BedrockBlockPlacerComponent): NBTTagCompound =>
+    nbtCompound({
+        alignedPlacement: nbtByte(component.alignedPlacement),
+        block: component.block === undefined ? undefined : nbtString(component.block),
+        canUseBlockAsIcon: nbtByte(component.canUseBlockAsIcon),
+        replaceBlockItem: nbtByte(component.replaceBlockItem),
+        use_on: nbtList(component.useOn.map(blockDescriptorNbt))
+    });
+
 /** Writes the named components that sit beside `item_properties`. */
 const namedComponents = (projected: BedrockItemComponents): Readonly<Record<string, NbtValue>> => {
     const written: Record<string, NbtValue> = {};
+
+    const blockPlacer = projected['minecraft:block_placer'];
+    if (blockPlacer !== undefined) written['minecraft:block_placer'] = blockPlacerNbt(blockPlacer);
 
     const displayName = projected['minecraft:display_name'];
     if (displayName !== undefined) {
