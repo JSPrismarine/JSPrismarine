@@ -83,6 +83,13 @@ const fileTransport = (config: Config): FileTransport =>
 const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void => {
     process.title = 'JSPrismarine';
 
+    const devtools = args.devtools || args.devtoolsWait ? openDevTools() : undefined;
+    if (devtools) {
+        process.stderr.write(`JSPrismarine DevTools: ${devtools.frontendUrl}\n`);
+        process.stderr.write(`JSPrismarine inspector: ${devtools.endpointUrl}\n`);
+        if (args.devtoolsWait) devtools.waitForDebugger();
+    }
+
     const config = new Config({ serverPort: args.port });
     const transports: LogTransport[] = [fileTransport(config)];
     let attach: ((server: Server) => void) | undefined;
@@ -98,13 +105,11 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
         config,
         logger,
         headless: remote || args.headless,
-        profile: args.devtools
+        profile: devtools !== undefined
     });
     attach?.(server);
 
-    if (args.devtools) {
-        const devtools = openDevTools();
-        process.stderr.write(`JSPrismarine DevTools: ${devtools.frontendUrl}\n`);
+    if (devtools) {
         Object.defineProperty(globalThis, 'jsprismarine', {
             configurable: true,
             enumerable: true,

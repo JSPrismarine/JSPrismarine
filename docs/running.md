@@ -56,6 +56,22 @@ The server prints a DevTools URL. Open it in Chrome or Edge to set breakpoints, 
 JavaScript objects, record CPU profiles, and take heap snapshots. The inspector listens on
 `127.0.0.1`; it allows code execution in the server process, so keep it on the local machine.
 
+For startup debugging, use `pnpm run dev -- --devtools-wait`. This enables DevTools and waits
+before reading server configuration or constructing the server. Attach a debugger, set your
+breakpoints, and resume startup. Static module imports have already run at this point. The
+`jsprismarine` handle becomes available after the server is constructed. Every watch restart
+prints a new endpoint and waits again.
+
+The printed `JSPrismarine inspector:` WebSocket URL also accepts external Chrome DevTools
+Protocol clients. Node's V8 debugger supports line and conditional breakpoints, function-call
+breakpoints, stepping, exception pauses, scope inspection, and evaluation on paused call frames.
+`Debugger.setInstrumentationBreakpoint` supports `beforeScriptExecution` and
+`beforeScriptWithSourceMapExecution`. These pause before script execution; browser DOM, XHR,
+and event-listener breakpoints do not apply to this Node server. A debugger client must enable
+`Debugger`, install startup breakpoints, and send `Runtime.runIfWaitingForDebugger` to release
+`--devtools-wait`. Use an external client so pausing the server does not also pause its debugger.
+Source-map-aware clients can map TypeScript locations to the JavaScript executed by V8.
+
 The DevTools Console exposes a `jsprismarine` handle to live server objects:
 
 ```javascript

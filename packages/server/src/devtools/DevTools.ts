@@ -2,8 +2,12 @@ import * as inspector from 'node:inspector';
 
 /** A running Node inspector endpoint and its Chrome DevTools frontend URL. */
 export interface DevToolsSession {
+    /** The Node inspector WebSocket URL for an external CDP client. */
+    readonly endpointUrl: string;
     /** The URL to open in Chrome or Edge. */
     readonly frontendUrl: string;
+    /** Blocks until a client sends Runtime.runIfWaitingForDebugger. */
+    waitForDebugger(): void;
     /** Closes the inspector only when this module opened it. */
     close(): void;
 }
@@ -30,7 +34,9 @@ export const openDevTools = (): DevToolsSession => {
     frontend.searchParams.set('ws', `${socket.host}${socket.pathname}`);
 
     return {
+        endpointUrl: endpoint,
         frontendUrl: frontend.href,
+        waitForDebugger: () => inspector.waitForDebugger(),
         close: () => handle?.[Symbol.dispose]()
     };
 };

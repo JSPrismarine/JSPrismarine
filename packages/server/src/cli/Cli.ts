@@ -56,6 +56,11 @@ export const serverCli = (argv: readonly string[]) =>
             default: false,
             describe: 'Enable local DevTools debugging and profiling'
         })
+        .option('devtools-wait', {
+            type: 'boolean',
+            default: false,
+            describe: 'Enable DevTools and wait for a debugger before server initialization'
+        })
         .option('role', {
             type: 'string',
             choices: ROLES,

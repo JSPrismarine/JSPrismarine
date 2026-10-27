@@ -9,7 +9,18 @@ describe('parseServerArgs', () => {
         expect(args.watch).toBe(false);
         expect(args.noTui).toBe(false);
         expect(args.headless).toBe(false);
+        expect(args.devtools).toBe(false);
+        expect(args.devtoolsWait).toBe(false);
         expect(args.role).toBeUndefined();
+    });
+
+    it('accepts DevTools startup waiting without requiring the separate devtools flag', () => {
+        const args = parseServerArgs(['--', '--devtools-wait', '--no-tui', '--watch']);
+
+        expect(args.devtoolsWait).toBe(true);
+        expect(args.noTui).toBe(true);
+        expect(args.watch).toBe(true);
+        expect(parseServerArgs(['--devtools']).devtools).toBe(true);
     });
 
     it('reads the mode flags and the hidden role', () => {
