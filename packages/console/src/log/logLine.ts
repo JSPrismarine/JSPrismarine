@@ -27,6 +27,17 @@ export interface LogLineOptions {
     highlight?: string;
 }
 
+/** A displayed row and its mapping to the original, unwrapped text, measured in code points. */
+export interface FormattedLogLine extends StyledText {
+    /** Complete plain text before wrapping. */
+    sourceText: string;
+    /** Range of original text displayed on this row. */
+    sourceStart: number;
+    sourceEnd: number;
+    /** Visual indentation before the original text starts. */
+    contentStart: number;
+}
+
 /** Characters in the namespace column, before the space that separates it from the message. */
 export const NAMESPACE_WIDTH = 12;
 
@@ -50,11 +61,11 @@ export function formatTime(at: number): string {
  * `wrap` off a long message ends in an ellipsis and the result is one row; with it on,
  * continuation rows are indented to the message column. Widths are measured in code points.
  */
-export function formatLogLine(record: StoredRecord, options: LogLineOptions): StyledText[] {
+export function formatLogLine(record: StoredRecord, options: LogLineOptions): FormattedLogLine[] {
     const width = Math.max(1, options.width);
     switch (record.kind) {
         case 'separator':
-            return [separatorRow(record, width, options.theme)];
+            return [mappedRow(separatorRow(record, width, options.theme))];
         case 'raw':
             return layout(
                 [
@@ -111,11 +122,12 @@ function separatorRow(record: StoredRecord, width: number, theme: Theme): Styled
     return new StyledText([plainChunk(row, theme, 'textMuted')]);
 }
 
-function layout(prefix: TextChunk[], message: TextChunk[], width: number, options: LogLineOptions): StyledText[] {
+function layout(prefix: TextChunk[], message: TextChunk[], width: number, options: LogLineOptions): FormattedLogLine[] {
+    message = linkChunks(message);
     const prefixWidth = chunkColumns(prefix);
     const available = width - prefixWidth;
     if (available < 1) {
-        return [new StyledText(sliceChunks(prefix, 0, width))];
+        return [mappedRow(new StyledText(sliceChunks(prefix, 0, width)))];
     }
     const plain = message.map((chunk) => chunk.text).join('');
     if (!options.wrap) {
@@ -123,13 +135,39 @@ function layout(prefix: TextChunk[], message: TextChunk[], width: number, option
             columns(plain) <= available
                 ? message
                 : [...sliceChunks(message, 0, available - 1), plainChunk(ELLIPSIS, options.theme, 'textMuted')];
-        return [new StyledText([...prefix, ...body])];
+        return [mappedRow(new StyledText([...prefix, ...body]))];
     }
+    const sourceText = prefix.map((chunk) => chunk.text).join('') + plain;
     const indent = plainChunk(' '.repeat(prefixWidth), options.theme);
-    return wrapRanges([...plain], available).map(
-        ([start, end], index) =>
-            new StyledText([index === 0 ? prefix : [indent], sliceChunks(message, start, end)].flat())
+    return wrapRanges([...plain], available).map(([start, end], index) =>
+        Object.assign(new StyledText([index === 0 ? prefix : [indent], sliceChunks(message, start, end)].flat()), {
+            sourceText,
+            sourceStart: index === 0 ? 0 : prefixWidth + start,
+            sourceEnd: prefixWidth + end,
+            contentStart: index === 0 ? 0 : prefixWidth
+        })
     );
+}
+
+function mappedRow(row: StyledText): FormattedLogLine {
+    const sourceText = row.chunks.map((chunk) => chunk.text).join('');
+    return Object.assign(row, { sourceText, sourceStart: 0, sourceEnd: columns(sourceText), contentStart: 0 });
+}
+
+function linkChunks(chunks: TextChunk[]): TextChunk[] {
+    const text = chunks.map((chunk) => chunk.text).join('');
+    const result: TextChunk[] = [];
+    let cursor = 0;
+    // Include inspector and DevTools schemes, which terminal URL detection often misses.
+    for (const match of text.matchAll(/\b(?:https?|wss?|devtools):\/\/[^\s<>"']+/g)) {
+        const start = columns(text.slice(0, match.index));
+        const end = start + columns(match[0]);
+        result.push(...sliceChunks(chunks, cursor, start));
+        result.push(...sliceChunks(chunks, start, end).map((chunk) => ({ ...chunk, link: { url: match[0] } })));
+        cursor = end;
+    }
+    result.push(...sliceChunks(chunks, cursor, columns(text)));
+    return result;
 }
 
 /** Splits code points into `[start, end)` ranges of at most `width` columns, breaking at spaces. */

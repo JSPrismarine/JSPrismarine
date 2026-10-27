@@ -738,7 +738,7 @@ export function createApp(ctx: AppContext, props: AppProps): App {
                 view.pageDown();
                 return;
             case 'log.copySelection': {
-                const selectedText = renderer.getSelection()?.getSelectedText() ?? '';
+                const selectedText = view.getSelectedText();
                 if (selectedText.length === 0) {
                     toasts.push({ tone: 'muted', text: 'select text to copy' });
                     return;

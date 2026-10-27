@@ -40,6 +40,26 @@ const options = (overrides: Partial<LogLineOptions> = {}): LogLineOptions => ({
 const text = (rows: readonly StyledText[]) => rows.map((row) => row.chunks.map((chunk) => chunk.text).join(''));
 
 describe('formatLogLine', () => {
+    it.each(['https', 'http', 'ws', 'wss', 'devtools'])('keeps the full %s URL on every wrapped fragment', (scheme) => {
+        const url = `${scheme}://devtools/bundled/js_app.html?experiments=true&v8only=true&ws=127.0.0.1:12345/abcdef`;
+        const rows = formatLogLine(record({ message: `DevTools: ${url}` }), options({ width: 50, wrap: true }));
+        const fragments = rows.flatMap((row) => row.chunks.filter((chunk) => chunk.link));
+        expect(fragments.map((chunk) => chunk.text).join('')).toBe(url);
+        expect(fragments.every((chunk) => chunk.link?.url === url)).toBe(true);
+    });
+
+    it('retains URL targets through Minecraft styles, search highlighting, and truncation', () => {
+        const url = 'https://example.com/long/path';
+        const rows = formatLogLine(
+            record({ message: 'https://§cexample.com/long/path' }),
+            options({ width: 50, highlight: 'example' })
+        );
+        const fragments = rows.flatMap((row) => row.chunks.filter((chunk) => chunk.link));
+        expect(fragments.length).toBeGreaterThan(1);
+        expect(fragments.every((chunk) => chunk.link?.url === url)).toBe(true);
+        expect(fragments.some((chunk) => chunk.bg)).toBe(true);
+    });
+
     it('lays out time, level, namespace, and message in fixed columns', () => {
         expect(text(formatLogLine(record(), options()))).toEqual(['12:05:33 INFO    Server       Server started']);
     });

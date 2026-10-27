@@ -1,10 +1,11 @@
 import type { MouseEvent } from '@opentui/core';
-import { BoxRenderable, MouseButton, TextRenderable } from '@opentui/core';
+import { BoxRenderable, MouseButton, TextBuffer, TextRenderable } from '@opentui/core';
 import type { ConsoleContext } from '../context';
+import { columns, sliceColumns } from '../text';
 import { LEVEL_TOKEN_WIDTH } from '../theme/styled';
 import { formatLogLine } from './logLine';
 import { NAMESPACE_WIDTH } from './logLine';
-import type { LevelStyle } from './logLine';
+import type { FormattedLogLine, LevelStyle } from './logLine';
 import type { LogStore } from './logStore';
 import { LogWindow } from './logWindow';
 import { sourceLocationAtColumn, sourceLocationFromNamespace } from './sourceLocation';
@@ -42,6 +43,8 @@ export interface LogView {
     scrollTo(index: number): void;
     /** Hides every record shown so far without touching the store; later records paint from the top. */
     clearView(): void;
+    /** Returns selected log text with soft wraps and visual indentation removed. */
+    getSelectedText(): string;
     setWrap(wrap: boolean): void;
     setShowNamespace(show: boolean): void;
     setLevelStyle(style: LevelStyle): void;
@@ -65,7 +68,7 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
     let showNamespace = props.showNamespace ?? true;
     let levelStyle = props.levelStyle ?? 'full';
     let highlight: string | undefined;
-    let paintedRows: { record: StoredRecord; text: string }[] = [];
+    let paintedRows: { record: StoredRecord; line: FormattedLogLine; text: string }[] = [];
 
     const window = new LogWindow(1);
     window.onReset(store.visible().length);
@@ -164,7 +167,7 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         const painted = window.follow
             ? lines.slice(Math.max(0, lines.length - rows.length))
             : lines.slice(0, rows.length);
-        paintedRows = painted.map(({ record, text }) => ({ record, text }));
+        paintedRows = painted;
         rows.forEach((row, index) => {
             const record = painted[index]?.record;
             const level =
@@ -203,14 +206,19 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         const column = event.x - renderable.x - 1;
         let location: SourceLocation | undefined;
 
-        if (painted.record.kind === 'log' && showNamespace) {
+        if (painted.line.sourceStart === 0 && painted.record.kind === 'log' && showNamespace) {
             const levelWidth = levelStyle === 'full' ? LEVEL_TOKEN_WIDTH : 1;
             const namespaceStart = 9 + levelWidth + 1;
             if (column >= namespaceStart && column < namespaceStart + NAMESPACE_WIDTH) {
                 location = sourceLocationFromNamespace(painted.record.namespace);
             }
         }
-        location ??= sourceLocationAtColumn(painted.text, column);
+        if (column >= painted.line.contentStart && column < columns(painted.text)) {
+            location ??= sourceLocationAtColumn(
+                painted.line.sourceText,
+                painted.line.sourceStart + column - painted.line.contentStart
+            );
+        }
         if (location === undefined) return;
 
         event.preventDefault();
@@ -248,6 +256,41 @@ export function createLogView(ctx: Pick<ConsoleContext, 'renderer' | 'theme'>, p
         clearView() {
             window.clear();
             schedule();
+        },
+        getSelectedText() {
+            const selection = renderer.getSelection();
+            if (!selection) return '';
+            if (selection.selectedRenderables.some((selected) => !rows.some((row) => row.text === selected))) {
+                return selection.getSelectedText();
+            }
+            const parts: string[] = [];
+            let previous: { record: StoredRecord; end: number } | undefined;
+            const buffer = TextBuffer.create(renderer.widthMethod, renderer.nativeScene);
+            try {
+                rows.forEach((row, index) => {
+                    const bounds = row.text.getSelection();
+                    const painted = paintedRows[index];
+                    if (!bounds || !painted) return;
+                    const { line, record } = painted;
+                    // OpenTUI selections count display cells; source mappings count code points.
+                    buffer.setText(painted.text);
+                    const startColumn = columns(buffer.getTextRange(0, bounds.start));
+                    const endColumn = columns(buffer.getTextRange(0, bounds.end));
+                    const start = line.sourceStart + Math.max(0, startColumn - line.contentStart);
+                    const end = Math.min(line.sourceEnd, line.sourceStart + Math.max(0, endColumn - line.contentStart));
+                    if (end <= start) return;
+                    if (previous) {
+                        parts.push(
+                            previous.record === record ? sliceColumns(line.sourceText, previous.end, start) : '\n'
+                        );
+                    }
+                    parts.push(sliceColumns(line.sourceText, start, end));
+                    previous = { record, end };
+                });
+                return parts.join('');
+            } finally {
+                buffer.destroy();
+            }
         },
         setWrap(value) {
             wrap = value;

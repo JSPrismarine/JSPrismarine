@@ -1,9 +1,10 @@
 import type { LogEntry } from '@jsprismarine/console-protocol';
 import { createTestRenderer } from '@opentui/core/testing';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { defaultTheme } from '../theme';
 import { LogStore } from './logStore';
 import { createLogView } from './logView';
+import type { SourceLocation } from './sourceLocation';
 
 let seq = 0;
 function entry(message: string): LogEntry {
@@ -24,10 +25,10 @@ const lines = (frame: string) =>
         .split('\n')
         .map((line) => line.trimEnd());
 
-async function setup(width = 100, height = 20) {
+async function setup(width = 100, height = 20, onOpenSourceLocation?: (location: SourceLocation) => void) {
     const test = await createTestRenderer({ width, height });
     const store = new LogStore();
-    const view = createLogView({ renderer: test.renderer, theme: defaultTheme }, { store });
+    const view = createLogView({ renderer: test.renderer, theme: defaultTheme }, { store, onOpenSourceLocation });
     test.renderer.root.add(view.renderable);
     await test.renderOnce();
     const frame = async () => {
@@ -38,6 +39,80 @@ async function setup(width = 100, height = 20) {
 }
 
 describe('createLogView', () => {
+    it.each([
+        'the quick brown fox jumps over the lazy dog '.repeat(3).trimEnd(),
+        'https://example.com/' + 'abcdefghij'.repeat(8),
+        '  preserve   real spaces  ' + 'word '.repeat(20),
+        '§chello é😀 world ' + 'words '.repeat(20)
+    ])('copies wrapped text without visual whitespace: %s', async (message) => {
+        const t = await setup(60, 10);
+        try {
+            t.store.append(entry(message));
+            t.view.setWrap(true);
+            const frame = await t.frame();
+            const last = frame.findLastIndex((row) => row.trim().length > 1);
+            await t.mockMouse.drag(31, 0, 59, last);
+            expect(t.view.getSelectedText()).toBe(message.replace('§c', ''));
+            await t.mockMouse.drag(59, last, 31, 0);
+            expect(t.view.getSelectedText()).toBe(message.replace('§c', ''));
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it.each(['éééabcéé', '界界界abc界界', '😀😀😀abc😀😀'])(
+        'copies a partial selection after wide or multibyte characters: %s',
+        async (message) => {
+            const t = await setup(60, 10);
+            try {
+                t.store.append(entry(message));
+                t.view.setWrap(true);
+                await t.frame();
+                const start = message.startsWith('é') ? 34 : 37;
+                await t.mockMouse.drag(start, 0, start + 2, 0);
+                expect(t.view.getSelectedText()).toBe('abc');
+            } finally {
+                await t.dispose();
+            }
+        }
+    );
+
+    it('copies partial continuation rows and separates different records', async () => {
+        const t = await setup(60, 10);
+        try {
+            t.store.append(entry('a'.repeat(50)));
+            t.store.append(entry('next'));
+            t.view.setWrap(true);
+            await t.frame();
+            await t.mockMouse.drag(34, 1, 38, 1);
+            expect(t.view.getSelectedText()).toBe('aaaaa');
+            await t.mockMouse.drag(1, 0, 59, 2);
+            expect(t.view.getSelectedText()).toBe(
+                '12:05:33 INFO    Server       ' + 'a'.repeat(50) + '\n12:05:33 INFO    Server       next'
+            );
+        } finally {
+            await t.dispose();
+        }
+    });
+
+    it('opens a source reference from either wrapped fragment, but ignores continuation indentation', async () => {
+        const open = vi.fn();
+        const t = await setup(60, 10, open);
+        try {
+            const path = 'packages/server/src/Server.ts';
+            t.store.append(entry(`${path}:88:9`));
+            t.view.setWrap(true);
+            await t.frame();
+            await t.mockMouse.click(32, 0, 0, { modifiers: { ctrl: true } });
+            await t.mockMouse.click(32, 1, 0, { modifiers: { alt: true } });
+            expect(open.mock.calls).toEqual([[{ path, line: 88, column: 9 }], [{ path, line: 88, column: 9 }]]);
+            await t.mockMouse.click(20, 1, 0, { modifiers: { ctrl: true } });
+            expect(open).toHaveBeenCalledTimes(2);
+        } finally {
+            await t.dispose();
+        }
+    });
+
     it('shows the newest records at the bottom after appending more than fit', async () => {
         const t = await setup();
         try {
@@ -79,7 +154,7 @@ describe('createLogView', () => {
             t.store.startGeneration('server restarted', new Date(2024, 0, 1, 12, 6, 0).getTime());
             t.store.append(entry('after'));
             const rows = await t.frame();
-            expect(rows[1]).toMatch(/^─── 12:06:00 server restarted \(generation 2\) ─+$/);
+            expect(rows[1]).toMatch(/^│─── 12:06:00 server restarted \(generation 2\) ─+$/);
             expect(rows[1]).toHaveLength(100);
         } finally {
             await t.dispose();
@@ -122,10 +197,10 @@ describe('createLogView', () => {
             t.view.setWrap(true);
             const rows = await t.frame();
             expect(rows).toEqual([
-                '12:05:33 INFO    Server       short',
-                '12:05:33 INFO    Server       a long message that will not',
-                '                              fit on one row of sixty',
-                '                              columns'
+                '│12:05:33 INFO    Server       short',
+                '│12:05:33 INFO    Server       a long message that will not',
+                '│                              fit on one row of sixty',
+                '│                              columns'
             ]);
         } finally {
             await t.dispose();
@@ -202,9 +277,9 @@ describe('createLogView', () => {
             t.store.append(entry('styled'));
             t.view.setShowNamespace(false);
             t.view.setLevelStyle('short');
-            expect((await t.frame())[0]).toBe('12:05:33 I styled');
+            expect((await t.frame())[0]).toBe('│12:05:33 I styled');
             t.view.setLevelStyle('full');
-            expect((await t.frame())[0]).toBe('12:05:33 INFO    styled');
+            expect((await t.frame())[0]).toBe('│12:05:33 INFO    styled');
         } finally {
             await t.dispose();
         }
