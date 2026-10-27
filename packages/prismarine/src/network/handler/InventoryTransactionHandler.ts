@@ -369,9 +369,22 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                     return;
                 }
 
-                // Survival's route into a break. Creative announces the same thing through
-                // PlayerAction instead, and both end up in `breakBlock`, which does nothing the
-                // second time round.
+                // Survival's route into a break when the client times it. With
+                // server-authoritative block breaking the client reports the break as
+                // `PREDICT_DESTROY_BLOCK` instead, and a transaction saying a block broke is one
+                // that skipped the mining the server is timing. Creative announces the same
+                // thing through PlayerAction, and both end up in `breakBlock`, which does
+                // nothing the second time round.
+                if (server.getConfig().getServerAuthoritativeBlockBreaking()) {
+                    server
+                        .getLogger()
+                        .verbose(
+                            `Dropped a block break transaction from ${player.getName()}: block breaking is server-authoritative`,
+                            'InventoryTransactionHandler/handleUseItem'
+                        );
+                    return;
+                }
+
                 await player.getWorld().breakBlock(data.blockPosition, player);
                 return;
             }

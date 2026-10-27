@@ -70,6 +70,8 @@ const COMMENTS = {
     'preload-radius': 'How many chunks around spawn to generate before accepting players. 0 skips it.',
     'chunk-send-budget-ms': 'How long each tick may spend sending chunks, out of its 50 ms.',
     'proximity-broadcast': 'Whether positional packets only go to players near them. Turn off only to debug.',
+    'server-authoritative-block-breaking':
+        'Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client.',
     'entity-tracking-hysteresis': "Chunks past view distance before an entity leaves a player's screen.",
     'entity-tracking-interval': 'Ticks between entity visibility passes, at least 1.',
     'online-mode': 'Whether players must be signed in to Xbox Live.',
@@ -111,6 +113,7 @@ const DEFAULTS = {
     'preload-radius': 10,
     'chunk-send-budget-ms': 5,
     'proximity-broadcast': true,
+    'server-authoritative-block-breaking': true,
     'entity-tracking-hysteresis': 2,
     'entity-tracking-interval': 4,
     'online-mode': true,
@@ -177,6 +180,7 @@ export class Config {
     private preloadRadius: number = DEFAULTS['preload-radius'];
     private chunkSendBudgetMs: number = DEFAULTS['chunk-send-budget-ms'];
     private proximityBroadcast: boolean = DEFAULTS['proximity-broadcast'];
+    private serverAuthoritativeBlockBreaking: boolean = DEFAULTS['server-authoritative-block-breaking'];
     private entityTrackingHysteresis: number = DEFAULTS['entity-tracking-hysteresis'];
     private entityTrackingInterval: number = DEFAULTS['entity-tracking-interval'];
     private onlineMode: boolean = DEFAULTS['online-mode'];
@@ -260,6 +264,10 @@ export class Config {
         this.preloadRadius = read('preload-radius', DEFAULTS['preload-radius']);
         this.chunkSendBudgetMs = read('chunk-send-budget-ms', DEFAULTS['chunk-send-budget-ms']);
         this.proximityBroadcast = read('proximity-broadcast', DEFAULTS['proximity-broadcast']);
+        this.serverAuthoritativeBlockBreaking = read(
+            'server-authoritative-block-breaking',
+            DEFAULTS['server-authoritative-block-breaking']
+        );
         this.entityTrackingHysteresis = read('entity-tracking-hysteresis', DEFAULTS['entity-tracking-hysteresis']);
         this.entityTrackingInterval = read('entity-tracking-interval', DEFAULTS['entity-tracking-interval']);
         this.onlineMode = read('online-mode', DEFAULTS['online-mode']);
@@ -428,6 +436,19 @@ export class Config {
      */
     public getProximityBroadcast(): boolean {
         return this.proximityBroadcast;
+    }
+
+    /**
+     * Who decides when a block a player is mining breaks.
+     *
+     * On, the default and what a Bedrock Dedicated Server 1.26.52 announces: the server animates
+     * the cracks every tick, and the client reports a break it predicts, which the server
+     * carries out. Off, the client times the break itself and reports it once it is done.
+     *
+     * @returns Whether block breaking is server-authoritative
+     */
+    public getServerAuthoritativeBlockBreaking(): boolean {
+        return this.serverAuthoritativeBlockBreaking;
     }
 
     /**

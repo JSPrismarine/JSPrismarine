@@ -169,8 +169,15 @@ describe('StartGamePacket', () => {
         const { data } = decode(build());
 
         expect(data.rewindHistorySize).toBe(0);
-        expect(data.serverAuthoritativeBlockBreaking).toBe(false);
+        // As BDS 1.26.52 sends it: the client predicts breaks and the server carries them out.
+        expect(data.serverAuthoritativeBlockBreaking).toBe(true);
         expect(data.enchantmentSeed).toBe(0);
+    });
+
+    it('announces the client timing breaks when told to', () => {
+        const { data } = decode(build(258n, (packet) => void (packet.serverAuthoritativeBlockBreaking = false)));
+
+        expect(data.serverAuthoritativeBlockBreaking).toBe(false);
     });
 
     it('declares hashed block ids, the item stack net manager, and empty join information', () => {
@@ -284,7 +291,8 @@ describe('StartGamePacket', () => {
                 worldName: 'A world',
                 serverIdentifier: 'JSPrismarine',
                 scenarioIdentifier: 'scenario',
-                worldIdentifier: 'world-id'
+                worldIdentifier: 'world-id',
+                serverAuthoritativeBlockBreaking: true
             });
             expect(decoded.blockProperties).toHaveLength(block_definitions.length);
 

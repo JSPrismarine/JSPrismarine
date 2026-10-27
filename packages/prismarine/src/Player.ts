@@ -46,6 +46,7 @@ import { resolveRespawn } from './world/RespawnPoint';
 import type { StoredSpawnPoint } from './world/RespawnPoint';
 import { lastPlayerRecord } from './world/PlayerRecords';
 import type { PlayerSpawn } from './world/SpawnPlacement';
+import type { BlockMining } from './world/BlockMining';
 import CoordinateUtils from './world/CoordinateUtils';
 import { DEFAULT_VIEW_DISTANCE_CHUNKS } from './world/Proximity';
 
@@ -191,6 +192,36 @@ export default class Player extends Human {
      */
     public getJoinSpawn(): PlayerSpawn | null {
         return this.joinSpawn;
+    }
+
+    /** The block this player is mining, whose cracks are animated every tick; null when none. */
+    private mining: BlockMining | null = null;
+
+    /** The block this player is mining, or null. */
+    public getMining(): BlockMining | null {
+        return this.mining;
+    }
+
+    /**
+     * Sets what this player is mining.
+     * @param {BlockMining | null} mining - The block, or null when the player stopped or broke it.
+     */
+    public setMining(mining: BlockMining | null): void {
+        this.mining = mining;
+    }
+
+    /**
+     * Stops the cracks on the block this player was mining, if any, and forgets it.
+     *
+     * For whatever ends the mining without the client saying so: a disconnect, a death, a
+     * change of game mode or of world. Left alone, the cracks would go out every tick for good.
+     */
+    public async stopMining(): Promise<void> {
+        const mining = this.mining;
+        if (mining === null) return;
+
+        this.mining = null;
+        await this.getWorld().stopBlockCracking(mining.position);
     }
 
     /**
@@ -384,6 +415,8 @@ export default class Player extends Human {
         // there is nothing subscribed to remove either.
         if (!this.connected) return;
 
+        await this.stopMining();
+
         // Whether or not they have an XUID. An offline player has none by construction, this
         // server accepts offline players, and `World.playerDataKey` already falls back to the
         // name for them - so the guard that used to be here threw away the inventory of every
@@ -497,6 +530,9 @@ export default class Player extends Human {
             await session.send(packet);
         };
 
+        // The cracks belong to a block in the world being left.
+        await this.stopMining();
+
         // Out of the old world first, so it stops broadcasting to us and its players are
         // told we left. Then the old world's entities come off this client, before
         // `addEntity` below fills the tracker with the new world's.
@@ -538,6 +574,14 @@ export default class Player extends Human {
         await this.getNetworkSession().update(tick);
 
         await this.updateVitals(tick);
+
+        // With server-authoritative block breaking the server animates the cracks itself, every
+        // tick, where a client left to it would report each swing instead. The world answers
+        // false once the block is no longer the one being mined.
+        const mining = this.mining;
+        if (mining !== null && !(await this.getWorld().updateBlockCracking(mining)) && this.mining === mining) {
+            this.mining = null;
+        }
 
         // Anything that moved an attribute this tick - hunger, most of the time - goes out
         // here, as a single packet holding just what changed.
@@ -667,6 +711,10 @@ export default class Player extends Human {
         const event = new PlayerSetGamemodeEvent(this, mode);
         this.server.post(['playerSetGamemode', event]);
         if (event.isCanceled()) return;
+
+        // A new game mode changes how, or whether, the player breaks blocks, so the mining in
+        // progress does not carry over into it.
+        if (event.getGamemode() !== this.gamemode) await this.stopMining();
 
         this.gamemode = event.getGamemode();
         await this.getNetworkSession().sendGamemode();
@@ -903,6 +951,7 @@ export default class Player extends Human {
      */
     protected override async onDeath(source: DamageSource): Promise<void> {
         this.drowningTicks = 0;
+        await this.stopMining();
 
         await super.onDeath(source);
 

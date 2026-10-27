@@ -35,7 +35,7 @@ import type { GameRule } from './GameRulesChangedPacket';
  * | Level Name | String | `worldName` |
  * | Template Content Identity | String | Nil UUID string |
  * | Is Trial | Boolean | false |
- * | Movement Settings | SyncedPlayerMovementSettings | Rewind History Size (VarInt), Server Authoritative Block Breaking (Boolean) |
+ * | Movement Settings | SyncedPlayerMovementSettings | Rewind History Size (VarInt), Server Authoritative Block Breaking (Boolean `serverAuthoritativeBlockBreaking`) |
  * | Level Current Time | LUnsignedLong | `ticks` |
  * | Enchantment Seed | VarInt | 0 |
  * | Block Properties | UnsignedVarInt count, then Block Name (String) + Block Definition (network NBT) | Data driven vanilla blocks, then plugin blocks |
@@ -103,6 +103,14 @@ export default class StartGamePacket extends DataPacket {
     public seed!: bigint;
     public time: number = 0;
     public ticks: number = 0;
+
+    /**
+     * `Server Authoritative Block Breaking`: whether the server times block breaking. On, as a
+     * Bedrock Dedicated Server sends it, the client reports a break it predicts as
+     * `PREDICT_DESTROY_BLOCK` inside `PlayerAuthInput` and the server animates the cracks. Off,
+     * the client breaks the block itself and reports it with an `InventoryTransaction`.
+     */
+    public serverAuthoritativeBlockBreaking = true;
 
     public worldSpawnPos!: Vector3;
 
@@ -239,7 +247,7 @@ export default class StartGamePacket extends DataPacket {
         // front of them. The movement mode byte that used to lead them left with 1.21.90;
         // writing it puts every later field one byte out.
         this.writeVarInt(0); // Rewind History Size
-        this.writeBoolean(false); // Server Authoritative Block Breaking
+        this.writeBoolean(this.serverAuthoritativeBlockBreaking); // Server Authoritative Block Breaking
 
         this.writeUnsignedLongLE(BigInt(this.ticks)); // Level Current Time
 
@@ -420,7 +428,7 @@ export default class StartGamePacket extends DataPacket {
         this.readByte(); // Is Trial
 
         this.readVarInt(); // Rewind History Size
-        this.readBoolean(); // Server Authoritative Block Breaking
+        this.serverAuthoritativeBlockBreaking = this.readBoolean(); // Server Authoritative Block Breaking
 
         this.ticks = Number(this.readUnsignedLongLE()); // Level Current Time
 

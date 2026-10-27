@@ -273,7 +273,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
     }
 
     /** @inheritdoc */
-    public blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number): void {
+    public blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number, except?: Player): void {
         const packet = new LevelSoundEventPacket();
         packet.sound = sound;
 
@@ -290,7 +290,7 @@ export class NetworkWorldReplicator implements WorldChangeSink {
         packet.isBabyMob = false;
         packet.disableRelativeVolume = false;
 
-        this.sendAround(position, packet, { radius: SOUND_RADIUS });
+        this.sendAround(position, packet, { radius: SOUND_RADIUS, exclude: except });
     }
 
     /** @inheritdoc */

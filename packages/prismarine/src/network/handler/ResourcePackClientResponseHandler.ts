@@ -228,6 +228,7 @@ export default class ResourcePackClientResponseHandler implements PacketHandler<
         startGame.time = world.getTicks();
         startGame.worldName = world.getName();
         startGame.seed = world.getSeed();
+        startGame.serverAuthoritativeBlockBreaking = server.getConfig().getServerAuthoritativeBlockBreaking();
         startGame.gameRules = world.getGameRuleManager();
         // Every block the content build holds that the client's own palette
         // does not, which with hashed runtime ids is the only way a block

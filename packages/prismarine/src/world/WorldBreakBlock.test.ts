@@ -1,4 +1,4 @@
-import { Gametype, LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
+import { Gametype, LevelEvent } from '@jsprismarine/minecraft';
 import { Vector3 } from '@jsprismarine/math';
 import { describe, expect, it } from 'vitest';
 
@@ -171,13 +171,8 @@ describe('world', () => {
             expect(broke).toBe(true);
             expect(world.state.name).toBe('minecraft:air');
 
-            const sound = world.sent.find((pk) => pk instanceof LevelSoundEventPacket)!;
-            expect(sound.sound).toBe(LevelSoundEvent.BREAK);
-            // The material the client plays comes from this id.
-            expect(sound.extraData).toBe(BlockRuntimeIds.get(log));
-            expect(sound.extraData).not.toBe(BlockRuntimeIds.getByName('minecraft:oak_log'));
-            // Center of the block, so the sound has somewhere to come from.
-            expect([sound.positionX, sound.positionY, sound.positionZ]).toEqual([10.5, 64.5, -19.5]);
+            // No sound packet: the destroy event below plays the sound, as BDS 1.26.52 sends it.
+            expect(world.sent.some((pk) => pk instanceof LevelSoundEventPacket)).toBe(false);
 
             // Read back off the wire, where a runtime id is an unsigned varint: the ids are FNV
             // hashes kept as signed 32 bit numbers in the server, and the same bits unsigned here.
@@ -187,10 +182,16 @@ describe('world', () => {
             // Flagged as a change that came over the network, the bit every server sets.
             expect(update!.flags).toBe(UpdateBlockFlagsType.Network);
 
-            // The silent variant, because the sound is its own packet above.
-            expect(world.events).toHaveLength(1);
-            expect(world.events[0]!.event).toBe(LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND);
-            expect(world.events[0]!.data).toBe(BlockRuntimeIds.get(log));
+            // One event for the particles and the sound, at the block's center, carrying the
+            // exact state that was there: the client textures and voices the break from it.
+            expect(world.events).toEqual([
+                {
+                    position: new Vector3(10.5, 64.5, -19.5),
+                    event: LevelEvent.PARTICLES_DESTROY_BLOCK,
+                    data: BlockRuntimeIds.get(log)
+                }
+            ]);
+            expect(world.events[0]!.data).not.toBe(BlockRuntimeIds.getByName('minecraft:oak_log'));
         });
 
         it('does nothing the second time, so both routes into a break can call it', async () => {
@@ -234,9 +235,9 @@ describe('world', () => {
             await world.break(new Vector3(10, 64, -20), fakePlayer(Gametype.CREATIVE));
 
             expect(world.spawned).toHaveLength(0);
-            // The break itself still happens, sound and all.
+            // The break itself still happens, sound and all: the destroy event carries the sound.
             expect(world.state.name).toBe('minecraft:air');
-            expect(world.sent.some((pk) => pk instanceof LevelSoundEventPacket)).toBe(true);
+            expect(world.events.map(({ event }) => event)).toEqual([LevelEvent.PARTICLES_DESTROY_BLOCK]);
         });
 
         it('drops nothing when the block yields nothing for the tool used', async () => {

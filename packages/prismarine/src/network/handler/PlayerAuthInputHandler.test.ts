@@ -6,6 +6,7 @@ import { describe, expect, it, vi } from 'vitest';
 import type Player from '../../Player';
 import type Server from '../../Server';
 import type { Block } from '../../block/Block';
+import type { Config } from '../../config/Config';
 import type HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
@@ -25,14 +26,22 @@ import PlayerAuthInputHandler, { rejectionReason } from './PlayerAuthInputHandle
  * `applyClientMovement`: the point of these tests is that an input packet reaches the same
  * code a `MovePlayerPacket` does, and the same code a `PlayerActionPacket` does.
  */
-const fake = () => {
+const fake = ({ serverAuthoritativeBreaking = false } = {}) => {
     const calls: string[] = [];
     const logged: string[] = [];
     const world = stub<World>({
         getPlayers: () => [],
         hitBlock: async (position, face) =>
             void calls.push(`hit ${position.getX()},${position.getY()},${position.getZ()} face ${face}`),
-        getBlock: async () => stub<Block>({ getBreakTime: () => 0 })
+        getBlock: async () => stub<Block>({ getBreakTime: () => 0 }),
+        startBlockCracking: async (position, face) => {
+            calls.push(`crack ${position.getX()},${position.getY()},${position.getZ()} face ${face}`);
+            return null;
+        },
+        breakBlock: async (position) => {
+            calls.push(`break ${position.getX()},${position.getY()},${position.getZ()}`);
+            return true;
+        }
     });
     const player = stub<Player>({
         isOnline: () => true,
@@ -51,11 +60,14 @@ const fake = () => {
         getWorld: () => world,
         // The crack animation reads the held item, so the break time is the
         // tool's rather than a fist's.
-        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() })
+        getInventory: () => stub<HumanInventory>({ getItemInHand: () => Item.air() }),
+        getMining: () => null,
+        setMining: () => {}
     });
     const session = stub<PlayerSession>({ getPlayer: () => player, sendMove: vi.fn(), recordInputTick: vi.fn() });
     const server = stub<Server>({
         post: () => 0,
+        getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking }),
         getLogger: () =>
             stub<Logger>({ verbose: () => {}, debug: (...message) => void logged.push(String(message[0] ?? '')) })
     });
@@ -131,8 +143,34 @@ describe('PlayerAuthInputHandler', () => {
 
         await new PlayerAuthInputHandler().handle(input(breaking), server, session);
 
-        // The start swings once and a crack swings again: two hits, both on the block named.
+        // With the client timing breaks, the start swings once and a crack swings again: two
+        // hits, both on the block named.
         expect(calls.filter((call) => call.startsWith('hit'))).toEqual(['hit 1,63,2 face 1', 'hit 1,63,2 face 1']);
+    });
+
+    it('cracks, swings and breaks in order when the server times breaks', async () => {
+        const { calls, session, server } = fake({ serverAuthoritativeBreaking: true });
+
+        await new PlayerAuthInputHandler().handle(
+            input((packet) => {
+                breaking(packet);
+                packet.blockActions?.push({
+                    action: PlayerActionType.PredictDestroyBlock,
+                    position: new BlockPosition(1, 63, 2),
+                    face: 1
+                });
+            }),
+            server,
+            session
+        );
+
+        // The start starts the cracks, a crack swings, and the predicted destroy breaks the
+        // block, as a client running server-authoritative block breaking reports it.
+        expect(calls.filter((call) => /^(crack|hit|break)/.test(call))).toEqual([
+            'crack 1,63,2 face 1',
+            'hit 1,63,2 face 1',
+            'break 1,63,2'
+        ]);
     });
 
     it('ignores block actions sent without the PerformBlockActions flag, and still moves', async () => {

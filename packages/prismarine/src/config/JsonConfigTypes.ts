@@ -64,6 +64,8 @@ export interface ConfigFile {
     'chunk-send-budget-ms'?: number;
     /** Whether positional packets only go to nearby players. */
     'proximity-broadcast'?: boolean;
+    /** Whether the server times block breaking, as a Bedrock Dedicated Server does. Off leaves it to the client. */
+    'server-authoritative-block-breaking'?: boolean;
     /** Chunks past view distance before an entity leaves a player's screen. @minimum 0 */
     'entity-tracking-hysteresis'?: number;
     /** Ticks between entity visibility passes. @asType integer @minimum 1 */

@@ -1,6 +1,7 @@
 import type { Vector3 } from '@jsprismarine/math';
 import type { LevelEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
+import type Player from '../Player';
 import type { Attribute } from '../entity/Attribute';
 import type { Entity } from '../entity/Entity';
 // TODO: `ActorEvent` belongs beside `LevelEvent` and `LevelSoundEvent` in
@@ -59,12 +60,13 @@ export interface WorldChangeSink {
     blockEntityChanged(position: Vector3, tags: NBTTagCompound): void;
 
     /**
-     * A block made a noise - it was placed, or broken.
+     * A block made a noise, such as a hit while it is mined.
      * @param {Vector3} position - Where it happened, at the center of the block.
      * @param {LevelSoundEvent} sound - Which noise.
      * @param {number} blockRuntimeId - The block that made it.
+     * @param {Player} [except] - A player who already hears it, because their own client plays it.
      */
-    blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number): void;
+    blockSound(position: Vector3, sound: LevelSoundEvent, blockRuntimeId: number, except?: Player): void;
 
     /**
      * A named sound played at a position.

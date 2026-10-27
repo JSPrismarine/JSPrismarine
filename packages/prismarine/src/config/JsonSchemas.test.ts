@@ -54,6 +54,7 @@ describe('JSON schemas', () => {
                 'preload-radius': 10,
                 'chunk-send-budget-ms': 5,
                 'proximity-broadcast': true,
+                'server-authoritative-block-breaking': true,
                 'entity-tracking-hysteresis': 2,
                 'entity-tracking-interval': 4,
                 'online-mode': false,

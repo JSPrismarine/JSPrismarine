@@ -1,5 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
+import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../Player';
@@ -9,6 +10,7 @@ import { stub } from '../testing/stub.test.helper';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { NetworkWorldReplicator } from './NetworkWorldReplicator';
+import type PlayerSession from './PlayerSession';
 
 /**
  * Who receives a positional packet.
@@ -133,6 +135,24 @@ describe('network', () => {
 
                 expect(replicator.getViewers(here, { exclude: near })).toEqual([]);
             });
+        });
+
+        it('leaves the player a block sound names out of it', () => {
+            // The one striking a block, whose client plays its own hits.
+            const heard: string[] = [];
+            const listener = (name: string) =>
+                stub<Player>({
+                    getPosition: () => new Position(8, 64, 8, stub<World>()),
+                    isOnline: () => true,
+                    viewDistance: 10,
+                    getNetworkSession: () => stub<PlayerSession>({ send: async () => void heard.push(name) })
+                });
+            const striker = listener('striker');
+            const { replicator } = fakeWorld({ players: [striker, listener('neighbor')] });
+
+            replicator.blockSound(here, LevelSoundEvent.HIT, 0, striker);
+
+            expect(heard).toEqual(['neighbor']);
         });
     });
 });

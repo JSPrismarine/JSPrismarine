@@ -41,6 +41,7 @@ import { Dimensions, maxY } from './Dimension';
 import { placePlayerSpawn } from './SpawnPlacement';
 import BlockPhysics from './physics/BlockPhysics';
 import type { DimensionDefinition } from './Dimension';
+import type { BlockMining } from './BlockMining';
 import type { LevelData, WorldConfig, WorldPlayerData } from '../config/JsonConfigTypes';
 import { Position } from './Position';
 import type { PlayerSpawn, RelocationOffset } from './SpawnPlacement';
@@ -1136,21 +1137,113 @@ export class World implements Service {
      * that is the progress overlay - it draws the cracks spreading and makes no sound at all,
      * which is why digging was silent until the block gave way.
      *
-     * The material comes from the runtime id, the same way the break sound gets it: the client
-     * looks the block up and plays whatever that block is made of.
+     * The material comes from the runtime id, the same way a break's destroy event gets it: the
+     * client looks the block up and plays whatever that block is made of.
+     *
+     * The sound goes to everyone near but the one striking, whose client plays its own hits in
+     * either breaking mode. A Bedrock Dedicated Server 1.26.52 sends the striker none. This one
+     * reached them too, and with their client's own hits it sounded like digging at several
+     * times the speed.
      * @param {Vector3} position - The block being struck.
      * @param {number} face - Which side was hit; the chips come off that one.
+     * @param {Player} [striker] - Who is striking it, when a player is.
      */
-    public async hitBlock(position: Vector3, face: number): Promise<void> {
+    public async hitBlock(position: Vector3, face: number, striker?: Player): Promise<void> {
         const state = await this.getBlockState(position.getX(), position.getY(), position.getZ());
         if (state.name === 'minecraft:air') return;
 
         const runtimeId = BlockRuntimeIds.get(state);
 
-        this.changes.blockSound(position, LevelSoundEvent.HIT, runtimeId);
+        this.changes.blockSound(position, LevelSoundEvent.HIT, runtimeId, striker);
 
         const particles = CRACK_PARTICLES[face];
         if (particles !== undefined) await this.sendWorldEvent(position, particles, runtimeId);
+    }
+
+    /**
+     * Starts the crack animation on a block a player began mining, as a Bedrock Dedicated
+     * Server does with server-authoritative block breaking.
+     *
+     * The cracks on whatever the player mined before stop first, then start on this block with
+     * the progress a tick is worth. They continue every tick through
+     * {@link World.updateBlockCracking} until the block breaks or the player stops.
+     * @param {Vector3} position - The block being mined.
+     * @param {number} face - The face being mined, which decides where the particles fly.
+     * @param {Item | null} tool - What the player holds, or null for a bare hand.
+     * @param {BlockMining | null} previous - What the player was mining until now.
+     * @returns {Promise<BlockMining | null>} What the player is mining now, or null for air and
+     * for a block that breaks at once, which have nothing to animate.
+     */
+    public async startBlockCracking(
+        position: Vector3,
+        face: number,
+        tool: Item | null,
+        previous: BlockMining | null
+    ): Promise<BlockMining | null> {
+        if (previous !== null) await this.stopBlockCracking(previous.position);
+
+        const state = await this.getBlockState(position.getX(), position.getY(), position.getZ());
+        if (state.name === 'minecraft:air') return null;
+
+        const block = await this.getBlock(position.getX(), position.getY(), position.getZ());
+        const breakTicks = Math.ceil(block.getBreakTime(tool, this.server) * 20);
+
+        // A block that gives way instantly has no progress to animate, and the 65535/0 the
+        // client would be handed is not a number this event can carry.
+        if (breakTicks <= 0) return null;
+
+        const mining: BlockMining = {
+            position,
+            face,
+            runtimeId: BlockRuntimeIds.get(state),
+            // The client is told how much progress a tick is worth, not how long the block takes.
+            progressPerTick: Math.floor(65535 / breakTicks)
+        };
+
+        await this.sendWorldEvent(position, LevelEvent.START_BLOCK_CRACKING, mining.progressPerTick);
+        return mining;
+    }
+
+    /**
+     * One tick of mining: the particles off the face being mined, then the crack progress.
+     *
+     * A Bedrock Dedicated Server sends this pair every tick for as long as a block is being
+     * mined. The particles leave from the block's center and carry its runtime id, which the
+     * client textures them with. The progress goes to the block's corner, like the start and
+     * the stop.
+     *
+     * The block can change while it is mined: another player breaks it, or a command or a flood
+     * replaces it. The cracks belonged to the block that was there, so they stop with it.
+     * @param {BlockMining} mining - What is being mined.
+     * @returns {Promise<boolean>} False when the block is no longer the one being mined, in
+     * which case its cracks were stopped and nothing else was sent.
+     */
+    public async updateBlockCracking(mining: BlockMining): Promise<boolean> {
+        const { position, face, runtimeId, progressPerTick } = mining;
+
+        if (this.loadedBlockRuntimeIdAt(position.getX(), position.getY(), position.getZ()) !== runtimeId) {
+            await this.stopBlockCracking(position);
+            return false;
+        }
+
+        const particles = CRACK_PARTICLES[face];
+        if (particles !== undefined) {
+            await this.sendWorldEvent(
+                new Vector3(position.getX() + 0.5, position.getY() + 0.5, position.getZ() + 0.5),
+                particles,
+                runtimeId
+            );
+        }
+        await this.sendWorldEvent(position, LevelEvent.UPDATE_BLOCK_CRACKING, progressPerTick);
+        return true;
+    }
+
+    /**
+     * Ends the crack animation on a block, as when the player stops mining it or moves on.
+     * @param {Vector3} position - The block.
+     */
+    public async stopBlockCracking(position: Vector3): Promise<void> {
+        await this.sendWorldEvent(position, LevelEvent.STOP_BLOCK_CRACKING, 0);
     }
 
     /**
@@ -1406,12 +1499,13 @@ export class World implements Service {
      * plays the break where it stood.
      *
      * Deliberately idempotent - a position already holding air is left alone and reported as
-     * `false`. Breaking is client authoritative here (`StartGamePacket` announces server
-     * authoritative block breaking as off), and *which* packet announces a break depends on
-     * the game mode: survival sends an InventoryTransaction - on its own or inside the tick's
-     * `PlayerAuthInputPacket` - creative a PlayerAction, and a client is free to send both. Rather than guess which one to trust per mode, every
-     * route calls this, and whichever arrives second finds the work already done. That is
-     * what keeps the break from sounding twice.
+     * `false`. *Which* packet announces a break depends on the breaking mode and the game mode.
+     * With server-authoritative block breaking, the default, survival reports a
+     * `PREDICT_DESTROY_BLOCK` in the tick's `PlayerAuthInputPacket`. With the client timing
+     * breaks, survival sends an InventoryTransaction, on its own or inside the input. Creative
+     * sends a PlayerAction in either mode, and a client is free to send more than one. Rather
+     * than guess which one to trust, every route calls this, and whichever arrives second finds
+     * the work already done. That is what keeps the break from sounding twice.
      * @param {Vector3} position - the block to destroy.
      * @param {Player} [player] - who broke it, when a player did. Decides what it drops.
      * @returns {boolean} `true` if a block was there and is now gone.
@@ -1448,16 +1542,13 @@ export class World implements Service {
         // chance to react. That is the whole of what makes breaking a block have consequences.
         await this.setBlockByName(x, y, z, 'minecraft:air');
 
-        // Played at the block. Played at the breaking player, as it once was, it reached the
-        // one listener who did not need telling where it happened at zero distance, and
-        // everyone else in the wrong place entirely.
-        this.changes.blockSound(new Vector3(x, y, z), LevelSoundEvent.BREAK, brokenRuntimeId);
-
-        // The silent variant of the destroy event: the sound is the packet above, and the
-        // ordinary one would play it a second time.
+        // One event at the block's center for the particles and the sound together, which the
+        // client resolves from the runtime id. This is what a Bedrock Dedicated Server 1.26.52
+        // sends for a break. It used to be a `LevelSoundEvent` plus the silent variant of this
+        // event, which the client renders the same way and a packet comparison with BDS does not.
         await this.sendWorldEvent(
             new Vector3(x + 0.5, y + 0.5, z + 0.5),
-            LevelEvent.PARTICLES_DESTROY_BLOCK_NO_SOUND,
+            LevelEvent.PARTICLES_DESTROY_BLOCK,
             brokenRuntimeId
         );
 

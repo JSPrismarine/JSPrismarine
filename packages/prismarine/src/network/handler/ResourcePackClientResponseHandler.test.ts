@@ -43,7 +43,8 @@ const harness = ({
     cancelSpawn = false,
     content = fixtureJoinPayloads().content,
     joinSpawn = null,
-    spawn = new Vector3(0, 64, 0)
+    spawn = new Vector3(0, 64, 0),
+    serverAuthoritativeBreaking = true
 }: {
     cancelSpawn?: boolean;
     /** The content build whose registries the join burst writes from. */
@@ -52,6 +53,8 @@ const harness = ({
     joinSpawn?: PlayerSpawn | null;
     /** The world spawn `getSpawnPosition` answers with. */
     spawn?: Vector3;
+    /** The `server-authoritative-block-breaking` setting. */
+    serverAuthoritativeBreaking?: boolean;
 } = {}) => {
     const sent: string[] = [];
     /** The packets written straight to the connection, for the tests that read their fields. */
@@ -111,7 +114,12 @@ const harness = ({
     const server = stub<Server>({
         getLogger: () => stub<Logger>({ info: () => {}, warn: () => {}, error: () => {}, debug }),
         getContent: () => content,
-        getConfig: () => stub<Config>({ getGamemode: () => 'survival', getDifficulty: () => 1 }),
+        getConfig: () =>
+            stub<Config>({
+                getGamemode: () => 'survival',
+                getDifficulty: () => 1,
+                getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking
+            }),
         getTick: () => 100,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         post: ([, event]: [string, Event]) => {
@@ -281,6 +289,21 @@ describe('ResourcePackClientResponseHandler', () => {
         // empty list where the captured path would have sent all 98.
         const startGame = packets.find((packet) => packet instanceof StartGamePacket);
         expect(startGame?.blockProperties).toEqual([]);
+    });
+
+    it('announces the block breaking mode the config chose in StartGame', async () => {
+        for (const serverAuthoritativeBreaking of [true, false]) {
+            const { packets, server, session } = harness({ serverAuthoritativeBreaking });
+
+            await new ResourcePackClientResponseHandler().handle(
+                response(ResourcePackStatusType.Completed),
+                server,
+                session
+            );
+
+            const startGame = packets.find((packet) => packet instanceof StartGamePacket);
+            expect(startGame?.serverAuthoritativeBlockBreaking).toBe(serverAuthoritativeBreaking);
+        }
     });
 
     it('sends the content build item registry', async () => {

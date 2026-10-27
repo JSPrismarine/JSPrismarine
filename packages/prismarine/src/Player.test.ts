@@ -31,6 +31,8 @@ import UUID from './utils/UUID';
 import type { ChunkScheduler } from './world/ChunkScheduler';
 import type GameRuleManager from './world/GameRuleManager';
 import { Position } from './world/Position';
+import type SessionManager from './SessionManager';
+import type { BlockMining } from './world/BlockMining';
 import type { World } from './world/World';
 import { testContent } from './testing/entityServer';
 
@@ -41,6 +43,12 @@ import { testContent } from './testing/entityServer';
  */
 const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     const sent: any[] = [];
+    /** Every tick of crack animation the player asked the world for. */
+    const cracked: BlockMining[] = [];
+    /** Every block whose cracks the player asked the world to stop. */
+    const stopped: Vector3[] = [];
+    /** Whether the mined block is still the one being mined, as the world answers each tick. */
+    const mined = { stays: true };
     const events: any[] = [];
     const actorEvents: number[] = [];
     const actorSounds: number[] = [];
@@ -54,6 +62,10 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getTick: () => 0,
         getConsoleSender: () => stub<ConsoleSender>({ getFormattedUsername: () => 'Console' }),
         getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
+        // What leaving and a change of game mode tell everyone else.
+        getSessionManager: () => stub<SessionManager>({ getPlayerList: () => new Map(), getAllPlayers: () => [] }),
+        broadcastPacket: async () => {},
+        removeListener: () => server,
         getChunkScheduler: () => stub<ChunkScheduler>({ add: () => {}, remove: () => {} }),
         getPermissionManager: () => stub<PermissionManager>({ getPermissions: async () => [], isOp }),
         // A login looks for the player's record in every loaded world, each world keeping its
@@ -90,7 +102,13 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
         getGameRuleManager: () => stub<GameRuleManager>({ getGameRule: () => [true, true] }),
         getBlock: async () => stub<Block>({ getName: () => (underwater ? 'minecraft:water' : 'minecraft:air') }),
         sendActorEvent: async (_entity, event) => void actorEvents.push(event),
-        sendActorSound: async (_entity, sound) => void actorSounds.push(sound)
+        sendActorSound: async (_entity, sound) => void actorSounds.push(sound),
+        savePlayerData: async () => {},
+        updateBlockCracking: async (mining) => {
+            cracked.push(mining);
+            return mined.stays;
+        },
+        stopBlockCracking: async (position) => void stopped.push(position)
     });
 
     const connection = stub<ClientConnection>({
@@ -120,7 +138,7 @@ const fakePlayer = ({ underwater = false }: { underwater?: boolean } = {}) => {
     // `update` does nothing for a player who never finished joining.
     player['connected'] = true;
 
-    return { player, sent, events, actorEvents, actorSounds, disconnects, isOp };
+    return { player, sent, events, actorEvents, actorSounds, disconnects, isOp, cracked, stopped, mined };
 };
 
 /** Runs `n` ticks, the way the world does. */
@@ -573,6 +591,66 @@ describe('Player', () => {
             await player.respawn();
 
             expect(sent.filter((packet) => packet instanceof RespawnPacket)).toHaveLength(0);
+        });
+    });
+
+    describe('mining', () => {
+        const mining: BlockMining = { position: new Vector3(2, 57, 16), face: 5, runtimeId: 1, progressPerTick: 5461 };
+        const elsewhere = () =>
+            stub<World>({
+                getName: () => 'other',
+                addEntity: async () => {},
+                getDimension: () => ({ name: 'minecraft:the_nether' }) as never
+            });
+
+        it('animates the cracks every tick while a block is being mined, and stops after', async () => {
+            const { player, cracked } = fakePlayer();
+
+            player.setMining(mining);
+            await tick(player, 3);
+            player.setMining(null);
+            await tick(player, 2, 4);
+
+            expect(cracked).toEqual([mining, mining, mining]);
+        });
+
+        it('forgets the block once the world says it is not the one being mined any more', async () => {
+            // Somebody else broke it. The world stopped its cracks; the player stops asking.
+            const { player, cracked, mined } = fakePlayer();
+            mined.stays = false;
+
+            player.setMining(mining);
+            await tick(player, 3);
+
+            expect(cracked).toEqual([mining]);
+            expect(player.getMining()).toBeNull();
+        });
+
+        it.each([
+            ['disconnects', (player: Player) => player.disable()],
+            ['dies', (player: Player) => player.setHealth(0)],
+            ['changes game mode', (player: Player) => player.setGamemode(Gametype.CREATIVE)],
+            ['changes world', (player: Player) => player.setWorld(elsewhere())]
+        ])('stops the cracks when the player %s, rather than sending them every tick for good', async (_, end) => {
+            const { player, stopped } = fakePlayer();
+            player.gamemode = Gametype.SURVIVAL;
+            player.setMining(mining);
+
+            await end(player);
+
+            expect(stopped).toEqual([mining.position]);
+            expect(player.getMining()).toBeNull();
+        });
+
+        it('keeps mining through a game mode set to the one the player is in', async () => {
+            const { player, stopped } = fakePlayer();
+            player.gamemode = Gametype.SURVIVAL;
+            player.setMining(mining);
+
+            await player.setGamemode(Gametype.SURVIVAL);
+
+            expect(stopped).toEqual([]);
+            expect(player.getMining()).toBe(mining);
         });
     });
 

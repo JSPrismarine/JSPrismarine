@@ -8,6 +8,7 @@ vi.hoisted(() => vi.resetModules());
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import type { Config } from '../../config/Config';
 import { loose } from '../../entity/Archery';
 import { meleeAttack } from '../../entity/Combat';
 import type { Entity } from '../../entity/Entity';
@@ -64,7 +65,11 @@ const TICK = 400;
  * The inventory is a real one, because the point of half these tests is that the server's
  * copy of the hand decides what happens and not the item the client sent.
  */
-const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name: 'minecraft:stone' })) => {
+const fake = (
+    gamemode = Gametype.SURVIVAL,
+    held: Item = new Item({ id: 1, name: 'minecraft:stone' }),
+    { serverAuthoritativeBreaking = false } = {}
+) => {
     const broken: BlockPosition[] = [];
     const logged: string[] = [];
     const itemUse: string[] = [];
@@ -114,6 +119,7 @@ const fake = (gamemode = Gametype.SURVIVAL, held: Item = new Item({ id: 1, name:
 
     const server = stub<Server>({
         getTick: () => TICK,
+        getConfig: () => stub<Config>({ getServerAuthoritativeBlockBreaking: () => serverAuthoritativeBreaking }),
         // The two-block fixture. Nothing here reads it, since the click itself is recorded
         // rather than run, but the handler hands it on.
         getContent: () => testContent(),
@@ -344,7 +350,7 @@ describe('InventoryTransactionHandler', () => {
         ]);
     });
 
-    it('breaks a nearby block when survival says it did', async () => {
+    it('breaks a nearby block when survival says it did, with the client timing breaks', async () => {
         const world = fake();
 
         await handle(
@@ -353,6 +359,22 @@ describe('InventoryTransactionHandler', () => {
         );
 
         expect(world.broken).toEqual([new BlockPosition(0, 62, 0)]);
+    });
+
+    it('breaks nothing on a transaction when the server times breaks', async () => {
+        // The client reports a break as `PREDICT_DESTROY_BLOCK` in that mode. A transaction
+        // saying a block broke skipped the mining the server is timing.
+        const world = fake(Gametype.SURVIVAL, undefined, { serverAuthoritativeBreaking: true });
+
+        await handle(
+            transaction(TransactionType.USE_ITEM, useItem({ actionType: ItemUseActionType.DESTROY, blockFace: 255 })),
+            world
+        );
+
+        expect(world.broken).toEqual([]);
+        expect(world.logged).toEqual([
+            'verbose: Dropped a block break transaction from tester: block breaking is server-authoritative'
+        ]);
     });
 
     it('starts the bow clock on a click at nothing, and only for a bow', async () => {
