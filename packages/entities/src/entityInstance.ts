@@ -661,6 +661,11 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         this.trigger(view === undefined ? 'minecraft:on_target_escape' : 'minecraft:on_target_acquired');
     }
 
+    /** Dispatches an attack to the active components. */
+    public notifyAttack(target: FilterEntityView): void {
+        this.dispatch('onAttack', this, target);
+    }
+
     /** Asks the world to carry out one `minecraft:angry.broadcast_anger` request. */
     public broadcastAnger(request: EntityAngerBroadcast): void {
         if (this.environment.broadcastAnger === undefined) {

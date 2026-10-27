@@ -7,7 +7,7 @@ import { splitSpawnReference } from '../eventEngine';
 import type { EventTarget } from '../events';
 import { parseEventTarget } from '../events';
 import { damagerSubjects } from '../filterContext';
-import type { FilterItemView } from '../filterContext';
+import type { FilterEntityView, FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
 import type { EntityAddItemsRequest, EntityItemInteractionEffect, EntitySpawnItemsRequest } from '../hooks';
@@ -143,6 +143,7 @@ export interface IgnoreCannotBeAttackedParams {
 }
 
 const attackExceptions = new WeakMap<EntityInstance, Filter | undefined>();
+const angryAttackFilters = new WeakMap<EntityInstance, Filter | undefined>();
 
 /** `minecraft:ignore_cannot_be_attacked`, with its exception filter scoped to the active component. */
 export const ignoreCannotBeAttacked: ComponentFactory<EntityHooks, IgnoreCannotBeAttackedParams> = {
@@ -160,17 +161,23 @@ export const ignoreCannotBeAttacked: ComponentFactory<EntityHooks, IgnoreCannotB
     })
 };
 
-/** Whether the attacker may damage the target under the attack-protection components. */
-export const canEntityAttack = (attacker: EntityInstance, target: EntityInstance): boolean => {
-    if (!target.hasComponent('minecraft:cannot_be_attacked')) return true;
-    if (!attackExceptions.has(attacker)) return false;
+/** Whether the attacker may damage a target view under the active attack filters. */
+export const canEntityAttackView = (attacker: EntityInstance, target: FilterEntityView): boolean => {
+    if (target.hasComponent?.('minecraft:cannot_be_attacked') === true) {
+        if (!attackExceptions.has(attacker)) return false;
 
-    const filters = attackExceptions.get(attacker);
-    return (
-        filters === undefined ||
-        evaluateFilter(filters, { ...attacker.filterContext(), other: target.filterContext().self })
-    );
+        const exceptions = attackExceptions.get(attacker);
+        if (exceptions !== undefined && !evaluateFilter(exceptions, { ...attacker.filterContext(), other: target }))
+            return false;
+    }
+
+    const filters = angryAttackFilters.get(attacker);
+    return filters === undefined || !evaluateFilter(filters, { ...attacker.filterContext(), other: target });
 };
+
+/** Whether the attacker may damage the entity under the active attack filters. */
+export const canEntityAttack = (attacker: EntityInstance, target: EntityInstance): boolean =>
+    canEntityAttackView(attacker, target.filterContext().self);
 
 /** What `minecraft:loot` declares. */
 export interface LootParams {
@@ -1544,7 +1551,18 @@ export interface AngryParams {
     readonly calm?: SensorTrigger;
     /** Whether anger spreads to nearby matching entities. */
     readonly broadcastAnger: boolean;
+    /** Whether this entity broadcasts anger when it attacks. */
+    readonly broadcastAngerOnAttack: boolean;
+    /** Whether this entity broadcasts anger when another entity attacks it. */
+    readonly broadcastAngerOnBeingAttacked: boolean;
+    /** Whether this entity broadcasts anger when it dies; defaults to true. */
+    readonly broadcastAngerWhenDying: boolean;
     readonly broadcastRange: number;
+    /** A mob that passes this filter is excluded from attack targets while this component is active. */
+    readonly filters?: Filter;
+    readonly angrySound?: string;
+    /** Integer seconds between repeated angry sounds; a zero interval disables repeats. */
+    readonly soundInterval: readonly [number, number];
     readonly broadcastFilters?: Filter;
     /** Entity families that receive the anger; omitted means the same entity type. */
     readonly broadcastTargets?: readonly string[];
@@ -1555,16 +1573,24 @@ export interface AngryParams {
  *
  * The component counts the anger down and fires `calm_event` when it runs out,
  * which is what takes the angry group back off. `broadcast_anger` asks the
- * world to notify nearby matching entities when this component becomes active.
+ * world to notify nearby matching entities when anger starts, the mob attacks,
+ * it is attacked, or it dies. Its filters exclude targets and its angry sound
+ * repeats on the configured interval.
  *
  * The bee and the dolphin write the pre-rename `broadcastAnger` and
  * `broadcastRange`, so both spellings read.
  */
 export const angry: ComponentFactory<EntityHooks, AngryParams> = {
     name: 'minecraft:angry',
-    hooks: ['onInitialize', 'onRemove', 'onTick', 'onFriendlyAnger'],
+    hooks: ['onInitialize', 'onRemove', 'onTick', 'onFriendlyAnger', 'onAttack', 'onDamageProcessed'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
+        let filters: Filter | undefined;
+        if (value.filters !== undefined) {
+            const parsed = parseFilterValue(value.filters, 'minecraft:angry filters');
+            if (!parsed.ok) return parsed;
+            filters = parsed.value;
+        }
         let broadcastFilters: Filter | undefined;
         if (value.broadcast_filters !== undefined) {
             const parsed = parseFilterValue(value.broadcast_filters, 'minecraft:angry broadcast_filters');
@@ -1588,33 +1614,85 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
             durationDelta: numberAt(value, 'duration_delta', 0),
             calm: parseComponentTrigger(value.calm_event),
             broadcastAnger: booleanAt(value, 'broadcast_anger', booleanAt(value, 'broadcastAnger', false)),
+            broadcastAngerOnAttack: booleanAt(value, 'broadcast_anger_on_attack', false),
+            broadcastAngerOnBeingAttacked: booleanAt(value, 'broadcast_anger_on_being_attacked', false),
+            broadcastAngerWhenDying: booleanAt(value, 'broadcast_anger_when_dying', true),
             broadcastRange: numberAt(value, 'broadcast_range', numberAt(value, 'broadcastRange', 20)),
+            filters,
+            angrySound: stringAt(value, 'angry_sound'),
+            soundInterval: parseTimeRange(value.sound_interval),
             broadcastFilters,
             broadcastTargets
         });
     },
     create: (params) => {
         const states = new WeakMap<EntityInstance, IntervalState>();
+        const soundStates = new WeakMap<EntityInstance, IntervalState>();
         const pendingBroadcasts = new WeakSet<EntityInstance>();
+        const soundInterval = (entity: EntityInstance): number => {
+            const [first, second] = params.soundInterval;
+            const min = Math.max(0, Math.ceil(Math.min(first, second)));
+            const max = Math.max(min, Math.floor(Math.max(first, second)));
+            return max === min ? min : min + Math.floor(entity.random.next() * (max - min + 1));
+        };
+        const playSound = (entity: EntityInstance): void => {
+            if (params.angrySound === undefined) return;
+            if (!entity.perform({ name: 'play_sound', sound: params.angrySound }))
+                entity.report(`minecraft:angry cannot play sound ${params.angrySound}, which nothing handles`);
+        };
+        const broadcast = (entity: EntityInstance, target?: FilterEntityView): void => {
+            entity.broadcastAnger({
+                range: params.broadcastRange,
+                ...(params.broadcastFilters === undefined ? {} : { filters: params.broadcastFilters }),
+                ...(params.broadcastTargets === undefined ? {} : { targets: params.broadcastTargets }),
+                ...(target === undefined ? {} : { target })
+            });
+        };
         const restart = (entity: EntityInstance): void => {
             const delta = params.durationDelta * (entity.random.next() * 2 - 1);
             states.set(entity, { remaining: Math.round((params.duration + delta) * TICKS_PER_SECOND) });
+            angryAttackFilters.set(entity, params.filters);
+            soundStates.delete(entity);
+            if (params.angrySound !== undefined) {
+                playSound(entity);
+                const interval = soundInterval(entity);
+                if (interval > 0) soundStates.set(entity, { remaining: interval * TICKS_PER_SECOND });
+            }
             if (params.broadcastAnger) pendingBroadcasts.add(entity);
         };
         return {
             onInitialize: restart,
             onFriendlyAnger: restart,
+            onAttack: (entity, target) => {
+                if (params.broadcastAngerOnAttack) broadcast(entity, target);
+            },
+            onDamageProcessed: (entity, damage, result) => {
+                if (result.died) {
+                    pendingBroadcasts.delete(entity);
+                    if (params.broadcastAngerWhenDying) broadcast(entity, damage.damager);
+                    return;
+                }
+                if (params.broadcastAngerOnBeingAttacked && damage.damager !== undefined)
+                    broadcast(entity, damage.damager);
+            },
             onRemove: (entity) => {
                 states.delete(entity);
+                soundStates.delete(entity);
                 pendingBroadcasts.delete(entity);
+                angryAttackFilters.delete(entity);
             },
             onTick: (entity) => {
-                if (pendingBroadcasts.delete(entity))
-                    entity.broadcastAnger({
-                        range: params.broadcastRange,
-                        ...(params.broadcastFilters === undefined ? {} : { filters: params.broadcastFilters }),
-                        ...(params.broadcastTargets === undefined ? {} : { targets: params.broadcastTargets })
-                    });
+                if (pendingBroadcasts.delete(entity)) broadcast(entity);
+                const sound = soundStates.get(entity);
+                if (sound !== undefined) {
+                    sound.remaining -= 1;
+                    if (sound.remaining <= 0) {
+                        playSound(entity);
+                        const interval = soundInterval(entity);
+                        if (interval > 0) sound.remaining = interval * TICKS_PER_SECOND;
+                        else soundStates.delete(entity);
+                    }
+                }
                 const state = states.get(entity);
                 if (state === undefined) return;
                 state.remaining -= 1;

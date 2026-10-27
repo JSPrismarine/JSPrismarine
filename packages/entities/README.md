@@ -182,8 +182,8 @@ and the `other` filter subjects.
 
 `minecraft:cannot_be_attacked` blocks attacks from entities. An attacker can carry
 `minecraft:ignore_cannot_be_attacked` to allow all targets, or only targets passing its `filters`.
-The runtime applies that rule during target selection and entity melee, projectile, and explosion
-damage.
+`minecraft:angry.filters` excludes matching targets while that component is active. The runtime
+applies both rules during entity target checks, melee, projectile, and explosion damage.
 
 The eleven `minecraft:on_*` components fire through `EntityInstance.trigger`, which evaluates the
 component's own filters, queues a `self` event for the next tick and routes any other target. Five
@@ -212,7 +212,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:spawn_entity` | Counts down each configured entry, then spawns its item or entity, honoring filters, count, event, sound, and `single_use` |
 | `minecraft:ageable` | Counts `duration` down, advances the remaining time by matching `feed_items` and their `growth`, pauses or resets it through the configured items and events, applies `result_item`, drops `drop_items` on growth, honors `interact_filters`, and raises `grow_up` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_ageable?view=minecraft-bedrock-stable)) |
 | `minecraft:interact` | Applies `on_interact.filters` and events, enforces cooldowns, plays `play_sounds`, emits the declared `vibration` game event, adjusts health by `health_amount`, adds `add_items` loot to the player's inventory, returns `spawn_items` loot-table requests and drop offsets to the host, and applies `hurt_item`, `use_item`, and `transform_to_item` through the live player's inventory; other fields still report as unsupported ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_interact?view=minecraft-bedrock-stable)) |
-| `minecraft:angry` | Counts the anger down over `duration` plus or minus `duration_delta`, raises `calm_event`, and broadcasts to nearby matching entities when activated |
+| `minecraft:angry` | Counts down over `duration` plus or minus `duration_delta`, raises `calm_event`, excludes targets with `filters`, broadcasts on activation, attack, being attacked, or death as configured, and plays `angry_sound` on its `sound_interval` ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_angry?view=minecraft-bedrock-stable)) |
 | `minecraft:environment_sensor` | Evaluates its triggers against the world every tick |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |

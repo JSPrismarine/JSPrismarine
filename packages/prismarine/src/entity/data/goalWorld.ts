@@ -12,7 +12,7 @@
  * until the runtime can answer it, rather than quietly putting 52 goals to
  * sleep.
  */
-import { canEntityAttack } from '@jsprismarine/entities';
+import { canEntityAttack, canEntityAttackView } from '@jsprismarine/entities';
 import type { EntityActuator, EntityPosition, FilterEntityView } from '@jsprismarine/entities';
 import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/entity-goals';
 
@@ -122,7 +122,14 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         isAttackable: (mob) => {
             if (mob.identifier?.() === 'minecraft:player' && typeof mob.id === 'number') {
                 const player = scene.host.players().find((candidate) => candidate.id === mob.id);
-                return player !== undefined && player.creative !== true && player.spectator !== true;
+                const attacker = scene.byId(entity.id);
+                return (
+                    player !== undefined &&
+                    player.creative !== true &&
+                    player.spectator !== true &&
+                    attacker !== undefined &&
+                    canEntityAttackView(attacker.instance, mob.view())
+                );
             }
 
             if (typeof mob.id !== 'number') return true;

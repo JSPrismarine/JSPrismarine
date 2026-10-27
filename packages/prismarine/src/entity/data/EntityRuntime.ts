@@ -34,6 +34,7 @@ import type {
 } from '@jsprismarine/entities';
 import {
     canEntityAttack,
+    canEntityAttackView,
     EntityInstance,
     EVENT_TARGETS,
     evaluateFilter,
@@ -935,16 +936,25 @@ export class EntityRuntime implements EntityScene {
         const damage = attacker.facts.attackDamage;
 
         const other = this.entities.get(target.id);
+        const hurtPlayer = this.host.hurt;
+        if (other === undefined && hurtPlayer === undefined) {
+            this.report(`${attacker.identifier} hit entity ${target.id}, which nothing routes damage to`);
+            return;
+        }
+
+        const attackerEntity = this.entities.get(attacker.id);
+        const targetView = target.view();
+        if (attackerEntity !== undefined) {
+            if (!canEntityAttackView(attackerEntity.instance, targetView)) return;
+            attackerEntity.instance.notifyAttack(targetView);
+        }
+
         if (other !== undefined) {
             this.hurt(other, attacker.id, 'entity_attack', damage);
             return;
         }
 
-        if (this.host.hurt === undefined) {
-            this.report(`${attacker.identifier} hit entity ${target.id}, which nothing routes damage to`);
-            return;
-        }
-        this.host.hurt(target.id, damage, 'entity_attack', attacker.id);
+        hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
     }
 
     /**
@@ -990,13 +1000,19 @@ export class EntityRuntime implements EntityScene {
         if (broadcaster === undefined) return;
 
         const families = request.targets;
-        let targetId: number | undefined = broadcaster.target;
+        const requestedTargetId = request.target?.id?.();
+        let targetId: number | undefined =
+            typeof requestedTargetId === 'number'
+                ? requestedTargetId
+                : request.target === undefined
+                  ? broadcaster.target
+                  : undefined;
         let target = targetId === undefined ? undefined : this.mobById(targetId);
-        if (target === undefined) {
+        if (target === undefined && request.target === undefined) {
             targetId = broadcaster.body.damage.last()?.sourceId;
             target = targetId === undefined ? undefined : this.mobById(targetId);
         }
-        const targetView = target?.view();
+        const targetView = target?.view() ?? request.target;
         const sourceView = source.filterContext().self;
         const angerGroups = source
             .activeComponentGroups()
@@ -1034,11 +1050,9 @@ export class EntityRuntime implements EntityScene {
             }
 
             if (targetId !== undefined && targetView !== undefined) {
-                const targetEntity = this.entities.get(targetId);
-                if (targetEntity !== undefined && !canEntityAttack(candidate.instance, targetEntity.instance)) continue;
-
                 const targetPlayer = this.host.players().find((player) => player.id === targetId);
                 if (targetPlayer?.creative === true || targetPlayer?.spectator === true) continue;
+                if (!canEntityAttackView(candidate.instance, targetView)) continue;
 
                 candidate.target = targetId;
                 candidate.instance.setAttackTarget(targetView);

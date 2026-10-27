@@ -1330,6 +1330,42 @@ describe('EntityRuntime', () => {
             expect(brainWorld.isAttackable(brainBody, brainPlayer)).toBe(false);
         });
 
+        it('applies minecraft:angry.filters to player attack targets', () => {
+            const player = {
+                id: 99,
+                identifier: 'minecraft:player',
+                position: { x: 2.5, y: FLOOR_Y + 1, z: 0.5 },
+                creative: false,
+                spectator: false
+            };
+            const world = new TestEntityWorld({ players: [player] });
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:angry_hunter': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:angry': {
+                                filters: { test: 'is_family', subject: 'other', value: 'player' }
+                            }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:angry_hunter', GROUND);
+            const playerMob = runtime.mobById(player.id);
+            if (attacker === undefined || playerMob === undefined)
+                throw new Error('the fixture cannot resolve the angry hunter and player');
+            const goalWorld = runtime.goalWorldFor(attacker.instance);
+            if (goalWorld === undefined) throw new Error('the angry hunter has no goal world');
+            if (goalWorld.isAttackable === undefined) throw new Error('the goal world cannot check attackability');
+
+            expect(goalWorld.isAttackable(playerMob)).toBe(false);
+            runtime.attack(attacker.body, playerMob);
+            expect(world.hits).toEqual([]);
+        });
+
         it('ignores creative players and drops a target when a player switches to creative', () => {
             const player = {
                 id: 99,
@@ -1501,6 +1537,40 @@ describe('EntityRuntime', () => {
 
             expect(victim!.instance.attributes.get('health')?.current).toBe(8);
             expect(victim!.body.damage.last()?.sourceId).toBe(attacker!.id);
+        });
+
+        it('shares the attacked target through minecraft:angry.broadcast_anger_on_attack', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:angry_mob': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:type_family': { family: ['mob'] },
+                            'minecraft:angry': { broadcast_anger_on_attack: true, broadcast_range: 16 }
+                        }
+                    },
+                    'jsprismarine:attack_target': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:type_family': { family: ['target'] }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:angry_mob', GROUND);
+            const receiver = runtime.spawn('jsprismarine:angry_mob', { ...GROUND, x: 1 });
+            const target = runtime.spawn('jsprismarine:attack_target', { ...GROUND, x: 2 });
+            if (attacker === undefined || receiver === undefined || target === undefined)
+                throw new Error('the fixture declares no anger-broadcast entities');
+            const targetMob = runtime.mobById(target.id);
+            if (targetMob === undefined) throw new Error('the fixture cannot resolve the attack target');
+
+            runtime.attack(attacker.body, targetMob);
+
+            expect(receiver.target).toBe(target.id);
+            expect(receiver.instance.attackTarget?.id?.()).toBe(target.id);
         });
 
         it('removes a lethal hit immediately when no death event was queued', () => {

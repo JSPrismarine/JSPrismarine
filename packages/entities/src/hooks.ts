@@ -27,6 +27,8 @@ export interface EntityAngerBroadcast {
     readonly filters?: Filter;
     /** Families that receive the broadcast; omitted means the broadcaster's entity type. */
     readonly targets?: readonly string[];
+    /** The entity that caused the broadcast, which candidates may target. */
+    readonly target?: FilterEntityView;
 }
 
 /**
@@ -201,6 +203,8 @@ export interface EntityHooks {
     onTick: (entity: EntityInstance) => void;
     /** Runs when a nearby entity with the same type broadcasts anger. */
     onFriendlyAnger: (entity: EntityInstance) => void;
+    /** Runs when the entity attacks another entity. */
+    onAttack: (entity: EntityInstance, target: FilterEntityView) => void;
     /** Decides what one damage event does; the first handler that answers wins. */
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
     /** Observes the result after sensors, immunities, and health changes without altering it. */

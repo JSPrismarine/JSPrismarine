@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { canEntityAttack, canEntityAttackView } from './vanilla';
 import type { EntityEnvironment, EntityInstance } from '../entityInstance';
 import { EntityTypes } from '../entityTypes';
 
@@ -195,6 +196,147 @@ describe('minecraft:angry', () => {
         tick(entity, 1);
 
         expect(reported).toEqual(['minecraft:angry broadcasts anger 20 blocks, which nothing carries out']);
+    });
+
+    it('excludes targets matching its filters while angry', () => {
+        const attacker = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:attacker' },
+                    components: {
+                        'minecraft:angry': {
+                            filters: { test: 'is_family', subject: 'other', value: 'villager' }
+                        }
+                    }
+                }
+            },
+            'test:attacker'
+        );
+        const villager = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:villager' },
+                    components: { 'minecraft:type_family': { family: ['villager'] } }
+                }
+            },
+            'test:villager'
+        );
+
+        expect(canEntityAttack(attacker, villager)).toBe(false);
+        expect(
+            canEntityAttackView(attacker, { names: (name) => (name === 'is_family' ? ['villager'] : undefined) })
+        ).toBe(false);
+    });
+
+    it('broadcasts to the attack target when configured', () => {
+        const broadcasts: unknown[] = [];
+        const target = { id: () => 42 };
+        const entity = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:attacker' },
+                    components: {
+                        'minecraft:angry': { broadcast_anger_on_attack: true, broadcast_range: 12 }
+                    }
+                }
+            },
+            'test:attacker',
+            { broadcastAnger: (_source, request) => broadcasts.push(request) }
+        );
+
+        entity.notifyAttack(target);
+
+        expect(broadcasts).toHaveLength(1);
+        expect(broadcasts[0]).toMatchObject({ range: 12, target });
+    });
+
+    it('broadcasts when damaged and on death unless death broadcasts are disabled', () => {
+        const broadcasts: unknown[] = [];
+        const target = { id: () => 42 };
+        const environment = { broadcastAnger: (_source: EntityInstance, request: unknown) => broadcasts.push(request) };
+        const attacked = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:attacked' },
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:angry': { broadcast_anger_on_being_attacked: true }
+                    }
+                }
+            },
+            'test:attacked',
+            environment
+        );
+        attacked.damage({ cause: 'entity_attack', amount: 1, damager: target });
+        expect(broadcasts).toHaveLength(1);
+        expect(broadcasts[0]).toMatchObject({ target });
+
+        broadcasts.length = 0;
+        const dying = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:dying' },
+                    components: {
+                        'minecraft:health': { value: 1, max: 1 },
+                        'minecraft:angry': { broadcast_anger_when_dying: false }
+                    }
+                }
+            },
+            'test:dying',
+            environment
+        );
+        expect(dying.damage({ cause: 'entity_attack', amount: 1, damager: target }).died).toBe(true);
+        expect(broadcasts).toEqual([]);
+    });
+
+    it('broadcasts on death by default', () => {
+        const broadcasts: unknown[] = [];
+        const entity = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:dying' },
+                    components: {
+                        'minecraft:health': { value: 1, max: 1 },
+                        'minecraft:angry': {}
+                    }
+                }
+            },
+            'test:dying',
+            { broadcastAnger: (_source, request) => broadcasts.push(request) }
+        );
+
+        entity.damage({ cause: 'entity_attack', amount: 1 });
+
+        expect(broadcasts).toHaveLength(1);
+    });
+
+    it('plays angry_sound immediately and repeats at the configured interval', () => {
+        const { played, effects } = sounds();
+        const entity = spawn(
+            {
+                format_version: '1.26.50',
+                'minecraft:entity': {
+                    description: { identifier: 'test:angry_sound' },
+                    components: {
+                        'minecraft:angry': { duration: 5, angry_sound: 'mob.angry', sound_interval: [1, 1] }
+                    }
+                }
+            },
+            'test:angry_sound',
+            { effects }
+        );
+
+        expect(played).toEqual(['mob.angry']);
+        tick(entity, 19);
+        expect(played).toEqual(['mob.angry']);
+        tick(entity, 1);
+        expect(played).toEqual(['mob.angry', 'mob.angry']);
     });
 });
 
