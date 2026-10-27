@@ -1,4 +1,5 @@
 export * from './components';
+export * from './bedrockTags';
 export * from './definitions';
 export * from './exceptions';
 export * from './facts';

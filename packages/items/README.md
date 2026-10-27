@@ -22,6 +22,11 @@ Nothing here knows that two editions exist at runtime. The join runs once in the
 committed table is Bedrock-keyed, so the mapping package is a development dependency rather than a
 runtime one.
 
+The item loader also keeps Bedrock behavior pack data separate: `ItemType.bedrockComponents` holds
+the raw component bodies, and `ItemType.tags` plus `hasTag(name)` expose the active Bedrock tags.
+These do not replace or reinterpret Java's default components, and retaining a body does not imply
+that the server executes its behavior.
+
 ## The Java component model
 
 Java 1.20.5 replaced the `tag` NBT blob with structured components, and 26.3 registers 122 of them

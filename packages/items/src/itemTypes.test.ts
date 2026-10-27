@@ -1,3 +1,4 @@
+import type { Definition } from '@jsprismarine/content';
 import { describe, expect, it } from 'vitest';
 
 import { EXCEPTED_ITEM_COUNT, EXCEPTED_JAVA_ITEMS, ITEM_TABLE_EXCEPTIONS } from './exceptions';
@@ -7,6 +8,17 @@ import { loadItemTypes, vanillaItemDefinitions } from './itemTypes';
 import { itemTypesTable } from './tables';
 
 const { registry, types, diagnostics } = loadItemTypes({ strict: true });
+
+const bedrockItem = (identifier: string, components: Record<string, unknown>): Definition => ({
+    identifier,
+    registry: 'items',
+    pack: 'bedrock-test',
+    path: `items/${identifier.replace(':', '_')}.json`,
+    data: {
+        format_version: '1.26.30',
+        'minecraft:item': { description: { identifier }, components }
+    }
+});
 
 describe('the generated item type table', () => {
     it('is pinned to the versions the plan names', () => {
@@ -119,5 +131,44 @@ describe('resolving the vanilla item types', () => {
         const apple = registry.holder('minecraft:apple');
         expect(apple.bound).toBe(true);
         expect(apple.id).toBeGreaterThanOrEqual(0);
+    });
+});
+
+describe('Bedrock item definitions and tags', () => {
+    it('keeps raw Bedrock components and tags separate from Java defaults', () => {
+        const loaded = loadItemTypes({
+            definitions: vanillaItemDefinitions().filter((definition) =>
+                ['minecraft:apple', 'minecraft:book'].includes(definition.identifier)
+            ),
+            bedrockDefinitions: [
+                bedrockItem('minecraft:apple', {
+                    'minecraft:food': { nutrition: 99 },
+                    'minecraft:tags': ['test:special_food']
+                }),
+                bedrockItem('test:gem', {
+                    'minecraft:icon': { texture: 'gem' },
+                    'minecraft:tags': { tags: ['test:gems'] }
+                })
+            ],
+            bedrockTags: {
+                'minecraft:is_food': ['minecraft:apple'],
+                'minecraft:bookshelf_books': ['minecraft:book']
+            },
+            strict: true
+        });
+        const apple = loaded.types.get('minecraft:apple')!;
+        const book = loaded.types.get('minecraft:book')!;
+        const gem = loaded.types.get('test:gem')!;
+
+        expect(apple.params(food)).toEqual({ nutrition: 4, saturation: 2.4 });
+        expect(apple.bedrockComponents.get('minecraft:food')).toEqual({ nutrition: 99 });
+        expect(apple.tags).toEqual(['test:special_food']);
+        expect(apple.hasTag('test:special_food')).toBe(true);
+        expect(apple.hasTag('minecraft:is_food')).toBe(false);
+        expect(book.hasTag('minecraft:bookshelf_books')).toBe(true);
+        expect(gem.bedrockDefinition).toEqual(expect.objectContaining({ identifier: 'test:gem' }));
+        expect(gem.bedrockComponents.get('minecraft:icon')).toEqual({ texture: 'gem' });
+        expect(gem.tags).toEqual(['test:gems']);
+        expect(loaded.bedrockTags.includes('test:gems', 'test:gem')).toBe(true);
     });
 });

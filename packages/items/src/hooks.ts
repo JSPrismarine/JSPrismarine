@@ -1,4 +1,4 @@
-import type { HookTable, Type } from '@jsprismarine/content';
+import type { Definition, HookTable, Type } from '@jsprismarine/content';
 
 import type { ItemStack } from './ItemStack';
 
@@ -177,8 +177,17 @@ export const ITEM_HOOKS = [
 /** The load-time flags an item type carries, computed once in `resolveItemTypes`. */
 export type ItemFlag = 'isFood' | 'isTool' | 'isWeapon' | 'isDamageable' | 'isEquippable' | 'isFuel';
 
-/** One resolved item type: a Bedrock item identity with its Java-sourced components bound. */
-export type ItemType = Type<ItemHooks, ItemFlag>;
+/** One resolved item type: a Bedrock identity with Java defaults and Bedrock data kept separate. */
+export interface ItemType extends Type<ItemHooks, ItemFlag> {
+    /** The Bedrock item JSON used to build the client-facing part, when one was loaded. */
+    readonly bedrockDefinition?: Definition;
+    /** The raw Bedrock item components declared by the active behavior pack, by component name. */
+    readonly bedrockComponents: ReadonlyMap<string, unknown>;
+    /** The Bedrock tags attached to this item identity. */
+    readonly tags: readonly string[];
+    /** Whether this item identity carries one of its Bedrock tags. */
+    hasTag(tag: string): boolean;
+}
 
 /** The dispatch table one item type binds at load. */
 export type ItemHookTable = HookTable<ItemHooks>;

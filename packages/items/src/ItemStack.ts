@@ -1,8 +1,8 @@
-import type { ComponentFactory, Holder } from '@jsprismarine/content';
+import type { ComponentFactory, Holder, Type } from '@jsprismarine/content';
 import { Instance } from '@jsprismarine/content';
 
 import { maxStackSize } from './components/universal';
-import type { ItemFlag, ItemHooks, ItemType } from './hooks';
+import type { ItemFlag, ItemHooks } from './hooks';
 
 /**
  * One entry of a component patch.
@@ -79,7 +79,7 @@ export class ItemStack extends Instance<ItemHooks, ItemStackState, ItemFlag> {
      * @param count - How many items, defaulting to one.
      * @param patch - The component patch, copied so later edits do not alias it.
      */
-    public constructor(holder: Holder<ItemType>, count = 1, patch: ComponentPatch = new Map()) {
+    public constructor(holder: Holder<Type<ItemHooks, ItemFlag>>, count = 1, patch: ComponentPatch = new Map()) {
         super(holder, { count, patch: new Map(patch) });
     }
 
