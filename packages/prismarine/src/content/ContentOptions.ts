@@ -60,8 +60,9 @@ export interface ContentOptions {
      */
     readonly blockPalette?: BlockPalette;
     /**
-     * The item definitions to resolve. Defaults to Java's committed table of
-     * 1658 items with the stack's own `items/` files applied over it.
+     * The Java item definitions to resolve. Defaults to Java's committed
+     * table of 1658 items; Bedrock `items/` files are loaded separately from
+     * the pack stack and their components stay on each type as Bedrock data.
      */
     readonly itemDefinitions?: Iterable<ContentDefinition>;
 }

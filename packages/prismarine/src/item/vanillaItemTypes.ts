@@ -9,9 +9,10 @@
  * constructed with no `content` and the test doubles that hand `ItemManager`
  * no `getContent` at all.
  *
- * The one thing it cannot supply is the merged tag set, so a `#tag` holder
- * set matches nothing here; see {@link import('./holderSets').holderSetIncludes}.
+ * Bedrock item tags come from the same captured catalog used by the content
+ * build; Java datapack tags still require a loaded content build.
  */
+import { item_tags } from '@jsprismarine/bedrock-data';
 import { loadItemTypes } from '@jsprismarine/items';
 import type { ItemType } from '@jsprismarine/items';
 
@@ -23,6 +24,6 @@ let types: ReadonlyMap<string, ItemType> | undefined;
  * @returns One resolved type per Java item, with its components bound.
  */
 export const vanillaItemTypes = (): ReadonlyMap<string, ItemType> => {
-    types ??= loadItemTypes().types;
+    types ??= loadItemTypes({ bedrockTags: item_tags }).types;
     return types;
 };

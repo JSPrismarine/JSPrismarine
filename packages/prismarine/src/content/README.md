@@ -72,7 +72,9 @@ which is why the code looks the way it does.
    49 families as it resolves, so they have to exist first.
 6. **Register the item behavior families, then resolve the items.** The 47 families build item
    stacks through an `ItemFactory` over a registry that does not exist until they are registered,
-   so the factory is `deferredItemFactory()` and is bound afterwards. Second backwards dependency.
+   so the factory is `deferredItemFactory()` and is bound afterwards. Bedrock item JSON stays
+   separate from Java's defaults on each type, with `minecraft:tags` applied to the Bedrock item
+   tag index. Second backwards dependency.
 7. **Build the entity component registry, then load the entities.** `createGoalEntityRegistry`
    registers all 170 goals before `@jsprismarine/entities`'s reference components, because that
    registration skips names already taken and the goals are the implementations the server wants.
@@ -84,6 +86,10 @@ which is why the code looks the way it does.
 10. **Flatten.** `flattenBlockStates` and `flattenItemFacts` precompute the hot columns into typed
    arrays indexed by runtime id, which is what the tick loop, the light engine and the explosion
    code read instead of calling through a type.
+
+`content.tags` holds Java datapack tags. `content.items.tags` holds Bedrock item tags from the
+captured item tag table and loaded Bedrock item definitions; the two registries keep their own
+edition's identifiers and merge rules.
 
 A content reload replaces the whole build. Registry ids are positional, so hold a key or a `Holder`
 across one, never a number.

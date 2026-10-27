@@ -21,6 +21,34 @@ describe('buildServerContent', () => {
         expect(content.biomes.keys()).toEqual(['minecraft:plains']);
         expect(content.features.keys()).toEqual(['minecraft:single_stone_feature']);
         expect(content.tags.members('block', 'minecraft:mineable/pickaxe')).toEqual([...FIXTURE_BLOCKS]);
+        expect(content.items.tags.includes('minecraft:boats', 'minecraft:oak_boat')).toBe(true);
+        expect(content.items.types.get('minecraft:diamond_pickaxe')?.hasTag('minecraft:is_pickaxe')).toBe(true);
+    });
+
+    it('loads Bedrock item tags and component bodies without replacing Java defaults', () => {
+        const definitions = fixtureDefinitions();
+        const gem = definitionOf('items', 'test:gem', {
+            format_version: '1.26.30',
+            'minecraft:item': {
+                description: { identifier: 'test:gem' },
+                components: {
+                    'minecraft:icon': { texture: 'gem' },
+                    'minecraft:tags': ['test:gems']
+                }
+            }
+        });
+        const items = new Map(definitions.items);
+        items.set(gem.identifier, gem);
+
+        const content = buildServerContent(
+            fixtureContentOptions({ load: () => ({ definitions: { ...definitions, items }, diagnostics: [] }) })
+        );
+        const type = content.items.types.get('test:gem')!;
+
+        expect(type.bedrockComponents.get('minecraft:icon')).toEqual({ texture: 'gem' });
+        expect(type.hasTag('test:gems')).toBe(true);
+        expect(content.items.tags.includes('test:gems', 'test:gem')).toBe(true);
+        expect(content.items.types.get('minecraft:diamond_pickaxe')?.hasTag('minecraft:is_pickaxe')).toBe(true);
     });
 
     /**

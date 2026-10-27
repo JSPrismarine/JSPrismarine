@@ -187,6 +187,16 @@ export class Item {
         return this.name;
     }
 
+    /** The Bedrock tags attached to this item type, or an empty list when it has no type. */
+    public getTags(): readonly string[] {
+        return this.type()?.tags ?? [];
+    }
+
+    /** Whether this item type carries one of its Bedrock tags. */
+    public hasTag(tag: string): boolean {
+        return this.type()?.hasTag(tag) ?? false;
+    }
+
     /**
      * Whatever numeric id the caller built this stack with, or zero.
      *

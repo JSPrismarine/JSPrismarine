@@ -9,7 +9,7 @@
  * per-state columns, in the one order those steps allow.
  */
 import { AdvancementEngine, parseAdvancement } from '@jsprismarine/advancements';
-import { java_entity_attributes, java_entity_navigation } from '@jsprismarine/bedrock-data';
+import { item_tags, java_entity_attributes, java_entity_navigation } from '@jsprismarine/bedrock-data';
 import { registerVanillaBlockBehaviors } from '@jsprismarine/block-behaviors';
 import type { BlockHooks } from '@jsprismarine/blocks';
 import type { BlockPalette, BlockState, BlockTable, BlockType } from '@jsprismarine/blocks';
@@ -24,6 +24,7 @@ import { createGoalEntityRegistry } from '@jsprismarine/entity-goals';
 import type { EntityComponentRegistry } from '@jsprismarine/entities';
 import { deferredItemFactory, registerVanillaItemBehaviors } from '@jsprismarine/item-behaviors';
 import type { ItemFacts, ItemHooks, ItemRegistry, ItemType } from '@jsprismarine/items';
+import type { BedrockItemTags } from '@jsprismarine/items';
 import { flattenItemFacts, loadItemTypes, maxDamage, maxStackSize, vanillaItemDefinitions } from '@jsprismarine/items';
 import { defaultItemStackOps } from '@jsprismarine/predicates';
 import type { ItemStackOps, ReferenceResolver } from '@jsprismarine/predicates';
@@ -67,6 +68,8 @@ export interface ServerContentItems {
     readonly registry: ItemRegistry;
     /** One resolved type per item identifier. */
     readonly types: ReadonlyMap<string, ItemType>;
+    /** Bedrock tags from the captured catalog and loaded item definitions. */
+    readonly tags: BedrockItemTags;
     /** The flattened hot columns, each a typed array indexed by the registry id. */
     readonly facts: ItemFacts;
     /** The 47 vanilla behavior families. */
@@ -243,7 +246,9 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
     registerVanillaItemBehaviors(itemBehaviors, { world: world.itemActions, items: itemFactory });
     const items = loadItemTypes({
         behaviors: itemBehaviors,
-        definitions: options.itemDefinitions ?? [...vanillaItemDefinitions(), ...definitions.items.values()],
+        definitions: options.itemDefinitions ?? vanillaItemDefinitions(),
+        bedrockDefinitions: definitions.items.values(),
+        bedrockTags: item_tags,
         strict
     });
     itemFactory.bind(items.registry);
@@ -360,6 +365,7 @@ export const buildServerContent = (options: ContentOptions = {}): ServerContent 
         items: {
             registry: items.registry,
             types: items.types,
+            tags: items.bedrockTags,
             facts: flattenItemFacts(items.registry),
             behaviors: itemBehaviors
         },
