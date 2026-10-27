@@ -221,6 +221,34 @@ describe('entity', () => {
                 return entities;
             };
 
+            it('keeps the general grid order for nearby items across chunk boundaries', () => {
+                const world = fakeWorld(63);
+                const [nextChunk, firstCurrentChunk, secondCurrentChunk, outsideRadius] = lying(world, [
+                    { name: 'minecraft:cobblestone', count: 1, x: 16.2 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 15.8 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 14.8 },
+                    { name: 'minecraft:cobblestone', count: 1, x: 14.4 }
+                ]);
+
+                const candidates = world.grid.nearItems(16, 0.5, 1.5);
+                expect(candidates).toEqual([
+                    firstCurrentChunk,
+                    secondCurrentChunk,
+                    nextChunk
+                ]);
+                expect(candidates).not.toContain(outsideRadius);
+            });
+
+            it('finds nearby items across negative coordinate boundaries', () => {
+                const world = fakeWorld(63);
+                const [positive, negative] = lying(world, [
+                    { name: 'minecraft:cobblestone', count: 1, x: 0.5 },
+                    { name: 'minecraft:cobblestone', count: 1, x: -0.5 }
+                ]);
+
+                expect(world.grid.nearItems(0, 0.5, 1.5)).toEqual([negative, positive]);
+            });
+
             it('draws a neighboring stack of the same thing into one', async () => {
                 // Mining a seam leaves a dozen entities where there should be one, each
                 // ticking, each falling, each broadcast to everyone who comes near.

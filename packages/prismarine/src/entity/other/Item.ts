@@ -189,7 +189,7 @@ export class Item extends Entity {
 
         const position = this.getPosition();
 
-        for (const other of this.getWorld().getEntityGrid().near(position.getX(), position.getZ())) {
+        for (const other of this.getWorld().getEntityGrid().nearItems(position.getX(), position.getZ(), MERGE_RANGE)) {
             if (!(other instanceof Item) || other === this) continue;
             if (other.taken || other.getRuntimeId() < this.getRuntimeId()) continue;
 
