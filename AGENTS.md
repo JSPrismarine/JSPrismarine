@@ -76,4 +76,7 @@ Use American English spelling in prose and documentation. Do not use British spe
 - Run the relevant checks for the change. The root scripts include `pnpm run build`,
   `pnpm run typecheck`, `pnpm run test`, and `pnpm run lint`; use package-scoped scripts when they
   cover the affected work.
+- After changing repository files, run `pnpm run lint:custom` after your final edit. It runs the
+  American filename, packet codec, JSDoc, and Unicode escape checks. `pnpm run lint` includes this
+  aggregate.
 - Review the diff and `git status --short` before finishing. Report the checks actually run and any failures or checks that could not be completed.
