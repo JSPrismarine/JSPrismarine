@@ -1,10 +1,8 @@
-import BlockRegisterEvent from './block/BlockRegisterEvent';
 import ChatEvent from './chat/ChatEvent';
 import CommandRegisterEvent from './command/CommandRegisterEvent';
 import EntityDamageEvent from './entity/EntityDamageEvent';
 import EntityDeathEvent from './entity/EntityDeathEvent';
 import { Event } from './Event';
-import ItemRegisterEvent from './items/ItemRegisterEvent';
 import PlayerConnectEvent from './player/PlayerConnectEvent';
 import PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -20,13 +18,11 @@ import RaknetEncapsulatedPacketEvent from './raknet/RaknetEncapsulatedPacketEven
 import TickEvent from './other/TickEvent';
 
 export {
-    BlockRegisterEvent,
     ChatEvent,
     CommandRegisterEvent,
     EntityDamageEvent,
     EntityDeathEvent,
     Event,
-    ItemRegisterEvent,
     PlayerConnectEvent,
     PlayerDespawnEvent,
     PlayerDisconnectEvent,

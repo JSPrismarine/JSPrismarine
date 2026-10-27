@@ -13,17 +13,16 @@ import type { BlockStateValue, BlockType } from '@jsprismarine/blocks';
 
 import type Server from '../Server';
 import type { ServerContent } from '../content/ServerContent';
-import BlockRegisterEvent from '../events/block/BlockRegisterEvent';
 import Timer from '../utils/Timer';
 import { Block, javaBlockFactsOf } from './Block';
 import type { BlockFacts } from './Block';
 import { BlockStateSchemas } from './state/BlockStateSchema';
 
 /**
- * The part of the server the block manager uses. A test can hand in a logger,
- * an event sink and a content getter without building the rest.
+ * The part of the server the block manager uses. A test can hand in a logger
+ * and a content getter without building the rest.
  */
-export type BlockManagerServer = Pick<Server, 'getLogger' | 'emit'> & {
+export type BlockManagerServer = Pick<Server, 'getLogger'> & {
     getContent?(): ServerContent | undefined;
 };
 
@@ -60,8 +59,6 @@ const factsFromContent = (
 
 export default class BlockManager {
     private readonly server: BlockManagerServer;
-    /** Blocks a plugin registered, which win over the registry's own. */
-    private readonly registered = new Map<string, Block>();
 
     public constructor(server: BlockManagerServer) {
         this.server = server;
@@ -77,14 +74,6 @@ export default class BlockManager {
     }
 
     /**
-     * On disable hook.
-     * @group Lifecycle
-     */
-    public async disable(): Promise<void> {
-        this.registered.clear();
-    }
-
-    /**
      * The content build, which a running server always has.
      *
      * Undefined only for a server double that leaves `getContent` out, and that is what the
@@ -97,8 +86,7 @@ export default class BlockManager {
     /** Every block name the server can hand out, which is the whole palette. */
     private names(): readonly string[] {
         const content = this.content();
-        const names = content ? [...content.blocks.types.keys()] : BlockStateSchemas.names();
-        return [...new Set([...names, ...this.registered.keys()])];
+        return content ? [...content.blocks.types.keys()] : BlockStateSchemas.names();
     }
 
     /**
@@ -123,9 +111,6 @@ export default class BlockManager {
      * error and callers that can carry on ask with this instead of catching.
      */
     public findBlock(name: string, states: Readonly<Record<string, BlockStateValue>> = {}): Block | null {
-        const plugin = this.registered.get(name);
-        if (plugin) return plugin;
-
         const content = this.content();
         if (content) {
             const type = content.blocks.types.get(name);
@@ -144,26 +129,5 @@ export default class BlockManager {
      */
     public getBlocks(): Block[] {
         return this.names().map((name) => this.getBlock(name));
-    }
-
-    /**
-     * Register a block, which is how a plugin contributes one.
-     *
-     * @deprecated Ship a Bedrock behavior pack that defines the block and register the behavior
-     * families its components name. Blocks come from the pack stack, so a `Block` registered here
-     * has no component list, no hooks and no entry in the block property table, and the one thing
-     * it can still do is answer for its own identifier ahead of the stack's. This method is
-     * removed in a later release; see
-     * [the migration plan](https://github.com/JSPrismarine/JSPrismarine/blob/master/docs/plans/data-driven-vanilla.md)
-     * section 10.
-     * @param block - The block, which answers for its name ahead of the registry's own.
-     */
-    public async registerBlock(block: Block): Promise<void> {
-        const event = new BlockRegisterEvent(block);
-        await this.server.emit('blockRegister', event);
-        if (event.isCanceled()) return;
-
-        this.server.getLogger().debug(`Block with id §b${block.name}§r registered`);
-        this.registered.set(block.name, block);
     }
 }

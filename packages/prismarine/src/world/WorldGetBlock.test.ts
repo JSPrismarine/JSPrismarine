@@ -12,8 +12,7 @@ import { World } from './World';
 /** A block manager over the shipped catalog, with nothing of the server it does not read. */
 const blockManager = () => {
     const server: BlockManagerServer = {
-        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} }),
-        emit: async () => {}
+        getLogger: () => stub<Logger>({ debug: () => {}, verbose: () => {} })
     };
 
     return new BlockManager(server);

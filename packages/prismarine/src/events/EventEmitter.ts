@@ -1,10 +1,8 @@
-import type BlockRegisterEvent from './block/BlockRegisterEvent';
 import type ChatEvent from './chat/ChatEvent';
 import type CommandRegisterEvent from './command/CommandRegisterEvent';
 import type RecipeRegisterEvent from './crafting/RecipeRegisterEvent';
 import type EntityDamageEvent from './entity/EntityDamageEvent';
 import type EntityDeathEvent from './entity/EntityDeathEvent';
-import type ItemRegisterEvent from './items/ItemRegisterEvent';
 import type PlayerConnectEvent from './player/PlayerConnectEvent';
 import type PlayerDespawnEvent from './player/PlayerDespawnEvent';
 import type PlayerDisconnectEvent from './player/PlayerDisconnectEvent';
@@ -20,10 +18,8 @@ import type { TickEvent } from './Events';
 import type playerToggleOperatorEvent from './player/PlayerToggleOperatorEvent';
 
 export type EventTypes =
-    | ['blockRegister', BlockRegisterEvent]
     | ['chat', ChatEvent]
     | ['commandRegister', CommandRegisterEvent]
-    | ['itemRegister', ItemRegisterEvent]
     | ['recipeRegister', RecipeRegisterEvent]
     | ['tick', TickEvent]
     | ['entityDamage', EntityDamageEvent]

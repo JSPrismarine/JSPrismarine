@@ -419,8 +419,6 @@ export default class Server extends EventEmitter {
         await this.commandManager.disable();
         await this.banManager.disable();
         await this.recipeManager.disable();
-        await this.blockManager.disable();
-        await this.itemManager.disable();
         await this.permissionManager.disable();
         await this.packetRegistry.disable();
         await this.config.disable();
