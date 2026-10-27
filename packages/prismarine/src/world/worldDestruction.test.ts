@@ -16,7 +16,6 @@ import { serverWorldSource } from '../content/world/serverSource';
 import type { ContentPosition } from '../content/world/adapter';
 import type { Entity } from '../entity/Entity';
 import { explode } from '../entity/Explosion';
-import FallingBlock from '../entity/other/FallingBlock';
 import { Item as ItemEntity } from '../entity/other/Item';
 import type { ServerContent } from '../content/ServerContent';
 import BlockUpdateScheduler from './BlockUpdateScheduler';
@@ -26,13 +25,12 @@ import { canSpreadFireAround, createEngineWorld } from './EngineWorld';
 import { World } from './World';
 import { WorldSystems } from './WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from './WorldChangeSink';
-import { Position } from './Position';
 
 /**
  * Every path that destroys a block, over a world with the real content behind it.
  *
- * `blockBreak.test.ts` proves the player's break. This proves the five the world performs
- * on its own: a blast, a stream of water, fire, a piston and a falling block. The fixture is
+ * `blockBreak.test.ts` proves the player's break. This proves the four the world performs
+ * on its own: a blast, a stream of water, fire, and a piston. The fixture is
  * the same shape as that file's, built on the real `World` prototype with a real `Chunk`,
  * real `WorldSystems` and the real overlay's block definitions, so what runs is the server's
  * own write path rather than a model of it.
@@ -435,26 +433,6 @@ describe('a block the world destroyed', () => {
             expect(
                 world.getSystems().ticks.list('block').hasScheduledTick({ x: 8, y: 65, z: 8 }, 'minecraft:fire')
             ).toBe(true);
-        });
-    });
-
-    describe('by a falling block', () => {
-        it('drops the flower the anvil flattened', async () => {
-            place(chunk, { x: 8, y: 63, z: 8 }, 'minecraft:stone');
-            place(chunk, { x: 8, y: 64, z: 8 }, 'minecraft:poppy');
-
-            const anvil = new FallingBlock({
-                position: new Position(8.5, 67, 8.5, world),
-                blockName: 'minecraft:anvil'
-            });
-            for (let tick = 1; tick <= 40 && world.loadedBlockAt(8, 64, 8)?.name !== 'minecraft:anvil'; tick += 1) {
-                await anvil.update(tick);
-            }
-
-            expect(world.loadedBlockAt(8, 64, 8)?.name).toBe('minecraft:anvil');
-            // Java's `destroyBlock(pos, true)` before the write: the flower is dropped rather
-            // than overwritten out of existence.
-            expect(drops()).toEqual([{ identifier: 'minecraft:poppy', count: 1 }]);
         });
     });
 

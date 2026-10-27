@@ -7,7 +7,6 @@ import type { StoredItemStack } from '../inventory/persistence';
 import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
-import FallingBlock from './other/FallingBlock';
 import { Item } from './other/Item';
 import { Projectile } from './other/Projectile';
 import { DEFAULT_FUSE_TICKS } from './fuse';
@@ -33,7 +32,7 @@ const TNT_IDENTIFIER = 'minecraft:tnt';
  * - must *not* be listed: stripping it and then defaulting it would quietly replace a burning
  * actor's `Fire: -20` with a zero on the next save.
  */
-const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPBlockName', 'JSPFuse', 'Fuse', 'fuse'] as const;
+const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPFuse', 'Fuse', 'fuse'] as const;
 
 export class EntitySerializer {
     /**
@@ -50,7 +49,6 @@ export class EntitySerializer {
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
         const modeled = writtenEntities().get(identifier);
         const options = { position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 };
-        const blockName = nbt.getString('JSPBlockName', nbt.getString('Block', ''));
 
         const entity =
             identifier === Item.MOB_ID
@@ -59,11 +57,9 @@ export class EntitySerializer {
                       age: nbt.getShort('Age', 0),
                       ...itemEntryFrom(nbt, world)
                   })
-                : identifier === FallingBlock.MOB_ID && blockName.length > 0
-                  ? new FallingBlock({ ...options, blockName })
-                  : modeled
-                    ? new modeled(options)
-                    : new GenericEntity({ identifier, ...options });
+                : modeled
+                  ? new modeled(options)
+                  : new GenericEntity({ identifier, ...options });
 
         if (identifier === TNT_IDENTIFIER) {
             const fuse = nbt.getNumber('JSPFuse', nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS)));
@@ -114,7 +110,6 @@ export class EntitySerializer {
             nbt.addValue('Motion', doubles([velocity.getX(), velocity.getY(), velocity.getZ()]));
         }
 
-        if (entity instanceof FallingBlock) nbt.addValue('JSPBlockName', new Types.StringVal(entity.getBlockName()));
         if (entity.getType() === TNT_IDENTIFIER) {
             const fuse = entity.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
             if (typeof fuse === 'number') nbt.addValue('JSPFuse', new Types.NumberVal(fuse));

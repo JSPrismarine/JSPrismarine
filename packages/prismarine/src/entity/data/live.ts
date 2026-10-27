@@ -29,7 +29,6 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
-import FallingBlock from '../other/FallingBlock';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '../Metadata';
@@ -427,16 +426,27 @@ export class LiveEntityRuntime {
 
         const position = stored.getPosition();
         const fuse = stored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
-        if (!(stored instanceof GenericEntity || stored instanceof FallingBlock) && typeof fuse !== 'number')
-            return undefined;
+        if (!(stored instanceof GenericEntity) && typeof fuse !== 'number') return undefined;
+        const blockName =
+            identifier === 'minecraft:falling_block'
+                ? stored.persistentNbt?.getString('JSPBlockName', '') ||
+                  stored.persistentNbt?.getString('Block', '') ||
+                  ''
+                : '';
         const entity = this.runtime.spawn(
             identifier,
             { x: position.getX(), y: position.getY(), z: position.getZ() },
             {
                 yaw: stored.yaw,
                 pitch: stored.pitch,
-                ...(stored instanceof FallingBlock ? { data: { block: stored.getBlockName() } } : {}),
-                ...(typeof fuse === 'number' ? { data: { fuse } } : {})
+                ...(blockName.length > 0 || typeof fuse === 'number'
+                    ? {
+                          data: {
+                              ...(blockName.length > 0 ? { block: blockName } : {}),
+                              ...(typeof fuse === 'number' ? { fuse } : {})
+                          }
+                      }
+                    : {})
             }
         );
         if (entity === undefined) return undefined;

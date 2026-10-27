@@ -3,7 +3,7 @@ import BinaryStream from '@jsprismarine/binaryutils';
 import { ByteOrder, NBTReader, NBTTagCompound } from '@jsprismarine/nbt';
 import { describe, expect, it } from 'vitest';
 
-import { FallingBlock, writtenEntities } from './Entities';
+import { writtenEntities } from './Entities';
 
 /** The `id` of every `ActorInfo` the server advertises in `AvailableActorIdentifiersPacket`. */
 const advertisedActorTypes = (): Set<string> => {
@@ -26,7 +26,7 @@ describe('Entities', () => {
         // `chalkboard`, `moving_block` and `shield` were all sent this way.
         const advertised = advertisedActorTypes();
 
-        const unknown = [...writtenEntities().values(), FallingBlock]
+        const unknown = [...writtenEntities().values()]
             .filter((written) => !advertised.has(written.MOB_ID))
             .map((written) => `${written.name} spawns as ${written.MOB_ID}`);
 

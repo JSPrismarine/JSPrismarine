@@ -10,7 +10,6 @@ import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
 import { MetadataFlag } from './Metadata';
 import Arrow from './other/Arrow';
-import FallingBlock from './other/FallingBlock';
 import { Item as ItemEntity } from './other/Item';
 
 /**
@@ -122,18 +121,16 @@ describe('entity', () => {
         });
 
         it('preserves a legacy falling block payload through actor NBT', () => {
-            const source = new FallingBlock({
-                position: new Position(10.5, 80, -3.5, world),
-                blockName: 'minecraft:stone'
-            });
+            const source = actor('minecraft:falling_block', (root) =>
+                root.addValue('JSPBlockName', new Types.StringVal('minecraft:stone'))
+            );
 
-            const saved = EntitySerializer.toNBT(source);
+            const saved = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
             const restored = EntitySerializer.fromNBT(saved, world);
 
             expect(saved.getString('JSPBlockName', '')).toBe('minecraft:stone');
-            expect(restored).toBeInstanceOf(FallingBlock);
-            if (!(restored instanceof FallingBlock)) throw new Error('the falling block was not restored as a block');
-            expect(restored.getBlockName()).toBe('minecraft:stone');
+            expect(restored).toBeInstanceOf(GenericEntity);
+            expect(restored.persistentNbt?.getString('JSPBlockName', '')).toBe('minecraft:stone');
         });
 
         it('keeps three equal coordinates as three entries', () => {

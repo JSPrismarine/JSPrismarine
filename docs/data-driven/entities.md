@@ -447,15 +447,15 @@ server at startup rather than falling back to them. Behavior pack directories li
 `content-world-packs` in `config.yaml` load after the vanilla ones, and later packs replace
 earlier definitions whole; see [using-packs.md](using-packs.md) for the precedence rules.
 
-Six written classes remain for compatibility with saved actors that have no data-runtime
-record: a dropped stack, a falling block, an arrow, an egg, a snowball and `Human`, which is what
-a player is. TNT restores through its vanilla entity definition, and the runtime resumes its saved
-fuse from `minecraft:explode`. Falling blocks use the entities overlay, and projectile flight and
-hit behavior come from each type's `minecraft:projectile` component. Everything else is a component
-set in the runtime with a `GenericEntity` for a body, so a mob's hitbox, stats and death loot table
-come from the pack rather than a table in this repository. `Entity.getBox()` reads the type's
-`minecraft:collision_box` from the content registry, and the only box still written down here is
-`minecraft:item`, the type Mojang ships no entity file for.
+Five written classes remain for compatibility with saved actors that have no data-runtime
+record: a dropped stack, an arrow, an egg, a snowball and `Human`, which is what a player is. TNT
+and falling blocks restore through their vanilla entity definitions. The projectile classes remain
+for older saved actors; new projectile flight and hit behavior comes from each type's
+`minecraft:projectile` component. Everything else is a component set in the runtime with a
+`GenericEntity` for a body, so a mob's hitbox, stats and death loot table come from the pack rather
+than a table in this repository. `Entity.getBox()` reads the type's `minecraft:collision_box` from
+the content registry, and the only box still written down here is `minecraft:item`, the type Mojang
+ships no entity file for.
 
 The server opens one `EntityRuntime` per dimension as that dimension's content adapter is
 assembled, and `World.update` ticks it. Each tick, for each entity in order: the queued events

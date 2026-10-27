@@ -7,6 +7,7 @@ import { java_entity_attributes, legacy_item_aux_aliases } from '@jsprismarine/b
 import { MemoryModuleTypes } from '@jsprismarine/entity-brains';
 import { Navigator, navigationProfile } from '@jsprismarine/entity-goals';
 import { Vector3 } from '@jsprismarine/math';
+import { Types } from '@jsprismarine/nbt';
 import { ActorFlags } from '@jsprismarine/minecraft/ActorFlags';
 import { ActorEvent, Difficulty, Gametype, LevelSoundEvent } from '@jsprismarine/minecraft';
 import { entityData, vanillaItemDefinitions } from '@jsprismarine/items';
@@ -60,7 +61,6 @@ import { GenericEntity } from '../GenericEntity';
 import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
-import FallingBlock from '../other/FallingBlock';
 import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
@@ -2515,11 +2515,13 @@ describe('the data-driven entity runtime over a live world', () => {
         it('migrates a serialized legacy falling block into the runtime and lands it', async () => {
             useVanillaContent();
 
-            const legacy = new FallingBlock({
-                position: new Position(2.5, GROUND_Y + 4, 2.5, world),
-                blockName: 'minecraft:stone'
+            const legacy = new GenericEntity({
+                identifier: 'minecraft:falling_block',
+                position: new Position(2.5, GROUND_Y + 4, 2.5, world)
             });
-            const stored = EntitySerializer.fromNBT(EntitySerializer.toNBT(legacy), world);
+            const actor = EntitySerializer.toNBT(legacy);
+            actor.addValue('JSPBlockName', new Types.StringVal('minecraft:stone'));
+            const stored = EntitySerializer.fromNBT(actor, world);
             const migrated = live.restoreExisting(stored);
             if (migrated === undefined) throw new Error('the saved falling block was not migrated');
 
