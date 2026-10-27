@@ -13,6 +13,7 @@ import type { EntityHooks } from '../hooks';
 import type {
     EntityAddItemsRequest,
     EntityItemInteractionEffect,
+    EntityItemInteractionState,
     EntityRepairItemRequest,
     EntitySpawnItemsRequest,
     EntityTameInteractionEffect
@@ -1558,6 +1559,87 @@ export interface HealableParams {
     /** Whether a matching item is accepted at full health. */
     readonly forceUse: boolean;
 }
+
+/** One item `minecraft:breedable` accepts. */
+export interface BreedableItemParams {
+    /** The item identifier, normalized to the default Minecraft namespace. */
+    readonly item: string;
+    /** Item replacing the consumed item after the entity enters its love state. */
+    readonly resultItem?: string;
+}
+
+/** The `minecraft:breedable` values used when an entity receives a breeding item. */
+export interface BreedableParams extends ComponentRecord {
+    /** Items that can put the entity into its love state. */
+    readonly breedItems: readonly BreedableItemParams[];
+    /** Whether the entity must be tamed before accepting a breeding item. */
+    readonly requireTame: boolean;
+    /** Whether the entity must be at full health before accepting a breeding item. */
+    readonly requireFullHealth: boolean;
+}
+
+/** `minecraft:breedable`, which owns feeding eligibility and item replacement. */
+export const breedable: ComponentFactory<EntityHooks, BreedableParams> = {
+    name: 'minecraft:breedable',
+    hooks: ['onInteractWithItem'],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+
+        const breedItems: BreedableItemParams[] = [];
+        for (const [index, raw] of asList(value.breed_items).entries()) {
+            if (typeof raw === 'string') {
+                breedItems.push({ item: normalizedItemIdentifier(raw) });
+                continue;
+            }
+            if (!isRecord(raw) || typeof raw.item !== 'string' || raw.item.length === 0)
+                return rejected(`breed_items[${index}].item must be a non-empty string`);
+            if (raw.result_item !== undefined && (typeof raw.result_item !== 'string' || raw.result_item.length === 0))
+                return rejected(`breed_items[${index}].result_item must be a non-empty string`);
+            if (
+                raw.transform_to_item !== undefined &&
+                (typeof raw.transform_to_item !== 'string' || raw.transform_to_item.length === 0)
+            )
+                return rejected(`breed_items[${index}].transform_to_item must be a non-empty string`);
+
+            const resultItem =
+                typeof raw.result_item === 'string'
+                    ? raw.result_item
+                    : typeof raw.transform_to_item === 'string'
+                      ? raw.transform_to_item
+                      : undefined;
+            breedItems.push({
+                item: normalizedItemIdentifier(raw.item),
+                ...(resultItem === undefined ? {} : { resultItem: normalizedItemIdentifier(resultItem) })
+            });
+        }
+
+        return accepted({
+            ...value,
+            breedItems,
+            requireTame: booleanAt(value, 'require_tame', true),
+            requireFullHealth: booleanAt(value, 'require_full_health', false)
+        });
+    },
+    create: (params) => ({
+        onInteractWithItem: (entity, itemIdentifier, _other, state?: EntityItemInteractionState) => {
+            const normalizedItem = normalizedItemIdentifier(itemIdentifier);
+            const item = params.breedItems.find((entry) => entry.item === normalizedItem);
+            if (item === undefined || entity.hasComponent('minecraft:is_baby')) return undefined;
+            if ((state?.loveTicks ?? 0) > 0 || (state?.breedCooldown ?? 0) > 0) return undefined;
+            if (params.requireTame && entity.filterContext().self.flag?.('is_tamed') !== true) return undefined;
+
+            if (params.requireFullHealth) {
+                const health = entity.attributes.get('health');
+                if (health === undefined || health.current < health.max) return undefined;
+            }
+
+            return {
+                breed: true,
+                ...(item.resultItem === undefined ? {} : { resultItem: item.resultItem })
+            };
+        }
+    })
+};
 
 /** `minecraft:healable`, which owns the entity's item-based healing interaction. */
 export const healable: ComponentFactory<EntityHooks, HealableParams> = {

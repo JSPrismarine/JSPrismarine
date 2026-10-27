@@ -223,10 +223,11 @@ The ground-input, dash, free-camera, and vertical-movement components currently 
 controls to the client; the server does not apply those inputs to entity movement.
 The entities package README lists each component and what it does.
 
-"Parses as data" is not the same as "ignored". The host still reads `minecraft:breedable` to put
-eligible adults in love when they receive a matching item. `minecraft:healable` and
-`minecraft:tameable` implement item interactions through component hooks, while the host applies
-the resulting health, owner, and event effects. `minecraft:collision_box` and the
+"Parses as data" is not the same as "ignored". The `minecraft:breedable` hook matches feed items,
+checks tame, health, baby, love, and cooldown requirements, and puts eligible adults into love; the
+separate breeding runtime resolves compatible mates and offspring from related data components.
+`minecraft:healable` and `minecraft:tameable` also implement item interactions through component
+hooks, while the host applies the resulting health, owner, and event effects. `minecraft:collision_box` and the
 `minecraft:navigation.*` flavors build the path
 finder's profile; its walking, swimming, and flight capabilities project to `CANWALK`, `CANSWIM`, and
 `CANFLY`. `minecraft:can_climb` enables ladder traversal and projects to `CANCLIMB`, while

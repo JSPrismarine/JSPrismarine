@@ -65,7 +65,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
-import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
+import { canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
@@ -1468,30 +1468,10 @@ export class EntityRuntime implements EntityScene {
         }
         if (spawnEggIdentifier !== undefined) return { accepted: false };
 
-        const breeding = breedableOf(entity.instance);
-        const breedable = entity.instance.componentParams('minecraft:breedable');
-        const health = entity.instance.attributes.get('health');
-        const breedingItem = isRecord(breedable) ? componentItem(breedable.breed_items, itemIdentifier) : undefined;
-        if (
-            breeding !== undefined &&
-            isRecord(breedable) &&
-            breedingItem !== undefined &&
-            !entity.instance.hasComponent('minecraft:is_baby') &&
-            entity.body.loveTicks <= 0 &&
-            entity.body.breedCooldown <= 0 &&
-            (!breeding.requireTame ||
-                entity.instance.hasComponent('minecraft:is_tamed') ||
-                entity.body.owner !== undefined) &&
-            (!breeding.requireFullHealth || (health !== undefined && health.current >= health.max))
-        ) {
-            const resultItem = resultItemOf(breedingItem);
-            entity.body.loveTicks = 600;
-            return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
-        }
-
         const interaction = entity.instance.interactWithItemResult(
             itemIdentifier,
-            other ?? this.mobById(owner)?.view()
+            other ?? this.mobById(owner)?.view(),
+            { loveTicks: entity.body.loveTicks, breedCooldown: entity.body.breedCooldown }
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
@@ -1499,6 +1479,7 @@ export class EntityRuntime implements EntityScene {
                 addItems,
                 admire,
                 barter,
+                breed,
                 dropItemSlot,
                 dropItemYOffset,
                 equipItemSlot,
@@ -1513,6 +1494,7 @@ export class EntityRuntime implements EntityScene {
                 ...itemEffect
             } = interaction;
             const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
+            if (breed === true) entity.body.loveTicks = 600;
             if (tame?.succeeded === true) {
                 this.setOwner(entity.id, owner);
                 entity.body.conditions.add('is_tamed');
@@ -2770,31 +2752,6 @@ export class EntityRuntime implements EntityScene {
 
 /** The effects of adding one component group, with nothing else in them. */
 const addGroup = (group: string) => ({ ...noEffects('minecraft:transformation'), addGroups: [group] });
-
-/** Finds one component item by its identifier, with or without its default namespace. */
-const componentItem = (items: unknown, identifier: string): unknown => {
-    const itemNames = Array.isArray(items) ? items : items === undefined ? [] : [items];
-    const normalized = identifier.includes(':') ? identifier : `minecraft:${identifier}`;
-    return itemNames.find((item) => {
-        const name =
-            typeof item === 'string' ? item : isRecord(item) && typeof item.item === 'string' ? item.item : undefined;
-        if (name === undefined) return false;
-        return (name.includes(':') ? name : `minecraft:${name}`) === normalized;
-    });
-};
-
-/** The normalized replacement item a successful component interaction returns, if declared. */
-const resultItemOf = (item: unknown): string | undefined => {
-    if (!isRecord(item)) return undefined;
-    const identifier =
-        typeof item.result_item === 'string'
-            ? item.result_item
-            : typeof item.transform_to_item === 'string'
-              ? item.transform_to_item
-              : undefined;
-    if (identifier === undefined) return undefined;
-    return identifier.includes(':') ? identifier : `minecraft:${identifier}`;
-};
 
 /** Fires the optional `minecraft:tameable` event after ownership is recorded. */
 const fireTameEvent = (entity: DataEntity, event: string | undefined, target: EventTarget | undefined): void => {

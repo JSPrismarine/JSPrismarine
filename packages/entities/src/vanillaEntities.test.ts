@@ -104,7 +104,6 @@ const RUNTIME_COMPONENTS = [
     'minecraft:transient',
     'minecraft:admire_item',
     'minecraft:barter',
-    'minecraft:breedable',
     'minecraft:can_climb',
     'minecraft:can_fly',
     'minecraft:can_stand_on_powder_snow',

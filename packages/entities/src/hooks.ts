@@ -182,6 +182,14 @@ export interface EntityTameInteractionEffect {
     readonly target?: EventTarget;
 }
 
+/** Body timers that determine whether an item can start a stateful interaction. */
+export interface EntityItemInteractionState {
+    /** Ticks remaining in the entity's current love state. */
+    readonly loveTicks?: number;
+    /** Ticks remaining before the entity may breed again. */
+    readonly breedCooldown?: number;
+}
+
 /** The effects requested by a data-defined item interaction. */
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
@@ -206,6 +214,8 @@ export interface EntityItemInteractionEffect {
     readonly repairEntityItem?: EntityRepairItemRequest;
     /** Whether the entity should offer its main-hand item to an empty player hand. */
     readonly takeItem?: boolean;
+    /** Whether the entity should enter its love state. */
+    readonly breed?: boolean;
     /** The result of a data-defined taming attempt. */
     readonly tame?: EntityTameInteractionEffect;
     /** Whether the entity should admire the offered item after the interaction. */
@@ -257,6 +267,7 @@ export interface EntityHooks {
     onInteractWithItem: (
         entity: EntityInstance,
         itemIdentifier: string,
-        other?: FilterEntityView
+        other?: FilterEntityView,
+        state?: EntityItemInteractionState
     ) => boolean | EntityItemInteractionEffect | undefined;
 }
