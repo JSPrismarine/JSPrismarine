@@ -24,8 +24,9 @@ runtime one.
 
 The item loader also keeps Bedrock behavior pack data separate: `ItemType.bedrockComponents` holds
 the raw component bodies, and `ItemType.tags` plus `hasTag(name)` expose the active Bedrock tags.
-These do not replace or reinterpret Java's default components, and retaining a body does not imply
-that the server executes its behavior.
+`ItemStack.getTags()` and `ItemStack.hasTag(name)` read the same tags from the stack's type. These
+do not replace or reinterpret Java's default components, and retaining a body does not imply that
+the server executes its behavior.
 
 ## The Java component model
 

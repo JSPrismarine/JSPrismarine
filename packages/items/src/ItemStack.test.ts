@@ -22,6 +22,11 @@ const { registry } = loadItemTypes({
         })
     ]
 });
+const { registry: taggedRegistry } = loadItemTypes({
+    definitions: [itemDefinition('minecraft:apple', { 'minecraft:max_stack_size': 64 })],
+    bedrockTags: { 'test:snacks': ['minecraft:apple'] },
+    strict: true
+});
 
 const apple = (count = 1) => new ItemStack(registry.holder('minecraft:apple'), count);
 const pickaxe = (count = 1) => new ItemStack(registry.holder('minecraft:diamond_pickaxe'), count);
@@ -31,6 +36,14 @@ describe('an item stack over its type defaults', () => {
         expect(apple().params(food)).toEqual({ nutrition: 4, saturation: 2.4 });
         expect(apple().params(maxStackSize)).toBe(64);
         expect(apple().patch.size).toBe(0);
+    });
+
+    it('reads Bedrock tags through the stack type', () => {
+        const stack = new ItemStack(taggedRegistry.holder('minecraft:apple'));
+
+        expect(stack.getTags()).toEqual(['test:snacks']);
+        expect(stack.hasTag('test:snacks')).toBe(true);
+        expect(stack.hasTag('test:other')).toBe(false);
     });
 
     it('reads the patch before the default', () => {

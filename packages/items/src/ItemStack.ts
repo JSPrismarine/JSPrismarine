@@ -88,6 +88,18 @@ export class ItemStack extends Instance<ItemHooks, ItemStackState, ItemFlag> {
         return this.holder.key;
     }
 
+    /** The Bedrock tags attached to this stack's item type. */
+    public getTags(): readonly string[] {
+        const type = this.type;
+        if (!('tags' in type) || !Array.isArray(type.tags)) return [];
+        return type.tags.filter((tag): tag is string => typeof tag === 'string');
+    }
+
+    /** Whether this stack's item type carries one of its Bedrock tags. */
+    public hasTag(tag: string): boolean {
+        return this.getTags().includes(tag);
+    }
+
     /** How many items the stack holds. */
     public get count(): number {
         return this.state.count;
