@@ -2136,22 +2136,10 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity to the level, restoring a supported type into the data runtime when available.
+     * Adds an entity body to the level.
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
-        if (!(entity instanceof Player) && !(entity instanceof ItemEntity)) {
-            const live = this.server.getEntityRuntime?.(this.dimension.name);
-            if (
-                live !== undefined &&
-                live.bodies.entityIdOf(entity) === undefined &&
-                this.restoreDataEntity(entity, live)
-            ) {
-                if (this.entities.get(entity.getRuntimeId()) === entity) await this.removeEntity(entity);
-                return;
-            }
-        }
-
         // Kept in step only once something has asked for it; before that the first count
         // reads the map, which already holds this arrival. Re-adding one the world already
         // has is a replacement rather than an arrival.
