@@ -10,6 +10,7 @@ import type { ConsoleSender } from '../command/ConsoleSender';
 import type { Chat } from '../chat/Chat';
 import { ChatType } from '../chat/Chat';
 import type { Config } from '../config/Config';
+import type Player from '../Player';
 import { EventEmitter } from '../events/EventEmitter';
 import ChatEvent from '../events/chat/ChatEvent';
 import type SessionManager from '../SessionManager';
@@ -41,7 +42,13 @@ const fakeServer = (overrides: { dispatchCommand?: () => Promise<boolean>; playe
         getConsole: () => undefined,
         getConsoleSender: () => sender,
         getCommandManager: () => stub<CommandManager>({ dispatchCommand, getCommands: () => commands }),
-        getSessionManager: () => stub<SessionManager>({ getAllPlayers: () => Array.from({ length: players }) }),
+        getSessionManager: () =>
+            stub<SessionManager>({
+                getAllPlayers: () =>
+                    Array.from({ length: players }, (_, index) =>
+                        stub<Player>({ getName: () => `player-${index + 1}` })
+                    )
+            }),
         getConfig: () => stub<Config>({ getMaxPlayers: () => 20 }),
         getLogger: () => stub<Logger>({ info }),
         on: (id, callback) => {
@@ -281,7 +288,7 @@ describe('RemoteConsole', () => {
         setPlayers(1);
         await vi.advanceTimersByTimeAsync(1000);
         expect(statuses()).toHaveLength(2);
-        expect(statuses()[1]).toMatchObject({ players: 1 });
+        expect(statuses()[1]).toMatchObject({ players: 1, playerNames: ['player-1'] });
 
         await vi.advanceTimersByTimeAsync(5000);
         expect(statuses()).toHaveLength(3);
