@@ -10,7 +10,12 @@ import { damagerSubjects } from '../filterContext';
 import type { FilterEntityView, FilterItemView } from '../filterContext';
 import { evaluateFilter } from '../filters';
 import type { EntityHooks } from '../hooks';
-import type { EntityAddItemsRequest, EntityItemInteractionEffect, EntitySpawnItemsRequest } from '../hooks';
+import type {
+    EntityAddItemsRequest,
+    EntityItemInteractionEffect,
+    EntityRepairItemRequest,
+    EntitySpawnItemsRequest
+} from '../hooks';
 import { TICKS_PER_SECOND } from '../hooks';
 import type { EntitySpawnRequest } from '../hooks';
 import type { RideableParams } from '../riding';
@@ -1031,6 +1036,8 @@ interface InteractEntry {
     readonly transformedItem?: TransformedItem;
     /** Bedrock loot-table path rolled when the interaction succeeds. */
     readonly spawnItems?: EntitySpawnItemsRequest;
+    /** Entity item slot to repair when this interaction succeeds. */
+    readonly repairEntityItem?: EntityRepairItemRequest;
     readonly playSounds: readonly string[];
     /** Game-event vibration emitted when the interaction succeeds. */
     readonly vibration?: string;
@@ -1087,6 +1094,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'spawn_items',
             'play_sounds',
             'vibration',
+            'repair_entity_item',
             'cooldown',
             'cooldown_after_being_attacked'
         ]);
@@ -1154,6 +1162,23 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 return rejected(`interactions[${index}].spawn_items must name a loot table`);
             if (raw.add_items !== undefined && (!isRecord(raw.add_items) || typeof raw.add_items.table !== 'string'))
                 return rejected(`interactions[${index}].add_items must name a loot table`);
+            if (raw.repair_entity_item !== undefined && !isRecord(raw.repair_entity_item))
+                return rejected(`interactions[${index}].repair_entity_item must be an object`);
+            if (
+                isRecord(raw.repair_entity_item) &&
+                raw.repair_entity_item.amount !== undefined &&
+                (typeof raw.repair_entity_item.amount !== 'number' ||
+                    !Number.isInteger(raw.repair_entity_item.amount) ||
+                    raw.repair_entity_item.amount <= 0)
+            )
+                return rejected(`interactions[${index}].repair_entity_item.amount must be a positive integer`);
+            if (
+                isRecord(raw.repair_entity_item) &&
+                raw.repair_entity_item.slot !== undefined &&
+                raw.repair_entity_item.slot !== null &&
+                typeof raw.repair_entity_item.slot !== 'string'
+            )
+                return rejected(`interactions[${index}].repair_entity_item.slot must be a string or null`);
             if (
                 isRecord(raw.spawn_items) &&
                 raw.spawn_items.y_offset !== undefined &&
@@ -1168,6 +1193,12 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 isRecord(raw.add_items) && typeof raw.add_items.table === 'string'
                     ? { table: raw.add_items.table }
                     : undefined;
+            const repairEntityItem: EntityRepairItemRequest | undefined = isRecord(raw.repair_entity_item)
+                ? {
+                      amount: numberAt(raw.repair_entity_item, 'amount', 1),
+                      ...(typeof raw.repair_entity_item.slot === 'string' ? { slot: raw.repair_entity_item.slot } : {})
+                  }
+                : undefined;
             let playSounds: readonly string[] = [];
             if (typeof raw.play_sounds === 'string') playSounds = [raw.play_sounds];
             else if (raw.play_sounds !== undefined) {
@@ -1201,6 +1232,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     ? { transformedItem: transformedItemOf(raw.transform_to_item) }
                     : {}),
                 ...(spawnItems === undefined ? {} : { spawnItems }),
+                ...(repairEntityItem === undefined ? {} : { repairEntityItem }),
                 unsupportedFields: [
                     ...Object.keys(raw).filter((key) => !supportedFields.has(key)),
                     ...(isRecord(raw.spawn_items)
@@ -1212,6 +1244,11 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ? Object.keys(raw.add_items)
                               .filter((key) => key !== 'table')
                               .map((key) => `add_items.${key}`)
+                        : []),
+                    ...(isRecord(raw.repair_entity_item)
+                        ? Object.keys(raw.repair_entity_item)
+                              .filter((key) => key !== 'amount' && key !== 'slot')
+                              .map((key) => `repair_entity_item.${key}`)
                         : [])
                 ]
             });
@@ -1275,6 +1312,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
                         entry.addItems === undefined &&
+                        entry.repairEntityItem === undefined &&
                         entry.equipItemSlot === undefined &&
                         entry.dropItemSlot === undefined &&
                         !entry.giveItem &&
@@ -1310,6 +1348,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.dropItemYOffset === undefined ? {} : { dropItemYOffset: entry.dropItemYOffset }),
                         ...(entry.giveItem ? { giveItem: true } : {}),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
+                        ...(entry.repairEntityItem === undefined ? {} : { repairEntityItem: entry.repairEntityItem }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.hurtItem === 0 ? {} : { hurtItem: entry.hurtItem }),
                         ...(entry.transformedItem === undefined

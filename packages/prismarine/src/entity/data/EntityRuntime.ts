@@ -25,6 +25,7 @@ import type {
     EntityAngerBroadcast,
     EntityEffects,
     EntityPosition,
+    EntityRepairItemRequest,
     EntitySpawnRequest,
     EntitySpawnItemsRequest,
     EventTarget,
@@ -1527,12 +1528,14 @@ export class EntityRuntime implements EntityScene {
                 giveItem,
                 healthAmount,
                 playSounds,
+                repairEntityItem,
                 spawnItems,
                 vibration,
                 ...itemEffect
             } = interaction;
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
+            if (repairEntityItem !== undefined) this.repairInteractionSlot(entity, repairEntityItem);
             if (dropItemSlot !== undefined) this.dropInteractionSlot(entity, dropItemSlot, dropItemYOffset ?? 0);
             const equippedHeldItem =
                 equipItemSlot === undefined || this.equipInteractionSlot(entity, equipItemSlot, heldItem);
@@ -1590,6 +1593,50 @@ export class EntityRuntime implements EntityScene {
             return undefined;
         }
         return index;
+    }
+
+    /** Restores durability to an entity item in a named equipment or inventory slot. */
+    private repairInteractionSlot(entity: DataEntity, request: EntityRepairItemRequest): void {
+        const name = request.slot;
+        if (name === undefined) return;
+
+        const equipmentSlot = mobEquipmentSlotOf(name);
+        if (equipmentSlot !== undefined) {
+            const item = entity.body.equipment[equipmentSlot];
+            if (item === undefined || item.damage === undefined || item.damage <= 0) return;
+
+            const repaired = { ...item, damage: Math.max(0, item.damage - request.amount) };
+            const equipment = { ...entity.body.equipment, [equipmentSlot]: repaired };
+            const projectedIndex = entity.body.equipmentInventorySlots[equipmentSlot];
+            if (projectedIndex !== undefined) entity.body.containerSlots[projectedIndex] = repaired;
+            entity.body.setEquipment(equipment);
+            return;
+        }
+
+        const index = this.containerSlotIndex(entity, name);
+        if (index === undefined) {
+            if (!/^(0|[1-9]\d*)$/.test(name))
+                this.reportInteractionSlotOnce(
+                    entity,
+                    name,
+                    `entity ${entity.identifier} asks to repair an unsupported slot ${name}`
+                );
+            return;
+        }
+
+        const item = entity.body.containerSlots[index];
+        if (item === undefined || item.damage === undefined || item.damage <= 0) return;
+
+        const repaired = { ...item, damage: Math.max(0, item.damage - request.amount) };
+        entity.body.containerSlots[index] = repaired;
+        let equipment = entity.body.equipment;
+        let changed = false;
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            if (entity.body.equipmentInventorySlots[slot] !== index) continue;
+            equipment = { ...equipment, [slot]: repaired };
+            changed = true;
+        }
+        if (changed) entity.body.setEquipment(equipment);
     }
 
     /** Equips the held stack into an entity inventory slot or a named equipment slot. */

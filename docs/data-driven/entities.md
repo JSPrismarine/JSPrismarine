@@ -194,9 +194,10 @@ plays sounds, emits vibrations, creates configured entities, and rolls its `add_
 `spawn_items` loot tables. It also applies `hurt_item`, `use_item`, and `transform_to_item` through
 the live player's inventory. `equip_item_slot` and `drop_item_slot` read named equipment slots or
 indexed slots in `minecraft:inventory`, and `drop_item_y_offset` moves the resulting drop vertically.
-`give_item` replaces the entity's main-hand item, and `interact_text` reaches touch-screen clients
-through actor metadata. The fields `admire`, `barter`, `particle_on_start`, `repair_entity_item`,
-`swing`, and `take_item` still report as unsupported.
+`give_item` replaces the entity's main-hand item, `repair_entity_item` restores durability in a named
+entity inventory or equipment slot, and `interact_text` reaches touch-screen clients through actor
+metadata. The fields `admire`, `barter`, `particle_on_start`, `swing`, and `take_item` still report as
+unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type

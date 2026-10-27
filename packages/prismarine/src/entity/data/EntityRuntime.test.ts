@@ -559,6 +559,51 @@ describe('EntityRuntime', () => {
             expect(entity.instance.attributes.get('health')?.current).toBe(16);
         });
 
+        it('repairs a damaged entity inventory item and preserves its other stack data', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {
+                    itemDefinitions: vanillaItemDefinitions().filter(
+                        (definition) => definition.identifier === 'minecraft:diamond_pickaxe'
+                    )
+                },
+                {
+                    'jsprismarine:item_repairer': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:inventory': { container_type: 'horse', inventory_size: 1 },
+                            'minecraft:interact': {
+                                interactions: {
+                                    repair_entity_item: { amount: 4, slot: '0' }
+                                }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:item_repairer', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no item repairer');
+            entity.body.containerSlots[0] = {
+                identifier: 'minecraft:diamond_pickaxe',
+                count: 1,
+                damage: 7,
+                customName: 'Field tool',
+                enchantments: { 'minecraft:efficiency': 2 }
+            };
+
+            expect(runtime.interactWithItem(entity.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(entity.body.containerSlots[0]).toEqual({
+                identifier: 'minecraft:diamond_pickaxe',
+                count: 1,
+                damage: 3,
+                customName: 'Field tool',
+                enchantments: { 'minecraft:efficiency': 2 }
+            });
+        });
+
         it('checks healable filters and lets force_use accept an item at full health', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

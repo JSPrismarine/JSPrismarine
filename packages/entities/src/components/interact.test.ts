@@ -17,7 +17,7 @@ describe('minecraft:interact schema', () => {
                     admire: true,
                     barter: true,
                     particle_on_start: { particle_type: 'heart' },
-                    repair_entity_item: { amount: 1, slot: 'slot.weapon.mainhand' },
+                    repair_entity_item: { amount: 3, slot: 'slot.weapon.mainhand' },
                     swing: false,
                     take_item: true
                 }
@@ -34,13 +34,9 @@ describe('minecraft:interact schema', () => {
             giveItem: true,
             unsupportedFields: []
         });
-        expect(result.value.interactions[1]?.unsupportedFields).toEqual([
-            'admire',
-            'barter',
-            'particle_on_start',
-            'repair_entity_item',
-            'swing',
-            'take_item'
-        ]);
+        expect(result.value.interactions[1]).toMatchObject({
+            repairEntityItem: { amount: 3, slot: 'slot.weapon.mainhand' },
+            unsupportedFields: ['admire', 'barter', 'particle_on_start', 'swing', 'take_item']
+        });
     });
 });

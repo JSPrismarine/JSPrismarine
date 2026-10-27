@@ -164,6 +164,14 @@ export interface EntitySpawnItemsRequest extends EntityAddItemsRequest {
     readonly yOffset: number;
 }
 
+/** Repairs the item in one of the entity's inventory or equipment slots. */
+export interface EntityRepairItemRequest {
+    /** Durability restored, which must be greater than zero. */
+    readonly amount: number;
+    /** The entity slot to repair, or undefined when the interaction names none. */
+    readonly slot?: string;
+}
+
 /** The effects requested by a successful data-defined interaction. */
 export interface EntityItemInteractionEffect {
     /** Health gained, or lost when negative, when the interaction succeeds. */
@@ -184,6 +192,8 @@ export interface EntityItemInteractionEffect {
     readonly playSounds?: readonly string[];
     /** Game-event vibration the world emits when this interaction succeeds. */
     readonly vibration?: string;
+    /** The entity item slot to repair and the amount of durability to restore. */
+    readonly repairEntityItem?: EntityRepairItemRequest;
     /** The inventory or equipment slot that receives the held item. */
     readonly equipItemSlot?: string;
     /** The entity slot whose item is dropped when this interaction succeeds. */
