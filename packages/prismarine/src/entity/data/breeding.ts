@@ -25,6 +25,13 @@ const DEFAULT_BREED_COOLDOWN = 60;
 /** Ticks in one second, which is what `breed_cooldown` is measured in. */
 const TICKS_PER_SECOND = 20;
 
+/**
+ * Parsed breeding rules for each active component definition. A component group
+ * that changes these parameters supplies a different object, while repeated
+ * reads of the same data-driven component reuse its parsed rules.
+ */
+const rulesByParams = new WeakMap<Record<string, unknown>, BreedableRules>();
+
 /** One entry of `breeds_with`: a type this entity mates with, and the child it makes. */
 export interface MateType {
     /** The entity type that counts as a mate, such as `minecraft:horse`. */
@@ -57,14 +64,19 @@ export const breedableOf = (instance: EntityInstance): BreedableRules | undefine
     const params = instance.componentParams('minecraft:breedable');
     if (!isRecord(params)) return undefined;
 
+    const cached = rulesByParams.get(params);
+    if (cached !== undefined) return cached;
+
     const cooldown = typeof params.breed_cooldown === 'number' ? params.breed_cooldown : DEFAULT_BREED_COOLDOWN;
-    return {
+    const rules = {
         requireTame: params.require_tame !== false,
         requireFullHealth: params.require_full_health === true,
         breedCooldownTicks: Math.round(cooldown * TICKS_PER_SECOND),
         mates: matesOf(params.breeds_with),
         loveFilters: params.love_filters === undefined ? undefined : parseFilter(params.love_filters)
     };
+    rulesByParams.set(params, rules);
+    return rules;
 };
 
 /** Whether the entity is in love now, which is what makes it look for a mate at all. */
