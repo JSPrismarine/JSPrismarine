@@ -21,6 +21,7 @@ import { buildServerContent } from '../content/ServerContent';
 import { fixtureContentOptions } from '../content/testing';
 import type { EntityRuntime } from '../entity/data/EntityRuntime';
 import type { LiveEntityRuntime } from '../entity/data/live';
+import type { LiveBodies } from '../entity/data/liveBodies';
 import type Server from '../Server';
 import { stub } from './stub.test.helper';
 
@@ -42,8 +43,9 @@ export const testContent = (): ServerContent => (sharedContent ??= buildServerCo
 /**
  * A runtime that holds no entity and saves none.
  *
- * Only the three members a `World` reaches without being asked to: the tick, the save and the
- * restore of a stored body. A test about the data path builds a real runtime and passes it.
+ * A `World` can ask it to tick, save, restore, or route a legacy body. Its body index claims
+ * nothing, and an unknown legacy body stays with the world. A test about the data path builds a
+ * real runtime and passes it.
  *
  * @returns {LiveEntityRuntime} The inert runtime.
  */
@@ -53,9 +55,11 @@ export const inertEntityRuntime = (): LiveEntityRuntime =>
         // is what `/summon` does before it spawns - gets an answer rather than a crash. The
         // fixture declares no entity, so every such question answers no.
         runtime: stub<EntityRuntime>({ content: () => testContent() }),
+        bodies: stub<LiveBodies>({ entityIdOf: () => undefined }),
         tick: async () => {},
         persist: () => {},
-        restore: () => undefined
+        restore: () => undefined,
+        restoreExisting: () => undefined
     });
 
 /** What a test says about the server behind its world. */

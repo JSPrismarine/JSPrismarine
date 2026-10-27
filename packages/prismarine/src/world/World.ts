@@ -912,11 +912,10 @@ export class World implements Service {
      * @param stored - The body built from the actor NBT, which the runtime
      *   reads the position and the untouched tags off and then replaces.
      * @returns Whether the runtime took it. False means this world runs the
-     *   written entity classes, the actor is a dropped item, or no loaded pack declares its
-     *   type, and the caller adds the body it built.
+     *   written entity classes, the actor is a dropped item, the world has no data runtime, or
+     *   no loaded pack declares its type, and the caller adds the body it built.
      */
-    private restoreDataEntity(stored: Entity): boolean {
-        const live = this.dataEntities();
+    private restoreDataEntity(stored: Entity, live = this.server.getEntityRuntime?.(this.dimension.name)): boolean {
         if (live === undefined) return false;
 
         const record = stored.persistentNbt === null ? undefined : dataEntityRecordIn(stored.persistentNbt);
@@ -1936,10 +1935,22 @@ export class World implements Service {
     }
 
     /**
-     * Adds an entity to the level.
+     * Adds an entity to the level, restoring a supported type into the data runtime when available.
      * @param {Entity} entity - The entity to add.
      */
     public async addEntity(entity: Entity): Promise<void> {
+        if (!(entity instanceof Player) && !(entity instanceof ItemEntity)) {
+            const live = this.server.getEntityRuntime?.(this.dimension.name);
+            if (
+                live !== undefined &&
+                live.bodies.entityIdOf(entity) === undefined &&
+                this.restoreDataEntity(entity, live)
+            ) {
+                if (this.entities.get(entity.getRuntimeId()) === entity) await this.removeEntity(entity);
+                return;
+            }
+        }
+
         // Kept in step only once something has asked for it; before that the first count
         // reads the map, which already holds this arrival. Re-adding one the world already
         // has is a replacement rather than an arrival.

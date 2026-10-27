@@ -1506,6 +1506,27 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(zombies.some((zombie) => zombie.position.x > 4)).toBe(true);
         });
 
+        it('keeps two overlapping zombie groups moving toward their shared survival target', async () => {
+            const player = addPlayer(12, 0);
+            player.gamemode = Gametype.SURVIVAL;
+            const groups = [0.5, 4.5].map((x) =>
+                Array.from({ length: 12 }, () => {
+                    const zombie = live.runtime.spawn('minecraft:zombie', { x, y: GROUND_Y, z: 0.5 });
+                    if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+                    return zombie;
+                })
+            );
+            const zombies = groups.flat();
+
+            await run(200);
+
+            expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
+            expect(zombies.every((zombie) => !zombie.body.stuck)).toBe(true);
+            expect(
+                groups.every((group, index) => group.some((zombie) => zombie.position.x > (index === 0 ? 4 : 8)))
+            ).toBe(true);
+        });
+
         it('drops Java’s loot when a mob is killed, and takes its body away', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
@@ -1924,6 +1945,29 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect(zombie.position.y).toBe(GROUND_Y);
             expect(typesIn(second.world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
+        });
+
+        it('routes a legacy mob body added to the world through the data runtime', async () => {
+            const legacy = new GenericEntity({
+                identifier: 'minecraft:zombie',
+                position: new Position(2.5, GROUND_Y + 4, 3.5, world),
+                yaw: 45,
+                pitch: 12
+            });
+
+            await world.addEntity(legacy);
+
+            const zombie = live.runtime.all().find((entity) => entity.identifier === 'minecraft:zombie');
+            if (zombie === undefined) throw new Error('the legacy zombie was not migrated into the data runtime');
+            expect(zombie.instance.goals.names()).toContain('minecraft:behavior.nearest_attackable_target');
+            expect(zombie.body.yaw).toBe(45);
+            expect(zombie.body.pitch).toBe(12);
+            expect(world.getEntity(legacy.getRuntimeId())).toBeNull();
+
+            await run(30);
+
+            expect(zombie.position.y).toBe(GROUND_Y);
+            expect(typesIn(world).filter((type) => type === 'minecraft:zombie')).toHaveLength(1);
         });
 
         it('restores level.json mobs into the runtime before their chunks are loaded', async () => {
