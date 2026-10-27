@@ -64,7 +64,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { bedrockItemDrops } from '../../item/bedrockDrops';
 import { dropOfRolledStack } from '../../item/lootStack';
 import { itemOfDrop } from '../../inventory/persistence';
-import { breedableOf, canBreed, offspringOf, spendLove } from './breeding';
+import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, spendLove } from './breeding';
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
@@ -106,6 +106,10 @@ const TICKS_PER_SECOND = 20;
 const TNT_LAUNCH_SPEED = 0.2;
 const TNT_GRAVITY = 0.04;
 const TNT_DRAG = 0.98;
+
+/** Resolves an entity name through the shared Java-to-Bedrock table and the active content registry. */
+const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
+    bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
 
 /** The default eye position as a fraction of a non-player entity's hitbox height. */
 export const PROJECTILE_EYE_HEIGHT_FRACTION = 0.85;
@@ -1164,7 +1168,8 @@ export class EntityRuntime implements EntityScene {
         const other = typeof mate.id === 'number' ? this.entities.get(mate.id) : undefined;
         if (self === undefined || other === undefined || !canBreed(self, other)) return;
 
-        const child = offspringOf(self, other);
+        const content = this.content();
+        const child = offspringOf(self, other, (identifier) => runtimeEntityIdentifierOf(identifier, content));
         if (child === undefined) return;
 
         spendLove(self);
@@ -1218,13 +1223,17 @@ export class EntityRuntime implements EntityScene {
         const spawnEggData = content.items.types.get(itemIdentifier)?.params(entityData);
         const spawnEggIdentifier =
             isRecord(spawnEggData) && typeof spawnEggData.id === 'string'
-                ? bedrockEntityIdentifierOf(spawnEggData.id, (candidate) => content.entities.registry.has(candidate))
+                ? runtimeEntityIdentifierOf(spawnEggData.id, content)
                 : undefined;
         if (
             entity.instance.hasComponent('minecraft:spawn_egg_interaction') &&
             spawnEggIdentifier === entity.identifier
         ) {
-            const baby = this.spawn(entity.identifier, entity.position, { cause: 'born', data: spawnEggData });
+            const offspringIdentifier =
+                offspringIdentifierOf(entity.instance, entity.identifier, (identifier) =>
+                    runtimeEntityIdentifierOf(identifier, content)
+                ) ?? entity.identifier;
+            const baby = this.spawn(offspringIdentifier, entity.position, { cause: 'born' });
             if (baby !== undefined) return { accepted: true };
         }
 

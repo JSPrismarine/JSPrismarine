@@ -2492,6 +2492,95 @@ describe('the data-driven entity runtime over a live world', () => {
             expect(lamb?.instance.hasComponent('minecraft:is_baby')).toBe(true);
         });
 
+        it('spawns each vanilla spawn egg interaction’s declared offspring', { timeout: 180_000 }, async () => {
+            useVanillaContent();
+
+            const content = live.runtime.content();
+            const { bedrockEntityIdentifierOf } = await import('../identifierMapping');
+            const isRecord = (value: unknown): value is Record<string, unknown> =>
+                value !== null && typeof value === 'object' && !Array.isArray(value);
+            const eggByEntity = new Map<string, string>();
+            for (const [itemIdentifier, itemType] of content.items.types) {
+                const data = itemType.params(entityData);
+                if (data === undefined || typeof data !== 'object' || data === null || !('id' in data)) continue;
+                if (typeof data.id !== 'string') continue;
+
+                const identifier = bedrockEntityIdentifierOf(data.id, (candidate) =>
+                    content.entities.registry.has(candidate)
+                );
+                if (identifier !== undefined && !eggByEntity.has(identifier))
+                    eggByEntity.set(identifier, itemIdentifier);
+            }
+
+            const eggTargets = [...content.entities.registry].filter(
+                ([, type]) =>
+                    type.declaredComponents.includes('minecraft:spawn_egg_interaction') &&
+                    eggByEntity.has(type.identifier)
+            );
+            const player = addPlayer(2, 2);
+            Object.assign(player, { inventory: new HumanInventory() });
+
+            for (const [identifier] of eggTargets) {
+                const egg = eggByEntity.get(identifier);
+                if (egg === undefined)
+                    throw new Error(`${identifier} has spawn egg interaction data but no matching egg`);
+
+                const parent = live.runtime.spawn(identifier, { x: 0.5, y: GROUND_Y, z: 0.5 });
+                if (parent === undefined) throw new Error(`vanilla content declares no ${identifier}`);
+                expect(parent.instance.hasComponent('minecraft:spawn_egg_interaction')).toBe(true);
+
+                const body = live.bodies.bodyOf(parent.id);
+                if (body === undefined) throw new Error(`${identifier} has no client-facing actor`);
+                const offspringData = parent.instance.componentParams('minecraft:offspring');
+                const offspringPairs = isRecord(offspringData) ? offspringData.offspring_pairs : undefined;
+                const offspringName = isRecord(offspringPairs) ? offspringPairs[identifier] : undefined;
+                if (typeof offspringName !== 'string')
+                    throw new Error(`${identifier} has spawn egg interaction data but no offspring pair`);
+                const expectedChildIdentifier = bedrockEntityIdentifierOf(offspringName, (candidate) =>
+                    content.entities.registry.has(candidate)
+                );
+                if (expectedChildIdentifier === undefined)
+                    throw new Error(`${identifier} declares unknown offspring ${offspringName}`);
+                player.getInventory().setItemInHand(new ContainerEntry({ item: new Item({ name: egg }), count: 1 }));
+                const existingIds = new Set(live.runtime.all().map((entity) => entity.id));
+
+                await useHeldItemOnEntity(player, body.getRuntimeId());
+
+                const offspring = live.runtime.all().find((entity) => !existingIds.has(entity.id));
+                expect(offspring?.identifier).toBe(expectedChildIdentifier);
+                const offspringType = content.entities.registry.get(expectedChildIdentifier);
+                if (offspringType?.declaredComponents.includes('minecraft:is_baby')) {
+                    expect(offspring?.instance.hasComponent('minecraft:is_baby'), identifier).toBe(true);
+                    const offspringBody = offspring && live.bodies.bodyOf(offspring.id);
+                    expect(offspringBody?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))).toBe(true);
+                } else {
+                    expect(offspring && live.bodies.bodyOf(offspring.id)).toBeDefined();
+                }
+            }
+
+            expect(eggTargets.length).toBeGreaterThan(0);
+        });
+
+        it('uses vanilla offspring pairs when two frogs breed', { timeout: 180_000 }, () => {
+            useVanillaContent();
+
+            const first = live.runtime.spawn('minecraft:frog', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            const second = live.runtime.spawn('minecraft:frog', { x: 1.5, y: GROUND_Y, z: 0.5 });
+            if (first === undefined || second === undefined) throw new Error('vanilla content declares no frog');
+            const mate = live.runtime.mobById(second.id);
+            if (mate === undefined) throw new Error('the second vanilla frog has no goal view');
+            live.runtime.setInLove(first.id, 600);
+            live.runtime.setInLove(second.id, 600);
+
+            live.runtime.breedWith(first.body, mate);
+
+            const tadpole = live.runtime.all().find((entity) => entity.identifier === 'minecraft:tadpole');
+            expect(tadpole?.instance.hasComponent('minecraft:is_baby')).toBe(true);
+            expect(
+                live.bodies.bodyOf(tadpole?.id ?? 0)?.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.BABY))
+            ).toBe(true);
+        });
+
         it(
             'uses adult spawning for matching eggs when the entity data has no baby interaction',
             { timeout: 180_000 },

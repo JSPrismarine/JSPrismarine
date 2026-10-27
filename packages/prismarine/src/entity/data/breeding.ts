@@ -74,6 +74,31 @@ export const isInLove = (entity: DataEntity, rules: BreedableRules): boolean => 
 };
 
 /**
+ * Reads the offspring type declared for one mate by an entity's active component data.
+ *
+ * @param instance - Entity instance whose offspring component declares the pair.
+ * @param mateIdentifier - The other entity's type identifier.
+ * @param resolveIdentifier - Maps Java or Bedrock names into the active entity registry.
+ * @returns The declared offspring type, or undefined when the component has no pair for that mate.
+ */
+export const offspringIdentifierOf = (
+    instance: EntityInstance,
+    mateIdentifier: string,
+    resolveIdentifier: (identifier: string) => string | undefined = (identifier) => identifier
+): string | undefined => {
+    const offspring = instance.componentParams('minecraft:offspring');
+    if (!isRecord(offspring) || !isRecord(offspring.offspring_pairs)) return undefined;
+
+    const resolvedMate = resolveIdentifier(mateIdentifier);
+    if (resolvedMate === undefined) return undefined;
+
+    const pair = Object.entries(offspring.offspring_pairs).find(
+        ([parentIdentifier]) => resolveIdentifier(parentIdentifier) === resolvedMate
+    );
+    return pair === undefined || typeof pair[1] !== 'string' ? undefined : resolveIdentifier(pair[1]);
+};
+
+/**
  * Whether two entities may breed with each other now.
  *
  * Both sides have to agree: an entity breeds with a mate its own
@@ -92,21 +117,27 @@ export const canBreed = (self: DataEntity, other: DataEntity): boolean => {
 /**
  * The child two entities produce.
  *
+ * @param resolveIdentifier - Maps Java or Bedrock names into the active entity registry.
  * @returns The child's type and the event to run on it, or undefined when the
  *   pair is not a pair.
  */
 export const offspringOf = (
     self: DataEntity,
-    other: DataEntity
+    other: DataEntity,
+    resolveIdentifier: (identifier: string) => string | undefined = (identifier) => identifier
 ): { identifier: string; event?: string } | undefined => {
     const rules = breedableOf(self.instance);
     if (rules === undefined) return undefined;
 
     const mate = accepts(rules, self, other);
     if (mate === undefined) return undefined;
-    if (mate === SAME_TYPE) return { identifier: self.identifier };
+
+    const offspringIdentifier = offspringIdentifierOf(self.instance, other.identifier, resolveIdentifier);
+    if (mate === SAME_TYPE) return { identifier: offspringIdentifier ?? self.identifier };
     return {
-        identifier: mate.babyType ?? self.identifier,
+        identifier:
+            offspringIdentifier ??
+            (mate.babyType === undefined ? self.identifier : (resolveIdentifier(mate.babyType) ?? mate.babyType)),
         ...(mate.breedEvent === undefined ? {} : { event: mate.breedEvent })
     };
 };
