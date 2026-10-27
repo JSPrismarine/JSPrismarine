@@ -123,6 +123,17 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
 /** The host facts over one live world. */
 const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFacts => ({
     players: () => options.entities.players(),
+    playerIdentityOf: (id) => {
+        const player = options.liveWorld()?.getEntity(BigInt(id));
+        return player instanceof Player ? player.getUUID().toString() : undefined;
+    },
+    playerIdForIdentity: (identity) => {
+        const player = options
+            .liveWorld()
+            ?.getPlayers()
+            .find((candidate) => candidate.getUUID().toString() === identity);
+        return player === undefined ? undefined : Number(player.getRuntimeId());
+    },
     drop: (at, item) => options.entities.drop(at, item),
     destroyBlock: (at, destruction) => {
         const world = options.liveWorld();

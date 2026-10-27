@@ -49,6 +49,10 @@ export interface EntityWorldFacts {
 export interface EntityHostFacts {
     /** Every player in the dimension. */
     players(): readonly ContentEntity[];
+    /** Stable identity of a player runtime id, or undefined when it names no player. */
+    playerIdentityOf?(id: number): string | undefined;
+    /** Current runtime id of a stable player identity, or undefined while that player is offline. */
+    playerIdForIdentity?(identity: string): number | undefined;
     /** Drops an item stack as an entity at a position. */
     drop(at: ContentPosition, item: ContentItemDrop): void;
     /**

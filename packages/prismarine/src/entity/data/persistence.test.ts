@@ -40,6 +40,18 @@ describe('the data entity record', () => {
         });
     });
 
+    it('preserves a stable owner identity instead of a session runtime id', () => {
+        const { runtime } = entityFixture();
+        const pet = runtime.spawn('minecraft:cow', GROUND);
+        if (pet === undefined) throw new Error('the fixture declares no minecraft:cow');
+        Object.assign(pet.body, { ownerIdentity: '00000000-0000-0000-0000-000000000042' });
+
+        const record = dataEntityRecordOf(pet, undefined);
+        const restored = dataEntityRecordIn(written(record));
+
+        expect(restored).toMatchObject({ ownerIdentity: '00000000-0000-0000-0000-000000000042' });
+    });
+
     it('reads back what it wrote, leaving the actor’s other tags alone', () => {
         const { runtime } = entityFixture();
         const cow = runtime.spawn('minecraft:cow', GROUND, { pool: 'animal' });

@@ -15,11 +15,12 @@
  * Every other tag of the actor compound is left where it is, so the `UniqueID`
  * a world was written with survives and the next save addresses the same actor.
  *
- * Two things are deliberately not in the record. The attack target and the
- * owner are runtime ids, which are drawn fresh each session and would resolve
- * to whatever entity happened to take the number. And the carried item is an
- * identifier rather than a stack, because that is all the goal seam models;
- * when it grows a stack, this record should write it through
+ * The attack target is deliberately not in the record. It is a runtime id,
+ * which is drawn fresh each session and would resolve to whatever entity
+ * happened to take the number. The owner is stored by stable player identity
+ * and rebound to the new runtime id when that player returns. A carried item
+ * is an identifier rather than a stack, because that is all the goal seam
+ * models; when it grows a stack, this record should write it through
  * `inventory/itemNbt.ts` rather than encode one here.
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
@@ -48,6 +49,8 @@ export interface DataEntityRecord {
     readonly pitch: number;
     /** Where `minecraft:home` or a `set_home_position` event pinned the entity. */
     readonly home?: EntityPosition;
+    /** Stable identity of the player who tamed or launched this entity. */
+    readonly ownerIdentity?: string;
     /** What the entity holds in its main hand. */
     readonly carried?: string;
     /** What it carries that is not in its hand, as item identifiers. */
@@ -87,6 +90,7 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
         yaw: body.yaw,
         pitch: body.pitch,
         ...(body.home === undefined ? {} : { home: body.home }),
+        ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
         ...(body.carried === undefined ? {} : { carried: body.carried }),
         inventory: [...body.inventory],
         sitting: body.sitting,
@@ -167,7 +171,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     }
 
     if (!isObject(parsed)) return undefined;
-    const { identifier, pool, carried } = parsed;
+    const { identifier, pool, carried, ownerIdentity } = parsed;
     if (typeof identifier !== 'string' || identifier === '') return undefined;
 
     const home = positionOf(parsed['home']);
@@ -182,6 +186,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         yaw: numberOf(parsed['yaw'], 0),
         pitch: numberOf(parsed['pitch'], 0),
         ...(home === undefined ? {} : { home }),
+        ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
         inventory: stringsOf(parsed['inventory']),
         sitting: parsed['sitting'] === true,
@@ -222,6 +227,7 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.pitch = record.pitch;
     body.home = record.home;
     instance.setHomePosition(record.home);
+    body.ownerIdentity = record.ownerIdentity;
     body.carried = record.carried;
     body.inventory.splice(0, body.inventory.length, ...record.inventory);
     body.sitting = record.sitting;

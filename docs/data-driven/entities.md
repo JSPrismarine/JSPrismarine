@@ -455,13 +455,13 @@ microseconds per entity per tick together and now cost 20. No tick budget has be
 gates ticking by simulation distance, so treat the data path as something to test with rather than
 to run a populated server on.
 
-**A mob's target and its owner are lost over a save.** The rest of it survives. A save writes each
-entity's component groups, property values, attributes, body state and population pool into its
-actor compound as JSON, and the runtime builds the entity back from that without rerunning the
-spawn event, so a wounded mob stays wounded and a sheared sheep stays sheared. The target and the
-owner stay out because both are runtime ids, drawn fresh each session, and would come back
-pointing at whatever entity happened to take the number. A held item also comes back as an
-identifier rather than as a stack, which is as much as the goal seam models.
+**A mob's attack target is lost over a save.** The target is a runtime id, drawn fresh each
+session, so saving it could point the mob at an unrelated entity after restart. A tamed mob's
+owner is saved by the player's stable UUID and rebound to that player's current runtime id when
+they rejoin. The other component state survives too: a save writes each entity's component groups,
+property values, attributes, body state and population pool into its actor compound as JSON, and
+the runtime restores it without rerunning the spawn event. A held item comes back as an identifier
+rather than as a stack, which is as much as the goal seam models.
 
 **Taming, breeding, and healing use their component data.** Right-clicking an entity checks its
 active `minecraft:tameable`, `minecraft:breedable`, or `minecraft:healable` item list. A matching

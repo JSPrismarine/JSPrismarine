@@ -48,6 +48,7 @@ import { Position } from '../../world/Position';
 import { World } from '../../world/World';
 import { NULL_WORLD_CHANGE_SINK } from '../../world/WorldChangeSink';
 import { WorldSystems } from '../../world/WorldSystems';
+import UUID from '../../utils/UUID';
 import type PlayerSession from '../../network/PlayerSession';
 import InventoryTransactionPacket, {
     ItemUseOnActorActionType,
@@ -591,6 +592,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
         yaw: 0,
         headYaw: 0,
         runtimeId: Entity.runtimeIdCount,
+        uuid: new UUID(0, 0, 0, Number(Entity.runtimeIdCount)),
         // The world only hands out players it believes are still connected.
         connected: true,
         server: world.getServer(),
@@ -872,6 +874,34 @@ describe('the data-driven entity runtime over a live world', () => {
 
         expect(pet.instance.hasComponent('minecraft:is_tamed')).toBe(true);
         expect(body.metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.TAMED))).toBe(true);
+    });
+
+    it('reattaches a saved tame to its owner after the owner gets a new runtime id', async () => {
+        const ownerUuid = '00000000-0000-0000-0000-000000000042';
+        const firstPlayer = addPlayer(2, 2);
+        Object.assign(firstPlayer, { uuid: UUID.fromString(ownerUuid) });
+        const pet = live.runtime.spawn('jsprismarine:pet_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (pet === undefined) throw new Error('the fixture declares no tameable pet');
+
+        const body = live.bodies.bodyOf(pet.id);
+        if (body === undefined) throw new Error('the tameable pet has no client-facing body');
+        expect(live.interactWithItem(body, firstPlayer, 'minecraft:bone').accepted).toBe(true);
+
+        live.persist();
+        const record = body.persistentNbt === null ? undefined : dataEntityRecordIn(body.persistentNbt);
+        if (record === undefined) throw new Error('the tameable pet record was not saved');
+        expect(record).toMatchObject({ ownerIdentity: ownerUuid });
+
+        live.runtime.remove(pet.id, 'test restart');
+        const rejoinedPlayer = addPlayer(4, 4);
+        Object.assign(rejoinedPlayer, { uuid: UUID.fromString(ownerUuid) });
+        const restored = live.restore(record, body);
+        if (restored === undefined) throw new Error('the tameable pet did not restore');
+
+        await live.tick(1);
+
+        expect(restored.body.owner).toBe(Number(rejoinedPlayer.getRuntimeId()));
+        expect(restored.instance.filterContext().self.owner?.()?.id?.()).toBe(Number(rejoinedPlayer.getRuntimeId()));
     });
 
     it('feeds an ageable baby through the live inventory path and applies its result item', async () => {

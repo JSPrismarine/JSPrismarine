@@ -163,8 +163,11 @@ export class MobBody {
     /** Who last knocked the entity about, which `target_when_pushed` reads. */
     public lastPusher: number | undefined;
 
-    /** Who tamed the entity, by runtime id, or undefined while it is nobody's. */
+    /** The online owner's runtime id, or undefined while its owner is offline or absent. */
     public owner: number | undefined;
+
+    /** Stable player identity behind {@link MobBody.owner}, retained across server restarts. */
+    public ownerIdentity: string | undefined;
 
     /** The player with the entity's trade screen open, by runtime id. */
     public tradingPlayer: number | undefined;

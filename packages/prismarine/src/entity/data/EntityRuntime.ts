@@ -457,6 +457,7 @@ export class EntityRuntime implements EntityScene {
         body.yaw = options.yaw ?? 0;
         body.pitch = options.pitch ?? 0;
         body.owner = options.ownerId;
+        body.ownerIdentity = options.ownerId === undefined ? undefined : this.host.playerIdentityOf?.(options.ownerId);
         this.spawning = body;
         const executeEntityEvent = this.world.blocks.executeEntityEvent;
         const instance = new EntityInstance(registry.holder(reference), {
@@ -593,6 +594,7 @@ export class EntityRuntime implements EntityScene {
      *   per-pool cadence is measured against.
      */
     public tick(tick: number): void {
+        this.refreshOnlineOwners();
         const entities = this.all();
         let widest = 0;
         let tallest = 0;
@@ -989,7 +991,7 @@ export class EntityRuntime implements EntityScene {
 
         const velocity = projectileVelocity(direction, speed, inaccuracy, this.world.random);
         entity.body.velocity = velocity;
-        entity.body.owner = owner;
+        this.setOwner(entity.id, owner);
         const eye = entityEyePosition(at, entity.facts.box.height);
         entity.body.lookAt({ x: eye.x + velocity.x, y: eye.y + velocity.y, z: eye.z + velocity.z });
         this.projectiles.set(entity.id, { age: 0, stuck: false, hitEntities: new Set() });
@@ -1215,7 +1217,20 @@ export class EntityRuntime implements EntityScene {
      */
     public setOwner(id: number, owner: number | undefined): void {
         const entity = this.entities.get(id);
-        if (entity !== undefined) entity.body.owner = owner;
+        if (entity === undefined) return;
+        entity.body.owner = owner;
+        entity.body.ownerIdentity = owner === undefined ? undefined : this.host.playerIdentityOf?.(owner);
+    }
+
+    /** Rebinds saved player owners when their session assigns them a new runtime id. */
+    private refreshOnlineOwners(): void {
+        const ownerIdForIdentity = this.host.playerIdForIdentity;
+        if (ownerIdForIdentity === undefined) return;
+
+        for (const entity of this.entities.values()) {
+            const identity = entity.body.ownerIdentity;
+            if (identity !== undefined) entity.body.owner = ownerIdForIdentity(identity);
+        }
     }
 
     /**
@@ -1275,7 +1290,7 @@ export class EntityRuntime implements EntityScene {
             const probability = typeof tameable.probability === 'number' ? tameable.probability : 1;
             if (this.world.random.nextFloat() < Math.min(1, Math.max(0, probability))) {
                 const resultItem = resultItemOf(tameItem);
-                entity.body.owner = owner;
+                this.setOwner(entity.id, owner);
                 entity.body.conditions.add('is_tamed');
                 fireTameEvent(entity, tameable.tame_event);
                 return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
