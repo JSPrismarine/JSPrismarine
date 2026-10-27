@@ -1,13 +1,16 @@
 ---
 name: chrome-devtools
-description: Debug and profile JSPrismarine through Chrome DevTools. Use whenever diagnosing runtime failures, inspecting live server state, setting breakpoints or stepping through execution, debugging startup, profiling CPU or memory, or investigating slow ticks and performance regressions. Apply alongside diagnosing-bugs for runtime diagnosis.
+description: Debug and profile JSPrismarine through Chrome DevTools Protocol with the skill's cdp.mjs CLI. Use whenever diagnosing runtime failures, inspecting live server state, setting breakpoints or stepping through execution, debugging startup, profiling CPU or memory, or investigating slow ticks and performance regressions. Apply alongside diagnosing-bugs for runtime diagnosis.
 ---
 
 # Chrome DevTools
 
-Use the server's `--devtools` integration as the default runtime debugger and profiler.
-Read [Live debugging and profiling](../../../docs/running.md#live-debugging-and-profiling)
-before starting. Keep the diagnosis loop in [diagnosing-bugs](../diagnosing-bugs/SKILL.md);
+Use the server's `--devtools` integration as the default runtime debugger and profiler. Send all
+live DevTools Protocol commands through [`cdp.mjs`](cdp.mjs). Do not open the DevTools frontend,
+drive a browser, or use browser automation to connect to this server's inspector.
+Read [Live debugging and profiling](../../../docs/running.md#live-debugging-and-profiling) for
+startup flags and trace artifacts. Use this skill's CLI route for inspector access. Keep the
+diagnosis loop in [diagnosing-bugs](../diagnosing-bugs/SKILL.md);
 this skill supplies its runtime inspection and measurement tools. Build, lint, and type errors
 can use their own command output without starting a server.
 
@@ -35,27 +38,27 @@ construction. Static module imports have already run. The live `jsprismarine` ha
 available only after construction. Enable the debugger and install startup breakpoints before
 sending `Runtime.runIfWaitingForDebugger`. Every watch restart waits again.
 
-Wait for `JSPrismarine DevTools:` for the Chrome frontend, or `JSPrismarine inspector:` for
-the external CDP WebSocket endpoint. The inspector uses a dynamically
-assigned port on `127.0.0.1`. Attach to the server process, not the terminal host or watcher.
-After a watch restart, read the new URL and reconnect before inspecting or measuring again.
-Keep inspector access on loopback because it permits code execution in the server process.
+Wait for the host's `JSPrismarine inspector:` line and pass its stable WebSocket URL to the CLI.
+Do not use a child's `JSPrismarine inspector target:` URL. The host relay keeps the URL stable
+across watch restarts and reconnects to each replacement process. Keep the CLI connected while
+debugging so it can receive events and send follow-up commands after a pause.
 
-For the debugging frontend, first look for an installed app named `Google Chrome Dev`.
-If it exists, open the printed DevTools URL in that app. If it is not installed, open the
-printed `devtools://` URI through the system's default handler. Wait for the frontend to
-connect to the server's inspector before interacting.
+From the repository root, start a persistent CDP session:
 
-Discover the available Chrome DevTools tools and read their connection and operation schemas.
-Use supported debugger, runtime evaluation, CPU profiling, and heap inspection operations for
-the Node target. Browser page tools do not necessarily support Node inspector targets or
-`devtools://` URLs. If they cannot attach or lack a debugger operation, connect directly to the
-printed WebSocket endpoint with an external Node client through a persistent Node REPL or a
-separate process. Node has a built-in `WebSocket`; no browser page or additional package is
-needed. Use [Direct CDP debugging](references/cdp.md) for connection and pause handling.
-Use an external connection, since a same-thread `inspector.Session` pauses its own controller.
-Report a blocker only after checking both tool attachment and direct CDP access. Never claim
-a session or capture succeeded without observing it.
+```bash
+node .agents/skills/chrome-devtools/cdp.mjs connect --url "$INSPECTOR_URL"
+```
+
+Send one JSON CDP request per stdin line. The CLI assigns request IDs and writes responses and
+events as JSON lines to stdout. Use `call` for a single request that does not need event handling:
+
+```bash
+node .agents/skills/chrome-devtools/cdp.mjs call --url "$INSPECTOR_URL" Runtime.evaluate '{"expression":"jsprismarine.server.getTick()","returnByValue":true}'
+```
+
+The CLI uses Node's built-in WebSocket API and needs no package install. Read
+[Direct CDP debugging](references/cdp.md) for request flow, debugger pause handling, breakpoints,
+and profiling. Never claim a session or capture succeeded without observing its response or event.
 
 ## Inspect the reproduction
 
@@ -70,33 +73,31 @@ for a live method, and exception pauses for failures. For script instrumentation
 event-listener breakpoints do not apply to JSPrismarine. Read the CDP reference for generated
 JavaScript locations, source-map handling, stepping, and paused scope inspection.
 
-Inspect live objects through the DevTools Console's `jsprismarine` handle:
+Inspect live objects with `Runtime.evaluate` through the CLI. For example, send this request in a
+persistent session:
 
-```javascript
-jsprismarine.server.getTick()
-jsprismarine.worlds()
-jsprismarine.world('world')
-jsprismarine.entities('world')
-jsprismarine.entityRuntime('minecraft:overworld')?.runtime
+```json
+{"method":"Runtime.evaluate","params":{"expression":"jsprismarine.server.getTick()","returnByValue":true}}
 ```
 
 Discover the actual world names and dimensions before targeting them. These are live objects;
 prefer bounded, read-only queries, and treat method calls that change state as part of the
-reproduction. Avoid dumping whole registries or adding temporary logging when a debugger
-inspection can answer the question.
+reproduction. Avoid dumping whole registries or adding temporary logging when a CLI inspection can
+answer the question.
 
 ## Profile the workload
 
 Capture a baseline before changing code. Record the scenario, warmup, capture duration, and
 relevant load so the same workload can be measured after the change.
 
-- Use a DevTools CPU profile to attribute sampled CPU time to functions and call stacks.
-- Use heap snapshots or allocation profiling for memory growth. Account for snapshot pauses
-  and compare equivalent workload and garbage-collection conditions.
+- Use `Profiler.enable`, `Profiler.start`, and `Profiler.stop` through the CLI to attribute sampled
+  CPU time to functions and call stacks. Save the returned profile as JSON in a `.cpuprofile` file.
+- Use `HeapProfiler` commands through the CLI for heap snapshots or allocation profiling. Account
+  for snapshot pauses and compare equivalent workload and garbage-collection conditions.
 - Use the built-in timing trace to locate slow server ticks, world phases, and event-loop delay.
   Stop the server gracefully and wait for `JSPrismarine trace saved to` before collecting the
   `.trace.json` file. The default development location is `jsp/profiles/`; `JSP_DIR` can change
-  it. Import the saved trace in DevTools' Performance panel.
+  it.
 
 Timing spans include awaited work and are not CPU samples. The trace keeps a bounded window
 of recent events, so reproduce near capture end. A forced exit cannot save it. Stop recording

@@ -464,6 +464,24 @@ const ENTITIES = new Map([
                             transform_to_item: 'bucket:1'
                         },
                         {
+                            on_interact: {
+                                filters: {
+                                    all_of: [
+                                        { test: 'is_family', subject: 'other', value: 'player' },
+                                        {
+                                            test: 'has_equipment_tag',
+                                            subject: 'other',
+                                            domain: 'hand',
+                                            value: 'minecraft:logs'
+                                        }
+                                    ]
+                                },
+                                event: 'jsprismarine:tagged_item_interaction',
+                                target: 'self'
+                            },
+                            use_item: false
+                        },
+                        {
                             play_sounds: 'mob.generic'
                         }
                     ]
@@ -472,7 +490,8 @@ const ENTITIES = new Map([
             component_groups: { interacted: { 'minecraft:persistent': {} } },
             events: {
                 'jsprismarine:interact_used': { add: { component_groups: ['interacted'] } },
-                'jsprismarine:interact_without_use': { add: { component_groups: ['interacted'] } }
+                'jsprismarine:interact_without_use': { add: { component_groups: ['interacted'] } },
+                'jsprismarine:tagged_item_interaction': { add: { component_groups: ['interacted'] } }
             }
         })
     ]
@@ -740,7 +759,8 @@ const buildOver = (
                 'minecraft:emerald',
                 'minecraft:cobblestone',
                 'minecraft:egg',
-                'minecraft:chicken_spawn_egg'
+                'minecraft:chicken_spawn_egg',
+                'minecraft:oak_log'
             ].includes(definition.identifier)
         ),
         seed: 1234n,
@@ -976,6 +996,29 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(result).toBe('handled');
         expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:bucket');
         expect(player.getInventory().getItemInHand().getMeta()).toBe(1);
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
+
+        await live.tick(1);
+
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
+    });
+
+    it('passes Bedrock item tags to a live entity interaction filter', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player.getInventory().setItemInHand(
+            new ContainerEntry({
+                item: new Item({ name: 'minecraft:oak_log', content: live.runtime.content() }),
+                count: 1
+            })
+        );
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+
+        expect(player.getInventory().getItemInHand().hasTag('minecraft:logs')).toBe(true);
+        expect(live.interactWithItem(body, player, 'minecraft:oak_log').accepted).toBe(true);
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
 
         await live.tick(1);

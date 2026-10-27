@@ -44,7 +44,13 @@ import type { Item } from '../../item/Item';
 
 /** A held or equipped item as the entity filter language reads it. */
 const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
-    item === undefined ? undefined : { identifier: () => item.getName(), data: () => item.getMeta() };
+    item === undefined
+        ? undefined
+        : {
+              identifier: () => item.getName(),
+              data: () => item.getMeta(),
+              tags: () => item.getTags()
+          };
 
 /** The live player's family and equipment, which `minecraft:interact` filters inspect. */
 const playerFilterView = (player: Player): FilterEntityView => {

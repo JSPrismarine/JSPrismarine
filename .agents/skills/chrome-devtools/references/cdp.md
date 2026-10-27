@@ -1,27 +1,43 @@
 # Direct CDP debugging
 
-Use an external Node process or persistent Node REPL to connect to the printed
-`JSPrismarine inspector:` URL. Keep the connection alive across inspection calls. Read
-the current [V8 Debugger protocol](https://chromedevtools.github.io/devtools-protocol/v8/Debugger/)
-when an operation's parameters are unclear.
+Use [the skill's `cdp.mjs` CLI](../cdp.mjs) for every connection and request. Pass the stable URL
+printed after `JSPrismarine inspector:`. Keep `connect` mode open across inspection calls so it can
+receive events and send follow-up commands. The host relay keeps that WebSocket connected when
+watch mode replaces the server child. If the host itself exits, start a new CLI connection with its
+new printed URL.
+
+Send one JSON object per stdin line. For example, enable the debugger and runtime, then evaluate an
+expression:
+
+```json
+{"method":"Debugger.enable","params":{}}
+{"method":"Runtime.enable","params":{}}
+{"method":"Runtime.evaluate","params":{"expression":"jsprismarine.server.getTick()","returnByValue":true}}
+```
+
+The CLI assigns numeric request IDs and prints every response and event as JSON lines. Use `call`
+mode only for one request that will not pause execution or require event handling. Read the current
+[V8 Debugger protocol](https://chromedevtools.github.io/devtools-protocol/v8/Debugger/) when an
+operation's parameters are unclear.
+
+In `connect` mode, add a `saveTo` file path to a request when its result is an artifact. The CLI
+removes this field before sending the CDP request. For `Profiler.stop`, it writes the returned
+profile; for `HeapProfiler.takeHeapSnapshot`, it joins the snapshot chunks and writes the
+`.heapsnapshot` file. `call` mode accepts `--output <file>` for single-request results.
 
 ## Connection and execution
 
-Create a Node `WebSocket` and wait for `open`. Send JSON objects with unique numeric `id`,
-`method`, and `params` fields. Install the message listener before sending commands. Match
-responses by `id`; retain notifications by `method`. Reject CDP error responses, and bound
-command and event waits with a timeout that names the operation. On socket closure, reject
-pending operations and reconnect to the current endpoint if the watcher restarted the server.
+Send `Runtime.enable` and `Debugger.enable` through `connect` mode. For `Debugger.scriptParsed`,
+read events as they arrive and retain script IDs, URLs, and source-map URLs. For `--devtools-wait`,
+set breakpoints before `Runtime.runIfWaitingForDebugger`. The inspector is reachable during this
+wait, even though server initialization and the live handle are not ready. Send
+`Runtime.runIfWaitingForDebugger` again after each watched child restart.
 
-Send `Runtime.enable` and `Debugger.enable`. Register `Debugger.scriptParsed` handling before
-enabling the debugger to retain script IDs, URLs, and source-map URLs. For `--devtools-wait`,
-set breakpoints before `Runtime.runIfWaitingForDebugger`. The inspector is reachable during
-this wait, even though server initialization and the live handle are not ready.
-
-Register the `Debugger.paused` waiter before triggering the reproduction. A `Runtime.evaluate`
-request that hits a breakpoint remains pending while paused. Keep its promise, inspect the
-pause, resume through a separate command, and then await the original evaluation. Awaiting
-the evaluation first deadlocks the controller until its timeout.
+Watch for the `Debugger.paused` event before triggering the reproduction. A `Runtime.evaluate`
+request that hits a breakpoint remains pending while paused. Keep the CLI session open, inspect
+the pause event, send `Debugger.resume` as a separate request, and then read the original
+evaluation response. Waiting synchronously for that response before sending resume deadlocks the
+debugger workflow.
 
 ## Breakpoints and scopes
 
@@ -30,8 +46,8 @@ the evaluation first deadlocks the controller until its timeout.
   `Debugger.breakpointResolved`; an unresolved breakpoint is not proof of coverage.
 - For a loaded script ID, use `Debugger.getScriptSource` and `Debugger.getPossibleBreakpoints`
   to choose an executable location, then `Debugger.setBreakpoint`. Raw CDP locations address
-  generated JavaScript. Use a source-map-aware frontend or map the TypeScript location before
-  sending it. A `.ts` script URL alone does not prove that line numbers match the source.
+  generated JavaScript. Map the TypeScript location to generated JavaScript before sending the
+  request. A `.ts` script URL alone does not prove that line numbers match the source.
 - For a live function, use `Runtime.evaluate` to retrieve its remote `objectId`, then
   `Debugger.setBreakpointOnFunctionCall`. Keep the remote object alive until installation.
 - For script instrumentation, use `Debugger.setInstrumentationBreakpoint` with
@@ -51,12 +67,13 @@ the evaluation first deadlocks the controller until its timeout.
 
 ## Profiles and artifacts
 
-Use `Profiler.enable`, `Profiler.start`, and `Profiler.stop` for CPU sampling. Save the returned
-`profile` as JSON in a `.cpuprofile` file. Use `HeapProfiler.startSampling` and
-`HeapProfiler.stopSampling` for allocation samples after `HeapProfiler.enable`.
+Use `Profiler.enable`, `Profiler.start`, and `Profiler.stop` through the CLI for CPU sampling. Add
+`"saveTo":"jsp/profiles/server.cpuprofile"` to the `Profiler.stop` request to save the profile.
+Use `HeapProfiler.startSampling` and `HeapProfiler.stopSampling` for allocation samples after
+`HeapProfiler.enable`.
 
-For `HeapProfiler.takeHeapSnapshot`, collect every `HeapProfiler.addHeapSnapshotChunk`
-notification in order until the command completes, then concatenate the chunks into a
-`.heapsnapshot` file. Register the chunk listener before starting capture. Write large artifacts
-to disk and show only relevant summaries in chat. Release temporary remote object groups with
-`Runtime.releaseObjectGroup` after inspection.
+For `HeapProfiler.takeHeapSnapshot`, add
+`"saveTo":"jsp/profiles/server.heapsnapshot"` to the request. The CLI collects every
+`HeapProfiler.addHeapSnapshotChunk` notification in order until the command completes. Write large
+artifacts to disk and show only relevant summaries in chat. Release temporary remote object groups
+with `Runtime.releaseObjectGroup` after inspection.

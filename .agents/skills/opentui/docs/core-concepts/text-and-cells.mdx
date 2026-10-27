@@ -137,7 +137,7 @@ import { OptimizedBuffer, ResourceContext, RGBA } from "@opentui/core"
 const owner = new ResourceContext({ objectCapacity: 4, renderCellsMax: 40 })
 try {
   const buffer = OptimizedBuffer.create(20, 2, "unicode", { owner })
-  buffer.drawText("A\u0301 and \u754c", 0, 0, RGBA.fromHex("#ffffff"))
+  buffer.drawText("Á and 界", 0, 0, RGBA.fromHex("#ffffff"))
   buffer.destroy()
 } finally {
   owner.destroy()
