@@ -58,6 +58,9 @@ type LateTickProfile = {
     slowestWorldMs: number;
 };
 
+/** Refreshes the process title often enough to show recent tick health without writing every second. */
+const PROCESS_TITLE_UPDATE_INTERVAL_SECONDS = 5;
+
 const summarizeLateTicks = (profiles: readonly LateTickProfile[]): string => {
     const totals = profiles.reduce(
         (summary, profile) => ({
@@ -699,7 +702,7 @@ export default class Server extends EventEmitter {
 
                     if (
                         this.config.getEnableProcessTitle() &&
-                        this.getTick() % ticksPerSecond === 0 &&
+                        this.getTick() % (ticksPerSecond * PROCESS_TITLE_UPDATE_INTERVAL_SECONDS) === 0 &&
                         !this.headless
                     ) {
                         // Update the process title with TPS and tick.

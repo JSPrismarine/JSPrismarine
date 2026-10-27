@@ -50,7 +50,7 @@ describe('Server', () => {
      * One folder per test keeps each startup independent. LevelDB takes a directory lock, so
      * two servers must not open the same world at once.
      */
-    const debugConfig = (levelName: string, options: { ticking?: boolean } = {}) =>
+    const debugConfig = (levelName: string, options: { ticking?: boolean; processTitle?: boolean } = {}) =>
         new (class DebugConfig extends Config {
             public override async enable() {}
 
@@ -102,7 +102,7 @@ describe('Server', () => {
             }
 
             public override getEnableProcessTitle() {
-                return false;
+                return options.processTitle ?? false;
             }
 
             public override getPacketCompressionLevel() {
@@ -138,6 +138,44 @@ describe('Server', () => {
             expect(tickMs).toBeLessThan(50);
         } finally {
             await prismarine.shutdown({ stayAlive: true });
+        }
+    });
+
+    it('refreshes the process title every five seconds', async () => {
+        const descriptor = Object.getOwnPropertyDescriptor(process, 'title');
+        if (descriptor === undefined) throw new Error('process.title has no property descriptor');
+        let title = process.title;
+        const writes: string[] = [];
+        Object.defineProperty(process, 'title', {
+            configurable: true,
+            enumerable: descriptor.enumerable,
+            get: () => title,
+            set: (next: string) => {
+                title = next;
+                writes.push(next);
+            }
+        });
+
+        const prismarine = new Server({
+            logger: new Logger(),
+            config: debugConfig('test-world-process-title', { ticking: true, processTitle: true })
+        });
+        let bootstrapped = false;
+        try {
+            await prismarine.bootstrap('0.0.0.0', 12345);
+            bootstrapped = true;
+            await new Promise((resolve) => setTimeout(resolve, 4500));
+            expect(writes.length).toBeLessThanOrEqual(1);
+
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            expect(writes.length).toBeGreaterThanOrEqual(1);
+            expect(writes.length).toBeLessThanOrEqual(2);
+        } finally {
+            try {
+                if (bootstrapped) await prismarine.shutdown({ stayAlive: true });
+            } finally {
+                Object.defineProperty(process, 'title', descriptor);
+            }
         }
     });
 
