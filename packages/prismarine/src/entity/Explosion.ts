@@ -23,9 +23,7 @@ import type { Item } from '../item/Item';
 import { destroyedBlockDrops } from '../world/blockDestroy';
 import { createEngineWorld } from '../world/EngineWorld';
 import { GameRules } from '../world/GameRuleManager';
-import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import Tnt from './other/Tnt';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from './fuse';
 import { DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
@@ -39,6 +37,9 @@ import type { Entity } from './Entity';
  * degree and nothing else, because the damage reads the whole collision box instead.
  */
 const EYE_HEIGHT_FRACTION = 0.85;
+
+/** The primed TNT entity in the data-driven runtime. */
+const TNT_IDENTIFIER = 'minecraft:tnt';
 
 /** What a blast is. */
 export interface ExplosionOptions {
@@ -84,7 +85,7 @@ export const explode = async (world: World, at: Vector3, options: ExplosionOptio
         entities: caught,
         breaksBlocks: breaksBlocks && griefingAllowed(world),
         onBlockDestroyed: (position, block) => {
-            if (block.name === Tnt.MOB_ID) {
+            if (block.name === TNT_IDENTIFIER) {
                 caughtTnt.push(position);
                 return;
             }
@@ -125,8 +126,8 @@ const explosionWorldOf = (world: World): ExplosionWorld => createEngineWorld(wor
  * Lights the TNT a blast caught, which is what makes a chain.
  *
  * Java's `TntBlock.wasExploded`. The block is not dropped and not rolled for loot -
- * `TntBlock.dropFromExplosion` returns false - it becomes a primed entity standing in the
- * middle of where it was, with {@link randomShortFuse}'s 10 to 29 ticks rather than a full
+ * `TntBlock.dropFromExplosion` returns false - it becomes a data-driven primed entity standing
+ * in the middle of where it was, with {@link randomShortFuse}'s 10 to 29 ticks rather than a full
  * fuse. The spread is what makes a pile of TNT ripple outward over a second instead of going
  * off as one blast, and the short fuse is why the ripple is quick.
  *
@@ -137,33 +138,21 @@ const primeTnt = async (world: World, at: BlockPosition, source: Entity | null):
     const [allowed] = world.getGameRuleManager().getGameRule(GameRules.TNTExplodes) ?? [true];
     if (!allowed) return;
 
-    let runtime: ReturnType<World['dataEntities']>['runtime'] | undefined;
-    try {
-        runtime = world.dataEntities().runtime;
-    } catch {
-        // A standalone world without a live entity runtime still uses the legacy body below.
-    }
-    if (runtime?.content().entities.registry.has(Tnt.MOB_ID)) {
-        runtime.spawn(
-            Tnt.MOB_ID,
-            { x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
-            {
-                cause: 'primed',
-                event: 'from_explosion',
-                data: { fuse: randomShortFuse(DEFAULT_FUSE_TICKS, runtime.world.random.nextFloat()) },
-                ...(source === null ? {} : { ownerId: Number(source.getRuntimeId()) })
-            }
-        );
+    const runtime = world.dataEntities().runtime;
+    if (!runtime.content().entities.registry.has(TNT_IDENTIFIER)) {
+        world.getServer().getLogger().debug('The data runtime does not declare minecraft:tnt', 'entity/Explosion');
         return;
     }
 
-    const random = world.getServer().getRandom?.();
-    await world.addEntity(
-        new Tnt({
-            position: new Position(at.x + 0.5, at.y, at.z + 0.5, world),
-            fuse: randomShortFuse(DEFAULT_FUSE_TICKS, random?.() ?? Math.random()),
-            source
-        })
+    runtime.spawn(
+        TNT_IDENTIFIER,
+        { x: at.x + 0.5, y: at.y, z: at.z + 0.5 },
+        {
+            cause: 'primed',
+            event: 'from_explosion',
+            data: { fuse: randomShortFuse(DEFAULT_FUSE_TICKS, runtime.world.random.nextFloat()) },
+            ...(source === null ? {} : { ownerId: Number(source.getRuntimeId()) })
+        }
     );
 };
 
