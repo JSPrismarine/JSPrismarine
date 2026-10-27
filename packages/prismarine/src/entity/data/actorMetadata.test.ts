@@ -132,7 +132,7 @@ describe('actor metadata from entity components', () => {
             ActorFlags.SHAKING,
             ActorFlags.HIDDEN_WHEN_INVISIBLE,
             ActorFlags.STACKABLE,
-            ActorFlags.HAS_COLLISION,
+            ActorFlags.COLLIDABLE,
             ActorFlags.IS_PREGNANT,
             ActorFlags.STUNNED,
             ActorFlags.BODY_ROTATION_ALWAYS_FOLLOWS_HEAD,
@@ -158,6 +158,7 @@ describe('actor metadata from entity components', () => {
 
         applyActorMetadataProjection(body, actorMetadataProjection(actor));
         expectFlags(true);
+        expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(ActorFlags.HAS_COLLISION))).toBe(false);
 
         fixture.runtime.trigger(actor.body, 'clear', 'self');
         fixture.runtime.tick(2);

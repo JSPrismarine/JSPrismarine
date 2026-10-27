@@ -72,9 +72,9 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
         },
         {
             flag: MetadataFlag.HAS_COLLISION,
-            value:
-                !isRecord(physics) || physics.hasCollision !== false || instance.hasComponent('minecraft:is_collidable')
+            value: !isRecord(physics) || physics.hasCollision !== false
         },
+        { flag: ActorFlags.COLLIDABLE, value: instance.hasComponent('minecraft:is_collidable') },
         {
             flag: MetadataFlag.IGNITED,
             value: body.fuseTicks !== undefined || instance.hasComponent('minecraft:is_ignited')
