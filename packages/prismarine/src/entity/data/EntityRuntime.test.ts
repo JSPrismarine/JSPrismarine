@@ -754,6 +754,45 @@ describe('EntityRuntime', () => {
             expect(reports).toEqual([]);
         });
 
+        it('spawns the entities declared by a successful data-defined interaction', () => {
+            const { runtime, reports } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:interaction_spawner': {
+                        components: {
+                            'minecraft:interact': {
+                                interactions: {
+                                    spawn_entities: ['interaction_child', 'jsprismarine:interaction_child'],
+                                    use_item: true
+                                }
+                            }
+                        }
+                    },
+                    'minecraft:interaction_child': { components: {} },
+                    'jsprismarine:interaction_child': { components: {} }
+                }
+            );
+            const spawner = runtime.spawn('jsprismarine:interaction_spawner', GROUND);
+            if (spawner === undefined) throw new Error('the fixture declares no interaction spawner');
+
+            expect(runtime.interactWithItem(spawner.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+            expect(
+                runtime
+                    .all()
+                    .map((entity) => entity.identifier)
+                    .sort()
+            ).toEqual([
+                'jsprismarine:interaction_child',
+                'jsprismarine:interaction_spawner',
+                'minecraft:interaction_child'
+            ]);
+            expect(reports).toEqual([]);
+        });
+
         it('enforces each data-defined interaction cooldown per entity', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

@@ -1011,6 +1011,8 @@ const transformedItemOf = (value: string): TransformedItem => {
 interface InteractEntry {
     readonly onInteract?: SensorTrigger;
     readonly healthAmount?: number;
+    /** Entity types to create when this interaction succeeds. */
+    readonly spawnEntities: readonly string[];
     /** Loot-table items to add to the interacting player's inventory. */
     readonly addItems?: EntityAddItemsRequest;
     /** Durability to remove from the held item when the interaction succeeds. */
@@ -1049,9 +1051,9 @@ export interface InteractParams {
  * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
  * its event, plays `play_sounds`, emits its `vibration` game event, rolls
  * `spawn_items` or adds `add_items` to the interacting player's inventory,
- * and applies `transform_to_item` and `use_item` to the live held stack. Other
- * interaction fields remain visible as a one-time runtime report so incomplete
- * behavior is not silently treated as vanilla.
+ * creates `spawn_entities`, and applies `transform_to_item` and `use_item` to
+ * the live held stack. Other interaction fields remain visible as a one-time
+ * runtime report so incomplete behavior is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1061,6 +1063,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
         const supportedFields = new Set([
             'on_interact',
             'health_amount',
+            'spawn_entities',
             'add_items',
             'hurt_item',
             'use_item',
@@ -1094,6 +1097,18 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            const spawnEntities: string[] = [];
+            if (raw.spawn_entities !== undefined) {
+                if (!Array.isArray(raw.spawn_entities))
+                    return rejected(`interactions[${index}].spawn_entities must be an array of entity identifiers`);
+                for (const identifier of raw.spawn_entities) {
+                    if (typeof identifier !== 'string' || identifier.length === 0)
+                        return rejected(
+                            `interactions[${index}].spawn_entities must be an array of non-empty entity identifiers`
+                        );
+                    spawnEntities.push(identifier);
+                }
+            }
             if (
                 raw.health_amount !== undefined &&
                 (typeof raw.health_amount !== 'number' || !Number.isInteger(raw.health_amount))
@@ -1142,6 +1157,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             interactions.push({
                 onInteract,
+                spawnEntities,
                 ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
                 ...(addItems === undefined ? {} : { addItems }),
                 hurtItem: numberAt(raw, 'hurt_item', 0),
@@ -1228,6 +1244,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
                         entry.addItems === undefined &&
+                        entry.spawnEntities.length === 0 &&
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
                         !entry.useItem &&
@@ -1239,6 +1256,17 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     state.interactions[index] = interactionCooldownTicks(entry.cooldown);
                     if (entry.onInteract?.event !== undefined)
                         entity.raise(entry.onInteract.event, entry.onInteract.target, 'minecraft:interact');
+                    for (const identifier of entry.spawnEntities)
+                        entity.requestSpawn(
+                            {
+                                kind: 'entity',
+                                identifier: qualifiedSpawnIdentifier(identifier),
+                                count: 1,
+                                cause: 'spawned',
+                                shouldLeash: false
+                            },
+                            'minecraft:interact'
+                        );
                     return {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),

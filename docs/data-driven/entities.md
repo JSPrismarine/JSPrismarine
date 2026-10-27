@@ -192,8 +192,9 @@ trigger components; and `minecraft:cannot_be_attacked`, which blocks entity atta
 `minecraft:interact` evaluates item
 filters, enforces its cooldowns, raises its event, adjusts health by `health_amount`, plays
 `play_sounds`, emits its `vibration` game event, requests the `spawn_items` loot table from the host,
-adds `add_items` loot to the player's inventory, and applies `hurt_item`, `use_item`, and
-`transform_to_item` through the live inventory; other interaction fields still report as unsupported.
+adds `add_items` loot to the player's inventory, creates each configured `spawn_entities` entry,
+and applies `hurt_item`, `use_item`, and `transform_to_item` through the live inventory; other
+interaction fields still report as unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type
