@@ -176,8 +176,12 @@ export class EntityGrid {
                 }
             }
 
-        if (found.length > 1) found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
-        return found;
+        if (found.length < 2) return found;
+
+        // Read each arrival order once rather than once per sort comparison.
+        const ordered = found.map((entity) => ({ entity, arrival: this.arrived.get(entity.id) ?? 0 }));
+        ordered.sort((a, b) => a.arrival - b.arrival);
+        return ordered.map(({ entity }) => entity);
     }
 
     /** Puts one entity in a cell and records that it is there. */
