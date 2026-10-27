@@ -120,17 +120,16 @@ const EMPTY_USER_DATA = emptyUserData();
  * The blob a stack's `User Data Buffer` carries.
  *
  * The catalog stores an entry's NBT as a plain little endian compound, which
- * is the flavor `ItemInstanceUserData` writes it back out in. A shield ends
- * the blob with its blocking tick and nothing else does, which is a fact
- * about the item rather than about the data.
+ * is the flavor `ItemInstanceUserData` writes it back out in. Items with
+ * `minecraft:blocks_attacks` also carry the blocking tick in this structure.
  */
-const userDataFor = (name: string, nbt: Buffer | undefined): Buffer => {
-    if (nbt === undefined && name !== 'minecraft:shield') return EMPTY_USER_DATA;
+const userDataFor = (nbt: Buffer | undefined, blocksAttacks: boolean): Buffer => {
+    if (nbt === undefined && !blocksAttacks) return EMPTY_USER_DATA;
 
     const compound =
         nbt === undefined ? null : NBTTagCompound.readFromStream(new BinaryStream(nbt), ByteOrder.LITTLE_ENDIAN);
     const stream = new NetworkBinaryStream();
-    new ItemInstanceUserData(compound, name === 'minecraft:shield' ? { blockingTick: 0n } : {}).serialize(stream);
+    new ItemInstanceUserData(compound, blocksAttacks ? { blockingTick: 0n } : {}).serialize(stream);
 
     return stream.getBuffer();
 };
@@ -142,12 +141,15 @@ const userDataFor = (name: string, nbt: Buffer | undefined): Buffer => {
  * number the item table has for the name: `minecraft:air` is -158 there, and
  * writing that leaves the client holding a real item in every unused slot.
  */
-const creativeStack = (instance: WireItemInstance): ItemStackData => ({
+const creativeStack = (instance: WireItemInstance, content: ServerContent): ItemStackData => ({
     runtimeId: instance.name === 'minecraft:air' ? 0 : instance.runtimeId,
     count: instance.count,
     meta: instance.meta,
     blockRuntimeId: instance.blockRuntimeId,
-    userData: userDataFor(instance.name, instance.nbt)
+    userData: userDataFor(
+        instance.nbt,
+        content.items.types.get(instance.name)?.hasComponent('minecraft:blocks_attacks') ?? false
+    )
 });
 
 /**
@@ -258,12 +260,15 @@ export const buildNetworkContentPayloads = (
             groups: creative.groups.map((group) => ({
                 category: group.category,
                 name: group.name,
-                icon: creativeStack(group.icon)
+                icon: creativeStack(group.icon, content)
             })),
             // The writer numbers entries one-based by position, which is the
             // same number `buildCreativeContent` put in `creativeNetId`, so
             // the order is the whole of the agreement and nothing renumbers.
-            entries: creative.entries.map((entry) => ({ item: creativeStack(entry.item), group: entry.group }))
+            entries: creative.entries.map((entry) => ({
+                item: creativeStack(entry.item, content),
+                group: entry.group
+            }))
         },
         creativeItems: creative.entries.map((entry) => entry.item),
         crafting: {

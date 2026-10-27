@@ -33,11 +33,12 @@ export interface CreativeEntry {
  * holding a real item in every slot the player is not using.
  *
  * No stack here carries NBT, a can-place-on list or a can-destroy list yet, so the user data
- * blob is the empty structure plus the blocking tick a shield ends with.
+ * blob is the empty structure plus the blocking tick required by `minecraft:blocks_attacks`.
  */
 export const itemAsStack = (item: Item): ItemStackData => {
     const blob = new NetworkBinaryStream();
-    new ItemInstanceUserData(null, item.getName() === 'minecraft:shield' ? { blockingTick: 0n } : {}).serialize(blob);
+    const blocksAttacks = item.hasComponent('minecraft:blocks_attacks');
+    new ItemInstanceUserData(null, blocksAttacks ? { blockingTick: 0n } : {}).serialize(blob);
 
     return {
         runtimeId: item.getName() === 'minecraft:air' ? 0 : item.getNetworkId(),

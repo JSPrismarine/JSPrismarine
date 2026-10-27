@@ -661,8 +661,8 @@ export class Item {
      * `@jsprismarine/protocol` lays out.
      *
      * The blob is the stack's own compound when it has one, two empty block lists, and the
-     * blocking tick a shield ends with. An empty stack writes a bare zero length instead of
-     * the structure.
+     * blocking tick required by `minecraft:blocks_attacks`. An empty stack writes a bare zero
+     * length instead of the structure.
      *
      * A null compound used to go out here whatever the stack held, so an enchanted pickaxe,
      * a renamed sword and a lore line all arrived as the plain item. The mechanics ran on the
@@ -677,8 +677,8 @@ export class Item {
         }
 
         const blob = new NetworkBinaryStream();
-        const shield = this.getName() === 'minecraft:shield';
-        new ItemInstanceUserData(this.userDataTag(), shield ? { blockingTick: 0n } : {}).serialize(blob);
+        const blocksAttacks = this.hasComponent('minecraft:blocks_attacks');
+        new ItemInstanceUserData(this.userDataTag(), blocksAttacks ? { blockingTick: 0n } : {}).serialize(blob);
 
         stream.writeUnsignedVarInt(blob.getBuffer().byteLength);
         stream.write(new Uint8Array(blob.getBuffer()));
