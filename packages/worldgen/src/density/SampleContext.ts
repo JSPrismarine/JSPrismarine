@@ -120,6 +120,13 @@ export class SampleContext {
      */
     public interpolationCorners = new Float64Array(0);
 
+    /**
+     * The current horizontal interpolation stage per node id: one x-in-cell key followed by
+     * the four x-interpolated corner values. The key is invalidated when
+     * {@link SampleContext.interpolationCell} moves to another cell.
+     */
+    public interpolationXCache = new Float64Array(0);
+
     private readonly cells: CacheCell[] = [];
     private readonly cornerCaches: CornerCache[] = [];
     /** The current cell origin per node id, three doubles each, NaN while no cell is current. */
@@ -166,6 +173,7 @@ export class SampleContext {
         this.cellOrigins[origin] = x;
         this.cellOrigins[origin + 1] = y;
         this.cellOrigins[origin + 2] = z;
+        this.interpolationXCache[id * 5] = Number.NaN;
         return false;
     }
 
@@ -191,5 +199,9 @@ export class SampleContext {
         const origins = new Float64Array(count * 3).fill(Number.NaN);
         origins.set(this.cellOrigins);
         this.cellOrigins = origins;
+
+        const xCache = new Float64Array(count * 5).fill(Number.NaN);
+        xCache.set(this.interpolationXCache);
+        this.interpolationXCache = xCache;
     }
 }

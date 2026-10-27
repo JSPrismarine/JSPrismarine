@@ -400,27 +400,43 @@ export class DensityFunctionCompiler {
                         corners[base + 7] = cache.getOrCompute(context, input, cellX1, cellY1, cellZ1, x1, y1, z1);
                     }
 
-                    // `lerp3F` spelled out. V8 does not inline it here, and measured over a
-                    // chunk fill the call and its two `lerp2F` frames cost a tenth of the whole
-                    // pass. The seven steps are the same expression tree in the same order, so
-                    // the result is the same bits; `interpolates exactly as lerp3F does` in
-                    // density.test.ts fails if the two ever part.
+                    // `lerp3F` spelled out because V8 does not inline it here. Reuse its four
+                    // x-stage values across samples at the same x offset; y and z remain per
+                    // sample. Exact `lerp3F` parity is checked in density.test.ts.
                     const corners = context.interpolationCorners;
+                    const horizontal = context.interpolationXCache;
+                    const horizontalBase = id * 5;
                     const alphaX = alphaXz[xInCell] ?? 0;
                     const weightY = alphaY[yInCell] ?? 0;
-                    const c0 = corners[base] ?? 0;
-                    const c1 = corners[base + 1] ?? 0;
-                    const c2 = corners[base + 2] ?? 0;
-                    const c3 = corners[base + 3] ?? 0;
-                    const c4 = corners[base + 4] ?? 0;
-                    const c5 = corners[base + 5] ?? 0;
-                    const c6 = corners[base + 6] ?? 0;
-                    const c7 = corners[base + 7] ?? 0;
-                    const p0 = f32(c0 + f32(alphaX * f32(c1 - c0)));
-                    const p1 = f32(c2 + f32(alphaX * f32(c3 - c2)));
+                    let p0: number;
+                    let p1: number;
+                    let p2: number;
+                    let p3: number;
+                    if (horizontal[horizontalBase] === xInCell) {
+                        p0 = horizontal[horizontalBase + 1] ?? 0;
+                        p1 = horizontal[horizontalBase + 2] ?? 0;
+                        p2 = horizontal[horizontalBase + 3] ?? 0;
+                        p3 = horizontal[horizontalBase + 4] ?? 0;
+                    } else {
+                        const c0 = corners[base] ?? 0;
+                        const c1 = corners[base + 1] ?? 0;
+                        const c2 = corners[base + 2] ?? 0;
+                        const c3 = corners[base + 3] ?? 0;
+                        const c4 = corners[base + 4] ?? 0;
+                        const c5 = corners[base + 5] ?? 0;
+                        const c6 = corners[base + 6] ?? 0;
+                        const c7 = corners[base + 7] ?? 0;
+                        p0 = f32(c0 + f32(alphaX * f32(c1 - c0)));
+                        p1 = f32(c2 + f32(alphaX * f32(c3 - c2)));
+                        p2 = f32(c4 + f32(alphaX * f32(c5 - c4)));
+                        p3 = f32(c6 + f32(alphaX * f32(c7 - c6)));
+                        horizontal[horizontalBase] = xInCell;
+                        horizontal[horizontalBase + 1] = p0;
+                        horizontal[horizontalBase + 2] = p1;
+                        horizontal[horizontalBase + 3] = p2;
+                        horizontal[horizontalBase + 4] = p3;
+                    }
                     const q0 = f32(p0 + f32(weightY * f32(p1 - p0)));
-                    const p2 = f32(c4 + f32(alphaX * f32(c5 - c4)));
-                    const p3 = f32(c6 + f32(alphaX * f32(c7 - c6)));
                     const q1 = f32(p2 + f32(weightY * f32(p3 - p2)));
                     const alphaZ = alphaXz[zInCell] ?? 0;
                     return f32(q0 + f32(alphaZ * f32(q1 - q0)));

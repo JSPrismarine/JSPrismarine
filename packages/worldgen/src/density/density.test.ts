@@ -346,23 +346,27 @@ describe('cell operators', () => {
         const run = harness({ type: 'minecraft:interpolated', input, cell_size_xz: 4, cell_size_y: 8 });
         const corner = harness(input);
 
-        for (let x = 4; x < 8; x++) {
-            for (let y = 8; y < 16; y++) {
-                for (let z = -8; z < -4; z++) {
+        for (let x = 3; x < 9; x++) {
+            for (let y = 7; y < 17; y++) {
+                for (let z = -5; z < 1; z++) {
+                    const x0 = Math.floor(x / 4) * 4;
+                    const y0 = Math.floor(y / 8) * 8;
+                    const z0 = Math.floor(z / 4) * 4;
                     const expected = lerp3F(
-                        f32((x - 4) / 4),
-                        f32((y - 8) / 8),
-                        f32((z + 8) / 4),
-                        corner.sample(4, 8, -8),
-                        corner.sample(8, 8, -8),
-                        corner.sample(4, 16, -8),
-                        corner.sample(8, 16, -8),
-                        corner.sample(4, 8, -4),
-                        corner.sample(8, 8, -4),
-                        corner.sample(4, 16, -4),
-                        corner.sample(8, 16, -4)
+                        f32((x - x0) / 4),
+                        f32((y - y0) / 8),
+                        f32((z - z0) / 4),
+                        corner.sample(x0, y0, z0),
+                        corner.sample(x0 + 4, y0, z0),
+                        corner.sample(x0, y0 + 8, z0),
+                        corner.sample(x0 + 4, y0 + 8, z0),
+                        corner.sample(x0, y0, z0 + 4),
+                        corner.sample(x0 + 4, y0, z0 + 4),
+                        corner.sample(x0, y0 + 8, z0 + 4),
+                        corner.sample(x0 + 4, y0 + 8, z0 + 4)
                     );
                     expect(run.sample(x, y, z)).toBe(expected);
+                    if (x === 5 && y === 8 && z === 0) run.context.reset();
                 }
             }
         }
