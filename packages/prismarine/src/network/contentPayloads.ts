@@ -15,7 +15,13 @@
  * whole, so the cache is a `WeakMap` keyed on it and nothing has to be
  * invalidated by hand.
  */
-import { block_definitions, creative_groups, creativeitems, item_table } from '@jsprismarine/bedrock-data';
+import {
+    block_definitions,
+    creative_groups,
+    creativeitems,
+    item_components,
+    item_table
+} from '@jsprismarine/bedrock-data';
 import BinaryStream from '@jsprismarine/binaryutils';
 import { vanillaBlockPalette } from '@jsprismarine/blocks';
 import { javaItemToBedrock } from '@jsprismarine/mapping';
@@ -46,6 +52,14 @@ import type {
     PotionMix
 } from '@jsprismarine/protocol';
 import type { CreativeCatalog, ItemIdLookup, WireItemInstance, WireResult } from '@jsprismarine/wire';
+
+/** The captured vanilla item components, parsed once from network NBT. */
+const capturedItemComponents = Object.fromEntries(
+    Object.entries(item_components).map(([identifier, data]) => [
+        identifier,
+        NBTTagCompound.readFromStream(new BinaryStream(data), ByteOrder.LITTLE_ENDIAN, true)
+    ])
+);
 
 /** What the server had to invent or could not say, so a startup line can report it. */
 export interface ContentPayloadReport {
@@ -206,6 +220,7 @@ export const buildNetworkContentPayloads = (
 
     const items = buildItemRegistry(content.items.types.values(), {
         table: item_table,
+        capturedComponents: capturedItemComponents,
         projection: {
             mapIdentifier: (javaId) => {
                 const mapped = javaItemToBedrock(javaId);

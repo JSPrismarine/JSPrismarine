@@ -151,6 +151,9 @@ components, which is what the capture and all three third-party implementations 
 The component values come from `projectItemToBedrock` in `@jsprismarine/items`, which deliberately
 leaves out anything Java cannot decide. This package supplies the rest:
 
+- Captured vanilla `Item Component Data` provides Bedrock-only components for data-driven vanilla
+  items. Java projection and supported active item components override matching captured fields.
+
 - The seven keys `BEDROCK_ONLY_ITEM_PROPERTIES` names. `creative_group`, `frame_count`,
   `hidden_in_commands`, `liquid_clipped`, `should_despawn` and `stacked_by_data` use the captured
   defaults unless an explicit Bedrock item component supplies a value - note that

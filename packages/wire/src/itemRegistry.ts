@@ -114,6 +114,8 @@ export interface ItemRegistryOptions {
      * one this server invented.
      */
     table?: Readonly<Record<string, ItemTableRow>>;
+    /** The captured network-NBT components for vanilla items, used as their Bedrock-only baseline. */
+    capturedComponents?: Readonly<Record<string, NBTTagCompound>>;
     /** Where allocation starts for an item the table does not name. */
     firstCustomItemId?: number;
     /** Fills the keys {@link BEDROCK_ONLY_ITEM_PROPERTIES} names, per item. */
@@ -357,6 +359,38 @@ const itemComponentData = (
         })
     });
 
+/** Merges the Java projection over captured Bedrock components for one vanilla item. */
+const itemComponentDataWithCapture = (
+    projected: NBTTagCompound,
+    captured: NBTTagCompound | undefined
+): NBTTagCompound => {
+    if (captured === undefined) return projected;
+
+    const capturedComponents = captured.getCompound('components', false);
+    const projectedComponents = projected.getCompound('components', false);
+    if (capturedComponents === null || projectedComponents === null) return projected;
+
+    const components = new Map(capturedComponents.children);
+    for (const [name, value] of projectedComponents.children) {
+        if (name === 'item_properties') {
+            const capturedProperties = capturedComponents.getCompound(name, false);
+            const projectedProperties = projectedComponents.getCompound(name, false);
+            if (capturedProperties !== null && projectedProperties !== null) {
+                const properties = new Map(capturedProperties.children);
+                for (const [property, propertyValue] of projectedProperties.children) {
+                    properties.set(property, propertyValue);
+                }
+                components.set(name, nbtCompound(Object.fromEntries(properties), name));
+                continue;
+            }
+        }
+
+        components.set(name, value);
+    }
+
+    return nbtCompound({ components: nbtCompound(Object.fromEntries(components), 'components') });
+};
+
 /**
  * Builds the whole `Item Component Data` compound for one projected item.
  *
@@ -409,13 +443,16 @@ export const buildItemRegistry = (items: Iterable<ItemType>, options: ItemRegist
             version,
             ...(withComponents
                 ? {
-                      componentData: itemComponentData(
-                          projectItemToBedrock(type, options.projection),
-                          {
-                              ...BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS,
-                              ...options.bedrockOnly?.(type.identifier)
-                          },
-                          type.identifier
+                      componentData: itemComponentDataWithCapture(
+                          itemComponentData(
+                              projectItemToBedrock(type, options.projection),
+                              {
+                                  ...BEDROCK_ONLY_ITEM_PROPERTY_DEFAULTS,
+                                  ...options.bedrockOnly?.(type.identifier)
+                              },
+                              type.identifier
+                          ),
+                          options.capturedComponents?.[type.identifier]
                       )
                   }
                 : {})
