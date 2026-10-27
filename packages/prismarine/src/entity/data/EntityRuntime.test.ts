@@ -812,6 +812,24 @@ describe('EntityRuntime', () => {
             expect(mover.position.x).toBeLessThan(1);
         });
 
+        it('pushes apart two data-driven entities that overlap at the exact same position', () => {
+            const { runtime } = runtimeOf();
+            const first = runtime.spawn('minecraft:cow', GROUND);
+            const second = runtime.spawn('minecraft:cow', GROUND);
+            if (first === undefined || second === undefined) throw new Error('the fixture declares no cow');
+
+            runtime.tick(1);
+
+            expect(Math.hypot(first.body.velocity.x, first.body.velocity.z)).toBeGreaterThan(0);
+            expect(Math.hypot(second.body.velocity.x, second.body.velocity.z)).toBeGreaterThan(0);
+            expect(first.body.velocity.x + second.body.velocity.x).toBeCloseTo(0);
+            expect(first.body.velocity.z + second.body.velocity.z).toBeCloseTo(0);
+
+            runtime.tick(2);
+
+            expect(first.position).not.toEqual(second.position);
+        });
+
         it('jumps onto a one-block step instead of moving upward through it', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');
