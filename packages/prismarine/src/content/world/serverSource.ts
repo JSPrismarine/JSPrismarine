@@ -63,9 +63,7 @@ const worldEffectSink = (world: () => World | undefined, dimension: string): Con
     return {
         playSound: (at, sound) => live().playNamedSound(at.x, at.y, at.z, sound),
         spawnParticle: (at, particle) => live().spawnNamedParticle(at.x, at.y, at.z, particle),
-        // There is no Java game-event listener yet. ContentEffectSink drops events when its
-        // host has none, so an interaction such as sheep shearing still completes.
-        emitGameEvent: () => undefined
+        emitGameEvent: (event, at, sourceId) => world()?.emitGameEvent(event, at, sourceId)
     };
 };
 

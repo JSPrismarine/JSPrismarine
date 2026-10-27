@@ -55,8 +55,11 @@ import { sectionTakesRandomTicks } from './randomTickSections';
 import { WorldWeather, savedWeatherOf } from './Weather';
 import { DEFAULT_RANDOM_TICK_SPEED } from '@jsprismarine/engine-systems';
 import type { Weather } from '@jsprismarine/engine-systems';
+import type { ContentPosition } from '../content/world/adapter';
 import { startProfileSpan } from '../profiling/ServerProfiler';
 import Chunk from './chunk/Chunk';
+import type { GameEventListener } from './GameEventListenerRegistry';
+import { GameEventListenerRegistry } from './GameEventListenerRegistry';
 import type BaseProvider from './providers/BaseProvider';
 import type Provider from './providers/Provider';
 
@@ -238,6 +241,7 @@ export class World implements Service {
 
     private readonly entities: Map<bigint, Entity> = new Map();
     private readonly entityChunkIndices = new Map<bigint, number>();
+    private gameEventListenerRegistry: GameEventListenerRegistry | undefined;
 
     /** Where everything is, bucketed once a tick so mobs can ask who they are touching. */
     private readonly entityGrid = new EntityGrid();
@@ -2271,6 +2275,45 @@ export class World implements Service {
      */
     public dataEntities(): LiveEntityRuntime {
         return this.server.getEntityRuntime(this.dimension.name);
+    }
+
+    /**
+     * Registers a listener for Java game events in this dimension.
+     *
+     * Listeners are stored in the chunk section containing their position.
+     * Call {@link World.moveGameEventListener} after a dynamic listener moves.
+     *
+     * @returns A function that unregisters the listener.
+     */
+    public addGameEventListener(listener: GameEventListener): () => void {
+        return this.gameEventListeners().add(listener);
+    }
+
+    /** Re-files a dynamic game-event listener after its position changes. */
+    public moveGameEventListener(listener: GameEventListener): void {
+        this.gameEventListenerRegistry?.move(listener);
+    }
+
+    /** Removes a listener from this world's game-event registries. */
+    public removeGameEventListener(listener: GameEventListener): void {
+        this.gameEventListenerRegistry?.remove(listener);
+    }
+
+    /**
+     * Posts one Java game event to listeners in the already-loaded chunks.
+     *
+     * @param event - The namespaced Java game event.
+     * @param at - The integer block position where it occurred.
+     * @param sourceId - The runtime id of its source entity, when one caused it.
+     */
+    public emitGameEvent(event: string, at: ContentPosition, sourceId?: number): void {
+        const gameEvent = sourceId === undefined ? { event, at } : { event, at, sourceId };
+        this.gameEventListenerRegistry?.post(gameEvent);
+    }
+
+    private gameEventListeners(): GameEventListenerRegistry {
+        this.gameEventListenerRegistry ??= new GameEventListenerRegistry(this);
+        return this.gameEventListenerRegistry;
     }
 
     /**
