@@ -86,7 +86,7 @@ export interface WorldChangeSink {
      * The counterpart of {@link namedSound} for particles, and separate from
      * {@link worldEffect} for the same reason: the hardcoded effects are numbered, the ones a
      * behavior pack can name are not.
-     * @param {Vector3} position - Where the effect appears, already centered in its block.
+     * @param {Vector3} position - The world-space point where the effect appears.
      * @param {string} name - The effect's identifier, such as `minecraft:crop_growth_emitter`.
      */
     namedParticle(position: Vector3, name: string): void;

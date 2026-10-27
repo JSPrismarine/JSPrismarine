@@ -198,8 +198,10 @@ indexed slots in `minecraft:inventory`, and `drop_item_y_offset` moves the resul
 entity inventory or equipment slot, `take_item` moves the entity's main-hand item into an empty
 player hand, and `interact_text` reaches touch-screen clients through actor metadata. The fields
 `swing` defaults to true and relays the player's arm animation to other viewers tracking the player
-after a successful interaction; setting it to false suppresses that relay. `admire`, `barter`, and
-`particle_on_start` still report as unsupported.
+after a successful interaction; setting it to false suppresses that relay. `particle_on_start`
+emits its named particle with `particle_y_offset` and `particle_offset_towards_interactor` applied.
+`admire`, `barter`, non-`none` `particle_on_start.copper_event`, and unknown particle fields still
+report as unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type

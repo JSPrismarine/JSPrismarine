@@ -1037,6 +1037,12 @@ interface InteractEntry {
     readonly useItem: boolean;
     /** Whether the interacting player swings, which defaults to true. */
     readonly swing: boolean;
+    /** A named particle emitted when this interaction starts. */
+    readonly particleOnStart?: {
+        readonly particleType: string;
+        readonly yOffset: number;
+        readonly offsetTowardsInteractor: boolean;
+    };
     readonly transformedItem?: TransformedItem;
     /** Bedrock loot-table path rolled when the interaction succeeds. */
     readonly spawnItems?: EntitySpawnItemsRequest;
@@ -1073,7 +1079,8 @@ export interface InteractParams {
  * its event, plays `play_sounds`, emits its `vibration` game event, rolls
  * `spawn_items` or adds `add_items` to the interacting player's inventory,
  * creates `spawn_entities`, equips or drops an entity slot, and applies
- * `transform_to_item`, `give_item`, and `use_item` to the live held stack. Its `swing`
+ * `transform_to_item`, `give_item`, and `use_item` to the live held stack. It emits a named
+ * `particle_on_start.particle_type` with its vertical and interactor offsets, and its `swing`
  * setting relays the player's arm animation after a successful interaction.
  * Other interaction fields remain visible as a one-time runtime report so
  * incomplete behavior is not silently treated as vanilla.
@@ -1103,7 +1110,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'take_item',
             'cooldown',
             'cooldown_after_being_attacked',
-            'swing'
+            'swing',
+            'particle_on_start'
         ]);
         const interactions: InteractEntry[] = [];
         for (const [index, raw] of asList(value.interactions).entries()) {
@@ -1140,6 +1148,37 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 return rejected(`interactions[${index}].take_item must be a boolean`);
             if (raw.swing !== undefined && typeof raw.swing !== 'boolean')
                 return rejected(`interactions[${index}].swing must be a boolean`);
+            if (raw.particle_on_start !== undefined && !isRecord(raw.particle_on_start))
+                return rejected(`interactions[${index}].particle_on_start must be an object`);
+            if (
+                isRecord(raw.particle_on_start) &&
+                raw.particle_on_start.particle_type !== undefined &&
+                typeof raw.particle_on_start.particle_type !== 'string'
+            )
+                return rejected(`interactions[${index}].particle_on_start.particle_type must be a string`);
+            if (
+                isRecord(raw.particle_on_start) &&
+                raw.particle_on_start.particle_y_offset !== undefined &&
+                typeof raw.particle_on_start.particle_y_offset !== 'number'
+            )
+                return rejected(`interactions[${index}].particle_on_start.particle_y_offset must be a number`);
+            if (
+                isRecord(raw.particle_on_start) &&
+                raw.particle_on_start.particle_offset_towards_interactor !== undefined &&
+                typeof raw.particle_on_start.particle_offset_towards_interactor !== 'boolean'
+            )
+                return rejected(
+                    `interactions[${index}].particle_on_start.particle_offset_towards_interactor must be a boolean`
+                );
+            if (
+                isRecord(raw.particle_on_start) &&
+                raw.particle_on_start.copper_event !== undefined &&
+                (typeof raw.particle_on_start.copper_event !== 'string' ||
+                    !['none', 'scrape', 'wax_off', 'wax_on'].includes(raw.particle_on_start.copper_event))
+            )
+                return rejected(
+                    `interactions[${index}].particle_on_start.copper_event must be none, scrape, wax_off, or wax_on`
+                );
             if (raw.interact_text !== undefined && typeof raw.interact_text !== 'string')
                 return rejected(`interactions[${index}].interact_text must be a string`);
             const spawnEntities: string[] = [];
@@ -1210,6 +1249,17 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                       ...(typeof raw.repair_entity_item.slot === 'string' ? { slot: raw.repair_entity_item.slot } : {})
                   }
                 : undefined;
+            const particleOnStart = isRecord(raw.particle_on_start)
+                ? {
+                      particleType: stringAt(raw.particle_on_start, 'particle_type') ?? 'none',
+                      yOffset: numberAt(raw.particle_on_start, 'particle_y_offset', 0),
+                      offsetTowardsInteractor: booleanAt(
+                          raw.particle_on_start,
+                          'particle_offset_towards_interactor',
+                          false
+                      )
+                  }
+                : undefined;
             let playSounds: readonly string[] = [];
             if (typeof raw.play_sounds === 'string') playSounds = [raw.play_sounds];
             else if (raw.play_sounds !== undefined) {
@@ -1239,6 +1289,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 swing: booleanAt(raw, 'swing', true),
                 playSounds,
                 ...(typeof raw.vibration === 'string' ? { vibration: raw.vibration } : {}),
+                ...(particleOnStart === undefined ? {} : { particleOnStart }),
                 cooldown: Math.max(0, numberAt(raw, 'cooldown', 0)),
                 cooldownAfterBeingAttacked: Math.max(0, numberAt(raw, 'cooldown_after_being_attacked', 0)),
                 ...(typeof raw.transform_to_item === 'string'
@@ -1262,6 +1313,23 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ? Object.keys(raw.repair_entity_item)
                               .filter((key) => key !== 'amount' && key !== 'slot')
                               .map((key) => `repair_entity_item.${key}`)
+                        : []),
+                    ...(isRecord(raw.particle_on_start)
+                        ? [
+                              ...(raw.particle_on_start.copper_event !== undefined &&
+                              raw.particle_on_start.copper_event !== 'none'
+                                  ? ['particle_on_start.copper_event']
+                                  : []),
+                              ...Object.keys(raw.particle_on_start)
+                                  .filter(
+                                      (key) =>
+                                          key !== 'copper_event' &&
+                                          key !== 'particle_type' &&
+                                          key !== 'particle_y_offset' &&
+                                          key !== 'particle_offset_towards_interactor'
+                                  )
+                                  .map((key) => `particle_on_start.${key}`)
+                          ]
                         : [])
                 ]
             });
@@ -1334,6 +1402,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
                         !entry.useItem &&
+                        (entry.particleOnStart === undefined || entry.particleOnStart.particleType === 'none') &&
                         entry.playSounds.length === 0 &&
                         entry.vibration === undefined
                     )
@@ -1363,6 +1432,9 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.giveItem ? { giveItem: true } : {}),
                         ...(entry.takeItem ? { takeItem: true } : {}),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
+                        ...(entry.particleOnStart === undefined || entry.particleOnStart.particleType === 'none'
+                            ? {}
+                            : { particleOnStart: entry.particleOnStart }),
                         ...(entry.repairEntityItem === undefined ? {} : { repairEntityItem: entry.repairEntityItem }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),
                         ...(entry.hurtItem === 0 ? {} : { hurtItem: entry.hurtItem }),

@@ -38,7 +38,12 @@ describe('minecraft:interact schema', () => {
             repairEntityItem: { amount: 3, slot: 'slot.weapon.mainhand' },
             takeItem: true,
             swing: false,
-            unsupportedFields: ['admire', 'barter', 'particle_on_start']
+            particleOnStart: {
+                particleType: 'heart',
+                yOffset: 0,
+                offsetTowardsInteractor: false
+            },
+            unsupportedFields: ['admire', 'barter']
         });
     });
 });

@@ -15,5 +15,11 @@ export type EntityItemInteraction =
           readonly hurtItem?: number;
           /** Whether the other viewers see the interacting player's arm swing. */
           readonly swing?: boolean;
+          /** The named particle effect emitted when the interaction starts. */
+          readonly particleOnStart?: {
+              readonly particleType: string;
+              readonly yOffset: number;
+              readonly offsetTowardsInteractor: boolean;
+          };
           readonly consumeItem?: boolean;
       };

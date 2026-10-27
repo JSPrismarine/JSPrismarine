@@ -198,6 +198,12 @@ export interface EntityItemInteractionEffect {
     readonly takeItem?: boolean;
     /** Whether the interacting player should swing, which defaults to true. */
     readonly swing?: boolean;
+    /** The named particle effect emitted when the interaction starts. */
+    readonly particleOnStart?: {
+        readonly particleType: string;
+        readonly yOffset: number;
+        readonly offsetTowardsInteractor: boolean;
+    };
     /** The inventory or equipment slot that receives the held item. */
     readonly equipItemSlot?: string;
     /** The entity slot whose item is dropped when this interaction succeeds. */

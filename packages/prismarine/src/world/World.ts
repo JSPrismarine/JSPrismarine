@@ -1459,7 +1459,16 @@ export class World implements Service {
      * @param {string} particle - The effect's identifier.
      */
     public spawnNamedParticle(x: number, y: number, z: number, particle: string): void {
-        this.changes.namedParticle(new Vector3(x + 0.5, y + 0.5, z + 0.5), particle);
+        this.spawnNamedParticleAt(new Vector3(x + 0.5, y + 0.5, z + 0.5), particle);
+    }
+
+    /**
+     * Emits a named particle effect at an exact world-space point.
+     * @param {Vector3} position - Where the effect appears.
+     * @param {string} particle - The effect's identifier.
+     */
+    public spawnNamedParticleAt(position: Vector3, particle: string): void {
+        this.changes.namedParticle(position, particle);
     }
 
     /**

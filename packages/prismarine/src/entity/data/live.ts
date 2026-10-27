@@ -15,6 +15,7 @@
  * to know how the other got there.
  */
 import type { SpawnWorld } from '@jsprismarine/spawning';
+import { Vector3 } from '@jsprismarine/math';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
 import type { EntityPosition, EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
 import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
@@ -380,7 +381,7 @@ export class LiveEntityRuntime {
         );
     }
 
-    /** Applies a held item to a data-driven entity and carries out its item and animation effects. */
+    /** Applies a held item to a data-driven entity and carries out its world, item, and animation effects. */
     public interactWithItem(
         target: Entity,
         player: Entity,
@@ -398,6 +399,20 @@ export class LiveEntityRuntime {
             player instanceof Player ? playerFilterView(player) : undefined,
             heldItem
         );
+        const particle = interaction.accepted ? interaction.particleOnStart : undefined;
+        if (particle !== undefined && particle.particleType !== 'none') {
+            const targetPosition = target.getPosition();
+            const interactorPosition = player.getPosition();
+            const x = particle.offsetTowardsInteractor
+                ? (targetPosition.getX() + interactorPosition.getX()) / 2
+                : targetPosition.getX();
+            const y = targetPosition.getY() + particle.yOffset;
+            const z = particle.offsetTowardsInteractor
+                ? (targetPosition.getZ() + interactorPosition.getZ()) / 2
+                : targetPosition.getZ();
+
+            target.getWorld().spawnNamedParticleAt(new Vector3(x, y, z), particle.particleType);
+        }
         if (interaction.accepted && interaction.swing === true && player instanceof Player) {
             const runtimeEntityId = player.getRuntimeId();
             const watchers = player
