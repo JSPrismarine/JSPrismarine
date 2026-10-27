@@ -108,19 +108,6 @@ const TNT_LAUNCH_SPEED = 0.2;
 const TNT_GRAVITY = 0.04;
 const TNT_DRAG = 0.98;
 
-/** Supplies a stable horizontal direction when two entities have no usable separation vector. */
-const overlapPushDirection = (firstId: number, secondId: number): Pick<EntityPosition, 'x' | 'z'> => {
-    const lowerId = Math.min(firstId, secondId);
-    const upperId = Math.max(firstId, secondId);
-    const angle = ((lowerId * 31 + upperId * 17) % 8) * (Math.PI / 4);
-    const orientation = firstId < secondId ? 1 : -1;
-    const x = Math.cos(angle);
-    const z = Math.sin(angle);
-    const largest = Math.max(Math.abs(x), Math.abs(z));
-
-    return { x: (x * orientation) / largest, z: (z * orientation) / largest };
-};
-
 /** Resolves an entity name through the shared Java-to-Bedrock table and the active content registry. */
 const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
@@ -2089,7 +2076,10 @@ export class EntityRuntime implements EntityScene {
             const pushableSecond = this.isPushable(second);
             if (!pushableFirst && !pushableSecond) continue;
             const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
-            const direction = largestDifference < 0.01 ? overlapPushDirection(first.id, second.id) : { x: dx, z: dz };
+            // Java's Entity.push skips pairs whose horizontal centers are within 0.01 blocks.
+            if (largestDifference < 0.01) continue;
+
+            const direction = { x: dx, z: dz };
             const root = Math.sqrt(Math.max(Math.abs(direction.x), Math.abs(direction.z)));
             const scale = Math.min(1, 1 / root);
             const impulse = {

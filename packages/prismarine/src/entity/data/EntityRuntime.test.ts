@@ -868,7 +868,7 @@ describe('EntityRuntime', () => {
             expect(mover.position.x).toBeLessThan(1);
         });
 
-        it('pushes apart two data-driven entities that overlap at the exact same position', () => {
+        it('does not add a separation impulse when two entities have the same horizontal center', () => {
             const { runtime } = runtimeOf();
             const first = runtime.spawn('minecraft:cow', GROUND);
             const second = runtime.spawn('minecraft:cow', GROUND);
@@ -876,14 +876,20 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
-            expect(Math.hypot(first.body.velocity.x, first.body.velocity.z)).toBeGreaterThan(0);
-            expect(Math.hypot(second.body.velocity.x, second.body.velocity.z)).toBeGreaterThan(0);
-            expect(first.body.velocity.x + second.body.velocity.x).toBeCloseTo(0);
-            expect(first.body.velocity.z + second.body.velocity.z).toBeCloseTo(0);
+            expect(first.body.velocity).toEqual({ x: 0, y: 0, z: 0 });
+            expect(second.body.velocity).toEqual({ x: 0, y: 0, z: 0 });
+            expect(first.position).toEqual(second.position);
+        });
 
-            runtime.tick(2);
+        it('does not compound separation impulses through an exactly coincident crowd', () => {
+            const { runtime } = runtimeOf();
+            const crowd = Array.from({ length: 25 }, () => runtime.spawn('minecraft:cow', GROUND));
+            if (crowd.some((entity) => entity === undefined)) throw new Error('the fixture declares no cow');
 
-            expect(first.position).not.toEqual(second.position);
+            runtime.tick(1);
+
+            expect(crowd.every((entity) => entity?.body.velocity.x === 0 && entity.body.velocity.z === 0)).toBe(true);
+            expect(crowd).toHaveLength(25);
         });
 
         it('jumps onto a one-block step instead of moving upward through it', () => {
