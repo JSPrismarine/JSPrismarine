@@ -110,14 +110,12 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         mobs: (radius, families) => {
             const here = entity.position;
             const found: Ranked[] = [];
-            const familySet = families === undefined ? undefined : new Set(families);
-            for (const other of scene.near(here, radius, families))
-                if (
-                    other.id !== entity.id &&
-                    (familySet === undefined || other.instance.families().some((family) => familySet.has(family)))
-                )
-                    found.push({ mob: goalMobOf(other, scene), away: squaredDistance(here, other.position) });
-            if (familySet === undefined || PLAYER_FAMILIES.some((family) => familySet.has(family)))
+            for (const other of scene.near(here, radius, families)) {
+                if (other.id === entity.id || (families !== undefined && !other.instance.hasAnyFamily(families)))
+                    continue;
+                found.push({ mob: goalMobOf(other, scene), away: squaredDistance(here, other.position) });
+            }
+            if (families === undefined || PLAYER_FAMILIES.some((family) => families.includes(family)))
                 appendPlayers(found, here, radius, scene);
             return nearestFirst(found);
         },
