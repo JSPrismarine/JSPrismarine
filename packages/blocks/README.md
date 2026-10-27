@@ -131,10 +131,12 @@ identifier and a `BlockState` per palette state.
 
 A block takes its states from its own `description.states` and traits when it declares any, and
 otherwise from the palette, which is what every vanilla file needs: none of the 98 declares a state,
-and the archetype supplies them. A trait's `enabled_states` expand through `TRAIT_STATES`, with each
-state's value domain read off the palette rather than written down, so there is one source of truth.
-A trait state no captured block declares, such as `minecraft:sixteen_way_rotation`, is reported
-rather than guessed.
+and the archetype supplies them. A trait's `enabled_states` expand through `TRAIT_STATES`. The state
+domains come from the captured palette where vanilla declares them, with trait-only domains supplied
+by this package: `minecraft:sixteen_way_rotation` is `0` through `15`, and
+`minecraft:multi_block_part` is `0` through `parts - 1` (`parts` defaults to `2`).
+`minecraft:corner_and_cardinal_direction` adds both `minecraft:cardinal_direction` and
+`minecraft:corner`.
 
 Permutations are evaluated per state. Each condition compiles once through `@jsprismarine/molang`
 and runs against a scope whose only member is `block.blockState`, which is the whole of what the
@@ -294,9 +296,5 @@ list is exactly those 182 and that no entry falls through to a generic reason.
   `vanilla_overlay/report.json`. Everything else is solid by default. The per-state `geometry`
   column of the CloudburstMC dump is the source that would fix this, and it belongs in the mapping
   package.
-- **Trait state domains the palette does not carry.** `minecraft:sixteen_way_rotation`,
-  `minecraft:corner_and_cardinal_direction` and `minecraft:multi_block_part` appear in no vanilla
-  block, so a custom block enabling one is reported instead of resolved. `mojang-blocks.json` has
-  their global domains and is not in the repository.
 - **Loot, display names and menu categories.** The overlay writes none of them. Loot comes from
   Java's 1447 tables in a later phase, and the creative menu is written from the item registry.

@@ -12,7 +12,7 @@ import type { BlockPalette, BlockStateDefinition } from './state';
 export const TRAIT_STATES: Readonly<Record<string, Readonly<Record<string, readonly string[]>>>> = {
     'minecraft:placement_direction': {
         'minecraft:cardinal_direction': ['minecraft:cardinal_direction'],
-        'minecraft:corner_and_cardinal_direction': ['minecraft:corner_and_cardinal_direction'],
+        'minecraft:corner_and_cardinal_direction': ['minecraft:cardinal_direction', 'minecraft:corner'],
         'minecraft:facing_direction': ['minecraft:facing_direction'],
         'minecraft:sixteen_way_rotation': ['minecraft:sixteen_way_rotation']
     },
@@ -33,21 +33,35 @@ export const TRAIT_STATES: Readonly<Record<string, Readonly<Record<string, reado
     }
 };
 
+/** Trait-provided state domains that the vanilla palette does not contain. */
+const TRAIT_ONLY_STATE_DOMAINS: readonly BlockStateDefinition[] = [
+    {
+        name: 'minecraft:sixteen_way_rotation',
+        type: 'int',
+        values: Array.from({ length: 16 }, (_unused, index) => index),
+        defaultValue: 0
+    },
+    {
+        name: 'minecraft:multi_block_part',
+        type: 'int',
+        values: [0, 1, 2, 3],
+        defaultValue: 0
+    }
+];
+
 /**
- * The value domain of every `minecraft:`-prefixed state, read off the palette
- * rather than written down here.
+ * The value domain of every state a trait can add.
  *
- * A trait supplies an intrinsic state, and the only published domains for
- * those are the ones the captured palette already holds, so deriving them
- * keeps one source of truth. A trait state no captured block declares, such
- * as `minecraft:sixteen_way_rotation`, has no entry and the resolver reports
- * it instead of guessing a domain.
+ * Most trait states also occur in the vanilla palette. The two newer states
+ * are kept here because no vanilla block declares them: sixteen-way rotation
+ * is 0 through 15, and a multi-block part is 0 through 3.
  *
- * @returns State name to its definition, with the values every block that
- *   declares it agrees on.
+ * @param palette - The palette whose other intrinsic state domains are used.
+ * @returns State name to its definition, including trait-only states.
  */
 export const traitStateDomains = (palette: BlockPalette): ReadonlyMap<string, BlockStateDefinition> => {
     const domains = new Map<string, BlockStateDefinition>();
+    for (const state of TRAIT_ONLY_STATE_DOMAINS) domains.set(state.name, state);
     for (const entry of palette.entries) {
         for (const state of entry.model.states) {
             if (!state.name.startsWith('minecraft:')) continue;

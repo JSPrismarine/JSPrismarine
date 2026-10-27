@@ -161,6 +161,30 @@ const statesFromTraits = (
                     );
                     return [];
                 }
+
+                if (trait.name === 'minecraft:multi_block' && state === 'minecraft:multi_block_part') {
+                    const declaredParts = trait.parameters.parts;
+                    const parts =
+                        declaredParts === undefined
+                            ? 2
+                            : typeof declaredParts === 'number' &&
+                                Number.isInteger(declaredParts) &&
+                                declaredParts >= 2 &&
+                                declaredParts <= 4
+                              ? declaredParts
+                              : undefined;
+
+                    if (parts === undefined) {
+                        report(
+                            'block.trait-parameter-invalid',
+                            `${document.description.identifier} declares ${trait.name} parts as ${String(declaredParts)}, expected an integer from 2 to 4`
+                        );
+                        return [domain];
+                    }
+
+                    return [{ ...domain, values: domain.values.slice(0, parts) }];
+                }
+
                 return [domain];
             });
         });

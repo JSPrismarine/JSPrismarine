@@ -114,7 +114,7 @@ describe('resolving block definitions', () => {
         expect(resolved.types.get('test:knob')?.states).toHaveLength(4);
     });
 
-    it('reports a trait state no captured block declares a domain for', () => {
+    it('resolves trait-provided states outside the vanilla palette domains', () => {
         const resolved = resolveBlocks([
             definition('test:spinner', {
                 description: {
@@ -126,8 +126,54 @@ describe('resolving block definitions', () => {
             })
         ]);
 
-        expect(resolved.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(['block.trait-state-domain']);
-        expect(resolved.types.get('test:spinner')?.states).toHaveLength(1);
+        const spinner = resolved.types.get('test:spinner')!;
+        expect(resolved.diagnostics).toEqual([]);
+        expect(spinner.model.names()).toEqual(['minecraft:sixteen_way_rotation']);
+        expect(spinner.states).toHaveLength(16);
+
+        const cornered = resolveBlocks([
+            definition('test:cornered', {
+                description: {
+                    identifier: 'test:cornered',
+                    traits: {
+                        'minecraft:placement_direction': {
+                            enabled_states: ['minecraft:corner_and_cardinal_direction']
+                        }
+                    }
+                }
+            })
+        ]).types.get('test:cornered')!;
+        expect(cornered.model.names()).toEqual(['minecraft:cardinal_direction', 'minecraft:corner']);
+        expect(cornered.states).toHaveLength(20);
+
+        const multiBlock = resolveBlocks([
+            definition('test:multi_block', {
+                description: {
+                    identifier: 'test:multi_block',
+                    traits: {
+                        'minecraft:multi_block': {
+                            enabled_states: ['minecraft:multi_block_part'],
+                            direction: 'up',
+                            parts: 3
+                        }
+                    }
+                }
+            })
+        ]).types.get('test:multi_block')!;
+        expect(multiBlock.model.names()).toEqual(['minecraft:multi_block_part']);
+        expect(multiBlock.states).toHaveLength(3);
+
+        const defaultMultiBlock = resolveBlocks([
+            definition('test:default_multi_block', {
+                description: {
+                    identifier: 'test:default_multi_block',
+                    traits: {
+                        'minecraft:multi_block': { enabled_states: ['minecraft:multi_block_part'], direction: 'up' }
+                    }
+                }
+            })
+        ]).types.get('test:default_multi_block')!;
+        expect(defaultMultiBlock.states).toHaveLength(2);
     });
 
     it('computes the flags a block answers by name', () => {
