@@ -14,6 +14,7 @@ import { createBlockEntity, createEntitySpawn } from './javaGeneratedContent';
 
 const STONE = { name: 'minecraft:stone', properties: {} };
 const AIR = { name: 'minecraft:air', properties: {} };
+const CAVE_AIR = 'minecraft:cave_air';
 
 const SEED = 1234n;
 
@@ -235,6 +236,29 @@ describe('neighbor chunk data', () => {
 });
 
 describe('centerBlockSlots', () => {
+    it('treats cave air as air when tracking a column ceiling', () => {
+        const built = terrainTile(0, 0);
+        built.writeName(0, -62, 0, STONE.name);
+        built.writeName(0, -61, 0, CAVE_AIR);
+        built.writeName(0, -60, 0, STONE.name);
+        built.writeName(0, -60, 0, CAVE_AIR);
+
+        expect(built.centerBlockSlots().columnTops[0]).toBe(-62);
+    });
+
+    it('omits cave air from the non-air center-block walk', () => {
+        const built = terrainTile(0, 0);
+        built.writeName(0, -62, 0, CAVE_AIR);
+        built.writeName(0, -61, 0, STONE.name);
+
+        const visited: string[] = [];
+        built.forEachCenterBlock((_localX, y, _localZ, block) => {
+            if (y >= -62 && y <= -61) visited.push(block.java.name);
+        });
+
+        expect(visited).toEqual([STONE.name]);
+    });
+
     it('hands over the same blocks the per-block walk visits, whatever the radius', () => {
         const featureView = new GenerationRegion({
             chunkX: 1,
@@ -278,6 +302,24 @@ describe('centerBlockSlots', () => {
 });
 
 describe('transfer', () => {
+    it('rebuilds air classification before updating an adopted column ceiling', () => {
+        const built = terrainTile(0, 0);
+        built.writeName(0, -64, 0, STONE.name);
+        built.writeName(0, -63, 0, CAVE_AIR);
+        built.writeName(0, -62, 0, STONE.name);
+        const { payload } = built.transfer();
+
+        const landed = GenerationRegion.adopt(payload, {
+            seaLevel: 63,
+            seed: SEED,
+            blocks: createJavaBlockOracle(new Map()),
+            biomeAt: () => 'minecraft:plains'
+        });
+        landed.writeName(0, -62, 0, CAVE_AIR);
+
+        expect(landed.centerBlockSlots().columnTops[0]).toBe(-64);
+    });
+
     it('comes back the same region on the other side of a thread boundary', () => {
         const built = terrainTile(1, -2);
         built.write(20, 64, -30, STONE);

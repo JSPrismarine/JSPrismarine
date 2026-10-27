@@ -230,6 +230,7 @@ export class GenerationRegion {
     private states: Uint16Array<ArrayBuffer>;
     private palette: RegionBlock[] = [{ java: AIR_STATE }];
     private paletteIndex = new Map<string, number>([[AIR, 0]]);
+    private isAirByPaletteSlot: boolean[] = [];
 
     /** The highest y holding anything other than air, per region column. */
     private highest: Int32Array<ArrayBuffer>;
@@ -262,6 +263,7 @@ export class GenerationRegion {
         this.originZ = (options.chunkZ - this.radius) * 16;
         this.states = new Uint16Array(this.width * this.width * options.height);
         this.highest = new Int32Array(this.width * this.width).fill(options.minY - 1);
+        this.isAirByPaletteSlot = [options.blocks.isAir(AIR_STATE)];
     }
 
     /**
@@ -345,6 +347,7 @@ export class GenerationRegion {
 
         region.palette = [...payload.palette];
         region.paletteIndex = new Map(region.palette.map((block, slot) => [paletteKeyOf(block), slot]));
+        region.isAirByPaletteSlot = region.palette.map((block) => options.blocks.isAir(block.java));
         region.states = new Uint16Array(payload.states);
         region.highest = new Int32Array(payload.highest);
         region.frozenSurface = payload.frozenSurface === undefined ? null : new Int32Array(payload.frozenSurface);
@@ -370,7 +373,7 @@ export class GenerationRegion {
         if (index === -1) return false;
 
         this.states[index] = this.paletteSlot(state);
-        this.afterWrite(index, x, y, z, state.name === AIR);
+        this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
     }
@@ -381,7 +384,7 @@ export class GenerationRegion {
         if (index === -1) return false;
 
         this.states[index] = this.paletteSlotForName(name);
-        this.afterWrite(index, x, y, z, name === AIR);
+        this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
     }
@@ -399,7 +402,7 @@ export class GenerationRegion {
         if (index === -1) return false;
 
         this.states[index] = this.bedrockSlot(state);
-        this.afterWrite(index, x, y, z, state.name === AIR);
+        this.afterWrite(index, x, y, z);
         this.trackWrite(index, x, y, z);
         return true;
     }
@@ -528,7 +531,7 @@ export class GenerationRegion {
     }
 
     /** The bookkeeping every write does once its state has landed in the buffer. */
-    private afterWrite(index: number, x: number, y: number, z: number, isAir: boolean): void {
+    private afterWrite(index: number, x: number, y: number, z: number): void {
         // A block entity belongs to the block it was attached to, so overwriting that block
         // takes it away, as Java's `setBlock` does.
         const removedBlockEntity = this.blockEntities.get(index);
@@ -539,13 +542,18 @@ export class GenerationRegion {
         if (this.trackingWrites) this.trackedBlockEntities.delete(index);
 
         const column = this.columnIndex(x, z);
+        const isAir = this.isAirByPaletteSlot[this.states[index]!]!;
         if (!isAir) {
             if (y > this.highest[column]!) this.highest[column] = y;
         } else if (y === this.highest[column]) {
             // Removing the topmost block drops the column's ceiling to the next one down.
-            let next = y - 1;
-            while (next >= this.minY && this.stateAt(x, next, z).name === AIR) next--;
-            this.highest[column] = next;
+            let nextY = y - 1;
+            let nextIndex = index - 1;
+            while (nextY >= this.minY && this.isAirByPaletteSlot[this.states[nextIndex]!]!) {
+                nextY--;
+                nextIndex--;
+            }
+            this.highest[column] = nextY;
         }
     }
 
@@ -645,8 +653,9 @@ export class GenerationRegion {
                 const z = this.chunkZ * 16 + localZ;
                 const top = this.highest[this.columnIndex(x, z)]!;
                 for (let y = this.minY; y <= top; y++) {
-                    const block = this.blockAt(x, y, z);
-                    if (block.java.name !== AIR) visit(localX, y, localZ, block);
+                    const index = this.indexOf(x, y, z);
+                    const slot = this.states[index]!;
+                    if (!this.isAirByPaletteSlot[slot]!) visit(localX, y, localZ, this.palette[slot]!);
                 }
             }
         }
@@ -727,7 +736,7 @@ export class GenerationRegion {
         if (slot !== undefined) return this.palette[slot]!.java;
 
         const state: BlockState = { name, properties: {} };
-        this.paletteIndex.set(name, this.palette.push({ java: state }) - 1);
+        this.paletteIndex.set(name, this.addPaletteBlock({ java: state }));
         return state;
     }
 
@@ -735,7 +744,7 @@ export class GenerationRegion {
         const existing = this.paletteIndex.get(name);
         if (existing !== undefined) return existing;
 
-        const slot = this.palette.push({ java: { name, properties: {} } }) - 1;
+        const slot = this.addPaletteBlock({ java: { name, properties: {} } });
         this.paletteIndex.set(name, slot);
         return slot;
     }
@@ -764,7 +773,7 @@ export class GenerationRegion {
         const existing = this.paletteIndex.get(key);
         if (existing !== undefined) return existing;
 
-        const slot = this.palette.push({ java: state }) - 1;
+        const slot = this.addPaletteBlock({ java: state });
         this.paletteIndex.set(key, slot);
         return slot;
     }
@@ -782,8 +791,14 @@ export class GenerationRegion {
         const existing = this.paletteIndex.get(key);
         if (existing !== undefined) return existing;
 
-        const slot = this.palette.push({ java: { name: state.name, properties: {} }, bedrock: state }) - 1;
+        const slot = this.addPaletteBlock({ java: { name: state.name, properties: {} }, bedrock: state });
         this.paletteIndex.set(key, slot);
+        return slot;
+    }
+
+    private addPaletteBlock(block: RegionBlock): number {
+        const slot = this.palette.push(block) - 1;
+        this.isAirByPaletteSlot[slot] = this.options.blocks.isAir(block.java);
         return slot;
     }
 
