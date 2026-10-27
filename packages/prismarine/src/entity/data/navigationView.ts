@@ -89,9 +89,9 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
         const localX = position.x - chunkX * 16;
         const localZ = position.z - chunkZ * 16;
         const cell = position.y * 256 + localZ * 16 + localX;
-        const byZ = cachedBlocks.get(chunkX)?.get(chunkZ);
-        if (byZ?.has(cell)) {
-            const block = byZ.get(cell);
+        const cached = cachedBlocks.get(chunkX)?.get(chunkZ)?.get(cell);
+        if (cached !== undefined) {
+            const block = cached;
             return block === NO_BLOCK ? undefined : block;
         }
 
