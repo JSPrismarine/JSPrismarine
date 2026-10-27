@@ -2072,9 +2072,7 @@ export class World implements Service {
      */
     private async dropItem(position: Vector3, drop: Block | Item, motion?: Vector3): Promise<void> {
         const item =
-            drop instanceof Item
-                ? drop
-                : new Item({ name: drop.getName(), meta: drop.getMeta(), content: this.server.getContent() });
+            drop instanceof Item ? drop : new Item({ name: drop.getName(), content: this.server.getContent() });
 
         // A stack with no wire id goes out as air, and the client draws an item actor holding
         // air as an empty item on the ground. That is an unknown Java id `bedrockDrops` kept, or

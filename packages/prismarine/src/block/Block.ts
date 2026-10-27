@@ -145,26 +145,6 @@ export class Block {
         return this.placedStateName ?? this.name;
     }
 
-    /**
-     * The block's numeric id.
-     *
-     * @deprecated Blocks have no numeric id any more. Zero is what every
-     *   block answers; use {@link Block.getName}.
-     */
-    public getId(): number {
-        return 0;
-    }
-
-    /**
-     * The block's meta value.
-     *
-     * @deprecated Block state lives in {@link Block.states} now. Zero is what
-     *   every block answers.
-     */
-    public getMeta(): number {
-        return 0;
-    }
-
     /** The id the client resolves the block's item form by. */
     public getNetworkId(): number {
         return this.networkId ?? 0;
