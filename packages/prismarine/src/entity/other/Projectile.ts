@@ -95,6 +95,11 @@ export abstract class Projectile extends Entity {
         return this.velocity;
     }
 
+    /** Replaces the stored velocity when an actor is restored from NBT. */
+    public setVelocity(velocity: Vector3): void {
+        this.velocity = velocity;
+    }
+
     /** Who is answerable for it. */
     public getOwner(): Entity | null {
         return this.owner;

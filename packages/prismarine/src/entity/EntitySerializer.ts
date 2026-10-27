@@ -1,4 +1,5 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
+import { Vector3 } from '@jsprismarine/math';
 
 import ContainerEntry from '../inventory/ContainerEntry';
 import { restoredItem, storedItem } from '../inventory/persistence';
@@ -7,6 +8,7 @@ import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Item } from './other/Item';
+import { Projectile } from './other/Projectile';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -55,6 +57,11 @@ export class EntitySerializer {
                   ? new modeled(options)
                   : new GenericEntity({ identifier, ...options });
 
+        if (entity instanceof Projectile) {
+            const motion = projectileMotionOf(nbt);
+            if (motion !== undefined) entity.setVelocity(motion);
+        }
+
         entity.persistentNbt = remainder(nbt);
         return entity;
     }
@@ -81,6 +88,11 @@ export class EntitySerializer {
                 itemNbt.addValue('JSPStack', new Types.StringVal(JSON.stringify(stack)));
                 nbt.addValue('Item', itemNbt);
             }
+        }
+
+        if (entity instanceof Projectile) {
+            const velocity = entity.getVelocity();
+            nbt.addValue('Motion', doubles([velocity.getX(), velocity.getY(), velocity.getZ()]));
         }
 
         // Left as they were found when the entity came from disk, and given sane values when it
@@ -175,6 +187,17 @@ const readFloats = (nbt: NBTTagCompound, key: string, count: number): number[] =
     return [...list].slice(0, count).map((entry) => Number(entry?.getValue?.() ?? entry ?? 0));
 };
 
+/** Reads a projectile's three saved velocity components, or leaves its default alone. */
+const projectileMotionOf = (nbt: NBTTagCompound): Vector3 | undefined => {
+    const list = nbt.getList('Motion', false);
+    if (list === undefined || list === null) return undefined;
+
+    const [x, y, z] = [...list].slice(0, 3).map((entry) => Number(entry?.getValue?.() ?? entry ?? Number.NaN));
+    if (x === undefined || y === undefined || z === undefined || ![x, y, z].every(Number.isFinite)) return undefined;
+
+    return new Vector3(x, y, z);
+};
+
 /**
  * A TAG_List of floats.
  *
@@ -182,5 +205,8 @@ const readFloats = (nbt: NBTTagCompound, key: string, count: number): number[] =
  * entries - a Set of primitives would collapse `[0, 0, 0]` to one.
  */
 const floats = (values: number[]): Set<Types.FloatVal> => new Set(values.map((value) => new Types.FloatVal(value)));
+
+/** A TAG_List of doubles, used by actor NBT for projectile motion. */
+const doubles = (values: number[]): Set<Types.DoubleVal> => new Set(values.map((value) => new Types.DoubleVal(value)));
 
 export default EntitySerializer;
