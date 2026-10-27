@@ -148,16 +148,49 @@ abstract class TreeNode<T> {
 
     /** The lower bound on the distance from the target to anything inside this node. */
     public distance(target: readonly number[]): number {
-        let total = 0;
-        for (let axis = 0; axis < CLIMATE_PARAMETER_COUNT; axis++) {
-            // Inline `parameterDistance`: search runs this for every axis of every candidate subtree.
-            const parameter = this.parameterSpace[axis] as ClimateParameter;
-            const targetValue = target[axis] as number;
-            const above = targetValue - parameter.max;
-            const below = parameter.min - targetValue;
-            const distance = above > 0 ? above : Math.max(below, 0);
-            total += distance * distance;
-        }
+        // Inline `parameterDistance`: search runs this for every axis of every candidate subtree.
+        // The seven-axis climate format is fixed, so unroll the loop and its indexed reads.
+        const parameter0 = this.parameterSpace[0] as ClimateParameter;
+        let above = (target[0] as number) - parameter0.max;
+        let below = parameter0.min - (target[0] as number);
+        let distance = above > 0 ? above : Math.max(below, 0);
+        let total = distance * distance;
+
+        const parameter1 = this.parameterSpace[1] as ClimateParameter;
+        above = (target[1] as number) - parameter1.max;
+        below = parameter1.min - (target[1] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
+
+        const parameter2 = this.parameterSpace[2] as ClimateParameter;
+        above = (target[2] as number) - parameter2.max;
+        below = parameter2.min - (target[2] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
+
+        const parameter3 = this.parameterSpace[3] as ClimateParameter;
+        above = (target[3] as number) - parameter3.max;
+        below = parameter3.min - (target[3] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
+
+        const parameter4 = this.parameterSpace[4] as ClimateParameter;
+        above = (target[4] as number) - parameter4.max;
+        below = parameter4.min - (target[4] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
+
+        const parameter5 = this.parameterSpace[5] as ClimateParameter;
+        above = (target[5] as number) - parameter5.max;
+        below = parameter5.min - (target[5] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
+
+        const parameter6 = this.parameterSpace[6] as ClimateParameter;
+        above = (target[6] as number) - parameter6.max;
+        below = parameter6.min - (target[6] as number);
+        distance = above > 0 ? above : Math.max(below, 0);
+        total += distance * distance;
         return total;
     }
 
