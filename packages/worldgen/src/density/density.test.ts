@@ -372,6 +372,62 @@ describe('cell operators', () => {
         }
     });
 
+    it('keeps exact interpolation when a data-driven y size collides in the stage cache', () => {
+        const cellSizeXz = 4;
+        const cellSizeY = 20;
+        const input = { type: 'minecraft:noise', noise: 'minecraft:test' };
+        const run = harness({
+            type: 'minecraft:interpolated',
+            input,
+            cell_size_xz: cellSizeXz,
+            cell_size_y: cellSizeY
+        });
+        const corner = harness(input);
+
+        for (let z = 0; z < cellSizeXz; z++) {
+            for (let y = cellSizeY - 1; y >= 0; y--) {
+                const expected = lerp3F(
+                    f32(1 / cellSizeXz),
+                    f32(y / cellSizeY),
+                    f32(z / cellSizeXz),
+                    corner.sample(0, 0, 0),
+                    corner.sample(cellSizeXz, 0, 0),
+                    corner.sample(0, cellSizeY, 0),
+                    corner.sample(cellSizeXz, cellSizeY, 0),
+                    corner.sample(0, 0, cellSizeXz),
+                    corner.sample(cellSizeXz, 0, cellSizeXz),
+                    corner.sample(0, cellSizeY, cellSizeXz),
+                    corner.sample(cellSizeXz, cellSizeY, cellSizeXz)
+                );
+                expect(run.sample(1, y, z)).toBe(expected);
+            }
+        }
+    });
+
+    it('invalidates cached interpolation stages when the context resets', () => {
+        let offset = 0;
+        const run = harness(
+            {
+                type: 'minecraft:interpolated',
+                input: { type: 'minecraft:noise', noise: 'minecraft:test' },
+                cell_size_xz: 4,
+                cell_size_y: 8
+            },
+            {
+                noise: () => ({
+                    get3: (x, y, z) => f32(x + y * 2 + z * 3 + offset),
+                    get2: (x, z) => f32(x + z * 3 + offset)
+                })
+            }
+        );
+
+        const beforeReset = run.sample(1, 1, 1);
+        offset = 64;
+        run.context.reset();
+
+        expect(run.sample(1, 1, 1)).toBe(beforeReset + offset);
+    });
+
     it('evaluates each cell corner once and reuses it', () => {
         const run = harness({
             type: 'minecraft:interpolated',

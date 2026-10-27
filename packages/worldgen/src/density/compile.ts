@@ -406,8 +406,6 @@ export class DensityFunctionCompiler {
                     const corners = context.interpolationCorners;
                     const horizontal = context.interpolationXCache;
                     const horizontalBase = id * 5;
-                    const alphaX = alphaXz[xInCell] ?? 0;
-                    const weightY = alphaY[yInCell] ?? 0;
                     let p0: number;
                     let p1: number;
                     let p2: number;
@@ -418,6 +416,7 @@ export class DensityFunctionCompiler {
                         p2 = horizontal[horizontalBase + 3] ?? 0;
                         p3 = horizontal[horizontalBase + 4] ?? 0;
                     } else {
+                        const alphaX = alphaXz[xInCell] ?? 0;
                         const c0 = corners[base] ?? 0;
                         const c1 = corners[base + 1] ?? 0;
                         const c2 = corners[base + 2] ?? 0;
@@ -436,8 +435,28 @@ export class DensityFunctionCompiler {
                         horizontal[horizontalBase + 3] = p2;
                         horizontal[horizontalBase + 4] = p3;
                     }
-                    const q0 = f32(p0 + f32(weightY * f32(p1 - p0)));
-                    const q1 = f32(p2 + f32(weightY * f32(p3 - p2)));
+                    const vertical = context.interpolationYCache;
+                    const verticalBase = id * 80 + (yInCell & 15) * 5;
+                    const version = context.interpolationCellVersions[id] ?? 0;
+                    let q0: number;
+                    let q1: number;
+                    if (
+                        vertical[verticalBase] === version &&
+                        vertical[verticalBase + 1] === xInCell &&
+                        vertical[verticalBase + 2] === yInCell
+                    ) {
+                        q0 = vertical[verticalBase + 3] ?? 0;
+                        q1 = vertical[verticalBase + 4] ?? 0;
+                    } else {
+                        const weightY = alphaY[yInCell] ?? 0;
+                        q0 = f32(p0 + f32(weightY * f32(p1 - p0)));
+                        q1 = f32(p2 + f32(weightY * f32(p3 - p2)));
+                        vertical[verticalBase] = version;
+                        vertical[verticalBase + 1] = xInCell;
+                        vertical[verticalBase + 2] = yInCell;
+                        vertical[verticalBase + 3] = q0;
+                        vertical[verticalBase + 4] = q1;
+                    }
                     const alphaZ = alphaXz[zInCell] ?? 0;
                     return f32(q0 + f32(alphaZ * f32(q1 - q0)));
                 };

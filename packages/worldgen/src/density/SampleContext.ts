@@ -127,6 +127,15 @@ export class SampleContext {
      */
     public interpolationXCache = new Float64Array(0);
 
+    /**
+     * A 16-slot, direct-mapped cache for the y-interpolated corner pairs, 5 doubles per slot:
+     * cell version, x offset, y offset, and two values. Exact keys make collisions recompute.
+     */
+    public interpolationYCache = new Float64Array(0);
+
+    /** The current interpolation-cell version per node id, used to invalidate y-stage entries. */
+    public interpolationCellVersions = new Uint32Array(0);
+
     private readonly cells: CacheCell[] = [];
     private readonly cornerCaches: CornerCache[] = [];
     /** The current cell origin per node id, three doubles each, NaN while no cell is current. */
@@ -174,6 +183,14 @@ export class SampleContext {
         this.cellOrigins[origin + 1] = y;
         this.cellOrigins[origin + 2] = z;
         this.interpolationXCache[id * 5] = Number.NaN;
+
+        let version = (this.interpolationCellVersions[id] ?? 0) + 1;
+        if (version > 0xffff_ffff) {
+            version = 1;
+            const cacheBase = id * 80;
+            for (let slot = 0; slot < 16; slot++) this.interpolationYCache[cacheBase + slot * 5] = 0;
+        }
+        this.interpolationCellVersions[id] = version;
         return false;
     }
 
@@ -203,5 +220,13 @@ export class SampleContext {
         const xCache = new Float64Array(count * 5).fill(Number.NaN);
         xCache.set(this.interpolationXCache);
         this.interpolationXCache = xCache;
+
+        const yCache = new Float64Array(count * 80);
+        yCache.set(this.interpolationYCache);
+        this.interpolationYCache = yCache;
+
+        const versions = new Uint32Array(count);
+        versions.set(this.interpolationCellVersions);
+        this.interpolationCellVersions = versions;
     }
 }
