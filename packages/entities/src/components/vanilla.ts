@@ -1796,6 +1796,18 @@ const ageableItemMatches = (items: readonly unknown[], normalizedItem: string): 
         return identifier !== undefined && normalizedItemIdentifier(identifier) === normalizedItem;
     });
 
+/** Reads the replacement stack a feed item declares. */
+const ageableResultItem = (item: unknown): string | undefined => {
+    if (!isRecord(item)) return undefined;
+    const result =
+        typeof item.result_item === 'string'
+            ? item.result_item
+            : typeof item.transform_to_item === 'string'
+              ? item.transform_to_item
+              : undefined;
+    return result === undefined ? undefined : normalizedItemIdentifier(result);
+};
+
 interface AgeableState {
     remaining: number;
     paused: boolean;
@@ -1884,7 +1896,8 @@ export const ageable: ComponentFactory<EntityHooks, AgeableParams> = {
                     const secondsToAdvance = Math.trunc(secondsUntilAdult * Math.fround(growth));
                     state.remaining = Math.max(0, state.remaining - secondsToAdvance * TICKS_PER_SECOND);
                 }
-                return true;
+                const resultItem = ageableResultItem(feedItem);
+                return resultItem === undefined ? true : { resultItem };
             },
             onTick: (entity) => {
                 const state = states.get(entity);

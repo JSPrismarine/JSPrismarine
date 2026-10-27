@@ -1578,10 +1578,7 @@ export class EntityRuntime implements EntityScene {
                 ...(takenItem === undefined ? {} : { takenItem })
             };
         }
-        const ageable = entity.instance.componentParams('minecraft:ageable');
-        const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
-        const resultItem = resultItemOf(feedItem);
-        return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
+        return { accepted: true };
     }
 
     /** The slot count declared by the active inventory component. */
