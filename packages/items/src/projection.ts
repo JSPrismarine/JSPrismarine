@@ -70,6 +70,10 @@ export interface BedrockItemProperties {
 /** The compound an item's `Item Component Data` carries, keyed the way Bedrock keys it. */
 export interface BedrockItemComponents {
     item_properties: BedrockItemProperties;
+    /** Bedrock's resolved item tag names, serialized separately from named components. */
+    item_tags?: readonly string[];
+    /** Resource pack icon textures declared by the active Bedrock item definition. */
+    'minecraft:icon'?: { textures: Readonly<Record<string, string>> };
     'minecraft:max_stack_size'?: { value: number };
     'minecraft:damage'?: { value: number };
     'minecraft:durability'?: { max_durability: number; damage_chance: { min: number; max: number } };
@@ -116,12 +120,31 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
 export const UNPROJECTED_BEDROCK_COMPONENTS = {
     'minecraft:display_name':
         'The client already has a name for every vanilla item, and Java translation keys do not transform into Bedrock ones reliably.',
-    'minecraft:icon': 'The texture name is a resource pack fact, not an item property.',
     'minecraft:repairable': 'The repair items are a Java item tag, which needs tag expansion and identifier mapping.',
     'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.',
-    'minecraft:tags': 'Bedrock item tags are their own registry, not a translation of Java item tags.',
     'minecraft:block_placer': 'Which block an item places is a fact of the block package, not an item component.'
 } as const;
+
+/** Whether an untyped Bedrock JSON value is an object with named fields. */
+const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
+    typeof value === 'object' && value !== null && !Array.isArray(value);
+
+/** Reads the resource-pack texture variants from the item's Bedrock icon component. */
+const bedrockIconOf = (type: ItemType): BedrockItemComponents['minecraft:icon'] => {
+    const source = type.bedrockComponents.get('minecraft:icon');
+    if (typeof source === 'string') return { textures: { default: source } };
+    if (!isRecord(source)) return undefined;
+
+    const textures = source.textures;
+    if (isRecord(textures)) {
+        const entries = Object.entries(textures).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string'
+        );
+        return { textures: Object.fromEntries(entries) };
+    }
+
+    return typeof source.texture === 'string' ? { textures: { default: source.texture } } : undefined;
+};
 
 /** How Java's equipment slots name the same places Bedrock's `wearable` does. */
 const WEARABLE_SLOTS: Readonly<Record<string, string>> = {
@@ -238,7 +261,12 @@ export interface ProjectionOptions {
 export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions = {}): BedrockItemComponents => {
     const context = options.providers ?? DEFAULT_PROVIDER_CONTEXT;
     const properties: BedrockItemProperties = {};
-    const projected: BedrockItemComponents = { item_properties: properties };
+    const icon = bedrockIconOf(type);
+    const projected: BedrockItemComponents = {
+        item_properties: properties,
+        item_tags: type.tags,
+        ...(icon === undefined ? {} : { 'minecraft:icon': icon })
+    };
 
     const stackSize = type.params(maxStackSize);
     if (stackSize !== undefined) {

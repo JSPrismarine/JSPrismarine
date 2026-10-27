@@ -165,7 +165,11 @@ const itemProperties = (
     identifier?: string
 ): NBTTagCompound => {
     const source = projected.item_properties;
+    const declaredIcon = projected['minecraft:icon'];
     const iconTexture = identifier === undefined ? undefined : ITEM_ICON_TEXTURES[identifier];
+    const iconTextures = declaredIcon?.textures ?? (iconTexture === undefined ? {} : { default: iconTexture });
+    const iconTextureTags: Record<string, NbtValue> = {};
+    for (const [name, texture] of Object.entries(iconTextures)) iconTextureTags[name] = nbtString(texture);
 
     return nbtCompound({
         allow_off_hand: nbtByte(source.allow_off_hand ?? false),
@@ -181,10 +185,10 @@ const itemProperties = (
         hidden_in_commands: nbtByte(bedrockOnly.hidden_in_commands),
         liquid_clipped: nbtByte(bedrockOnly.liquid_clipped),
         max_stack_size: nbtInt(source.max_stack_size ?? 64),
-        // Most items resolve through the client's own registry. These twelve
-        // component-based entries need their vanilla item atlas key explicitly.
+        // A data-driven definition can provide its icon directly. These twelve
+        // vanilla entries keep their atlas key because their item names do not resolve it.
         'minecraft:icon': nbtCompound({
-            textures: nbtCompound({ default: iconTexture === undefined ? undefined : nbtString(iconTexture) })
+            textures: nbtCompound(iconTextureTags)
         }),
         mining_speed: nbtFloat(source.mining_speed ?? 1),
         should_despawn: nbtByte(bedrockOnly.should_despawn),
@@ -306,9 +310,8 @@ const itemComponentData = (
         components: nbtCompound({
             ...namedComponents(projected),
             item_properties: itemProperties(projected, bedrockOnly, identifier),
-            // Present and empty: Bedrock item tags are their own registry and
-            // `@jsprismarine/items` will not translate a Java tag into one.
-            item_tags: nbtList([])
+            // This is the resolved Bedrock membership, including definition overrides.
+            item_tags: nbtList((projected.item_tags ?? []).map((tag) => nbtString(tag)))
         })
     });
 

@@ -161,9 +161,9 @@ leaves out anything Java cannot decide. This package supplies the rest:
   and `minecraft:use_modifiers.use_duration` is seconds as a float while
   `item_properties.use_duration` is ticks as an int.
 - `minecraft:icon`, present with a `textures` compound. Twelve vanilla items need a `default` atlas
-  key because the client cannot infer their icons from their internal item names. Those keys come
-  from Mojang's pinned `bedrock-samples` item atlas; other items keep an empty map when no verified
-  key is available.
+  key because the client cannot infer their icons from their internal item names. A loaded Bedrock
+  item definition's `minecraft:icon` takes precedence, including texture variants; the twelve keys
+  come from Mojang's pinned `bedrock-samples` item atlas when no definition icon is present.
 
 An item the captured table does not name is treated as one this server invented: component based,
 `Item Version` `DataDriven`, and an id allocated from 10000. Those are listed in `allocated`.
@@ -271,8 +271,9 @@ told about a block registry that disagrees with its own does not complain, it dr
   `Recipe` classes, so the shapes here are named after the wire's fields and a caller adapts. Moving
   those two packets into `@jsprismarine/protocol` would let this package be checked against them the
   way the other two are.
-- **Item tags.** `item_tags` is written present and empty, because Bedrock item tags are their own
-  registry and `@jsprismarine/items` will not translate a Java tag into one.
+- **Item tags.** `item_tags` contains the item's resolved Bedrock memberships from the captured
+  catalog and any explicit `minecraft:tags` definition override. Java tags are not translated into
+  Bedrock tags.
 
 ## Tests
 
