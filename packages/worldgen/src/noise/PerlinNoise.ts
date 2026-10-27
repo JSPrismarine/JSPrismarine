@@ -1,6 +1,10 @@
 import { f32, floor, smoothstep } from '../math';
 import type { RandomSource } from '../random/RandomSource';
-import { GradientNoise, wrap } from './GradientNoise';
+import { GRADIENTS, GradientNoise, wrap } from './GradientNoise';
+
+const PERLIN_GRADIENT_X = Float64Array.from(GRADIENTS, (gradient) => gradient[0]);
+const PERLIN_GRADIENT_Y = Float64Array.from(GRADIENTS, (gradient) => gradient[1]);
+const PERLIN_GRADIENT_Z = Float64Array.from(GRADIENTS, (gradient) => gradient[2]);
 
 /**
  * One octave of improved Perlin noise, the building block every other noise kind stacks.
@@ -63,14 +67,58 @@ export class PerlinNoise extends GradientNoise {
         const relativeX1 = f32(relativeX - 1);
         const relativeY1 = f32(relativeY - 1);
         const relativeZ1 = f32(relativeZ - 1);
-        const d000 = GradientNoise.gradDotF32(perms[xy00 & 0xff] ?? 0, relativeX, relativeY, relativeZ);
-        const d100 = GradientNoise.gradDotF32(perms[xy10 & 0xff] ?? 0, relativeX1, relativeY, relativeZ);
-        const d010 = GradientNoise.gradDotF32(perms[xy01 & 0xff] ?? 0, relativeX, relativeY1, relativeZ);
-        const d110 = GradientNoise.gradDotF32(perms[xy11 & 0xff] ?? 0, relativeX1, relativeY1, relativeZ);
-        const d001 = GradientNoise.gradDotF32(perms[(xy00 + 1) & 0xff] ?? 0, relativeX, relativeY, relativeZ1);
-        const d101 = GradientNoise.gradDotF32(perms[(xy10 + 1) & 0xff] ?? 0, relativeX1, relativeY, relativeZ1);
-        const d011 = GradientNoise.gradDotF32(perms[(xy01 + 1) & 0xff] ?? 0, relativeX, relativeY1, relativeZ1);
-        const d111 = GradientNoise.gradDotF32(perms[(xy11 + 1) & 0xff] ?? 0, relativeX1, relativeY1, relativeZ1);
+        const gradient000 = (perms[xy00 & 0xff] ?? 0) & 15;
+        const gradient100 = (perms[xy10 & 0xff] ?? 0) & 15;
+        const gradient010 = (perms[xy01 & 0xff] ?? 0) & 15;
+        const gradient110 = (perms[xy11 & 0xff] ?? 0) & 15;
+        const gradient001 = (perms[(xy00 + 1) & 0xff] ?? 0) & 15;
+        const gradient101 = (perms[(xy10 + 1) & 0xff] ?? 0) & 15;
+        const gradient011 = (perms[(xy01 + 1) & 0xff] ?? 0) & 15;
+        const gradient111 = (perms[(xy11 + 1) & 0xff] ?? 0) & 15;
+        const d000 = f32(
+            f32((PERLIN_GRADIENT_X[gradient000] ?? 0) * relativeX + (PERLIN_GRADIENT_Y[gradient000] ?? 0) * relativeY) +
+                (PERLIN_GRADIENT_Z[gradient000] ?? 0) * relativeZ
+        );
+        const d100 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient100] ?? 0) * relativeX1 + (PERLIN_GRADIENT_Y[gradient100] ?? 0) * relativeY
+            ) +
+                (PERLIN_GRADIENT_Z[gradient100] ?? 0) * relativeZ
+        );
+        const d010 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient010] ?? 0) * relativeX + (PERLIN_GRADIENT_Y[gradient010] ?? 0) * relativeY1
+            ) +
+                (PERLIN_GRADIENT_Z[gradient010] ?? 0) * relativeZ
+        );
+        const d110 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient110] ?? 0) * relativeX1 + (PERLIN_GRADIENT_Y[gradient110] ?? 0) * relativeY1
+            ) +
+                (PERLIN_GRADIENT_Z[gradient110] ?? 0) * relativeZ
+        );
+        const d001 = f32(
+            f32((PERLIN_GRADIENT_X[gradient001] ?? 0) * relativeX + (PERLIN_GRADIENT_Y[gradient001] ?? 0) * relativeY) +
+                (PERLIN_GRADIENT_Z[gradient001] ?? 0) * relativeZ1
+        );
+        const d101 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient101] ?? 0) * relativeX1 + (PERLIN_GRADIENT_Y[gradient101] ?? 0) * relativeY
+            ) +
+                (PERLIN_GRADIENT_Z[gradient101] ?? 0) * relativeZ1
+        );
+        const d011 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient011] ?? 0) * relativeX + (PERLIN_GRADIENT_Y[gradient011] ?? 0) * relativeY1
+            ) +
+                (PERLIN_GRADIENT_Z[gradient011] ?? 0) * relativeZ1
+        );
+        const d111 = f32(
+            f32(
+                (PERLIN_GRADIENT_X[gradient111] ?? 0) * relativeX1 + (PERLIN_GRADIENT_Y[gradient111] ?? 0) * relativeY1
+            ) +
+                (PERLIN_GRADIENT_Z[gradient111] ?? 0) * relativeZ1
+        );
         // `lerp3F` spelled out. Its helper calls are not inlined on this hot path; these
         // seven operations retain the same x-then-y-then-z order and f32 rounding as lerp3F.
         const alphaX = smoothstep(relativeX);
