@@ -89,10 +89,11 @@ A factory's `hooks` list is an upper bound. The parsed parameters may leave a ho
 a non-looping tick component implements nothing, but returning a hook the factory never declared is
 a registration error. Domains read the list to decide which types can ever reach a hook.
 
-A behavior is the same idea attached from the other side. Instead of appearing in a definition, it
-is registered by name and attached to identifiers, which is how one door behavior covers every door.
-The selector is an identifier, a list of them, or a predicate, and a predicate is how you attach by
-tag.
+A behavior is the same idea attached from the other side. It is registered by name and attached to
+identifiers, which is how one door behavior covers every door. The selector is an identifier, a
+list of them, or a predicate. A predicate receives the identifier and the loaded definition, so it
+can select behavior from a component as well as from a closed-over tag index. Identifier-only
+predicates remain valid.
 
 Mojang's `minecraft:custom_components` is read as one more way to name a behavior rather than the
 binding mechanism, because that hook is marked deprecated in Mojang's own documentation while its

@@ -1,4 +1,5 @@
 import type { BindContext } from './components';
+import type { Definition } from './definitions';
 import { ContentError } from './errors';
 import type { HookSignatures } from './hooks';
 
@@ -29,10 +30,13 @@ export interface Behavior<H extends HookSignatures<H>> {
 
 /**
  * Picks the type identifiers a behavior attaches to: one identifier, a list of
- * them, or a predicate. A predicate is how a domain attaches by tag, by
- * closing over its {@link Tags} instance.
+ * them, or a predicate. Predicates receive the identifier and its loaded
+ * definition, which lets a domain select behavior from component data or
+ * attach by tag through a closed-over {@link Tags} instance. The definition
+ * argument is optional when a caller invokes the predicate directly; the
+ * registry supplies it when matching.
  */
-export type BehaviorSelector = string | readonly string[] | ((identifier: string) => boolean);
+export type BehaviorSelector = string | readonly string[] | ((identifier: string, definition?: Definition) => boolean);
 
 /** One behavior after its handlers are built for a type. */
 export interface BoundBehavior<H extends HookSignatures<H>> {
@@ -42,9 +46,9 @@ export interface BoundBehavior<H extends HookSignatures<H>> {
     readonly override: boolean;
 }
 
-const matches = (selector: BehaviorSelector, identifier: string): boolean => {
+const matches = (selector: BehaviorSelector, identifier: string, definition: Definition): boolean => {
     if (typeof selector === 'string') return selector === identifier;
-    if (typeof selector === 'function') return selector(identifier);
+    if (typeof selector === 'function') return selector(identifier, definition);
     return selector.includes(identifier);
 };
 
@@ -105,7 +109,7 @@ export class BehaviorRegistry<H extends HookSignatures<H>> {
 
         for (const attachment of this.attachments) {
             if (done.has(attachment.behavior)) continue;
-            if (!matches(attachment.selector, context.identifier)) continue;
+            if (!matches(attachment.selector, context.identifier, context.definition)) continue;
             done.add(attachment.behavior);
 
             const behavior = this.behaviors.get(attachment.behavior)!;

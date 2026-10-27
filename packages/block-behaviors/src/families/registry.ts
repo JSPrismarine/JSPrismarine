@@ -6,11 +6,11 @@
  * agreeing, so a new family rule cannot land without a behavior behind it.
  */
 import type { BlockHooks } from '@jsprismarine/blocks';
-import { behaviorFor } from '@jsprismarine/blocks';
+import { behavior, behaviorFor } from '@jsprismarine/blocks';
 import type { BehaviorRegistry } from '@jsprismarine/content';
 
 import type { BlockFamily } from '../family';
-import { familyBehavior } from '../family';
+import { componentValue, familyBehavior } from '../family';
 import type { BlockWorld } from '../world';
 import {
     cauldronFamily,
@@ -101,12 +101,10 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
 ];
 
 /**
- * Registers every family and attaches it to the identifiers its family rule
- * claims.
- *
- * The selector is `behaviorFor`, the same function the overlay generator
- * writes `jsprismarine:behavior` with, so the attachment and the component
- * cannot disagree.
+ * Registers every family and attaches it to definitions whose
+ * `jsprismarine:behavior` component names that family. Definitions without
+ * the component retain identifier-based selection for callers that do not
+ * load the vanilla overlay.
  *
  * @param registry - The registry `resolveBlocks` is given.
  * @param world - What the behaviors act on. The server passes its own
@@ -115,6 +113,11 @@ export const VANILLA_BLOCK_FAMILIES: readonly BlockFamily[] = [
 export const registerVanillaBlockBehaviors = (registry: BehaviorRegistry<BlockHooks>, world: BlockWorld): void => {
     for (const family of VANILLA_BLOCK_FAMILIES) {
         registry.register(familyBehavior(family, world));
-        registry.attach(family.name, (identifier) => behaviorFor(identifier) === family.name);
+        registry.attach(family.name, (identifier, definition) => {
+            const declared = definition === undefined ? undefined : componentValue(definition, behavior.name);
+            if (declared !== undefined) return declared === family.name;
+
+            return family.name === behaviorFor(identifier);
+        });
     }
 };
