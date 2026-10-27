@@ -32,6 +32,7 @@ import { GenericEntity } from '../GenericEntity';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '../Metadata';
+import type { ContentItemDrop } from '../../content/world/adapter';
 import type { DataEntity } from './DataEntity';
 import type { EntityItemInteraction } from './itemInteraction';
 import type { ContentItemEntity, EntityHostFacts, EntityWorldFacts } from './host';
@@ -48,7 +49,10 @@ const filterItemOf = (item: Item | undefined): FilterItemView | undefined =>
         : {
               identifier: () => item.getName(),
               data: () => item.getMeta(),
-              tags: () => item.getTags()
+              tags: () => item.getTags(),
+              enchantment: (name) => item.getEnchantmentLevel(name),
+              hasComponent: (name) => item.hasComponent(name),
+              damaged: () => item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
           };
 
 /** The live player's family and equipment, which `minecraft:interact` filters inspect. */
@@ -60,19 +64,76 @@ const playerFilterView = (player: Player): FilterEntityView => {
         ['leg', 2],
         ['feet', 3]
     ]);
+    const equipment = (slot: EquipmentSlot, index: number): FilterItemView | undefined => {
+        if (slot === 'any') {
+            if (index === 0) return filterItemOf(inventory.getItemInHand());
+            if (index === 1) return filterItemOf(inventory.getOffhand().getEntry(0)?.getItem());
+            const armorSlotCount = inventory.getArmor().getSlotCount();
+            if (index >= 2 && index < 2 + armorSlotCount)
+                return filterItemOf(
+                    inventory
+                        .getArmor()
+                        .getEntry(index - 2)
+                        ?.getItem()
+                );
+            return filterItemOf(inventory.getEntry(index - 2 - armorSlotCount)?.getItem());
+        }
+        if (slot === 'main_hand') return index === 0 ? filterItemOf(inventory.getItemInHand()) : undefined;
+        if (slot === 'hand') {
+            if (index === 0) return filterItemOf(inventory.getItemInHand());
+            return index === 1 ? filterItemOf(inventory.getOffhand().getEntry(0)?.getItem()) : undefined;
+        }
+        if (slot === 'off_hand')
+            return index === 0 ? filterItemOf(inventory.getOffhand().getEntry(0)?.getItem()) : undefined;
+        if (slot === 'inventory') return filterItemOf(inventory.getEntry(index)?.getItem());
+        if (slot === 'armor') return filterItemOf(inventory.getArmor().getEntry(index)?.getItem());
+        const armorIndex = armorSlots.get(slot);
+        return armorIndex === undefined
+            ? undefined
+            : index === 0
+              ? filterItemOf(inventory.getArmor().getEntry(armorIndex)?.getItem())
+              : undefined;
+    };
+    const capacity = (slot: EquipmentSlot): number => {
+        switch (slot) {
+            case 'any':
+                return 2 + inventory.getArmor().getSlotCount() + inventory.getSlotCount();
+            case 'armor':
+                return inventory.getArmor().getSlotCount();
+            case 'feet':
+            case 'head':
+            case 'leg':
+            case 'main_hand':
+            case 'off_hand':
+                return 1;
+            case 'hand':
+                return 2;
+            case 'inventory':
+                return inventory.getSlotCount();
+            case 'torso':
+                return 1;
+        }
+    };
     return {
         id: () => Number(player.getRuntimeId()),
         names: (name) => (name === 'is_family' ? ['player'] : name === 'has_tag' ? player.getTags() : undefined),
-        equipment: (slot, index) => {
-            if (slot === 'main_hand' || slot === 'hand' || slot === 'any')
-                return index === 0 ? filterItemOf(inventory.getItemInHand()) : undefined;
-            if (slot === 'off_hand') return filterItemOf(inventory.getOffhand().getEntry(index)?.getItem());
-            if (slot === 'inventory') return filterItemOf(inventory.getEntry(index)?.getItem());
-            const armorIndex = armorSlots.get(slot);
-            if (armorIndex !== undefined)
-                return index === 0 ? filterItemOf(inventory.getArmor().getEntry(armorIndex)?.getItem()) : undefined;
-            if (slot === 'armor') return filterItemOf(inventory.getArmor().getEntry(index)?.getItem());
-            return undefined;
+        flag: (name) => (name === 'is_sneaking' || name === 'is_sneak_held' ? player.isSneaking() : undefined),
+        equipment,
+        slotFill: (slot) => {
+            const slots = capacity(slot);
+            let filled = 0;
+            for (let index = 0; index < slots; index += 1) {
+                if (equipment(slot, index) !== undefined) filled += 1;
+            }
+            return { filled, capacity: slots };
+        },
+        carries: (matches) => {
+            const slots = capacity('any');
+            for (let index = 0; index < slots; index += 1) {
+                const item = equipment('any', index);
+                if (item !== undefined && matches(item)) return true;
+            }
+            return false;
         }
     };
 };
@@ -318,7 +379,12 @@ export class LiveEntityRuntime {
     }
 
     /** Applies a held item to a data-driven entity and returns any item result it declares. */
-    public interactWithItem(target: Entity, player: Entity, itemIdentifier: string): EntityItemInteraction {
+    public interactWithItem(
+        target: Entity,
+        player: Entity,
+        itemIdentifier: string,
+        heldItem?: ContentItemDrop
+    ): EntityItemInteraction {
         const id = this.bodies.entityIdOf(target);
         if (id === undefined) return { accepted: false };
 
@@ -327,7 +393,8 @@ export class LiveEntityRuntime {
             id,
             Number(player.getRuntimeId()),
             itemIdentifier,
-            player instanceof Player ? playerFilterView(player) : undefined
+            player instanceof Player ? playerFilterView(player) : undefined,
+            heldItem
         );
         const loveTicks = this.runtime.byId(id)?.body.loveTicks ?? 0;
         if (interaction.accepted && previousLoveTicks <= 0 && loveTicks > 0) {

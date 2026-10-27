@@ -69,7 +69,8 @@ import { breedableOf, canBreed, offspringIdentifierOf, offspringOf, spendLove } 
 import { DataEntity, MobBody, distance } from './DataEntity';
 import { EntityGrid } from './entityGrid';
 import { detonate } from './explosion';
-import { mobEquipmentSlotOf, rollMobEquipment } from '../equipment';
+import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment } from '../equipment';
+import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
@@ -250,6 +251,8 @@ export class EntityRuntime implements EntityScene {
     private readonly grid = new EntityGrid();
     /** The entity each `EntityInstance` belongs to, which is how the AI seams resolve a body. */
     private readonly byInstance = new Map<EntityInstance, DataEntity>();
+    /** Invalid interaction slots reported once per entity and request. */
+    private readonly reportedInteractionSlots = new WeakMap<DataEntity, Set<string>>();
     /**
      * The body being built right now.
      *
@@ -421,6 +424,7 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
         this.onSpawn(entity);
@@ -505,9 +509,14 @@ export class EntityRuntime implements EntityScene {
                         const item = body.equipment[equipmentSlot];
                         if (item === undefined) return;
 
+                        const inventorySlot = body.equipmentInventorySlots[equipmentSlot];
                         const equipment = { ...body.equipment };
                         delete equipment[equipmentSlot];
                         body.setEquipment(equipment);
+                        if (inventorySlot !== undefined) {
+                            body.containerSlots[inventorySlot] = undefined;
+                            delete body.equipmentInventorySlots[equipmentSlot];
+                        }
                         this.host.drop(blockPositionOf(body.position), item);
                     }
                 } satisfies EntityEffects,
@@ -522,6 +531,8 @@ export class EntityRuntime implements EntityScene {
                 report: (message) => this.report(`${reference}: ${message}`)
             }
         });
+
+        body.containerCapacity = this.containerCapacityOf(instance);
 
         this.spawning = undefined;
 
@@ -642,6 +653,7 @@ export class EntityRuntime implements EntityScene {
             this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
+            entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
             this.syncGameEventListener(entity);
             this.grid.refreshFamilies(entity);
             this.tickBrain(entity);
@@ -1412,7 +1424,8 @@ export class EntityRuntime implements EntityScene {
         id: number,
         owner: number,
         itemIdentifier: string,
-        other?: FilterEntityView
+        other?: FilterEntityView,
+        heldItem: ContentItemDrop = { identifier: itemIdentifier, count: 1 }
     ): EntityItemInteraction {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
@@ -1503,9 +1516,24 @@ export class EntityRuntime implements EntityScene {
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
-            const { addItems, healthAmount, playSounds, spawnItems, vibration, ...itemEffect } = interaction;
+            const {
+                addItems,
+                dropItemSlot,
+                dropItemYOffset,
+                equipItemSlot,
+                giveItem,
+                healthAmount,
+                playSounds,
+                spawnItems,
+                vibration,
+                ...itemEffect
+            } = interaction;
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
+            if (dropItemSlot !== undefined) this.dropInteractionSlot(entity, dropItemSlot, dropItemYOffset ?? 0);
+            const equippedHeldItem =
+                equipItemSlot === undefined || this.equipInteractionSlot(entity, equipItemSlot, heldItem);
+            if (giveItem) this.equipInteractionEquipment(entity, 'mainhand', heldItem);
             const addedItems =
                 addItems === undefined
                     ? undefined
@@ -1524,12 +1552,162 @@ export class EntityRuntime implements EntityScene {
                     this.hurt(entity, owner, 'entity_attack', -healthAmount);
                 }
             }
-            return { accepted: true, ...itemEffect, ...(addedItems === undefined ? {} : { addedItems }) };
+            return {
+                accepted: true,
+                ...itemEffect,
+                ...(!equippedHeldItem && !giveItem ? { consumeItem: false } : {}),
+                ...(addedItems === undefined ? {} : { addedItems })
+            };
         }
         const ageable = entity.instance.componentParams('minecraft:ageable');
         const feedItem = isRecord(ageable) ? componentItem(ageable.feedItems, itemIdentifier) : undefined;
         const resultItem = resultItemOf(feedItem);
         return resultItem === undefined ? { accepted: true } : { accepted: true, resultItem };
+    }
+
+    /** The slot count declared by the active inventory component. */
+    private containerCapacityOf(instance: EntityInstance): number {
+        const inventory = instance.componentParams('minecraft:inventory');
+        if (!isRecord(inventory) || typeof inventory.inventorySize !== 'number') return 0;
+        return Number.isSafeInteger(inventory.inventorySize) && inventory.inventorySize >= 0
+            ? inventory.inventorySize
+            : 0;
+    }
+
+    /** Whether a slot name is a canonical numeric index into this entity's declared container. */
+    private containerSlotIndex(entity: DataEntity, name: string): number | undefined {
+        if (!/^(0|[1-9]\d*)$/.test(name)) return undefined;
+        const index = Number(name);
+        if (index >= this.containerCapacityOf(entity.instance)) {
+            this.reportInteractionSlotOnce(
+                entity,
+                name,
+                `entity ${entity.identifier} asks for inventory slot ${name} outside its minecraft:inventory`
+            );
+            return undefined;
+        }
+        return index;
+    }
+
+    /** Equips the held stack into an entity inventory slot or a named equipment slot. */
+    private equipInteractionSlot(entity: DataEntity, name: string, heldItem: ContentItemDrop): boolean {
+        const equipmentSlot = mobEquipmentSlotOf(name);
+        if (equipmentSlot !== undefined) {
+            this.equipInteractionEquipment(entity, equipmentSlot, heldItem);
+            return true;
+        }
+
+        const index = this.containerSlotIndex(entity, name);
+        if (index === undefined) {
+            if (!/^(0|[1-9]\d*)$/.test(name))
+                this.reportInteractionSlotOnce(
+                    entity,
+                    name,
+                    `entity ${entity.identifier} asks to equip an unsupported slot ${name}`
+                );
+            return false;
+        }
+
+        const previous = entity.body.containerSlots[index];
+        if (previous !== undefined) {
+            this.removeEquipmentProjectionAt(entity, index);
+            this.host.drop(entity.position, previous);
+        }
+        const item = { ...heldItem, count: 1 };
+        entity.body.containerSlots[index] = item;
+        const projectedSlot = this.equipmentSlotOfDrop(item);
+        if (projectedSlot !== undefined) {
+            this.equipInteractionEquipment(entity, projectedSlot, item);
+            entity.body.equipmentInventorySlots[projectedSlot] = index;
+        }
+        return true;
+    }
+
+    /** Replaces one equipment slot, dropping its previous stack if it held one. */
+    private equipInteractionEquipment(entity: DataEntity, slot: MobEquipmentSlot, item: ContentItemDrop): void {
+        const projectedIndex = entity.body.equipmentInventorySlots[slot];
+        if (projectedIndex !== undefined) {
+            const projectedItem = entity.body.containerSlots[projectedIndex];
+            entity.body.containerSlots[projectedIndex] = undefined;
+            delete entity.body.equipmentInventorySlots[slot];
+            const equipment = { ...entity.body.equipment };
+            delete equipment[slot];
+            entity.body.setEquipment(equipment);
+            if (projectedItem !== undefined) this.host.drop(entity.position, projectedItem);
+        }
+
+        const previous = entity.body.equipment[slot];
+        if (previous !== undefined) this.host.drop(entity.position, previous);
+        entity.body.setEquipment({ ...entity.body.equipment, [slot]: { ...item, count: 1 } });
+    }
+
+    /** Drops an entity's inventory or equipment slot, honoring the configured vertical offset. */
+    private dropInteractionSlot(entity: DataEntity, name: string, yOffset: number): void {
+        const at = { x: entity.position.x, y: entity.position.y + yOffset, z: entity.position.z };
+        const equipmentSlot = mobEquipmentSlotOf(name);
+        if (equipmentSlot !== undefined) {
+            const item = entity.body.equipment[equipmentSlot];
+            if (item === undefined) return;
+            const projectedIndex = entity.body.equipmentInventorySlots[equipmentSlot];
+            if (projectedIndex !== undefined) {
+                entity.body.containerSlots[projectedIndex] = undefined;
+                delete entity.body.equipmentInventorySlots[equipmentSlot];
+            }
+            const equipment = { ...entity.body.equipment };
+            delete equipment[equipmentSlot];
+            entity.body.setEquipment(equipment);
+            this.host.drop(at, item);
+            return;
+        }
+
+        const index = this.containerSlotIndex(entity, name);
+        if (index === undefined) {
+            if (!/^(0|[1-9]\d*)$/.test(name))
+                this.reportInteractionSlotOnce(
+                    entity,
+                    name,
+                    `entity ${entity.identifier} asks to drop an unsupported slot ${name}`
+                );
+            return;
+        }
+        const item = entity.body.containerSlots[index];
+        if (item === undefined) return;
+        entity.body.containerSlots[index] = undefined;
+        this.removeEquipmentProjectionAt(entity, index);
+        this.host.drop(at, item);
+    }
+
+    /** Clears wearable state backed by one container slot without dropping its stack twice. */
+    private removeEquipmentProjectionAt(entity: DataEntity, index: number): void {
+        let equipment = entity.body.equipment;
+        let changed = false;
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            if (entity.body.equipmentInventorySlots[slot] !== index) continue;
+            if (!changed) equipment = { ...equipment };
+            delete equipment[slot];
+            delete entity.body.equipmentInventorySlots[slot];
+            changed = true;
+        }
+        if (changed) entity.body.setEquipment(equipment);
+    }
+
+    /** Resolves the item's declared wearable slot, if it projects into actor equipment. */
+    private equipmentSlotOfDrop(item: ContentItemDrop): MobEquipmentSlot | undefined {
+        const resolved = itemOfDrop(item, this.content());
+        const declared = resolved?.getEquipmentSlot();
+        return declared === undefined ? undefined : mobEquipmentSlotOf(declared);
+    }
+
+    /** Reports a malformed data-defined slot only once per entity and slot name. */
+    private reportInteractionSlotOnce(entity: DataEntity, name: string, message: string): void {
+        let reported = this.reportedInteractionSlots.get(entity);
+        if (reported === undefined) {
+            reported = new Set();
+            this.reportedInteractionSlots.set(entity, reported);
+        }
+        if (reported.has(name)) return;
+        reported.add(name);
+        this.report(message);
     }
 
     /** Rolls the Bedrock table a successful data-defined interaction names. */
@@ -1581,6 +1759,13 @@ export class EntityRuntime implements EntityScene {
         // declare `minecraft:loot` only inside a component group: the cow carries it in
         // `minecraft:cow_adult`, so a type-level read finds nothing and a grown cow drops
         // what a calf does, which is nothing.
+        const inventory = entity.instance.componentParams('minecraft:inventory');
+        if (isRecord(inventory) && inventory.isPrivate !== true) {
+            for (const item of entity.body.containerSlots) {
+                if (item !== undefined) this.host.drop(entity.position, item);
+            }
+        }
+
         const table = entity.facts.lootTable;
         if (table !== undefined && ruleIsOn(this.world.level, MOB_DROPS)) this.dropLoot(table, entity.position);
         this.remove(entity.id, 'death');

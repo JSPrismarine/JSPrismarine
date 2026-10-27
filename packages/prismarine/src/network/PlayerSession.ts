@@ -1714,8 +1714,7 @@ export default class PlayerSession {
         armor.chest = worn.chest ?? Item.air();
         armor.legs = worn.legs ?? Item.air();
         armor.feet = worn.feet ?? Item.air();
-        // Horse armor, llama carpet and wolf armor, none of which a mob equipment table rolls.
-        armor.body = Item.air();
+        armor.body = worn.body ?? Item.air();
         await this.send(armor);
 
         await this.sendHeldItemFor(entity, worn.mainhand ?? Item.air());

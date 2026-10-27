@@ -13,12 +13,102 @@
  * sets the flag and a goal that refuses to run while the entity is sitting
  * agree only because both go through here.
  */
-import type { EntityFlag, EntityMeasure, FilterContext, FilterEntityView } from '@jsprismarine/entities';
+import type {
+    EntityFlag,
+    EntityMeasure,
+    EquipmentSlot,
+    FilterContext,
+    FilterEntityView,
+    FilterItemView,
+    SlotFill
+} from '@jsprismarine/entities';
 
 import type { MobBody } from './DataEntity';
 import { distance } from './DataEntity';
+import { itemOfDrop } from '../../inventory/persistence';
 import { blockPositionOf } from './position';
 import type { EntityScene } from './scene';
+import { MOB_EQUIPMENT_SLOTS } from '../equipment';
+import type { MobEquipmentSlot } from '../equipment';
+
+/** The armor containers a Bedrock entity filter can name. */
+const ARMOR_SLOTS = ['head', 'chest', 'legs', 'feet', 'body'] as const satisfies readonly MobEquipmentSlot[];
+
+/** The equipment slots one filter domain names, in the order its indexed view reads them. */
+const equipmentSlotsFor = (slot: EquipmentSlot): readonly MobEquipmentSlot[] | undefined => {
+    switch (slot) {
+        case 'hand':
+            return ['mainhand', 'offhand'];
+        case 'main_hand':
+            return ['mainhand'];
+        case 'off_hand':
+            return ['offhand'];
+        case 'armor':
+            return ARMOR_SLOTS;
+        case 'head':
+            return ['head'];
+        case 'torso':
+            return ['body', 'chest'];
+        case 'leg':
+            return ['legs'];
+        case 'feet':
+            return ['feet'];
+        case 'inventory':
+        case 'any':
+            return undefined;
+    }
+};
+
+/** What an entity filter reads from one equipment or inventory slot. */
+const itemViewOf = (drop: MobBody['containerSlots'][number], scene: EntityScene): FilterItemView | undefined => {
+    if (drop === undefined) return undefined;
+    const item = itemOfDrop(drop, scene.content());
+    return {
+        identifier: () => drop.identifier,
+        data: () => item?.getMeta() ?? drop.meta ?? 0,
+        ...(item === null
+            ? {}
+            : {
+                  tags: () => item.getTags(),
+                  enchantment: (name: string) => item.getEnchantmentLevel(name),
+                  hasComponent: (name: string) => item.hasComponent(name)
+              }),
+        damaged: () =>
+            item === null
+                ? (drop.damage ?? 0) > 0
+                : item.getMaxDurability() > 0 && item.getDurability() < item.getMaxDurability()
+    };
+};
+
+/** The stack at one indexed filter slot, or undefined when it is empty or out of range. */
+const dropAt = (body: MobBody, slot: EquipmentSlot, index: number): MobBody['containerSlots'][number] => {
+    if (slot === 'inventory') return body.containerSlots[index];
+    if (slot === 'any') {
+        const equipment = MOB_EQUIPMENT_SLOTS[index];
+        return equipment === undefined
+            ? body.containerSlots[index - MOB_EQUIPMENT_SLOTS.length]
+            : body.equipment[equipment];
+    }
+    const equipment = equipmentSlotsFor(slot)?.[index];
+    return equipment === undefined ? undefined : body.equipment[equipment];
+};
+
+/** How many slots one filter domain exposes. */
+const capacityOf = (body: MobBody, slot: EquipmentSlot): number => {
+    if (slot === 'inventory') return body.containerCapacity;
+    if (slot === 'any') return MOB_EQUIPMENT_SLOTS.length + body.containerCapacity;
+    return equipmentSlotsFor(slot)?.length ?? 0;
+};
+
+/** How full one equipment or inventory domain is. */
+const slotFillOf = (body: MobBody, slot: EquipmentSlot): SlotFill => {
+    const capacity = capacityOf(body, slot);
+    let filled = 0;
+    for (let index = 0; index < capacity; index += 1) {
+        if (dropAt(body, slot, index) !== undefined) filled += 1;
+    }
+    return { filled, capacity };
+};
 
 /** The whole filter context for one entity: its own facts and the world's. */
 export const entityFilterContextOf = (body: MobBody, scene: EntityScene): FilterContext => ({
@@ -37,6 +127,13 @@ export const entityFilterViewOf = (body: MobBody, scene: EntityScene): FilterEnt
     flag: (name) => flagOf(body, scene, name),
     measure: (name) => measureOf(body, scene, name),
     names: (name) => (name === 'has_tag' ? [...body.tags] : undefined),
+    equipment: (slot, index) => itemViewOf(dropAt(body, slot, index), scene),
+    slotFill: (slot) => slotFillOf(body, slot),
+    carries: (matches) =>
+        [...MOB_EQUIPMENT_SLOTS.map((slot) => body.equipment[slot]), ...body.containerSlots].some((drop) => {
+            const item = itemViewOf(drop, scene);
+            return item !== undefined && matches(item);
+        }),
     vehicle: () => viewOf(scene.vehicleOf(body)?.id, scene),
     owner: () => viewOf(body.owner, scene),
     attackTarget: () => viewOf(body.target, scene)

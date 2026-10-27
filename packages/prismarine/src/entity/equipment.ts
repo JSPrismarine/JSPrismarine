@@ -57,9 +57,8 @@ import type { ViewableEquipment } from './predicateView';
  * rather than by being kept in step. `satisfies` is the tie: a slot added or renamed there
  * fails to compile here until this tuple lists it.
  *
- * `body` is deliberately absent. `MobArmorEquipmentPacket` carries the slot, but it holds horse
- * armor, llama carpet and wolf armor, none of which an equipment table rolls, and the existing
- * send writes air into it.
+ * `body` is the fifth positional slot in `MobArmorEquipmentPacket`; entity interactions can
+ * equip horse armor, llama carpet and wolf armor there.
  */
 export const MOB_EQUIPMENT_SLOTS = [
     'mainhand',
@@ -67,7 +66,8 @@ export const MOB_EQUIPMENT_SLOTS = [
     'head',
     'chest',
     'legs',
-    'feet'
+    'feet',
+    'body'
 ] as const satisfies readonly (keyof ViewableEquipment)[];
 
 /** One of {@link MOB_EQUIPMENT_SLOTS}. */
@@ -79,25 +79,24 @@ export type MobEquipmentSet = Readonly<Partial<Record<MobEquipmentSlot, ContentI
 /** Nothing in any slot, which is what a mob with no `minecraft:equipment` has. */
 export const NO_EQUIPMENT: MobEquipmentSet = {};
 
-/** The slots {@link MOB_EQUIPMENT_SLOTS} names, as a set, for narrowing a parsed slot name. */
-const SLOTS: ReadonlySet<string> = new Set<string>(MOB_EQUIPMENT_SLOTS);
+/** The item component spellings and Bedrock's fully qualified slot names. */
+const SLOTS = new Map<string, MobEquipmentSlot>();
+for (const slot of MOB_EQUIPMENT_SLOTS) {
+    SLOTS.set(slot, slot);
+    const group = slot === 'mainhand' || slot === 'offhand' ? 'weapon' : 'armor';
+    SLOTS.set(`slot.${group}.${slot}`, slot);
+}
 
 /**
  * The slot a `minecraft:equipment.slot_drop_chance` entry names.
  *
- * A behavior pack spells these `slot.weapon.mainhand` and `slot.armor.head`, the engine's own
- * slot vocabulary rather than the item component's. The last segment is the same word in both,
- * so dropping the prefix is the whole translation.
+ * A behavior pack spells these `slot.weapon.mainhand` and `slot.armor.head`, while an item
+ * component uses the bare slot name. Both forms resolve through the same slot list.
  *
  * @param name - The slot as the component spells it.
- * @returns The slot, or undefined for a name no mob equipment slot matches, which
- *   `slot.armor.saddle` and `slot.hotbar` are.
+ * @returns The slot, or undefined for an unsupported name such as `slot.armor.saddle`.
  */
-export const mobEquipmentSlotOf = (name: string): MobEquipmentSlot | undefined => {
-    const last = name.slice(name.lastIndexOf('.') + 1);
-    // The set is built from the tuple above, so a hit is one of its members.
-    return SLOTS.has(last) ? (last as MobEquipmentSlot) : undefined;
-};
+export const mobEquipmentSlotOf = (name: string): MobEquipmentSlot | undefined => SLOTS.get(name);
 
 /**
  * Where one rolled item goes.
@@ -211,8 +210,19 @@ const sameDrop = (left: ContentItemDrop | undefined, right: ContentItemDrop | un
         (left.damage ?? 0) === (right.damage ?? 0) &&
         left.customName === right.customName &&
         sameList(left.lore, right.lore) &&
-        sameEnchantments(left.enchantments, right.enchantments)
+        sameEnchantments(left.enchantments, right.enchantments) &&
+        sameDrops(left.contents, right.contents)
     );
+};
+
+/** Whether two optional item-container contents hold the same slots in the same order. */
+const sameDrops = (
+    left: readonly (ContentItemDrop | undefined)[] | undefined,
+    right: readonly (ContentItemDrop | undefined)[] | undefined
+): boolean => {
+    if (left === undefined || right === undefined) return (left?.length ?? 0) === (right?.length ?? 0);
+
+    return left.length === right.length && left.every((item, index) => sameDrop(item, right[index]));
 };
 
 /** Whether two optional string lists hold the same strings in the same order. */

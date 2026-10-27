@@ -18,16 +18,18 @@
  * The attack target is deliberately not in the record. It is a runtime id,
  * which is drawn fresh each session and would resolve to whatever entity
  * happened to take the number. The owner is stored by stable player identity
- * and rebound to the new runtime id when that player returns. A carried item
- * is an identifier rather than a stack, because that is all the goal seam
- * models; when it grows a stack, this record should write it through
- * `inventory/itemNbt.ts` rather than encode one here.
+ * and rebound to the new runtime id when that player returns. The goal-facing
+ * `carried` field remains an identifier; `equipment` and `containerSlots`
+ * retain complete item stacks and nested contents.
  */
 import type { AttributeName, EntityPosition, PropertyValue } from '@jsprismarine/entities';
 import { ATTRIBUTES, noEffects } from '@jsprismarine/entities';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
 import { Types } from '@jsprismarine/nbt';
 
+import type { ContentItemDrop } from '../../content/world/adapter';
+import { MOB_EQUIPMENT_SLOTS } from '../equipment';
+import type { MobEquipmentSet, MobEquipmentSlot } from '../equipment';
 import type { DataEntity } from './DataEntity';
 
 /** The actor tag holding the whole record, as JSON. */
@@ -55,6 +57,12 @@ export interface DataEntityRecord {
     readonly carried?: string;
     /** What it carries that is not in its hand, as item identifiers. */
     readonly inventory: readonly string[];
+    /** Equipment slots modified after spawn, with each complete stack. */
+    readonly equipment?: MobEquipmentSet;
+    /** Inventory slots whose contents are also represented in a wearable slot. */
+    readonly equipmentInventorySlots?: Partial<Record<MobEquipmentSlot, number>>;
+    /** Slots in the `minecraft:inventory` container, empty slots represented by null. */
+    readonly containerSlots?: readonly (ContentItemDrop | null)[];
     readonly sitting: boolean;
     readonly sleeping: boolean;
     readonly loveTicks: number;
@@ -93,6 +101,11 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
         ...(body.ownerIdentity === undefined ? {} : { ownerIdentity: body.ownerIdentity }),
         ...(body.carried === undefined ? {} : { carried: body.carried }),
         inventory: [...body.inventory],
+        equipment: body.equipment,
+        ...(Object.keys(body.equipmentInventorySlots).length === 0
+            ? {}
+            : { equipmentInventorySlots: { ...body.equipmentInventorySlots } }),
+        containerSlots: body.containerSlots.map((item) => item ?? null),
         sitting: body.sitting,
         sleeping: body.sleeping,
         loveTicks: body.loveTicks,
@@ -113,6 +126,65 @@ const isObject = (value: unknown): value is Record<string, unknown> =>
 
 const stringsOf = (value: unknown): readonly string[] =>
     Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === 'string') : [];
+
+/** One saved item stack, after checking each field this runtime reads. */
+const itemDropOf = (value: unknown): ContentItemDrop | undefined => {
+    if (!isObject(value)) return undefined;
+    const { identifier, count } = value;
+    if (typeof identifier !== 'string' || identifier === '' || typeof count !== 'number' || !Number.isFinite(count))
+        return undefined;
+
+    let enchantments: Record<string, number> | undefined;
+    if (isObject(value['enchantments'])) {
+        enchantments = {};
+        for (const [name, level] of Object.entries(value['enchantments'])) {
+            if (typeof level === 'number' && Number.isFinite(level)) enchantments[name] = level;
+        }
+    }
+    const lore = Array.isArray(value['lore'])
+        ? value['lore'].filter((line): line is string => typeof line === 'string')
+        : undefined;
+    const contents = Array.isArray(value['contents'])
+        ? value['contents'].map((item) => itemDropOf(item) ?? undefined)
+        : undefined;
+
+    return {
+        identifier,
+        count,
+        ...(typeof value['meta'] === 'number' && Number.isFinite(value['meta']) ? { meta: value['meta'] } : {}),
+        ...(typeof value['damage'] === 'number' && Number.isFinite(value['damage']) ? { damage: value['damage'] } : {}),
+        ...(typeof value['customName'] === 'string' ? { customName: value['customName'] } : {}),
+        ...(lore === undefined ? {} : { lore }),
+        ...(enchantments === undefined ? {} : { enchantments }),
+        ...(contents === undefined ? {} : { contents })
+    };
+};
+
+/** Saved equipment, retaining only known slots and complete item stacks. */
+const equipmentOf = (value: unknown): MobEquipmentSet | undefined => {
+    if (!isObject(value)) return undefined;
+    const equipment: Partial<Record<(typeof MOB_EQUIPMENT_SLOTS)[number], ContentItemDrop>> = {};
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const item = itemDropOf(value[slot]);
+        if (item !== undefined) equipment[slot] = item;
+    }
+    return equipment;
+};
+
+/** Inventory slots whose held stacks also occupy one of the actor's equipment slots. */
+const equipmentInventorySlotsOf = (value: unknown): Partial<Record<MobEquipmentSlot, number>> | undefined => {
+    if (!isObject(value)) return undefined;
+    const slots: Partial<Record<MobEquipmentSlot, number>> = {};
+    for (const slot of MOB_EQUIPMENT_SLOTS) {
+        const index = value[slot];
+        if (typeof index === 'number' && Number.isSafeInteger(index) && index >= 0) slots[slot] = index;
+    }
+    return slots;
+};
+
+/** All saved container slots, preserving indices and treating invalid or absent stacks as empty. */
+const containerSlotsOf = (value: unknown): readonly (ContentItemDrop | null)[] | undefined =>
+    Array.isArray(value) ? value.map((item) => itemDropOf(item) ?? null) : undefined;
 
 const numberOf = (value: unknown, fallback: number): number => (typeof value === 'number' ? value : fallback);
 
@@ -176,6 +248,9 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
 
     const home = positionOf(parsed['home']);
     const spawnData = isObject(parsed['spawnData']) ? parsed['spawnData'] : undefined;
+    const equipment = equipmentOf(parsed['equipment']);
+    const equipmentInventorySlots = equipmentInventorySlotsOf(parsed['equipmentInventorySlots']);
+    const containerSlots = containerSlotsOf(parsed['containerSlots']);
 
     return {
         identifier,
@@ -189,6 +264,9 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         ...(typeof ownerIdentity === 'string' ? { ownerIdentity } : {}),
         ...(typeof carried === 'string' ? { carried } : {}),
         inventory: stringsOf(parsed['inventory']),
+        ...(equipment === undefined ? {} : { equipment }),
+        ...(equipmentInventorySlots === undefined ? {} : { equipmentInventorySlots }),
+        ...(containerSlots === undefined ? {} : { containerSlots }),
         sitting: parsed['sitting'] === true,
         sleeping: parsed['sleeping'] === true,
         loveTicks: numberOf(parsed['loveTicks'], 0),
@@ -228,8 +306,19 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.home = record.home;
     instance.setHomePosition(record.home);
     body.ownerIdentity = record.ownerIdentity;
-    body.carried = record.carried;
+    if (record.equipment === undefined) body.carried = record.carried;
+    else {
+        body.setEquipment(record.equipment);
+        if (record.equipment.mainhand === undefined) body.carried = record.carried;
+    }
+    for (const slot of MOB_EQUIPMENT_SLOTS) delete body.equipmentInventorySlots[slot];
+    Object.assign(body.equipmentInventorySlots, record.equipmentInventorySlots);
     body.inventory.splice(0, body.inventory.length, ...record.inventory);
+    body.containerSlots.splice(
+        0,
+        body.containerSlots.length,
+        ...(record.containerSlots ?? []).map((item) => item ?? undefined)
+    );
     body.sitting = record.sitting;
     body.sleeping = record.sleeping;
     body.loveTicks = record.loveTicks;

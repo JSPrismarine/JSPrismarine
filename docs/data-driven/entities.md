@@ -189,12 +189,13 @@ Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_P
 `minecraft:bounciness`, which the shared body physics reads from the active component set; the
 eleven `minecraft:on_*`
 trigger components; and `minecraft:cannot_be_attacked`, which blocks entity attacks.
-`minecraft:interact` evaluates item
-filters, enforces its cooldowns, raises its event, adjusts health by `health_amount`, plays
-`play_sounds`, emits its `vibration` game event, requests the `spawn_items` loot table from the host,
-adds `add_items` loot to the player's inventory, creates each configured `spawn_entities` entry,
-and applies `hurt_item`, `use_item`, and `transform_to_item` through the live inventory; other
-interaction fields still report as unsupported.
+`minecraft:interact` evaluates item filters, enforces cooldowns, raises its event, adjusts health,
+plays sounds, emits vibrations, creates configured entities, and rolls its `add_items` and
+`spawn_items` loot tables. It also applies `hurt_item`, `use_item`, and `transform_to_item` through
+the live player's inventory. `equip_item_slot` and `drop_item_slot` read named equipment slots or
+indexed slots in `minecraft:inventory`, and `drop_item_y_offset` moves the resulting drop vertically.
+`give_item` replaces the entity's main-hand item. The fields `admire`, `barter`, `interact_text`,
+`particle_on_start`, `repair_entity_item`, `swing`, and `take_item` still report as unsupported.
 `minecraft:angry` counts its anger down, raises `calm_event`, excludes targets matching `filters`,
 plays `angry_sound` on the configured `sound_interval`, and broadcasts on activation, attack, being
 attacked, and death according to its flags. Each broadcast reaches nearby entities of the same type
@@ -289,6 +290,10 @@ looking at a world fact this server does not track yet, and the report names the
 `has_tag` reads the entity's dynamic string tags, the same set the `/tag` command edits. The host
 keeps that set on data-driven entities across live-body replacement and writes it to the actor's
 `Tags` list when the entity is saved.
+
+Equipment filters scan every slot in their declared domain. `has_equipment_tag`,
+`actor_has_item_with_enchantment_in_slot`, `has_damaged_equipment`, and `has_item_with_component`
+read the item stack's tags, enchantments, durability, and data components for both mobs and players.
 
 ## Goals
 
@@ -510,8 +515,9 @@ session, so saving it could point the mob at an unrelated entity after restart. 
 owner is saved by the player's stable UUID and rebound to that player's current runtime id when
 they rejoin. The other component state survives too: a save writes each entity's component groups,
 property values, attributes, body state and population pool into its actor compound as JSON, and
-the runtime restores it without rerunning the spawn event. A held item comes back as an identifier
-rather than as a stack, which is as much as the goal seam models.
+the runtime restores it without rerunning the spawn event. The goal seam still models a carried
+item as an identifier. Equipment and `minecraft:inventory` slots save complete item stacks,
+including their names, enchantments, durability, and nested contents.
 
 **Taming, breeding, and healing use their component data.** Right-clicking an entity checks its
 active `minecraft:tameable`, `minecraft:breedable`, or `minecraft:healable` item list. A matching

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { definitionOf } from '../content/ContentOptions';
 import { buildContentTags } from '../content/tags';
+import { Item } from '../item/Item';
 import { entityPredicateView } from './predicateView';
 
 describe('entityPredicateView', () => {
@@ -26,5 +27,18 @@ describe('entityPredicateView', () => {
         );
 
         expect(view.typeTags).toEqual(['minecraft:undead']);
+    });
+
+    it('includes body armor in the equipment view', () => {
+        const bodyArmor = new Item({ name: 'minecraft:iron_horse_armor' });
+        const view = entityPredicateView(
+            {
+                getType: () => 'minecraft:horse',
+                getPosition: () => ({ getX: () => 1, getY: () => 2, getZ: () => 3 })
+            },
+            { equipment: { body: bodyArmor } }
+        );
+
+        expect(view.equipment?.body?.id).toBe('minecraft:iron_horse_armor');
     });
 });

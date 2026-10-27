@@ -210,6 +210,11 @@ export class Item {
         return this.type()?.hasTag(tag) ?? false;
     }
 
+    /** Whether the resolved item type declares the named data component. */
+    public hasComponent(name: string): boolean {
+        return this.type()?.hasComponent(name) ?? false;
+    }
+
     /**
      * Whatever numeric id the caller built this stack with, or zero.
      *

@@ -17,9 +17,10 @@ import type { EntityInstance, EntityPosition } from '@jsprismarine/entities';
 import { isRecord } from '@jsprismarine/entities';
 import type { Brain, BrainMobDefinition } from '@jsprismarine/entity-brains';
 
+import type { ContentItemDrop } from '../../content/world/adapter';
 import { DamageLog } from './damageLog';
 import type { MobEquipmentSet } from '../equipment';
-import { NO_EQUIPMENT, sameEquipment } from '../equipment';
+import { MOB_EQUIPMENT_SLOTS, NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
 import { moveOnAxis } from './collision';
@@ -130,11 +131,11 @@ export class MobBody {
     public set carried(identifier: string | undefined) {
         if (identifier === this.carried) return;
 
-        this.equipment =
+        this.setEquipment(
             identifier === undefined
                 ? { ...this.equipment, mainhand: undefined }
-                : { ...this.equipment, mainhand: { identifier, count: 1 } };
-        this.equipmentRevision += 1;
+                : { ...this.equipment, mainhand: { identifier, count: 1 } }
+        );
     }
 
     /**
@@ -151,6 +152,11 @@ export class MobBody {
     public setEquipment(equipment: MobEquipmentSet): boolean {
         if (sameEquipment(this.equipment, equipment)) return false;
 
+        for (const slot of MOB_EQUIPMENT_SLOTS) {
+            if (!sameEquipment({ [slot]: this.equipment[slot] }, { [slot]: equipment[slot] }))
+                delete this.equipmentInventorySlots[slot];
+        }
+
         this.equipment = equipment;
         this.equipmentRevision += 1;
 
@@ -159,6 +165,15 @@ export class MobBody {
 
     /** What the entity carries that is not in its hand, as item identifiers. */
     public readonly inventory: string[] = [];
+
+    /** Item stacks in the entity container declared by `minecraft:inventory`. */
+    public readonly containerSlots: (ContentItemDrop | undefined)[] = [];
+
+    /** Capacity of the active `minecraft:inventory` component, for filters and slot validation. */
+    public containerCapacity = 0;
+
+    /** Inventory indices projected into wearable equipment slots by an interaction. */
+    public readonly equipmentInventorySlots: Partial<Record<keyof MobEquipmentSet, number>> = {};
 
     /** Who has hurt the entity, with the running total each has dealt. */
     public readonly damage = new DamageLog();

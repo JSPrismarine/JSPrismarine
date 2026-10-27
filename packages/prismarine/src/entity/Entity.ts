@@ -154,14 +154,8 @@ export class Entity {
     /**
      * What this entity is holding and wearing, by slot, with empty slots absent.
      *
-     * Purely what the client draws: nothing reads it to decide how hard a blow lands, which
-     * comes from the attack attribute, and nothing reads the worn slots for armor points. But a
-     * skeleton with no bow in its hand fires arrows from an empty fist, and that reads as a bug
-     * rather than as an attack.
-     *
-     * A record rather than a field per slot because the two packets that carry it are
-     * positional - `MobArmorEquipmentPacket` writes all five worn slots or none of them - so
-     * every send reads the whole set anyway.
+     * Data-driven equipment affects both what the client draws and armor protection. A record
+     * keeps the five positional armor slots together for `MobArmorEquipmentPacket`.
      */
     private equipment: ViewableEquipment = {};
 
@@ -695,23 +689,35 @@ export class Entity {
         _damping: number = SINGLE_DAMPING
     ): void {}
 
-    /** Armor points worn. Nothing but a player wears any, yet. */
+    /** Armor points worn by this actor. */
     public getArmorDefensePoints(): number {
-        return 0;
+        const equipment = this.getEquipment();
+        return (
+            (equipment.head?.getArmorDefensePoints() ?? 0) +
+            (equipment.chest?.getArmorDefensePoints() ?? 0) +
+            (equipment.legs?.getArmorDefensePoints() ?? 0) +
+            (equipment.feet?.getArmorDefensePoints() ?? 0) +
+            (equipment.body?.getArmorDefensePoints() ?? 0)
+        );
     }
 
     /** Armor toughness worn, which softens what a hard blow does to that armor. */
     public getArmorToughness(): number {
-        return 0;
+        const equipment = this.getEquipment();
+        return (
+            (equipment.head?.getArmorToughness() ?? 0) +
+            (equipment.chest?.getArmorToughness() ?? 0) +
+            (equipment.legs?.getArmorToughness() ?? 0) +
+            (equipment.feet?.getArmorToughness() ?? 0) +
+            (equipment.body?.getArmorToughness() ?? 0)
+        );
     }
 
     /**
      * What this entity is wearing and holding, by equipment slot.
      *
-     * Whatever {@link Entity.setEquipment} last put there, which for a data-driven mob is what
-     * its `minecraft:equipment` table rolled. This was a literal `{}`, so a mob's own armor
-     * counted for nothing against a blow even once it had some. A `Human` overrides it from the
-     * armor container, the hand and the off hand.
+     * Data-driven entities mirror equipment tables and interactions here. A `Human` overrides
+     * it from the armor container, the hand and the off hand.
      */
     public getEquipment(): ViewableEquipment {
         return this.equipment;

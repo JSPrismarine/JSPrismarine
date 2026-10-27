@@ -25,6 +25,7 @@ describe('entity equipment', () => {
             expect(mobEquipmentSlotOf('slot.armor.chest')).toBe('chest');
             expect(mobEquipmentSlotOf('slot.armor.legs')).toBe('legs');
             expect(mobEquipmentSlotOf('slot.armor.feet')).toBe('feet');
+            expect(mobEquipmentSlotOf('slot.armor.body')).toBe('body');
         });
 
         it('accepts the bare slot name, which is how an item component spells it', () => {
@@ -34,8 +35,8 @@ describe('entity equipment', () => {
         it('answers nothing for a slot no mob equipment packet carries', () => {
             // The pillager captain's banner names this one, and the body slot holds horse armor.
             expect(mobEquipmentSlotOf('slot.armor.saddle')).toBeUndefined();
-            expect(mobEquipmentSlotOf('slot.armor.body')).toBeUndefined();
             expect(mobEquipmentSlotOf('slot.hotbar')).toBeUndefined();
+            expect(mobEquipmentSlotOf('other.mainhand')).toBeUndefined();
         });
     });
 

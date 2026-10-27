@@ -40,6 +40,44 @@ describe('the data entity record', () => {
         });
     });
 
+    it('preserves entity inventory and its projected equipment across a restore', () => {
+        const { runtime } = entityFixture(
+            undefined,
+            {},
+            {
+                'jsprismarine:inventory_mount': {
+                    components: {
+                        'minecraft:health': { value: 20, max: 20 },
+                        'minecraft:inventory': { container_type: 'horse', inventory_size: 2 }
+                    }
+                }
+            }
+        );
+        const mount = runtime.spawn('jsprismarine:inventory_mount', GROUND);
+        if (mount === undefined) throw new Error('the fixture declares no inventory mount');
+        const armor = {
+            identifier: 'minecraft:iron_horse_armor',
+            count: 1,
+            meta: 2,
+            damage: 3,
+            customName: 'Saved armor',
+            enchantments: { 'minecraft:protection': 2 },
+            contents: [{ identifier: 'minecraft:diamond', count: 1 }]
+        };
+        mount.body.containerSlots[1] = armor;
+        mount.body.setEquipment({ body: armor });
+        mount.body.equipmentInventorySlots.body = 1;
+
+        const record = dataEntityRecordIn(written(dataEntityRecordOf(mount, undefined)));
+        if (record === undefined) throw new Error('the inventory mount record could not be read');
+        const restored = runtime.restore(record, GROUND);
+
+        expect(restored?.body.containerSlots).toEqual([undefined, armor]);
+        expect(restored?.body.equipment.body).toEqual(armor);
+        expect(restored?.body.equipmentInventorySlots.body).toBe(1);
+        expect(restored?.body.containerCapacity).toBe(2);
+    });
+
     it('preserves a stable owner identity instead of a session runtime id', () => {
         const { runtime } = entityFixture();
         const pet = runtime.spawn('minecraft:cow', GROUND);

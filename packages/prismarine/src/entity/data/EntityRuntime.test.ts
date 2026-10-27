@@ -721,6 +721,161 @@ describe('EntityRuntime', () => {
             expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
         });
 
+        it('equips and drops inventory slots through data-driven interactions and filters', () => {
+            const world = new TestEntityWorld();
+            const { runtime, reports } = entityFixture(
+                world,
+                {
+                    itemDefinitions: vanillaItemDefinitions().filter(
+                        (definition) =>
+                            definition.identifier === 'minecraft:iron_horse_armor' ||
+                            definition.identifier === 'minecraft:diamond_pickaxe'
+                    )
+                },
+                {
+                    'jsprismarine:horse': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:inventory': { container_type: 'horse', inventory_size: 2 },
+                            'minecraft:interact': {
+                                interactions: [
+                                    {
+                                        equip_item_slot: '1',
+                                        on_interact: {
+                                            filters: {
+                                                all_of: [
+                                                    { test: 'is_family', subject: 'other', value: 'player' },
+                                                    { test: 'is_sneak_held', subject: 'other', value: false },
+                                                    {
+                                                        test: 'has_equipment',
+                                                        subject: 'other',
+                                                        domain: 'hand',
+                                                        value: 'iron_horse_armor'
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    },
+                                    {
+                                        drop_item_slot: '1',
+                                        drop_item_y_offset: 0.75,
+                                        on_interact: {
+                                            filters: {
+                                                all_of: [
+                                                    {
+                                                        test: 'has_equipment',
+                                                        subject: 'self',
+                                                        domain: 'inventory',
+                                                        value: 'iron_horse_armor'
+                                                    },
+                                                    {
+                                                        test: 'has_equipment_tag',
+                                                        subject: 'self',
+                                                        domain: 'inventory',
+                                                        value: 'minecraft:is_pickaxe'
+                                                    },
+                                                    {
+                                                        test: 'has_item_with_component',
+                                                        subject: 'self',
+                                                        value: 'minecraft:tool'
+                                                    },
+                                                    {
+                                                        test: 'actor_has_item_with_enchantment_in_slot',
+                                                        subject: 'self',
+                                                        domain: 'inventory',
+                                                        value: 'minecraft:efficiency'
+                                                    },
+                                                    {
+                                                        test: 'has_damaged_equipment',
+                                                        subject: 'self',
+                                                        domain: 'inventory',
+                                                        value: 'minecraft:diamond_pickaxe'
+                                                    }
+                                                ]
+                                            }
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            );
+            const horse = runtime.spawn('jsprismarine:horse', GROUND);
+            if (horse === undefined) throw new Error('the fixture declares no inventory horse');
+            const playerView: FilterEntityView = {
+                names: (name) => (name === 'is_family' ? ['player'] : undefined),
+                flag: (name) => (name === 'is_sneak_held' ? false : undefined),
+                equipment: (slot, index) =>
+                    slot === 'hand' && index === 0
+                        ? { identifier: () => 'minecraft:iron_horse_armor', data: () => 0 }
+                        : undefined
+            };
+            const heldItem = { identifier: 'minecraft:iron_horse_armor', count: 1, meta: 0 };
+            horse.body.containerSlots[0] = {
+                identifier: 'minecraft:diamond_pickaxe',
+                count: 1,
+                damage: 3,
+                enchantments: { 'minecraft:efficiency': 1 }
+            };
+
+            expect(runtime.interactWithItem(horse.id, 42, heldItem.identifier, playerView, heldItem)).toEqual({
+                accepted: true,
+                consumeItem: true
+            });
+            expect(horse.body.containerSlots[1]).toEqual(heldItem);
+            expect(horse.body.equipment.body).toEqual(heldItem);
+            expect(horse.body.equipmentInventorySlots.body).toBe(1);
+            expect(horse.instance.filterContext().self.equipment?.('inventory', 1)?.identifier()).toBe(
+                'minecraft:iron_horse_armor'
+            );
+            expect(horse.instance.filterContext().self.slotFill?.('inventory')).toEqual({ filled: 2, capacity: 2 });
+
+            expect(runtime.interactWithItem(horse.id, 42, 'minecraft:stick')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(horse.body.containerSlots[1]).toBeUndefined();
+            expect(horse.body.equipment.body).toBeUndefined();
+            expect(world.drops).toEqual([
+                { position: { x: GROUND.x, y: GROUND.y + 0.75, z: GROUND.z }, item: heldItem }
+            ]);
+            expect(reports).toEqual([]);
+        });
+
+        it('gives the held stack to an entity main hand without a use_item flag', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:item_giver': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:interact': { interactions: { give_item: true } }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:item_giver', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no item-giving entity');
+            entity.body.setEquipment({ mainhand: { identifier: 'minecraft:bow', count: 1 } });
+
+            expect(
+                runtime.interactWithItem(entity.id, 42, 'minecraft:stick', undefined, {
+                    identifier: 'minecraft:stick',
+                    count: 4,
+                    customName: 'Given stick'
+                })
+            ).toEqual({ accepted: true, consumeItem: true });
+            expect(entity.body.equipment.mainhand).toEqual({
+                identifier: 'minecraft:stick',
+                count: 1,
+                customName: 'Given stick'
+            });
+            expect(world.drops).toEqual([{ position: GROUND, item: { identifier: 'minecraft:bow', count: 1 } }]);
+        });
+
         it('emits the vibration declared by a successful data-defined interaction', () => {
             const world = new TestEntityWorld();
             const { runtime, reports } = entityFixture(

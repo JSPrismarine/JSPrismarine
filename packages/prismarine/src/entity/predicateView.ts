@@ -39,6 +39,7 @@ export interface ViewableEquipment {
     chest?: Item;
     legs?: Item;
     feet?: Item;
+    body?: Item;
 }
 
 /** What a player adds on top of a human: the bars only a player has. */
@@ -66,7 +67,8 @@ const EQUIPMENT_ORDER = [
     'head',
     'chest',
     'legs',
-    'feet'
+    'feet',
+    'body'
 ] as const satisfies readonly EquipmentSlot[];
 
 /** The position as the predicates read one: three plain numbers. */

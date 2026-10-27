@@ -480,6 +480,28 @@ const ENTITIES = new Map([
                             use_item: false
                         },
                         {
+                            on_interact: {
+                                filters: {
+                                    all_of: [
+                                        {
+                                            test: 'has_equipment_tag',
+                                            subject: 'other',
+                                            domain: 'inventory',
+                                            value: 'minecraft:logs'
+                                        },
+                                        {
+                                            test: 'has_item_with_component',
+                                            subject: 'other',
+                                            value: 'minecraft:cooking_fuel'
+                                        }
+                                    ]
+                                },
+                                event: 'jsprismarine:inventory_item_interaction',
+                                target: 'self'
+                            },
+                            use_item: false
+                        },
+                        {
                             play_sounds: 'mob.generic'
                         }
                     ]
@@ -489,7 +511,8 @@ const ENTITIES = new Map([
             events: {
                 'jsprismarine:interact_used': { add: { component_groups: ['interacted'] } },
                 'jsprismarine:interact_without_use': { add: { component_groups: ['interacted'] } },
-                'jsprismarine:tagged_item_interaction': { add: { component_groups: ['interacted'] } }
+                'jsprismarine:tagged_item_interaction': { add: { component_groups: ['interacted'] } },
+                'jsprismarine:inventory_item_interaction': { add: { component_groups: ['interacted'] } }
             }
         })
     ]
@@ -612,6 +635,7 @@ const playerAt = (world: World, x: number, z: number): Player => {
         uuid: new UUID(0, 0, 0, Number(Entity.runtimeIdCount)),
         // The world only hands out players it believes are still connected.
         connected: true,
+        tags: new Set<string>(),
         server: world.getServer(),
         metadata: { sprinting: false },
         attributes: { getValue: () => 20, setValue: () => true, getAttribute: () => null }
@@ -750,6 +774,9 @@ const buildOver = (
             [
                 'minecraft:leather',
                 'minecraft:wheat',
+                'minecraft:bone',
+                'minecraft:stick',
+                'minecraft:bucket',
                 'minecraft:emerald',
                 'minecraft:cobblestone',
                 'minecraft:egg',
@@ -1015,6 +1042,37 @@ describe('the data-driven entity runtime over a live world', () => {
         expect(live.interactWithItem(body, player, 'minecraft:oak_log').accepted).toBe(true);
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(false);
 
+        await live.tick(1);
+
+        expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
+    });
+
+    it('scans a live player inventory for item tags and data components', async () => {
+        const player = addPlayer(2, 2);
+        Object.assign(player, { inventory: new HumanInventory() });
+        player
+            .getInventory()
+            .setItemInHand(
+                new ContainerEntry({
+                    item: new Item({ name: 'minecraft:stone', content: live.runtime.content() }),
+                    count: 1
+                })
+            );
+        player
+            .getInventory()
+            .setItem(
+                8,
+                new ContainerEntry({
+                    item: new Item({ name: 'minecraft:oak_log', content: live.runtime.content() }),
+                    count: 1
+                })
+            );
+        const animal = live.runtime.spawn('jsprismarine:interact_fixture', { x: 2.5, y: GROUND_Y, z: 2.5 });
+        if (animal === undefined) throw new Error('the fixture declares no interactable entity');
+        const body = live.bodies.bodyOf(animal.id);
+        if (body === undefined) throw new Error('the interactable entity has no client-facing body');
+
+        expect(live.interactWithItem(body, player, 'minecraft:stone').accepted).toBe(true);
         await live.tick(1);
 
         expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);

@@ -20,7 +20,7 @@ import { Gametype } from '@jsprismarine/minecraft';
 import { advancementConsumedItem, advancementDurabilityChanged } from '../advancement/triggers';
 import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
 import ContainerEntry from '../inventory/ContainerEntry';
-import { itemOfDrop } from '../inventory/persistence';
+import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
 import { DamageCause } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { Item } from './Item';
@@ -49,7 +49,12 @@ export interface ItemActorPortOptions {
     /** Starts a projectile in the live entity runtime, or is absent when that runtime is unavailable. */
     readonly launchProjectile?: (action: LaunchProjectileAction, shooter: Entity) => boolean;
     /** Applies a player's held item to a data-driven entity, when its components accept it. */
-    readonly interactWithEntity?: (target: Entity, player: Player, itemIdentifier: string) => EntityItemInteraction;
+    readonly interactWithEntity?: (
+        target: Entity,
+        player: Player,
+        itemIdentifier: string,
+        heldItem: ContentItemDrop
+    ) => EntityItemInteraction;
 }
 
 /**
@@ -131,7 +136,9 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
         const held = inventory.getItemInHand();
         if (heldEntry === null || heldEntry.getCount() < 1) return false;
-        const outcome = interactWithEntity(target, player, held.getName());
+        const stored = storedItem(held, heldEntry.getCount());
+        if (stored === null) return false;
+        const outcome = interactWithEntity(target, player, held.getName(), itemDropOf(stored));
         if (!outcome.accepted) return false;
 
         for (const drop of outcome.addedItems ?? []) giveDrop(source, drop);
