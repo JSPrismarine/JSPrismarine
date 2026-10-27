@@ -79,6 +79,11 @@ class DataEntityBody extends GenericEntity {
     }
 
     /** @inheritdoc */
+    public override getVelocity(): Vector3 {
+        return Vector3.fromObject(this.driver.body.velocity);
+    }
+
+    /** @inheritdoc */
     public override shouldPersist(): boolean {
         return !this.driver.instance.hasComponent('minecraft:transient');
     }

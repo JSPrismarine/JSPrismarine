@@ -1,4 +1,4 @@
-import type { Vector3 } from '@jsprismarine/math';
+import { Vector3 } from '@jsprismarine/math';
 import type { Item } from '../item/Item';
 import { LevelSoundEvent } from '@jsprismarine/minecraft';
 import type { NBTTagCompound } from '@jsprismarine/nbt';
@@ -379,6 +379,14 @@ export class Entity {
      */
     public getPosition(): Position {
         return this.position;
+    }
+
+    /**
+     * The actor's current velocity in blocks per tick, or zero when it has none.
+     * @returns {Vector3} The actor's current velocity.
+     */
+    public getVelocity(): Vector3 {
+        return Vector3.ZERO;
     }
 
     /**

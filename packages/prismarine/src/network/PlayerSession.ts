@@ -7,7 +7,7 @@ import {
     StringType
 } from '@jsprismarine/brigadier';
 import type { GenerationPriority } from '@jsprismarine/chunkgen';
-import { Vector3 } from '@jsprismarine/math';
+import type { Vector3 } from '@jsprismarine/math';
 import {
     BuildPlatform,
     CommandPermissionLevel,
@@ -29,7 +29,6 @@ import type { Entity } from '../entity/Entity';
 import type { Metadata } from '../entity/Metadata';
 import type Human from '../entity/Human';
 import type { Item as ItemEntity } from '../entity/other/Item';
-import { Projectile } from '../entity/other/Projectile';
 import type ContainerEntry from '../inventory/ContainerEntry';
 import { blockContainerOf } from '../inventory/blockContainers';
 import { WindowIds } from '../inventory/WindowIds';
@@ -1633,7 +1632,7 @@ export default class PlayerSession {
         // Whatever the entity is actually doing, where it can say. A projectile spawned with no
         // motion is drawn hanging in the air until the first movement packet catches up with it,
         // which for something crossing three blocks a tick is a visible stutter at the muzzle.
-        packet.motion = entity instanceof Projectile ? entity.getVelocity() : new Vector3(0, 0, 0);
+        packet.motion = entity.getVelocity();
         packet.pitch = entity.pitch;
         packet.yaw = entity.yaw;
         packet.headYaw = entity.headYaw;

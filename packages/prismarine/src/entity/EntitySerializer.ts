@@ -1,5 +1,4 @@
 import { NBTTagCompound, Types } from '@jsprismarine/nbt';
-import { Vector3 } from '@jsprismarine/math';
 
 import ContainerEntry from '../inventory/ContainerEntry';
 import { restoredItem, storedItem } from '../inventory/persistence';
@@ -8,10 +7,9 @@ import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
 import { Item } from './other/Item';
-import { Projectile } from './other/Projectile';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from './Metadata';
-import { actorMotionIn, dataEntityRecordIn } from './data/persistence';
+import { dataEntityRecordIn } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -68,11 +66,6 @@ export class EntitySerializer {
             entity.metadata.setIgnited(true);
         }
 
-        if (entity instanceof Projectile) {
-            const motion = actorMotionIn(nbt);
-            if (motion !== undefined) entity.setVelocity(new Vector3(motion.x, motion.y, motion.z));
-        }
-
         for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
 
         entity.persistentNbt = remainder(nbt);
@@ -106,10 +99,7 @@ export class EntitySerializer {
             }
         }
 
-        if (entity instanceof Projectile) {
-            const velocity = entity.getVelocity();
-            nbt.addValue('Motion', doubles([velocity.getX(), velocity.getY(), velocity.getZ()]));
-        } else if (entity instanceof GenericEntity) {
+        if (entity instanceof GenericEntity) {
             const projectile = dataEntityRecordIn(nbt)?.projectile;
             if (projectile !== undefined) {
                 const { velocity } = projectile;
