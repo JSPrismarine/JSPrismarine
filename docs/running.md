@@ -43,6 +43,34 @@ a watched source file or content pack data changes.
 `pnpm run start` runs the same entry point without the watcher. Both open the terminal UI
 described in the next section when they can, and fall back to the plain line console otherwise.
 
+### Live debugging and profiling
+
+Add `--devtools` to a development run to open Node's inspector and enable JSPrismarine timing
+traces:
+
+```bash
+pnpm run dev -- --devtools
+```
+
+The server prints a DevTools URL. Open it in Chrome or Edge to set breakpoints, inspect live
+JavaScript objects, record CPU profiles, and take heap snapshots. The inspector listens on
+`127.0.0.1`; it allows code execution in the server process, so keep it on the local machine.
+
+The DevTools Console exposes a `jsprismarine` handle to live server objects:
+
+```javascript
+jsprismarine.server.getTick()
+jsprismarine.worlds()
+jsprismarine.entities('world')
+jsprismarine.entityRuntime('minecraft:overworld').runtime
+```
+
+This uses the server's world and entity registries, so data-driven entities and their runtime
+state remain inspectable through the same model the server runs. On graceful shutdown, the
+server writes a Chrome trace to `jsp/profiles/` (or the configured `JSP_DIR/profiles/`). Import
+the `.trace.json` file in DevTools' Performance panel to inspect tick phases, world update
+phases, and event-loop delay. A forced process exit cannot save the trace.
+
 The macOS app opens Terminal so the server can use its interactive console. Its config, world, and
 log files are stored in `~/JSPrismarine`.
 

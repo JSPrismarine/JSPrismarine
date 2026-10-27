@@ -84,8 +84,13 @@ export interface GoalDamage {
 export interface GoalWorld {
     /** The blocks around the entity, which is what the path finder reads. */
     navigation?(): NavigationView | undefined;
-    /** Every mob within the radius, nearest first. */
-    mobs?(radius: number): readonly GoalMob[];
+    /**
+     * Every matching entity within the radius, nearest first.
+     *
+     * When supplied, `families` is a candidate hint: return entities in any
+     * listed family, and include every entity that could match those families.
+     */
+    mobs?(radius: number, families?: readonly string[]): readonly GoalMob[];
     /** Every player within the radius, nearest first. */
     players?(radius: number): readonly GoalMob[];
     /** Every item stack lying within the radius, nearest first. */

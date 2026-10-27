@@ -39,6 +39,7 @@ export type ProviderClass = new (folderPath: string, server: Server) => BaseProv
  */
 export default class WorldManager implements Service {
     private readonly worlds: Map<string, World> = new Map();
+    private readonly worldsByDimension = new Map<string, Set<World>>();
     private defaultWorld!: World;
     private readonly genManager: GeneratorManager;
     private readonly server: Server;
@@ -207,6 +208,10 @@ export default class WorldManager implements Service {
         });
         built = world;
         this.worlds.set(world.getUUID(), world);
+        const dimension = world.getDimension().name;
+        const dimensionWorlds = this.worldsByDimension.get(dimension) ?? new Set<World>();
+        dimensionWorlds.add(world);
+        this.worldsByDimension.set(dimension, dimensionWorlds);
 
         // Given somewhere to report its changes before it starts running. Attached from here
         // rather than built by the world, which must not have to know the network layer
@@ -245,6 +250,10 @@ export default class WorldManager implements Service {
 
         await world.disable();
         this.worlds.delete(world.getUUID());
+        const dimension = world.getDimension().name;
+        const dimensionWorlds = this.worldsByDimension.get(dimension);
+        dimensionWorlds?.delete(world);
+        if (dimensionWorlds?.size === 0) this.worldsByDimension.delete(dimension);
         this.server.getLogger().verbose(`Successfully unloaded world ${world.getFormattedName()}!`);
     }
 
@@ -273,6 +282,15 @@ export default class WorldManager implements Service {
      */
     public getWorlds(): World[] {
         return Array.from(this.worlds.values());
+    }
+
+    /**
+     * Returns the first loaded world in a dimension without allocating the full world list.
+     * @param dimension - The dimension identifier.
+     * @returns The first loaded world in that dimension, or undefined.
+     */
+    public getWorldByDimension(dimension: string): World | undefined {
+        return this.worldsByDimension.get(dimension)?.values().next().value;
     }
 
     /**

@@ -19,6 +19,53 @@ import type { GoalEvent, TargetEntityType } from './params';
 import type { GoalMob, GoalWorld } from './world';
 import { emptyGoalWorld } from './world';
 
+/** Families every entity accepted by a filter must belong to, when bounded. */
+const requiredFamilies = (filter: Filter | undefined): Set<string> | undefined => {
+    if (filter === undefined) return undefined;
+    if (filter.kind === 'test') {
+        return filter.test === 'is_family' &&
+            filter.subject === 'other' &&
+            filter.operator === '==' &&
+            typeof filter.value === 'string'
+            ? new Set([filter.value])
+            : undefined;
+    }
+
+    if (filter.combinator === 'none_of') return undefined;
+    if (filter.combinator === 'any_of') {
+        const families = new Set<string>();
+        for (const child of filter.filters) {
+            const childFamilies = requiredFamilies(child);
+            if (childFamilies === undefined) return undefined;
+            for (const family of childFamilies) families.add(family);
+        }
+        return families;
+    }
+
+    let families: Set<string> | undefined;
+    for (const child of filter.filters) {
+        const childFamilies = requiredFamilies(child);
+        if (childFamilies === undefined) continue;
+        families =
+            families === undefined
+                ? childFamilies
+                : new Set([...families].filter((family) => childFamilies.has(family)));
+    }
+    return families;
+};
+
+/** Candidate families accepted by at least one target entry, when all are bounded. */
+const targetFamilies = (entries: readonly TargetEntityType[]): Set<string> | undefined => {
+    if (entries.length === 0) return new Set();
+    const families = new Set<string>();
+    for (const entry of entries) {
+        const entryFamilies = requiredFamilies(entry.filters);
+        if (entryFamilies === undefined) return undefined;
+        for (const family of entryFamilies) families.add(family);
+    }
+    return families;
+};
+
 /**
  * Everything the 170 goals have in common, behind one object.
  *
@@ -131,8 +178,8 @@ export class GoalSupport {
     }
 
     /** The mobs within the radius, nearest first, or none when the world answers none. */
-    public mobs(radius: number): readonly GoalMob[] {
-        return this.world.mobs?.(radius) ?? [];
+    public mobs(radius: number, families?: readonly string[]): readonly GoalMob[] {
+        return this.world.mobs?.(radius, families) ?? [];
     }
 
     /** The players within the radius, nearest first. */
@@ -169,9 +216,18 @@ export class GoalSupport {
     public findAttackTarget(
         entries: readonly TargetEntityType[],
         radius: number,
-        candidates: readonly GoalMob[] = this.mobs(radius)
+        candidates?: readonly GoalMob[]
     ): GoalMob | undefined {
-        for (const mob of candidates) {
+        const families = candidates === undefined ? targetFamilies(entries) : undefined;
+        const pool =
+            candidates ??
+            (families !== undefined && families.size === 0
+                ? []
+                : families?.size === 1 && families.has('player') && this.world.players !== undefined
+                  ? this.players(radius)
+                  : this.mobs(radius, families === undefined ? undefined : [...families]));
+
+        for (const mob of pool) {
             if (!this.isAttackable(mob)) continue;
             if (this.entryFor(entries, mob) !== undefined) return mob;
         }

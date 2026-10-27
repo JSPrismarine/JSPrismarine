@@ -56,8 +56,14 @@ export class EntityGrid {
     /** The entities in each cell, keyed by {@link keyOf}. */
     private readonly cells = new Map<number, DataEntity[]>();
 
+    /** The entities in each family and cell, for data-driven target searches. */
+    private readonly familyCells = new Map<string, Map<number, DataEntity[]>>();
+
     /** The cell each entity is filed under now, so a move knows what to undo. */
     private readonly filed = new Map<number, number>();
+
+    /** The families each entity is filed under now. */
+    private readonly filedFamilies = new Map<number, readonly string[]>();
 
     /**
      * When each entity entered the index.
@@ -78,6 +84,7 @@ export class EntityGrid {
         this.arrived.set(entity.id, this.arrivals);
         this.arrivals += 1;
         this.file(entity, cellKeyOf(entity.position));
+        this.refreshFamilies(entity);
     }
 
     /** Takes one entity out of the index. */
@@ -87,6 +94,8 @@ export class EntityGrid {
         this.filed.delete(entity.id);
         this.arrived.delete(entity.id);
         this.unfile(entity, key);
+        for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, key);
+        this.filedFamilies.delete(entity.id);
     }
 
     /** Moves one entity to the cell it stands in now, which a position write calls. */
@@ -95,9 +104,30 @@ export class EntityGrid {
         if (was === undefined) return;
 
         const now = cellKeyOf(entity.position);
-        if (now === was) return;
+        if (now === was) {
+            this.refreshFamilies(entity);
+            return;
+        }
+
+        for (const family of this.filedFamilies.get(entity.id) ?? []) this.unfileFamily(entity, family, was);
         this.unfile(entity, was);
         this.file(entity, now);
+        for (const family of this.filedFamilies.get(entity.id) ?? []) this.fileFamily(entity, family, now);
+    }
+
+    /** Updates the family index after an entity applies its data-driven events. */
+    public refreshFamilies(entity: DataEntity): void {
+        const key = this.filed.get(entity.id);
+        if (key === undefined) return;
+
+        const previous = this.filedFamilies.get(entity.id) ?? [];
+        const families = [...new Set(entity.instance.families())];
+        if (previous.length === families.length && previous.every((family, index) => family === families[index]))
+            return;
+
+        for (const family of previous) this.unfileFamily(entity, family, key);
+        for (const family of families) this.fileFamily(entity, family, key);
+        this.filedFamilies.set(entity.id, families);
     }
 
     /**
@@ -108,9 +138,16 @@ export class EntityGrid {
      * what this replaced, so a caller that reads the first one still reads the
      * same one.
      */
-    public within(center: EntityPosition, radius: number): DataEntity[] {
+    public within(center: EntityPosition, radius: number, families?: readonly string[]): DataEntity[] {
+        if (families !== undefined && families.length === 0) return [];
+
         const reach = radius * radius;
         const found: DataEntity[] = [];
+        const familyNames = families === undefined ? undefined : [...new Set(families)];
+        const seen = familyNames !== undefined && familyNames.length > 1 ? new Set<number>() : undefined;
+        const familyBuckets = familyNames
+            ?.map((family) => this.familyCells.get(family))
+            .filter((cells) => cells !== undefined);
 
         const lowX = cellOf(center.x - radius);
         const highX = cellOf(center.x + radius);
@@ -119,9 +156,24 @@ export class EntityGrid {
 
         for (let cellX = lowX; cellX <= highX; cellX += 1)
             for (let cellZ = lowZ; cellZ <= highZ; cellZ += 1) {
-                const cell = this.cells.get(keyOf(cellX, cellZ));
-                if (cell === undefined) continue;
-                for (const entity of cell) if (squaredDistance(center, entity.position) <= reach) found.push(entity);
+                const key = keyOf(cellX, cellZ);
+                if (familyBuckets === undefined) {
+                    const cell = this.cells.get(key);
+                    if (cell === undefined) continue;
+                    for (const entity of cell)
+                        if (squaredDistance(center, entity.position) <= reach) found.push(entity);
+                    continue;
+                }
+
+                for (const family of familyBuckets) {
+                    const candidates = family.get(key);
+                    if (candidates === undefined) continue;
+                    for (const entity of candidates) {
+                        if (seen?.has(entity.id)) continue;
+                        seen?.add(entity.id);
+                        if (squaredDistance(center, entity.position) <= reach) found.push(entity);
+                    }
+                }
             }
 
         if (found.length > 1) found.sort((a, b) => (this.arrived.get(a.id) ?? 0) - (this.arrived.get(b.id) ?? 0));
@@ -134,6 +186,27 @@ export class EntityGrid {
         const cell = this.cells.get(key);
         if (cell === undefined) this.cells.set(key, [entity]);
         else cell.push(entity);
+    }
+
+    /** Puts one entity in a family cell. */
+    private fileFamily(entity: DataEntity, family: string, key: number): void {
+        const cells = this.familyCells.get(family) ?? new Map<number, DataEntity[]>();
+        const cell = cells.get(key);
+        if (cell === undefined) cells.set(key, [entity]);
+        else cell.push(entity);
+        this.familyCells.set(family, cells);
+    }
+
+    /** Takes one entity out of a family cell, dropping empty index entries. */
+    private unfileFamily(entity: DataEntity, family: string, key: number): void {
+        const cells = this.familyCells.get(family);
+        const cell = cells?.get(key);
+        if (cells === undefined || cell === undefined) return;
+
+        const at = cell.indexOf(entity);
+        if (at !== -1) cell.splice(at, 1);
+        if (cell.length === 0) cells.delete(key);
+        if (cells.size === 0) this.familyCells.delete(family);
     }
 
     /** Takes one entity out of a cell, dropping the cell when it empties. */

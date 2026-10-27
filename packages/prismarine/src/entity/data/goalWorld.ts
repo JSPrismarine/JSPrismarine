@@ -107,13 +107,18 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         // vanilla entities use it with an `is_family: player` entry. Java's
         // `NearestAttackableTargetGoal` searches `LivingEntity`, which is players included;
         // `players` stays as the player-only list the tempt and follow goals ask for.
-        mobs: (radius) => {
+        mobs: (radius, families) => {
             const here = entity.position;
             const found: Ranked[] = [];
-            for (const other of scene.near(here, radius))
-                if (other.id !== entity.id)
+            const familySet = families === undefined ? undefined : new Set(families);
+            for (const other of scene.near(here, radius, families))
+                if (
+                    other.id !== entity.id &&
+                    (familySet === undefined || other.instance.families().some((family) => familySet.has(family)))
+                )
                     found.push({ mob: goalMobOf(other, scene), away: squaredDistance(here, other.position) });
-            appendPlayers(found, here, radius, scene);
+            if (familySet === undefined || PLAYER_FAMILIES.some((family) => familySet.has(family)))
+                appendPlayers(found, here, radius, scene);
             return nearestFirst(found);
         },
         isAttackable: (mob) => {

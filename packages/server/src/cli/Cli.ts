@@ -23,11 +23,11 @@ export const ROLES = ['server'] as const;
  * Builds the server's command-line parser without running it, so help text can be read
  * without parsing.
  *
- * A leading `--`, which `pnpm run dev -- --port 1` passes through, is dropped so the options
- * after it parse as options rather than positionals.
+ * `pnpm` passes an argument separator through after script defaults such as `--watch`, so the
+ * separators are dropped before the server options are parsed.
  */
 export const serverCli = (argv: readonly string[]) =>
-    yargs(argv[0] === '--' ? argv.slice(1) : [...argv])
+    yargs(argv.filter((argument) => argument !== '--'))
         .scriptName('prismarine')
         .usage('$0 [options]')
         .parserConfiguration({ 'boolean-negation': false })
@@ -50,6 +50,11 @@ export const serverCli = (argv: readonly string[]) =>
             type: 'boolean',
             default: false,
             describe: 'Run without any console; nothing is read from stdin'
+        })
+        .option('devtools', {
+            type: 'boolean',
+            default: false,
+            describe: 'Enable local DevTools debugging and profiling'
         })
         .option('role', {
             type: 'string',

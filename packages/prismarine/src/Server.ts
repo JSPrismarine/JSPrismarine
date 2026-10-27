@@ -39,6 +39,7 @@ import { PermissionManager } from './permission/PermissionManager';
 import { QueryManager } from './query/QueryManager';
 import Timer from './utils/Timer';
 import { worldSeedOf } from './utils/Seed';
+import { attachProfiler, ServerProfiler, startProfileSpan } from './profiling/ServerProfiler';
 import ChunkScheduler from './world/ChunkScheduler';
 import WorldManager from './world/WorldManager';
 
@@ -96,6 +97,7 @@ export default class Server extends EventEmitter {
     private raknet: RakNetListener | undefined;
     private readonly logger: Logger;
     private readonly config: Config;
+    private readonly profiler: ServerProfiler | undefined;
     private packetLogFilter: PacketLogFilter | null = null;
     private readonly console: Console | undefined;
     private remoteConsole: RemoteConsole | undefined;
@@ -257,9 +259,20 @@ export default class Server extends EventEmitter {
      * @param {object} options - The options.
      * @param {LoggerBuilder} options.logger - The logger.
      * @param {Config} options.config - The config.
+     * @param {boolean} [options.profile] - Record server phase and event-loop timings.
      * @returns {Server} The server instance.
      */
-    public constructor({ logger, config, headless = false }: { logger: Logger; config: Config; headless?: boolean }) {
+    public constructor({
+        logger,
+        config,
+        headless = false,
+        profile = false
+    }: {
+        logger: Logger;
+        config: Config;
+        headless?: boolean;
+        profile?: boolean;
+    }) {
         super();
 
         this.headless = headless;
@@ -270,6 +283,8 @@ export default class Server extends EventEmitter {
 
         this.logger = logger;
         this.config = config;
+        this.profiler = profile ? new ServerProfiler() : undefined;
+        if (this.profiler) attachProfiler(this, this.profiler);
         this.packetRegistry = new PacketRegistry(this);
         this.itemManager = new ItemManager(this);
         this.blockManager = new BlockManager(this);
@@ -340,8 +355,7 @@ export default class Server extends EventEmitter {
         this.contentWorld = serverWorldSource({
             // By dimension rather than by name: the content packages address a world
             // as `minecraft:overworld`, and this server loads one world per dimension.
-            worldFor: (dimension) =>
-                this.worldManager.getWorlds().find((world) => world.getDimension().name === dimension),
+            worldFor: (dimension) => this.worldManager.getWorldByDimension(dimension),
             content: () => {
                 if (!this.content) throw new Error('the content world was read before the content was built');
                 return this.content;
@@ -624,6 +638,7 @@ export default class Server extends EventEmitter {
                 let chunkSchedulerMs = 0;
                 let slowestWorldName: string | null = null;
                 let slowestWorldMs = 0;
+                const endTickProfile = startProfileSpan(this, 'Server.tick');
 
                 // The next tick is scheduled from `finally`, and everything that can throw is
                 // inside the `try`, because the timer for the next tick is installed only
@@ -640,10 +655,12 @@ export default class Server extends EventEmitter {
                     // land in the middle of some later tick, and its rejection could not
                     // reach the catch below - it surfaced as an unhandled rejection instead.
                     let phaseStartedAt = now();
+                    const endTickHandlersProfile = startProfileSpan(this, 'Server.tickHandlers');
                     try {
                         await this.emit('tick', event);
                     } finally {
                         tickHandlersMs = now() - phaseStartedAt;
+                        endTickHandlersProfile();
                     }
 
                     const ticksPerSecond = 1000 / Server.MINECRAFT_TICK_TIME_MS;
@@ -654,9 +671,11 @@ export default class Server extends EventEmitter {
                         await Promise.all(
                             this.worldManager.getWorlds().map(async (world) => {
                                 const worldStartedAt = now();
+                                const endWorldProfile = startProfileSpan(this, `World.update:${world.getName()}`);
                                 try {
                                     await world.update(event.getTick());
                                 } finally {
+                                    endWorldProfile();
                                     const elapsedMs = now() - worldStartedAt;
                                     if (elapsedMs > slowestWorldMs) {
                                         slowestWorldMs = elapsedMs;
@@ -671,15 +690,22 @@ export default class Server extends EventEmitter {
 
                     // `#minecraft:tick` and whatever `/schedule` put on this tick. After the
                     // worlds, as Java runs it, so a function sees the world the tick left.
-                    await this.commandManager.tickFunctions();
+                    const endFunctionsProfile = startProfileSpan(this, 'Server.tickFunctions');
+                    try {
+                        await this.commandManager.tickFunctions();
+                    } finally {
+                        endFunctionsProfile();
+                    }
 
                     // Whatever fits in this tick's slice; the rest waits for the next one.
                     phaseStartedAt = now();
+                    const endChunkSchedulerProfile = startProfileSpan(this, 'Server.chunkScheduler');
                     try {
                         this.chunkScheduler.setBudget(this.config.getChunkSendBudgetMs());
                         await this.chunkScheduler.tick();
                     } finally {
                         chunkSchedulerMs = now() - phaseStartedAt;
+                        endChunkSchedulerProfile();
                     }
 
                     if (
@@ -693,6 +719,7 @@ export default class Server extends EventEmitter {
                 } catch (error: unknown) {
                     this.logger.error(error);
                 } finally {
+                    endTickProfile();
                     this.currentTick++;
                     const endTime = now();
                     const elapsedMs = endTime - tickStartedAt;
@@ -860,6 +887,15 @@ export default class Server extends EventEmitter {
 
             // Disable all managers.
             await this.disable();
+
+            try {
+                const profileFile = await this.profiler?.save();
+                if (profileFile) process.stderr.write(`JSPrismarine trace saved to ${profileFile}\n`);
+            } catch (error: unknown) {
+                process.stderr.write(
+                    `JSPrismarine trace could not be saved: ${error instanceof Error ? error.message : String(error)}\n`
+                );
+            }
 
             // `this.raknet` might be undefined if we kill the server really early.
             this.raknet?.kill();
@@ -1036,6 +1072,15 @@ export default class Server extends EventEmitter {
         const runtime = this.entityRuntimes.at(dimension);
         if (!runtime) throw new Error(`no entity runtime was built for ${dimension}`);
         return runtime;
+    }
+
+    /**
+     * Invalidates the dimension's cached point-of-interest reads.
+     * @param dimension - The namespaced dimension identifier.
+     * @internal
+     */
+    public invalidatePointOfInterestCache(dimension: string): void {
+        this.entityRuntimes.at(dimension)?.runtime.invalidatePointOfInterestCache();
     }
 
     /**

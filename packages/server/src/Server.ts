@@ -19,6 +19,7 @@ import { Supervisor } from './host/Supervisor';
 import { decideMode, probeFfi } from './host/tuiGate';
 import { suppressFfiWarning } from './host/warnings';
 import { Watcher } from './host/Watcher';
+import { openDevTools } from './devtools/DevTools';
 
 /**
  * Values already in the environment win, then earlier files over later ones, matching the
@@ -93,8 +94,29 @@ const runInProcess = (args: ServerArgs, { remote }: { remote: boolean }): void =
     }
 
     const logger = new Logger(config.getLogLevel(), transports);
-    const server = new Server({ config, logger, headless: remote || args.headless });
+    const server = new Server({
+        config,
+        logger,
+        headless: remote || args.headless,
+        profile: args.devtools
+    });
     attach?.(server);
+
+    if (args.devtools) {
+        const devtools = openDevTools();
+        process.stderr.write(`JSPrismarine DevTools: ${devtools.frontendUrl}\n`);
+        Object.defineProperty(globalThis, 'jsprismarine', {
+            configurable: true,
+            enumerable: true,
+            value: Object.freeze({
+                server,
+                worlds: () => server.getWorldManager().getWorlds(),
+                world: (name: string) => server.getWorldManager().getWorldByName(name),
+                entities: (name: string) => server.getWorldManager().getWorldByName(name)?.getEntities() ?? [],
+                entityRuntime: (dimension: string) => server.getEntityRuntime(dimension)
+            })
+        });
+    }
 
     const stop = (options?: { crash?: boolean }): void => {
         server.shutdown(options).catch((error: unknown) => {

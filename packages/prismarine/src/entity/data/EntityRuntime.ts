@@ -333,8 +333,8 @@ export class EntityRuntime implements EntityScene {
      * seventy-five times a tick. {@link EntityGrid} is what keeps that from
      * crossing every entity each time.
      */
-    public near(center: EntityPosition, radius: number): readonly DataEntity[] {
-        return this.grid.within(center, radius);
+    public near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[] {
+        return this.grid.within(center, radius, families);
     }
 
     /** How many live entities of one type stand within a radius of a position. */
@@ -595,6 +595,7 @@ export class EntityRuntime implements EntityScene {
      */
     public tick(tick: number): void {
         this.refreshOnlineOwners();
+        this.interest.resetBlockCache();
         const entities = this.all();
         let widest = 0;
         let tallest = 0;
@@ -616,6 +617,7 @@ export class EntityRuntime implements EntityScene {
             this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
+            this.grid.refreshFamilies(entity);
             this.tickBrain(entity);
             tickBrainNavigation(entity);
             this.coast(entity);
@@ -630,6 +632,11 @@ export class EntityRuntime implements EntityScene {
         }
         this.runSpawnCycle(tick);
         this.runDespawnCycle();
+    }
+
+    /** Invalidates block reads cached by the point-of-interest searches. */
+    public invalidatePointOfInterestCache(): void {
+        this.interest.invalidateBlockCache();
     }
 
     /**

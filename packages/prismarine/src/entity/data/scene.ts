@@ -44,8 +44,13 @@ export interface EntityScene {
     content(): ServerContent;
     /** Every live entity, in spawn order. */
     all(): readonly DataEntity[];
-    /** Every live entity within a radius of a position, unsorted. */
-    near(center: EntityPosition, radius: number): readonly DataEntity[];
+    /**
+     * Every live entity within a radius of a position, unsorted.
+     *
+     * `families` narrows the candidates to entities whose data-driven family
+     * list intersects the hint, without excluding any possible match.
+     */
+    near(center: EntityPosition, radius: number, families?: readonly string[]): readonly DataEntity[];
     byId(id: number): DataEntity | undefined;
     spawn(identifier: string, at: EntityPosition, options?: SpawnOptions): DataEntity | undefined;
     remove(id: number, reason: string): void;

@@ -152,6 +152,10 @@ The members, grouped by what needs them:
   `openTrade`, `tradingPlayer`.
 - Flags and reporting: `setSitting`, `setSleeping`, `trigger`, `report`.
 
+`mobs(radius, families)` may use the optional family list to narrow a candidate search. It must
+include every entity in those families; the goal still evaluates the complete data-driven filter
+before choosing a target.
+
 Everything a filter can already answer is read through `EntityInstance.filterContext` rather than
 added here, so the entity's own flags (`in_water`, `is_baby`, `is_sitting`, `on_ground` and the
 rest), the time of day and the weather need no new member.

@@ -29,6 +29,13 @@ import type { NavigationView } from '@jsprismarine/entity-goals';
 import { distance } from './DataEntity';
 
 const MAX_CACHED_BLOCKS = 100_000;
+const MAX_CACHED_SHELTER_COLUMNS = 100_000;
+
+/** Two whole block coordinates packed into one safe integer inside the world border. */
+const COORDINATE_BITS = 26;
+const COORDINATE_RANGE = 2 ** COORDINATE_BITS;
+const COORDINATE_MASK = COORDINATE_RANGE - 1;
+const columnKeyOf = (x: number, z: number): number => (x & COORDINATE_MASK) * COORDINATE_RANGE + (z & COORDINATE_MASK);
 
 interface PoiCellFacts {
     blockRead: boolean;
@@ -37,6 +44,13 @@ interface PoiCellFacts {
     passable: boolean;
     solidRead: boolean;
     solid: boolean;
+}
+
+interface ShelterColumnFacts {
+    indoorsRead: boolean;
+    indoors: EntityPosition | null;
+    outdoorsRead: boolean;
+    outdoors: EntityPosition | null;
 }
 
 interface PoiNavigation {
@@ -129,7 +143,7 @@ const ROOF_HEIGHT = 16;
  */
 const SEARCH_HEIGHT = 4;
 
-/** Bounds retained searches and chunk indexes for one entity tick. */
+/** Bounds retained search results and chunk indexes. */
 const MAX_CACHED_SEARCHES = 50_000;
 const MAX_CACHED_MARKER_BANDS = 1_024;
 
@@ -148,20 +162,22 @@ export interface PoiWorld {
 export class PointsOfInterest {
     /** The positions a subsystem recorded, by kind. */
     private readonly recorded = new Map<string, EntityPosition[]>();
-    private readonly blockCache = new Map<string, PoiCellFacts>();
+    private readonly blockCache = new Map<number, Map<number, PoiCellFacts>>();
     private readonly markerChunkBands = new Map<string, ReadonlyMap<string, readonly EntityPosition[]>>();
+    private readonly shelterColumns = new Map<number, Map<number, ShelterColumnFacts>>();
     private readonly searchCache = new Map<string, EntityPosition | null>();
     private blockCacheGeneration = 0;
     private cachedBlockCacheGeneration = 0;
+    private cachedBlockCount = 0;
+    private cachedShelterColumnCount = 0;
 
     public constructor(private readonly world: PoiWorld) {}
 
     /** Clears block reads before the next entity tick. */
     public resetBlockCache(): void {
+        this.prepareBlockCache();
         this.blockCache.clear();
-        this.markerChunkBands.clear();
-        this.searchCache.clear();
-        this.cachedBlockCacheGeneration = this.blockCacheGeneration;
+        this.cachedBlockCount = 0;
     }
 
     /** Invalidates cached block reads after the world changes a block. */
@@ -211,7 +227,7 @@ export class PointsOfInterest {
             return cached === null || cached === undefined ? undefined : { ...cached };
         }
 
-        // Read once: the view is rebuilt on every ask and the scan crosses thousands of cells.
+        // Build the view lazily; marker bands and shelter columns keep the expensive reads.
         const navigation = this.cachedNavigation(this.world.navigation());
 
         const markers = POI_BLOCKS.get(kind);
@@ -220,12 +236,84 @@ export class PointsOfInterest {
 
         if (SHELTER_KINDS.has(kind)) {
             const indoors = kind === 'indoors';
-            found = scan(center, radius, (cell) => sheltered(navigation, cell, indoors));
+            found = this.nearestShelter(center, radius, indoors, navigation);
         }
 
         if (this.searchCache.size >= MAX_CACHED_SEARCHES) this.searchCache.clear();
         this.searchCache.set(key, found ?? null);
-        return found;
+        return found === undefined ? undefined : { ...found };
+    }
+
+    private nearestShelter(
+        center: EntityPosition,
+        radius: number,
+        indoors: boolean,
+        navigation: PoiNavigation
+    ): EntityPosition | undefined {
+        const origin = { x: Math.floor(center.x), y: Math.floor(center.y), z: Math.floor(center.z) };
+        const lastRing = Math.floor(radius);
+        for (let ring = 0; ring <= lastRing; ring += 1) {
+            for (let dx = -ring; dx <= ring; dx += 1) {
+                for (let dz = -ring; dz <= ring; dz += 1) {
+                    if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
+                    const found = this.shelterAtColumn(origin.x + dx, origin.z + dz, origin.y, indoors, navigation);
+                    if (found !== undefined) return found;
+                }
+            }
+        }
+        return undefined;
+    }
+
+    private shelterAtColumn(
+        x: number,
+        z: number,
+        centerY: number,
+        indoors: boolean,
+        navigation: PoiNavigation
+    ): EntityPosition | undefined {
+        const key = columnKeyOf(x, z);
+        let centerYs = this.shelterColumns.get(key);
+        const cached = centerYs?.get(centerY);
+        if (cached !== undefined) {
+            const result = indoors ? cached.indoors : cached.outdoors;
+            const wasRead = indoors ? cached.indoorsRead : cached.outdoorsRead;
+            if (wasRead) return result === null ? undefined : { ...result };
+        }
+
+        let found: EntityPosition | undefined;
+        for (let y = centerY - SEARCH_HEIGHT; y <= centerY + SEARCH_HEIGHT; y += 1) {
+            found = sheltered(navigation, { x, y, z }, indoors);
+            if (found !== undefined) break;
+        }
+
+        if (cached === undefined && this.cachedShelterColumnCount >= MAX_CACHED_SHELTER_COLUMNS) {
+            this.shelterColumns.clear();
+            this.cachedShelterColumnCount = 0;
+            centerYs = undefined;
+        }
+
+        const facts = cached ?? {
+            indoorsRead: false,
+            indoors: null,
+            outdoorsRead: false,
+            outdoors: null
+        };
+        if (indoors) {
+            facts.indoorsRead = true;
+            facts.indoors = found ?? null;
+        } else {
+            facts.outdoorsRead = true;
+            facts.outdoors = found ?? null;
+        }
+
+        if (cached === undefined) {
+            centerYs = centerYs ?? new Map<number, ShelterColumnFacts>();
+            centerYs.set(centerY, facts);
+            this.shelterColumns.set(key, centerYs);
+            this.cachedShelterColumnCount += 1;
+        }
+
+        return found === undefined ? undefined : { ...found };
     }
 
     private nearestMarker(
@@ -349,11 +437,16 @@ export class PointsOfInterest {
     private factsAt(position: EntityPosition): PoiCellFacts {
         this.prepareBlockCache();
 
-        const key = `${position.x},${position.y},${position.z}`;
-        const existing = this.blockCache.get(key);
+        const key = columnKeyOf(position.x, position.z);
+        let heights = this.blockCache.get(key);
+        const existing = heights?.get(position.y);
         if (existing !== undefined) return existing;
 
-        if (this.blockCache.size >= MAX_CACHED_BLOCKS) this.blockCache.clear();
+        if (this.cachedBlockCount >= MAX_CACHED_BLOCKS) {
+            this.blockCache.clear();
+            this.cachedBlockCount = 0;
+            heights = undefined;
+        }
         const facts: PoiCellFacts = {
             blockRead: false,
             block: undefined,
@@ -362,7 +455,10 @@ export class PointsOfInterest {
             solidRead: false,
             solid: false
         };
-        this.blockCache.set(key, facts);
+        heights = heights ?? new Map<number, PoiCellFacts>();
+        heights.set(position.y, facts);
+        this.blockCache.set(key, heights);
+        this.cachedBlockCount += 1;
         return facts;
     }
 
@@ -370,42 +466,17 @@ export class PointsOfInterest {
         if (this.cachedBlockCacheGeneration === this.blockCacheGeneration) return;
         this.blockCache.clear();
         this.markerChunkBands.clear();
+        this.shelterColumns.clear();
         this.searchCache.clear();
         this.cachedBlockCacheGeneration = this.blockCacheGeneration;
+        this.cachedBlockCount = 0;
+        this.cachedShelterColumnCount = 0;
     }
 }
 
 /** The block search depends on whole-block coordinates and the floored radius. */
 const searchKey = (kind: string, center: EntityPosition, radius: number): string =>
     `${kind}|${Math.floor(center.x)},${Math.floor(center.y)},${Math.floor(center.z)}|${Math.floor(radius)}`;
-
-/**
- * Walks the cells around a position outwards and hands back what the first
- * accepted cell is worth.
- *
- * Ring order rather than a sort of everything in range, because the point of
- * a search bounded at 64 blocks is to stop early.
- */
-const scan = (
-    center: EntityPosition,
-    radius: number,
-    accept: (cell: EntityPosition) => EntityPosition | undefined
-): EntityPosition | undefined => {
-    const origin = { x: Math.floor(center.x), y: Math.floor(center.y), z: Math.floor(center.z) };
-
-    for (let ring = 0; ring <= Math.floor(radius); ring += 1) {
-        for (let dx = -ring; dx <= ring; dx += 1) {
-            for (let dz = -ring; dz <= ring; dz += 1) {
-                if (Math.max(Math.abs(dx), Math.abs(dz)) !== ring) continue;
-                for (let dy = -SEARCH_HEIGHT; dy <= SEARCH_HEIGHT; dy += 1) {
-                    const found = accept({ x: origin.x + dx, y: origin.y + dy, z: origin.z + dz });
-                    if (found !== undefined) return found;
-                }
-            }
-        }
-    }
-    return undefined;
-};
 
 /** A cell the entity could stand in that has a roof over it, or that has none. */
 const sheltered = (navigation: PoiNavigation, cell: EntityPosition, indoors: boolean): EntityPosition | undefined => {
