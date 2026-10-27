@@ -10,9 +10,12 @@ import { GenericEntity } from './GenericEntity';
 import FallingBlock from './other/FallingBlock';
 import { Item } from './other/Item';
 import { Projectile } from './other/Projectile';
-import Tnt, { DEFAULT_FUSE_TICKS } from './other/Tnt';
+import { DEFAULT_FUSE_TICKS } from './fuse';
+import { MetadataFlag } from './Metadata';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
+
+const TNT_IDENTIFIER = 'minecraft:tnt';
 
 /**
  * Reads and writes the actor NBT a Bedrock world stores.
@@ -30,7 +33,7 @@ import type { World } from '../world/World';
  * - must *not* be listed: stripping it and then defaulting it would quietly replace a burning
  * actor's `Fire: -20` with a zero on the next save.
  */
-const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPBlockName', 'JSPFuse'] as const;
+const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'Tags', 'JSPBlockName', 'JSPFuse', 'Fuse', 'fuse'] as const;
 
 export class EntitySerializer {
     /**
@@ -58,17 +61,15 @@ export class EntitySerializer {
                   })
                 : identifier === FallingBlock.MOB_ID && blockName.length > 0
                   ? new FallingBlock({ ...options, blockName })
-                  : identifier === Tnt.MOB_ID
-                    ? new Tnt({
-                          ...options,
-                          fuse: nbt.getNumber(
-                              'JSPFuse',
-                              nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS))
-                          )
-                      })
-                    : modeled
-                      ? new modeled(options)
-                      : new GenericEntity({ identifier, ...options });
+                  : modeled
+                    ? new modeled(options)
+                    : new GenericEntity({ identifier, ...options });
+
+        if (identifier === TNT_IDENTIFIER) {
+            const fuse = nbt.getNumber('JSPFuse', nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS)));
+            entity.metadata.setInt(MetadataFlag.FUSE_TIME, fuse);
+            entity.metadata.setIgnited(true);
+        }
 
         if (entity instanceof Projectile) {
             const motion = projectileMotionOf(nbt);
@@ -114,7 +115,10 @@ export class EntitySerializer {
         }
 
         if (entity instanceof FallingBlock) nbt.addValue('JSPBlockName', new Types.StringVal(entity.getBlockName()));
-        if (entity instanceof Tnt) nbt.addValue('JSPFuse', new Types.NumberVal(entity.getFuse()));
+        if (entity.getType() === TNT_IDENTIFIER) {
+            const fuse = entity.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
+            if (typeof fuse === 'number') nbt.addValue('JSPFuse', new Types.NumberVal(fuse));
+        }
 
         // Left as they were found when the entity came from disk, and given sane values when it
         // did not - the server does not model any of these yet, and inventing them would be worse

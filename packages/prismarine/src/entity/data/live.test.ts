@@ -61,7 +61,6 @@ import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
 import FallingBlock from '../other/FallingBlock';
-import Tnt from '../other/Tnt';
 import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';
 import { EntityRuntimes } from './live';
@@ -2303,7 +2302,12 @@ describe('the data-driven entity runtime over a live world', () => {
         it('migrates an existing legacy TNT body with its remaining metadata fuse', { timeout: 180_000 }, () => {
             useVanillaContent();
 
-            const stored = new Tnt({ position: new Position(0.5, GROUND_Y, 0.5, world), fuse: 37 });
+            const stored = new GenericEntity({
+                identifier: 'minecraft:tnt',
+                position: new Position(0.5, GROUND_Y, 0.5, world)
+            });
+            stored.metadata.setInt(MetadataFlag.FUSE_TIME, 37);
+            stored.metadata.setIgnited(true);
             const migrated = live.restoreExisting(stored);
             if (migrated === undefined)
                 throw new Error('the vanilla TNT definition could not restore the existing body');
@@ -2493,7 +2497,12 @@ describe('the data-driven entity runtime over a live world', () => {
         it('migrates a serialized legacy TNT with its saved fuse into the runtime', () => {
             useVanillaContent();
 
-            const legacy = new Tnt({ position: new Position(0.5, GROUND_Y, 0.5, world), fuse: 58 });
+            const legacy = new GenericEntity({
+                identifier: 'minecraft:tnt',
+                position: new Position(0.5, GROUND_Y, 0.5, world)
+            });
+            legacy.metadata.setInt(MetadataFlag.FUSE_TIME, 58);
+            legacy.metadata.setIgnited(true);
             const stored = EntitySerializer.fromNBT(EntitySerializer.toNBT(legacy), world);
             const migrated = live.restoreExisting(stored);
 

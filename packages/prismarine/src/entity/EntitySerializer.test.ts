@@ -8,10 +8,10 @@ import { Position } from '../world/Position';
 import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
+import { MetadataFlag } from './Metadata';
 import Arrow from './other/Arrow';
 import FallingBlock from './other/FallingBlock';
 import { Item as ItemEntity } from './other/Item';
-import Tnt from './other/Tnt';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
@@ -36,13 +36,12 @@ const keysOf = (compound: NBTTagCompound) => [...compound.entries()].map(([key])
 
 describe('entity', () => {
     describe('EntitySerializer', () => {
-        it('builds the written class for an identifier one covers', () => {
-            // A lit TNT counts its own fuse down, which no component set describes, so it is
-            // one of the seven entities this server still writes a class for.
+        it('restores TNT as a generic body with a fuse for the data runtime', () => {
             const tnt = EntitySerializer.fromNBT(actor('minecraft:tnt'), world);
 
             expect(tnt.getType()).toBe('minecraft:tnt');
-            expect(tnt).not.toBeInstanceOf(GenericEntity);
+            expect(tnt).toBeInstanceOf(GenericEntity);
+            expect(tnt.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(80);
         });
 
         it('falls back to a generic entity that still says what it is', () => {
@@ -112,13 +111,14 @@ describe('entity', () => {
         });
 
         it('preserves a legacy TNT fuse through actor NBT', () => {
-            const source = new Tnt({ position: new Position(10.5, 80, -3.5, world), fuse: 37 });
+            const source = actor('minecraft:tnt', (root) => root.addValue('JSPFuse', new Types.NumberVal(37)));
 
-            const restored = EntitySerializer.fromNBT(EntitySerializer.toNBT(source), world);
+            const written = EntitySerializer.toNBT(EntitySerializer.fromNBT(source, world));
+            const restored = EntitySerializer.fromNBT(written, world);
 
-            expect(restored).toBeInstanceOf(Tnt);
-            if (!(restored instanceof Tnt)) throw new Error('the TNT was not restored as TNT');
-            expect(restored.getFuse()).toBe(37);
+            expect(written.getNumber('JSPFuse', 0)).toBe(37);
+            expect(restored).toBeInstanceOf(GenericEntity);
+            expect(restored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME)).toBe(37);
         });
 
         it('preserves a legacy falling block payload through actor NBT', () => {
