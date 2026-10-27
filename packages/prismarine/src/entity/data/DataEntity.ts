@@ -94,6 +94,9 @@ export class MobBody {
     /** Ticks remaining on an active `minecraft:explode` fuse, if this component is lit. */
     public fuseTicks: number | undefined;
 
+    /** Ticks an ignited entity remains visibly on fire after leaving sunlight. */
+    public fireTicks = 0;
+
     /** The entity's home position, from `minecraft:home` or a `set_home_position` event. */
     public home: EntityPosition | undefined;
 

@@ -11,7 +11,8 @@ import type { NavigationView } from '@jsprismarine/entity-goals';
 import type { EntityPosition } from '@jsprismarine/entities';
 
 import type { ServerContent } from '../../content/ServerContent';
-import type { ContentBlock, ContentBlockAccess } from '../../content/world/adapter';
+import type { ContentBlock, ContentBlockAccess, ContentLevelFacts } from '../../content/world/adapter';
+import { isDay } from '../../world/DayCycle';
 
 /** The two water identifiers, which a path finder treats as passable and a swim profile prefers. */
 const WATER = new Set(['minecraft:water', 'minecraft:flowing_water']);
@@ -57,8 +58,16 @@ export interface CachedNavigationView {
  * reads about eight cells at each, so a stroll that finds nothing costs four
  * thousand block reads, and a server runs one of those per wandering mob per
  * tick.
+ *
+ * @param blocks - Block state and lighting queries for the dimension.
+ * @param content - The loaded content, for its block behavior table.
+ * @param level - The dimension clock and sky settings; omitted by callers with no level view.
  */
-export const navigationViewOf = (blocks: ContentBlockAccess, content: () => ServerContent): CachedNavigationView => {
+export const navigationViewOf = (
+    blocks: ContentBlockAccess,
+    content: () => ServerContent,
+    level?: ContentLevelFacts
+): CachedNavigationView => {
     /**
      * Block reads shared by every path search in the current tick. A* searches
      * often visit the same cells for nearby entities, and resolving each read
@@ -207,11 +216,14 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
                 const identifier = identifierAt(position);
                 return identifier !== undefined && PORTALS.has(identifier);
             },
-            isSunlit: (position) => blocks.light(position) >= SUNLIT_LIGHT_LEVEL
+            isSunlit: (position) =>
+                level === undefined
+                    ? blocks.light(position) >= SUNLIT_LIGHT_LEVEL
+                    : level.hasSkyLight && isDay(level.dayTime()) && blocks.skyLight?.(position) === SUNLIT_LIGHT_LEVEL
         },
         invalidateBlockCache
     };
 };
 
-/** The light level at which a block counts as in the sun, which is what burns the undead. */
+/** Full sky light, required for an open-sky position to count as sunlit. */
 const SUNLIT_LIGHT_LEVEL = 15;

@@ -160,20 +160,21 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Eighty-one keys carry
-runtime behavior. The remaining 121 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Eighty-three keys carry
+runtime behavior. The remaining 119 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
 This count includes host reads and actor-metadata projections. It does not mean every field of each
 component has a runtime implementation.
 
-The 81 with runtime effects include components that change entity state, decide an outcome, or
+The 83 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
-`minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`); the
+`minecraft:hurt_on_condition`, `minecraft:damage_over_time`, `minecraft:breathable`,
+`minecraft:burns_in_daylight`); the
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
@@ -202,6 +203,10 @@ Bedrock actor's `CANFLY` flag; `minecraft:can_power_jump`, which projects `CAN_P
 event-shaped `minecraft:on_*` trigger components; `minecraft:on_equipment_changed`, which raises
 the first matching event when one of its default equipment slots changes; and
 `minecraft:cannot_be_attacked`, which blocks entity attacks.
+`minecraft:burns_in_daylight` ignites an entity in direct sunlight unless its configured protection
+slot is occupied or it is wet. The runtime maintains fire while exposed, deals
+`fire_tick` damage every second, honors the fire-damage gamerule and `minecraft:fire_immune`, fires
+`minecraft:on_ignite`, updates `on_fire` filters, and saves and projects the active fire state.
 `minecraft:interact` evaluates item filters, enforces cooldowns, raises its event, adjusts health,
 plays sounds, emits vibrations, creates configured entities, and rolls its `add_items` and
 `spawn_items` loot tables. It also applies `hurt_item`, `use_item`, and `transform_to_item` through

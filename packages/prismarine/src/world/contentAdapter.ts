@@ -29,8 +29,7 @@ import type {
     ContentLevelFacts,
     ContentPosition,
     ContentTickScheduler,
-    Difficulty,
-    Weather
+    Difficulty
 } from '../content/world/adapter';
 import type { BlockEntityStore, BlockStorageAccess } from '../block/contentAdapter';
 import { BlockRuntimeIds } from '../block/state/BlockRuntimeIds';
@@ -40,8 +39,11 @@ import { Dimensions, maxY } from './Dimension';
 import type { DimensionDefinition } from './Dimension';
 import type { World } from './World';
 
-/** The five members of `ContentBlockAccess` the world subsystem implements. */
-export type WorldBlockGroup = Pick<ContentBlockAccess, 'light' | 'isLoaded' | 'surfaceY' | 'biome' | 'biomeTags'>;
+/** The six members of `ContentBlockAccess` the world subsystem implements. */
+export type WorldBlockGroup = Pick<
+    ContentBlockAccess,
+    'light' | 'skyLight' | 'isLoaded' | 'surfaceY' | 'biome' | 'biomeTags'
+>;
 
 /** The four groups of `ServerWorldAdapter` the world subsystem owns. */
 export interface WorldContentGroups {
@@ -101,15 +103,6 @@ const SEA_LEVELS: Readonly<Record<string, number>> = {
     'minecraft:the_end': 0
 };
 
-/**
- * The weather the content packages read.
- *
- * This server runs no weather cycle: nothing raises rain or thunder and no client is ever
- * sent any, so clear is the fact rather than a default. `EngineWorld` answers the same way
- * for the same reason.
- */
-const WEATHER_WITHOUT_A_CYCLE: Weather = 'clear';
-
 /** The difficulty name for the protocol's number, which counts peaceful through hard. */
 export const contentDifficulty = (difficulty: number): Difficulty => DIFFICULTIES[difficulty] ?? 'normal';
 
@@ -168,8 +161,8 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
         gameTime: () => live().getTicks(),
         dayTime: () => timeOfDay(live().getTicks()),
         difficulty: () => contentDifficulty(options.difficulty()),
-        weather: () => WEATHER_WITHOUT_A_CYCLE,
-        isRainingAt: () => false,
+        weather: () => live().getWeather(),
+        isRainingAt: (at) => live().isRainingAt(at.x, at.y, at.z),
         spawnPosition: () => {
             const spawn = live().getKnownSpawnPosition();
             if (spawn === null) throw new Error(`the ${dimension} world has not found its spawn point yet`);
@@ -185,6 +178,7 @@ export const worldContentGroups = (options: WorldContentGroupOptions): WorldCont
             const lighting = live().getSystems().lighting;
             return Math.max(lighting.getBlockLight(at.x, at.y, at.z), lighting.getSkyLight(at.x, at.y, at.z));
         },
+        skyLight: (at) => live().getSystems().lighting.getSkyLight(at.x, at.y, at.z),
         isLoaded: (at) => live().getLoadedChunk(at.x >> 4, at.z >> 4) !== null,
         surfaceY: (x, z) => {
             const chunk = live().getLoadedChunk(x >> 4, z >> 4);

@@ -325,6 +325,50 @@ export const hurtOnCondition: ComponentFactory<EntityHooks, HurtOnConditionParam
     }
 };
 
+/** Equipment slots accepted for `minecraft:burns_in_daylight` protection. */
+export const BURNS_IN_DAYLIGHT_PROTECTION_SLOTS = [
+    'slot.armor.body',
+    'slot.armor.chest',
+    'slot.armor.feet',
+    'slot.armor.head',
+    'slot.armor.legs',
+    'slot.weapon.mainhand',
+    'slot.weapon.offhand'
+] as const;
+
+/** A Bedrock protection slot accepted by `minecraft:burns_in_daylight`. */
+export type BurnsInDaylightProtectionSlot = (typeof BURNS_IN_DAYLIGHT_PROTECTION_SLOTS)[number];
+
+/** Whether a value is one of the Bedrock equipment slots sunlight protection accepts. */
+const isBurnsInDaylightProtectionSlot = (value: unknown): value is BurnsInDaylightProtectionSlot =>
+    typeof value === 'string' && BURNS_IN_DAYLIGHT_PROTECTION_SLOTS.some((slot) => slot === value);
+
+/** The sunlight protection slot declared by `minecraft:burns_in_daylight`. */
+export interface BurnsInDaylightParams {
+    /** The occupied slot that protects the entity, defaulting to its head. */
+    readonly protectionSlot: BurnsInDaylightProtectionSlot;
+}
+
+/**
+ * `minecraft:burns_in_daylight`, whose direct-sun test and fire state belong to the world runtime.
+ *
+ * The component package validates the Bedrock equipment slot. The dimension runtime owns sky
+ * exposure, rain, fire ticks, damage, and the `minecraft:on_ignite` fixed point.
+ */
+export const burnsInDaylight: ComponentFactory<EntityHooks, BurnsInDaylightParams> = {
+    name: 'minecraft:burns_in_daylight',
+    hooks: [],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        const slot = value['protection_slot'] === undefined ? 'slot.armor.head' : value['protection_slot'];
+        if (!isBurnsInDaylightProtectionSlot(slot)) {
+            return rejected('protection_slot must name a supported armor or weapon slot');
+        }
+        return accepted({ protectionSlot: slot });
+    },
+    create: () => ({})
+};
+
 /** What `minecraft:damage_over_time` declares. */
 export interface DamageOverTimeParams {
     readonly damagePerHurt: number;

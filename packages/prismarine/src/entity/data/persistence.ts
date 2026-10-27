@@ -75,6 +75,8 @@ export interface DataEntityRecord {
     readonly breedCooldown: number;
     /** Remaining ticks on an active component-defined explosion fuse. */
     readonly fuseTicks?: number;
+    /** Remaining ticks an entity stays on fire. */
+    readonly fireTicks?: number;
     /** Flight state for an entity carrying `minecraft:projectile`. */
     readonly projectile?: {
         readonly velocity: EntityPosition;
@@ -135,6 +137,7 @@ export const dataEntityRecordOf = (
         loveTicks: body.loveTicks,
         breedCooldown: body.breedCooldown,
         ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
+        ...(body.fireTicks <= 0 ? {} : { fireTicks: body.fireTicks }),
         ...(instance.hasComponent('minecraft:projectile')
             ? {
                   projectile: {
@@ -345,6 +348,9 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         ...(typeof parsed['fuseTicks'] === 'number' && Number.isFinite(parsed['fuseTicks'])
             ? { fuseTicks: Math.max(0, Math.trunc(parsed['fuseTicks'])) }
             : {}),
+        ...(typeof parsed['fireTicks'] === 'number' && Number.isFinite(parsed['fireTicks'])
+            ? { fireTicks: Math.max(0, Math.trunc(parsed['fireTicks'])) }
+            : {}),
         ...(projectile === undefined ? {} : { projectile }),
         ...(spawnData === undefined ? {} : { spawnData })
     };
@@ -396,6 +402,9 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.loveTicks = record.loveTicks;
     body.breedCooldown = record.breedCooldown;
     body.fuseTicks = record.fuseTicks;
+    body.fireTicks = record.fireTicks ?? 0;
+    if (body.fireTicks > 0) body.conditions.add('on_fire');
+    else body.conditions.delete('on_fire');
     if (record.projectile !== undefined) {
         body.velocity = record.projectile.velocity;
         body.projectileAge = record.projectile.age;

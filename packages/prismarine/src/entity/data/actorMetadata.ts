@@ -72,6 +72,7 @@ export const actorMetadataProjection = (entity: DataEntity, leashHolderId?: numb
     const color2 = instance.componentParams('minecraft:color2');
     const flags: ActorFlagProjection[] = [
         { flag: ActorFlags.CANCLIMB, value: navigation.canClimbLadders === true },
+        { flag: MetadataFlag.ONFIRE, value: body.fireTicks > 0 },
         { flag: ActorFlags.CANSWIM, value: canSwim },
         { flag: ActorFlags.CANFLY, value: navigation.canFly },
         { flag: ActorFlags.CANWALK, value: navigation.canWalk },

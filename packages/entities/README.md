@@ -226,6 +226,7 @@ initialize, which is what makes a re-added group reset the stat it carries. The 
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
 | `minecraft:damage_over_time` | Hurts the entity every `time_between_hurt` seconds while it is active |
+| `minecraft:burns_in_daylight` | Validates `protection_slot`; the dimension runtime ignites the entity in direct sunlight unless that slot is occupied or it is wet, keeps fire while exposed, and applies fire damage |
 | `minecraft:breathable` | Spends and refills the air supply, and suffocates once it is gone |
 | `minecraft:ambient_sound_interval` | Plays its sound on the interval its body names |
 | `minecraft:rideable` | Holds the seats, and empties them when the component goes |
@@ -285,7 +286,7 @@ test in `src/vanillaEntities.test.ts`:
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys with a component hook | 77 |
-| Non-goal keys with a runtime effect across the server | 82 |
+| Non-goal keys with a runtime effect across the server | 83 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -327,9 +328,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 77 component factories have hooks, and 82
+measures name coverage rather than complete simulation: 77 component factories have hooks, and 83
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 120 bodies are available as data for behavior that still needs to be added.
+included. The remaining 119 bodies are available as data for behavior that still needs to be added.
 
 The corpus test needs the sources that `pnpm --filter @jsprismarine/bedrock-data run fetch:sources`
 caches and runs only with `JSP_VANILLA_ENTITIES` set:
@@ -352,11 +353,11 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   and `transform` for despawn and transformation, `effects` for the six event actions that leave the
   package, `route` for a trigger aimed at another entity, `molang` for the expressions in component
   bodies, and `filterContext` for everything about the world a filter asks.
-- **The four event-shaped triggers whose state is outside the package.** `on_ignite`,
-  `on_start_landing`, `on_start_takeoff` and `on_wake_with_owner` need fire, flight or sleep state
-  the package does not own. Each parses and runs through `EntityInstance.trigger` when a caller
-  reaches its fixed point. `on_equipment_changed` is handled by default equipment slot changes,
-  and `on_friendly_anger` is handled by the anger broadcast.
+- **The remaining event-shaped triggers whose state is outside the package.** `on_start_landing`,
+  `on_start_takeoff` and `on_wake_with_owner` need flight or sleep state the package does not own.
+  Each parses and runs through `EntityInstance.trigger` when a caller reaches its fixed point.
+  Prismarine fires `on_ignite` when daylight starts a fire; `on_equipment_changed` is handled by
+  default equipment slot changes, and `on_friendly_anger` by the anger broadcast.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  120 currently expose data without runtime behavior. The component bodies remain accessible to the
+  119 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

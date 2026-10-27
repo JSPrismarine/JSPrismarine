@@ -17,6 +17,7 @@ import {
     attributeComponents,
     breathable,
     barter,
+    burnsInDaylight,
     breedable,
     bounciness,
     collisionBox,
@@ -103,7 +104,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:break_blocks',
     'minecraft:bribeable',
     'minecraft:buoyant',
-    'minecraft:burns_in_daylight',
     'minecraft:can_climb',
     'minecraft:can_fly',
     'minecraft:can_join_raid',
@@ -245,6 +245,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     register(attack);
     register(breathable);
     register(barter);
+    register(burnsInDaylight);
     register(breedable);
     register(collisionBox);
     register(damageOverTime);

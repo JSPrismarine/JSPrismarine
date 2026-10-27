@@ -118,6 +118,8 @@ export interface ContentBlockAccess {
     executeEntityEvent?(at: ContentPosition, entity: ContentEntity, name: string): void;
     /** The light level at a position, 0 to 15, as the growth, melt and spawn rules read it. */
     light(at: ContentPosition): number;
+    /** Sky light at a position, 0 to 15; absent when the host cannot separate it from block light. */
+    skyLight?(at: ContentPosition): number;
     /** The redstone power reaching a position, 0 to 15. */
     power(at: ContentPosition): number;
     /** Whether the chunk holding a position is loaded. */

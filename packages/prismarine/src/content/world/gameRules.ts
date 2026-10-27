@@ -42,6 +42,9 @@ export const SPAWN_MOBS = idOf('doMobSpawning');
 /** `minecraft:fire_spread_radius_around_player`: how far from a player fire ticks. */
 export const FIRE_SPREAD_RADIUS = idOf('doFireTick');
 
+/** `minecraft:fire_damage`: whether fire hurts entities. */
+export const FIRE_DAMAGE = idOf('fireDamage');
+
 /**
  * The default of {@link FIRE_SPREAD_RADIUS}, in blocks.
  *

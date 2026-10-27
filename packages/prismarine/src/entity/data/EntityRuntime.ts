@@ -6,15 +6,16 @@
  * a reference to a resolved `EntityType` plus the component state that type
  * builds, so adding a mob is adding a behavior-pack file and nothing else.
  *
- * Three things happen per entity per tick, in this order, which is the order
+ * Four things happen per entity per tick, in this order, which is the order
  * both AI packages document:
  *
  * 1. `EntityInstance.tick` applies the events that fired last tick, runs the
  *    active components, then runs the goal scheduler.
- * 2. A brain mob runs its `updateActivity` and then its brain, because the
+ * 2. Daylight exposure, wetness, and fire ticks update the fire state and can deal damage.
+ * 3. A brain mob runs its `updateActivity` and then its brain, because the
  *    brain never chooses an activity - the mob does, and the brain only
  *    answers whether one is possible.
- * 3. The body takes one step along whatever walk the two systems asked for.
+ * 4. The body takes one step along whatever walk the two systems asked for.
  *
  * The camel and the happy ghast run both 1 and 2, which is what
  * `BrainMobDefinition.alsoRunsGoals` is for.
@@ -57,6 +58,7 @@ import type { EntityView, ItemStack } from '@jsprismarine/predicates';
 import type { ContentEntity, ContentItemDrop } from '../../content/world/adapter';
 import {
     BLOCK_DROPS,
+    FIRE_DAMAGE,
     MOB_DROPS,
     MOB_GRIEFING,
     SPAWN_MOBS,
@@ -93,6 +95,7 @@ import type { EntityScene, SpawnOptions } from './scene';
 import { merchantFor } from './trading';
 import { bedrockEntityIdentifierOf } from '../identifierMapping';
 import { DEFAULT_FUSE_TICKS, randomShortFuse } from '../fuse';
+import { isDay } from '../../world/DayCycle';
 import type { GameEventListener } from '../../world/GameEventListenerRegistry';
 
 /** The interval between projectile samples, small enough not to skip a target. */
@@ -782,6 +785,8 @@ export class EntityRuntime implements EntityScene {
             this.updateMedium(entity);
             this.tickTimers(entity.body);
             entity.instance.tick();
+            this.tickDaylightBurn(entity);
+            if (entity.removed !== undefined) continue;
             entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
             this.syncGameEventListener(entity);
             this.grid.refreshFamilies(entity);
@@ -913,13 +918,12 @@ export class EntityRuntime implements EntityScene {
     /**
      * The blocks as the path finder reads them.
      *
-     * One view for the whole runtime rather than one per query. The view
-     * closes over nothing that changes, and it memoizes the block reads a
-     * path search repeats thousands of times per tick, which a view rebuilt
-     * per call would throw away each time.
+     * One view for the whole runtime rather than one per query. It memoizes
+     * block reads a path search repeats thousands of times per tick while
+     * reading the current day and sky state for sunlight-sensitive goals.
      */
     public navigation(): NavigationView {
-        this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content());
+        this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content(), this.world.level);
         return this.navigationView.view;
     }
 
@@ -2212,6 +2216,41 @@ export class EntityRuntime implements EntityScene {
         return true;
     }
 
+    /** Keeps sunlight fires alive, extinguishes wet entities, and applies their fire ticks. */
+    private tickDaylightBurn(entity: DataEntity): void {
+        const { body, instance } = entity;
+        const burnsInDaylight = instance.hasComponent('minecraft:burns_in_daylight');
+        if (!burnsInDaylight && body.fireTicks <= 0) return;
+
+        const position = blockPositionOf(entity.position);
+        const parameters = burnsInDaylight ? instance.componentParams('minecraft:burns_in_daylight') : undefined;
+        const protectionSlot =
+            isRecord(parameters) && typeof parameters.protectionSlot === 'string'
+                ? (mobEquipmentSlotOf(parameters.protectionSlot) ?? 'head')
+                : 'head';
+        const rainOrWater = body.conditions.has('in_water') || this.world.level.isRainingAt(position);
+        const sunlight =
+            burnsInDaylight &&
+            this.world.level.hasSkyLight &&
+            isDay(this.world.level.dayTime()) &&
+            this.world.blocks.skyLight?.(position) === 15 &&
+            body.equipment[protectionSlot] === undefined;
+        const ignited = !rainOrWater && sunlight && body.fireTicks === 0;
+        if (rainOrWater) {
+            body.fireTicks = 0;
+        } else if (sunlight) {
+            body.fireTicks = DAYLIGHT_BURN_TICKS;
+        } else if (body.fireTicks > 0) {
+            body.fireTicks -= 1;
+        }
+
+        setCondition(body.conditions, 'on_fire', body.fireTicks > 0);
+        if (ignited) instance.trigger('minecraft:on_ignite');
+        if (body.conditions.has('on_fire') && this.world.level.gameTime() % FIRE_DAMAGE_INTERVAL_TICKS === 0) {
+            if (ruleIsOn(this.world.level, FIRE_DAMAGE)) this.hurt(entity, undefined, 'fire_tick', FIRE_DAMAGE_AMOUNT);
+        }
+    }
+
     /** Activates a newly spawned or restored fuse without spending its first tick. */
     private startFuse(entity: DataEntity): void {
         const params = entity.instance.componentParams('minecraft:explode');
@@ -2967,6 +3006,15 @@ const VERTICAL_AIR_DRAG = 0.98;
 
 /** Java's default slipperiness for a block the loaded world cannot resolve. */
 const DEFAULT_BLOCK_FRICTION = 0.6;
+
+/** The fire timeout sunlight maintains until an entity reaches shade, in ticks. */
+const DAYLIGHT_BURN_TICKS = 160;
+
+/** How often a burning entity takes fire damage, in ticks. */
+const FIRE_DAMAGE_INTERVAL_TICKS = 20;
+
+/** Damage from one fire tick, in half-hearts. */
+const FIRE_DAMAGE_AMOUNT = 1;
 
 /** Java's horizontal drag in water, applied once per tick. */
 const WATER_DRAG = 0.8;
