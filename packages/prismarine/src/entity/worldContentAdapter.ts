@@ -1,21 +1,14 @@
 /**
  * The `entities` group of `ServerWorldAdapter`, over the entities a live {@link World} holds.
  *
- * `contentAdapter.ts` beside this file builds the same group over `EntityRuntime`, which is
- * the data-driven entity system and is not what a running server has yet. A running server
- * has the class-based entities, and six of the seven members read or write those perfectly
- * well: they are queries over a list and a drop onto the ground.
- *
- * The seventh, `spawn`, puts a body into the live world rather than an `EntityInstance` into the
- * data-driven index, because the live world is what clients are sent and what a save writes.
- * Which identifiers may be spawned comes from the content registry, so a pack's own mob is
- * spawnable; what gets built is a class when one of the written classes adds behavior that
- * identifier needs, and a {@link GenericEntity} carrying the identifier otherwise. The client
- * draws a Bedrock entity from its identifier, so the generic body is the right thing rather than
- * a stand-in. An identifier no registry carries is reported and nothing is spawned.
+ * `contentAdapter.ts` beside this file builds the same group over `EntityRuntime`. The live
+ * world remains the client-facing body index and save boundary, while the runtime owns every
+ * data-driven entity's components and behavior. `spawn` enters through that runtime; when no
+ * runtime owns the identifier, the adapter reports the refusal rather than creating a class or
+ * generic body that has no data-driven state behind it.
  */
-import { Vector3 } from '@jsprismarine/math';
 import { Gametype } from '@jsprismarine/minecraft';
+import { Vector3 } from '@jsprismarine/math';
 
 import type { BlockEntityData, ContentEntity, ContentEntityAccess, ContentPosition } from '../content/world/adapter';
 import type { ContentLookup } from '../content/world/views';
@@ -23,11 +16,7 @@ import { itemOfDrop } from '../inventory/persistence';
 import { itemFromContent } from '../item/itemFromContent';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
-import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
-import { GenericEntity } from './GenericEntity';
-import FallingBlock from './other/FallingBlock';
-import Tnt from './other/Tnt';
 import { applyBlockEntityRecord } from '../blockentity/contentRecord';
 import { NBTTagCompound } from '@jsprismarine/nbt';
 
@@ -49,61 +38,11 @@ export interface WorldEntityAccessOptions {
     /**
      * Spawns a declared data entity directly into the live runtime.
      *
-     * Undefined means no live runtime owns the type, so the compatibility body path below may
-     * handle it. Zero means the runtime owns the type but refused this spawn.
+     * Undefined means no live runtime owns the type. Zero means the runtime owns the type but
+     * refused this spawn.
      */
     readonly spawnDataDriven?: (identifier: string, at: ContentPosition, data?: BlockEntityData) => number | undefined;
 }
-
-/**
- * The block a falling block is made of, which its own data carries under `block`.
- *
- * The one entity whose class cannot be built from a position alone. A spawn that names no block
- * is refused rather than given a default: a falling nothing lands as a wrong block.
- */
-const fallingBlockName = (data: BlockEntityData | undefined): string | undefined =>
-    typeof data?.['block'] === 'string' ? data['block'] : undefined;
-
-/**
- * How long a lit TNT burns, which its own data carries under `fuse`.
- *
- * A spawn that names no fuse gets Java's 80 ticks. A blast that caught another TNT names a
- * short one, which is what spreads a chain out over a second instead of setting it all off at
- * once - see {@link import('./other/Tnt').randomShortFuse}.
- */
-const tntFuse = (data: BlockEntityData | undefined): number | undefined =>
-    typeof data?.['fuse'] === 'number' ? data['fuse'] : undefined;
-
-/**
- * Builds the body for one identifier, or reports why it could not.
- *
- * @returns The entity, or a string saying what stopped it, which the caller logs.
- */
-const bodyFor = (
-    identifier: string,
-    position: Position,
-    data: BlockEntityData | undefined,
-    content: ContentLookup
-): Entity | string => {
-    if (identifier === FallingBlock.MOB_ID) {
-        const blockName = fallingBlockName(data);
-        if (blockName === undefined) return 'a falling block was spawned without the block it is made of';
-        return new FallingBlock({ position, blockName });
-    }
-
-    // The fuse has to reach the constructor rather than the persistent NBT below, because the
-    // entity counts it down from the next tick and the serializer only writes it back out.
-    if (identifier === Tnt.MOB_ID) return new Tnt({ position, fuse: tntFuse(data) });
-
-    const written = writtenEntities().get(identifier);
-    if (written !== undefined) return new written({ position });
-
-    if (!content().entities.registry.has(identifier)) {
-        return `${identifier} is not an entity any loaded pack declares`;
-    }
-
-    return new GenericEntity({ identifier, position });
-};
 
 /**
  * What the content packages identify a player as.
@@ -190,41 +129,22 @@ export const worldEntityAccess = (options: WorldEntityAccessOptions): ContentEnt
             const loaded = live();
             const position = { x: at.x + 0.5, y: at.y + 0.5, z: at.z + 0.5 };
             const runtimeId = options.spawnDataDriven?.(identifier, position, data);
-            if (runtimeId !== undefined) {
-                if (runtimeId !== 0 && data !== undefined) {
-                    const body = loaded.getEntity(BigInt(runtimeId));
-                    if (body !== null) {
-                        body.persistentNbt ??= new NBTTagCompound('');
-                        applyBlockEntityRecord(body.persistentNbt, data);
-                    }
-                }
-                return runtimeId;
-            }
-
-            // The middle of the block, which is where Bedrock puts a mob it spawns and what
-            // keeps a lit TNT block's entity standing where the block stood.
-            const bodyPosition = Position.fromVector3(new Vector3(position.x, position.y, position.z), loaded);
-
-            const body = bodyFor(identifier, bodyPosition, data, content);
-            if (typeof body === 'string') {
-                loaded.getServer().getLogger().debug(body, 'entity/worldContentAdapter');
-                // No id, because nothing was spawned. `remove` ignores an id it does not hold,
-                // so a behavior that keeps the number cannot remove somebody else's entity.
+            if (runtimeId === undefined) {
+                loaded
+                    .getServer()
+                    .getLogger()
+                    .debug(`${identifier} has no data runtime to spawn it`, 'entity/worldContentAdapter');
                 return 0;
             }
 
-            // Everything the record carries that the body does not model - a TNT's fuse, a
-            // bucketed fish's variant - goes where the serializer already writes it back from.
-            if (data !== undefined) {
-                body.persistentNbt ??= new NBTTagCompound('');
-                applyBlockEntityRecord(body.persistentNbt, data);
+            if (runtimeId !== 0 && data !== undefined) {
+                const body = loaded.getEntity(BigInt(runtimeId));
+                if (body !== null) {
+                    body.persistentNbt ??= new NBTTagCompound('');
+                    applyBlockEntityRecord(body.persistentNbt, data);
+                }
             }
-
-            void loaded.addEntity(body).catch((error: unknown) => {
-                loaded.getServer().getLogger().error(error);
-            });
-
-            return Number(body.getRuntimeId());
+            return runtimeId;
         },
         remove: (id) => {
             const loaded = live();
