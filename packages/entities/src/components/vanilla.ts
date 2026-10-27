@@ -1768,3 +1768,12 @@ export const integerStateComponents: readonly ComponentFactory<EntityHooks, numb
     numberComponent('minecraft:color', 'value', 0),
     numberComponent('minecraft:color2', 'value', 0)
 ];
+
+/** `minecraft:air_drag_modifier`, the multiplier on air resistance. */
+export const airDragModifier = numberComponent('minecraft:air_drag_modifier', 'value', 1);
+
+/** `minecraft:friction_modifier`, the multiplier on ground friction. */
+export const frictionModifier = numberComponent('minecraft:friction_modifier', 'value', 1);
+
+/** `minecraft:bounciness`, the fraction of impact velocity restored on a collision. */
+export const bounciness = numberComponent('minecraft:bounciness', 'value', 0);

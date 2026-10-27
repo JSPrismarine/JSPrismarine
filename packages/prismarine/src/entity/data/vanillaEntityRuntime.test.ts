@@ -29,6 +29,35 @@ describe.skipIf(!process.env.JSP_CONTENT_VANILLA)('the runtime over every vanill
         identifiers = content.entities.registry.keys().filter((identifier) => identifier !== 'minecraft:player');
     });
 
+    it('runs the sulfur cube bouncy archetype through its active component-group physics', () => {
+        const cube = runtime.spawn('minecraft:sulfur_cube', { x: 0.5, y: 64.5, z: 0.5 });
+        if (cube === undefined) throw new Error('the vanilla pack declares no minecraft:sulfur_cube');
+        cube.body.push({ x: 1, y: -1, z: 0 });
+        cube.instance.fire('minecraft:become_bouncy');
+
+        runtime.tick(1);
+
+        expect(cube.instance.componentParams('minecraft:bounciness')).toBe(0.9);
+        expect(cube.instance.componentParams('minecraft:air_drag_modifier')).toBe(0.01);
+        expect(cube.position.y).toBe(64);
+        expect(cube.body.velocity.x).toBeCloseTo(0.999);
+        expect(cube.body.velocity.y).toBeCloseTo(0.9);
+        runtime.remove(cube.id, 'vanilla physics coverage');
+    });
+
+    it('reads sulfur cube ground friction from its active archetype group', () => {
+        const cube = runtime.spawn('minecraft:sulfur_cube', { x: 10.5, y: 64, z: 0.5 });
+        if (cube === undefined) throw new Error('the vanilla pack declares no minecraft:sulfur_cube');
+        cube.body.push({ x: 1, y: 0, z: 0 });
+        cube.instance.fire('minecraft:become_bouncy');
+
+        runtime.tick(2);
+
+        expect(cube.instance.componentParams('minecraft:friction_modifier')).toBe(0.3);
+        expect(cube.body.velocity.x).toBeCloseTo(0.8638);
+        runtime.remove(cube.id, 'vanilla physics coverage');
+    });
+
     it('spawns and restores every declared entity through its components', () => {
         for (const [index, identifier] of identifiers.entries()) {
             const position = {

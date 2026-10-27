@@ -9,11 +9,13 @@ import { TRIGGER_COMPONENTS } from '../triggers';
 import { dataComponent } from './schemas';
 import {
     ageable,
+    airDragModifier,
     ambientSoundInterval,
     angry,
     attack,
     attributeComponents,
     breathable,
+    bounciness,
     collisionBox,
     damageOverTime,
     damageSensor,
@@ -21,6 +23,7 @@ import {
     environmentSensor,
     equipment,
     experienceReward,
+    frictionModifier,
     hurtOnCondition,
     ignoreCannotBeAttacked,
     instantDespawn,
@@ -190,6 +193,9 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
 
     for (const factory of attributeComponents) register(factory);
     for (const factory of integerStateComponents) register(factory);
+    register(airDragModifier);
+    register(frictionModifier);
+    register(bounciness);
     for (const kind of NAVIGATION_KINDS) register(navigationComponent(kind));
     for (const [kind, maxTurn] of MOVEMENT_KINDS) register(movementComponent(kind, maxTurn));
     for (const name of TRIGGER_COMPONENTS) register(triggerComponent(name));

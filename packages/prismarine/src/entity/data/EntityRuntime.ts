@@ -108,6 +108,13 @@ const TNT_LAUNCH_SPEED = 0.2;
 const TNT_GRAVITY = 0.04;
 const TNT_DRAG = 0.98;
 
+/** Scales the amount of velocity removed by one tick of drag. */
+const dragWithModifier = (drag: number, modifier: number): number => 1 - (1 - drag) * modifier;
+
+/** Applies an entity's friction modifier without reversing its remaining momentum. */
+const groundDragWithModifier = (drag: number, modifier: number): number =>
+    Math.max(0, dragWithModifier(drag, modifier));
+
 /** Resolves an entity name through the shared Java-to-Bedrock table and the active content registry. */
 const runtimeEntityIdentifierOf = (identifier: string, content: ServerContent): string | undefined =>
     bedrockEntityIdentifierOf(identifier, (candidate) => content.entities.registry.has(candidate));
@@ -1639,13 +1646,30 @@ export class EntityRuntime implements EntityScene {
         );
     }
 
+    /** Reads the Java friction value of the block directly below an entity's feet. */
+    private groundFrictionAt(position: EntityPosition): number {
+        const block = this.world.blocks.get({
+            x: Math.floor(position.x),
+            y: Math.floor(position.y - MOVEMENT_EPSILON),
+            z: Math.floor(position.z)
+        });
+        if (block === undefined) return DEFAULT_BLOCK_FRICTION;
+
+        const content = this.content();
+        const palette = content.blocks.palette;
+        if (palette.entry(block.identifier) === undefined) return DEFAULT_BLOCK_FRICTION;
+
+        const runtimeId = palette.runtimeId(block.identifier, block.states);
+        return content.blocks.table.friction[runtimeId] ?? DEFAULT_BLOCK_FRICTION;
+    }
+
     /**
      * Spends one tick of an entity's impulse and configured gravity.
      *
-     * The numbers are Java's `LivingEntity.travel`: 0.08 of gravity a tick
-     * and 0.91 of horizontal drag. Gravity and collision follow the active
-     * `minecraft:physics` component, and the entity lands on a non-passable
-     * cell, which is the ground model this runtime has.
+     * The numbers follow Java entity travel: 0.08 gravity, 0.91 horizontal
+     * air drag, and 0.98 vertical air drag. Active entity components modify
+     * air drag, ground friction, and collision bounce; the block below supplies
+     * its Java friction value.
      */
     private coast(entity: DataEntity): void {
         const { body, instance } = entity;
@@ -1677,8 +1701,27 @@ export class EntityRuntime implements EntityScene {
         const inLava = body.conditions.has('in_lava');
         const inFluid = inWater || inLava;
         const primedTnt = body.fuseTicks !== undefined && instance.families().includes('tnt');
-        const horizontalDrag = inWater ? WATER_DRAG : inLava ? LAVA_DRAG : primedTnt ? TNT_DRAG : DRAG;
-        const verticalDrag = inFluid ? FLUID_DRAG : primedTnt ? TNT_DRAG : DRAG;
+        const airDrag = instance.componentParams('minecraft:air_drag_modifier');
+        const airDragModifier = typeof airDrag === 'number' ? airDrag : 1;
+        const friction = instance.componentParams('minecraft:friction_modifier');
+        const frictionModifier = typeof friction === 'number' ? friction : 1;
+        const verticalAirDrag = instance.hasComponent('minecraft:uses_uniform_air_drag') ? DRAG : VERTICAL_AIR_DRAG;
+        const horizontalDrag = inWater
+            ? WATER_DRAG
+            : inLava
+              ? LAVA_DRAG
+              : primedTnt
+                ? TNT_DRAG
+                : grounded
+                  ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, frictionModifier)
+                  : dragWithModifier(DRAG, airDragModifier);
+        const verticalDrag = inFluid
+            ? FLUID_DRAG
+            : primedTnt
+              ? TNT_DRAG
+              : dragWithModifier(verticalAirDrag, airDragModifier);
+        const bounceValue = instance.componentParams('minecraft:bounciness');
+        const bounciness = typeof bounceValue === 'number' ? bounceValue : 0;
         const gravity = hasGravity ? (inFluid ? FLUID_GRAVITY : primedTnt ? TNT_GRAVITY : GRAVITY) : 0;
 
         if (grounded) body.conditions.add('on_ground');
@@ -1691,26 +1734,37 @@ export class EntityRuntime implements EntityScene {
         const nextY = position.y + (grounded && velocity.y <= 0 ? 0 : fallingY);
         const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, entity.facts.box, navigation);
         let next = moveOnAxis(position, position.x + velocity.x, 'x', canOccupy);
+        const hitHorizontalX = Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + velocity.z, 'z', canOccupy);
+        const hitHorizontalZ = Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON;
         const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
         const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
+        const horizontalVelocity = {
+            x: hitHorizontalX ? (bounciness > 0 ? -velocity.x * bounciness : 0) : velocity.x * horizontalDrag,
+            z: hitHorizontalZ ? (bounciness > 0 ? -velocity.z * bounciness : 0) : velocity.z * horizontalDrag
+        };
 
         if (hitVerticalCollision) {
             if (fallingY <= 0) {
                 const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
                 body.position = landed;
-                body.land();
+                if (bounciness > 0) {
+                    body.velocity = { ...horizontalVelocity, y: -fallingY * bounciness };
+                    body.conditions.delete('jumping');
+                    body.conditions.delete('on_ground');
+                } else {
+                    body.land();
+                }
                 return;
             }
 
             next = nextVertical;
-            body.velocity = { x: velocity.x * horizontalDrag, y: 0, z: velocity.z * horizontalDrag };
+            body.velocity = { ...horizontalVelocity, y: bounciness > 0 ? -fallingY * bounciness : 0 };
         } else {
             next = nextVertical;
             body.velocity = {
-                x: Math.abs(next.x - (position.x + velocity.x)) > MOVEMENT_EPSILON ? 0 : velocity.x * horizontalDrag,
-                y: fallingY * verticalDrag,
-                z: Math.abs(next.z - (position.z + velocity.z)) > MOVEMENT_EPSILON ? 0 : velocity.z * horizontalDrag
+                ...horizontalVelocity,
+                y: fallingY * verticalDrag
             };
         }
 
@@ -2055,8 +2109,26 @@ export class EntityRuntime implements EntityScene {
                 : submerged === 'flowing'
                   ? -0.0007
                   : -BUOYANT_GRAVITY;
-        const horizontalDrag = submerged === 'source' ? 0.45 : BUOYANT_DRAG;
-        const verticalDrag = inLiquid || submerged === 'source' ? BUOYANT_WATER_VERTICAL_DRAG : 1;
+        const airDrag = entity.instance.componentParams('minecraft:air_drag_modifier');
+        const airDragModifier = typeof airDrag === 'number' ? airDrag : 1;
+        const friction = entity.instance.componentParams('minecraft:friction_modifier');
+        const frictionModifier = typeof friction === 'number' ? friction : 1;
+        const bouncinessValue = entity.instance.componentParams('minecraft:bounciness');
+        const bounciness = typeof bouncinessValue === 'number' ? bouncinessValue : 0;
+        const uniformAirDrag = entity.instance.hasComponent('minecraft:uses_uniform_air_drag');
+        const horizontalDrag =
+            submerged === 'source'
+                ? 0.45
+                : inLiquid || submerged !== undefined
+                  ? BUOYANT_DRAG
+                  : grounded
+                    ? groundDragWithModifier(this.groundFrictionAt(position) * DRAG, frictionModifier)
+                    : dragWithModifier(BUOYANT_DRAG, airDragModifier);
+        const verticalAirDrag = uniformAirDrag ? BUOYANT_DRAG : 1;
+        const verticalDrag =
+            inLiquid || submerged === 'source'
+                ? BUOYANT_WATER_VERTICAL_DRAG
+                : dragWithModifier(verticalAirDrag, airDragModifier);
         const buoyancy =
             submerged === 'source'
                 ? 0.01
@@ -2073,21 +2145,32 @@ export class EntityRuntime implements EntityScene {
         const nextY = position.y + nextVelocity.y;
         const canOccupy = (at: EntityPosition) => !hasCollision || bodyCanOccupy(at, box, this.navigation());
         let next = moveOnAxis(position, position.x + nextVelocity.x, 'x', canOccupy);
+        const hitHorizontalX = Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + nextVelocity.z, 'z', canOccupy);
+        const hitHorizontalZ = Math.abs(next.z - (position.z + nextVelocity.z)) > MOVEMENT_EPSILON;
         const nextVertical = moveOnAxis(next, nextY, 'y', canOccupy);
         const hitVerticalCollision = Math.abs(nextVertical.y - nextY) > MOVEMENT_EPSILON;
+        const horizontalVelocity = {
+            x: hitHorizontalX ? (bounciness > 0 ? -nextVelocity.x * bounciness : 0) : nextVelocity.x,
+            z: hitHorizontalZ ? (bounciness > 0 ? -nextVelocity.z * bounciness : 0) : nextVelocity.z
+        };
 
         if (hitVerticalCollision && fallingY <= 0) {
             const landed = { ...nextVertical, y: Math.floor(nextVertical.y + MOVEMENT_EPSILON) };
             body.position = landed;
-            body.land();
+            if (bounciness > 0) {
+                body.velocity = { ...horizontalVelocity, y: -nextVelocity.y * bounciness };
+                body.conditions.delete('jumping');
+                body.conditions.delete('on_ground');
+            } else {
+                body.land();
+            }
             return;
         }
 
         body.velocity = {
-            x: Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON ? 0 : nextVelocity.x,
-            y: hitVerticalCollision ? 0 : fallingY * verticalDrag,
-            z: Math.abs(next.z - (position.z + nextVelocity.z)) > MOVEMENT_EPSILON ? 0 : nextVelocity.z
+            ...horizontalVelocity,
+            y: hitVerticalCollision ? (bounciness > 0 ? -nextVelocity.y * bounciness : 0) : nextVelocity.y
         };
         body.position = nextVertical;
     }
@@ -2279,6 +2362,12 @@ const GRAVITY = 0.08;
 
 /** Java's horizontal drag on an airborne entity, applied once a tick. */
 const DRAG = 0.91;
+
+/** Java's vertical air drag, applied after gravity once a tick. */
+const VERTICAL_AIR_DRAG = 0.98;
+
+/** Java's default slipperiness for a block the loaded world cannot resolve. */
+const DEFAULT_BLOCK_FRICTION = 0.6;
 
 /** Java's horizontal drag in water, applied once per tick. */
 const WATER_DRAG = 0.8;

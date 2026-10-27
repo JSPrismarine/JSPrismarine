@@ -1068,6 +1068,202 @@ describe('EntityRuntime', () => {
 
             expect(buoyant?.position.y).toBe(spawnPosition.y);
         });
+
+        it('uses the active air drag modifier when a body coasts through air', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:no_air_drag': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:air_drag_modifier': { value: 0 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:no_air_drag', { ...GROUND, y: GROUND.y + 2 });
+            if (entity === undefined) throw new Error('the fixture declares no entity without air drag');
+            entity.body.push({ x: 1, y: 0, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.x).toBe(1);
+        });
+
+        it('doubles air resistance when the active air drag modifier is two', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:double_air_drag': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:air_drag_modifier': { value: 2 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:double_air_drag', { ...GROUND, y: GROUND.y + 2 });
+            if (entity === undefined) throw new Error('the fixture declares no entity with double air drag');
+            entity.body.push({ x: 1, y: 0, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.x).toBeCloseTo(0.82);
+        });
+
+        it('uses lighter vertical than horizontal air drag by default', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                { 'jsprismarine:normal_air_drag': { components: { 'minecraft:physics': {} } } }
+            );
+            const entity = runtime.spawn('jsprismarine:normal_air_drag', { ...GROUND, y: GROUND.y + 2 });
+            if (entity === undefined) throw new Error('the fixture declares no entity with normal air drag');
+            entity.body.push({ x: 0, y: 1, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.y).toBeCloseTo(0.9016);
+        });
+
+        it('uses equal air drag on both axes when the entity data requests uniform drag', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:uniform_air_drag': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:uses_uniform_air_drag': {}
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:uniform_air_drag', { ...GROUND, y: GROUND.y + 2 });
+            if (entity === undefined) throw new Error('the fixture declares no entity with uniform air drag');
+            entity.body.push({ x: 0, y: 1, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.y).toBeCloseTo(0.8372);
+        });
+
+        it('bounces from the ground by the active bounciness value', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:bouncy': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:bounciness': { value: 1 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:bouncy', { ...GROUND, y: GROUND.y + 2 });
+            if (entity === undefined) throw new Error('the fixture declares no bouncy entity');
+
+            for (let tick = 1; tick <= 20; tick += 1) runtime.tick(tick);
+
+            expect(entity.position.y).toBeGreaterThan(GROUND.y);
+            expect(entity.body.velocity.y).toBeGreaterThan(0);
+        });
+
+        it('applies active bounciness when a buoyant body hits the ground', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:bouncy_buoyant': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:bounciness': { value: 0.9 },
+                            'minecraft:buoyant': {
+                                apply_gravity: false,
+                                liquid_blocks: ['minecraft:water', 'minecraft:flowing_water']
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:bouncy_buoyant', { ...GROUND, y: GROUND.y + 0.5 });
+            if (entity === undefined) throw new Error('the fixture declares no bouncy buoyant entity');
+            entity.body.push({ x: 0, y: -1, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.position.y).toBe(GROUND.y);
+            expect(entity.body.velocity.y).toBeCloseTo(0.9);
+        });
+
+        it('does not lose ground speed when the active friction modifier is zero', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:no_ground_friction': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:friction_modifier': { value: 0 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:no_ground_friction', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity without ground friction');
+            entity.body.push({ x: 1, y: 0, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.x).toBe(1);
+        });
+
+        it('applies the block ground friction with a regular friction modifier', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:regular_ground_friction': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:friction_modifier': { value: 1 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:regular_ground_friction', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with regular ground friction');
+            entity.body.push({ x: 1, y: 0, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.x).toBeCloseTo(0.546);
+        });
+
+        it('doubles ground friction when the active friction modifier is two', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:double_ground_friction': {
+                        components: {
+                            'minecraft:physics': {},
+                            'minecraft:friction_modifier': { value: 2 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:double_ground_friction', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with double ground friction');
+            entity.body.push({ x: 1, y: 0, z: 0 });
+
+            runtime.tick(1);
+
+            expect(entity.body.velocity.x).toBeCloseTo(0.092);
+        });
     });
 
     describe('target eligibility', () => {

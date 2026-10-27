@@ -99,7 +99,7 @@ const RESOLVED_TO_JAVA = 33;
 /**
  * The empty markers that have runtime meaning without a component hook.
  */
-const MARKER_COMPONENTS = [
+const RUNTIME_COMPONENTS = [
     'minecraft:persistent',
     'minecraft:transient',
     'minecraft:fire_immune',
@@ -117,6 +117,9 @@ const MARKER_COMPONENTS = [
     'minecraft:is_pregnant',
     'minecraft:is_stunned',
     'minecraft:body_rotation_always_follows_head',
+    'minecraft:air_drag_modifier',
+    'minecraft:bounciness',
+    'minecraft:friction_modifier',
     'minecraft:uses_uniform_air_drag',
     'minecraft:renders_when_invisible',
     'minecraft:rotation_axis_aligned',
@@ -342,11 +345,11 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         const implementedTests = [...tests].filter(hasFilterTest);
 
         // Behavior comes from registered hooks, trigger components, and
-        // presence markers with meaning outside a component callback.
+        // components the runtime reads outside a component callback.
         const withHooks = registry
             .names()
             .filter((name) => !name.startsWith('minecraft:behavior.') && registry.hooksOf(name).size > 0);
-        const behavioralComponents = new Set([...withHooks, ...TRIGGER_COMPONENTS, ...MARKER_COMPONENTS]);
+        const behavioralComponents = new Set([...withHooks, ...TRIGGER_COMPONENTS, ...RUNTIME_COMPONENTS]);
         const withBehavior = others.filter((name) => behavioralComponents.has(name));
 
         process.stdout.write(
@@ -364,13 +367,13 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
 
         // The research note measures that the 140 most used non-goal keys
         // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use plus singleton markers, 165 of the 202, covering 107, and every
-        // filter test vanilla uses.
+        // or more entities use plus runtime-read components, 168 of the 202,
+        // covering 108, and every filter test vanilla uses.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(165);
-        expect(withBehavior).toHaveLength(57);
-        expect(componentCovered).toBeGreaterThanOrEqual(107);
+        expect(registeredOthers.length).toBeGreaterThanOrEqual(168);
+        expect(withBehavior).toHaveLength(60);
+        expect(componentCovered).toBeGreaterThanOrEqual(108);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
     });

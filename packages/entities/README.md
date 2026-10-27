@@ -234,15 +234,20 @@ attacker's `minecraft:ignore_cannot_be_attacked` filter allows the target.
 
 Data components parse, normalize and expose their value through `EntityInstance.componentParams`,
 which is the whole of what a flag like `minecraft:can_climb` or a table reference like
-`minecraft:shareables` means to the server. `minecraft:collision_box`, `minecraft:type_family`,
+`minecraft:shareables` means to the server. The outer runtime also reads physics values from the
+active component set: `minecraft:air_drag_modifier` changes air resistance,
+`minecraft:uses_uniform_air_drag` applies the same drag on both axes,
+`minecraft:friction_modifier` changes ground friction, and `minecraft:bounciness` changes how much
+impact velocity a collision returns. `minecraft:collision_box`, `minecraft:type_family`,
 `minecraft:loot`, `minecraft:experience_reward`, `minecraft:inventory`, `minecraft:equipment`,
-`minecraft:physics`, `minecraft:pushable`, the seven `minecraft:navigation.*` flavors, the nine
-`minecraft:movement.*` flavors and the six integer state components are written out; the rest are
-parsed structurally. `minecraft:type_family` and the integer state components are data a filter
+`minecraft:physics`, `minecraft:pushable`, `minecraft:air_drag_modifier`,
+`minecraft:friction_modifier`, `minecraft:bounciness`, the seven `minecraft:navigation.*` flavors,
+the nine `minecraft:movement.*` flavors and the six integer state components are written out; the
+rest are parsed structurally. `minecraft:type_family` and the integer state components are data a filter
 reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
 with no caller view.
 
-Forty-three non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
+Thirty-four non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
 prints each name, and the loader reports them instead of silently doing nothing; each is an
 outstanding coverage gap.
 
@@ -256,9 +261,9 @@ test in `src/vanillaEntities.test.ts`:
 | Entity definitions composed | 129 |
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
-| Non-goal component keys in vanilla | 202, of which 159 are registered |
-| Non-goal keys that carry behavior rather than data | 40 |
-| Entities whose every non-goal component is registered | 104 of 129 |
+| Non-goal component keys in vanilla | 202, of which 168 are registered |
+| Non-goal keys that carry behavior rather than data | 60 |
+| Entities whose every non-goal component is registered | 108 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
 | Filter tests the documentation lists | 107, all implemented |
@@ -298,8 +303,8 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 `statRuling(identifier, stat)` answers why one entity's stat resolved the way it did, so a parity
 row quotes the decision instead of keeping a second copy of it.
 
-The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 159
-keys cover 104. The 25 entities that are not component-covered need keys only they use, such as the
+The research note measures that the 140 most used non-goal keys cover 88 of the 129 entities; 168
+keys cover 108. The 21 entities that are not component-covered need keys only they use, such as the
 enderman's `minecraft:teleport`, the shulker's `minecraft:peek`, the warden's
 `minecraft:anger_level` and the villager's `minecraft:trade_table`.
 
@@ -332,5 +337,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   effects (item drops and inventory transfers), `minecraft:inventory`,
   `minecraft:equipment`, `minecraft:explode` and the rest need item use or world effects.
   `minecraft:interact` currently runs item filters, entity events, cooldowns, `play_sounds`,
-  held-item consumption, item transformation, `health_amount`, and `spawn_items` table requests. The load report and `EntityType.unimplementedComponents` name the 43 non-goal keys
+  held-item consumption, item transformation, `health_amount`, and `spawn_items` table requests. The load report and `EntityType.unimplementedComponents` name the 34 non-goal keys
   that remain unregistered.
