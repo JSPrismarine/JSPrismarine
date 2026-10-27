@@ -57,8 +57,10 @@ import InventoryTransactionHandler from '../../network/handler/InventoryTransact
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
+import { EntitySerializer } from '../EntitySerializer';
 import { MetadataFlag } from '../Metadata';
 import { Item as ItemEntity } from '../other/Item';
+import FallingBlock from '../other/FallingBlock';
 import Tnt from '../other/Tnt';
 import { loose } from '../Archery';
 import { dataEntityRecordIn } from './persistence';
@@ -2268,6 +2270,40 @@ describe('the data-driven entity runtime over a live world', () => {
 
             expect((await world.getBlockState(2, FLOOR_Y, 2)).name).toBe('minecraft:sand');
             expect(live.runtime.byId(fallingBlock.id)).toBeUndefined();
+        });
+
+        it('migrates a serialized legacy TNT with its saved fuse into the runtime', () => {
+            useVanillaContent();
+
+            const legacy = new Tnt({ position: new Position(0.5, GROUND_Y, 0.5, world), fuse: 58 });
+            const stored = EntitySerializer.fromNBT(EntitySerializer.toNBT(legacy), world);
+            const migrated = live.restoreExisting(stored);
+
+            expect(migrated?.identifier).toBe('minecraft:tnt');
+            expect(migrated?.body.fuseTicks).toBe(58);
+            expect(migrated?.instance.hasComponent('minecraft:explode')).toBe(true);
+            expect(live.bodies.bodyOf(migrated?.id ?? 0)).toBeDefined();
+        });
+
+        it('migrates a serialized legacy falling block into the runtime and lands it', async () => {
+            useVanillaContent();
+
+            const legacy = new FallingBlock({
+                position: new Position(2.5, GROUND_Y + 4, 2.5, world),
+                blockName: 'minecraft:stone'
+            });
+            const stored = EntitySerializer.fromNBT(EntitySerializer.toNBT(legacy), world);
+            const migrated = live.restoreExisting(stored);
+            if (migrated === undefined) throw new Error('the saved falling block was not migrated');
+
+            expect(migrated.identifier).toBe('minecraft:falling_block');
+            expect(migrated.spawnData).toEqual({ block: 'minecraft:stone' });
+            expect(migrated.instance.hasComponent('jsprismarine:falling_block')).toBe(true);
+
+            for (let tick = 1; tick <= 40; tick += 1) await live.tick(tick);
+
+            expect((await world.getBlockState(2, GROUND_Y, 2)).name).toBe('minecraft:stone');
+            expect(live.runtime.byId(migrated.id)).toBeUndefined();
         });
 
         it(

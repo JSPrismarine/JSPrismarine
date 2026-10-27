@@ -9,7 +9,9 @@ import type { World } from '../world/World';
 import { EntitySerializer } from './EntitySerializer';
 import { GenericEntity } from './GenericEntity';
 import Arrow from './other/Arrow';
+import FallingBlock from './other/FallingBlock';
 import { Item as ItemEntity } from './other/Item';
+import Tnt from './other/Tnt';
 
 /**
  * A world stand-in. `Entity` takes its server from the world its position is in, so the fake has
@@ -107,6 +109,31 @@ describe('entity', () => {
             if (!(restored instanceof Arrow)) throw new Error('the arrow was not restored as an arrow');
             const velocity = restored.getVelocity();
             expect([velocity.getX(), velocity.getY(), velocity.getZ()]).toEqual([1.25, -0.5, 3]);
+        });
+
+        it('preserves a legacy TNT fuse through actor NBT', () => {
+            const source = new Tnt({ position: new Position(10.5, 80, -3.5, world), fuse: 37 });
+
+            const restored = EntitySerializer.fromNBT(EntitySerializer.toNBT(source), world);
+
+            expect(restored).toBeInstanceOf(Tnt);
+            if (!(restored instanceof Tnt)) throw new Error('the TNT was not restored as TNT');
+            expect(restored.getFuse()).toBe(37);
+        });
+
+        it('preserves a legacy falling block payload through actor NBT', () => {
+            const source = new FallingBlock({
+                position: new Position(10.5, 80, -3.5, world),
+                blockName: 'minecraft:stone'
+            });
+
+            const saved = EntitySerializer.toNBT(source);
+            const restored = EntitySerializer.fromNBT(saved, world);
+
+            expect(saved.getString('JSPBlockName', '')).toBe('minecraft:stone');
+            expect(restored).toBeInstanceOf(FallingBlock);
+            if (!(restored instanceof FallingBlock)) throw new Error('the falling block was not restored as a block');
+            expect(restored.getBlockName()).toBe('minecraft:stone');
         });
 
         it('keeps three equal coordinates as three entries', () => {

@@ -7,8 +7,10 @@ import type { StoredItemStack } from '../inventory/persistence';
 import { writtenEntities } from './Entities';
 import type { Entity } from './Entity';
 import { GenericEntity } from './GenericEntity';
+import FallingBlock from './other/FallingBlock';
 import { Item } from './other/Item';
 import { Projectile } from './other/Projectile';
+import Tnt, { DEFAULT_FUSE_TICKS } from './other/Tnt';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -28,7 +30,7 @@ import type { World } from '../world/World';
  * - must *not* be listed: stripping it and then defaulting it would quietly replace a burning
  * actor's `Fire: -20` with a zero on the next save.
  */
-const REWRITTEN = ['identifier', 'Pos', 'Rotation'] as const;
+const REWRITTEN = ['identifier', 'Pos', 'Rotation', 'JSPBlockName', 'JSPFuse'] as const;
 
 export class EntitySerializer {
     /**
@@ -45,6 +47,7 @@ export class EntitySerializer {
         const position = new Position(x ?? 0, y ?? 0, z ?? 0, world);
         const modeled = writtenEntities().get(identifier);
         const options = { position, pitch: pitch ?? 0, yaw: yaw ?? 0, headYaw: yaw ?? 0 };
+        const blockName = nbt.getString('JSPBlockName', nbt.getString('Block', ''));
 
         const entity =
             identifier === Item.MOB_ID
@@ -53,9 +56,19 @@ export class EntitySerializer {
                       age: nbt.getShort('Age', 0),
                       ...itemEntryFrom(nbt, world)
                   })
-                : modeled
-                  ? new modeled(options)
-                  : new GenericEntity({ identifier, ...options });
+                : identifier === FallingBlock.MOB_ID && blockName.length > 0
+                  ? new FallingBlock({ ...options, blockName })
+                  : identifier === Tnt.MOB_ID
+                    ? new Tnt({
+                          ...options,
+                          fuse: nbt.getNumber(
+                              'JSPFuse',
+                              nbt.getNumber('Fuse', nbt.getNumber('fuse', DEFAULT_FUSE_TICKS))
+                          )
+                      })
+                    : modeled
+                      ? new modeled(options)
+                      : new GenericEntity({ identifier, ...options });
 
         if (entity instanceof Projectile) {
             const motion = projectileMotionOf(nbt);
@@ -94,6 +107,9 @@ export class EntitySerializer {
             const velocity = entity.getVelocity();
             nbt.addValue('Motion', doubles([velocity.getX(), velocity.getY(), velocity.getZ()]));
         }
+
+        if (entity instanceof FallingBlock) nbt.addValue('JSPBlockName', new Types.StringVal(entity.getBlockName()));
+        if (entity instanceof Tnt) nbt.addValue('JSPFuse', new Types.NumberVal(entity.getFuse()));
 
         // Left as they were found when the entity came from disk, and given sane values when it
         // did not - the server does not model any of these yet, and inventing them would be worse
