@@ -42,12 +42,18 @@ export const bodyCanOccupy = (
     return true;
 };
 
-/** Whether any block under a body's box belongs to the requested medium. */
-export const bodyIntersectsMedium = (
+/**
+ * Checks whether a body intersects water and lava in one scan of its bounds.
+ * @param containsWater - The active world's water classifier.
+ * @param containsLava - The active world's lava classifier.
+ * @returns Whether the body intersects water, then lava.
+ */
+export const bodyIntersectsMedia = (
     position: EntityPosition,
     box: EntityBox,
-    contains: (block: EntityPosition) => boolean
-): boolean => {
+    containsWater: (block: EntityPosition) => boolean,
+    containsLava: (block: EntityPosition) => boolean
+): readonly [water: boolean, lava: boolean] => {
     const minX = Math.floor(position.x - box.width / 2 + COLLISION_EPSILON);
     const maxX = Math.floor(position.x + box.width / 2 - COLLISION_EPSILON);
     const minY = Math.floor(position.y + COLLISION_EPSILON);
@@ -55,15 +61,20 @@ export const bodyIntersectsMedium = (
     const minZ = Math.floor(position.z - box.width / 2 + COLLISION_EPSILON);
     const maxZ = Math.floor(position.z + box.width / 2 - COLLISION_EPSILON);
 
-    for (let x = minX; x <= maxX; x += 1) {
+    let water = false;
+    let lava = false;
+    outer: for (let x = minX; x <= maxX; x += 1) {
         for (let y = minY; y <= maxY; y += 1) {
             for (let z = minZ; z <= maxZ; z += 1) {
-                if (contains({ x, y, z })) return true;
+                const at = { x, y, z };
+                if (!water) water = containsWater(at);
+                if (!lava) lava = containsLava(at);
+                if (water && lava) break outer;
             }
         }
     }
 
-    return false;
+    return [water, lava];
 };
 
 /**

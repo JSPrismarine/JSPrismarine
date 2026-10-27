@@ -73,7 +73,7 @@ import { MOB_EQUIPMENT_SLOTS, mobEquipmentSlotOf, rollMobEquipment } from '../eq
 import type { MobEquipmentSlot } from '../equipment';
 import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
-import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
+import { bodyCanOccupy, bodyIntersectsMedia, isSupported, moveOnAxis } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
 import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
 import { brainMobFor } from './brainIdentifiers';
@@ -784,8 +784,7 @@ export class EntityRuntime implements EntityScene {
     private updateMedium(entity: DataEntity): void {
         const { body, facts } = entity;
         const navigation = this.navigation();
-        const inWater = bodyIntersectsMedium(body.position, facts.box, navigation.isWater);
-        const inLava = bodyIntersectsMedium(body.position, facts.box, navigation.isLava);
+        const [inWater, inLava] = bodyIntersectsMedia(body.position, facts.box, navigation.isWater, navigation.isLava);
         const head = blockPositionOf({
             x: body.position.x,
             y: body.position.y + facts.box.height - MOVEMENT_EPSILON,

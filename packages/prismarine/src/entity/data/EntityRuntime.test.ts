@@ -1148,6 +1148,33 @@ describe('EntityRuntime', () => {
             expect(boat.position.y).toBeLessThan(FLOOR_Y + 1.8);
         });
 
+        it('tracks water and lava independently across one body scan', () => {
+            const world = new TestEntityWorld();
+            world.setBlock({ x: 0, y: GROUND.y, z: 0 }, 'minecraft:water');
+            world.setBlock({ x: 0, y: GROUND.y + 1, z: 0 }, 'minecraft:lava');
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:medium_probe': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.9, height: 1.8 },
+                            'minecraft:health': { value: 20, max: 20 }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:medium_probe', { x: 0.5, y: GROUND.y, z: 0.5 });
+            if (entity === undefined) throw new Error('the fixture declares no medium probe');
+
+            runtime.tick(1);
+
+            expect(entity.body.conditions.has('in_water')).toBe(true);
+            expect(entity.body.conditions.has('in_contact_with_water')).toBe(true);
+            expect(entity.body.conditions.has('in_lava')).toBe(true);
+            expect(entity.body.conditions.has('is_underwater')).toBe(false);
+        });
+
         it('keeps a walking entity from following a path vertically into the air', () => {
             const { runtime } = moverRuntime();
             const mover = runtime.spawn('jsprismarine:mover', GROUND);
