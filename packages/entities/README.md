@@ -353,5 +353,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   equipment, fire, flight, sleep and a neighbor query. Each one parses and runs through
   `EntityInstance.trigger` the moment a caller reaches its fixed point.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  126 currently expose data without runtime behavior. The component bodies remain accessible to the
+  123 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.

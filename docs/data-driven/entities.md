@@ -166,7 +166,7 @@ dedicated schema, and the generic factories preserve the raw body. Both are avai
 This count includes host reads and actor-metadata projections. It does not mean every field of each
 component has a runtime implementation.
 
-The 76 with runtime effects include components that change entity state, decide an outcome, or
+The 79 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
