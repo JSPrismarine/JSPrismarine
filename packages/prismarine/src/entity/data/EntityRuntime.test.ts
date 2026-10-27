@@ -1235,6 +1235,39 @@ describe('EntityRuntime', () => {
             expect(crowd).toHaveLength(25);
         });
 
+        it('pushes only the data-defined pushable entity in an overlapping pair', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:fixed': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:pushable': { is_pushable: false }
+                        }
+                    },
+                    'jsprismarine:pusher': {
+                        components: {
+                            'minecraft:health': { value: 10, max: 10 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:pushable': { is_pushable: true }
+                        }
+                    }
+                }
+            );
+            const fixed = runtime.spawn('jsprismarine:fixed', { x: 0, y: FLOOR_Y + 1, z: 0 });
+            const pusher = runtime.spawn('jsprismarine:pusher', { x: 0.4, y: FLOOR_Y + 1, z: 0 });
+            if (fixed === undefined || pusher === undefined) throw new Error('the fixture declares no pusher pair');
+
+            runtime.tick(1);
+
+            expect(fixed.body.velocity).toEqual({ x: 0, y: 0, z: 0 });
+            expect(pusher.body.velocity.x).toBeGreaterThan(0);
+            expect(pusher.body.velocity.y).toBe(0);
+            expect(pusher.body.velocity.z).toBe(0);
+        });
+
         it('jumps onto a one-block step instead of moving upward through it', () => {
             const world = new TestEntityWorld();
             world.setBlock({ x: 1, y: FLOOR_Y + 1, z: 0 }, 'minecraft:stone');

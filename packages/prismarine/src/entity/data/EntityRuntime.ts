@@ -2672,28 +2672,42 @@ export class EntityRuntime implements EntityScene {
     private pushIntersectingEntity(first: DataEntity, widest: number, tallest: number): void {
         if (!this.hasEntityCollision(first)) return;
 
-        const horizontalReach = (first.facts.box.width + widest) / 2;
-        const verticalReach = (first.facts.box.height + tallest) / 2;
+        const firstPosition = first.position;
+        const firstId = first.id;
+        const firstBox = first.facts.box;
+        const firstWidth = firstBox.width;
+        const firstHeight = firstBox.height;
+        const horizontalReach = (firstWidth + widest) / 2;
+        const verticalReach = (firstHeight + tallest) / 2;
         const searchRadius = Math.hypot(horizontalReach * Math.SQRT2, verticalReach);
-        for (const second of this.grid.within(first.position, searchRadius)) {
-            if (first.id === second.id || !this.hasEntityCollision(second)) continue;
-            const firstVehicle = this.rides.vehicleOf(first.id);
-            const secondVehicle = this.rides.vehicleOf(second.id);
-            if (firstVehicle === second.id || secondVehicle === first.id) continue;
+        let firstVehicle: number | undefined;
+        let firstVehicleResolved = false;
+        let pushableFirst: boolean | undefined;
+        for (const second of this.grid.within(firstPosition, searchRadius)) {
+            const secondId = second.id;
+            if (firstId === secondId || !this.hasEntityCollision(second)) continue;
+            if (!firstVehicleResolved) {
+                firstVehicle = this.rides.vehicleOf(firstId);
+                firstVehicleResolved = true;
+            }
+            const secondVehicle = this.rides.vehicleOf(secondId);
+            if (firstVehicle === secondId || secondVehicle === firstId) continue;
             if (firstVehicle !== undefined && firstVehicle === secondVehicle) continue;
 
-            const dx = second.position.x - first.position.x;
-            const dz = second.position.z - first.position.z;
-            const collisionReach = (first.facts.box.width + second.facts.box.width) / 2;
+            const secondPosition = second.position;
+            const secondBox = second.facts.box;
+            const dx = secondPosition.x - firstPosition.x;
+            const dz = secondPosition.z - firstPosition.z;
+            const collisionReach = (firstWidth + secondBox.width) / 2;
             if (
                 Math.abs(dx) >= collisionReach ||
                 Math.abs(dz) >= collisionReach ||
-                first.position.y >= second.position.y + second.facts.box.height ||
-                second.position.y >= first.position.y + first.facts.box.height
+                firstPosition.y >= secondPosition.y + secondBox.height ||
+                secondPosition.y >= firstPosition.y + firstHeight
             )
                 continue;
 
-            const pushableFirst = this.isPushable(first);
+            pushableFirst ??= this.isPushable(first);
             const pushableSecond = this.isPushable(second);
             if (!pushableFirst && !pushableSecond) continue;
             const largestDifference = Math.max(Math.abs(dx), Math.abs(dz));
