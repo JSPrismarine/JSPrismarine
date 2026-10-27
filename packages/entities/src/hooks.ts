@@ -194,6 +194,8 @@ export interface EntityItemInteractionEffect {
     readonly vibration?: string;
     /** The entity item slot to repair and the amount of durability to restore. */
     readonly repairEntityItem?: EntityRepairItemRequest;
+    /** Whether the entity should offer its main-hand item to an empty player hand. */
+    readonly takeItem?: boolean;
     /** The inventory or equipment slot that receives the held item. */
     readonly equipItemSlot?: string;
     /** The entity slot whose item is dropped when this interaction succeeds. */

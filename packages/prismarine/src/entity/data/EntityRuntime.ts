@@ -1429,7 +1429,10 @@ export class EntityRuntime implements EntityScene {
         owner: number,
         itemIdentifier: string,
         other?: FilterEntityView,
-        heldItem: ContentItemDrop = { identifier: itemIdentifier, count: 1 }
+        heldItem: ContentItemDrop = {
+            identifier: itemIdentifier,
+            count: itemIdentifier === 'minecraft:air' ? 0 : 1
+        }
     ): EntityItemInteraction {
         const entity = this.entities.get(id);
         if (entity === undefined || entity.removed !== undefined) return { accepted: false };
@@ -1530,16 +1533,22 @@ export class EntityRuntime implements EntityScene {
                 playSounds,
                 repairEntityItem,
                 spawnItems,
+                takeItem,
                 vibration,
                 ...itemEffect
             } = interaction;
+            const hasHeldItem = heldItem.count > 0 && heldItem.identifier !== 'minecraft:air';
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
             if (repairEntityItem !== undefined) this.repairInteractionSlot(entity, repairEntityItem);
             if (dropItemSlot !== undefined) this.dropInteractionSlot(entity, dropItemSlot, dropItemYOffset ?? 0);
             const equippedHeldItem =
-                equipItemSlot === undefined || this.equipInteractionSlot(entity, equipItemSlot, heldItem);
-            if (giveItem) this.equipInteractionEquipment(entity, 'mainhand', heldItem);
+                !hasHeldItem ||
+                equipItemSlot === undefined ||
+                this.equipInteractionSlot(entity, equipItemSlot, heldItem);
+            if (giveItem && hasHeldItem) this.equipInteractionEquipment(entity, 'mainhand', heldItem);
+            const takenItem =
+                takeItem && !hasHeldItem ? this.removeInteractionEquipment(entity, 'mainhand') : undefined;
             const addedItems =
                 addItems === undefined
                     ? undefined
@@ -1561,8 +1570,10 @@ export class EntityRuntime implements EntityScene {
             return {
                 accepted: true,
                 ...itemEffect,
+                ...(!hasHeldItem ? { consumeItem: false } : {}),
                 ...(!equippedHeldItem && !giveItem ? { consumeItem: false } : {}),
-                ...(addedItems === undefined ? {} : { addedItems })
+                ...(addedItems === undefined ? {} : { addedItems }),
+                ...(takenItem === undefined ? {} : { takenItem })
             };
         }
         const ageable = entity.instance.componentParams('minecraft:ageable');
@@ -1593,6 +1604,22 @@ export class EntityRuntime implements EntityScene {
             return undefined;
         }
         return index;
+    }
+
+    /** Removes one equipment slot and its backing inventory slot, returning the held stack. */
+    private removeInteractionEquipment(entity: DataEntity, slot: MobEquipmentSlot): ContentItemDrop | undefined {
+        const item = entity.body.equipment[slot];
+        if (item === undefined) return undefined;
+
+        const projectedIndex = entity.body.equipmentInventorySlots[slot];
+        if (projectedIndex !== undefined) {
+            entity.body.containerSlots[projectedIndex] = undefined;
+            delete entity.body.equipmentInventorySlots[slot];
+        }
+        const equipment = { ...entity.body.equipment };
+        delete equipment[slot];
+        entity.body.setEquipment(equipment);
+        return item;
     }
 
     /** Restores durability to an entity item in a named equipment or inventory slot. */
@@ -1696,17 +1723,8 @@ export class EntityRuntime implements EntityScene {
         const at = { x: entity.position.x, y: entity.position.y + yOffset, z: entity.position.z };
         const equipmentSlot = mobEquipmentSlotOf(name);
         if (equipmentSlot !== undefined) {
-            const item = entity.body.equipment[equipmentSlot];
-            if (item === undefined) return;
-            const projectedIndex = entity.body.equipmentInventorySlots[equipmentSlot];
-            if (projectedIndex !== undefined) {
-                entity.body.containerSlots[projectedIndex] = undefined;
-                delete entity.body.equipmentInventorySlots[equipmentSlot];
-            }
-            const equipment = { ...entity.body.equipment };
-            delete equipment[equipmentSlot];
-            entity.body.setEquipment(equipment);
-            this.host.drop(at, item);
+            const item = this.removeInteractionEquipment(entity, equipmentSlot);
+            if (item !== undefined) this.host.drop(at, item);
             return;
         }
 

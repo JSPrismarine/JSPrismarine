@@ -135,13 +135,43 @@ export const createItemActorPort = (options: ItemActorPortOptions): ServerItemAc
         const inventory = player.getInventory();
         const heldEntry = inventory.getEntry(inventory.getHandSlotIndex());
         const held = inventory.getItemInHand();
-        if (heldEntry === null || heldEntry.getCount() < 1) return false;
-        const stored = storedItem(held, heldEntry.getCount());
-        if (stored === null) return false;
-        const outcome = interactWithEntity(target, player, held.getName(), itemDropOf(stored));
+        const emptyHand = (heldEntry?.getCount() ?? 0) < 1 || held.getName() === 'minecraft:air';
+        let itemIdentifier: string;
+        let heldItem: ContentItemDrop;
+        if (emptyHand) {
+            itemIdentifier = 'minecraft:air';
+            heldItem = { identifier: itemIdentifier, count: 0 };
+        } else {
+            const stored = storedItem(held, heldEntry?.getCount());
+            if (stored === null) return false;
+            itemIdentifier = held.getName();
+            heldItem = itemDropOf(stored);
+        }
+        const outcome = interactWithEntity(target, player, itemIdentifier, heldItem);
         if (!outcome.accepted) return false;
 
         for (const drop of outcome.addedItems ?? []) giveDrop(source, drop);
+
+        if (outcome.takenItem !== undefined) {
+            const takenItem = itemOfDrop(outcome.takenItem, player.getServer().getContent());
+            if (takenItem !== null) {
+                inventory.setItemInHand(new ContainerEntry({ item: takenItem, count: outcome.takenItem.count }));
+            } else {
+                const position = player.getPosition();
+                if (position !== undefined)
+                    entities.drop(
+                        {
+                            x: Math.floor(position.getX()),
+                            y: Math.floor(position.getY()),
+                            z: Math.floor(position.getZ())
+                        },
+                        outcome.takenItem
+                    );
+            }
+            return true;
+        }
+        if (emptyHand) return true;
+        if (heldEntry === null) return true;
 
         let resultItem: Item | undefined;
         if (outcome.resultItem !== undefined) {

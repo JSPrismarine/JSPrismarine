@@ -1026,6 +1026,8 @@ interface InteractEntry {
     readonly dropItemYOffset?: number;
     /** Whether the entity takes the held item into its main hand. */
     readonly giveItem: boolean;
+    /** Whether the entity offers its main-hand item to an empty player hand. */
+    readonly takeItem: boolean;
     /** Text shown on touch controls while this interaction is available. */
     readonly interactText?: string;
     /** Loot-table items to add to the interacting player's inventory. */
@@ -1095,6 +1097,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'play_sounds',
             'vibration',
             'repair_entity_item',
+            'take_item',
             'cooldown',
             'cooldown_after_being_attacked'
         ]);
@@ -1129,6 +1132,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 return rejected(`interactions[${index}].drop_item_y_offset must be a number`);
             if (raw.give_item !== undefined && typeof raw.give_item !== 'boolean')
                 return rejected(`interactions[${index}].give_item must be a boolean`);
+            if (raw.take_item !== undefined && typeof raw.take_item !== 'boolean')
+                return rejected(`interactions[${index}].take_item must be a boolean`);
             if (raw.interact_text !== undefined && typeof raw.interact_text !== 'string')
                 return rejected(`interactions[${index}].interact_text must be a string`);
             const spawnEntities: string[] = [];
@@ -1219,6 +1224,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 ...(typeof raw.drop_item_slot === 'string' ? { dropItemSlot: raw.drop_item_slot } : {}),
                 ...(typeof raw.drop_item_y_offset === 'number' ? { dropItemYOffset: raw.drop_item_y_offset } : {}),
                 giveItem: booleanAt(raw, 'give_item', false),
+                takeItem: booleanAt(raw, 'take_item', false),
                 ...(typeof raw.interact_text === 'string' ? { interactText: raw.interact_text } : {}),
                 ...(typeof raw.health_amount === 'number' ? { healthAmount: raw.health_amount } : {}),
                 ...(addItems === undefined ? {} : { addItems }),
@@ -1316,6 +1322,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.equipItemSlot === undefined &&
                         entry.dropItemSlot === undefined &&
                         !entry.giveItem &&
+                        !entry.takeItem &&
                         entry.spawnEntities.length === 0 &&
                         (entry.healthAmount === undefined || entry.healthAmount === 0) &&
                         entry.hurtItem === 0 &&
@@ -1347,6 +1354,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         ...(entry.dropItemSlot === undefined ? {} : { dropItemSlot: entry.dropItemSlot }),
                         ...(entry.dropItemYOffset === undefined ? {} : { dropItemYOffset: entry.dropItemYOffset }),
                         ...(entry.giveItem ? { giveItem: true } : {}),
+                        ...(entry.takeItem ? { takeItem: true } : {}),
                         ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
                         ...(entry.repairEntityItem === undefined ? {} : { repairEntityItem: entry.repairEntityItem }),
                         ...(entry.healthAmount === undefined ? {} : { healthAmount: entry.healthAmount }),

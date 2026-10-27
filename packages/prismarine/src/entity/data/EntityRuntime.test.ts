@@ -604,6 +604,44 @@ describe('EntityRuntime', () => {
             });
         });
 
+        it('takes the entity main-hand stack into an empty player hand', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:item_taker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:inventory': { container_type: 'horse', inventory_size: 1 },
+                            'minecraft:interact': { interactions: { take_item: true } }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:item_taker', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no item taker');
+            const item = {
+                identifier: 'minecraft:diamond_sword',
+                count: 1,
+                damage: 5,
+                customName: 'Returned sword',
+                enchantments: { 'minecraft:sharpness': 2 }
+            };
+            entity.body.containerSlots[0] = item;
+            entity.body.setEquipment({ mainhand: item });
+            entity.body.equipmentInventorySlots.mainhand = 0;
+            const emptyHand: FilterEntityView = { equipment: () => undefined };
+
+            expect(
+                runtime.interactWithItem(entity.id, 42, 'minecraft:air', emptyHand, {
+                    identifier: 'minecraft:air',
+                    count: 0
+                })
+            ).toEqual({ accepted: true, consumeItem: false, takenItem: item });
+            expect(entity.body.equipment.mainhand).toBeUndefined();
+            expect(entity.body.containerSlots[0]).toBeUndefined();
+        });
+
         it('checks healable filters and lets force_use accept an item at full health', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

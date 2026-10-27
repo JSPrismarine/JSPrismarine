@@ -5,8 +5,9 @@ import { describe, expect, it } from 'vitest';
 import HumanInventory from '../inventory/HumanInventory';
 import Player from '../Player';
 import { testContent } from '../testing/entityServer';
+import { stub } from '../testing/stub.test.helper';
 import { createItemActorPort } from './actorPort';
-import type { ContentEntityAccess, ContentLevelFacts } from '../content/world/adapter';
+import type { ContentEntityAccess, ContentItemDrop, ContentLevelFacts } from '../content/world/adapter';
 import { unwiredWorld } from '../content/world/unwired';
 import type { Entity } from '../entity/Entity';
 import type { World } from '../world/World';
@@ -36,9 +37,10 @@ const playerDouble = (recorded: Recorded): Player =>
     });
 
 /** A world reduced to the entity lookup, the block read and the logger. */
-const worldDouble = (player: Player, recorded: Recorded): World =>
+const worldDouble = (player: Player, recorded: Recorded, target?: Entity): World =>
     ({
-        getEntity: (runtimeId: bigint) => (runtimeId === 7n ? (player as unknown as Entity) : null),
+        getEntity: (runtimeId: bigint) =>
+            runtimeId === 7n ? (player as unknown as Entity) : runtimeId === 9n ? (target ?? null) : null,
         loadedBlockAt: () => ({ name: 'minecraft:air', states: {} }),
         getServer: () => ({
             getLogger: () => ({ debug: (message: string) => void recorded.logged.push(message) })
@@ -107,6 +109,44 @@ describe('the item actor port', () => {
 
         expect(port.duringInteraction(SOURCE, target, () => port.targetOf(SOURCE))).toBe(target);
         expect(port.targetOf(SOURCE)).toBeUndefined();
+    });
+
+    it('moves an entity item into an empty selected hand', () => {
+        const recorded: Recorded = { fed: [], logged: [] };
+        const inventory = new HumanInventory();
+        const player = Object.assign(Object.create(Player.prototype), {
+            getPosition: () => new Vector3(1.5, 65, 1.5),
+            gamemode: Gametype.SURVIVAL,
+            getInventory: () => inventory,
+            getServer: () => ({ getContent: () => testContent() })
+        });
+        const target = stub<Entity>();
+        const offered: { itemIdentifier: string; heldItem: ContentItemDrop }[] = [];
+        const port = createItemActorPort({
+            world: () => worldDouble(player, recorded, target),
+            entities: entityAccess(),
+            level: clock(),
+            interactWithEntity: (_target, _player, itemIdentifier, heldItem) => {
+                offered.push({ itemIdentifier, heldItem });
+                return {
+                    accepted: true,
+                    takenItem: {
+                        identifier: 'minecraft:diamond_sword',
+                        count: 1,
+                        damage: 5,
+                        customName: 'Returned sword'
+                    }
+                };
+            }
+        });
+        const targetSource = { identifier: 'minecraft:zombie', runtimeId: 9 };
+
+        expect(port.duringInteraction(SOURCE, targetSource, () => port.interactWithEntity(SOURCE))).toBe(true);
+        expect(offered).toEqual([
+            { itemIdentifier: 'minecraft:air', heldItem: { identifier: 'minecraft:air', count: 0 } }
+        ]);
+        expect(inventory.getItemInHand().getName()).toBe('minecraft:diamond_sword');
+        expect(inventory.getItemInHand().getCustomName()).toBe('Returned sword');
     });
 
     it('reports an action whose system this server has not written, once', () => {
