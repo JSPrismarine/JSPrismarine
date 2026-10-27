@@ -44,6 +44,9 @@ const KEY_BITS = 26;
 const KEY_MASK = (1 << KEY_BITS) - 1;
 const KEY_SPAN = 2 ** KEY_BITS;
 
+/** Small results sort faster by shifting their arrival keys than by decorating every entity. */
+const SMALL_RESULT_SORT_LIMIT = 8;
+
 /** The cell one horizontal coordinate falls in. */
 const cellOf = (coordinate: number): number => Math.floor(coordinate) >> CELL_BITS;
 
@@ -176,6 +179,30 @@ export class EntityGrid {
             }
 
         if (found.length < 2) return found;
+
+        if (found.length <= SMALL_RESULT_SORT_LIMIT) {
+            const arrivals = found.map((entity) => this.arrived.get(entity.id) ?? 0);
+            for (let index = 1; index < found.length; index += 1) {
+                const entity = found[index];
+                const arrival = arrivals[index];
+                if (entity === undefined || arrival === undefined) continue;
+
+                let previous = index - 1;
+                while (previous >= 0) {
+                    const previousArrival = arrivals[previous];
+                    const previousEntity = found[previous];
+                    if (previousArrival === undefined || previousEntity === undefined || previousArrival <= arrival)
+                        break;
+                    found[previous + 1] = previousEntity;
+                    arrivals[previous + 1] = previousArrival;
+                    previous -= 1;
+                }
+
+                found[previous + 1] = entity;
+                arrivals[previous + 1] = arrival;
+            }
+            return found;
+        }
 
         // Read each arrival order once rather than once per sort comparison.
         const ordered = found.map((entity) => ({ entity, arrival: this.arrived.get(entity.id) ?? 0 }));
