@@ -1,0 +1,109 @@
+---
+name: chrome-devtools
+description: Debug and profile JSPrismarine through Chrome DevTools. Use whenever diagnosing runtime failures, inspecting live server state, setting breakpoints or stepping through execution, debugging startup, profiling CPU or memory, or investigating slow ticks and performance regressions. Apply alongside diagnosing-bugs for runtime diagnosis.
+---
+
+# Chrome DevTools
+
+Use the server's `--devtools` integration as the default runtime debugger and profiler.
+Read [Live debugging and profiling](../../../docs/running.md#live-debugging-and-profiling)
+before starting. Keep the diagnosis loop in [diagnosing-bugs](../diagnosing-bugs/SKILL.md);
+this skill supplies its runtime inspection and measurement tools. Build, lint, and type errors
+can use their own command output without starting a server.
+
+## Connect to the server
+
+Reuse an existing development server with DevTools enabled when it matches the reproduction.
+Otherwise, start from the repository root:
+
+```bash
+pnpm run dev -- --devtools
+```
+
+For an agent-controlled plain console, append `--no-tui` to that command. Preserve the
+reproduction's world, seed, configuration, and workload. Use a disposable world when the
+reproduction changes persistent state.
+
+For configuration or server-initialization failures, use startup waiting instead:
+
+```bash
+pnpm run dev -- --devtools-wait --no-tui
+```
+
+`--devtools-wait` enables DevTools by itself and blocks before configuration and server
+construction. Static module imports have already run. The live `jsprismarine` handle becomes
+available only after construction. Enable the debugger and install startup breakpoints before
+sending `Runtime.runIfWaitingForDebugger`. Every watch restart waits again.
+
+Wait for `JSPrismarine DevTools:` for the Chrome frontend, or `JSPrismarine inspector:` for
+the external CDP WebSocket endpoint. The inspector uses a dynamically
+assigned port on `127.0.0.1`. Attach to the server process, not the terminal host or watcher.
+After a watch restart, read the new URL and reconnect before inspecting or measuring again.
+Keep inspector access on loopback because it permits code execution in the server process.
+
+For the debugging frontend, first look for an installed app named `Google Chrome Dev`.
+If it exists, open the printed DevTools URL in that app. If it is not installed, open the
+printed `devtools://` URI through the system's default handler. Wait for the frontend to
+connect to the server's inspector before interacting.
+
+Discover the available Chrome DevTools tools and read their connection and operation schemas.
+Use supported debugger, runtime evaluation, CPU profiling, and heap inspection operations for
+the Node target. Browser page tools do not necessarily support Node inspector targets or
+`devtools://` URLs. If they cannot attach or lack a debugger operation, connect directly to the
+printed WebSocket endpoint with an external Node client through a persistent Node REPL or a
+separate process. Node has a built-in `WebSocket`; no browser page or additional package is
+needed. Use [Direct CDP debugging](references/cdp.md) for connection and pause handling.
+Use an external connection, since a same-thread `inspector.Session` pauses its own controller.
+Report a blocker only after checking both tool attachment and direct CDP access. Never claim
+a session or capture succeeded without observing it.
+
+## Inspect the reproduction
+
+Use breakpoints, exception pauses, call stacks, and scoped evaluation to test a specific
+hypothesis. Resume execution after collecting the evidence. A paused server stops ticking;
+exclude pauses from performance measurements and account for client timeouts.
+
+Use normal or conditional source breakpoints for a known location, function-call breakpoints
+for a live method, and exception pauses for failures. For script instrumentation, use
+`Debugger.setInstrumentationBreakpoint` with `beforeScriptExecution` or
+`beforeScriptWithSourceMapExecution`. These are V8 script hooks. DOM, XHR, and browser
+event-listener breakpoints do not apply to JSPrismarine. Read the CDP reference for generated
+JavaScript locations, source-map handling, stepping, and paused scope inspection.
+
+Inspect live objects through the DevTools Console's `jsprismarine` handle:
+
+```javascript
+jsprismarine.server.getTick()
+jsprismarine.worlds()
+jsprismarine.world('world')
+jsprismarine.entities('world')
+jsprismarine.entityRuntime('minecraft:overworld')?.runtime
+```
+
+Discover the actual world names and dimensions before targeting them. These are live objects;
+prefer bounded, read-only queries, and treat method calls that change state as part of the
+reproduction. Avoid dumping whole registries or adding temporary logging when a debugger
+inspection can answer the question.
+
+## Profile the workload
+
+Capture a baseline before changing code. Record the scenario, warmup, capture duration, and
+relevant load so the same workload can be measured after the change.
+
+- Use a DevTools CPU profile to attribute sampled CPU time to functions and call stacks.
+- Use heap snapshots or allocation profiling for memory growth. Account for snapshot pauses
+  and compare equivalent workload and garbage-collection conditions.
+- Use the built-in timing trace to locate slow server ticks, world phases, and event-loop delay.
+  Stop the server gracefully and wait for `JSPrismarine trace saved to` before collecting the
+  `.trace.json` file. The default development location is `jsp/profiles/`; `JSP_DIR` can change
+  it. Import the saved trace in DevTools' Performance panel.
+
+Timing spans include awaited work and are not CPU samples. The trace keeps a bounded window
+of recent events, so reproduce near capture end. A forced exit cannot save it. Stop recording
+and resume paused execution before graceful shutdown; wait for the save message rather than
+sending repeated termination signals.
+
+After an authorized fix, repeat the same workload and compare the relevant measurements.
+Report the observed cause with its source location, the before/after evidence, artifact paths,
+and any capture or reproduction limitations. Remove temporary probes and breakpoints, and
+stop only sessions started for this task.
