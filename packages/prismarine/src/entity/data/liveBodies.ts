@@ -312,7 +312,8 @@ export class LiveBodies {
             entity,
             attacker === null || attacker === undefined ? undefined : Number(attacker.getRuntimeId()),
             source?.cause ?? 'generic',
-            taken
+            taken,
+            { feedback: false }
         );
     }
 

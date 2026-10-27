@@ -1561,6 +1561,40 @@ describe('the data-driven entity runtime over a live world', () => {
                 { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), sound: LevelSoundEvent.HURT }
             ]);
         });
+
+        it('emits mob-attributed hurt feedback for damage applied through the data runtime', () => {
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const body = live.bodies.bodyOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+
+            live.runtime.hurt(cow, undefined, 'entity_attack', 1);
+
+            expect(cow.instance.attributes.get('health')?.current).toBe(9);
+            expect(broadcasts.actorEffects).toEqual([
+                { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), effect: ActorEvent.HURT_ANIMATION }
+            ]);
+            expect(broadcasts.actorSounds).toEqual([
+                { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), sound: LevelSoundEvent.HURT }
+            ]);
+        });
+
+        it('does not duplicate hurt feedback when a legacy body hit syncs into the data runtime', async () => {
+            const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
+            if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
+            const body = live.bodies.bodyOf(cow.id);
+            if (body === undefined) throw new Error('the data-driven cow has no client-facing body');
+
+            await body.damage(1);
+            await run(1);
+
+            expect(broadcasts.actorEffects).toEqual([
+                { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), effect: ActorEvent.HURT_ANIMATION }
+            ]);
+            expect(broadcasts.actorSounds).toEqual([
+                { identifier: 'minecraft:cow', entityId: body.getRuntimeId(), sound: LevelSoundEvent.HURT }
+            ]);
+        });
     });
 
     describe('harvesting', () => {

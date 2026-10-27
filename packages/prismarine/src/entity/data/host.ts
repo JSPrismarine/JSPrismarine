@@ -100,6 +100,11 @@ export interface EntityHostFacts {
     hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
     /** Deals damage to an entity with the projectile and its owner preserved as the source. */
     hurtByProjectile?(id: number, amount: number, projectileId: number, ownerId: number | undefined): void;
+    /**
+     * Sends the hurt animation and entity-attributed sound for one runtime-applied hit.
+     * @param id - The data-driven entity's runtime id.
+     */
+    hurtFeedback?(id: number): void;
     /** Applies projectile knockback to an entity outside the data-driven index. */
     knockback?(id: number, directionX: number, directionZ: number, strength: number): void;
     /** Whether a named mob event, such as `minecraft:pillager_patrols_event`, is running. */

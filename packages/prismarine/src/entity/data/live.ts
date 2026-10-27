@@ -17,7 +17,7 @@
 import type { SpawnWorld } from '@jsprismarine/spawning';
 import type { LaunchProjectileAction } from '@jsprismarine/item-behaviors';
 import type { EquipmentSlot, FilterEntityView, FilterItemView } from '@jsprismarine/entities';
-import { ActorEvent } from '@jsprismarine/minecraft';
+import { ActorEvent, LevelSoundEvent } from '@jsprismarine/minecraft';
 
 import { singleDimension } from '../../content/world/adapter';
 import type { ContentEntityAccess, ServerWorldAdapter } from '../../content/world/adapter';
@@ -120,7 +120,7 @@ const lyingItemsIn = (world: World | undefined): readonly ContentItemEntity[] =>
 };
 
 /** The host facts over one live world. */
-const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
+const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFacts => ({
     players: () => options.entities.players(),
     drop: (at, item) => options.entities.drop(at, item),
     destroyBlock: (at, destruction) => {
@@ -166,6 +166,16 @@ const liveHost = (options: LiveEntityOptions): EntityHostFacts => ({
                 : DamageSource.projectileFrom(projectile, owner);
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
     },
+    hurtFeedback: (id) => {
+        const world = options.liveWorld();
+        const target = bodies.bodyOf(id);
+        if (world === undefined || target === undefined) return;
+
+        void Promise.all([
+            world.sendActorEvent(target, ActorEvent.HURT_ANIMATION),
+            world.sendActorSound(target, LevelSoundEvent.HURT)
+        ]).catch((error: unknown) => options.report(String(error)));
+    },
     knockback: (id, directionX, directionZ, strength) => {
         const target = options.liveWorld()?.getEntity(BigInt(id));
         target?.applyKnockback(directionX, directionZ, strength);
@@ -209,7 +219,7 @@ export class LiveEntityRuntime {
         this.runtime = new EntityRuntime({
             content: options.content,
             world: options.world,
-            host: liveHost(options),
+            host: liveHost(options, this.bodies),
             report: options.report,
             onSpawn: (entity) => this.bodies.add(entity),
             onRemove: (entity) => this.bodies.drop(entity),

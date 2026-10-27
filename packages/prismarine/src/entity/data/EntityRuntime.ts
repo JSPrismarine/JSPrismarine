@@ -859,8 +859,17 @@ export class EntityRuntime implements EntityScene {
      * The record is what `hurt_by_target`, `panic`, `play_dead` and the
      * wither's targeting read, so every path that deals damage goes through
      * here rather than writing the attribute itself.
+     *
+     * @param options - Whether the host sends hit feedback; disable it when mirroring a legacy
+     *   body hit that already emitted the feedback.
      */
-    public hurt(entity: DataEntity, sourceId: number | undefined, cause: string, amount: number): void {
+    public hurt(
+        entity: DataEntity,
+        sourceId: number | undefined,
+        cause: string,
+        amount: number,
+        options: { readonly feedback?: boolean } = {}
+    ): void {
         if (this.pendingDeaths.has(entity.id)) return;
         if (entity.instance.attributes.get('health') === undefined) return;
 
@@ -871,7 +880,10 @@ export class EntityRuntime implements EntityScene {
 
         const damager = sourceId === undefined ? undefined : this.mobById(sourceId)?.view();
         const result = entity.instance.damage({ cause, amount, damager });
-        if (result.amount > 0) entity.body.damage.record(sourceId, cause, result.amount);
+        if (result.amount > 0) {
+            entity.body.damage.record(sourceId, cause, result.amount);
+            if (options.feedback !== false) this.host.hurtFeedback?.(entity.id);
+        }
         if (result.died) {
             if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
             else this.kill(entity);
