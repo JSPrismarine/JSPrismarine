@@ -67,23 +67,26 @@ const MOVEMENT_KINDS: readonly (readonly [string, number])[] = [
  * The component names this package parses and exposes without running
  * behavior of its own.
  *
- * They are real implementations of data components: the value is validated,
- * normalized and readable through `EntityInstance.componentParams`, which is
- * all a flag like `minecraft:can_climb` or a table reference like
- * `minecraft:shareables` is.
+ * Dedicated factories validate and normalize their values. Generic factories
+ * preserve the raw object. Both make the component available through
+ * `EntityInstance.componentParams`, which is all a flag like
+ * `minecraft:can_climb` or a table reference like `minecraft:shareables` is.
  *
- * The line this list draws is every non-goal key that two or more of the 129
- * vanilla entities use, plus the singleton markers that change target
- * selection, damage, persistence, or actor metadata. The other 37 keys only one
- * entity uses remain unregistered, so the load report names them.
+ * The list covers every non-goal key in the 1.26.51.1 vanilla entity pack.
+ * Components with dedicated factories are registered separately; these
+ * factories preserve the remaining component bodies for systems that need
+ * their data, without claiming to run their behavior.
  */
 export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:addrider',
+    'minecraft:admire_item',
+    'minecraft:anger_level',
     'minecraft:annotation.break_door',
     'minecraft:annotation.open_door',
     'minecraft:apply_knockback_rules',
     'minecraft:area_attack',
     'minecraft:attack_cooldown',
+    'minecraft:barter',
     'minecraft:balloonable',
     'minecraft:block_climber',
     'minecraft:block_movement_slowdown_immunity',
@@ -92,6 +95,8 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:body_rotation_blocked',
     'minecraft:boostable',
     'minecraft:boss',
+    'minecraft:break_blocks',
+    'minecraft:bribeable',
     'minecraft:breedable',
     'minecraft:buoyant',
     'minecraft:burns_in_daylight',
@@ -100,7 +105,9 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:can_join_raid',
     'minecraft:can_power_jump',
     'minecraft:can_stand_on_powder_snow',
+    'minecraft:celebrate_hunt',
     'minecraft:cannot_be_attacked',
+    'minecraft:combat_regeneration',
     'minecraft:conditional_bandwidth_optimization',
     'minecraft:custom_hit_test',
     'minecraft:dash_action',
@@ -111,6 +118,7 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:entity_sensor',
     'minecraft:equip_item',
     'minecraft:equippable',
+    'minecraft:exhaustion_values',
     'minecraft:explode',
     'minecraft:fire_immune',
     'minecraft:flocking',
@@ -118,11 +126,16 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:freezing_immune',
     'minecraft:freezing_vulnerable',
     'minecraft:game_event_movement_tracking',
+    'minecraft:giveable',
     'minecraft:genetics',
+    'minecraft:grows_crop',
     'minecraft:group_size',
     'minecraft:healable',
+    'minecraft:heartbeat',
+    'minecraft:hide',
     'minecraft:home',
     'minecraft:input_ground_controlled',
+    'minecraft:insomnia',
     'minecraft:inside_block_notifier',
     'minecraft:is_baby',
     'minecraft:is_charged',
@@ -140,21 +153,32 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:is_stunned',
     'minecraft:is_tamed',
     'minecraft:item_controllable',
+    'minecraft:item_hopper',
     'minecraft:leashable',
     'minecraft:leashable_to',
     'minecraft:looked_at',
+    'minecraft:managed_wandering_trader',
     'minecraft:mob_effect',
     'minecraft:mob_effect_immunity',
     'minecraft:movement_sound_distance_offset',
     'minecraft:nameable',
     'minecraft:not_pickable_from_inside',
+    'minecraft:npc',
     'minecraft:offspring',
     'minecraft:out_of_control',
+    'minecraft:peek',
     'minecraft:persistent',
+    'minecraft:player.exhaustion',
+    'minecraft:player.experience',
+    'minecraft:player.level',
+    'minecraft:player.saturation',
     'minecraft:preferred_path',
     'minecraft:projectile',
     'minecraft:pushable_by_block',
     'minecraft:pushable_by_entity',
+    'minecraft:raid_trigger',
+    'minecraft:ravager_blocked',
+    'minecraft:reflect_projectiles',
     'minecraft:rail_movement',
     'minecraft:rail_sensor',
     'minecraft:renders_when_invisible',
@@ -167,14 +191,24 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:spawn_egg_interaction',
     'minecraft:spell_effects',
     'minecraft:strength',
+    'minecraft:suspect_tracking',
     'minecraft:tameable',
     'minecraft:tamemount',
     'minecraft:target_nearby_sensor',
+    'minecraft:teleport',
+    'minecraft:tick_world',
+    'minecraft:trade_resupply',
+    'minecraft:trade_table',
+    'minecraft:trail',
+    'minecraft:trust',
+    'minecraft:trusting',
     'minecraft:transient',
     'minecraft:underwater_mount_breathing',
     'minecraft:uses_legacy_friction',
     'minecraft:uses_uniform_air_drag',
     'minecraft:variable_max_auto_step',
+    'minecraft:vertical_movement_action',
+    'minecraft:vibration_damper',
     'minecraft:vibration_listener',
     'minecraft:water_movement'
 ];

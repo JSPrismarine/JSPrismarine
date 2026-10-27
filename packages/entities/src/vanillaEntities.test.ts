@@ -356,7 +356,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
             [
                 `entities: ${types.registry.size}`,
                 `non-goal keys in vanilla: ${others.length}, registered: ${registeredOthers.length}`,
-                `unimplemented non-goal keys: ${unimplementedOthers.join(', ')}`,
+                `unregistered non-goal keys: ${unimplementedOthers.join(', ')}`,
                 `non-goal keys that carry behavior: ${withBehavior.length}`,
                 `goal names in vanilla: ${goals.length} (registration is checked by @jsprismarine/entity-goals)`,
                 `entities with every non-goal component registered: ${componentCovered}`,
@@ -365,17 +365,22 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
             ].join('\n')
         );
 
-        // The research note measures that the 140 most used non-goal keys
-        // cover 88 of the 129 entities. This package registers every key two
-        // or more entities use plus runtime-read components, 168 of the 202,
-        // covering 108, and every filter test vanilla uses.
+        // Every vanilla non-goal key has a factory. Some factories preserve
+        // data without running behavior; the separate count above measures
+        // behavior implementations.
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
-        expect(registeredOthers.length).toBeGreaterThanOrEqual(168);
+        expect(registeredOthers).toHaveLength(202);
+        expect(unimplementedOthers).toEqual([]);
         expect(withBehavior).toHaveLength(60);
-        expect(componentCovered).toBeGreaterThanOrEqual(108);
+        expect(componentCovered).toBe(129);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);
+
+        expect(types.spawn('minecraft:warden').componentParams('minecraft:anger_level')).toMatchObject({
+            angry_threshold: 80,
+            max_anger: 150
+        });
     });
 
     it('parses every event action the pack writes into one it carries out', () => {

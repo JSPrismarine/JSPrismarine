@@ -247,9 +247,10 @@ rest are parsed structurally. `minecraft:type_family` and the integer state comp
 reads, so an entity answers `is_family`, `is_variant`, `is_mark_variant` and `is_skin_id` from them
 with no caller view.
 
-Thirty-four non-goal keys used by exactly one vanilla entity remain unregistered. The corpus test
-prints each name, and the loader reports them instead of silently doing nothing; each is an
-outstanding coverage gap.
+Every non-goal key in the vanilla pack has a component factory, so the loader preserves its body
+and exposes it through `EntityInstance.componentParams`. The 34 keys used by only one entity are
+data-only factories for now. They do not run engine behavior; the corpus test counts their bodies
+as parsed, not behaviorally implemented.
 
 ## Measured coverage
 
@@ -261,9 +262,9 @@ test in `src/vanillaEntities.test.ts`:
 | Entity definitions composed | 129 |
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
-| Non-goal component keys in vanilla | 202, of which 168 are registered |
+| Non-goal component keys in vanilla | 202, all registered |
 | Non-goal keys that carry behavior rather than data | 60 |
-| Entities whose every non-goal component is registered | 108 of 129 |
+| Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
 | Filter tests the documentation lists | 107, all implemented |
@@ -337,5 +338,6 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   effects (item drops and inventory transfers), `minecraft:inventory`,
   `minecraft:equipment`, `minecraft:explode` and the rest need item use or world effects.
   `minecraft:interact` currently runs item filters, entity events, cooldowns, `play_sounds`,
-  held-item consumption, item transformation, `health_amount`, and `spawn_items` table requests. The load report and `EntityType.unimplementedComponents` name the 34 non-goal keys
-  that remain unregistered.
+  held-item consumption, item transformation, `health_amount`, and `spawn_items` table requests.
+  The 34 data-only components still need their engine behavior implemented where the server
+  simulates it.
