@@ -97,8 +97,7 @@ const JAVA_STAT_DISAGREEMENTS = 151;
 const RESOLVED_TO_JAVA = 33;
 
 /**
- * The markers the runtime reads back by presence rather than through a hook,
- * because the component name carries the state itself.
+ * The empty markers that have runtime meaning without a component hook.
  */
 const MARKER_COMPONENTS = [
     'minecraft:persistent',
@@ -107,7 +106,11 @@ const MARKER_COMPONENTS = [
     'minecraft:freezing_immune',
     'minecraft:cannot_be_attacked',
     'minecraft:is_charged',
-    'minecraft:is_ignited'
+    'minecraft:is_ignited',
+    'minecraft:is_saddled',
+    'minecraft:is_chested',
+    'minecraft:is_illager_captain',
+    'minecraft:is_shaking'
 ];
 
 /** Whether a parsed component body is the `minecraft:collision_box` shape. */
@@ -327,10 +330,8 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         for (const file of files) filterTestsIn(file.data, tests);
         const implementedTests = [...tests].filter(hasFilterTest);
 
-        // Behavior is a hook, or a body the entity reads back itself: the
-        // eleven triggers, which fire at a point the engine reaches rather
-        // than on a schedule, and the five empty immunity and persistence
-        // markers, whose name is the whole of what each one means.
+        // Behavior comes from registered hooks, trigger components, and
+        // presence markers with meaning outside a component callback.
         const withHooks = registry
             .names()
             .filter((name) => !name.startsWith('minecraft:behavior.') && registry.hooksOf(name).size > 0);
@@ -357,7 +358,7 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(others).toHaveLength(202);
         expect(goals).toHaveLength(170);
         expect(registeredOthers.length).toBeGreaterThanOrEqual(161);
-        expect(withBehavior).toHaveLength(42);
+        expect(withBehavior).toHaveLength(46);
         expect(componentCovered).toBeGreaterThanOrEqual(106);
         expect(tests.size).toBe(86);
         expect(implementedTests.length).toBe(tests.size);

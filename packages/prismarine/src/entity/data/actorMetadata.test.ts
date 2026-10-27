@@ -82,4 +82,62 @@ describe('actor metadata from entity components', () => {
         applyActorMetadataProjection(body, actorMetadataProjection(tnt));
         expect(metadata.getDataFlag(MetadataFlag.INDEX, BigInt(MetadataFlag.IGNITED))).toBe(true);
     });
+
+    it('projects saddled, chested, captain, and shaking markers to actor flags', () => {
+        const fixture = entityFixture(
+            new TestEntityWorld(),
+            {},
+            {
+                'jsprismarine:marker_actor': {
+                    components: { 'minecraft:physics': {} },
+                    component_groups: {
+                        saddled: { 'minecraft:is_saddled': {} },
+                        chested: { 'minecraft:is_chested': {} },
+                        captain: { 'minecraft:is_illager_captain': {} },
+                        shaking: { 'minecraft:is_shaking': {} }
+                    },
+                    events: {
+                        mark: {
+                            add: { component_groups: ['saddled', 'chested', 'captain', 'shaking'] }
+                        },
+                        clear: {
+                            remove: { component_groups: ['saddled', 'chested', 'captain', 'shaking'] }
+                        }
+                    }
+                }
+            }
+        );
+        const actor = fixture.runtime.spawn('jsprismarine:marker_actor', {
+            x: 0.5,
+            y: FLOOR_Y + 1,
+            z: 0.5
+        });
+        if (actor === undefined) throw new Error('the fixture did not declare a marker actor');
+
+        const metadata = new Metadata();
+        const body = stub<Entity>({ metadata });
+        const flags = [ActorFlags.SADDLED, ActorFlags.CHESTED, ActorFlags.IS_ILLAGER_CAPTAIN, ActorFlags.SHAKING];
+        const expectFlags = (value: boolean): void => {
+            for (const flag of flags) {
+                // Mojang stores flags 64 and above in the FlagsTwo data item (ID 92).
+                const propertyId = flag >= 64 ? 92 : MetadataFlag.INDEX;
+                expect(metadata.getDataFlag(propertyId, BigInt(flag % 64)), `actor flag ${flag}`).toBe(value);
+            }
+        };
+
+        applyActorMetadataProjection(body, actorMetadataProjection(actor));
+        expectFlags(false);
+
+        fixture.runtime.trigger(actor.body, 'mark', 'self');
+        fixture.runtime.tick(1);
+
+        applyActorMetadataProjection(body, actorMetadataProjection(actor));
+        expectFlags(true);
+
+        fixture.runtime.trigger(actor.body, 'clear', 'self');
+        fixture.runtime.tick(2);
+
+        applyActorMetadataProjection(body, actorMetadataProjection(actor));
+        expectFlags(false);
+    });
 });

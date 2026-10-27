@@ -60,6 +60,13 @@ export const actorMetadataProjection = (entity: DataEntity): ActorMetadataProjec
             value: body.fuseTicks !== undefined || instance.hasComponent('minecraft:is_ignited')
         },
         { flag: ActorFlags.POWERED, value: instance.hasComponent('minecraft:is_charged') },
+        { flag: ActorFlags.SADDLED, value: instance.hasComponent('minecraft:is_saddled') },
+        { flag: ActorFlags.CHESTED, value: instance.hasComponent('minecraft:is_chested') },
+        {
+            flag: ActorFlags.IS_ILLAGER_CAPTAIN,
+            value: instance.hasComponent('minecraft:is_illager_captain')
+        },
+        { flag: ActorFlags.SHAKING, value: instance.hasComponent('minecraft:is_shaking') },
         {
             flag: ActorFlags.TAMED,
             value: body.owner !== undefined || instance.hasComponent('minecraft:is_tamed')

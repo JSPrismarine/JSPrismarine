@@ -152,12 +152,12 @@ leashes, so an entry with `should_leash` names that missing behavior in the serv
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. 161 of them are registered, and
-42 of those carry runtime behavior. The remaining 119 registered keys parse their parameters,
+46 of those carry runtime behavior. The remaining 115 registered keys parse their parameters,
 normalize them and expose them through `EntityInstance.componentParams`, which for a flag like
 `minecraft:can_climb` or a table reference like `minecraft:shareables` is the whole of what the
 component means.
 
-The 42 that act are the ones that measure something over time or decide an outcome: the nine
+The 46 that act change entity state or decide an outcome: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
 `minecraft:transformation`); the damage components (`minecraft:damage_sensor`,
@@ -165,10 +165,12 @@ initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angr
 population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecraft:persistent`);
 `minecraft:transient`, which keeps its entity out of saved actor records;
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
-`minecraft:spawn_entity`, and `minecraft:interact`; the metadata markers `minecraft:is_charged` and
-`minecraft:is_ignited`, which project their states to the client; the eleven `minecraft:on_*` trigger
-components;
-and `minecraft:cannot_be_attacked`, which blocks entity attacks. `minecraft:interact` evaluates item
+`minecraft:spawn_entity`, `minecraft:interact`, and `minecraft:vibration_listener`, which connects
+its entity to world game-event delivery; the actor metadata markers `minecraft:is_charged`,
+`minecraft:is_ignited`, `minecraft:is_saddled`, `minecraft:is_chested`,
+`minecraft:is_illager_captain`, and `minecraft:is_shaking`, which project their state into actor
+metadata; the eleven `minecraft:on_*` trigger components; and `minecraft:cannot_be_attacked`, which
+blocks entity attacks. `minecraft:interact` evaluates item
 filters, enforces its cooldowns, raises its event, adjusts health by `health_amount`, plays
 `play_sounds`, emits its `vibration` game event, requests the `spawn_items` loot table from the host,
 and applies `use_item` and
