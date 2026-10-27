@@ -914,7 +914,7 @@ export class World implements Service {
         // Try - catch for provider errors
         const chunk = await this.provider.readChunk(x, z, this.seed, this.generator, this.config, options);
         this.chunks.set(index, chunk);
-        this.server.invalidatePointOfInterestCache?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         // The only thing that changes what `getLoadedChunk` should answer.
         this.lastChunkIndex = -1;
         this.markEntitiesInChunkChanged(chunk);
@@ -1626,7 +1626,7 @@ export class World implements Service {
         // Read before the write: the light engine's decrease wave needs what stood here.
         const previous = chunk.getBlock(x, y, z);
         chunk.setBlockRuntimeId(x & 0xf, y, z & 0xf, runtimeId);
-        this.server.invalidatePointOfInterestCache?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         const state = chunk.getBlock(x, y, z);
         const next: SystemBlock = { name: state.name, states: state.properties };
         this.systems.onBlockChanged({ x, y, z }, { name: previous.name, states: previous.properties }, next);
@@ -2132,7 +2132,7 @@ export class World implements Service {
 
         this.systems.onChunkUnloaded(chunk.getX(), chunk.getZ());
         this.chunks.delete(index);
-        this.server.invalidatePointOfInterestCache?.(this.dimension.name);
+        this.server.invalidateEntityBlockCaches?.(this.dimension.name);
         this.lastChunkIndex = -1;
         this.lastChunk = null;
         this.lastChunkSource = null;

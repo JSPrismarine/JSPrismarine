@@ -38,6 +38,17 @@ const CLIMBABLE = new Set(['minecraft:ladder', 'minecraft:vine', 'minecraft:scaf
 /** The two portals, which `avoid_portals` steers around. */
 const PORTALS = new Set(['minecraft:portal', 'minecraft:end_portal', 'minecraft:end_gateway']);
 
+/** The number of distinct block cells the view will retain between invalidations. */
+const MAX_CACHED_BLOCKS = 100_000;
+const NO_BLOCK = Symbol('no loaded block');
+
+/** The path finder's block view and the cache control the owning runtime needs. */
+export interface CachedNavigationView {
+    readonly view: NavigationView;
+    /** Drops cached reads after a block or chunk changes. */
+    invalidateBlockCache(): void;
+}
+
 /**
  * Builds the path finder's view of one dimension.
  *
@@ -47,7 +58,69 @@ const PORTALS = new Set(['minecraft:portal', 'minecraft:end_portal', 'minecraft:
  * thousand block reads, and a server runs one of those per wandering mob per
  * tick.
  */
-export const navigationViewOf = (blocks: ContentBlockAccess, content: () => ServerContent): NavigationView => {
+export const navigationViewOf = (blocks: ContentBlockAccess, content: () => ServerContent): CachedNavigationView => {
+    /**
+     * Block reads shared by every path search in the current tick. A* searches
+     * often visit the same cells for nearby entities, and resolving each read
+     * through the chunk adapter rebuilds the same block record repeatedly.
+     */
+    const cachedBlocks = new Map<number, Map<number, Map<number, ContentBlock | typeof NO_BLOCK>>>();
+    let cachedBlockCount = 0;
+    let cacheEnabled = true;
+
+    const invalidateBlockCache = (): void => {
+        cachedBlocks.clear();
+        cachedBlockCount = 0;
+        cacheEnabled = true;
+    };
+
+    /** Reads a block once per cell until the runtime invalidates its view. */
+    const blockAt = (position: EntityPosition): ContentBlock | undefined => {
+        if (
+            !cacheEnabled ||
+            !Number.isInteger(position.x) ||
+            !Number.isInteger(position.y) ||
+            !Number.isInteger(position.z)
+        )
+            return blocks.get(position);
+
+        const chunkX = Math.floor(position.x / 16);
+        const chunkZ = Math.floor(position.z / 16);
+        const localX = position.x - chunkX * 16;
+        const localZ = position.z - chunkZ * 16;
+        const cell = position.y * 256 + localZ * 16 + localX;
+        const byZ = cachedBlocks.get(chunkX)?.get(chunkZ);
+        if (byZ?.has(cell)) {
+            const block = byZ.get(cell);
+            return block === NO_BLOCK ? undefined : block;
+        }
+
+        const block = blocks.get(position);
+        if (cachedBlockCount >= MAX_CACHED_BLOCKS) {
+            // Stop retaining cells for this tick once the bound is reached;
+            // clearing here keeps memory bounded without repeatedly thrashing.
+            invalidateBlockCache();
+            cacheEnabled = false;
+            return block;
+        }
+
+        let byChunkZ = cachedBlocks.get(chunkX);
+        if (byChunkZ === undefined) {
+            byChunkZ = new Map();
+            cachedBlocks.set(chunkX, byChunkZ);
+        }
+
+        let cells = byChunkZ.get(chunkZ);
+        if (cells === undefined) {
+            cells = new Map();
+            byChunkZ.set(chunkZ, cells);
+        }
+
+        cells.set(cell, block ?? NO_BLOCK);
+        cachedBlockCount += 1;
+        return block;
+    };
+
     /**
      * Whether each block with no state values is solid, by identifier.
      *
@@ -75,7 +148,7 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
 
     /** The `solid` column of the block at a position, or undefined outside the loaded world. */
     const solidAt = (position: EntityPosition): boolean | undefined => {
-        const block = blocks.get(position);
+        const block = blockAt(position);
         if (block === undefined) return undefined;
 
         if (Object.keys(block.states).length > 0) return solidOf(block);
@@ -87,36 +160,39 @@ export const navigationViewOf = (blocks: ContentBlockAccess, content: () => Serv
         return solid;
     };
 
-    const identifierAt = (position: EntityPosition): string | undefined => blocks.get(position)?.identifier;
+    const identifierAt = (position: EntityPosition): string | undefined => blockAt(position)?.identifier;
 
     return {
-        blockAt: identifierAt,
-        isSolid: (position) => solidAt(position) === true,
-        // A liquid is not solid, so this is the same question asked the other way round; an
-        // unloaded block is impassable, which stops a path from being planned off the edge of
-        // the loaded world.
-        isPassable: (position) => solidAt(position) === false,
-        isWater: (position) => {
-            const identifier = identifierAt(position);
-            return identifier !== undefined && WATER.has(identifier);
+        view: {
+            blockAt: identifierAt,
+            isSolid: (position) => solidAt(position) === true,
+            // A liquid is not solid, so this is the same question asked the other way round; an
+            // unloaded block is impassable, which stops a path from being planned off the edge of
+            // the loaded world.
+            isPassable: (position) => solidAt(position) === false,
+            isWater: (position) => {
+                const identifier = identifierAt(position);
+                return identifier !== undefined && WATER.has(identifier);
+            },
+            isLava: (position) => {
+                const identifier = identifierAt(position);
+                return identifier !== undefined && LAVA.has(identifier);
+            },
+            isDamaging: (position) => {
+                const identifier = identifierAt(position);
+                return identifier !== undefined && DAMAGING.has(identifier);
+            },
+            isClimbable: (position) => {
+                const identifier = identifierAt(position);
+                return identifier !== undefined && CLIMBABLE.has(identifier);
+            },
+            isPortal: (position) => {
+                const identifier = identifierAt(position);
+                return identifier !== undefined && PORTALS.has(identifier);
+            },
+            isSunlit: (position) => blocks.light(position) >= SUNLIT_LIGHT_LEVEL
         },
-        isLava: (position) => {
-            const identifier = identifierAt(position);
-            return identifier !== undefined && LAVA.has(identifier);
-        },
-        isDamaging: (position) => {
-            const identifier = identifierAt(position);
-            return identifier !== undefined && DAMAGING.has(identifier);
-        },
-        isClimbable: (position) => {
-            const identifier = identifierAt(position);
-            return identifier !== undefined && CLIMBABLE.has(identifier);
-        },
-        isPortal: (position) => {
-            const identifier = identifierAt(position);
-            return identifier !== undefined && PORTALS.has(identifier);
-        },
-        isSunlit: (position) => blocks.light(position) >= SUNLIT_LIGHT_LEVEL
+        invalidateBlockCache
     };
 };
 

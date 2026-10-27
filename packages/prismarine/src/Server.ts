@@ -1075,12 +1075,12 @@ export default class Server extends EventEmitter {
     }
 
     /**
-     * Invalidates the dimension's cached point-of-interest reads.
+     * Invalidates cached block reads held by the dimension's entity runtime.
      * @param dimension - The namespaced dimension identifier.
      * @internal
      */
-    public invalidatePointOfInterestCache(dimension: string): void {
-        this.entityRuntimes.at(dimension)?.runtime.invalidatePointOfInterestCache();
+    public invalidateEntityBlockCaches(dimension: string): void {
+        this.entityRuntimes.at(dimension)?.runtime.invalidateBlockCaches();
     }
 
     /**

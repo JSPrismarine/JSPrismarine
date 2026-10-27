@@ -79,6 +79,7 @@ import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
 import type { EntityHostFacts, EntityWorldFacts } from './host';
 import { navigationViewOf } from './navigationView';
+import type { CachedNavigationView } from './navigationView';
 import type { DataEntityRecord } from './persistence';
 import { applyDataEntityRecord } from './persistence';
 import type { EntityItemInteraction } from './itemInteraction';
@@ -281,7 +282,7 @@ export class EntityRuntime implements EntityScene {
     /** The world the spawn rules read, kept because the despawn pass reads the same one. */
     private spawnWorld: SpawnWorld | undefined;
     /** The path finder's view, built once; see {@link EntityRuntime.navigation}. */
-    private navigationView: NavigationView | undefined;
+    private navigationView: CachedNavigationView | undefined;
     private nextId = 1;
 
     public constructor(options: EntityRuntimeOptions) {
@@ -596,6 +597,7 @@ export class EntityRuntime implements EntityScene {
     public tick(tick: number): void {
         this.refreshOnlineOwners();
         this.interest.resetBlockCache();
+        this.navigationView?.invalidateBlockCache();
         const entities = this.all();
         let widest = 0;
         let tallest = 0;
@@ -634,9 +636,10 @@ export class EntityRuntime implements EntityScene {
         this.runDespawnCycle();
     }
 
-    /** Invalidates block reads cached by the point-of-interest searches. */
-    public invalidatePointOfInterestCache(): void {
+    /** Invalidates block reads cached by the point-of-interest and navigation views. */
+    public invalidateBlockCaches(): void {
         this.interest.invalidateBlockCache();
+        this.navigationView?.invalidateBlockCache();
     }
 
     /**
@@ -747,7 +750,7 @@ export class EntityRuntime implements EntityScene {
      */
     public navigation(): NavigationView {
         this.navigationView ??= navigationViewOf(this.world.blocks, () => this.content());
-        return this.navigationView;
+        return this.navigationView.view;
     }
 
     /**
