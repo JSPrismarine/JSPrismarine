@@ -102,6 +102,19 @@ describe('spawnServerChild', () => {
         await expect(exited(child)).resolves.toEqual({ code: null, signal: 'SIGTERM' });
     });
 
+    it('lets a child that reported stopping finish past the shutdown grace period', async () => {
+        const child = await spawnFixture(['--slow-shutdown'], {
+            shutdownGraceMs: 50,
+            killGraceMs: 2000,
+            platform: 'darwin'
+        });
+        await nextMessage(child);
+
+        child.stop();
+
+        await expect(exited(child)).resolves.toEqual({ code: 0, signal: null });
+    });
+
     it('skips SIGTERM on Windows and gives the shutdown message the kill grace period', async () => {
         const child = await spawnFixture(['--ignore-shutdown'], {
             shutdownGraceMs: 50,

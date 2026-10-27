@@ -39,9 +39,12 @@ export interface ServerChildOptions {
     cwd?: string;
     /** Defaults to the host's environment. */
     env?: NodeJS.ProcessEnv;
-    /** How long {@link ServerChild.stop} waits after the `shutdown` message before SIGTERM; defaults to 1000. */
+    /**
+     * How long {@link ServerChild.stop} waits after the `shutdown` message before SIGTERM, unless
+     * the child has reported that it is stopping by then; defaults to 1000.
+     */
     shutdownGraceMs?: number;
-    /** How long {@link ServerChild.stop} waits after SIGTERM before SIGKILL; defaults to 10000. */
+    /** How long {@link ServerChild.stop} waits after the SIGTERM step, sent or skipped, before SIGKILL; defaults to 10000. */
     killGraceMs?: number;
     /** Defaults to the global timers. */
     timers?: Timers;
@@ -61,9 +64,12 @@ export interface ServerChild {
     onExit(listener: ExitListener): () => void;
     /**
      * Asks the child to stop: first the `shutdown` message, then SIGTERM after the shutdown
-     * grace period, then SIGKILL after the kill grace period. On Windows `kill('SIGTERM')`
-     * terminates the process outright, so there the message alone gets the whole kill grace
-     * period before SIGKILL. Calling it again has no effect.
+     * grace period, then SIGKILL after the kill grace period. A child that has reported
+     * `lifecycle stopping` by then gets no SIGTERM, only the kill grace period, because a server
+     * hands its termination signals back to the kernel once its shutdown starts and SIGTERM
+     * would end its world save. On Windows `kill('SIGTERM')` terminates the process outright, so
+     * there the message alone gets the whole kill grace period before SIGKILL. Calling it again
+     * has no effect.
      */
     stop(): void;
     /** Kills the child outright with SIGKILL. */
@@ -125,8 +131,14 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
     const exitListeners = new Set<ExitListener>();
     let alive = true;
     let stopping = false;
+    /** Whether the child reported `lifecycle stopping`, by itself or in answer to {@link ServerChild.stop}. */
+    let childStopping = false;
     let termTimer: ReturnType<typeof setTimeout> | undefined;
     let killTimer: ReturnType<typeof setTimeout> | undefined;
+
+    link.onMessage((message) => {
+        if (message.type === 'lifecycle' && message.state === 'stopping') childStopping = true;
+    });
 
     forwardLines(child.stdout, (text) => {
         for (const listener of outputListeners) listener('stdout', text);
@@ -173,7 +185,7 @@ export const spawnServerChild = async (options: ServerChildOptions): Promise<Ser
             stopping = true;
             const asked = link.send({ type: 'shutdown', v: 1 });
             const term = (): void => {
-                if (alive) child.kill('SIGTERM');
+                if (alive && !childStopping) child.kill('SIGTERM');
                 killTimer = timers.setTimeout(kill, killGraceMs);
             };
             if (!asked) term();
