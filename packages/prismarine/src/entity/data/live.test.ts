@@ -1527,6 +1527,25 @@ describe('the data-driven entity runtime over a live world', () => {
             ).toBe(true);
         });
 
+        it('keeps two same-position zombie groups moving toward one survival target', async () => {
+            const player = addPlayer(12, 0);
+            player.gamemode = Gametype.SURVIVAL;
+            const groups = Array.from({ length: 2 }, () =>
+                Array.from({ length: 12 }, () => {
+                    const zombie = live.runtime.spawn('minecraft:zombie', { x: 0.5, y: GROUND_Y, z: 0.5 });
+                    if (zombie === undefined) throw new Error('the fixture declares no minecraft:zombie');
+                    return zombie;
+                })
+            );
+            const zombies = groups.flat();
+
+            await run(200);
+
+            expect(zombies.every((zombie) => zombie.target === Number(player.getRuntimeId()))).toBe(true);
+            expect(zombies.every((zombie) => !zombie.body.stuck)).toBe(true);
+            expect(zombies.filter((zombie) => zombie.position.x > 4)).toHaveLength(24);
+        });
+
         it('drops Java’s loot when a mob is killed, and takes its body away', async () => {
             const cow = live.runtime.spawn('minecraft:cow', { x: 0.5, y: GROUND_Y, z: 0.5 });
             if (cow === undefined) throw new Error('the fixture declares no minecraft:cow');
