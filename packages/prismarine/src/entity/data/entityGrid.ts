@@ -180,6 +180,23 @@ export class EntityGrid {
 
         if (found.length < 2) return found;
 
+        const first = found[0];
+        if (first === undefined) return found;
+
+        let previousArrival = this.arrived.get(first.id) ?? 0;
+        let inArrivalOrder = true;
+        for (let index = 1; index < found.length; index += 1) {
+            const entity = found[index];
+            if (entity === undefined) continue;
+            const arrival = this.arrived.get(entity.id) ?? 0;
+            if (arrival < previousArrival) {
+                inArrivalOrder = false;
+                break;
+            }
+            previousArrival = arrival;
+        }
+        if (inArrivalOrder) return found;
+
         if (found.length <= SMALL_RESULT_SORT_LIMIT) {
             const arrivals = found.map((entity) => this.arrived.get(entity.id) ?? 0);
             for (let index = 1; index < found.length; index += 1) {
