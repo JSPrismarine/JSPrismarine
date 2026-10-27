@@ -2,6 +2,9 @@ import type { BedrockBlockProperties } from '@jsprismarine/mapping';
 
 import { behaviorFor } from './families';
 import containerOpenSounds from './tables/containerOpenSounds.json';
+import vanillaBlockTags from './tables/vanillaBlockTags.json';
+
+const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
 
 /**
  * Where the generator reads a block's properties from.
@@ -268,6 +271,9 @@ export const generateVanillaOverlay = (
             'minecraft:light_dampening': row.lightDampening,
             'minecraft:movable': { movement_type: MOVEMENT_TYPES[row.pushReaction] ?? 'push_pull' }
         };
+
+        const tags = BEDROCK_BLOCK_TAGS.get(identifier);
+        if (tags !== undefined) components['minecraft:tags'] = tags;
 
         if (row.igniteOdds > 0 || row.burnOdds > 0) {
             components['minecraft:flammable'] = {

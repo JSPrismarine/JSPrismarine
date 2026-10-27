@@ -275,7 +275,10 @@ Each file carries the Bedrock-expressible properties as real Bedrock components,
 `jsprismarine:block_properties`. Container blocks also carry `jsprismarine:container_open_sound`,
 configured in `src/tables/containerOpenSounds.json`. The generator writes Prettier-shaped JSON so
 the committed pack passes `prettier --check` with no second pass, and `src/overlay.test.ts` compares
-the committed files to a fresh run so the two cannot drift.
+the committed files to a fresh run so the two cannot drift. The overlay preserves Bedrock's captured
+`minecraft:tags` for all 96 vanilla wool and concrete slab, double-slab, and stair definitions. The
+tag table comes from the pinned Bedrock samples and is regenerated with
+`pnpm --filter @jsprismarine/blocks run generate:block-tags`.
 
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,
