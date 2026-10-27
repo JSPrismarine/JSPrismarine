@@ -346,21 +346,41 @@ const HORIZONTAL: readonly (readonly [number, number])[] = [
 
 /** One reachable neighbor of a node, with what the move costs. */
 interface Step {
-    readonly x: number;
-    readonly y: number;
-    readonly z: number;
-    readonly cost: number;
+    x: number;
+    y: number;
+    z: number;
+    cost: number;
 }
 
+/** Reuses the small list of neighbors while one path search expands nodes. */
+interface StepBuffer {
+    readonly items: Step[];
+    count: number;
+}
+
+/** Stores a neighbor in the reusable buffer, creating a step only when needed. */
+const addStep = (buffer: StepBuffer, x: number, y: number, z: number, cost: number): void => {
+    const step = buffer.items[buffer.count];
+    if (step === undefined) buffer.items.push({ x, y, z, cost });
+    else {
+        step.x = x;
+        step.y = y;
+        step.z = z;
+        step.cost = cost;
+    }
+    buffer.count += 1;
+};
+
 /**
- * The cells reachable from one node in a single move.
+ * The cells reachable from one node in a single move, written in movement
+ * order to a buffer the search reuses for each expanded node.
  *
  * A ground move keeps the same height, steps up by one when the profile
  * jumps, or falls to the first supported cell within the fall limit. A flying,
  * swimming or climbing move adds the two vertical neighbors.
  */
-const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: SearchNode): readonly Step[] => {
-    const steps: Step[] = [];
+const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: SearchNode, buffer: StepBuffer): void => {
+    buffer.count = 0;
     const stepUp = profile.stepHeight >= 1 || profile.canJump ? 1 : 0;
 
     for (const [dx, dz] of HORIZONTAL) {
@@ -378,7 +398,7 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
 
         const level = cells.enterable(x, node.y, z);
         if (level !== undefined) {
-            steps.push({ x, y: node.y, z, cost: base + level });
+            addStep(buffer, x, node.y, z, base + level);
             continue;
         }
 
@@ -387,7 +407,7 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
             const headroom = cells.passesThrough(node.x, node.y + stepUp, node.z);
             const up = headroom ? cells.enterable(x, node.y + stepUp, z) : undefined;
             if (up !== undefined) {
-                steps.push({ x, y: node.y + stepUp, z, cost: base + up + 0.5 });
+                addStep(buffer, x, node.y + stepUp, z, base + up + 0.5);
                 continue;
             }
         }
@@ -399,7 +419,7 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
             if (!cells.passesThrough(x, y + 1, z)) break;
             const down = cells.enterable(x, y, z);
             if (down === undefined) continue;
-            steps.push({ x, y, z, cost: base + down + drop * 0.25 });
+            addStep(buffer, x, y, z, base + down + drop * 0.25);
             break;
         }
     }
@@ -410,11 +430,9 @@ const neighborsOf = (cells: CellReader, profile: NavigationProfile, node: Search
         for (const dy of [1, -1]) {
             const y = node.y + dy;
             const cost = cells.enterable(node.x, y, node.z);
-            if (cost !== undefined) steps.push({ x: node.x, y, z: node.z, cost: 1 + cost });
+            if (cost !== undefined) addStep(buffer, node.x, y, node.z, 1 + cost);
         }
     }
-
-    return steps;
 };
 
 /** Walks the parent chain back into a list of positions, the start left out. */
@@ -506,6 +524,7 @@ export const findPath = (view: NavigationView, profile: NavigationProfile, reque
         return undefined;
 
     const queue = new NodeQueue();
+    const neighbors: StepBuffer = { items: [], count: 0 };
     const best = new Map<number, number>();
     queue.push(root);
     const rootKey = keyOf(start, root.x, root.y, root.z);
@@ -526,7 +545,11 @@ export const findPath = (view: NavigationView, profile: NavigationProfile, reque
         expanded += 1;
         if (expanded > budget) break;
 
-        for (const step of neighborsOf(cells, profile, node)) {
+        neighborsOf(cells, profile, node, neighbors);
+        for (let index = 0; index < neighbors.count; index += 1) {
+            const step = neighbors.items[index];
+            if (step === undefined) continue;
+
             const key = keyOf(start, step.x, step.y, step.z);
             const cost = node.cost + step.cost;
             if (key !== undefined) {
