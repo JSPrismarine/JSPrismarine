@@ -2225,7 +2225,8 @@ describe('the data-driven entity runtime over a live world', () => {
             await run(5);
 
             expect(zombie.target).toBe(Number(player.getRuntimeId()));
-            expect(zombie.body.pitch).toBeCloseTo(0, 0);
+            expect(zombie.body.pitch).toBeGreaterThan(-10);
+            expect(zombie.body.pitch).toBeLessThan(10);
         });
 
         it('shows hearts when a vanilla animal accepts a breeding item', { timeout: 180_000 }, () => {

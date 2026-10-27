@@ -28,6 +28,23 @@ import type { NavigationView } from '@jsprismarine/entity-goals';
 
 import { distance } from './DataEntity';
 
+const MAX_CACHED_BLOCKS = 100_000;
+
+interface PoiCellFacts {
+    blockRead: boolean;
+    block: string | undefined;
+    passableRead: boolean;
+    passable: boolean;
+    solidRead: boolean;
+    solid: boolean;
+}
+
+interface PoiNavigation {
+    blockAt(position: EntityPosition): string | undefined;
+    isPassable(position: EntityPosition): boolean;
+    isSolid(position: EntityPosition): boolean;
+}
+
 /** The thirteen blocks Java's `PoiTypes` makes a villager's work site. */
 const JOB_SITES = [
     'minecraft:barrel',
@@ -88,6 +105,9 @@ const POI_BLOCKS: ReadonlyMap<string, ReadonlySet<string>> = new Map([
     ['noteblock', new Set(['minecraft:noteblock'])]
 ]);
 
+/** Every block identifier the POI index needs to keep. */
+const POI_MARKER_BLOCKS = new Set([...POI_BLOCKS.values()].flatMap((markers) => [...markers]));
+
 /** The two kinds that are a question about the blocks above a position rather than a block. */
 const SHELTER_KINDS = new Set(['indoors', 'outdoors']);
 
@@ -109,6 +129,10 @@ const ROOF_HEIGHT = 16;
  */
 const SEARCH_HEIGHT = 4;
 
+/** Bounds retained searches and chunk indexes for one entity tick. */
+const MAX_CACHED_SEARCHES = 50_000;
+const MAX_CACHED_MARKER_BANDS = 1_024;
+
 /** What the index reads to answer a search. */
 export interface PoiWorld {
     /** The blocks as the path finder reads them, which is where the markers are. */
@@ -124,8 +148,26 @@ export interface PoiWorld {
 export class PointsOfInterest {
     /** The positions a subsystem recorded, by kind. */
     private readonly recorded = new Map<string, EntityPosition[]>();
+    private readonly blockCache = new Map<string, PoiCellFacts>();
+    private readonly markerChunkBands = new Map<string, ReadonlyMap<string, readonly EntityPosition[]>>();
+    private readonly searchCache = new Map<string, EntityPosition | null>();
+    private blockCacheGeneration = 0;
+    private cachedBlockCacheGeneration = 0;
 
     public constructor(private readonly world: PoiWorld) {}
+
+    /** Clears block reads before the next entity tick. */
+    public resetBlockCache(): void {
+        this.blockCache.clear();
+        this.markerChunkBands.clear();
+        this.searchCache.clear();
+        this.cachedBlockCacheGeneration = this.blockCacheGeneration;
+    }
+
+    /** Invalidates cached block reads after the world changes a block. */
+    public invalidateBlockCache(): void {
+        this.blockCacheGeneration += 1;
+    }
 
     /**
      * Records a point of interest that no block marks.
@@ -162,15 +204,104 @@ export class PointsOfInterest {
         const nearestRecorded = this.nearestRecorded(kind, center, radius);
         if (nearestRecorded !== undefined) return nearestRecorded;
 
+        this.prepareBlockCache();
+        const key = searchKey(kind, center, radius);
+        if (this.searchCache.has(key)) {
+            const cached = this.searchCache.get(key);
+            return cached === null || cached === undefined ? undefined : { ...cached };
+        }
+
         // Read once: the view is rebuilt on every ask and the scan crosses thousands of cells.
-        const navigation = this.world.navigation();
+        const navigation = this.cachedNavigation(this.world.navigation());
 
         const markers = POI_BLOCKS.get(kind);
-        if (markers !== undefined) return scan(center, radius, (cell) => marked(navigation, cell, markers));
+        let found: EntityPosition | undefined;
+        if (markers !== undefined) found = this.nearestMarker(center, radius, markers, navigation);
 
-        if (!SHELTER_KINDS.has(kind)) return undefined;
-        const indoors = kind === 'indoors';
-        return scan(center, radius, (cell) => sheltered(navigation, cell, indoors));
+        if (SHELTER_KINDS.has(kind)) {
+            const indoors = kind === 'indoors';
+            found = scan(center, radius, (cell) => sheltered(navigation, cell, indoors));
+        }
+
+        if (this.searchCache.size >= MAX_CACHED_SEARCHES) this.searchCache.clear();
+        this.searchCache.set(key, found ?? null);
+        return found;
+    }
+
+    private nearestMarker(
+        center: EntityPosition,
+        radius: number,
+        markers: ReadonlySet<string>,
+        navigation: PoiNavigation
+    ): EntityPosition | undefined {
+        const origin = { x: Math.floor(center.x), y: Math.floor(center.y), z: Math.floor(center.z) };
+        const lastRing = Math.floor(radius);
+        if (!(lastRing >= 0)) return undefined;
+
+        const minChunkX = Math.floor((origin.x - lastRing) / 16);
+        const maxChunkX = Math.floor((origin.x + lastRing) / 16);
+        const minChunkZ = Math.floor((origin.z - lastRing) / 16);
+        const maxChunkZ = Math.floor((origin.z + lastRing) / 16);
+        let best:
+            | { readonly cell: EntityPosition; readonly ring: number; readonly dx: number; readonly dz: number }
+            | undefined;
+
+        for (let chunkX = minChunkX; chunkX <= maxChunkX; chunkX += 1) {
+            for (let chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ += 1) {
+                for (const identifier of markers) {
+                    for (const cell of this.markerCells(chunkX, chunkZ, origin.y, navigation).get(identifier) ?? []) {
+                        const dx = cell.x - origin.x;
+                        const dz = cell.z - origin.z;
+                        const ring = Math.max(Math.abs(dx), Math.abs(dz));
+                        if (ring > lastRing) continue;
+                        if (
+                            best !== undefined &&
+                            (ring > best.ring ||
+                                (ring === best.ring &&
+                                    (dx > best.dx ||
+                                        (dx === best.dx &&
+                                            (dz > best.dz || (dz === best.dz && cell.y >= best.cell.y))))))
+                        )
+                            continue;
+                        best = { cell, ring, dx, dz };
+                    }
+                }
+            }
+        }
+
+        return best === undefined ? undefined : { x: best.cell.x + 0.5, y: best.cell.y + 1, z: best.cell.z + 0.5 };
+    }
+
+    private markerCells(
+        chunkX: number,
+        chunkZ: number,
+        centerY: number,
+        navigation: PoiNavigation
+    ): ReadonlyMap<string, readonly EntityPosition[]> {
+        const key = `${chunkX},${chunkZ},${centerY}`;
+        const cached = this.markerChunkBands.get(key);
+        if (cached !== undefined) return cached;
+
+        if (this.markerChunkBands.size >= MAX_CACHED_MARKER_BANDS) this.markerChunkBands.clear();
+
+        const cells = new Map<string, EntityPosition[]>();
+        const firstX = chunkX * 16;
+        const firstZ = chunkZ * 16;
+        for (let x = firstX; x < firstX + 16; x += 1) {
+            for (let z = firstZ; z < firstZ + 16; z += 1) {
+                for (let y = centerY - SEARCH_HEIGHT; y <= centerY + SEARCH_HEIGHT; y += 1) {
+                    const position = { x, y, z };
+                    const identifier = navigation.blockAt(position);
+                    if (identifier === undefined || !POI_MARKER_BLOCKS.has(identifier)) continue;
+                    const positions = cells.get(identifier) ?? [];
+                    positions.push(position);
+                    cells.set(identifier, positions);
+                }
+            }
+        }
+
+        this.markerChunkBands.set(key, cells);
+        return cells;
     }
 
     /** The nearest recorded point of a kind, or undefined when none is in range. */
@@ -185,7 +316,68 @@ export class PointsOfInterest {
         }
         return nearest;
     }
+
+    private cachedNavigation(navigation: NavigationView): PoiNavigation {
+        return {
+            blockAt: (position) => {
+                const facts = this.factsAt(position);
+                if (!facts.blockRead) {
+                    facts.block = navigation.blockAt(position);
+                    facts.blockRead = true;
+                }
+                return facts.block;
+            },
+            isPassable: (position) => {
+                const facts = this.factsAt(position);
+                if (!facts.passableRead) {
+                    facts.passable = navigation.isPassable(position);
+                    facts.passableRead = true;
+                }
+                return facts.passable;
+            },
+            isSolid: (position) => {
+                const facts = this.factsAt(position);
+                if (!facts.solidRead) {
+                    facts.solid = navigation.isSolid(position);
+                    facts.solidRead = true;
+                }
+                return facts.solid;
+            }
+        };
+    }
+
+    private factsAt(position: EntityPosition): PoiCellFacts {
+        this.prepareBlockCache();
+
+        const key = `${position.x},${position.y},${position.z}`;
+        const existing = this.blockCache.get(key);
+        if (existing !== undefined) return existing;
+
+        if (this.blockCache.size >= MAX_CACHED_BLOCKS) this.blockCache.clear();
+        const facts: PoiCellFacts = {
+            blockRead: false,
+            block: undefined,
+            passableRead: false,
+            passable: false,
+            solidRead: false,
+            solid: false
+        };
+        this.blockCache.set(key, facts);
+        return facts;
+    }
+
+    private prepareBlockCache(): void {
+        if (this.cachedBlockCacheGeneration === this.blockCacheGeneration) return;
+        this.blockCache.clear();
+        this.markerChunkBands.clear();
+        this.searchCache.clear();
+        this.cachedBlockCacheGeneration = this.blockCacheGeneration;
+    }
 }
+
+/** The block search depends on whole-block coordinates and the floored radius. */
+const searchKey = (kind: string, center: EntityPosition, radius: number): string =>
+    `${kind}|${Math.floor(center.x)},${Math.floor(center.y)},${Math.floor(center.z)}|${Math.floor(radius)}`;
 
 /**
  * Walks the cells around a position outwards and hands back what the first
@@ -215,26 +407,15 @@ const scan = (
     return undefined;
 };
 
-/** Where an entity stands to use a marker block, or undefined when the cell holds none. */
-const marked = (
-    navigation: NavigationView,
-    cell: EntityPosition,
-    markers: ReadonlySet<string>
-): EntityPosition | undefined => {
-    const identifier = navigation.blockAt(cell);
-    if (identifier === undefined || !markers.has(identifier)) return undefined;
-    return { x: cell.x + 0.5, y: cell.y + 1, z: cell.z + 0.5 };
-};
-
 /** A cell the entity could stand in that has a roof over it, or that has none. */
-const sheltered = (navigation: NavigationView, cell: EntityPosition, indoors: boolean): EntityPosition | undefined => {
+const sheltered = (navigation: PoiNavigation, cell: EntityPosition, indoors: boolean): EntityPosition | undefined => {
     if (!navigation.isPassable(cell)) return undefined;
     if (hasRoof(navigation, cell) !== indoors) return undefined;
     return { x: cell.x + 0.5, y: cell.y, z: cell.z + 0.5 };
 };
 
 /** Whether anything solid stands within {@link ROOF_HEIGHT} blocks above a cell. */
-const hasRoof = (navigation: NavigationView, cell: EntityPosition): boolean => {
+const hasRoof = (navigation: PoiNavigation, cell: EntityPosition): boolean => {
     for (let above = 1; above <= ROOF_HEIGHT; above += 1)
         if (navigation.isSolid({ x: cell.x, y: cell.y + above, z: cell.z })) return true;
     return false;

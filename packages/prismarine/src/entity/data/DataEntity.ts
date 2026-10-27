@@ -23,6 +23,7 @@ import { NO_EQUIPMENT, sameEquipment } from '../equipment';
 import type { EntityFacts } from './facts';
 import { liveFactsOf } from './facts';
 import { moveOnAxis } from './collision';
+import { entityEyePosition } from './position';
 
 /** How close to its destination an entity has to be to have arrived, in blocks. */
 const ARRIVAL_RADIUS = 0.25;
@@ -326,9 +327,10 @@ export class MobBody {
 
     /** Points the entity's head at a position. */
     public lookAt(position: EntityPosition): void {
-        const dx = position.x - this.position.x;
-        const dz = position.z - this.position.z;
-        const dy = position.y - this.position.y;
+        const eye = entityEyePosition(this.position, this.facts.box.height);
+        const dx = position.x - eye.x;
+        const dz = position.z - eye.z;
+        const dy = position.y - eye.y;
         this.yaw = (Math.atan2(dz, dx) * 180) / Math.PI - 90;
         this.pitch = (-Math.atan2(dy, Math.hypot(dx, dz)) * 180) / Math.PI;
     }

@@ -935,7 +935,8 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
-            expect(watcher.body.pitch).toBeLessThan(-15);
+            expect(watcher.body.pitch).toBeGreaterThan(-5);
+            expect(watcher.body.pitch).toBeLessThan(5);
         });
 
         it('looks at a player’s eyes from brain-driven AI', () => {
@@ -953,7 +954,36 @@ describe('EntityRuntime', () => {
 
             runtime.tick(1);
 
-            expect(villager.body.pitch).toBeLessThan(-15);
+            expect(villager.body.pitch).toBeGreaterThan(-5);
+            expect(villager.body.pitch).toBeLessThan(5);
+        });
+
+        it('aims a launched projectile along its velocity from its own eye position', () => {
+            const { runtime } = entityFixture(
+                new TestEntityWorld(),
+                {},
+                {
+                    'jsprismarine:projectile': {
+                        components: {
+                            'minecraft:collision_box': { width: 0.25, height: 0.25 },
+                            'minecraft:projectile': {}
+                        }
+                    }
+                }
+            );
+            const projectile = runtime.launchProjectile(
+                'jsprismarine:projectile',
+                GROUND,
+                { x: 0, y: 0, z: 1 },
+                1,
+                0,
+                1
+            );
+
+            if (projectile === undefined) throw new Error('the fixture projectile did not launch');
+
+            expect(projectile.body.yaw).toBeCloseTo(0);
+            expect(projectile.body.pitch).toBeCloseTo(0);
         });
 
         it('respects entity data that disables gravity', () => {

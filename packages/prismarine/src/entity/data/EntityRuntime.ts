@@ -73,7 +73,7 @@ import { EntityFactsLookup, javaLootIdOf } from './facts';
 import type { EntityFacts } from './facts';
 import { bodyCanOccupy, bodyIntersectsMedium, isSupported, moveOnAxis } from './collision';
 import { actuatorOf, goalMobOf, goalWorldOf, playerGoalMob } from './goalWorld';
-import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf } from './position';
+import { ENTITY_EYE_HEIGHT_FRACTION, blockPositionOf, entityEyePosition } from './position';
 import { brainMobFor } from './brainIdentifiers';
 import { brainMobOf, brainWorldOf, tickBrainNavigation } from './brainWorld';
 import { entityFilterContextOf } from './filterView';
@@ -990,7 +990,8 @@ export class EntityRuntime implements EntityScene {
         const velocity = projectileVelocity(direction, speed, inaccuracy, this.world.random);
         entity.body.velocity = velocity;
         entity.body.owner = owner;
-        entity.body.lookAt({ x: at.x + velocity.x, y: at.y + velocity.y, z: at.z + velocity.z });
+        const eye = entityEyePosition(at, entity.facts.box.height);
+        entity.body.lookAt({ x: eye.x + velocity.x, y: eye.y + velocity.y, z: eye.z + velocity.z });
         this.projectiles.set(entity.id, { age: 0, stuck: false, hitEntities: new Set() });
         return entity;
     }
