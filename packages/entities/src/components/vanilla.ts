@@ -1008,6 +1008,8 @@ interface InteractEntry {
     /** Bedrock loot-table path rolled when the interaction succeeds. */
     readonly spawnItems?: EntitySpawnItemsRequest;
     readonly playSounds: readonly string[];
+    /** Game-event vibration emitted when the interaction succeeds. */
+    readonly vibration?: string;
     /** Seconds before this interaction can succeed again. */
     readonly cooldown: number;
     /** Seconds after damage during which this interaction is unavailable. */
@@ -1033,10 +1035,10 @@ export interface InteractParams {
  * The held-item behavior currently implemented for `minecraft:interact`.
  *
  * It evaluates each entry's `on_interact.filters`, enforces cooldowns, queues
- * its event, plays `play_sounds`, rolls `spawn_items`, and applies
- * `transform_to_item` and `use_item` to the live held stack. Other interaction
- * fields remain visible as a one-time runtime report so incomplete behavior
- * is not silently treated as vanilla.
+ * its event, plays `play_sounds`, emits its `vibration` game event, rolls
+ * `spawn_items`, and applies `transform_to_item` and `use_item` to the live
+ * held stack. Other interaction fields remain visible as a one-time runtime
+ * report so incomplete behavior is not silently treated as vanilla.
  */
 export const interact: ComponentFactory<EntityHooks, InteractParams> = {
     name: 'minecraft:interact',
@@ -1049,6 +1051,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             'transform_to_item',
             'spawn_items',
             'play_sounds',
+            'vibration',
             'cooldown',
             'cooldown_after_being_attacked'
         ]);
@@ -1075,6 +1078,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
             }
             if (raw.transform_to_item !== undefined && typeof raw.transform_to_item !== 'string')
                 return rejected(`interactions[${index}].transform_to_item must be a string`);
+            if (raw.vibration !== undefined && (typeof raw.vibration !== 'string' || raw.vibration.length === 0))
+                return rejected(`interactions[${index}].vibration must be a non-empty string`);
             if (
                 raw.spawn_items !== undefined &&
                 (!isRecord(raw.spawn_items) || typeof raw.spawn_items.table !== 'string')
@@ -1107,6 +1112,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                 onInteract,
                 useItem: booleanAt(raw, 'use_item', false),
                 playSounds,
+                ...(typeof raw.vibration === 'string' ? { vibration: raw.vibration } : {}),
                 cooldown: Math.max(0, numberAt(raw, 'cooldown', 0)),
                 cooldownAfterBeingAttacked: Math.max(0, numberAt(raw, 'cooldown_after_being_attacked', 0)),
                 ...(typeof raw.transform_to_item === 'string'
@@ -1182,7 +1188,8 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                         entry.transformedItem === undefined &&
                         entry.spawnItems === undefined &&
                         !entry.useItem &&
-                        entry.playSounds.length === 0
+                        entry.playSounds.length === 0 &&
+                        entry.vibration === undefined
                     )
                         continue;
                     if ((state.interactions[index] ?? 0) > 0 || (state.attacked[index] ?? 0) > 0) return false;
@@ -1192,6 +1199,7 @@ export const interact: ComponentFactory<EntityHooks, InteractParams> = {
                     return {
                         ...(entry.playSounds.length === 0 ? {} : { playSounds: entry.playSounds }),
                         ...(entry.spawnItems === undefined ? {} : { spawnItems: entry.spawnItems }),
+                        ...(entry.vibration === undefined ? {} : { vibration: entry.vibration }),
                         ...(entry.transformedItem === undefined
                             ? {}
                             : {

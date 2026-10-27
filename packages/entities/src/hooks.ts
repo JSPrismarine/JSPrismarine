@@ -158,6 +158,8 @@ export interface EntityItemInteractionEffect {
     readonly spawnItems?: EntitySpawnItemsRequest;
     /** Sounds the world plays when this interaction succeeds. */
     readonly playSounds?: readonly string[];
+    /** Game-event vibration the world emits when this interaction succeeds. */
+    readonly vibration?: string;
 }
 
 /**

@@ -697,6 +697,39 @@ describe('EntityRuntime', () => {
             expect(animal.instance.hasComponent('minecraft:persistent')).toBe(true);
         });
 
+        it('emits the vibration declared by a successful data-defined interaction', () => {
+            const world = new TestEntityWorld();
+            const { runtime, reports } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:vibration_interaction': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:interact': {
+                                interactions: { vibration: 'shear' }
+                            }
+                        }
+                    }
+                }
+            );
+            const entity = runtime.spawn('jsprismarine:vibration_interaction', GROUND);
+            if (entity === undefined) throw new Error('the fixture declares no entity with an interaction vibration');
+
+            expect(runtime.interactWithItem(entity.id, 42, 'minecraft:shears')).toEqual({
+                accepted: true,
+                consumeItem: false
+            });
+            expect(world.gameEvents).toEqual([
+                {
+                    event: 'minecraft:shear',
+                    at: GROUND,
+                    sourceId: entity.id
+                }
+            ]);
+            expect(reports).toEqual([]);
+        });
+
         it('enforces each data-defined interaction cooldown per entity', () => {
             const { runtime } = entityFixture(
                 new TestEntityWorld(),

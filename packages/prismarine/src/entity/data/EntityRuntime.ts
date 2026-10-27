@@ -1353,9 +1353,15 @@ export class EntityRuntime implements EntityScene {
         );
         if (interaction === false) return { accepted: false };
         if (typeof interaction === 'object') {
-            const { playSounds, spawnItems, ...itemEffect } = interaction;
+            const { playSounds, spawnItems, vibration, ...itemEffect } = interaction;
             for (const sound of playSounds ?? []) this.world.effects.playSound(blockPositionOf(entity.position), sound);
             if (spawnItems !== undefined) this.dropInteractionLoot(spawnItems, entity, owner, itemIdentifier);
+            if (vibration !== undefined)
+                this.world.effects.emitGameEvent(
+                    vibration.includes(':') ? vibration : `minecraft:${vibration}`,
+                    blockPositionOf(entity.position),
+                    entity.id
+                );
             return { accepted: true, ...itemEffect };
         }
         const ageable = entity.instance.componentParams('minecraft:ageable');

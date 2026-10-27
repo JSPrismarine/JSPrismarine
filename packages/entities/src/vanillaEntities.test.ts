@@ -258,6 +258,21 @@ describe.runIf(enabled)('the vanilla entity pack', () => {
         expect(interaction).toMatchObject({ interactions: [expect.objectContaining({ playSounds: ['milk'] })] });
     });
 
+    it('parses the vanilla sheep shearing vibration from its interaction data', () => {
+        const sheep = types.registry.get('minecraft:sheep');
+        if (sheep === undefined) throw new Error('the vanilla pack declares no sheep');
+        const components = [
+            ...sheep.components,
+            ...[...sheep.groups.values()].flatMap((group) => group.components)
+        ].filter((component) => component.name === 'minecraft:interact');
+
+        expect(components.map((component) => component.params)).toContainEqual(
+            expect.objectContaining({
+                interactions: expect.arrayContaining([expect.objectContaining({ vibration: 'shear' })])
+            })
+        );
+    });
+
     it('parses the vanilla piglin interaction cooldown after damage', () => {
         const piglin = types.registry.get('minecraft:piglin');
         if (piglin === undefined) throw new Error('the vanilla pack declares no piglin');

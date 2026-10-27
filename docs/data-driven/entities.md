@@ -167,9 +167,10 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 `minecraft:environment_sensor`, `minecraft:ambient_sound_interval`, `minecraft:rideable`,
 `minecraft:spawn_entity`, and `minecraft:interact`; the eleven `minecraft:on_*` trigger components;
 and `minecraft:cannot_be_attacked`, which blocks entity attacks. `minecraft:interact` evaluates item
-filters, enforces its cooldowns, raises its event, plays `play_sounds`, requests the `spawn_items`
-loot table from the host, and applies `use_item` and `transform_to_item` through the live inventory;
-other interaction fields still report as unsupported. Attacker exceptions are
+filters, enforces its cooldowns, raises its event, plays `play_sounds`, emits its `vibration` game
+event, requests the `spawn_items` loot table from the host, and applies `use_item` and
+`transform_to_item` through the live inventory; other interaction fields still report as unsupported.
+Attacker exceptions are
 data in `minecraft:ignore_cannot_be_attacked`; the package supports that component for custom
 definitions too.
 The entities package README lists each component and what it does.
