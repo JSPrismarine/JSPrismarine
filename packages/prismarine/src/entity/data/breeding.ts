@@ -120,10 +120,12 @@ export const canBreed = (self: DataEntity, other: DataEntity): boolean => {
     if (self.id === other.id) return false;
 
     const rules = breedableOf(self.instance);
-    const otherRules = breedableOf(other.instance);
-    if (rules === undefined || otherRules === undefined) return false;
+    if (rules === undefined || accepts(rules, self, other) === undefined) return false;
 
-    return ready(self, rules) && ready(other, otherRules) && accepts(rules, self, other) !== undefined;
+    const otherRules = breedableOf(other.instance);
+    if (otherRules === undefined) return false;
+
+    return ready(self, rules) && ready(other, otherRules);
 };
 
 /**
