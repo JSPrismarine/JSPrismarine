@@ -627,6 +627,18 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         return Array.isArray(family) ? family.filter((name): name is string => typeof name === 'string') : [];
     }
 
+    /** Whether the active type-family component contains any requested family. */
+    public hasAnyFamily(families: readonly string[]): boolean {
+        if (families.length === 0) return false;
+
+        const params = this.componentParams('minecraft:type_family');
+        if (params === null || typeof params !== 'object' || !('family' in params) || !Array.isArray(params.family))
+            return false;
+
+        for (const family of params.family) if (typeof family === 'string' && families.includes(family)) return true;
+        return false;
+    }
+
     /** What the entity is attacking now, which the `is_target` filter test reads. */
     public get attackTarget(): FilterEntityView | undefined {
         return this.target;
