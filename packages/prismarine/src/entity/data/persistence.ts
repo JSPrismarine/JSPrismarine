@@ -69,6 +69,12 @@ export interface DataEntityRecord {
     readonly breedCooldown: number;
     /** Remaining ticks on an active component-defined explosion fuse. */
     readonly fuseTicks?: number;
+    /** Flight state for an entity carrying `minecraft:projectile`. */
+    readonly projectile?: {
+        readonly velocity: EntityPosition;
+        readonly age: number;
+        readonly stuck: boolean;
+    };
     /** Entity-specific fields supplied by the source that spawned it. */
     readonly spawnData?: Readonly<Record<string, unknown>>;
 }
@@ -111,6 +117,15 @@ export const dataEntityRecordOf = (entity: DataEntity, pool: string | undefined)
         loveTicks: body.loveTicks,
         breedCooldown: body.breedCooldown,
         ...(body.fuseTicks === undefined ? {} : { fuseTicks: body.fuseTicks }),
+        ...(instance.hasComponent('minecraft:projectile')
+            ? {
+                  projectile: {
+                      velocity: { ...body.velocity },
+                      age: body.projectileAge,
+                      stuck: body.projectileStuck
+                  }
+              }
+            : {}),
         ...(entity.spawnData === undefined ? {} : { spawnData: entity.spawnData })
     };
 };
@@ -195,6 +210,32 @@ const positionOf = (value: unknown): EntityPosition | undefined => {
     return { x, y, z };
 };
 
+/** Reads projectile motion from a legacy actor NBT compound. */
+export const actorMotionIn = (nbt: NBTTagCompound): EntityPosition | undefined => {
+    const list = nbt.getList('Motion', false);
+    if (list === undefined || list === null) return undefined;
+
+    const [x, y, z] = [...list].slice(0, 3).map((entry) => Number(entry?.getValue?.() ?? entry ?? Number.NaN));
+    if (x === undefined || y === undefined || z === undefined || ![x, y, z].every(Number.isFinite)) return undefined;
+
+    return { x, y, z };
+};
+
+/** Saved projectile flight state, after checking every field the runtime reads. */
+const projectileOf = (value: unknown): DataEntityRecord['projectile'] | undefined => {
+    if (!isObject(value)) return undefined;
+
+    const velocity = positionOf(value['velocity']);
+    if (velocity === undefined || ![velocity.x, velocity.y, velocity.z].every(Number.isFinite)) return undefined;
+
+    const age = value['age'];
+    return {
+        velocity,
+        age: typeof age === 'number' && Number.isFinite(age) ? Math.max(0, Math.trunc(age)) : 0,
+        stuck: value['stuck'] === true
+    };
+};
+
 const propertiesOf = (value: unknown): Record<string, PropertyValue> => {
     const properties: Record<string, PropertyValue> = {};
     if (!isObject(value)) return properties;
@@ -251,6 +292,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
     const equipment = equipmentOf(parsed['equipment']);
     const equipmentInventorySlots = equipmentInventorySlotsOf(parsed['equipmentInventorySlots']);
     const containerSlots = containerSlotsOf(parsed['containerSlots']);
+    const projectile = projectileOf(parsed['projectile']);
 
     return {
         identifier,
@@ -274,6 +316,7 @@ export const dataEntityRecordIn = (nbt: NBTTagCompound): DataEntityRecord | unde
         ...(typeof parsed['fuseTicks'] === 'number' && Number.isFinite(parsed['fuseTicks'])
             ? { fuseTicks: Math.max(0, Math.trunc(parsed['fuseTicks'])) }
             : {}),
+        ...(projectile === undefined ? {} : { projectile }),
         ...(spawnData === undefined ? {} : { spawnData })
     };
 };
@@ -324,4 +367,9 @@ export const applyDataEntityRecord = (entity: DataEntity, record: DataEntityReco
     body.loveTicks = record.loveTicks;
     body.breedCooldown = record.breedCooldown;
     body.fuseTicks = record.fuseTicks;
+    if (record.projectile !== undefined) {
+        body.velocity = record.projectile.velocity;
+        body.projectileAge = record.projectile.age;
+        body.projectileStuck = record.projectile.stuck;
+    }
 };

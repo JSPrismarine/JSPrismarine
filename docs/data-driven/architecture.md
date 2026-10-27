@@ -125,8 +125,8 @@ and what one build produces.
 Blocks, items, entities, recipes, loot, advancements, enchantments, spawn rules, trade tables,
 biomes and features all come out of the stack, and the client-facing packets are written from the
 resulting registries. The old mob class hierarchy is gone. Hand-written actor classes now cover
-players, dropped items, and projectiles restored from older saves; TNT and falling blocks run from
-their vanilla entity definitions.
+players, dropped items, and decoding projectiles from older saves before the data runtime takes
+ownership; TNT and falling blocks run from their vanilla entity definitions.
 
 The numbers and the gaps live on the page for each subsystem rather than here, because that is
 where they are kept current: [gameplay-data.md](gameplay-data.md) for the Java data,

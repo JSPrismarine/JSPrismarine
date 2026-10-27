@@ -127,8 +127,6 @@ export const PROJECTILE_EYE_HEIGHT_FRACTION = ENTITY_EYE_HEIGHT_FRACTION;
 
 /** The body and flight lifetime state of one active projectile. */
 interface ProjectileState {
-    age: number;
-    stuck: boolean;
     readonly hitEntities: Set<number>;
 }
 
@@ -424,6 +422,9 @@ export class EntityRuntime implements EntityScene {
         }
 
         applyDataEntityRecord(entity, record);
+        if (entity.instance.hasComponent('minecraft:projectile')) {
+            this.projectiles.set(entity.id, { hitEntities: new Set() });
+        }
         entity.body.containerCapacity = this.containerCapacityOf(entity.instance);
         this.syncGameEventListener(entity);
         this.startFuse(entity);
@@ -1163,7 +1164,9 @@ export class EntityRuntime implements EntityScene {
         this.setOwner(entity.id, owner);
         const eye = entityEyePosition(at, entity.facts.box.height);
         entity.body.lookAt({ x: eye.x + velocity.x, y: eye.y + velocity.y, z: eye.z + velocity.z });
-        this.projectiles.set(entity.id, { age: 0, stuck: false, hitEntities: new Set() });
+        this.projectiles.set(entity.id, { hitEntities: new Set() });
+        entity.body.projectileAge = 0;
+        entity.body.projectileStuck = false;
         return entity;
     }
 
@@ -2062,16 +2065,16 @@ export class EntityRuntime implements EntityScene {
 
     /** Applies projectile gravity, swept collisions, and the active component's hit actions. */
     private coastProjectile(entity: DataEntity, params: Record<string, unknown>): void {
-        const state = this.projectiles.get(entity.id) ?? { age: 0, stuck: false, hitEntities: new Set<number>() };
+        const state = this.projectiles.get(entity.id) ?? { hitEntities: new Set<number>() };
         this.projectiles.set(entity.id, state);
-        state.age += 1;
+        entity.body.projectileAge += 1;
 
         const lifetime = typeof params.max_life === 'number' ? params.max_life : PROJECTILE_MAX_LIFE;
-        if (state.age > lifetime) {
+        if (entity.body.projectileAge > lifetime) {
             this.remove(entity.id, 'projectile_expired');
             return;
         }
-        if (state.stuck) return;
+        if (entity.body.projectileStuck) return;
 
         const { body } = entity;
         const from = body.position;
@@ -2113,7 +2116,7 @@ export class EntityRuntime implements EntityScene {
                 if (isRecord(onHit.stick_in_ground)) {
                     body.position = lastSafe;
                     body.land();
-                    state.stuck = true;
+                    body.projectileStuck = true;
                 } else {
                     this.remove(entity.id, 'projectile_hit_block');
                 }
@@ -2154,7 +2157,7 @@ export class EntityRuntime implements EntityScene {
             if (
                 target.id === projectile.id ||
                 target.instance.hasComponent('minecraft:projectile') ||
-                (target.id === owner && state.age <= PROJECTILE_OWNER_GRACE) ||
+                (target.id === owner && projectile.body.projectileAge <= PROJECTILE_OWNER_GRACE) ||
                 state.hitEntities.has(target.id)
             )
                 continue;
@@ -2164,7 +2167,7 @@ export class EntityRuntime implements EntityScene {
 
         for (const target of this.host.players()) {
             if (
-                (target.id === owner && state.age <= PROJECTILE_OWNER_GRACE) ||
+                (target.id === owner && projectile.body.projectileAge <= PROJECTILE_OWNER_GRACE) ||
                 target.creative === true ||
                 target.spectator === true ||
                 state.hitEntities.has(target.id)

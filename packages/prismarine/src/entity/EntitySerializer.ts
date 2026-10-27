@@ -11,6 +11,7 @@ import { Item } from './other/Item';
 import { Projectile } from './other/Projectile';
 import { DEFAULT_FUSE_TICKS } from './fuse';
 import { MetadataFlag } from './Metadata';
+import { actorMotionIn, dataEntityRecordIn } from './data/persistence';
 import { Position } from '../world/Position';
 import type { World } from '../world/World';
 
@@ -68,8 +69,8 @@ export class EntitySerializer {
         }
 
         if (entity instanceof Projectile) {
-            const motion = projectileMotionOf(nbt);
-            if (motion !== undefined) entity.setVelocity(motion);
+            const motion = actorMotionIn(nbt);
+            if (motion !== undefined) entity.setVelocity(new Vector3(motion.x, motion.y, motion.z));
         }
 
         for (const tag of stringsIn(nbt, 'Tags')) entity.addTag(tag);
@@ -108,6 +109,12 @@ export class EntitySerializer {
         if (entity instanceof Projectile) {
             const velocity = entity.getVelocity();
             nbt.addValue('Motion', doubles([velocity.getX(), velocity.getY(), velocity.getZ()]));
+        } else if (entity instanceof GenericEntity) {
+            const projectile = dataEntityRecordIn(nbt)?.projectile;
+            if (projectile !== undefined) {
+                const { velocity } = projectile;
+                nbt.addValue('Motion', doubles([velocity.x, velocity.y, velocity.z]));
+            }
         }
 
         if (entity.getType() === TNT_IDENTIFIER) {
@@ -217,17 +224,6 @@ const stringsIn = (nbt: NBTTagCompound, key: string): string[] => {
         if (value instanceof Types.StringVal) strings.push(value.getValue());
     }
     return strings;
-};
-
-/** Reads a projectile's three saved velocity components, or leaves its default alone. */
-const projectileMotionOf = (nbt: NBTTagCompound): Vector3 | undefined => {
-    const list = nbt.getList('Motion', false);
-    if (list === undefined || list === null) return undefined;
-
-    const [x, y, z] = [...list].slice(0, 3).map((entry) => Number(entry?.getValue?.() ?? entry ?? Number.NaN));
-    if (x === undefined || y === undefined || z === undefined || ![x, y, z].every(Number.isFinite)) return undefined;
-
-    return new Vector3(x, y, z);
 };
 
 /**

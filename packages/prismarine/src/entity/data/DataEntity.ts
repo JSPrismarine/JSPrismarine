@@ -205,13 +205,14 @@ export class MobBody {
     /** How many ticks before the entity may breed again, from Java's `Animal.ageUp`. */
     public breedCooldown = 0;
 
-    /**
-     * The impulse the leap, charge and ram goals add, in blocks per tick.
-     *
-     * The runtime spends it rather than {@link MobBody.step}, because landing
-     * is a question about blocks and the body has no view of them.
-     */
+    /** Movement velocity in blocks per tick, including projectile flight. */
     public velocity: EntityPosition = { x: 0, y: 0, z: 0 };
+
+    /** Ticks spent in flight by `minecraft:projectile`, retained across a world restart. */
+    public projectileAge = 0;
+
+    /** Whether the projectile has stuck to a block and should remain there until expiry. */
+    public projectileStuck = false;
 
     private at: EntityPosition;
     private instance: EntityInstance | undefined;

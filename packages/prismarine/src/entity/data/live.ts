@@ -29,6 +29,7 @@ import { DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
+import { actorMotionIn } from './persistence';
 import { lookVector } from '../Archery';
 import Player from '../../Player';
 import { MetadataFlag } from '../Metadata';
@@ -489,11 +490,14 @@ export class LiveEntityRuntime {
      */
     public restoreExisting(stored: Entity): DataEntity | undefined {
         const identifier = stored.getType();
-        if (!this.runtime.content().entities.registry.has(identifier)) return undefined;
+        const type = this.runtime.content().entities.registry.get(identifier);
+        if (type === undefined) return undefined;
 
         const position = stored.getPosition();
         const fuse = stored.metadata.getPropertyValue(MetadataFlag.FUSE_TIME);
-        if (!(stored instanceof GenericEntity) && typeof fuse !== 'number') return undefined;
+        const motion = stored.persistentNbt === null ? undefined : actorMotionIn(stored.persistentNbt);
+        const isProjectile = type.declaredComponents.includes('minecraft:projectile');
+        if (!(stored instanceof GenericEntity) && typeof fuse !== 'number' && !isProjectile) return undefined;
         const blockName =
             identifier === 'minecraft:falling_block'
                 ? stored.persistentNbt?.getString('JSPBlockName', '') ||
@@ -517,6 +521,7 @@ export class LiveEntityRuntime {
             }
         );
         if (entity === undefined) return undefined;
+        if (entity.instance.hasComponent('minecraft:projectile') && motion !== undefined) entity.body.velocity = motion;
 
         const health = entity.instance.attributes.get('health');
         if (health !== undefined) entity.instance.attributes.set('health', Math.min(health.max, stored.getHealth()));
