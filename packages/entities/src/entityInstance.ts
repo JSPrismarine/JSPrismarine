@@ -28,6 +28,7 @@ import type {
     DamageEvent,
     DamageResult,
     EntityActuator,
+    EntityAngerBroadcast,
     EntityEffects,
     EntityItemInteractionEffect,
     EntityHooks,
@@ -96,6 +97,8 @@ export interface EntityEnvironment {
      * whatever this returns.
      */
     filterContext?(entity: EntityInstance): FilterContext;
+    /** Delivers an angry component's broadcast to nearby matching entities. */
+    broadcastAnger?(entity: EntityInstance, request: EntityAngerBroadcast): void;
     /** Moves, looks and jumps on behalf of the goals. */
     actuator?: EntityActuator;
     /** Carries out the event actions that leave the package, such as `play_sound`. */
@@ -656,6 +659,15 @@ export class EntityInstance extends Instance<EntityHooks, EntityState, EntityTyp
         if (view === this.target) return;
         this.target = view;
         this.trigger(view === undefined ? 'minecraft:on_target_escape' : 'minecraft:on_target_acquired');
+    }
+
+    /** Asks the world to carry out one `minecraft:angry.broadcast_anger` request. */
+    public broadcastAnger(request: EntityAngerBroadcast): void {
+        if (this.environment.broadcastAnger === undefined) {
+            this.report(`minecraft:angry broadcasts anger ${request.range} blocks, which nothing carries out`);
+            return;
+        }
+        this.environment.broadcastAnger(this, request);
     }
 
     /** Asks the world to replace the entity with another type, for `minecraft:transformation`. */

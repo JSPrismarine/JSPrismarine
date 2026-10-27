@@ -1,3 +1,5 @@
+import type { Filter } from '@jsprismarine/packs';
+
 import type { EntityInstance } from './entityInstance';
 import type { EventTarget, VibrationKind } from './events';
 import type { FilterEntityView } from './filterContext';
@@ -15,6 +17,16 @@ export interface EntityPosition {
     readonly x: number;
     readonly y: number;
     readonly z: number;
+}
+
+/** One request to spread an entity's anger to nearby matching entities. */
+export interface EntityAngerBroadcast {
+    /** Maximum distance from the broadcaster, in blocks. */
+    readonly range: number;
+    /** Filters evaluated with the broadcaster as caller and each candidate as `other`. */
+    readonly filters?: Filter;
+    /** Families that receive the broadcast; omitted means the broadcaster's entity type. */
+    readonly targets?: readonly string[];
 }
 
 /**
@@ -187,6 +199,8 @@ export interface EntityHooks {
     onRemove: (entity: EntityInstance) => void;
     /** Runs once per server tick while the component is active. */
     onTick: (entity: EntityInstance) => void;
+    /** Runs when a nearby entity with the same type broadcasts anger. */
+    onFriendlyAnger: (entity: EntityInstance) => void;
     /** Decides what one damage event does; the first handler that answers wins. */
     onDamage: (entity: EntityInstance, damage: DamageEvent) => DamageOutcome | undefined;
     /** Observes the result after sensors, immunities, and health changes without altering it. */

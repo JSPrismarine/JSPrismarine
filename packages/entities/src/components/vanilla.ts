@@ -1542,26 +1542,27 @@ export interface AngryParams {
     readonly durationDelta: number;
     /** The event fired when the anger runs out. */
     readonly calm?: SensorTrigger;
-    /** Whether anger spreads to nearby entities, which needs a world this package has not got. */
+    /** Whether anger spreads to nearby matching entities. */
     readonly broadcastAnger: boolean;
     readonly broadcastRange: number;
     readonly broadcastFilters?: Filter;
+    /** Entity families that receive the anger; omitted means the same entity type. */
+    readonly broadcastTargets?: readonly string[];
 }
 
 /**
  * `minecraft:angry`, carried by 20 vanilla entities.
  *
  * The component counts the anger down and fires `calm_event` when it runs out,
- * which is the event that takes the angry group back off. Spreading anger to
- * nearby entities needs a world query no seam here answers, so
- * `broadcast_anger` parses and is reported once when the anger starts.
+ * which is what takes the angry group back off. `broadcast_anger` asks the
+ * world to notify nearby matching entities when this component becomes active.
  *
  * The bee and the dolphin write the pre-rename `broadcastAnger` and
  * `broadcastRange`, so both spellings read.
  */
 export const angry: ComponentFactory<EntityHooks, AngryParams> = {
     name: 'minecraft:angry',
-    hooks: ['onInitialize', 'onTick'],
+    hooks: ['onInitialize', 'onRemove', 'onTick', 'onFriendlyAnger'],
     schema: (value) => {
         if (!isRecord(value)) return rejected('expected an object');
         let broadcastFilters: Filter | undefined;
@@ -1570,27 +1571,50 @@ export const angry: ComponentFactory<EntityHooks, AngryParams> = {
             if (!parsed.ok) return parsed;
             broadcastFilters = parsed.value;
         }
+        let broadcastTargets: readonly string[] | undefined;
+        if (value.broadcast_targets !== undefined) {
+            if (!Array.isArray(value.broadcast_targets))
+                return rejected('broadcast_targets must be an array of strings');
+            const targets: string[] = [];
+            for (const target of value.broadcast_targets) {
+                if (typeof target !== 'string' || target.length === 0)
+                    return rejected('broadcast_targets entries must be non-empty strings');
+                targets.push(target);
+            }
+            broadcastTargets = targets;
+        }
         return accepted({
             duration: numberAt(value, 'duration', 25),
             durationDelta: numberAt(value, 'duration_delta', 0),
             calm: parseComponentTrigger(value.calm_event),
             broadcastAnger: booleanAt(value, 'broadcast_anger', booleanAt(value, 'broadcastAnger', false)),
             broadcastRange: numberAt(value, 'broadcast_range', numberAt(value, 'broadcastRange', 20)),
-            broadcastFilters
+            broadcastFilters,
+            broadcastTargets
         });
     },
     create: (params) => {
         const states = new WeakMap<EntityInstance, IntervalState>();
+        const pendingBroadcasts = new WeakSet<EntityInstance>();
+        const restart = (entity: EntityInstance): void => {
+            const delta = params.durationDelta * (entity.random.next() * 2 - 1);
+            states.set(entity, { remaining: Math.round((params.duration + delta) * TICKS_PER_SECOND) });
+            if (params.broadcastAnger) pendingBroadcasts.add(entity);
+        };
         return {
-            onInitialize: (entity) => {
-                const delta = params.durationDelta * (entity.random.next() * 2 - 1);
-                states.set(entity, { remaining: Math.round((params.duration + delta) * TICKS_PER_SECOND) });
-                if (params.broadcastAnger)
-                    entity.report(
-                        `minecraft:angry broadcasts anger ${params.broadcastRange} blocks, which nothing carries out`
-                    );
+            onInitialize: restart,
+            onFriendlyAnger: restart,
+            onRemove: (entity) => {
+                states.delete(entity);
+                pendingBroadcasts.delete(entity);
             },
             onTick: (entity) => {
+                if (pendingBroadcasts.delete(entity))
+                    entity.broadcastAnger({
+                        range: params.broadcastRange,
+                        ...(params.broadcastFilters === undefined ? {} : { filters: params.broadcastFilters }),
+                        ...(params.broadcastTargets === undefined ? {} : { targets: params.broadcastTargets })
+                    });
                 const state = states.get(entity);
                 if (state === undefined) return;
                 state.remaining -= 1;

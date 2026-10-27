@@ -31,18 +31,20 @@ export const TRIGGER_COMPONENTS = [
 export type TriggerComponentName = (typeof TRIGGER_COMPONENTS)[number];
 
 /**
- * The five trigger components this package fires itself.
+ * The six trigger components this package fires itself.
  *
  * `minecraft:damage_sensor` and {@link EntityInstance.damage} fire the three
- * hurt and death ones, and {@link EntityInstance.setAttackTarget} fires the two
- * target ones. The other six name states no part of this package owns, so a
- * caller fires them through {@link EntityInstance.trigger} once it has
+ * hurt and death ones, {@link EntityInstance.setAttackTarget} fires the two
+ * target ones, and the entity runtime fires friendly anger when a nearby mob
+ * broadcasts it. The other five name states no part of this package owns, so
+ * a caller fires them through {@link EntityInstance.trigger} once it has
  * equipment, fire, flight and sleep.
  */
 export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_death',
     'minecraft:on_hurt',
     'minecraft:on_hurt_by_player',
+    'minecraft:on_friendly_anger',
     'minecraft:on_target_acquired',
     'minecraft:on_target_escape'
 ];

@@ -22,6 +22,7 @@
 import { legacy_item_aliases } from '@jsprismarine/bedrock-data';
 import type {
     EntityActuator,
+    EntityAngerBroadcast,
     EntityEffects,
     EntityPosition,
     EntitySpawnRequest,
@@ -476,6 +477,7 @@ export class EntityRuntime implements EntityScene {
             id,
             environment: {
                 actuator: actuatorOf(body, this),
+                broadcastAnger: (entity, request) => this.broadcastAnger(entity, request),
                 effects: {
                     playSound: (_source, sound) => this.world.effects.playSound(blockPositionOf(body.position), sound),
                     emitParticle: (_source, particle) =>
@@ -979,6 +981,70 @@ export class EntityRuntime implements EntityScene {
         if (result.died) {
             if (entity.instance.queued().length > 0) this.pendingDeaths.add(entity.id);
             else this.kill(entity);
+        }
+    }
+
+    /** Shares one angry entity's target with nearby entities that pass its broadcast rules. */
+    private broadcastAnger(source: EntityInstance, request: EntityAngerBroadcast): void {
+        const broadcaster = this.byInstance.get(source);
+        if (broadcaster === undefined) return;
+
+        const families = request.targets;
+        let targetId: number | undefined = broadcaster.target;
+        let target = targetId === undefined ? undefined : this.mobById(targetId);
+        if (target === undefined) {
+            targetId = broadcaster.body.damage.last()?.sourceId;
+            target = targetId === undefined ? undefined : this.mobById(targetId);
+        }
+        const targetView = target?.view();
+        const sourceView = source.filterContext().self;
+        const angerGroups = source
+            .activeComponentGroups()
+            .filter((group) =>
+                source.type.groups.get(group)?.components.some((component) => component.name === 'minecraft:angry')
+            );
+        const range = Math.max(0, request.range);
+
+        for (const candidate of this.near(broadcaster.position, range, families)) {
+            if (candidate.id === broadcaster.id || distance(broadcaster.position, candidate.position) > range) continue;
+            if (families === undefined) {
+                if (candidate.identifier !== broadcaster.identifier) continue;
+            } else if (!candidate.instance.hasAnyFamily(families)) {
+                continue;
+            }
+            if (candidate.id === targetId) continue;
+
+            const candidateView = candidate.instance.filterContext().self;
+            const subjects = {
+                other: sourceView,
+                ...(targetView === undefined ? {} : { target: targetView, damager: targetView })
+            };
+            if (
+                request.filters !== undefined &&
+                !evaluateFilter(request.filters, { ...source.filterContext(), other: candidateView })
+            )
+                continue;
+
+            const alreadyAngry = candidate.instance.hasComponent('minecraft:angry');
+            const sharesType = candidate.identifier === broadcaster.identifier;
+            if (sharesType && angerGroups.length > 0) {
+                candidate.instance.applyEffects({ ...noEffects('minecraft:angry.broadcast'), addGroups: angerGroups });
+            } else if (alreadyAngry) {
+                candidate.instance.dispatch('onFriendlyAnger', candidate.instance);
+            }
+
+            if (targetId !== undefined && targetView !== undefined) {
+                const targetEntity = this.entities.get(targetId);
+                if (targetEntity !== undefined && !canEntityAttack(candidate.instance, targetEntity.instance)) continue;
+
+                const targetPlayer = this.host.players().find((player) => player.id === targetId);
+                if (targetPlayer?.creative === true || targetPlayer?.spectator === true) continue;
+
+                candidate.target = targetId;
+                candidate.instance.setAttackTarget(targetView);
+            }
+
+            candidate.instance.trigger('minecraft:on_friendly_anger', subjects);
         }
     }
 
