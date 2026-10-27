@@ -153,6 +153,8 @@ leaves out anything Java cannot decide. This package supplies the rest:
 
 - Captured vanilla `Item Component Data` provides Bedrock-only components for data-driven vanilla
   items. Java projection and supported active item components override matching captured fields.
+  Java `minecraft:repairable` sets override captured repair-material lists while retaining the
+  captured repair amount for each matching item.
 
 - The seven keys `BEDROCK_ONLY_ITEM_PROPERTIES` names. `creative_group`, `frame_count`,
   `hidden_in_commands`, `liquid_clipped`, `should_despawn` and `stacked_by_data` use the captured
@@ -283,8 +285,9 @@ told about a block registry that disagrees with its own does not complain, it dr
   those two packets into `@jsprismarine/protocol` would let this package be checked against them the
   way the other two are.
 - **Item tags.** `item_tags` contains the item's resolved Bedrock memberships from the captured
-  catalog and any explicit `minecraft:tags` definition override. Java tags are not translated into
-  Bedrock tags.
+  catalog and any explicit `minecraft:tags` definition override. Java tag names are not emitted as
+  Bedrock `item_tags`; Java item tags are expanded only where a projected component needs their
+  members, such as `minecraft:repairable`.
 
 ## Tests
 

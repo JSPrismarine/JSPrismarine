@@ -27,6 +27,7 @@ import {
     kineticWeapon,
     maxDamage,
     piercingWeapon,
+    repairable,
     tool,
     useCooldown,
     useRemainder,
@@ -36,6 +37,7 @@ import { attributeModifiers, maxStackSize, useEffects } from './components/unive
 import type { ItemType } from './hooks';
 import type { ProviderContext } from './numberProvider';
 import { DEFAULT_PROVIDER_CONTEXT, NumberProviderError, evaluateNumberProvider } from './numberProvider';
+import type { HolderSet } from './schema';
 
 /**
  * The flat `item_properties` compound, with the nineteen keys a Bedrock
@@ -97,12 +99,26 @@ export interface BedrockItemComponents {
     'minecraft:use_duration'?: number;
     'minecraft:use_animation'?: { value: string };
     'minecraft:use_modifiers'?: { use_duration: number; movement_modifier: number };
+    /** Java's repair materials, expanded and mapped to Bedrock item identifiers. */
+    'minecraft:repairable'?: BedrockRepairableComponent;
     'minecraft:fuel'?: { duration: number };
     'minecraft:compostable'?: { composting_chance: number };
     'minecraft:fire_resistant'?: { value: boolean };
     'minecraft:hand_equipped'?: { value: boolean };
     'minecraft:cooldown'?: { category: string; duration: number; type: string };
     'minecraft:wearable'?: { slot: string; protection: number };
+}
+
+/** One group of Bedrock items that can repair the item. */
+export interface BedrockRepairableItem {
+    /** Bedrock item identifiers accepted as repair materials. */
+    readonly items: readonly string[];
+}
+
+/** The Bedrock repair rules projected from Java's `minecraft:repairable`. */
+export interface BedrockRepairableComponent {
+    /** Repair material groups accepted by Bedrock's anvil UI. */
+    readonly repairItems: readonly BedrockRepairableItem[];
 }
 
 /** One block selector accepted by `minecraft:block_placer.use_on`. */
@@ -153,7 +169,6 @@ export const BEDROCK_ONLY_ITEM_PROPERTIES = [
  * does not depend on, or would overwrite something the client already knows.
  */
 export const UNPROJECTED_BEDROCK_COMPONENTS = {
-    'minecraft:repairable': 'The repair items are a Java item tag, which needs tag expansion and identifier mapping.',
     'minecraft:digger': 'The destroy speeds are keyed by Java block tags, which have no Bedrock equivalent.'
 } as const;
 
@@ -348,9 +363,26 @@ export interface ProjectionOptions {
      * fields are left out.
      */
     mapIdentifier?: (javaId: string) => string | undefined;
+    /** Resolves a Java item tag to its merged Java item identifiers. */
+    resolveItemTag?: (tag: string) => readonly string[] | undefined;
     /** The cooking context fuel values resolve for, a normal furnace by default. */
     providers?: ProviderContext;
 }
+
+/** Maps a Java item holder set onto the Bedrock item names the client knows. */
+const bedrockItemNamesOf = (items: HolderSet, options: ProjectionOptions): readonly string[] | undefined => {
+    if (options.mapIdentifier === undefined) return undefined;
+
+    const javaItems = items.kind === 'entries' ? items.entries : options.resolveItemTag?.(items.tag);
+    if (javaItems === undefined) return undefined;
+
+    const mapped = new Set<string>();
+    for (const javaItem of javaItems) {
+        const bedrockItem = options.mapIdentifier(javaItem);
+        if (bedrockItem !== undefined) mapped.add(bedrockItem);
+    }
+    return [...mapped];
+};
 
 /**
  * Projects one resolved item type onto the Bedrock component compound the
@@ -489,6 +521,16 @@ export const projectItemToBedrock = (type: ItemType, options: ProjectionOptions 
             duration: cooldown.seconds,
             type: 'use'
         };
+    }
+
+    const repairableParams = type.params(repairable);
+    if (repairableParams !== undefined) {
+        const items = bedrockItemNamesOf(repairableParams.items, options);
+        if (items !== undefined) {
+            projected['minecraft:repairable'] = {
+                repairItems: items.map((name) => ({ items: [name] }))
+            };
+        }
     }
 
     return projected;

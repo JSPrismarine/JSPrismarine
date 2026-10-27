@@ -225,7 +225,8 @@ export const buildNetworkContentPayloads = (
             mapIdentifier: (javaId) => {
                 const mapped = javaItemToBedrock(javaId);
                 return mapped.kind === 'unknown' ? undefined : mapped.bedrock.identifier;
-            }
+            },
+            resolveItemTag: (tag) => (content.tags.has('item', tag) ? content.tags.members('item', tag) : undefined)
         },
         // The two `item_properties` keys no Java component decides and the
         // creative catalog does: which tab an item sits in and under which

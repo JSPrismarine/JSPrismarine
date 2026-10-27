@@ -19,7 +19,7 @@
  */
 import { projectItemToBedrock } from '@jsprismarine/items';
 import type { BEDROCK_ONLY_ITEM_PROPERTIES } from '@jsprismarine/items';
-import type { NBTTagCompound } from '@jsprismarine/nbt';
+import { NBTTagCompound } from '@jsprismarine/nbt';
 import type { ItemRegistryEntry } from '@jsprismarine/protocol';
 
 import type { NbtValue } from './nbt';
@@ -234,12 +234,27 @@ const blockPlacerNbt = (component: BedrockBlockPlacerComponent): NBTTagCompound 
         use_on: nbtList(component.useOn.map(blockDescriptorNbt))
     });
 
+/** Writes `minecraft:repairable`, whose item sets contain Bedrock item descriptors. */
+const repairableNbt = (component: NonNullable<BedrockItemComponents['minecraft:repairable']>): NBTTagCompound =>
+    nbtCompound({
+        repair_items: nbtList(
+            component.repairItems.map(({ items }) =>
+                nbtCompound({
+                    items: nbtList(items.map((name) => nbtCompound({ name: nbtString(name) })))
+                })
+            )
+        )
+    });
+
 /** Writes the named components that sit beside `item_properties`. */
 const namedComponents = (projected: BedrockItemComponents): Readonly<Record<string, NbtValue>> => {
     const written: Record<string, NbtValue> = {};
 
     const blockPlacer = projected['minecraft:block_placer'];
     if (blockPlacer !== undefined) written['minecraft:block_placer'] = blockPlacerNbt(blockPlacer);
+
+    const repairable = projected['minecraft:repairable'];
+    if (repairable !== undefined) written['minecraft:repairable'] = repairableNbt(repairable);
 
     const displayName = projected['minecraft:display_name'];
     if (displayName !== undefined) {
@@ -372,6 +387,15 @@ const itemComponentDataWithCapture = (
 
     const components = new Map(capturedComponents.children);
     for (const [name, value] of projectedComponents.children) {
+        if (name === 'minecraft:repairable' && components.has(name)) {
+            const capturedRepairable = capturedComponents.getCompound(name, false);
+            const projectedRepairable = projectedComponents.getCompound(name, false);
+            if (capturedRepairable !== null && projectedRepairable !== null) {
+                components.set(name, repairableWithCapturedAmounts(capturedRepairable, projectedRepairable));
+                continue;
+            }
+        }
+
         if (name === 'item_properties') {
             const capturedProperties = capturedComponents.getCompound(name, false);
             const projectedProperties = projectedComponents.getCompound(name, false);
@@ -389,6 +413,50 @@ const itemComponentDataWithCapture = (
     }
 
     return nbtCompound({ components: nbtCompound(Object.fromEntries(components), 'components') });
+};
+
+/** Reads the item names one captured Bedrock repair entry accepts. */
+const repairItemNames = (entry: unknown): readonly string[] => {
+    if (!(entry instanceof NBTTagCompound)) return [];
+    const items = entry.getList('items', false);
+    if (items === null) return [];
+
+    const names: string[] = [];
+    for (const item of items) {
+        if (!(item instanceof NBTTagCompound)) continue;
+        const name = item.getString('name', '');
+        if (name.length > 0) names.push(name);
+    }
+    return names;
+};
+
+/** Keeps Bedrock-only repair amounts when a Java repairable projection names the same item. */
+const repairableWithCapturedAmounts = (captured: NBTTagCompound, projected: NBTTagCompound): NBTTagCompound => {
+    const capturedItems = captured.getList('repair_items', false) ?? new Set();
+    const projectedItems = projected.getList('repair_items', false) ?? new Set();
+    const mergedItems = new Set<NBTTagCompound>();
+
+    for (const projectedEntry of projectedItems) {
+        if (!(projectedEntry instanceof NBTTagCompound)) continue;
+        const names = repairItemNames(projectedEntry);
+        const capturedEntry = [...capturedItems].find((entry) =>
+            repairItemNames(entry).some((name) => names.includes(name))
+        );
+        const mergedEntry = new NBTTagCompound();
+        for (const [key, value] of projectedEntry.children) mergedEntry.addValue(key, value);
+        const repairAmount =
+            capturedEntry instanceof NBTTagCompound ? capturedEntry.children.get('repair_amount') : undefined;
+        if (repairAmount !== undefined) mergedEntry.addValue('repair_amount', repairAmount);
+        mergedItems.add(mergedEntry);
+    }
+
+    const merged = new NBTTagCompound('minecraft:repairable');
+    for (const [key, value] of captured.children) merged.addValue(key, value);
+    merged.children.set('repair_items', mergedItems);
+    for (const [key, value] of projected.children) {
+        if (key !== 'repair_items') merged.addValue(key, value);
+    }
+    return merged;
 };
 
 /**
