@@ -215,6 +215,12 @@ its 850 events; `queue_command` is documented and unused by vanilla. Six of the 
 entities package through an effects seam the host fills, and `set_home_position`, `stop_movement`
 and `reset_target` are carried out inside the package.
 
+The prismarine host routes emitted game events through a per-world Java-style listener registry.
+It searches only loaded chunks within the event's notification range, applies each listener's own
+radius, and delivers distance-ordered listeners nearest first. Active vibration listeners on data-
+driven wardens and allays receive events; wardens record suspicious positions, and allays update the
+note-block position they follow.
+
 `damage`, `die` and `teleport` are worth naming because they appear in some third-party
 documentation as event actions. They are not. Mojang's `EventActions.md` does not list them, no
 vanilla entity writes one, and this server treats an unrecognized action key the way it treats any
@@ -474,11 +480,11 @@ item outside creative mode, and a declared per-item `result_item` replaces it in
 inventory. Feeding babies to accelerate growth and healing item effects are not implemented; a
 healable entry that requires status effects is declined without consuming the held item.
 
-**Two points of interest have no source.** `GoalWorld.poi` answers the block-backed kinds from the
-world (beds, bells, the thirteen job-site blocks, doors, and whether a position is indoors), but the
-warden's `suspicious_location` and the dolphin's `buried_treasure` are recorded by
-`EntityRuntime.recordPointOfInterest` and nothing calls it. The vibration listener and the
-generator would be the callers. The goals that search for them run and find nothing.
+**The dolphin's buried treasure has no source.** `GoalWorld.poi` answers the block-backed kinds
+from the world (beds, bells, the thirteen job-site blocks, doors, and whether a position is
+indoors). Wardens now record `suspicious_location` when their vibration listener receives an event,
+and allays update the note-block position they follow. No generator records the dolphin's
+`buried_treasure`, so that goal still finds nothing.
 
 **No mob event is ever active.** Nothing on this server runs pillager patrols or village raids, so
 the host answers `minecraft:mob_event_filter` with a flat no rather than a guess, and every rule
