@@ -207,6 +207,21 @@ describe('RemoteConsole', () => {
         await remote.disable();
     });
 
+    it('leaves a shutdown that already began alone when the host asks', async () => {
+        const { server, shutdown } = fakeServer();
+        const { serverEnd, consoleEnd } = linked();
+        const remote = new RemoteConsole(server, serverEnd, new RemoteLogTransport(serverEnd));
+        await remote.enable();
+
+        // What `Server.shutdown` does first, here after the terminal's own SIGINT.
+        remote.markStopping();
+        consoleEnd.send({ type: 'shutdown', v });
+        await setImmediate();
+
+        expect(shutdown).not.toHaveBeenCalled();
+        await remote.disable();
+    });
+
     it('shuts the server down once when the link closes', async () => {
         const { server, shutdown } = fakeServer();
         const { serverEnd, consoleEnd } = linked();

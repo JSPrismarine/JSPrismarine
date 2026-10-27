@@ -188,9 +188,14 @@ export class RemoteConsole implements Service {
         }
     }
 
-    /** Starts the server's own graceful shutdown, once. */
+    /**
+     * Starts the server's own graceful shutdown, once. A request that arrives after a shutdown
+     * began is the same stop, not a second interrupt: in a plain terminal one Ctrl+C reaches
+     * this process directly and again as the host's `shutdown` message, and passing the second
+     * on to `shutdown` would force the exit in the middle of the world save.
+     */
     private requestShutdown(): void {
-        if (this.shutdownRequested) return;
+        if (this.shutdownRequested || this.lastLifecycle === 'stopping') return;
         this.shutdownRequested = true;
         void this.server.shutdown();
     }
