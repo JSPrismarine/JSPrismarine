@@ -5,15 +5,15 @@ import type { RawStream, StoredRecord } from './types';
 
 /** Options for {@link LogStore}. */
 export interface LogStoreOptions {
-    /** Records kept before the oldest is evicted. Defaults to 10 000. */
+    /** Maximum records retained; hidden records are discarded first at capacity. Defaults to 10 000. */
     capacity?: number;
 }
 
 /**
  * What changed in a {@link LogStore}. `append` reports how many records joined the end of the
- * visible list and how many the ring buffer evicted from its front, so a paused window can keep
- * its anchor and count unread lines; `reset` means the visible list was rebuilt and indices into
- * it are stale.
+ * visible list and how many visible records were evicted from its front, so a paused window can
+ * keep its anchor and count unread lines; `reset` means the visible list was rebuilt and indices
+ * into it are stale.
  */
 export type LogStoreChange = { type: 'append'; count: number; evicted: number } | { type: 'reset' };
 
@@ -37,16 +37,17 @@ const broadNamespace = (namespace: string): string => {
 };
 
 /**
- * Ring buffer of log records with the level filter, namespace filter, and search state the log
- * pane and status bar read. `visible()` is cached and updated in place on append, so a store near
- * capacity costs the same per record as an empty one. Filters never hide separators, raw child
+ * Bounded log history with the level filter, namespace filter, and search state the log pane and
+ * status bar read. At capacity, records hidden by the active filters are discarded before visible
+ * records. `visible()` is cached and updated on append. Filters never hide separators, raw child
  * output, or dropped notices. Search highlights rather than hides.
  */
 export class LogStore {
     private readonly capacity: number;
-    private readonly slots: (StoredRecord | undefined)[];
-    private start = 0;
-    private count = 0;
+    private readonly records = new Map<number, StoredRecord>();
+    private nextRecordId = 0;
+    private hiddenRecordIds: number[] = [];
+    private hiddenRecordOffset = 0;
     private warningRecords = 0;
     private errorRecords = 0;
     private evictedCount = 0;
@@ -66,25 +67,24 @@ export class LogStore {
 
     public constructor(options: LogStoreOptions = {}) {
         this.capacity = Math.max(1, options.capacity ?? DEFAULT_CAPACITY);
-        this.slots = new Array(this.capacity);
     }
 
     /** Number of records currently held, at most the capacity. */
     public get size(): number {
-        return this.count;
+        return this.records.size;
     }
 
-    /** Warning log records still held in the ring buffer, regardless of active filters. */
+    /** Warning log records still held, regardless of active filters. */
     public get warningCount(): number {
         return this.warningRecords;
     }
 
-    /** Error log records still held in the ring buffer, regardless of active filters. */
+    /** Error log records still held, regardless of active filters. */
     public get errorCount(): number {
         return this.errorRecords;
     }
 
-    /** Records pushed out by the ring buffer since the store was created. */
+    /** Records discarded under capacity pressure since the store was created. */
     public get evicted(): number {
         return this.evictedCount;
     }
@@ -99,11 +99,10 @@ export class LogStore {
         return this.hidden;
     }
 
-    /** Broad module namespaces of server log records still held in the ring buffer, sorted. */
+    /** Broad module namespaces of server log records still held, sorted. */
     public namespaces(): string[] {
         const namespaces = new Set<string>();
-        for (let i = 0; i < this.count; i += 1) {
-            const record = this.slots[(this.start + i) % this.capacity]!;
+        for (const record of this.records.values()) {
             if (record.kind === 'log' && record.namespace !== '') {
                 const namespace = broadNamespace(record.namespace);
                 if (namespace !== '') namespaces.add(namespace);
@@ -250,34 +249,68 @@ export class LogStore {
 
     private push(record: StoredRecord): void {
         let evicted = 0;
-        if (this.count === this.capacity) {
-            const oldest = this.slots[this.start]!;
-            this.adjustLevelCount(oldest, -1);
-            this.start = (this.start + 1) % this.capacity;
-            this.count -= 1;
-            this.evictedCount += 1;
-            if (this.passes(oldest)) {
-                this.visibleCache.shift();
-                evicted = 1;
-                if (this.matchCache[0] === 0) this.matchCache.shift();
-                for (let i = 0; i < this.matchCache.length; i += 1) this.matchCache[i]! -= 1;
+        const visible = this.passes(record);
+        if (this.records.size === this.capacity) {
+            if (this.hidden > 0) {
+                this.evictOldestHidden();
+            } else if (!visible) {
+                this.evictedCount += 1;
+                this.notify({ type: 'append', count: 0, evicted: 0 });
+                return;
             } else {
-                this.hidden -= 1;
+                this.evictOldestVisible();
+                evicted = 1;
             }
         }
-        this.slots[(this.start + this.count) % this.capacity] = record;
-        this.count += 1;
+
+        const id = this.nextRecordId;
+        this.nextRecordId += 1;
+        this.records.set(id, record);
         this.adjustLevelCount(record, 1);
 
         this.visibleFrozen = undefined;
-        if (this.passes(record)) {
+        if (visible) {
             this.visibleCache.push(record);
             if (this.matchesSearch(record)) this.matchCache.push(this.visibleCache.length - 1);
             this.notify({ type: 'append', count: 1, evicted });
         } else {
             this.hidden += 1;
+            this.hiddenRecordIds.push(id);
+            this.compactHiddenRecordIds();
             this.notify({ type: 'append', count: 0, evicted });
         }
+    }
+
+    private evictOldestHidden(): void {
+        const id = this.hiddenRecordIds[this.hiddenRecordOffset];
+        if (id === undefined) throw new Error('hidden log record index is out of sync');
+        const record = this.records.get(id);
+        if (record === undefined) throw new Error('hidden log record is missing');
+        this.hiddenRecordOffset += 1;
+        this.records.delete(id);
+        this.adjustLevelCount(record, -1);
+        this.hidden -= 1;
+        this.evictedCount += 1;
+        this.compactHiddenRecordIds();
+    }
+
+    private evictOldestVisible(): void {
+        const first = this.records.entries().next().value;
+        if (first === undefined) throw new Error('log history is empty at capacity');
+        const [id, record] = first;
+        if (!this.passes(record)) throw new Error('oldest log record is hidden without an index');
+        this.records.delete(id);
+        this.adjustLevelCount(record, -1);
+        this.visibleCache.shift();
+        if (this.matchCache[0] === 0) this.matchCache.shift();
+        for (let i = 0; i < this.matchCache.length; i += 1) this.matchCache[i]! -= 1;
+        this.evictedCount += 1;
+    }
+
+    private compactHiddenRecordIds(): void {
+        if (this.hiddenRecordOffset * 2 < this.hiddenRecordIds.length) return;
+        this.hiddenRecordIds = this.hiddenRecordIds.slice(this.hiddenRecordOffset);
+        this.hiddenRecordOffset = 0;
     }
 
     private passes(record: StoredRecord): boolean {
@@ -293,12 +326,14 @@ export class LogStore {
     private rebuild(): void {
         this.visibleCache = [];
         this.hidden = 0;
-        for (let i = 0; i < this.count; i += 1) {
-            const record = this.slots[(this.start + i) % this.capacity]!;
+        this.hiddenRecordIds = [];
+        this.hiddenRecordOffset = 0;
+        for (const [id, record] of this.records) {
             if (this.passes(record)) {
                 this.visibleCache.push(record);
             } else {
                 this.hidden += 1;
+                this.hiddenRecordIds.push(id);
             }
         }
         this.visibleFrozen = undefined;
