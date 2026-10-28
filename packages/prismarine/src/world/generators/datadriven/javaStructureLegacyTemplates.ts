@@ -128,6 +128,9 @@ export const buildShipwreck: StructureBuilder = (context): StructureLayout | und
                 template,
                 position: [corner[0], y, corner[2]],
                 placement,
+                // Java's ShipwreckPiece uses STRUCTURE_AND_AIR, leaving the water or shore
+                // terrain under the template's air blocks in place.
+                overwrite: false,
                 onDataMarker: (marker, writer) => {
                     const table = SHIPWRECK_CHESTS[marker.value];
                     if (table !== undefined) {
@@ -350,6 +353,9 @@ export const buildOceanRuin: StructureBuilder = (context): StructureLayout | und
                 template,
                 position: [corner[0], floors.lowest - 1, corner[2]],
                 placement,
+                // Java's OceanRuinPiece uses STRUCTURE_AND_AIR, leaving the sea or terrain under
+                // the template's air blocks in place.
+                overwrite: false,
                 onDataMarker: (marker, writer) => {
                     if (marker.value !== 'chest') return;
 
