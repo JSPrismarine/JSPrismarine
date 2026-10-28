@@ -330,8 +330,6 @@ export const createEngine = (world: WorldAccess, options: EngineOptions = {}): E
 
 /** Identifiers whose scheduled block ticks remain reserved for engine handling. */
 export const SCHEDULED_TICK_BLOCKS: readonly string[] = [
-    REDSTONE_TORCH.lit,
-    REDSTONE_TORCH.unlit,
     REPEATER.powered,
     REPEATER.unpowered,
     COMPARATOR.powered,

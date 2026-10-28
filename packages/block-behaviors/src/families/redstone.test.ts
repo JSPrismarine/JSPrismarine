@@ -108,6 +108,51 @@ describe('redstoneFamily: the observer', () => {
     });
 });
 
+describe('redstoneFamily: redstone torches', () => {
+    it('waits one redstone tick before inverting against a powered support', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:redstone_torch');
+        const support = { x: 0, y: -1, z: 0 };
+        harness.dimension.set(origin, 'minecraft:redstone_torch', { torch_facing_direction: 'top' });
+        harness.dimension.set(support, 'minecraft:stone');
+        harness.dimension.setPower(support, 15);
+
+        harness.place(origin);
+
+        expect(harness.dimension.scheduled).toEqual([{ position: origin, delay: 2 }]);
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:redstone_torch');
+
+        harness.tick(origin, 2);
+
+        expect(harness.dimension.identifierAt(origin)).toBe('minecraft:unlit_redstone_torch');
+    });
+
+    it('burns out after eight off transitions in sixty ticks and restarts later', () => {
+        const harness = bindFamily(redstoneFamily, 'minecraft:redstone_torch');
+        const support = { x: 0, y: -1, z: 0 };
+        harness.dimension.set(origin, 'minecraft:redstone_torch', { torch_facing_direction: 'top' });
+        harness.dimension.set(support, 'minecraft:stone');
+        let tick = 1;
+
+        for (let toggle = 0; toggle < 8; toggle += 1) {
+            harness.dimension.setPower(support, 15);
+            harness.neighborChanged(origin, 'down');
+            harness.tick(origin, tick);
+            tick += 1;
+            expect(harness.dimension.identifierAt(origin)).toBe('minecraft:unlit_redstone_torch');
+
+            if (toggle === 7) continue;
+            harness.dimension.setPower(support, 0);
+            harness.neighborChanged(origin, 'down');
+            harness.tick(origin, tick);
+            tick += 1;
+            expect(harness.dimension.identifierAt(origin)).toBe('minecraft:redstone_torch');
+        }
+
+        expect(harness.dimension.sounds).toContainEqual({ position: origin, name: 'minecraft:random.fizz' });
+        expect(harness.dimension.scheduled.at(-1)).toEqual({ position: origin, delay: 160 });
+    });
+});
+
 describe('comparatorInput', () => {
     it('reads the fill level of the container behind it', () => {
         const harness = bindFamily(redstoneFamily, 'minecraft:unpowered_comparator');

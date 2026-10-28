@@ -69,7 +69,7 @@ export const contentBlockTickHandlers = (
     };
 
     for (const [identifier, type] of content.blocks.types) {
-        // Redstone torches, diodes, and fire still have engine-owned scheduled
+        // Repeaters, comparators, and fire still have engine-owned scheduled
         // behavior. Keep those paths until their family handlers have parity.
         if (engineOwned.has(identifier)) continue;
         if (!type.states.some((state) => state.content.hooks.has('onTick'))) continue;

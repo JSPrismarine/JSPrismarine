@@ -6,7 +6,7 @@
  * family branches on the bare name once per hook. Each branch is small; what
  * they have in common is the power model in `rules/redstone.ts`.
  */
-import type { HookBlock } from '@jsprismarine/blocks';
+import type { BlockFace, HookBlock } from '@jsprismarine/blocks';
 
 import { defineFamily } from '../family';
 import { faceOfFacingDirection, offset, opposite } from '../geometry';
@@ -24,8 +24,8 @@ import {
     wireSignal
 } from '../rules/redstone';
 import { isSolidSupport, popWithoutSupport } from '../rules/support';
-import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber } from '../state';
-import type { WorldActions } from '../world';
+import { bareName, hasState, setStates, sibling, stateBoolean, stateNumber, stateString } from '../state';
+import type { BlockWorld, WorldActions } from '../world';
 import { cardinalFacing } from './openable';
 import { dropSelf } from './shared';
 
@@ -37,6 +37,25 @@ const LAMP_PAIR = { off: 'redstone_lamp', on: 'lit_redstone_lamp' } as const;
 
 /** The two blocks a redstone torch switches between. */
 const TORCH_PAIR = { off: 'unlit_redstone_torch', on: 'redstone_torch' } as const;
+
+/** How long a redstone torch waits before acting on a support change. */
+const TORCH_TOGGLE_TICKS = REDSTONE_TICK;
+
+/** A torch burns out after this many off transitions in its recent window. */
+const TORCH_MAX_RECENT_TOGGLES = 8;
+
+/** The window used to count a redstone torch's off transitions. */
+const TORCH_TOGGLE_WINDOW = 60;
+
+/** How long a burnt-out torch waits before trying to light again. */
+const TORCH_RESTART_TICKS = 160;
+
+interface TorchToggle {
+    readonly key: string;
+    readonly tick: number;
+}
+
+const torchTogglesByWorld = new WeakMap<BlockWorld, TorchToggle[]>();
 
 /** The two blocks a repeater switches between. */
 const REPEATER_PAIR = { off: 'unpowered_repeater', on: 'powered_repeater' } as const;
@@ -59,6 +78,46 @@ const swapPair = (
 /** The face a piston points along, from its numeric `facing_direction`. */
 const pistonFacing = (block: HookBlock): ReturnType<typeof faceOfFacingDirection> =>
     faceOfFacingDirection(stateNumber(block, 'facing_direction'));
+
+/** The face of the block supporting a torch, as Bedrock's `torch_facing_direction` spells it. */
+const torchSupportFace = (block: HookBlock): BlockFace => {
+    const facing = stateString(block, 'torch_facing_direction');
+    switch (facing) {
+        case 'north':
+        case 'south':
+        case 'east':
+        case 'west':
+            return facing;
+        case 'top':
+        case 'unknown':
+        default:
+            return 'down';
+    }
+};
+
+/** Whether the block holding a redstone torch is powered. */
+const torchIsSuppressed = (world: WorldActions, block: HookBlock): boolean =>
+    world.redstonePower(offset(block.position, torchSupportFace(block))) > 0;
+
+/** Whether a torch's current state disagrees with the signal at its support. */
+const torchNeedsTick = (world: WorldActions, block: HookBlock): boolean =>
+    (bareName(block.identifier) === TORCH_PAIR.on) === torchIsSuppressed(world, block);
+
+/** Books one delayed inversion when a redstone torch's support signal changed. */
+const scheduleTorchToggle = (world: WorldActions, block: HookBlock): void => {
+    if (torchNeedsTick(world, block)) world.scheduleTick(block.position, TORCH_TOGGLE_TICKS);
+};
+
+/** Counts recent torch off transitions for one behavior world. */
+const torchToggledTooOften = (world: BlockWorld, block: HookBlock, tick: number, record: boolean): boolean => {
+    const key = `${block.dimension}:${block.position.x},${block.position.y},${block.position.z}`;
+    const toggles = (torchTogglesByWorld.get(world) ?? []).filter(
+        (toggle) => tick - toggle.tick <= TORCH_TOGGLE_WINDOW
+    );
+    if (record) toggles.push({ key, tick });
+    torchTogglesByWorld.set(world, toggles);
+    return toggles.filter((toggle) => toggle.key === key).length >= TORCH_MAX_RECENT_TOGGLES;
+};
 
 /** How many entities stand on a weighted plate per step of its signal. */
 const PLATE_WEIGHTS: Readonly<Record<string, number>> = {
@@ -125,8 +184,7 @@ const onRedstone = (event: { block: HookBlock; power: number }, world: WorldActi
             return;
         case 'redstone_torch':
         case 'unlit_redstone_torch':
-            // A torch inverts its attachment, and takes a redstone tick to do it.
-            world.scheduleTick(block.position, REDSTONE_TICK);
+            scheduleTorchToggle(world, block);
             return;
         case 'powered_repeater':
         case 'unpowered_repeater':
@@ -172,6 +230,13 @@ export const redstoneFamily = defineFamily(
     'jsprismarine:redstone',
     'Branches by name over the 31 redstone blocks: wire fading, repeater and comparator delays, the observer pulse, piston push and pull, the lit and unlit block pairs, and the triggered containers.',
     {
+        onPlace: (event, world) => {
+            const block = event.block;
+            const name = bareName(block.identifier);
+            if (name !== TORCH_PAIR.on && name !== TORCH_PAIR.off) return;
+            if (popWithoutSupport(world, block, torchSupportFace(block))) return;
+            scheduleTorchToggle(world, block);
+        },
         onRedstoneUpdate: (event, world) => {
             onRedstone(event, world);
         },
@@ -196,9 +261,17 @@ export const redstoneFamily = defineFamily(
                 return;
             }
 
-            if (name === 'lever' || name.endsWith('_torch')) popWithoutSupport(world, block);
+            if (name === 'lever') {
+                popWithoutSupport(world, block);
+                return;
+            }
+
+            if (name.endsWith('_torch')) {
+                if (popWithoutSupport(world, block, torchSupportFace(block))) return;
+                scheduleTorchToggle(world, block);
+            }
         },
-        onTick: (event, world) => {
+        onTick: (event, world, context) => {
             const block = event.block;
             switch (bareName(block.identifier)) {
                 case 'observer': {
@@ -224,9 +297,25 @@ export const redstoneFamily = defineFamily(
                     return;
                 }
                 case 'redstone_torch':
-                case 'unlit_redstone_torch':
-                    swapPair(world, block, TORCH_PAIR, world.redstonePower(block.position) === 0);
+                case 'unlit_redstone_torch': {
+                    const lit = bareName(block.identifier) === TORCH_PAIR.on;
+                    const suppressed = torchIsSuppressed(world, block);
+                    if (lit !== suppressed) return;
+
+                    if (lit) {
+                        swapPair(world, block, TORCH_PAIR, false);
+                        if (torchToggledTooOften(context.world, block, event.tick, true)) {
+                            world.playSound(block.position, 'minecraft:random.fizz');
+                            world.scheduleTick(block.position, TORCH_RESTART_TICKS);
+                        }
+                        return;
+                    }
+
+                    if (!torchToggledTooOften(context.world, block, event.tick, false)) {
+                        swapPair(world, block, TORCH_PAIR, true);
+                    }
                     return;
+                }
                 default:
                     return;
             }

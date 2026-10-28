@@ -39,6 +39,8 @@ const BLOCKS = [
     'minecraft:dirt',
     'minecraft:farmland',
     'minecraft:observer',
+    'minecraft:redstone_torch',
+    'minecraft:unlit_redstone_torch',
     'minecraft:wheat'
 ] as const;
 
@@ -194,6 +196,8 @@ describe('contentRandomTickHandlers', () => {
         });
         const handlers = contentBlockTickHandlers({ content, world: () => world, report: () => {} });
         expect(handlers['minecraft:observer']).toBeDefined();
+        expect(handlers['minecraft:redstone_torch']).toBeDefined();
+        expect(handlers['minecraft:unlit_redstone_torch']).toBeDefined();
 
         world.setTicks(1);
         world.getSystems().ticks.list('block').schedule(at, 'minecraft:observer', 1);

@@ -56,10 +56,10 @@ check how much light a cover blocks without treating every support block as opaq
 cannot report dampening, the shared rule treats it as unknown and does not convert the ground block.
 
 For migrated families, scheduled hooks run from the active block state before the engine fallback.
-Observer pulses run through their family hook; redstone torches, repeaters, comparators, and fire
-remain engine-owned until their family handlers reach parity. `kind` selects the block or fluid
-tick list and defaults to `block`; water and lava use the fluid list so their family tick shares the
-engine's existing liquid schedule.
+Observer pulses and redstone torch burnout run through their family hooks; repeaters, comparators,
+and fire remain engine-owned until their family handlers reach parity. `kind` selects the block or
+fluid tick list and defaults to `block`; water and lava use the fluid list so their family tick
+shares the engine's existing liquid schedule.
 
 A `BlockWorld` is a set of dimensions, and `at(dimension)` returns the `WorldActions` for one. Each
 handler receives the actions for its own event's dimension already resolved, so the dimension never
