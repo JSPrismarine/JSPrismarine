@@ -773,7 +773,7 @@ export const shareItems = goal<ShareItemsParams>({
         const offerFor = (candidate: GoalMob): ShareOffer | undefined => {
             const ownRules = rulesOf(support.entity.componentParams('minecraft:shareables'));
             const recipientRules = candidate.shareables?.();
-            const inventory = support.world.inventory?.() ?? [];
+            const inventory = support.world.shareInventory?.() ?? support.world.inventory?.() ?? [];
             if (ownRules === undefined || recipientRules === undefined)
                 return ownRules === undefined && recipientRules === undefined && inventory[0] !== undefined
                     ? { identifier: inventory[0], count: 1 }
@@ -783,7 +783,7 @@ export const shareItems = goal<ShareItemsParams>({
                 const senderRule = shareRule(ownRules, identifier);
                 if (senderRule === undefined || senderRule.pickupOnly || senderRule.surplusAmount < 0) continue;
                 const senderHas = inventory.filter((item) => item === identifier).length;
-                const recipientInventory = candidate.inventory?.() ?? [];
+                const recipientInventory = candidate.shareInventory?.() ?? candidate.inventory?.() ?? [];
                 const takerRule = shareRule(recipientRules, identifier);
                 if (takerRule !== undefined && takerRule.wantAmount >= 0) {
                     const takerHas = recipientInventory.filter((item) => item === identifier).length;
@@ -808,7 +808,7 @@ export const shareItems = goal<ShareItemsParams>({
 
         return {
             canStart: () => {
-                if ((support.world.inventory?.() ?? []).length === 0) return false;
+                if ((support.world.shareInventory?.() ?? support.world.inventory?.() ?? []).length === 0) return false;
                 recipient = support.findTarget(params.entityTypes, params.maxDistance);
                 const offer = recipient === undefined ? undefined : offerFor(recipient);
                 hasOffer = offer !== undefined;

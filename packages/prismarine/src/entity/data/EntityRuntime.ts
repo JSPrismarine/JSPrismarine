@@ -1888,7 +1888,7 @@ export class EntityRuntime implements EntityScene {
 
     /** Consumes a prepared crafting recipe's inputs and gives its output to another entity. */
     public giveCraftedItem(giver: MobBody, taker: GoalMob, craft: GoalItemCraft): void {
-        const available = giver.inventory.filter((item) => item === craft.inputIdentifier).length;
+        const available = this.heldItemCount(giver, craft.inputIdentifier);
         if (available < craft.inputCount) return;
         const verified = this.craftInto(
             craft.inputIdentifier,
@@ -1905,13 +1905,7 @@ export class EntityRuntime implements EntityScene {
         )
             return;
 
-        let remaining = craft.inputCount;
-        while (remaining > 0) {
-            const held = giver.inventory.indexOf(craft.inputIdentifier);
-            if (held === -1) return;
-            giver.inventory.splice(held, 1);
-            remaining -= 1;
-        }
+        if (this.takeHeldItems(giver, craft.inputIdentifier, craft.inputCount) !== craft.inputCount) return;
         for (let index = craft.outputCount; index < craft.craftedCount; index += 1)
             giver.inventory.push(craft.outputIdentifier);
         this.deliverItem(taker, craft.outputIdentifier, craft.outputCount);
@@ -1925,18 +1919,38 @@ export class EntityRuntime implements EntityScene {
      * vanilla: they throw the item rather than reaching into a container.
      */
     public giveItem(giver: MobBody, taker: GoalMob, identifier: string, count = 1): void {
-        let remaining = Math.max(0, Math.floor(count));
-        let taken = 0;
-        while (remaining > 0) {
-            const held = giver.inventory.indexOf(identifier);
-            if (held === -1) break;
-            giver.inventory.splice(held, 1);
-            taken += 1;
-            remaining -= 1;
-        }
+        const taken = this.takeHeldItems(giver, identifier, Math.max(0, Math.floor(count)));
         if (taken === 0) return;
 
         this.deliverItem(taker, identifier, taken);
+    }
+
+    /** Counts one item across the entity's flat inventory and declared slots. */
+    private heldItemCount(entity: MobBody, identifier: string): number {
+        return (
+            entity.inventory.filter((item) => item === identifier).length +
+            entity.containerSlots.reduce((count, item) => count + (item?.identifier === identifier ? item.count : 0), 0)
+        );
+    }
+
+    /** Removes up to `count` items from an entity's flat inventory and declared slots. */
+    private takeHeldItems(entity: MobBody, identifier: string, count: number): number {
+        let remaining = count;
+        while (remaining > 0) {
+            const held = entity.inventory.indexOf(identifier);
+            if (held === -1) break;
+            entity.inventory.splice(held, 1);
+            remaining -= 1;
+        }
+
+        for (let index = 0; index < entity.containerSlots.length && remaining > 0; index += 1) {
+            const item = entity.containerSlots[index];
+            if (item === undefined || item.identifier !== identifier) continue;
+            const taken = Math.min(item.count, remaining);
+            entity.containerSlots[index] = taken === item.count ? undefined : { ...item, count: item.count - taken };
+            remaining -= taken;
+        }
+        return count - remaining;
     }
 
     /** Gives one item stack to a runtime entity or drops it at a player. */

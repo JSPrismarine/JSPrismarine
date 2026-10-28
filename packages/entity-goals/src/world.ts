@@ -38,6 +38,8 @@ export interface GoalMob {
     heldItem?(): string | undefined;
     /** Its inventory, when the world can read it, for data-driven item sharing. */
     inventory?(): readonly string[];
+    /** Its inventory slots and flat items together, for `minecraft:behavior.share_items`. */
+    shareInventory?(): readonly string[];
     /** Its active item-sharing rules, when it has `minecraft:shareables`. */
     shareables?(): ShareablesParams | undefined;
     /** Its current health, for the attack goals that stop at a threshold. */
@@ -207,6 +209,8 @@ export interface GoalWorld {
     setCarriedItem?(identifier: string | undefined): void;
     /** The entity's inventory contents, for the item and trade goals. */
     inventory?(): readonly string[];
+    /** The entity's inventory slots and flat items, for `minecraft:behavior.share_items`. */
+    shareInventory?(): readonly string[];
     /** Replaces a block, for the place, plant, compost and egg goals. */
     setBlock?(position: EntityPosition, identifier: string): void;
     /** Breaks a block, for the eat, harvest and dig goals. */

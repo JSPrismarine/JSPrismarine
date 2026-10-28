@@ -29,6 +29,14 @@ const MELEE_REACH = 3;
 /** Reuses read-through goal views without tying an entity to another runtime's scene. */
 const goalMobViews = new WeakMap<EntityScene, WeakMap<DataEntity, GoalMob>>();
 
+/** The item identifiers held in an entity's flat inventory and declared slots. */
+const shareInventoryOf = (body: MobBody): readonly string[] => [
+    ...body.inventory,
+    ...body.containerSlots.flatMap((item) =>
+        item === undefined ? [] : Array.from({ length: item.count }, () => item.identifier)
+    )
+];
+
 /** One live entity as a goal sees another. */
 export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
     let sceneViews = goalMobViews.get(scene);
@@ -48,6 +56,7 @@ export const goalMobOf = (entity: DataEntity, scene: EntityScene): GoalMob => {
         identifier: () => entity.identifier,
         heldItem: () => entity.carried,
         inventory: () => entity.body.inventory,
+        shareInventory: () => shareInventoryOf(entity.body),
         shareables: () => {
             const rules = entity.instance.componentParams('minecraft:shareables');
             return isShareablesParams(rules) ? rules : undefined;
@@ -235,6 +244,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
             entity.carried = identifier;
         },
         inventory: () => [...entity.inventory],
+        shareInventory: () => shareInventoryOf(entity),
         giveItem: (mob, identifier, count) => scene.giveItem(entity, mob, identifier, count),
         giveCraftedItem: (mob, craft) => scene.giveCraftedItem(entity, mob, craft),
         dropItem: (identifier, position) =>
