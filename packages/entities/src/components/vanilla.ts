@@ -88,6 +88,114 @@ export interface AttackParams {
     readonly effectAmplifier: number;
 }
 
+/** What `minecraft:area_attack` declares. */
+export interface AreaAttackParams {
+    /** Damage cause reported to damage sensors and death handling. */
+    readonly cause: string;
+    /** Seconds between hits to the same target. */
+    readonly damageCooldown: number;
+    /** Damage dealt to each eligible target. */
+    readonly damagePerTick: number;
+    /** Maximum distance between the entities' collision boxes. */
+    readonly damageRange: number;
+    /** Filter a target has to pass before this component damages it. */
+    readonly entityFilter: Filter | undefined;
+    /** Localization key used when this attack kills a player. */
+    readonly deathMessageOverride: string | undefined;
+    /** Whether to play the attack sound for each eligible hit. */
+    readonly playAttackSound: boolean;
+    /** Whether the attacker is recorded as the source of damage. */
+    readonly useSelfAsDamageSource: boolean;
+}
+
+/** `minecraft:area_attack`, whose range damage is applied by the dimension runtime. */
+export const areaAttack: ComponentFactory<EntityHooks, AreaAttackParams> = {
+    name: 'minecraft:area_attack',
+    hooks: [],
+    schema: (value) => {
+        if (!isRecord(value)) return rejected('expected an object');
+        if (value.cause !== undefined && (typeof value.cause !== 'string' || value.cause.length === 0))
+            return rejected('cause must be a non-empty string');
+        if (
+            value.damage_cooldown !== undefined &&
+            (typeof value.damage_cooldown !== 'number' ||
+                !Number.isFinite(value.damage_cooldown) ||
+                value.damage_cooldown < 0)
+        )
+            return rejected('damage_cooldown must be a non-negative number');
+        if (
+            value.damage_per_tick !== undefined &&
+            (typeof value.damage_per_tick !== 'number' ||
+                !Number.isInteger(value.damage_per_tick) ||
+                value.damage_per_tick < 0)
+        )
+            return rejected('damage_per_tick must be a non-negative integer');
+        if (
+            value.damage_range !== undefined &&
+            (typeof value.damage_range !== 'number' || !Number.isFinite(value.damage_range) || value.damage_range < 0)
+        )
+            return rejected('damage_range must be a non-negative number');
+        if (value.play_attack_sound !== undefined && typeof value.play_attack_sound !== 'boolean')
+            return rejected('play_attack_sound must be a boolean');
+        if (value.use_self_as_damage_source !== undefined && typeof value.use_self_as_damage_source !== 'boolean')
+            return rejected('use_self_as_damage_source must be a boolean');
+        if (value.death_message_override !== undefined && typeof value.death_message_override !== 'string')
+            return rejected('death_message_override must be a string');
+
+        let entityFilter: Filter | undefined;
+        if (value.entity_filter !== undefined) {
+            const parsed = parseFilterValue(value.entity_filter, 'minecraft:area_attack entity_filter');
+            if (!parsed.ok) return parsed;
+            entityFilter = parsed.value;
+        }
+
+        return accepted({
+            cause: stringAt(value, 'cause') ?? 'entity_attack',
+            damageCooldown: numberAt(value, 'damage_cooldown', 0),
+            damagePerTick: numberAt(value, 'damage_per_tick', 2),
+            damageRange: numberAt(value, 'damage_range', 0.2),
+            entityFilter,
+            deathMessageOverride: stringAt(value, 'death_message_override') || undefined,
+            playAttackSound: booleanAt(value, 'play_attack_sound', true),
+            useSelfAsDamageSource: booleanAt(value, 'use_self_as_damage_source', true)
+        });
+    },
+    create: () => ({})
+};
+
+/** Whether one parsed filter has the normalized shape this component stores. */
+const isParsedFilter = (value: unknown): value is Filter => {
+    if (!isRecord(value)) return false;
+    if (value.kind === 'test')
+        return (
+            typeof value.test === 'string' && typeof value.subject === 'string' && typeof value.operator === 'string'
+        );
+    return (
+        value.kind === 'group' &&
+        ['all_of', 'any_of', 'none_of'].includes(String(value.combinator)) &&
+        Array.isArray(value.filters) &&
+        value.filters.every(isParsedFilter)
+    );
+};
+
+/** Checks the parsed component parameters before the runtime reads them. */
+export const isAreaAttackParams = (value: unknown): value is AreaAttackParams =>
+    isRecord(value) &&
+    typeof value.cause === 'string' &&
+    typeof value.damageCooldown === 'number' &&
+    Number.isFinite(value.damageCooldown) &&
+    value.damageCooldown >= 0 &&
+    typeof value.damagePerTick === 'number' &&
+    Number.isInteger(value.damagePerTick) &&
+    value.damagePerTick >= 0 &&
+    typeof value.damageRange === 'number' &&
+    Number.isFinite(value.damageRange) &&
+    value.damageRange >= 0 &&
+    (value.entityFilter === undefined || isParsedFilter(value.entityFilter)) &&
+    (value.deathMessageOverride === undefined || typeof value.deathMessageOverride === 'string') &&
+    typeof value.playAttackSound === 'boolean' &&
+    typeof value.useSelfAsDamageSource === 'boolean';
+
 /**
  * `minecraft:attack`, the melee damage an entity deals. It also declares the
  * `attack_damage` attribute, so a group that swaps the component changes the

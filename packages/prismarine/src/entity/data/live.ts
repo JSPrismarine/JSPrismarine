@@ -26,7 +26,7 @@ import type { ServerContent } from '../../content/ServerContent';
 import { contentWorldViews } from '../../content/world/views';
 import { destroyBlock } from '../../world/blockDestroy';
 import type { World } from '../../world/World';
-import { DamageCause } from '../DamageCause';
+import { damageCauseOf, DamageCause } from '../DamageCause';
 import { DamageSource } from '../DamageSource';
 import { Entity } from '../Entity';
 import { GenericEntity } from '../GenericEntity';
@@ -228,7 +228,7 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         void world.removeEntity(entity).catch((error: unknown) => options.report(String(error)));
         return { identifier: held.getItem().getName(), count: held.getCount() };
     },
-    hurt: (id, amount, _cause, sourceId) => {
+    hurt: (id, amount, cause, sourceId, deathMessageOverride) => {
         const world = options.liveWorld();
         const target = world?.getEntity(BigInt(id));
         if (target === null || target === undefined) return;
@@ -236,8 +236,20 @@ const liveHost = (options: LiveEntityOptions, bodies: LiveBodies): EntityHostFac
         // The attacker travels with the blow, so a player who was bitten knows what bit them
         // and the death message names it.
         const attacker = sourceId === undefined ? null : (world?.getEntity(BigInt(sourceId)) ?? null);
-        const source = attacker === null ? DamageSource.of(DamageCause.Attack) : DamageSource.entity(attacker);
+        const damageCause = damageCauseOf(cause);
+        const source =
+            attacker === null && deathMessageOverride === undefined
+                ? DamageSource.of(damageCause)
+                : new DamageSource({ cause: damageCause, attacker, deathMessageOverride });
         void target.damage(amount, source).catch((error: unknown) => options.report(String(error)));
+    },
+    attackSound: (id) => {
+        const world = options.liveWorld();
+        const attacker = bodies.bodyOf(id);
+        if (world === undefined || attacker === undefined) return;
+        void world
+            .sendActorSound(attacker, LevelSoundEvent.ATTACK)
+            .catch((error: unknown) => options.report(String(error)));
     },
     applyStatusEffect: (id, effect) => {
         const target = options.liveWorld()?.getEntity(BigInt(id));

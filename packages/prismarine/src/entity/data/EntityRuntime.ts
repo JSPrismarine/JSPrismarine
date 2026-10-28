@@ -46,6 +46,7 @@ import {
     EntityInstance,
     evaluateFilter,
     isDyeableParams,
+    isAreaAttackParams,
     isRecord,
     javaEntityNavigation,
     MAX_BLOCK_SENSOR_RADIUS,
@@ -135,6 +136,22 @@ const COMPONENT_EQUIPMENT_SLOTS = {
 const PLAYER_WIDTH = 0.6;
 const PLAYER_HEIGHT = 1.8;
 const TICKS_PER_SECOND = 20;
+
+/** Bedrock's player collision box, which the server uses for entity interactions. */
+const PLAYER_ENTITY_BOX = { width: PLAYER_WIDTH, height: PLAYER_HEIGHT };
+
+/** Distance between the closest points of two entity collision boxes. */
+const distanceOutsideEntityBoxes = (
+    first: EntityPosition,
+    firstBox: EntityFacts['box'],
+    second: EntityPosition,
+    secondBox: EntityFacts['box']
+): number => {
+    const horizontalX = Math.max(0, Math.abs(first.x - second.x) - (firstBox.width + secondBox.width) / 2);
+    const horizontalZ = Math.max(0, Math.abs(first.z - second.z) - (firstBox.width + secondBox.width) / 2);
+    const vertical = Math.max(0, first.y - (second.y + secondBox.height), second.y - (first.y + firstBox.height));
+    return Math.hypot(horizontalX, vertical, horizontalZ);
+};
 const TNT_LAUNCH_SPEED = 0.2;
 const TNT_GRAVITY = 0.04;
 const TNT_DRAG = 0.98;
@@ -293,6 +310,10 @@ export class EntityRuntime implements EntityScene {
     private readonly pendingBarters = new WeakSet<DataEntity>();
     /** The last damage tick used by admiration and barter cooldowns. */
     private readonly lastDamagedAt = new WeakMap<DataEntity, number>();
+    /** Last area-attack hit time per attacker and target. */
+    private readonly areaAttackLastHitTicks = new WeakMap<DataEntity, Map<number, number>>();
+    /** Area attackers whose player hit route has already been reported as unavailable. */
+    private readonly reportedAreaAttackRoutes = new WeakSet<DataEntity>();
     /** Entities whose malformed barter table has already been reported. */
     private readonly reportedBarterTables = new WeakSet<DataEntity>();
     /**
@@ -899,6 +920,8 @@ export class EntityRuntime implements EntityScene {
             this.step(entity);
             this.updateMedium(entity);
             this.updateGrounded(entity);
+            this.tickAreaAttack(entity, tick, widest, tallest);
+            if (entity.removed !== undefined) continue;
             if (this.tickFuse(entity)) continue;
             this.carryRiders(entity);
             if (entity.removed !== undefined) continue;
@@ -1203,6 +1226,75 @@ export class EntityRuntime implements EntityScene {
 
         hurtPlayer?.(target.id, damage, 'entity_attack', attacker.id);
         if (attackerEntity !== undefined) this.applyAttackStatusEffect(attackerEntity, target.id);
+    }
+
+    /** Applies active `minecraft:area_attack` damage to nearby entities and players. */
+    private tickAreaAttack(entity: DataEntity, tick: number, widest: number, tallest: number): void {
+        const params = entity.instance.componentParams('minecraft:area_attack');
+        if (!isAreaAttackParams(params) || params.damagePerTick <= 0) return;
+
+        const damage = params.damagePerTick;
+        const range = params.damageRange;
+        const cooldown = Math.ceil(params.damageCooldown * TICKS_PER_SECOND);
+        const cause = params.cause;
+        const sourceId = params.useSelfAsDamageSource ? entity.id : undefined;
+
+        let lastHits = this.areaAttackLastHitTicks.get(entity);
+        if (lastHits === undefined) {
+            lastHits = new Map();
+            this.areaAttackLastHitTicks.set(entity, lastHits);
+        }
+
+        const halfWidth = (entity.facts.box.width + widest) / 2;
+        const halfHeight = (entity.facts.box.height + tallest) / 2;
+        const searchRadius = range + Math.hypot(halfWidth * Math.SQRT2, halfHeight);
+        const sourceContext = entity.instance.filterContext();
+        const damageTarget = (
+            id: number,
+            position: EntityPosition,
+            box: EntityFacts['box'],
+            view: FilterEntityView,
+            target?: DataEntity
+        ): void => {
+            if (
+                id === entity.id ||
+                distanceOutsideEntityBoxes(entity.position, entity.facts.box, position, box) > range
+            )
+                return;
+            if (
+                params.entityFilter !== undefined &&
+                !evaluateFilter(params.entityFilter, { ...sourceContext, other: view })
+            )
+                return;
+
+            const previousHit = lastHits.get(id);
+            if (previousHit !== undefined && tick - previousHit < cooldown) return;
+
+            if (target === undefined) {
+                if (this.host.hurt === undefined) {
+                    if (!this.reportedAreaAttackRoutes.has(entity)) {
+                        this.report(`${entity.identifier} area attacks a player, but nothing routes player damage`);
+                        this.reportedAreaAttackRoutes.add(entity);
+                    }
+                    return;
+                }
+                this.host.hurt(id, damage, cause, sourceId, params.deathMessageOverride);
+            } else this.hurt(target, sourceId, cause, damage);
+
+            if (params.playAttackSound) this.host.attackSound?.(entity.id);
+            entity.instance.notifyAttack(view);
+            lastHits.set(id, tick);
+        };
+
+        for (const target of this.near(entity.position, searchRadius)) {
+            damageTarget(target.id, target.position, target.facts.box, target.instance.filterContext().self, target);
+        }
+
+        for (const player of this.host.players()) {
+            if (player.creative === true || player.spectator === true) continue;
+            const view = this.host.playerView?.(player.id) ?? this.mobById(player.id)?.view();
+            if (view !== undefined) damageTarget(player.id, player.position, PLAYER_ENTITY_BOX, view);
+        }
     }
 
     /** Applies the active attack component's configured effect after a melee hit. */

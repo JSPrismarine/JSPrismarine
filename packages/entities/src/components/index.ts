@@ -13,6 +13,7 @@ import {
     ageable,
     admireItem,
     airDragModifier,
+    areaAttack,
     ambientSoundInterval,
     angry,
     attack,
@@ -102,7 +103,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:annotation.break_door',
     'minecraft:annotation.open_door',
     'minecraft:apply_knockback_rules',
-    'minecraft:area_attack',
     'minecraft:attack_cooldown',
     'minecraft:balloonable',
     'minecraft:block_climber',
@@ -243,6 +243,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
 
     register(ageable);
     register(admireItem);
+    register(areaAttack);
     register(ambientSoundInterval);
     register(angry);
     register(attack);

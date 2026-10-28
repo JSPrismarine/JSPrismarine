@@ -33,4 +33,24 @@ export enum DamageCause {
     Thorns = 'thorns'
 }
 
+/** The Java and server-specific cause names already represented by {@link DamageCause}. */
+const namedCauses: ReadonlyMap<string, DamageCause> = new Map(
+    Object.values(DamageCause).map((cause) => [cause, cause])
+);
+
+/** Bedrock names for causes whose server-side names differ from this enum. */
+const bedrockCauseAliases: ReadonlyMap<string, DamageCause> = new Map([
+    ['entity_attack', DamageCause.Attack],
+    ['entity_explosion', DamageCause.Explosion],
+    ['block_explosion', DamageCause.Explosion],
+    ['fire_tick', DamageCause.Fire],
+    ['starve', DamageCause.Starvation]
+]);
+
+/** Resolves a Java or Bedrock damage cause to the closest cause the server models. */
+export const damageCauseOf = (name: string): DamageCause => {
+    const bareName = name.replace(/^[^:]*:/, '');
+    return bedrockCauseAliases.get(bareName) ?? namedCauses.get(bareName) ?? DamageCause.Generic;
+};
+
 export default DamageCause;

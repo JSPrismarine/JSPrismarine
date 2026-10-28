@@ -21,7 +21,7 @@ import { advancementConsumedItem, advancementDurabilityChanged } from '../advanc
 import { ArmorSlot } from '../network/packet/PlayerArmorDamagePacket';
 import ContainerEntry from '../inventory/ContainerEntry';
 import { itemDropOf, itemOfDrop, storedItem } from '../inventory/persistence';
-import { DamageCause } from '../entity/DamageCause';
+import { damageCauseOf } from '../entity/DamageCause';
 import { DamageSource } from '../entity/DamageSource';
 import { normalizeStatusEffectId } from '../entity/StatusEffect';
 import { Item } from './Item';
@@ -101,20 +101,14 @@ const ARMOR_INDEX: Partial<Record<EquipmentSlot, number>> = {
     feet: ArmorSlot.Feet
 };
 
-/** Every cause this server names, keyed by the bare name a Java damage type carries. */
-const DAMAGE_CAUSES: ReadonlyMap<string, DamageCause> = new Map(
-    Object.values(DamageCause).map((cause) => [cause, cause])
-);
-
 /**
  * The cause for a Java damage type identifier.
  *
- * Derived from {@link DamageCause}'s own values, which are Java's names, rather than from a second
- * table: `minecraft:magic` is `magic` is {@link DamageCause.Magic}. A type this server does not
- * name is generic damage, which is what every unmodeled source already is here.
+ * Uses the server's shared cause resolver, so Java identifiers and Bedrock cause names meet in
+ * one mapping. A type this server does not name is generic damage, which is what every unmodeled
+ * source already is here.
  */
-const causeOf = (damageType: string): DamageCause =>
-    DAMAGE_CAUSES.get(damageType.replace(/^[^:]*:/, '')) ?? DamageCause.Generic;
+const causeOf = damageCauseOf;
 
 /** One cooldown, keyed by the entity and the group `minecraft:use_cooldown` names. */
 const cooldownKey = (runtimeId: number, group: string): string => `${runtimeId}:${group}`;

@@ -108,7 +108,9 @@ export interface EntityHostFacts {
      * @param id - The runtime id of whatever is being hurt.
      * @param sourceId - The runtime id of the entity answerable for the blow.
      */
-    hurt?(id: number, amount: number, cause: string, sourceId: number | undefined): void;
+    hurt?(id: number, amount: number, cause: string, sourceId: number | undefined, deathMessageOverride?: string): void;
+    /** Plays the attack sound for a data-driven entity. */
+    attackSound?(id: number): void;
     /** Applies a data-defined melee effect to a live entity or player. */
     applyStatusEffect?(id: number, effect: StatusEffectInput): void;
     /** Applies an effect and reports whether its active state changed. */

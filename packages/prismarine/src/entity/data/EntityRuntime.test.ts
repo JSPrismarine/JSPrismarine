@@ -1885,6 +1885,110 @@ describe('EntityRuntime', () => {
     });
 
     describe('combat', () => {
+        it('applies area damage to filtered entities and respects each target cooldown', () => {
+            const world = new TestEntityWorld();
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:area_attacker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:type_family': { family: ['area_attacker'] },
+                            'minecraft:area_attack': {
+                                cause: 'entity_attack',
+                                damage_cooldown: 0.5,
+                                damage_per_tick: 6,
+                                damage_range: 0.15,
+                                entity_filter: { test: 'is_family', subject: 'other', value: 'area_target' }
+                            }
+                        }
+                    },
+                    'jsprismarine:area_target': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:type_family': { family: ['area_target'] }
+                        }
+                    },
+                    'jsprismarine:area_bystander': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:type_family': { family: ['bystander'] }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:area_attacker', GROUND);
+            const nearby = runtime.spawn('jsprismarine:area_target', { ...GROUND, x: 0.65 });
+            const far = runtime.spawn('jsprismarine:area_target', { ...GROUND, x: 1.1 });
+            const bystander = runtime.spawn('jsprismarine:area_bystander', { ...GROUND, x: 0.65, z: 1 });
+            if (attacker === undefined || nearby === undefined || far === undefined || bystander === undefined)
+                throw new Error('the fixture declares no area-attack entities');
+
+            runtime.tick(1);
+
+            expect(nearby.instance.attributes.get('health')?.current).toBe(14);
+            expect(nearby.body.damage.last()).toMatchObject({ sourceId: attacker.id, cause: 'entity_attack' });
+            expect(world.attackSounds).toEqual([attacker.id]);
+            expect(far.instance.attributes.get('health')?.current).toBe(20);
+            expect(bystander.instance.attributes.get('health')?.current).toBe(20);
+
+            runtime.tick(2);
+            expect(nearby.instance.attributes.get('health')?.current).toBe(14);
+            expect(world.attackSounds).toEqual([attacker.id]);
+
+            runtime.tick(11);
+            expect(nearby.instance.attributes.get('health')?.current).toBe(8);
+            expect(world.attackSounds).toEqual([attacker.id, attacker.id]);
+        });
+
+        it('routes area damage fields to players and respects source and sound settings', () => {
+            const world = new TestEntityWorld({
+                players: [{ id: 99, identifier: 'minecraft:player', position: GROUND }]
+            });
+            const { runtime } = entityFixture(
+                world,
+                {},
+                {
+                    'jsprismarine:area_attacker': {
+                        components: {
+                            'minecraft:health': { value: 20, max: 20 },
+                            'minecraft:collision_box': { width: 0.6, height: 1.8 },
+                            'minecraft:physics': { has_gravity: false },
+                            'minecraft:area_attack': {
+                                cause: 'fire',
+                                death_message_override: 'death.attack.area',
+                                entity_filter: { test: 'is_family', subject: 'other', value: 'player' },
+                                play_attack_sound: false,
+                                use_self_as_damage_source: false
+                            }
+                        }
+                    }
+                }
+            );
+            const attacker = runtime.spawn('jsprismarine:area_attacker', GROUND);
+            if (attacker === undefined) throw new Error('the fixture declares no area attacker');
+
+            runtime.tick(1);
+
+            expect(world.hits).toEqual([
+                {
+                    id: 99,
+                    amount: 2,
+                    cause: 'fire',
+                    sourceId: undefined,
+                    deathMessageOverride: 'death.attack.area'
+                }
+            ]);
+            expect(world.attackSounds).toEqual([]);
+        });
+
         it('sends a blow at a player out through the host', () => {
             const player = { id: 99, identifier: 'minecraft:player', position: { x: 1, y: FLOOR_Y + 1, z: 0 } };
             const world = new TestEntityWorld({ players: [player] });

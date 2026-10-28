@@ -358,7 +358,16 @@ export class TestEntityWorld {
     }[] = [];
 
     /** Every blow the host was asked to deal to something outside the entity index. */
-    public readonly hits: { id: number; amount: number; cause: string; sourceId: number | undefined }[] = [];
+    public readonly hits: {
+        id: number;
+        amount: number;
+        cause: string;
+        sourceId: number | undefined;
+        deathMessageOverride?: string;
+    }[] = [];
+
+    /** Data-driven entities asked to play their attack sound. */
+    public readonly attackSounds: number[] = [];
 
     /** The players the host reports, which a test replaces between ticks. */
     public players: readonly ContentEntity[];
@@ -442,7 +451,15 @@ export class TestEntityWorld {
                 this.lying.delete(id);
                 return found?.item;
             },
-            hurt: (id, amount, cause, sourceId) => this.hits.push({ id, amount, cause, sourceId }),
+            hurt: (id, amount, cause, sourceId, deathMessageOverride) =>
+                this.hits.push({
+                    id,
+                    amount,
+                    cause,
+                    sourceId,
+                    ...(deathMessageOverride === undefined ? {} : { deathMessageOverride })
+                }),
+            attackSound: (id) => this.attackSounds.push(id),
             mobEventActive: () => false
         };
     }

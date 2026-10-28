@@ -6,7 +6,7 @@ import type { EventTypes } from '../events/EventEmitter';
 import { ActorEvent } from '../network/packet/ActorEventPacket';
 import { Position } from '../world/Position';
 import { AttributeIds } from './Attribute';
-import { DamageCause } from './DamageCause';
+import { damageCauseOf, DamageCause } from './DamageCause';
 import { DamageSource } from './DamageSource';
 import { Entity } from './Entity';
 import { stub } from '../testing/stub.test.helper';
@@ -93,6 +93,13 @@ describe('the damage pipeline', () => {
 
     beforeEach(() => {
         world = scene();
+    });
+
+    it('resolves Bedrock damage causes to the server damage model', () => {
+        expect(damageCauseOf('entity_attack')).toBe(DamageCause.Attack);
+        expect(damageCauseOf('minecraft:fire_tick')).toBe(DamageCause.Fire);
+        expect(damageCauseOf('block_explosion')).toBe(DamageCause.Explosion);
+        expect(damageCauseOf('unmodeled')).toBe(DamageCause.Generic);
     });
 
     describe('invulnerability frames', () => {

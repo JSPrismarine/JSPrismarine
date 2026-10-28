@@ -57,21 +57,27 @@ export class DamageSource {
      */
     public readonly knockbackLevels: number;
 
+    /** A custom localization key to use if this damage kills a player. */
+    public readonly deathMessageOverride: string | undefined;
+
     public constructor({
         cause,
         attacker = null,
         projectile = null,
-        knockbackLevels = 0
+        knockbackLevels = 0,
+        deathMessageOverride
     }: {
         cause: DamageCause;
         attacker?: Entity | null;
         projectile?: Entity | null;
         knockbackLevels?: number;
+        deathMessageOverride?: string;
     }) {
         this.cause = cause;
         this.attacker = attacker;
         this.projectile = projectile;
         this.knockbackLevels = knockbackLevels;
+        this.deathMessageOverride = deathMessageOverride;
     }
 
     /**

@@ -110,6 +110,15 @@ const isPlayer = (entity: Entity): boolean => entity.getType() === PLAYER_TYPE;
 export const deathMessage = (victim: Entity, source: DamageSource): DeathMessage => {
     const killer = source.attacker;
 
+    if (source.deathMessageOverride !== undefined) {
+        const key = source.deathMessageOverride.startsWith('%')
+            ? source.deathMessageOverride
+            : `%${source.deathMessageOverride}`;
+        const parameters = [displayNameOf(victim)];
+        if (killer !== null && killer !== victim) parameters.push(displayNameOf(killer));
+        return { key, parameters };
+    }
+
     // Killing yourself is still an accident: vanilla does not say "Steve was slain by Steve".
     if (killer && killer !== victim) {
         const attributed = ATTRIBUTED[source.cause];

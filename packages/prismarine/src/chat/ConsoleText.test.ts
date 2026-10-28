@@ -83,5 +83,21 @@ describe('ConsoleText', () => {
 
             expect(consoleTextOf(translation(key, parameters))).toBe('Steve was slain by Zombie Villager');
         });
+
+        it('uses a custom damage death-message key with victim and attacker parameters', () => {
+            const { key, parameters } = deathMessage(
+                entity('Steve', 'minecraft:player'),
+                new DamageSource({
+                    cause: DamageCause.Attack,
+                    attacker: entity('', 'minecraft:magma_cube'),
+                    deathMessageOverride: 'death.attack.area'
+                })
+            );
+
+            expect({ key, parameters }).toEqual({
+                key: '%death.attack.area',
+                parameters: ['Steve', 'Magma Cube']
+            });
+        });
     });
 });
