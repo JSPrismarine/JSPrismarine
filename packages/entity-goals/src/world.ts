@@ -176,6 +176,8 @@ export interface GoalWorld {
     trigger?(event: string, target: string): void;
     /** Whether the entity can breed with the mob now. */
     canBreedWith?(mob: GoalMob): boolean;
+    /** Whether this entity's active breeding data lets it look for a mate now. */
+    isReadyToBreed?(): boolean;
     /** Produces the offspring of a successful breeding. */
     breedWith?(mob: GoalMob): void;
     /** Records what the goal met and could not carry out. */

@@ -383,9 +383,9 @@ on that component decide which cells the search may enter: doors, water, lava, d
 portals, sunlight and the three media (ground, swim, fly). A search expands at most 512 nodes
 unless the caller raises the budget.
 
-The goals reach the world through `GoalWorld`, a 43-member interface covering sight, combat, items,
+The goals reach the world through `GoalWorld`, a 46-member interface covering sight, combat, items,
 blocks, relationships and reporting. Every member is optional, and a goal whose world cannot answer
-what it needs refuses to start rather than throwing. The server answers all 43 today, which takes
+what it needs refuses to start rather than throwing. The server answers all 46 today, which takes
 the inventory from 118 goals able to run to all 170; before the seam was finished, `hurt_by_target`
 (42 of the 129 vanilla entities carry it), `panic` (37), `breed` (26) and `mount_pathing` (26) could
 never start.

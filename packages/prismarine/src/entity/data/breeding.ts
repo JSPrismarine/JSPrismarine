@@ -139,6 +139,12 @@ export const canBreed = (self: DataEntity, other: DataEntity): boolean => {
     return ready(self, rules) && ready(other, otherRules);
 };
 
+/** Whether this entity passes the readiness rules in its active `minecraft:breedable` component. */
+export const isReadyToBreed = (entity: DataEntity): boolean => {
+    const rules = breedableOf(entity.instance);
+    return rules !== undefined && ready(entity, rules);
+};
+
 /**
  * The child two entities produce.
  *

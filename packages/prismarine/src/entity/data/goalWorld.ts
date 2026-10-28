@@ -18,6 +18,7 @@ import type { GoalDamage, GoalItem, GoalMob, GoalWorld } from '@jsprismarine/ent
 
 import { EYE_HEIGHT } from '../Human';
 import type { DataEntity, MobBody } from './DataEntity';
+import { isReadyToBreed } from './breeding';
 import { distance, squaredDistance } from './DataEntity';
 import { blockPositionOf, entityEyePosition } from './position';
 import type { EntityScene } from './scene';
@@ -201,6 +202,10 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         setSleeping: (sleeping) => {
             entity.sleeping = sleeping;
+        },
+        isReadyToBreed: () => {
+            const self = scene.byId(entity.id);
+            return self !== undefined && isReadyToBreed(self);
         },
         canBreedWith: (mob) => scene.canBreedWith(entity, mob),
         breedWith: (mob) => scene.breedWith(entity, mob),

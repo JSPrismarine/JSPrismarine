@@ -15,7 +15,7 @@ const flatWorld = (size = 32): GoalWorld => {
 
 const walker = { 'minecraft:collision_box': { width: 0.6, height: 1.8 }, 'minecraft:navigation.walk': {} };
 
-describe('minecraft:behavior.breed', () => {
+describe('breeding goals', () => {
     it('courts a partner the world accepts and breeds once the courtship is over', () => {
         const mate = testMob('mate', { x: 9.5, y: 1, z: 8.5 });
         const bred: (string | number)[] = [];
@@ -52,6 +52,33 @@ describe('minecraft:behavior.breed', () => {
 
         expect(harness.running()).toEqual([]);
     });
+
+    it.each(['minecraft:behavior.breed', 'minecraft:behavior.make_love', 'minecraft:behavior.receive_love'])(
+        '%s skips the partner search when the entity is not ready',
+        (name) => {
+            const other = testMob('other', { x: 9.5, y: 1, z: 8.5 });
+            let searches = 0;
+            const harness = new GoalHarness({
+                goals: { [name]: { priority: 3 } },
+                components: walker,
+                world: {
+                    ...flatWorld(),
+                    isReadyToBreed: () => false,
+                    mobs: () => {
+                        searches += 1;
+                        return [other];
+                    },
+                    canBreedWith: () => true
+                },
+                at: { x: 8.5, y: 1, z: 8.5 }
+            });
+
+            harness.tick(3);
+
+            expect(searches).toBe(0);
+            expect(harness.running()).toEqual([]);
+        }
+    );
 });
 
 describe('minecraft:behavior.tempt', () => {

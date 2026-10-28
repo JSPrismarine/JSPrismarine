@@ -141,6 +141,20 @@ const run = (fixture: EntityFixture, ticks: number): void => {
 
 describe('the goal world over the entity runtime', () => {
     describe('breeding', () => {
+        it('reports readiness from the active breedable data', () => {
+            const fixture = fixtureOf();
+            const animal = spawned(fixture, 'jsprismarine:breeder', groundAt(0, 0));
+            const world = goalWorldOf(animal.body, fixture.runtime);
+
+            expect(world.isReadyToBreed()).toBe(false);
+
+            fixture.runtime.setInLove(animal.id, 1);
+            expect(world.isReadyToBreed()).toBe(true);
+
+            animal.body.breedCooldown = 1;
+            expect(world.isReadyToBreed()).toBe(false);
+        });
+
         it('produces a baby from two animals in love', () => {
             const fixture = fixtureOf();
             const first = spawned(fixture, 'jsprismarine:breeder', groundAt(0, 0));

@@ -41,6 +41,9 @@ const LOVE_TICKS = 60;
 /** How close they have to be when it happens, from Java's `BreedGoal`. */
 const BREED_DISTANCE = 3;
 
+/** Whether a host can rule out a mate search before supplying nearby entities. */
+const canSearchForMate = (support: GoalSupport): boolean => support.world.isReadyToBreed?.() !== false;
+
 /** How far a baby looks for its parent, from Java's `FollowParentGoal.HORIZONTAL_SCAN_RANGE`. */
 const PARENT_SCAN_RANGE = 8;
 
@@ -79,6 +82,10 @@ export const breed = goal<BreedParams>({
 
         return {
             canStart: () => {
+                if (!canSearchForMate(support)) {
+                    partner = undefined;
+                    return false;
+                }
                 partner = support.mobs(PARTNER_RANGE).find((mob) => support.world.canBreedWith?.(mob) === true);
                 return partner !== undefined;
             },
@@ -118,6 +125,10 @@ export const makeLove = goal<Record<string, unknown>>({
         let courting = 0;
         return {
             canStart: () => {
+                if (!canSearchForMate(support)) {
+                    partner = undefined;
+                    return false;
+                }
                 partner = support.mobs(PARTNER_RANGE).find((mob) => support.world.canBreedWith?.(mob) === true);
                 return partner !== undefined;
             },
@@ -153,7 +164,9 @@ export const receiveLove = goal<Record<string, unknown>>({
     create: (_params, support) => {
         let remaining = 0;
         return {
-            canStart: () => support.mobs(PARTNER_RANGE).some((mob) => support.world.canBreedWith?.(mob) === true),
+            canStart: () =>
+                canSearchForMate(support) &&
+                support.mobs(PARTNER_RANGE).some((mob) => support.world.canBreedWith?.(mob) === true),
             canContinue: () => remaining > 0,
             start: () => {
                 remaining = LOVE_TICKS;

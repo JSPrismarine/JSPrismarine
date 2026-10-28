@@ -151,8 +151,8 @@ The members, grouped by what needs them:
 - Items: `pickUp`, `dropItem`, `giveItem`, `carriedItem`, `setCarriedItem`, `inventory`,
   `dropLoot`.
 - Blocks and the world: `setBlock`, `breakBlock`, `spawn`, `teleportTo`, `playSound`.
-- Relationships: `owner`, `vehicle`, `riders`, `mount`, `dismount`, `canBreedWith`, `breedWith`,
-  `openTrade`, `tradingPlayer`.
+- Relationships: `owner`, `vehicle`, `riders`, `mount`, `dismount`, `canBreedWith`,
+  `isReadyToBreed`, `breedWith`, `openTrade`, `tradingPlayer`.
 - Flags and reporting: `setSitting`, `setSleeping`, `trigger`, `report`.
 
 `mobs(radius, families)` may use the optional family list to narrow a candidate search. It must
