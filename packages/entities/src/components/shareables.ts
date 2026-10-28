@@ -184,6 +184,7 @@ export const isShareablesParams = (value: unknown): value is ShareablesParams =>
             typeof entry.barter === 'boolean' &&
             typeof entry.consumeItem === 'boolean' &&
             typeof entry.pickupOnly === 'boolean' &&
-            typeof entry.storedInInventory === 'boolean'
+            typeof entry.storedInInventory === 'boolean' &&
+            (entry.craftInto === undefined || typeof entry.craftInto === 'string')
     );
 };

@@ -74,6 +74,22 @@ export interface GoalPickupOptions {
     readonly storedInInventory: boolean;
 }
 
+/** One recipe-backed conversion prepared for an entity to share. */
+export interface GoalItemCraft {
+    /** The recipe that produces the shared item. */
+    readonly recipeId: string;
+    /** The item identifier consumed by the recipe. */
+    readonly inputIdentifier: string;
+    /** The number of input items this transfer consumes. */
+    readonly inputCount: number;
+    /** The item identifier the recipe produces. */
+    readonly outputIdentifier: string;
+    /** The total number of output items the recipe produces. */
+    readonly craftedCount: number;
+    /** The number of output items this transfer gives away. */
+    readonly outputCount: number;
+}
+
 /** One block a block search found. */
 export interface GoalBlock {
     readonly position: EntityPosition;
@@ -172,6 +188,15 @@ export interface GoalWorld {
     dropItem?(identifier: string, position: EntityPosition | undefined): void;
     /** Hands items to another entity, for the sharing and gift goals. */
     giveItem?(mob: GoalMob, identifier: string, count?: number): void;
+    /** Finds a loaded crafting recipe that converts one item into another. */
+    craftInto?(
+        inputIdentifier: string,
+        outputIdentifier: string,
+        availableInput: number,
+        wantedOutput: number
+    ): GoalItemCraft | undefined;
+    /** Consumes a prepared recipe's inputs and gives its output to another entity. */
+    giveCraftedItem?(mob: GoalMob, craft: GoalItemCraft): void;
     /** What the entity holds in its main hand. */
     carriedItem?(): string | undefined;
     /** How many items of one identifier it keeps across inventory and equipment. */

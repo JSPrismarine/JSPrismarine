@@ -212,6 +212,8 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         mount: (mob) => scene.mount(entity, mob),
         dismount: () => scene.dismount(entity),
         pickUp: (item, count, options) => scene.pickUp(entity, item, count, options),
+        craftInto: (inputIdentifier, outputIdentifier, availableInput, wantedOutput) =>
+            scene.craftInto(inputIdentifier, outputIdentifier, availableInput, wantedOutput),
         carriedItem: () => entity.carried,
         itemCount: (identifier) =>
             entity.inventory.filter((item) => item === identifier).length +
@@ -228,6 +230,7 @@ export const goalWorldOf = (entity: MobBody, scene: EntityScene): Required<GoalW
         },
         inventory: () => [...entity.inventory],
         giveItem: (mob, identifier, count) => scene.giveItem(entity, mob, identifier, count),
+        giveCraftedItem: (mob, craft) => scene.giveCraftedItem(entity, mob, craft),
         dropItem: (identifier, position) =>
             scene.host.drop(blockPositionOf(position ?? entity.position), { identifier, count: 1 }),
         setBlock: (position, identifier) =>

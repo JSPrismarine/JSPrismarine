@@ -1,4 +1,4 @@
-import type { Goal, ShareablesParams } from '@jsprismarine/entities';
+import type { Goal, ShareableItemParams, ShareablesParams } from '@jsprismarine/entities';
 import { isShareablesParams } from '@jsprismarine/entities';
 import type { Filter } from '@jsprismarine/packs';
 
@@ -19,7 +19,7 @@ import {
     ticksAt
 } from '../params';
 import type { GoalSupport } from '../support';
-import type { GoalMob } from '../world';
+import type { GoalItemCraft, GoalMob } from '../world';
 
 /**
  * The goals about other entities and players: breeding, following an owner,
@@ -746,21 +746,25 @@ export const shareItems = goal<ShareItemsParams>({
         let recipient: GoalMob | undefined;
         let hasOffer = false;
 
+        type ShareRule = Pick<ShareableItemParams, 'craftInto' | 'pickupOnly' | 'surplusAmount' | 'wantAmount'>;
+        type ShareOffer = { readonly identifier: string; readonly count: number; readonly craft?: GoalItemCraft };
+
         const rulesOf = (value: unknown): ShareablesParams | undefined =>
             isShareablesParams(value) ? value : undefined;
 
-        const shareRule = (rules: ShareablesParams, identifier: string) => {
+        const shareRule = (rules: ShareablesParams, identifier: string): ShareRule | undefined => {
             const matching = rules.items.find((item) => item.items.includes(identifier));
             if (matching !== undefined) return matching;
             if (!rules.allItems) return undefined;
             return {
+                craftInto: undefined,
                 pickupOnly: false,
                 surplusAmount: rules.allItemsSurplusAmount,
                 wantAmount: rules.allItemsWantAmount
             };
         };
 
-        const offerFor = (candidate: GoalMob): { readonly identifier: string; readonly count: number } | undefined => {
+        const offerFor = (candidate: GoalMob): ShareOffer | undefined => {
             const ownRules = rulesOf(support.entity.componentParams('minecraft:shareables'));
             const recipientRules = candidate.shareables?.();
             const inventory = support.world.inventory?.() ?? [];
@@ -771,19 +775,27 @@ export const shareItems = goal<ShareItemsParams>({
 
             for (const identifier of new Set(inventory)) {
                 const senderRule = shareRule(ownRules, identifier);
-                const takerRule = shareRule(recipientRules, identifier);
-                if (
-                    senderRule === undefined ||
-                    takerRule === undefined ||
-                    senderRule.pickupOnly ||
-                    senderRule.surplusAmount < 0 ||
-                    takerRule.wantAmount < 0
-                )
-                    continue;
+                if (senderRule === undefined || senderRule.pickupOnly || senderRule.surplusAmount < 0) continue;
                 const senderHas = inventory.filter((item) => item === identifier).length;
-                const takerHas = (candidate.inventory?.() ?? []).filter((item) => item === identifier).length;
-                const count = Math.min(senderHas - senderRule.surplusAmount, takerRule.wantAmount - takerHas);
-                if (count > 0) return { identifier, count };
+                const recipientInventory = candidate.inventory?.() ?? [];
+                const takerRule = shareRule(recipientRules, identifier);
+                if (takerRule !== undefined && takerRule.wantAmount >= 0) {
+                    const takerHas = recipientInventory.filter((item) => item === identifier).length;
+                    const count = Math.min(senderHas - senderRule.surplusAmount, takerRule.wantAmount - takerHas);
+                    if (count > 0) return { identifier, count };
+                }
+
+                if (senderRule.craftInto === undefined) continue;
+                const craftedRule = shareRule(recipientRules, senderRule.craftInto);
+                if (craftedRule === undefined || craftedRule.wantAmount < 0) continue;
+                const craftedHas = recipientInventory.filter((item) => item === senderRule.craftInto).length;
+                const craft = support.world.craftInto?.(
+                    identifier,
+                    senderRule.craftInto,
+                    senderHas - senderRule.surplusAmount,
+                    craftedRule.wantAmount - craftedHas
+                );
+                if (craft !== undefined) return { identifier: craft.outputIdentifier, count: craft.outputCount, craft };
             }
             return undefined;
         };
@@ -805,8 +817,10 @@ export const shareItems = goal<ShareItemsParams>({
                 if (support.navigator.tick()) return;
                 const taker = recipient;
                 const offer = taker === undefined || !hasOffer ? undefined : offerFor(taker);
-                if (taker !== undefined && offer !== undefined)
-                    support.world.giveItem?.(taker, offer.identifier, offer.count);
+                if (taker !== undefined && offer !== undefined) {
+                    if (offer.craft !== undefined) support.world.giveCraftedItem?.(taker, offer.craft);
+                    else support.world.giveItem?.(taker, offer.identifier, offer.count);
+                }
                 recipient = undefined;
                 hasOffer = false;
             },

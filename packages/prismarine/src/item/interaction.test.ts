@@ -31,6 +31,7 @@ import { createEngineWorld } from '../world/EngineWorld';
 import { World } from '../world/World';
 import { WorldSystems } from '../world/WorldSystems';
 import { NULL_WORLD_CHANGE_SINK } from '../world/WorldChangeSink';
+import { contentRedstoneUpdateHandlers } from '../world/redstoneUpdates';
 import type Player from '../Player';
 
 /** One call to the session's container opener, as the harness records it. */
@@ -63,7 +64,8 @@ const BLOCKS = [
     'minecraft:leaf_litter',
     'minecraft:snow_layer',
     'minecraft:piston',
-    'minecraft:redstone_wire'
+    'minecraft:redstone_wire',
+    'minecraft:redstone_torch'
 ] as const;
 
 /** The items the fixture declares, which is one of each family the tests reach. */
@@ -78,6 +80,7 @@ const ITEMS = [
     'minecraft:crafting_table',
     'minecraft:piston',
     'minecraft:redstone',
+    'minecraft:redstone_torch',
     'minecraft:flint_and_steel'
 ];
 
@@ -145,10 +148,17 @@ const overlayBlock = (identifier: string) => {
 /** A `World` reduced to what the interaction path touches, on a real chunk and real systems. */
 const liveWorld = (
     content: () => ServerContent
-): { world: World; chunk: Chunk; sounds: string[]; changed: string[] } => {
+): {
+    world: World;
+    chunk: Chunk;
+    sounds: string[];
+    changed: string[];
+    redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
+} => {
     const chunk = new Chunk(0, 0);
     const sounds: string[] = [];
     const changed: string[] = [];
+    const redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[] = [];
 
     const world: World = Object.assign(Object.create(World.prototype), {
         chunks: new Map([[Chunk.packXZ(0, 0), chunk]]),
@@ -174,6 +184,22 @@ const liveWorld = (
         blockChanged: (at, runtimeId) =>
             void changed.push(`${at.getX()},${at.getY()},${at.getZ()} ${BlockRuntimeIds.getState(runtimeId)?.name}`)
     });
+    return { world, chunk, sounds, changed, redstoneUpdates };
+};
+
+/** Connects content redstone hooks the way {@link WorldManager} does in the running server. */
+const installWorldSystems = (
+    world: World,
+    content: ServerContent,
+    redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[]
+): void => {
+    const handlers = contentRedstoneUpdateHandlers({
+        content,
+        world: () => world,
+        report: (identifier, error) => {
+            throw new Error(`${identifier} redstone update failed: ${String(error)}`);
+        }
+    });
     Object.assign(world, {
         systems: new WorldSystems({
             view: {
@@ -181,11 +207,16 @@ const liveWorld = (
                 blockAt: (x: number, y: number, z: number) => world.loadedBlockAt(x, y, z),
                 loadedChunks: () => [{ x: 0, z: 0 }]
             },
-            world: createEngineWorld(world)
+            world: createEngineWorld(world),
+            redstoneUpdateHandlers: {
+                ...handlers,
+                dispatch: (at, block, power) => {
+                    redstoneUpdates.push({ position: at, identifier: block.name, power });
+                    handlers.dispatch(at, block, power);
+                }
+            }
         })
     });
-
-    return { world, chunk, sounds, changed };
 };
 
 /**
@@ -289,12 +320,13 @@ describe('useItemOnBlock', () => {
     let chunk: Chunk;
     let sounds: string[];
     let changed: string[];
+    let redstoneUpdates: { position: ContentPosition; identifier: string; power: number }[];
     let content: ServerContent;
     let handle: ServerWorldHandle;
 
     beforeEach(() => {
         let built: ServerContent | undefined;
-        ({ world, chunk, sounds, changed } = liveWorld(() => built!));
+        ({ world, chunk, sounds, changed, redstoneUpdates } = liveWorld(() => built!));
 
         handle = serverWorldSource({
             worldFor: () => world,
@@ -323,6 +355,7 @@ describe('useItemOnBlock', () => {
             world: handle
         });
         built = content;
+        installWorldSystems(world, content, redstoneUpdates);
     });
 
     /** The click, as the path takes it. */
@@ -575,6 +608,40 @@ describe('useItemOnBlock', () => {
 
             expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_wire');
             expect(player.getInventory().getItemInHand().getName()).toBe('minecraft:air');
+        });
+
+        it('powers existing redstone wire when a torch is placed beside it', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 6, y: 63, z: 7 }, 'minecraft:stone');
+            click(playerHolding(world, 'minecraft:redstone'), { x: 6, y: 63, z: 7 });
+
+            expect(click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 })).toBe('handled');
+
+            expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_torch');
+            expect(world.loadedBlockAt(6, 64, 7)?.states['redstone_signal']).toBe(15);
+        });
+
+        it('extends an adjacent piston when a torch is placed', () => {
+            place(chunk, { x: 6, y: 63, z: 6 }, 'minecraft:stone');
+            place(chunk, { x: 6, y: 63, z: 7 }, 'minecraft:stone');
+            click(
+                playerHolding(world, 'minecraft:piston', false, Gametype.SURVIVAL, { pitch: 0, yaw: 90 }),
+                { x: 6, y: 63, z: 7 }
+            );
+
+            expect(click(playerHolding(world, 'minecraft:redstone_torch'), { x: 6, y: 63, z: 6 })).toBe('handled');
+
+            expect(world.loadedBlockAt(6, 64, 6)?.name).toBe('minecraft:redstone_torch');
+            expect(content.world.blockWorld.at(DIMENSION).redstonePower({ x: 6, y: 64, z: 7 })).toBe(15);
+            expect(redstoneUpdates).toContainEqual({
+                position: { x: 6, y: 64, z: 7 },
+                identifier: 'minecraft:piston',
+                power: 15
+            });
+            expect(world.loadedBlockAt(6, 64, 7)?.name).toBe('minecraft:piston');
+            expect(world.loadedBlockAt(6, 64, 7)?.states['facing_direction']).toBe(4);
+            expect(sounds).toContain('minecraft:piston.out');
+            expect(world.loadedBlockAt(5, 64, 7)?.name).toBe('minecraft:piston_arm_collision');
         });
 
         it('replaces leaf litter rather than building on top of it', () => {

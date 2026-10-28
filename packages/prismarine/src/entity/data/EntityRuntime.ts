@@ -60,6 +60,7 @@ import type {
     BlockQuery,
     GoalBlock,
     GoalItem,
+    GoalItemCraft,
     GoalMob,
     GoalPickupOptions,
     GoalWorld,
@@ -1835,8 +1836,89 @@ export class EntityRuntime implements EntityScene {
         return false;
     }
 
+    /** Finds a loaded crafting recipe that converts repeated copies of one item into another. */
+    public craftInto(
+        inputIdentifier: string,
+        outputIdentifier: string,
+        availableInput: number,
+        wantedOutput: number
+    ): GoalItemCraft | undefined {
+        const available = Math.floor(availableInput);
+        const wanted = Math.floor(wantedOutput);
+        if (available <= 0 || wanted <= 0) return undefined;
+
+        for (let inputPerCraft = 1; inputPerCraft <= Math.min(9, available); inputPerCraft += 1) {
+            const slots = Array.from({ length: 9 }, (_, index) =>
+                index < inputPerCraft ? { id: inputIdentifier, count: 1 } : null
+            );
+            const matches = this.content().recipes.matchAll({
+                station: 'crafting',
+                grid: { width: 3, height: 3, slots }
+            });
+            for (const match of matches) {
+                if (
+                    match.result.id !== outputIdentifier ||
+                    match.result.count <= 0 ||
+                    (match.result.components !== undefined && Object.keys(match.result.components).length > 0) ||
+                    match.remainder.some((item) => item !== null)
+                )
+                    continue;
+
+                const consumedPerCraft = match.consumed.reduce((total, count) => total + count, 0);
+                if (consumedPerCraft !== inputPerCraft) continue;
+
+                const crafts = Math.min(
+                    Math.floor(available / consumedPerCraft),
+                    Math.ceil(wanted / match.result.count)
+                );
+                if (crafts <= 0) continue;
+                const craftedCount = match.result.count * crafts;
+                return {
+                    recipeId: match.recipe.id,
+                    inputIdentifier,
+                    inputCount: consumedPerCraft * crafts,
+                    outputIdentifier,
+                    craftedCount,
+                    outputCount: Math.min(wanted, craftedCount)
+                };
+            }
+        }
+        return undefined;
+    }
+
+    /** Consumes a prepared crafting recipe's inputs and gives its output to another entity. */
+    public giveCraftedItem(giver: MobBody, taker: GoalMob, craft: GoalItemCraft): void {
+        const available = giver.inventory.filter((item) => item === craft.inputIdentifier).length;
+        if (available < craft.inputCount) return;
+        const verified = this.craftInto(
+            craft.inputIdentifier,
+            craft.outputIdentifier,
+            craft.inputCount,
+            craft.outputCount
+        );
+        if (
+            verified === undefined ||
+            verified.recipeId !== craft.recipeId ||
+            verified.inputCount !== craft.inputCount ||
+            verified.craftedCount !== craft.craftedCount ||
+            verified.outputCount !== craft.outputCount
+        )
+            return;
+
+        let remaining = craft.inputCount;
+        while (remaining > 0) {
+            const held = giver.inventory.indexOf(craft.inputIdentifier);
+            if (held === -1) return;
+            giver.inventory.splice(held, 1);
+            remaining -= 1;
+        }
+        for (let index = craft.outputCount; index < craft.craftedCount; index += 1)
+            giver.inventory.push(craft.outputIdentifier);
+        this.deliverItem(taker, craft.outputIdentifier, craft.outputCount);
+    }
+
     /**
-     * Moves one item from an entity's inventory to another entity.
+     * Moves items from an entity's inventory to another entity.
      *
      * A taker this runtime does not hold, such as a player, gets the stack
      * dropped at its feet, which is what the allay and the villager do in
@@ -1854,12 +1936,17 @@ export class EntityRuntime implements EntityScene {
         }
         if (taken === 0) return;
 
+        this.deliverItem(taker, identifier, taken);
+    }
+
+    /** Gives one item stack to a runtime entity or drops it at a player. */
+    private deliverItem(taker: GoalMob, identifier: string, count: number): void {
         const other = typeof taker.id === 'number' ? this.entities.get(taker.id) : undefined;
         if (other === undefined) {
-            this.host.drop(blockPositionOf(taker.position()), { identifier, count: taken });
+            this.host.drop(blockPositionOf(taker.position()), { identifier, count });
             return;
         }
-        for (let index = 0; index < taken; index += 1) other.body.inventory.push(identifier);
+        for (let index = 0; index < count; index += 1) other.body.inventory.push(identifier);
     }
 
     /**

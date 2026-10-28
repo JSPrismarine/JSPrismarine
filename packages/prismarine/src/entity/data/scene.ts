@@ -11,6 +11,7 @@ import type {
     BlockQuery,
     GoalBlock,
     GoalItem,
+    GoalItemCraft,
     GoalMob,
     GoalPickupOptions,
     NavigationView
@@ -101,6 +102,15 @@ export interface EntityScene {
     pickUp(taker: MobBody, item: GoalItem, count?: number, options?: GoalPickupOptions): void;
     /** Moves one item from an entity's inventory to another entity. */
     giveItem(giver: MobBody, taker: GoalMob, identifier: string, count?: number): void;
+    /** Finds a loaded crafting recipe that converts one item into another. */
+    craftInto(
+        inputIdentifier: string,
+        outputIdentifier: string,
+        availableInput: number,
+        wantedOutput: number
+    ): GoalItemCraft | undefined;
+    /** Consumes a prepared recipe's inputs and gives its output to another entity. */
+    giveCraftedItem(giver: MobBody, taker: GoalMob, craft: GoalItemCraft): void;
     /** Breaks a block and drops what its loot table rolls. */
     breakBlock(at: EntityPosition): void;
     /** Opens one entity's trade screen for a player. */
