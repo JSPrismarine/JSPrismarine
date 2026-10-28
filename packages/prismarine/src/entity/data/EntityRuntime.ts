@@ -2639,6 +2639,14 @@ export class EntityRuntime implements EntityScene {
         return content.blocks.table.friction[runtimeId] ?? DEFAULT_BLOCK_FRICTION;
     }
 
+    /** Stops an entity's fall and raises its landing trigger on an airborne-to-ground transition. */
+    private land(entity: DataEntity): void {
+        const { body, instance } = entity;
+        const startedLanding = body.airborne || body.conditions.has('jumping');
+        body.land();
+        if (startedLanding) instance.trigger('minecraft:on_start_landing');
+    }
+
     /**
      * Spends one tick of an entity's impulse and configured gravity.
      *
@@ -2734,7 +2742,7 @@ export class EntityRuntime implements EntityScene {
                     body.conditions.delete('jumping');
                     body.conditions.delete('on_ground');
                 } else {
-                    body.land();
+                    this.land(entity);
                 }
                 return;
             }
@@ -2810,7 +2818,7 @@ export class EntityRuntime implements EntityScene {
 
                 if (isRecord(onHit.stick_in_ground)) {
                     body.position = lastSafe;
-                    body.land();
+                    this.land(entity);
                     body.projectileStuck = true;
                 } else {
                     this.remove(entity.id, 'projectile_hit_block');
@@ -3163,7 +3171,7 @@ export class EntityRuntime implements EntityScene {
                 body.conditions.delete('jumping');
                 body.conditions.delete('on_ground');
             } else {
-                body.land();
+                this.land(entity);
             }
             return;
         }

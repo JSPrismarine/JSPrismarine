@@ -46,14 +46,12 @@ export const TRIGGER_COMPONENTS = [
 export type TriggerComponentName = (typeof EVENT_TRIGGER_COMPONENTS)[number];
 
 /**
- * The six event-shaped trigger components this package fires itself.
+ * Event-shaped trigger components fired at fixed points the entity runtime owns.
  *
- * `minecraft:damage_sensor` and {@link EntityInstance.damage} fire the three
- * hurt and death ones, {@link EntityInstance.setAttackTarget} fires the two
- * target ones, and the entity runtime fires friendly anger when a nearby mob
- * broadcasts it. The other four name states no part of this package owns, so
- * a caller fires them through {@link EntityInstance.trigger} once it has fire,
- * flight and sleep.
+ * {@link EntityInstance.damage} fires the hurt and death triggers,
+ * {@link EntityInstance.setAttackTarget} fires the target triggers, and the
+ * entity runtime fires friendly anger and landing. Callers fire the remaining
+ * ignition, takeoff, and wake triggers when those transitions happen.
  */
 export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_death',
@@ -61,7 +59,8 @@ export const SELF_FIRED_TRIGGERS: readonly TriggerComponentName[] = [
     'minecraft:on_hurt_by_player',
     'minecraft:on_friendly_anger',
     'minecraft:on_target_acquired',
-    'minecraft:on_target_escape'
+    'minecraft:on_target_escape',
+    'minecraft:on_start_landing'
 ];
 
 /** What an event-shaped `minecraft:on_*` component declares. */
