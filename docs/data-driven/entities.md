@@ -160,8 +160,8 @@ movement and fence-knot links are not implemented yet.
 ## Components: what runs, and what only parses
 
 Vanilla's 129 definitions use 202 distinct non-goal component keys. All 202 names are registered,
-and every entity definition resolves with its non-goal components recognized. Ninety-four keys carry
-runtime behavior. The remaining 108 expose data without simulating their behavior; some have a
+and every entity definition resolves with its non-goal components recognized. Ninety-five keys carry
+runtime behavior. The remaining 107 expose data without simulating their behavior; some have a
 dedicated schema, and the generic factories preserve the raw body. Both are available through
 `EntityInstance.componentParams`.
 
@@ -213,7 +213,7 @@ are included in the entity's saved runtime record.
 `minecraft:is_dyeable` gates dye use, updates `minecraft:color` in the data-driven entity's runtime
 state, and projects its `interact_text` to actor metadata. The changed color is persisted.
 
-The 94 with runtime effects include components that change entity state, decide an outcome, or
+The 95 with runtime effects include components that change entity state, decide an outcome, or
 project state to the client: the nine
 attribute components plus `minecraft:attack`, which write their stat when the group they live in
 initializes; the timers (`minecraft:timer`, `minecraft:ageable`, `minecraft:angry`,
@@ -224,6 +224,8 @@ population components (`minecraft:despawn`, `minecraft:instant_despawn`, `minecr
 `minecraft:transient`, which keeps its entity out of saved actor records;
 `minecraft:nameable`, which gates name-tag use, raises configured naming events, and projects the
 custom name and visibility flag;
+`minecraft:home`, which records the spawn position for home-based goals unless an event or restored
+record already supplied one;
 `minecraft:is_dyeable`, which gates dye use, updates the palette color and projects the touch-screen prompt;
 `minecraft:environment_sensor`, `minecraft:entity_sensor`, `minecraft:block_sensor`, `minecraft:inside_block_notifier`, `minecraft:target_nearby_sensor`,
 `minecraft:ambient_sound_interval`, `minecraft:rideable`, `minecraft:leashable` and

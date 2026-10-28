@@ -7,6 +7,7 @@ import { goalComponent } from '../goals';
 import { float, lookAtPlayer, randomStroll } from '../goals/reference';
 import { EVENT_TRIGGER_COMPONENTS } from '../triggers';
 import { dyeable } from './dyeable';
+import { home } from './home';
 import { nameable } from './nameable';
 import { dataComponent } from './schemas';
 import { teleport } from './teleport';
@@ -65,6 +66,7 @@ import {
 
 export * from './schemas';
 export * from './dyeable';
+export * from './home';
 export * from './nameable';
 export * from './teleport';
 export * from './vanilla';
@@ -146,7 +148,6 @@ export const DATA_COMPONENTS: readonly string[] = [
     'minecraft:group_size',
     'minecraft:heartbeat',
     'minecraft:hide',
-    'minecraft:home',
     'minecraft:input_ground_controlled',
     'minecraft:insomnia',
     'minecraft:is_baby',
@@ -240,6 +241,7 @@ export const registerEntityComponents = (registry: EntityComponentRegistry): Ent
     for (const [kind, maxTurn] of MOVEMENT_KINDS) register(movementComponent(kind, maxTurn));
     for (const name of EVENT_TRIGGER_COMPONENTS) register(triggerComponent(name));
     register(equipmentChanged);
+    register(home);
     for (const name of DATA_COMPONENTS) register(dataComponent(name));
     register(teleport);
 

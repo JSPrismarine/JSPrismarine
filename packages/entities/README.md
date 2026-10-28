@@ -233,6 +233,7 @@ applies its configured status effect after a melee hit. The rest:
 | `minecraft:block_sensor` | Raises every matching `on_block_broken` event when a listed block breaks within `sensor_radius`, applying `sources` to the breaker ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_block_sensor?view=minecraft-bedrock-stable)) |
 | `minecraft:inside_block_notifier` | Tracks block states overlapped by the entity and raises the configured events when it enters or leaves a match ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_inside_block_notifier?view=minecraft-bedrock-stable)) |
 | `minecraft:target_nearby_sensor` | Tracks the current target through `inside_range` and `outside_range`, honors `must_see` for inside events, and fires its vision-loss event while the target is inside range |
+| `minecraft:home` | Records the entity's spawning position for home-based behavior unless an event or save already supplied one ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_home?view=minecraft-bedrock-stable)) |
 | `minecraft:teleport` | Tries timed random destinations, teleports toward a distant target, and evades matching projectiles before their hit effects apply ([component reference](https://learn.microsoft.com/en-us/minecraft/creator/reference/content/entityreference/examples/entitycomponents/minecraftcomponent_teleport?view=minecraft-bedrock-stable)) |
 | `minecraft:damage_sensor` | Answers a damage event by cause and filters; the first trigger that matches wins |
 | `minecraft:hurt_on_condition` | Hurts the entity every half second while a condition's filters pass |
@@ -299,8 +300,8 @@ test in `src/vanillaEntities.test.ts`:
 | Files that parse without an error | 129 |
 | Unknown top-level or `description` keys | 0 |
 | Non-goal component keys in vanilla | 202, all registered |
-| Non-goal keys with a component hook | 84 |
-| Non-goal keys with a runtime effect across the server | 94 |
+| Non-goal keys with a component hook | 85 |
+| Non-goal keys with a runtime effect across the server | 95 |
 | Entities whose every non-goal component is registered | 129 of 129 |
 | Goal names in vanilla | 170, all registered by `@jsprismarine/entity-goals` |
 | Entities that declare goals | 92 of 129; all their goal names are registered |
@@ -342,9 +343,9 @@ wither.attributes.get('health')?.base; // 300, where the pack writes 600
 row quotes the decision instead of keeping a second copy of it.
 
 The registry recognizes all 202 non-goal component names used by the 129 vanilla entities. That
-measures name coverage rather than complete simulation: 84 component factories have hooks, and 94
+measures name coverage rather than complete simulation: 85 component factories have hooks, and 95
 components have a runtime effect across the server when host reads and protocol projections are
-included. The remaining 108 bodies are available as data for behavior that still needs to be added.
+included. The remaining 107 bodies are available as data for behavior that still needs to be added.
 
 `minecraft:area_attack` has a dedicated schema here; Prismarine applies its filtered, cooldowned
 range damage from the active component set.
@@ -384,5 +385,5 @@ JSP_VANILLA_ENTITIES=1 pnpm --filter @jsprismarine/entities exec vitest run src/
   slot changes; successful ground jumps fire `on_start_takeoff`, and the anger broadcast fires
   `on_friendly_anger`.
 - **Remaining entity component behavior.** Of the 202 non-goal component names in the vanilla pack,
-  108 currently expose data without runtime behavior. The component bodies remain accessible to the
+  107 currently expose data without runtime behavior. The component bodies remain accessible to the
   host, but registration alone does not mean the server simulates them.
