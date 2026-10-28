@@ -1,12 +1,15 @@
 import type { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import type { PlayerSession } from '../../';
 import type Player from '../../Player';
 import { EXHAUSTION } from '../../Player';
 import type Server from '../../Server';
 import { BOW, loose } from '../../entity/Archery';
 import { CREATIVE_REACH, meleeAttack, SURVIVAL_REACH } from '../../entity/Combat';
+import ContainerEntry from '../../inventory/ContainerEntry';
 import HumanInventory from '../../inventory/HumanInventory';
+import { WindowIds } from '../../inventory/WindowIds';
+import type { Item } from '../../item/Item';
 import { useItemOnBlock, useItemOnEntity } from '../../item/interaction';
 import type { InteractionResult, InteractionRotation } from '../../item/interaction';
 import Identifiers from '../Identifiers';
@@ -231,7 +234,7 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
             if (packet.transactionType === TransactionType.MISMATCH) {
                 server.getLogger().verbose(`${player.getName()} reported an inventory mismatch`);
             } else {
-                this.handleNormal(packet, server, player);
+                await this.handleNormal(packet, server, player, connection);
             }
             return;
         }
@@ -261,14 +264,76 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
     }
 
     /**
-     * Items being moved around, between slots or in and out of a container.
-     *
-     * Decoded but not applied. The server's inventory is authoritative, and a 2193 client
-     * moves items through the ItemStackRequest path, so a Normal transaction is a legacy
-     * client's and its actions are only logged. Applying them would mean trusting the
-     * client's From Item and To Item over what the server holds.
+     * A legacy client's Normal transaction. Inventory moves stay server-authoritative; the
+     * one world interaction handled here is the two-action drop that removes a stack from
+     * player inventory and creates its matching world item.
      */
-    private handleNormal(packet: InventoryTransactionPacket, server: Server, player: Player): void {
+    private async handleNormal(
+        packet: InventoryTransactionPacket,
+        server: Server,
+        player: Player,
+        session: PlayerSession
+    ): Promise<void> {
+        if (packet.transactionType === TransactionType.NORMAL && packet.inventoryActions.length === 2) {
+            const container = packet.inventoryActions.find(
+                (action) => action.sourceType === InventorySourceType.CONTAINER
+            );
+            const world = packet.inventoryActions.find((action) => action.sourceType === InventorySourceType.WORLD);
+
+            if (
+                container !== undefined &&
+                world !== undefined &&
+                container.windowId === WindowIds.INVENTORY &&
+                container.sourceFlags === null &&
+                Number.isInteger(container.targetSlot) &&
+                container.targetSlot >= 0 &&
+                container.targetSlot < player.getInventory().getSlotCount() &&
+                world.windowId === null &&
+                world.sourceFlags === 0 &&
+                world.targetSlot === 0 &&
+                this.isAir(world.oldItem)
+            ) {
+                const inventory = player.getInventory();
+                const held = inventory.getItem(container.targetSlot);
+                const oldCount = container.oldItem.getAmount();
+                const remainingCount = this.isAir(container.newItem) ? 0 : container.newItem.getAmount();
+                const droppedCount = world.newItem.getAmount();
+                const sameStack = (left: Item, right: Item): boolean =>
+                    left.getName() === right.getName() &&
+                    left.meta === right.meta &&
+                    left.getBlockRuntimeId() === right.getBlockRuntimeId();
+
+                if (
+                    !this.isAir(held) &&
+                    sameStack(container.oldItem, held) &&
+                    oldCount === held.getAmount() &&
+                    droppedCount > 0 &&
+                    droppedCount + remainingCount === oldCount &&
+                    sameStack(world.newItem, held) &&
+                    (remainingCount === 0 ||
+                        (sameStack(container.newItem, held) && container.newItem.getAmount() === remainingCount))
+                ) {
+                    if (remainingCount === 0) inventory.removeItem(container.targetSlot);
+                    else
+                        inventory.setItem(
+                            container.targetSlot,
+                            new ContainerEntry({ item: held.withCount(remainingCount), count: remainingCount })
+                        );
+
+                    const dropped = held.withCount(droppedCount);
+                    dropped.stackNetworkId = 0;
+                    await session.sendContainerSlot(
+                        WindowIds.INVENTORY,
+                        ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY,
+                        container.targetSlot,
+                        inventory.getItem(container.targetSlot)
+                    );
+                    await player.getWorld().dropContents(player.getPosition(), [dropped]);
+                    return;
+                }
+            }
+        }
+
         const sources = packet.inventoryActions.map((action) => InventorySourceType[action.sourceType]).join(', ');
         server
             .getLogger()
@@ -276,6 +341,11 @@ export default class InventoryTransactionHandler implements PacketHandler<Invent
                 `Ignored a Normal inventory transaction from ${player.getName()} with ${packet.inventoryActions.length} actions (${sources}); item moves go through ItemStackRequest`,
                 'InventoryTransactionHandler/handleNormal'
             );
+    }
+
+    /** Whether an action names the empty stack used for an absent inventory item. */
+    private isAir(item: Item): boolean {
+        return item.getName() === 'minecraft:air' || item.getAmount() <= 0;
     }
 
     /**

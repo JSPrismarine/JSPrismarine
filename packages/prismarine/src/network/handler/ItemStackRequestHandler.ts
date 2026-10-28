@@ -1,4 +1,8 @@
 import type { Vector3 } from '@jsprismarine/math';
+import { itemTypesTable } from '@jsprismarine/items';
+import { javaItemToBedrock } from '@jsprismarine/mapping';
+import type { ItemStackData } from '@jsprismarine/protocol';
+import type { RecipeItemStack } from '@jsprismarine/recipes';
 import { WindowTypes } from '@jsprismarine/minecraft';
 
 import type { PlayerSession } from '../../';
@@ -112,6 +116,8 @@ interface WorkstationContext {
     readonly changed: Set<number>;
     /** Block slots the whole packet changed, so every other player at the block can be told. */
     readonly containerChanged: Set<number>;
+    /** Accepted item drops, spawned after the batch response is sent. */
+    readonly drops: Item[];
 }
 
 /** Amount, as the docs bound it: a request moves between one item and a full stack of 64. */
@@ -133,7 +139,8 @@ const blockPositionOf = (position: Vector3) => ({
 const isClientRequestId = (id: number): boolean => Number.isInteger(id) && id < 0 && id % 2 !== 0;
 
 /** Two stacks that can be one: the same item in the same variant. */
-const sameItem = (a: Item, b: Item): boolean => a.getName() === b.getName() && a.meta === b.meta;
+const sameItem = (a: Item, b: Item): boolean =>
+    a.getName() === b.getName() && a.meta === b.meta && a.getBlockRuntimeId() === b.getBlockRuntimeId();
 
 /**
  * Part of a stack, split off as a stack of its own.
@@ -145,6 +152,46 @@ const splitOff = (item: Item, count: number): Item => {
     const part = item.withCount(count);
     part.stackNetworkId = 0;
     return part;
+};
+
+/** Resolves a Bedrock stack's name and legacy data back to its Java recipe identity. */
+const javaStackOf = (item: Item): RecipeItemStack | undefined => {
+    let id = item.getName();
+    if (id.startsWith('minecraft:')) {
+        const row = itemTypesTable.items[id];
+        if (row === undefined) return undefined;
+
+        const merged = row.merged?.find((variant) => variant.data === item.meta);
+        if (merged !== undefined) id = merged.java;
+        else {
+            if (row.data !== undefined && row.data !== item.meta) return undefined;
+            if (row.merged !== undefined && row.data === undefined && item.meta !== 0) return undefined;
+            id = row.java;
+        }
+    }
+
+    const components = Object.fromEntries(item.asPredicateStack().components);
+    return {
+        id,
+        count: item.getAmount(),
+        ...(Object.keys(components).length === 0 ? {} : { components })
+    };
+};
+
+/** Builds the server stack from the exact result advertised in CraftingDataPacket. */
+const bedrockRecipeResult = (javaId: string, result: ItemStackData, server: Server): Item | undefined => {
+    const mapped = javaItemToBedrock(javaId);
+    if (mapped.kind === 'unknown') return undefined;
+
+    const name = mapped.bedrock.identifier;
+    return new Item({
+        runtimeId: result.runtimeId,
+        name,
+        meta: result.meta,
+        count: result.count,
+        blockRuntimeId: result.blockRuntimeId,
+        content: server.getContent()
+    });
 };
 
 export default class ItemStackRequestHandler implements PacketHandler<ItemStackRequestPacket> {
@@ -186,17 +233,21 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // The block's own slots a request moved something into or out of, gathered so that every
         // other player with the same block open can be told once the packet has been answered.
         const containerChanged = new Set<number>();
+        const drops: Item[] = [];
 
         const response = new ItemStackResponsePacket();
         response.responses = packet.requests.map((request) =>
             this.apply(request, server, player, inventory, craftingInput, {
                 session,
                 changed: workstationChanged,
-                containerChanged
+                containerChanged,
+                drops
             })
         );
 
         await session.send(response);
+
+        if (drops.length > 0) await player.getWorld().dropContents(player.getPosition(), drops);
 
         // Redrawn whenever the item in the table changed, which is what `showEnchantingTable`
         // says it has to be called for: the three rows are a function of the stack.
@@ -380,14 +431,27 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
          * or picked pickaxe matched no `#minecraft:mineable/pickaxe` rule, so it did not harvest
          * stone and cracked it at a fist's pace.
          */
-        const ownStack = (item: Item, count: number): Item =>
-            new Item({
+        const ownStack = (item: Item, count: number): Item => {
+            const stack = new Item({
                 runtimeId: item.getNetworkId(),
                 name: item.getName(),
                 meta: item.meta,
                 count,
-                content: server.getContent()
+                blockRuntimeId: item.getBlockRuntimeId(),
+                content: server.getContent(),
+                enchantments: item.getEnchantments(),
+                customName: item.getCustomName(),
+                lore: item.getLore(),
+                contents: item.getContents()
             });
+            stack.durability = item.getDurability();
+            stack.stackNetworkId = 0;
+            return stack;
+        };
+
+        // Effects stay local until every action passes. A later refusal restores the inventory
+        // and must not leave the item entity that an accepted drop would have spawned.
+        const requestDrops: Item[] = [];
 
         // A craft whose request names no slot to spend is spent by the server, from the grid it
         // matched. The retail client at 1.26.52 names each one, but nothing says every client
@@ -507,13 +571,6 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
 
                     case ItemStackRequestActionType.DROP:
                     case ItemStackRequestActionType.DESTROY: {
-                        // Known gap: a Drop takes the stack out of the inventory but puts nothing
-                        // on the ground, so the two act alike where only Destroy should discard.
-                        // Spawning the entity needs `World.dropContents`, which is async, and this
-                        // whole method is synchronous so that a refusal can roll the request back
-                        // before anything else has run. A drop would have to be collected here and
-                        // made after the request is answered.
-                        //
                         // Located rather than looked up as an inventory slot: throwing away what
                         // is on the pointer is the ordinary way to get rid of a creative pick,
                         // and refusing it leaves the stack stuck to the mouse.
@@ -526,8 +583,13 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         const held = read(from);
                         if (!held) return deny(`nothing to drop in ${from[2]}/${from[3]}`);
 
-                        // As many as the step names. What stays behind keeps its id.
-                        take(from, Math.min(action.count ?? held.getAmount(), held.getAmount()));
+                        // As many as the step names. What stays behind keeps its id, while the
+                        // split drop is a fresh stack. Destroy consumes the same amount without
+                        // creating a world item.
+                        const amount = action.count ?? held.getAmount();
+                        if (amount > held.getAmount()) return deny(`${from[2]}/${from[3]} holds fewer than ${amount}`);
+                        if (!take(from, amount)) return deny(`cannot remove ${amount} from ${from[2]}/${from[3]}`);
+                        if (action.type === ItemStackRequestActionType.DROP) requestDrops.push(splitOff(held, amount));
                         break;
                     }
 
@@ -555,54 +617,122 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                         // the first result would be taken for nothing.
                         if (unpaid()) return deny('a craft began before the last one was paid for');
 
-                        // The client says which recipe it believes it is making. Believing it
-                        // would let a player craft anything by naming its number, so the grid is
-                        // matched against that recipe before anything is handed over.
-                        const recipe = server.getRecipeManager().getByNetId(action.recipeNetId!);
-                        if (!recipe) return deny(`no recipe with net id ${action.recipeNetId}`);
-
-                        const station = server.getStationRegistry().get(recipe.station);
-                        if (!station) return deny(`no station for recipe ${action.recipeNetId}`);
-
-                        const grid = craftingInput.toGrid(craftingInput.gridSize());
-                        const matched = station.match(grid);
-                        if (matched !== recipe) {
-                            // Said in full, because "does not match" is true of an empty grid, of
-                            // the wrong recipe and of the right one read as the wrong size, and
-                            // those want different fixes.
-                            const held = Array.from({ length: grid.width * grid.height }, (_, index) =>
-                                grid.at(index % grid.width, Math.floor(index / grid.width))
-                            )
-                                .map((item) => item?.getName().replace('minecraft:', '') ?? '-')
-                                .join(' ');
-
-                            return deny(
-                                `the grid does not make ${recipe.id}: ${grid.width}x${grid.height} holding [${held}], ` +
-                                    `matched ${matched?.id ?? 'nothing'}`
-                            );
+                        const recipeNetId = action.recipeNetId;
+                        if (!Number.isSafeInteger(recipeNetId) || recipeNetId === undefined || recipeNetId < 1) {
+                            return deny(`invalid recipe net id ${recipeNetId}`);
                         }
 
-                        const output = recipe.getOutputs()[0];
-                        if (!output) return deny('the recipe yields nothing');
+                        // The client says which recipe it believes it is making. The content
+                        // recipe ids are the ids sent in CraftingDataPacket; when that payload
+                        // exists, use its Java recipe book and validate the exact recipe against
+                        // the grid. The older manager is the source only when the content
+                        // payload could not be built and sendCraftingData used that list instead.
+                        const crafts = action.repetitions ?? 1;
+                        if (!Number.isSafeInteger(crafts) || crafts < 1) return deny(`invalid craft count ${crafts}`);
 
-                        // What the craft costs: one item from every filled slot of the grid, for
-                        // each time it is made. One from each, not the slot emptied - a stack of
-                        // sixty-four in the grid makes sixty-four crafts, and vanilla is the same.
-                        // No recipe in the game asks for two of one thing from a single slot, so
-                        // there is nothing more to count.
-                        //
-                        // The stacks are read before anything is spent, because the ingredients
-                        // a `recipe_crafted` criterion matches are the stacks that went in rather
-                        // than what is left of them.
-                        const crafts = Math.max(1, action.repetitions ?? 1);
-                        const cost = new Map<number, number>();
+                        const payloads = joinContentPayloads(server.getContent(), server.getLogger());
+                        let recipeId: string;
+                        let output: Item;
+                        let cost: Map<number, number>;
                         const ingredients: Item[] = [];
-                        for (let slot = 0; slot < CraftingInput.SLOTS; slot++) {
-                            const stack = craftingInput.get(slot);
-                            if (stack === null || stack.getName() === 'minecraft:air') continue;
 
-                            cost.set(slot, crafts);
-                            ingredients.push(stack);
+                        if (payloads !== undefined) {
+                            const advertised = [...payloads.crafting.shaped, ...payloads.crafting.shapeless].find(
+                                (candidate) => candidate.netId === recipeNetId
+                            );
+                            if (advertised === undefined)
+                                return deny(`no advertised recipe with net id ${recipeNetId}`);
+
+                            const content = server.getContent();
+                            const recipe = content.recipes.get(advertised.id);
+                            if (recipe === undefined || content.recipes.netIds.get(advertised.id) !== recipeNetId) {
+                                return deny(`no Java recipe for advertised net id ${recipeNetId}`);
+                            }
+
+                            const grid = craftingInput.toGrid(craftingInput.gridSize());
+                            const slots: (RecipeItemStack | null)[] = [];
+                            for (let y = 0; y < grid.height; y++) {
+                                for (let x = 0; x < grid.width; x++) {
+                                    const stack = grid.at(x, y);
+                                    if (stack === null || stack.getName() === 'minecraft:air') {
+                                        slots.push(null);
+                                        continue;
+                                    }
+
+                                    const javaStack = javaStackOf(stack);
+                                    if (javaStack === undefined) {
+                                        return deny(`crafting slot ${y * grid.width + x} has no Java item mapping`);
+                                    }
+                                    slots.push(javaStack);
+                                }
+                            }
+
+                            const matched = content.recipes
+                                .matchAll({
+                                    station: 'crafting',
+                                    grid: { width: grid.width, height: grid.height, slots }
+                                })
+                                .find((candidate) => candidate.recipe.id === recipe.id);
+                            if (matched === undefined)
+                                return deny(`the grid does not make advertised recipe ${recipe.id}`);
+
+                            const advertisedOutput = advertised.outputs[0];
+                            if (advertisedOutput === undefined)
+                                return deny(`the advertised recipe ${recipe.id} has no output`);
+                            const recipeOutput = bedrockRecipeResult(matched.result.id, advertisedOutput, server);
+                            if (recipeOutput === undefined)
+                                return deny(`the result of ${recipe.id} has no Bedrock item mapping`);
+
+                            recipeId = recipe.id;
+                            output = recipeOutput;
+                            cost = new Map<number, number>();
+                            matched.consumed.forEach((count, slot) => {
+                                if (count > 0) cost.set(slot, count * crafts);
+                            });
+                            for (const [slot, amount] of cost) {
+                                const stack = craftingInput.get(slot);
+                                if (stack === null) return deny(`crafting slot ${slot} is empty`);
+                                if (stack.getAmount() < amount) {
+                                    return deny(
+                                        `crafting slot ${craftingInput.wireSlotOf(slot)} holds fewer than ${amount}`
+                                    );
+                                }
+                                ingredients.push(stack);
+                            }
+                        } else {
+                            const recipe = server.getRecipeManager().getByNetId(recipeNetId);
+                            if (!recipe) return deny(`no recipe with net id ${recipeNetId}`);
+
+                            const station = server.getStationRegistry().get(recipe.station);
+                            if (!station) return deny(`no station for recipe ${action.recipeNetId}`);
+
+                            const grid = craftingInput.toGrid(craftingInput.gridSize());
+                            const matched = station.match(grid);
+                            if (matched !== recipe) {
+                                const held = Array.from({ length: grid.width * grid.height }, (_, index) =>
+                                    grid.at(index % grid.width, Math.floor(index / grid.width))
+                                )
+                                    .map((item) => item?.getName().replace('minecraft:', '') ?? '-')
+                                    .join(' ');
+
+                                return deny(
+                                    `the grid does not make ${recipe.id}: ${grid.width}x${grid.height} holding [${held}], ` +
+                                        `matched ${matched?.id ?? 'nothing'}`
+                                );
+                            }
+
+                            const recipeOutput = recipe.getOutputs()[0];
+                            if (!recipeOutput) return deny('the recipe yields nothing');
+
+                            recipeId = recipe.id;
+                            output = recipeOutput;
+                            cost = new Map();
+                            for (let slot = 0; slot < CraftingInput.SLOTS; slot++) {
+                                const stack = craftingInput.get(slot);
+                                if (stack === null || stack.getName() === 'minecraft:air') continue;
+                                cost.set(slot, crafts);
+                                ingredients.push(stack);
+                            }
                         }
 
                         created = ownStack(output, output.getAmount() * crafts);
@@ -623,7 +753,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
                             }
                         }
 
-                        advancementItemCrafted(player, recipe.id, ingredients, created);
+                        advancementItemCrafted(player, recipeId, ingredients, created);
                         break;
                     }
 
@@ -698,6 +828,7 @@ export default class ItemStackRequestHandler implements PacketHandler<ItemStackR
         // Written back only now, because everything up to here could still have been refused and
         // a refusal has to leave the block holding what it held.
         store?.commit();
+        context.drops.push(...requestDrops);
 
         for (const [kept, index] of touched.values()) {
             if (kept === WORKSTATION) context.changed.add(index);

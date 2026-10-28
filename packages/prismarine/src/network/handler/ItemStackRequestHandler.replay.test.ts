@@ -1,4 +1,5 @@
 import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { BlockPalette } from '@jsprismarine/blocks';
 import type { Logger } from '@jsprismarine/logger';
 import fs from 'node:fs';
 import { describe, expect, it } from 'vitest';
@@ -14,6 +15,8 @@ import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
 import { testContent } from '../../testing/entityServer';
 import { stub } from '../../testing/stub.test.helper';
+import { Position } from '../../world/Position';
+import type { World } from '../../world/World';
 import type PlayerSession from '../PlayerSession';
 import type DataPacket from '../packet/DataPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
@@ -129,10 +132,17 @@ const replay = async () => {
     // The recipe the request last named, which the station then says the grid makes: what is
     // under test is what the handler does with a craft, not which recipe a grid matches.
     let named: Recipe | null = null;
+    const content = testContent();
+    // The recording uses the legacy recipe manager's ids. Make the content packet build fail
+    // as it can at startup, so sendCraftingData and this handler both use that same recipe list.
+    const unavailablePayloadContent = {
+        ...content,
+        blocks: { ...content.blocks, palette: new BlockPalette([]) }
+    };
     const server: Server = stub<Server>({
-        getLogger: () => stub<Logger>({ debug: () => {} }),
+        getLogger: () => stub<Logger>({ debug: () => {}, info: () => {}, warn: () => {}, error: () => {} }),
         // A finished craft raises `recipe_crafted`, which asks for the server's content.
-        getContent: () => testContent(),
+        getContent: () => unavailablePayloadContent,
         getRecipeManager: () =>
             stub<RecipeManager>({
                 getByNetId: (netId: number) => (named = recipes.get(netId) ?? null)
@@ -145,13 +155,16 @@ const replay = async () => {
 
     const sent: DataPacket[] = [];
     const craftingInput = new CraftingInput();
+    const world = stub<World>({ dropContents: async () => {} });
     const session = stub<PlayerSession>({
         getOpenBlockContainer: () => undefined,
         getPlayer: () =>
             stub<Player>({
                 getInventory: () => inventory,
                 getCraftingInput: () => craftingInput,
-                getServer: () => server
+                getServer: () => server,
+                getWorld: () => world,
+                getPosition: () => new Position(0, 64, 0, world)
             }),
         send: async (packet) => void sent.push(packet)
     });

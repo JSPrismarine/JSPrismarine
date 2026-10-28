@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 
 import type Player from '../../Player';
 import type Server from '../../Server';
+import { definitionOf, definitionsOf } from '../../content/ContentOptions';
 import { buildServerContent } from '../../content/ServerContent';
-import { fixtureBlockPalette, fixtureContentOptions } from '../../content/testing';
+import { fixtureBlockPalette, fixtureContentOptions, fixtureDefinitions } from '../../content/testing';
 import ContainerEntry from '../../inventory/ContainerEntry';
 import CraftingInput from '../../crafting/CraftingInput';
 import { StationRegistry } from '../../crafting/CraftingStation';
@@ -17,6 +18,8 @@ import { Item } from '../../item/Item';
 import { stub } from '../../testing/stub.test.helper';
 import type PlayerSession from '../PlayerSession';
 import type { OpenBlockContainer } from '../PlayerSession';
+import type { World } from '../../world/World';
+import { Position } from '../../world/Position';
 import { joinContentPayloads } from '../contentPayloads';
 import type DataPacket from '../packet/DataPacket';
 import ItemStackRequestPacket from '../packet/ItemStackRequestPacket';
@@ -154,6 +157,91 @@ describe('network', () => {
             expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
             expect(response.responses[0]?.requestId).toBe(-7);
             expect(response.responses[0]?.containers[0]?.slots.map((s) => s.slot)).toEqual([3]);
+        });
+
+        it('drops the requested stack into the world', async () => {
+            const inventory = new HumanInventory();
+            inventory.setItem(
+                0,
+                new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 3 }), count: 3 })
+            );
+            const dropped: Item[] = [];
+            const world = stub<World>({
+                dropContents: async (_position, contents) => {
+                    for (const content of contents) if (content instanceof Item) dropped.push(content);
+                }
+            });
+            const server = fakeServer([]);
+            const player = stub<Player>({
+                getInventory: () => inventory,
+                getCraftingInput: () => new CraftingInput(),
+                getServer: () => server,
+                getWorld: () => world,
+                getPosition: () => new Position(0, 64, 0, world)
+            });
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [{ type: ItemStackRequestActionType.DROP, count: 1, source: slot(0) }],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { player }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.getItem(0).getAmount()).toBe(2);
+            expect(dropped.map((item) => [item.getName(), item.getAmount()])).toEqual([['minecraft:stone', 1]]);
+        });
+
+        it('does not spawn a drop when a later action refuses the request', async () => {
+            const inventory = new HumanInventory();
+            inventory.setItem(
+                0,
+                new ContainerEntry({ item: new Item({ name: 'minecraft:stone', count: 3 }), count: 3 })
+            );
+            const dropped: Item[] = [];
+            const world = stub<World>({
+                dropContents: async (_position, contents) => {
+                    for (const content of contents) if (content instanceof Item) dropped.push(content);
+                }
+            });
+            const server = fakeServer([]);
+            const player = stub<Player>({
+                getInventory: () => inventory,
+                getCraftingInput: () => new CraftingInput(),
+                getServer: () => server,
+                getWorld: () => world,
+                getPosition: () => new Position(0, 64, 0, world)
+            });
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            { type: ItemStackRequestActionType.DROP, count: 1, source: slot(0) },
+                            { type: ItemStackRequestActionType.CRAFTING_LOOM }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                new CraftingInput(),
+                { player }
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.ERROR);
+            expect(inventory.getItem(0).getAmount()).toBe(3);
+            expect(dropped).toEqual([]);
         });
 
         it('reads a creative pick off the menu the content build sent', async () => {
@@ -340,6 +428,74 @@ describe('network', () => {
             expect(located.index).toBe(0);
             expect(craftingInput.gridSize()).toBe(CraftingInput.LARGE);
             expect(craftingInput.wireSlotOf(0)).toBe(tableSlot(0).slotId);
+        });
+
+        it('crafts a recipe by the net id sent in the content recipe packet', async () => {
+            const content = buildServerContent(
+                fixtureContentOptions({
+                    load: () => ({
+                        definitions: definitionsOf({
+                            ...fixtureDefinitions(),
+                            recipesJava: new Map([
+                                [
+                                    'minecraft:redstone_lamp_from_stone',
+                                    definitionOf('recipesJava', 'minecraft:redstone_lamp_from_stone', {
+                                        type: 'minecraft:crafting_shapeless',
+                                        ingredients: ['minecraft:stone'],
+                                        result: { id: 'minecraft:redstone_lamp' }
+                                    })
+                                ]
+                            ])
+                        }),
+                        diagnostics: []
+                    })
+                })
+            );
+            const server = fakeServer([], {
+                getContent: () => content,
+                getRecipeManager: () => stub<RecipeManager>({ getByNetId: () => null })
+            });
+            const payloads = joinContentPayloads(content, server.getLogger(), {
+                clientPalette: fixtureBlockPalette()
+            });
+            const recipe = payloads?.crafting.shapeless.find(({ id }) => id === 'minecraft:redstone_lamp_from_stone');
+            if (recipe === undefined) throw new Error('the redstone lamp recipe was not advertised');
+            const output = recipe.outputs[0];
+            if (output === undefined) throw new Error('the redstone lamp recipe has no output');
+
+            const inventory = new HumanInventory();
+            const craftingInput = new CraftingInput();
+            craftingInput.set(0, new Item({ name: 'minecraft:stone' }));
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: recipe.netId,
+                                repetitions: 1
+                            },
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                craftingInput
+            );
+
+            expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+            expect(inventory.getItem(0).getName()).toBe('minecraft:redstone_lamp');
+            expect(inventory.getItem(0).getBlockRuntimeId()).toBe(output.blockRuntimeId);
         });
 
         it('undoes everything when a later step fails', async () => {

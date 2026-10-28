@@ -1,6 +1,6 @@
 import type { Logger } from '@jsprismarine/logger';
 import { Vector3 } from '@jsprismarine/math';
-import { Gametype } from '@jsprismarine/minecraft';
+import { ContainerUiId, Gametype } from '@jsprismarine/minecraft';
 import { describe, expect, it, vi } from 'vitest';
 
 // A reused Vitest worker may already have the handler's real dependencies in its module cache.
@@ -74,6 +74,8 @@ const fake = (
     const logged: string[] = [];
     const itemUse: string[] = [];
     const entityInteractions: number[] = [];
+    const dropped: Item[] = [];
+    const inventorySyncs: Array<readonly [number, number, number, Item | null]> = [];
     let exhaustion = 0;
 
     let zombie: Entity;
@@ -83,7 +85,10 @@ const fake = (
             return true;
         },
         getEntity: (runtimeId) => (runtimeId === 42n ? zombie : null),
-        getDimension: () => Dimensions.Overworld
+        getDimension: () => Dimensions.Overworld,
+        dropContents: async (_position, contents) => {
+            for (const content of contents) if (content instanceof Item) dropped.push(content);
+        }
     });
     zombie = stub<Entity>({
         getRuntimeId: () => 42n,
@@ -141,7 +146,11 @@ const fake = (
                 error: (...message) => void logged.push(`error: ${String(message[0] ?? '')}`)
             })
     });
-    const session = stub<PlayerSession>({ getPlayer: () => player });
+    const session = stub<PlayerSession>({
+        getPlayer: () => player,
+        sendContainerSlot: async (windowId, containerId, slot, item) =>
+            void inventorySyncs.push([windowId, containerId, slot, item])
+    });
 
     return {
         get clicked() {
@@ -157,6 +166,8 @@ const fake = (
         logged,
         itemUse,
         entityInteractions,
+        dropped,
+        inventorySyncs,
         exhaustion: () => exhaustion,
         zombie,
         player,
@@ -482,6 +493,44 @@ describe('InventoryTransactionHandler', () => {
         expect(world.logged).toEqual([
             'debug: Ignored a Normal inventory transaction from tester with 2 actions (CONTAINER, WORLD); item moves go through ItemStackRequest'
         ]);
+    });
+
+    it('drops the item a balanced Normal transaction removes from inventory', async () => {
+        const world = fake();
+        const held = new Item({ runtimeId: 1, name: 'minecraft:stone', count: 3 });
+        world.inventory.setItem(2, new ContainerEntry({ item: held, count: 3 }));
+
+        await handle(
+            transaction(TransactionType.NORMAL, null, [
+                new InventoryAction(InventorySourceType.CONTAINER, 0, null, 2, held, held.withCount(2)),
+                new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), held.withCount(1))
+            ]),
+            world
+        );
+
+        expect(world.inventory.getItem(2).getAmount()).toBe(2);
+        expect(world.dropped.map((item) => [item.getName(), item.getAmount()])).toEqual([['minecraft:stone', 1]]);
+        expect(world.inventorySyncs).toEqual([
+            [0, ContainerUiId.COMBINED_HOTBAR_AND_INVENTORY, 2, world.inventory.getItem(2)]
+        ]);
+    });
+
+    it('ignores a Normal drop whose inventory and world changes do not balance', async () => {
+        const world = fake();
+        const held = new Item({ runtimeId: 1, name: 'minecraft:stone', count: 3 });
+        world.inventory.setItem(2, new ContainerEntry({ item: held, count: 3 }));
+
+        await handle(
+            transaction(TransactionType.NORMAL, null, [
+                new InventoryAction(InventorySourceType.CONTAINER, 0, null, 2, held, held.withCount(2)),
+                new InventoryAction(InventorySourceType.WORLD, null, 0, 0, Item.air(), held.withCount(2))
+            ]),
+            world
+        );
+
+        expect(world.inventory.getItem(2).getAmount()).toBe(3);
+        expect(world.dropped).toEqual([]);
+        expect(world.inventorySyncs).toEqual([]);
     });
 
     it('takes a mismatch report as ordinary traffic', async () => {
