@@ -119,6 +119,9 @@ Flowing water and lava run Java's `FlowingFluid` over Bedrock's two blocks per f
 state is a kind, an amount of 1 to 8, a falling flag and a source flag, all encoded into Bedrock's
 own `liquid_depth` by Java's `getLegacyLevel` rule. Three numbers decide how far and how fast a
 fluid travels, and they are the only place in the package where the dimension changes an answer.
+For other Bedrock blocks, the fluid rule maps their states back to Java, so mapped water-bearing
+plants and waterlogged states count as water during spread. Kelp survives only when the block below
+has a sturdy top face.
 
 | Fluid | Drop-off | Hole search | Tick delay | Reach from a source |
 | --- | --- | --- | --- | --- |
