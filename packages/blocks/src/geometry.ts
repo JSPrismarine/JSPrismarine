@@ -34,6 +34,8 @@ interface GeometryRow {
     /** The collision height most of the block's states share. */
     top: number;
     liquid: string;
+    /** Whether any captured state of this block has a collision box. */
+    hasCollision: boolean;
     /** The states that differ, keyed by their runtime id as an unsigned 32-bit number. */
     states?: Record<string, number>;
 }
@@ -86,6 +88,17 @@ export const bedrockCollisionTopOf = (identifier: string, runtimeId?: number): n
 
     return row.states?.[String(runtimeId >>> 0)] ?? row.top;
 };
+
+/**
+ * Whether any state of a block has collision geometry in Bedrock's captured block table.
+ *
+ * A block with no collision in any state can safely declare
+ * `minecraft:collision_box: false` in the vanilla overlay. States whose collision changes need a
+ * permutation and are not represented by this block-level answer.
+ * @param {string} identifier - The namespaced block identifier.
+ * @returns {boolean | undefined} Whether a captured state has collision geometry, or undefined when uncaptured.
+ */
+export const bedrockHasCollisionOf = (identifier: string): boolean | undefined => blocks[identifier]?.hasCollision;
 
 /**
  * What a liquid flowing into this block's cell does to it.

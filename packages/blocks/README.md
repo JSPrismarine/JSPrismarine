@@ -287,6 +287,11 @@ overrides the full-cube conductor default. The boolean values live in
 `src/tables/vanillaRedstoneConductivity.json`; the content adapter passes the resolved component
 value to redstone calculations. Blocks without an override use the full-cube default.
 
+`minecraft:collision_box: false` is written for blocks whose captured Bedrock states never have a
+collision box. This comes from the same Bedrock block geometry capture as
+`bedrockCollisionTopOf`, rather than a hand-maintained exception list. Blocks whose collision
+changes by state still need overlay permutations to express the per-state shape.
+
 Four blocks have a Java friction Mojang's component cannot hold, so `minecraft:friction` is clamped
 to 0.9 and `jsprismarine:block_properties.friction` keeps the real value: blue ice 0.989, and ice,
 packed ice and frosted ice at 0.98. `vanilla_overlay/report.json` lists them.
@@ -299,12 +304,8 @@ list is exactly those 182 and that no entry falls through to a generic reason.
 
 ## What is left
 
-- **Solidity and collision shapes.** `@jsprismarine/mapping` publishes no solidity column and no
-  per-state collision geometry, so the overlay writes `minecraft:collision_box: false` only for a
-  reviewed list of 22 states nothing can stand in (air, the structure void, both portals, the moving
-  block, the placeholder block and the 16 light blocks), listed with reasons in
-  `vanilla_overlay/report.json`. Everything else is solid by default. The per-state `geometry`
-  column of the CloudburstMC dump is the source that would fix this, and it belongs in the mapping
-  package.
+- **Per-state collision components.** The overlay marks blocks with no collision in any captured
+  state as non-colliding. It does not yet emit `minecraft:collision_box` permutations for blocks
+  whose captured collision changes by state, or the exact box coordinates for partial shapes.
 - **Loot, display names and menu categories.** The overlay writes none of them. Loot comes from
   Java's 1447 tables in a later phase, and the creative menu is written from the item registry.

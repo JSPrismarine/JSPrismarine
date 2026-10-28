@@ -17,7 +17,6 @@
             "minecraft:movable": {
                 "movement_type": "push_pull"
             },
-            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:inert",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

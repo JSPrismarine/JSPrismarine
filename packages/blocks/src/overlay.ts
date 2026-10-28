@@ -4,6 +4,7 @@ import { behaviorFor } from './families';
 import containerOpenSounds from './tables/containerOpenSounds.json';
 import vanillaRedstoneConductivity from './tables/vanillaRedstoneConductivity.json';
 import vanillaBlockTags from './tables/vanillaBlockTags.json';
+import { bedrockHasCollisionOf } from './geometry';
 
 const BEDROCK_BLOCK_TAGS = new Map(Object.entries(vanillaBlockTags));
 const VANILLA_REDSTONE_CONDUCTIVITY = new Map(Object.entries(vanillaRedstoneConductivity));
@@ -95,30 +96,6 @@ const EXCEPTION_REASONS: readonly { readonly reason: string; readonly matches: (
     }
 ];
 
-/**
- * The blocks the overlay gives `"minecraft:collision_box": false`.
- *
- * `@jsprismarine/mapping` publishes no solidity column, so the generator
- * cannot derive collision for the palette at large. These are the states
- * nothing can ever stand in, written down with a reason rather than inferred.
- */
-const WITHOUT_COLLISION: readonly { readonly identifier: string; readonly reason: string }[] = [
-    { identifier: 'minecraft:air', reason: 'air occupies nothing' },
-    { identifier: 'minecraft:water', reason: 'a liquid has no collision surface' },
-    { identifier: 'minecraft:flowing_water', reason: 'a flowing liquid has no collision surface' },
-    { identifier: 'minecraft:lava', reason: 'a liquid has no collision surface' },
-    { identifier: 'minecraft:flowing_lava', reason: 'a flowing liquid has no collision surface' },
-    { identifier: 'minecraft:structure_void', reason: 'the structure editor placeholder has no shape' },
-    { identifier: 'minecraft:portal', reason: 'a nether portal is a volume an entity walks into' },
-    { identifier: 'minecraft:end_portal', reason: 'an end portal is a volume an entity walks into' },
-    { identifier: 'minecraft:moving_block', reason: "a piston's temporary block carries the moved block's shape" },
-    { identifier: 'minecraft:client_request_placeholder_block', reason: 'an engine-internal marker with no shape' },
-    ...Array.from({ length: 16 }, (_unused, level) => ({
-        identifier: `minecraft:light_block_${level}`,
-        reason: 'a light source with no shape'
-    }))
-];
-
 /** How Java's push reaction is written in Bedrock's `Movement Type` enum. */
 const MOVEMENT_TYPES: Readonly<Record<string, string>> = {
     push_pull: 'push_pull',
@@ -159,6 +136,8 @@ export interface OverlayPack {
     readonly exceptions: readonly OverlayException[];
     /** The blocks whose Java friction Mojang's component cannot hold. */
     readonly frictionClamps: readonly FrictionClamp[];
+    /** Blocks whose captured Bedrock states never have collision geometry. */
+    readonly nonCollidingBlocks: readonly string[];
     /** How many blocks each behavior family claimed, highest first. */
     readonly behaviorCounts: Readonly<Record<string, number>>;
 }
@@ -233,8 +212,8 @@ export const generateVanillaOverlay = (
     const files: OverlayFile[] = [];
     const exceptions: OverlayException[] = [];
     const frictionClamps: FrictionClamp[] = [];
+    const nonCollidingBlocks: string[] = [];
     const behaviorCounts = new Map<string, number>();
-    const withoutCollision = new Map(WITHOUT_COLLISION.map((entry) => [entry.identifier, entry.reason]));
 
     files.push({
         path: 'manifest.json',
@@ -289,7 +268,12 @@ export const generateVanillaOverlay = (
             };
         }
 
-        if (withoutCollision.has(identifier)) components['minecraft:collision_box'] = false;
+        const hasCollision = bedrockHasCollisionOf(identifier);
+        if (hasCollision === undefined) throw new Error(`${identifier} has no captured Bedrock collision geometry`);
+        if (!hasCollision) {
+            components['minecraft:collision_box'] = false;
+            nonCollidingBlocks.push(identifier);
+        }
 
         components['jsprismarine:behavior'] = behavior;
         components['jsprismarine:block_properties'] = {
@@ -334,10 +318,10 @@ export const generateVanillaOverlay = (
             blockCount: identifiers.length,
             exceptionCount: exceptions.length,
             frictionClamps,
-            withoutCollision: WITHOUT_COLLISION,
+            nonCollidingBlocks,
             behaviorCounts: counts
         })
     });
 
-    return { files, exceptions, frictionClamps, behaviorCounts: counts };
+    return { files, exceptions, frictionClamps, nonCollidingBlocks, behaviorCounts: counts };
 };

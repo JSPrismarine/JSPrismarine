@@ -15,7 +15,6 @@
             "minecraft:movable": {
                 "movement_type": "immovable"
             },
-            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:portal",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

@@ -21,6 +21,7 @@
                 "catch_chance_modifier": 15,
                 "destroy_chance_modifier": 100
             },
+            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:climbing",
             "jsprismarine:block_properties": {
                 "friction": 0.6,

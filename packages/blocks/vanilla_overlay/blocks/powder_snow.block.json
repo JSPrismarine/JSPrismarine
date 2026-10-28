@@ -20,6 +20,7 @@
             "minecraft:redstone_conductivity": {
                 "redstone_conductor": false
             },
+            "minecraft:collision_box": false,
             "jsprismarine:behavior": "jsprismarine:snow",
             "jsprismarine:block_properties": {
                 "friction": 0.6,
