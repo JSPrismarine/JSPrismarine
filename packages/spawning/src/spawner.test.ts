@@ -83,6 +83,44 @@ describe('one spawn cycle', () => {
 
         expect(spawner.cycle('monster', 0)).toEqual([]);
     });
+
+    it('spawns surface-rule fish in the water at the surface of an ocean column', () => {
+        const cod = ruleOf('minecraft:cod', 'water_animal', [
+            {
+                'minecraft:spawns_on_surface': {},
+                'minecraft:spawns_underwater': {},
+                'minecraft:weight': { default: 1 },
+                'minecraft:herd': { min_size: 1, max_size: 1 }
+            }
+        ]);
+        const ocean = worldWith({
+            site: (flag, at) => {
+                if (flag === 'underwater') return at.y === 63;
+                if (flag === 'underground') return at.y < 64;
+                return flag === 'surface' && at.y >= 64;
+            },
+            block: (at) => (at.y === 63 ? 'minecraft:water' : at.y < 63 ? 'minecraft:stone' : 'minecraft:air'),
+            surfaceY: () => 64,
+            minY: () => 63
+        });
+        const spawner = new Spawner({
+            rules: [cod],
+            world: ocean,
+            random: seededRandom(7),
+            constants: {
+                ...SPAWN_CONSTANTS,
+                spawnRadiusChunks: 0,
+                chunksPerCycle: 1,
+                positionsPerChunk: 1,
+                herdRadius: 0
+            }
+        });
+
+        const spawned = spawner.cycle('water_animal', 0);
+
+        expect(spawned).toHaveLength(1);
+        expect(spawned[0]?.position.y).toBe(63);
+    });
 });
 
 describe('the population caps', () => {

@@ -231,9 +231,10 @@ export class Spawner {
     private positionIn(chunkX: number, chunkZ: number, pass: SpawnPass): SpawnPosition | undefined {
         const x = chunkX * 16 + this.random.nextInt(16);
         const z = chunkZ * 16 + this.random.nextInt(16);
+        if (pass === 'surface') return this.surfacePosition(x, z);
+
         const top = this.world.surfaceY(x, z);
         if (top === undefined) return undefined;
-        if (pass === 'surface') return { x, y: top, z };
 
         const floor = this.world.minY();
         if (top - 1 < floor) return undefined;
@@ -244,6 +245,21 @@ export class Spawner {
         // that can path nowhere, never despawns and fills the pool so nothing else can spawn.
         const at = { x, y: between(this.random, floor, top - 1), z };
         return this.fits(at) ? at : undefined;
+    }
+
+    /** The top spawn position in a column, using the water surface when one covers the terrain. */
+    private surfacePosition(x: number, z: number): SpawnPosition | undefined {
+        const top = this.world.surfaceY(x, z);
+        if (top === undefined) return undefined;
+
+        const surface = { x, y: top, z };
+        if (this.world.site('underwater', surface)) return surface;
+
+        // A height map that counts water puts its surface one block above the fluid. Fish rules
+        // ask for both the surface pass and an underwater position, so sample the top water
+        // block instead of the air above it.
+        const waterSurface = { ...surface, y: top - 1 };
+        return this.world.site('underwater', waterSurface) ? waterSurface : surface;
     }
 
     /** Whether an entity fits at a position: its own block and the one over its head are free. */
@@ -279,7 +295,7 @@ export class Spawner {
             if (engineRule !== undefined && !engineRule(position, { world: this.world, random: this.random })) continue;
 
             for (const condition of rule.conditions) {
-                if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick)).passed) continue;
+                if (!evaluateSpawnCondition(condition, position, this.contextFor(rule, tick), pass).passed) continue;
                 candidates.push({ rule, condition });
                 totalWeight += Math.max(0, condition.weight.default);
             }
@@ -357,7 +373,11 @@ export class Spawner {
         const x = anchor.x + between(this.random, -radius, radius);
         const z = anchor.z + between(this.random, -radius, radius);
         if (pass !== 'surface') return { x, y: anchor.y, z };
-        return { x, y: this.world.surfaceY(x, z) ?? anchor.y, z };
+
+        const position = this.surfacePosition(x, z);
+        if (position === undefined) return anchor;
+        if (this.world.site('underwater', anchor) && !this.world.site('underwater', position)) return anchor;
+        return position;
     }
 
     private contextFor(rule: SpawnRule, tick: number): SpawnConditionContext {

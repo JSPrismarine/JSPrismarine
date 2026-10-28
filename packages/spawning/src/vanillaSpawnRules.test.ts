@@ -184,6 +184,46 @@ describe.runIf(enabled)('the vanilla spawn rules', () => {
         });
     });
 
+    it('spawns cod and salmon from their vanilla rules in surface water', () => {
+        const fishRules = rules.filter(
+            (rule) => rule.identifier === 'minecraft:cod' || rule.identifier === 'minecraft:salmon'
+        );
+        const ocean = {
+            ...permissiveWorld,
+            site: (flag: SpawnSiteFlag, at: SpawnPosition) => {
+                if (flag === 'underwater') return at.y === 63;
+                if (flag === 'underground') return at.y < 64;
+                return flag === 'surface' && at.y >= 64;
+            },
+            biomeTags: () => ['ocean', 'overworld'],
+            surfaceY: () => 64,
+            minY: () => 63,
+            players: () => [{ position: { x: 0, y: 64, z: 0 } }]
+        } satisfies SpawnWorld;
+        const spawner = new Spawner({
+            rules: fishRules,
+            world: ocean,
+            random: seededRandom(17),
+            constants: {
+                ...SPAWN_CONSTANTS,
+                spawnRadiusChunks: 0,
+                chunksPerCycle: 1,
+                positionsPerChunk: 100,
+                herdRadius: 0
+            }
+        });
+
+        const spawned = spawner.cycle('water_animal', 0);
+
+        expect(spawned.length).toBeGreaterThan(0);
+        expect(spawned.every((request) => request.position.y === 63)).toBe(true);
+        expect(
+            spawned.every(
+                (request) => request.identifier === 'minecraft:cod' || request.identifier === 'minecraft:salmon'
+            )
+        ).toBe(true);
+    });
+
     it('leaves exactly four rules without conditions', () => {
         const bare = rules.filter((rule) => rule.conditions.length === 0).map((rule) => rule.identifier);
 

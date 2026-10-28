@@ -6,7 +6,7 @@ import type { SpawnConstants } from './constants';
 import { SPAWN_CONSTANTS } from './constants';
 import type { Difficulty, SpawnCondition, SpawnDelay, SpawnRuleComponent } from './rules';
 import { DIFFICULTIES } from './rules';
-import type { SpawnPosition, SpawnWorld } from './world';
+import type { SpawnPass, SpawnPosition, SpawnWorld } from './world';
 import { distanceSquared, passAt } from './world';
 
 /**
@@ -161,15 +161,19 @@ const matchesBlock = (identifier: string | undefined, names: readonly string[]):
  * `minecraft:spawns_underwater` nor `minecraft:spawns_lava` refuses a position
  * inside either liquid, which is the reading that keeps land mobs out of the
  * ocean; Mojang states the components and not that rule.
+ *
+ * @param requestedPass - The pass the spawn loop is evaluating, or absent to
+ *   derive it from the world's site facts.
  */
 export const evaluateSpawnCondition = (
     condition: SpawnCondition,
     at: SpawnPosition,
-    context: SpawnConditionContext
+    context: SpawnConditionContext,
+    requestedPass?: SpawnPass
 ): SpawnConditionResult => {
     const { world } = context;
     const constants = context.constants ?? SPAWN_CONSTANTS;
-    const pass = passAt(world, at);
+    const pass = requestedPass ?? passAt(world, at);
 
     if (condition.spawnsOnSurface || condition.spawnsUnderground) {
         if (pass === 'surface' && !condition.spawnsOnSurface) return rejected('minecraft:spawns_underground');
