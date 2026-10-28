@@ -1,4 +1,7 @@
 import type { Logger } from '@jsprismarine/logger';
+import { vanillaBlockPalette } from '@jsprismarine/blocks';
+import { item_id_map as ItemIdMap } from '@jsprismarine/bedrock-data';
+import { vanillaItemDefinitions } from '@jsprismarine/items';
 import { describe, expect, it } from 'vitest';
 
 import type Player from '../../Player';
@@ -12,6 +15,7 @@ import { StationRegistry } from '../../crafting/CraftingStation';
 import { ShapelessRecipe } from '../../crafting/Recipe';
 import RecipeManager from '../../crafting/RecipeManager';
 import { ItemIngredient } from '../../crafting/RecipeIngredient';
+import VanillaRecipes from '../../crafting/VanillaRecipes';
 import type CreativeInventory from '../../inventory/CreativeInventory';
 import HumanInventory from '../../inventory/HumanInventory';
 import { Item } from '../../item/Item';
@@ -651,6 +655,163 @@ describe('network', () => {
             // Spent, and the client told so - otherwise it keeps showing what it used up.
             expect(craftingInput.isEmpty()).toBe(true);
         });
+
+        it('crafts with birch planks in the content recipe path', async () => {
+            const base = fixtureDefinitions();
+            const definitions = definitionsOf({
+                ...base,
+                recipesJava: new Map([
+                    ...base.recipesJava,
+                    [
+                        'minecraft:crafting_table',
+                        definitionOf('recipesJava', 'minecraft:crafting_table', {
+                            type: 'minecraft:crafting_shaped',
+                            pattern: ['PP', 'PP'],
+                            key: { P: '#minecraft:planks' },
+                            result: { id: 'minecraft:crafting_table' }
+                        })
+                    ]
+                ]),
+                tags: new Map([
+                    ...base.tags,
+                    [
+                        'item/minecraft:planks',
+                        definitionOf('tags', 'item/minecraft:planks', {
+                            values: ['minecraft:oak_planks', 'minecraft:birch_planks']
+                        })
+                    ]
+                ])
+            });
+            const content = buildServerContent({
+                ...fixtureContentOptions(),
+                blockPalette: vanillaBlockPalette(),
+                itemDefinitions: vanillaItemDefinitions(),
+                load: () => ({ definitions, diagnostics: [] })
+            });
+            // This crafting fixture only declares the blocks used by the handler. The client
+            // still has the full vanilla palette, so give the payload builder that palette
+            // while retaining the fixture's recipes, tags, and item registry.
+            const wireContent = { ...content, blocks: { ...content.blocks, palette: vanillaBlockPalette() } };
+            const logs: string[] = [];
+            const server = fakeServer([], {
+                getContent: () => wireContent,
+                getLogger: () =>
+                    stub<Logger>({
+                        debug: (...values) => void logs.push(values.map(String).join(' ')),
+                        info: () => {},
+                        warn: () => {},
+                        error: (...values) => void logs.push(values.map(String).join(' '))
+                    })
+            });
+            const craftingInput = new CraftingInput();
+            craftingInput.useGrid(CraftingInput.LARGE);
+            for (const index of [0, 1, 3, 4]) {
+                craftingInput.set(index, new Item({ name: 'minecraft:birch_planks', meta: 0 }));
+            }
+            const inventory = new HumanInventory();
+
+            const response = await run(
+                [
+                    {
+                        requestId: -3,
+                        actions: [
+                            {
+                                type: ItemStackRequestActionType.CRAFTING_RECIPE,
+                                recipeNetId: content.recipes.netIds.get('minecraft:crafting_table'),
+                                repetitions: 1
+                            },
+                            ...[0, 1, 3, 4].map((index) => ({
+                                type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                count: 1,
+                                source: tableSlot(index)
+                            })),
+                            {
+                                type: ItemStackRequestActionType.PLACE,
+                                count: 1,
+                                source: createdOutput,
+                                destination: slot(0)
+                            }
+                        ],
+                        filterStrings: [],
+                        filterStringCause: 0
+                    }
+                ],
+                inventory,
+                server,
+                craftingInput
+            );
+
+            expect(response.responses[0]?.result, logs.join('\n')).toBe(ItemStackResponseResult.OK);
+            expect(inventory.getItem(0).getName()).toBe('minecraft:crafting_table');
+            expect(craftingInput.isEmpty()).toBe(true);
+        });
+
+        it.each(['minecraft:crimson_planks', 'minecraft:warped_planks', 'minecraft:mangrove_planks'])(
+            'crafts a crafting table from %s when the client requests the shared plank recipe',
+            async (planks) => {
+                const recipes = VanillaRecipes.load((name) => ItemIdMap[name] !== undefined);
+                const recipe = recipes.find(
+                    (candidate) => candidate.id === 'crafting_table/minecraft:WorkBench_recipeId'
+                );
+                if (!recipe) throw new Error('the vanilla shared-plank crafting-table recipe was not loaded');
+
+                const tableRecipes = recipes.filter(
+                    (candidate) =>
+                        candidate.station === 'crafting_table' &&
+                        candidate.getOutputs().some((output) => output.getName() === 'minecraft:crafting_table')
+                );
+                const manager = new RecipeManager({ getLogger: () => ({ debug: () => {} }), emit: async () => {} });
+                for (const tableRecipe of tableRecipes) await manager.registerRecipe(tableRecipe);
+
+                const recipeNetId = manager.getNetId(recipe);
+                if (recipeNetId === null) throw new Error('the shared-plank recipe has no network id');
+
+                const registry = new StationRegistry();
+                const server = stub<Server>({
+                    getRecipeManager: () => manager,
+                    getStationRegistry: () => registry,
+                    getLogger: () => stub<Logger>({ debug: () => {} }),
+                    getContent: () => testContent()
+                });
+                registry.registerRecipeStations(server);
+
+                const craftingInput = new CraftingInput();
+                craftingInput.useGrid(CraftingInput.LARGE);
+                for (const index of [0, 1, 3, 4]) craftingInput.set(index, new Item({ name: planks }));
+
+                const inventory = new HumanInventory();
+                const response = await run(
+                    [
+                        {
+                            requestId: -3,
+                            actions: [
+                                { type: ItemStackRequestActionType.CRAFTING_RECIPE, recipeNetId, repetitions: 1 },
+                                ...[0, 1, 3, 4].map((index) => ({
+                                    type: ItemStackRequestActionType.CRAFTING_CONSUME_INPUT,
+                                    count: 1,
+                                    source: tableSlot(index)
+                                })),
+                                {
+                                    type: ItemStackRequestActionType.PLACE,
+                                    count: 1,
+                                    source: createdOutput,
+                                    destination: slot(0)
+                                }
+                            ],
+                            filterStrings: [],
+                            filterStringCause: 0
+                        }
+                    ],
+                    inventory,
+                    server,
+                    craftingInput
+                );
+
+                expect(response.responses[0]?.result).toBe(ItemStackResponseResult.OK);
+                expect(inventory.getItem(0).getName()).toBe('minecraft:crafting_table');
+                expect(craftingInput.isEmpty()).toBe(true);
+            }
+        );
 
         describe('a crafted stack', () => {
             /** A server that knows one recipe: a diamond in the grid makes `output`. */

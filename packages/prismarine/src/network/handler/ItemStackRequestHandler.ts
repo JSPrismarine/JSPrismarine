@@ -164,7 +164,11 @@ const javaStackOf = (item: Item): RecipeItemStack | undefined => {
         const merged = row.merged?.find((variant) => variant.data === item.meta);
         if (merged !== undefined) id = merged.java;
         else {
-            if (row.data !== undefined && row.data !== item.meta) return undefined;
+            // `data` on a uniquely named Bedrock item is its legacy wire value, not a
+            // selector: birch planks remain birch planks even when the content stack's
+            // metadata is zero. Only a shared identifier needs metadata to identify a
+            // different Java item.
+            if (row.merged !== undefined && row.data !== undefined && row.data !== item.meta) return undefined;
             if (row.merged !== undefined && row.data === undefined && item.meta !== 0) return undefined;
             id = row.java;
         }
