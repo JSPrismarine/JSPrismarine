@@ -2952,8 +2952,9 @@ export class EntityRuntime implements EntityScene {
             z: velocity.z * horizontalDrag
         };
         const nextY = position.y + nextVelocity.y;
-        const canOccupy = (at: EntityPosition) =>
-            !hasCollision || bodyCanOccupy(at, box, navigation, canStandOnPowderSnow);
+        function canOccupy(at: EntityPosition): boolean {
+            return !hasCollision || bodyCanOccupy(at, box, navigation, canStandOnPowderSnow);
+        }
         let next = moveOnAxis(position, position.x + nextVelocity.x, 'x', canOccupy);
         const hitHorizontalX = Math.abs(next.x - (position.x + nextVelocity.x)) > MOVEMENT_EPSILON;
         next = moveOnAxis(next, position.z + nextVelocity.z, 'z', canOccupy);
@@ -3004,9 +3005,12 @@ export class EntityRuntime implements EntityScene {
             allowVertical: profile.canFly || profile.kind === 'fly' || profile.kind === 'hover' || swims || climbs,
             canJump: profile.canJump,
             stepHeight: profile.stepHeight,
-            canOccupy: (position) =>
-                !hasCollision ||
-                bodyCanOccupy(position, entity.facts.box, navigation, profile.canStandOnPowderSnow === true)
+            canOccupy(position: EntityPosition): boolean {
+                return (
+                    !hasCollision ||
+                    bodyCanOccupy(position, entity.facts.box, navigation, profile.canStandOnPowderSnow === true)
+                );
+            }
         });
     }
 
