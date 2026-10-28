@@ -51,11 +51,58 @@ const locateNameSuggestions = suggestFromData<CommandSource>(
 /** Reads Bedrock's `["facing"="north"]` block state list into a record. */
 export const parseBlockStates = (text: string): Record<string, string> => {
     const states: Record<string, string> = {};
-    for (const [, key, state] of text.matchAll(/"?([\w:]+)"?\s*=\s*"?([\w:.-]+)"?/g)) {
-        if (key !== undefined && state !== undefined) states[key] = state;
+    let offset = 0;
+
+    while (offset < text.length) {
+        const keyStart = text[offset] === '"' ? offset + 1 : offset;
+        let keyEnd = keyStart;
+        while (isBlockStateKeyCharacter(text[keyEnd])) keyEnd++;
+
+        if (keyEnd === keyStart) {
+            offset++;
+            continue;
+        }
+
+        let separator = text[keyEnd] === '"' ? keyEnd + 1 : keyEnd;
+        while (isWhitespace(text[separator])) separator++;
+
+        if (text[separator] !== '=') {
+            offset = keyEnd;
+            continue;
+        }
+
+        let stateStart = separator + 1;
+        while (isWhitespace(text[stateStart])) stateStart++;
+        if (text[stateStart] === '"') stateStart++;
+
+        let stateEnd = stateStart;
+        while (isBlockStateValueCharacter(text[stateEnd])) stateEnd++;
+
+        if (stateEnd === stateStart) {
+            offset = stateStart;
+            continue;
+        }
+
+        states[text.slice(keyStart, keyEnd)] = text.slice(stateStart, stateEnd);
+        offset = stateEnd + Number(text[stateEnd] === '"');
     }
+
     return states;
 };
+
+const isWordCharacter = (character: string | undefined): boolean => {
+    if (character === undefined) return false;
+    const code = character.charCodeAt(0);
+    return (code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122) || character === '_';
+};
+
+const isBlockStateKeyCharacter = (character: string | undefined): boolean =>
+    isWordCharacter(character) || character === ':';
+
+const isBlockStateValueCharacter = (character: string | undefined): boolean =>
+    isBlockStateKeyCharacter(character) || character === '.' || character === '-';
+
+const isWhitespace = (character: string | undefined): boolean => character !== undefined && /\s/.test(character);
 
 const blockAt = (context: Context, nameKey: string, statesKey?: string): BlockRef => ({
     identifier: value<string>(context, nameKey),
